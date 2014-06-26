@@ -18,9 +18,9 @@ import urllib
 from oslo.config import cfg
 from webob import exc
 
-from neutron.common import constants
-from neutron.common import exceptions
-from neutron.openstack.common import log as logging
+from tacker.common import constants
+from tacker.common import exceptions
+from tacker.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)
@@ -290,14 +290,14 @@ class NoSortingHelper(SortingHelper):
     pass
 
 
-class NeutronController(object):
-    """Base controller class for Neutron API."""
+class TackerController(object):
+    """Base controller class for Tacker API."""
     # _resource_name will be redefined in sub concrete controller
     _resource_name = None
 
     def __init__(self, plugin):
         self._plugin = plugin
-        super(NeutronController, self).__init__()
+        super(TackerController, self).__init__()
 
     def _prepare_request_body(self, body, params):
         """Verifies required parameters are in request body.

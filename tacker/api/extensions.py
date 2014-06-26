@@ -16,7 +16,6 @@
 
 import abc
 import imp
-import itertools
 import os
 
 from oslo.config import cfg
@@ -25,13 +24,12 @@ import six
 import webob.dec
 import webob.exc
 
-from neutron.api.v2 import attributes
-from neutron.common import exceptions
-import neutron.extensions
-from neutron import manager
-from neutron.openstack.common import log as logging
-from neutron import policy
-from neutron import wsgi
+from tacker.api.v1 import attributes
+from tacker.common import exceptions
+import tacker.extensions
+from tacker.openstack.common import log as logging
+from tacker import policy
+from tacker import wsgi
 
 
 LOG = logging.getLogger(__name__)
@@ -384,10 +382,10 @@ class ExtensionMiddleware(wsgi.Middleware):
         return app
 
 
-def plugin_aware_extension_middleware_factory(global_config, **local_config):
+def extension_middleware_factory(global_config, **local_config):
     """Paste factory."""
     def _factory(app):
-        ext_mgr = PluginAwareExtensionManager.get_instance()
+        ext_mgr = ExtensionManager.get_instance()
         return ExtensionMiddleware(app, ext_mgr=ext_mgr)
     return _factory
 
@@ -398,6 +396,14 @@ class ExtensionManager(object):
     See tests/unit/extensions/foxinsocks.py for an
     example extension implementation.
     """
+
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls(get_extensions_path())
+        return cls._instance
 
     def __init__(self, path):
         LOG.info(_('Initializing extension manager.'))
@@ -539,7 +545,7 @@ class ExtensionManager(object):
     def _load_all_extensions_from_path(self, path):
         # Sorting the extension list makes the order in which they
         # are loaded predictable across a cluster of load-balanced
-        # Neutron Servers
+        # Tacker Servers
         for f in sorted(os.listdir(path)):
             try:
                 LOG.debug(_('Loading extension file: %s'), f)
@@ -574,68 +580,11 @@ class ExtensionManager(object):
         self.extensions[alias] = ext
 
 
-class PluginAwareExtensionManager(ExtensionManager):
-
-    _instance = None
-
-    def __init__(self, path, plugins):
-        self.plugins = plugins
-        super(PluginAwareExtensionManager, self).__init__(path)
-        self.check_if_plugin_extensions_loaded()
-
-    def _check_extension(self, extension):
-        """Check if an extension is supported by any plugin."""
-        extension_is_valid = super(PluginAwareExtensionManager,
-                                   self)._check_extension(extension)
-        return (extension_is_valid and
-                self._plugins_support(extension) and
-                self._plugins_implement_interface(extension))
-
-    def _plugins_support(self, extension):
-        alias = extension.get_alias()
-        supports_extension = any((hasattr(plugin,
-                                          "supported_extension_aliases") and
-                                  alias in plugin.supported_extension_aliases)
-                                 for plugin in self.plugins.values())
-        if not supports_extension:
-            LOG.warn(_("Extension %s not supported by any of loaded plugins"),
-                     alias)
-        return supports_extension
-
-    def _plugins_implement_interface(self, extension):
-        if(not hasattr(extension, "get_plugin_interface") or
-           extension.get_plugin_interface() is None):
-            return True
-        for plugin in self.plugins.values():
-            if isinstance(plugin, extension.get_plugin_interface()):
-                return True
-        LOG.warn(_("Loaded plugins do not implement extension %s interface"),
-                 extension.get_alias())
-        return False
-
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            cls._instance = cls(get_extensions_path(),
-                                manager.NeutronManager.get_service_plugins())
-        return cls._instance
-
-    def check_if_plugin_extensions_loaded(self):
-        """Check if an extension supported by a plugin has been loaded."""
-        plugin_extensions = set(itertools.chain.from_iterable([
-            getattr(plugin, "supported_extension_aliases", [])
-            for plugin in self.plugins.values()]))
-        missing_aliases = plugin_extensions - set(self.extensions)
-        if missing_aliases:
-            raise exceptions.ExtensionsNotFound(
-                extensions=list(missing_aliases))
-
-
 class RequestExtension(object):
-    """Extend requests and responses of core Neutron OpenStack API controllers.
+    """Extend requests and responses of core Tacker OpenStack API controllers.
 
     Provide a way to add data to responses and handle custom request data
-    that is sent to core Neutron OpenStack API controllers.
+    that is sent to core Tacker OpenStack API controllers.
     """
 
     def __init__(self, method, url_route, handler):
@@ -646,7 +595,7 @@ class RequestExtension(object):
 
 
 class ActionExtension(object):
-    """Add custom actions to core Neutron OpenStack API controllers."""
+    """Add custom actions to core Tacker OpenStack API controllers."""
 
     def __init__(self, collection, action_name, handler):
         self.collection = collection
@@ -655,7 +604,7 @@ class ActionExtension(object):
 
 
 class ResourceExtension(object):
-    """Add top level resources to the OpenStack API in Neutron."""
+    """Add top level resources to the OpenStack API in Tacker."""
 
     def __init__(self, collection, controller, parent=None, path_prefix="",
                  collection_actions={}, member_actions={}, attr_map={}):
@@ -669,9 +618,9 @@ class ResourceExtension(object):
 
 
 # Returns the extension paths from a config entry and the __path__
-# of neutron.extensions
+# of tacker.extensions
 def get_extensions_path():
-    paths = ':'.join(neutron.extensions.__path__)
+    paths = ':'.join(tacker.extensions.__path__)
     if cfg.CONF.api_extensions_path:
         paths = ':'.join([cfg.CONF.api_extensions_path, paths])
 

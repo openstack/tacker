@@ -15,10 +15,10 @@
 
 import webob.dec
 
-from neutron.api.views import versions as versions_view
-from neutron.openstack.common import gettextutils
-from neutron.openstack.common import log as logging
-from neutron import wsgi
+from tacker.api.views import versions as versions_view
+from tacker.openstack.common import gettextutils
+from tacker.openstack.common import log as logging
+from tacker import wsgi
 
 
 LOG = logging.getLogger(__name__)
@@ -32,10 +32,10 @@ class Versions(object):
 
     @webob.dec.wsgify(RequestClass=wsgi.Request)
     def __call__(self, req):
-        """Respond to a request for all Neutron API versions."""
+        """Respond to a request for all Tacker API versions."""
         version_objs = [
             {
-                "id": "v2.0",
+                "id": "v1.0",
                 "status": "CURRENT",
             },
         ]

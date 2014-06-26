@@ -15,22 +15,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import copy
 import netaddr
 import webob.exc
 
 from oslo.config import cfg
 
-from neutron.api import api_common
-from neutron.api.rpc.agentnotifiers import dhcp_rpc_agent_api
-from neutron.api.v2 import attributes
-from neutron.api.v2 import resource as wsgi_resource
-from neutron.common import constants as const
-from neutron.common import exceptions
-from neutron.common import rpc as n_rpc
-from neutron.openstack.common import log as logging
-from neutron import policy
-from neutron import quota
+from tacker.api import api_common
+from tacker.api.v1 import attributes
+from tacker.api.v1 import resource as wsgi_resource
+from tacker.common import exceptions
+from tacker.common import rpc as n_rpc
+from tacker.openstack.common import log as logging
+from tacker import policy
 
 
 LOG = logging.getLogger(__name__)
@@ -70,15 +66,9 @@ class Controller(object):
         self._policy_attrs = [name for (name, info) in self._attr_info.items()
                               if info.get('required_by_policy')]
         self._notifier = n_rpc.get_notifier('network')
-        # use plugin's dhcp notifier, if this is already instantiated
-        agent_notifiers = getattr(plugin, 'agent_notifiers', {})
-        self._dhcp_agent_notifier = (
-            agent_notifiers.get(const.AGENT_TYPE_DHCP) or
-            dhcp_rpc_agent_api.DhcpAgentNotifyAPI()
-        )
-        if cfg.CONF.notify_nova_on_port_data_changes:
-            from neutron.notifiers import nova
-            self._nova_notifier = nova.Notifier()
+        # if cfg.CONF.notify_nova_on_port_data_changes:
+        #     from tacker.notifiers import nova
+        #     self._nova_notifier = nova.Notifier()
         self._member_actions = member_actions
         self._primary_key = self._get_primary_key()
         if self._allow_pagination and self._native_pagination:
@@ -153,7 +143,7 @@ class Controller(object):
     def _view(self, context, data, fields_to_strip=None):
         """Build a view of an API resource.
 
-        :param context: the neutron context
+        :param context: the tacker context
         :param data: the object for which a view is being created
         :param fields_to_strip: attributes to remove from the view
 
@@ -288,19 +278,6 @@ class Controller(object):
             policy.enforce(request.context, action, obj)
         return obj
 
-    def _send_dhcp_notification(self, context, data, methodname):
-        if cfg.CONF.dhcp_agent_notification:
-            if self._collection in data:
-                for body in data[self._collection]:
-                    item = {self._resource: body}
-                    self._dhcp_agent_notifier.notify(context, item, methodname)
-            else:
-                self._dhcp_agent_notifier.notify(context, data, methodname)
-
-    def _send_nova_notification(self, action, orig, returned):
-        if hasattr(self, '_nova_notifier'):
-            self._nova_notifier.send_network_change(action, orig, returned)
-
     def index(self, request, **kwargs):
         """Returns a list of the requested entity."""
         parent_id = kwargs.get(self._parent_id_name)
@@ -383,46 +360,20 @@ class Controller(object):
         if self._collection in body:
             # Have to account for bulk create
             items = body[self._collection]
-            deltas = {}
-            bulk = True
         else:
             items = [body]
-            bulk = False
         # Ensure policy engine is initialized
         policy.init()
         for item in items:
-            self._validate_network_tenant_ownership(request,
-                                                    item[self._resource])
             policy.enforce(request.context,
                            action,
                            item[self._resource])
-            try:
-                tenant_id = item[self._resource]['tenant_id']
-                count = quota.QUOTAS.count(request.context, self._resource,
-                                           self._plugin, self._collection,
-                                           tenant_id)
-                if bulk:
-                    delta = deltas.get(tenant_id, 0) + 1
-                    deltas[tenant_id] = delta
-                else:
-                    delta = 1
-                kwargs = {self._resource: count + delta}
-            except exceptions.QuotaResourceUnknown as e:
-                # We don't want to quota this resource
-                LOG.debug(e)
-            else:
-                quota.QUOTAS.limit_check(request.context,
-                                         item[self._resource]['tenant_id'],
-                                         **kwargs)
 
         def notify(create_result):
             notifier_method = self._resource + '.create.end'
             self._notifier.info(request.context,
                                 notifier_method,
                                 create_result)
-            self._send_dhcp_notification(request.context,
-                                         create_result,
-                                         notifier_method)
             return create_result
 
         kwargs = {self._parent_id_name: parent_id} if parent_id else {}
@@ -447,8 +398,6 @@ class Controller(object):
             else:
                 kwargs.update({self._resource: body})
                 obj = obj_creator(request.context, **kwargs)
-                self._send_nova_notification(action, {},
-                                             {self._resource: obj})
                 return notify({self._resource: self._view(request.context,
                                                           obj)})
 
@@ -479,11 +428,6 @@ class Controller(object):
         self._notifier.info(request.context,
                             notifier_method,
                             {self._resource + '_id': id})
-        result = {self._resource: self._view(request.context, obj)}
-        self._send_nova_notification(action, {}, result)
-        self._send_dhcp_notification(request.context,
-                                     result,
-                                     notifier_method)
 
     def update(self, request, id, body=None, **kwargs):
         """Updates the specified entity's attributes."""
@@ -512,7 +456,6 @@ class Controller(object):
         policy.init()
         orig_obj = self._item(request, id, field_list=field_list,
                               parent_id=parent_id)
-        orig_object_copy = copy.copy(orig_obj)
         orig_obj.update(body[self._resource])
         try:
             policy.enforce(request.context,
@@ -532,10 +475,6 @@ class Controller(object):
         result = {self._resource: self._view(request.context, obj)}
         notifier_method = self._resource + '.update.end'
         self._notifier.info(request.context, notifier_method, result)
-        self._send_dhcp_notification(request.context,
-                                     result,
-                                     notifier_method)
-        self._send_nova_notification(action, orig_object_copy, result)
         return result
 
     @staticmethod
@@ -643,29 +582,6 @@ class Controller(object):
         if extra_keys:
             msg = _("Unrecognized attribute(s) '%s'") % ', '.join(extra_keys)
             raise webob.exc.HTTPBadRequest(msg)
-
-    def _validate_network_tenant_ownership(self, request, resource_item):
-        # TODO(salvatore-orlando): consider whether this check can be folded
-        # in the policy engine
-        if (request.context.is_admin or
-                self._resource not in ('port', 'subnet')):
-            return
-        network = self._plugin.get_network(
-            request.context,
-            resource_item['network_id'])
-        # do not perform the check on shared networks
-        if network.get('shared'):
-            return
-
-        network_owner = network['tenant_id']
-
-        if network_owner != resource_item['tenant_id']:
-            msg = _("Tenant %(tenant_id)s not allowed to "
-                    "create %(resource)s on this network")
-            raise webob.exc.HTTPForbidden(msg % {
-                "tenant_id": resource_item['tenant_id'],
-                "resource": self._resource,
-            })
 
 
 def create_resource(collection, resource, plugin, params, allow_bulk=False,

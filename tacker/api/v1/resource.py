@@ -24,11 +24,11 @@ import six
 import webob.dec
 import webob.exc
 
-from neutron.api.v2 import attributes
-from neutron.common import exceptions
-from neutron.openstack.common import gettextutils
-from neutron.openstack.common import log as logging
-from neutron import wsgi
+from tacker.api.v1 import attributes
+from tacker.common import exceptions
+from tacker.openstack.common import gettextutils
+from tacker.openstack.common import log as logging
+from tacker import wsgi
 
 
 LOG = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ def Resource(controller, faults=None, deserializers=None, serializers=None):
             method = getattr(controller, action)
 
             result = method(request=request, **args)
-        except (exceptions.NeutronException,
+        except (exceptions.TackerException,
                 netaddr.AddrFormatError) as e:
             for fault in faults:
                 if isinstance(e, fault):
@@ -99,17 +99,17 @@ def Resource(controller, faults=None, deserializers=None, serializers=None):
             else:
                 LOG.exception(_('%s failed'), action)
             e = translate(e, language)
-            # following structure is expected by python-neutronclient
+            # following structure is expected by python-tackerclient
             err_data = {'type': e.__class__.__name__,
                         'message': e, 'detail': ''}
-            body = serializer.serialize({'NeutronError': err_data})
+            body = serializer.serialize({'TackerError': err_data})
             kwargs = {'body': body, 'content_type': content_type}
             raise mapped_exc(**kwargs)
         except webob.exc.HTTPException as e:
             type_, value, tb = sys.exc_info()
             LOG.exception(_('%s failed'), action)
             translate(e, language)
-            value.body = serializer.serialize({'NeutronError': e})
+            value.body = serializer.serialize({'TackerError': e})
             value.content_type = content_type
             six.reraise(type_, value, tb)
         except NotImplementedError as e:
@@ -131,7 +131,7 @@ def Resource(controller, faults=None, deserializers=None, serializers=None):
             msg = _('Request Failed: internal server error while '
                     'processing your request.')
             msg = translate(msg, language)
-            body = serializer.serialize({'NeutronError': msg})
+            body = serializer.serialize({'TackerError': msg})
             kwargs = {'body': body, 'content_type': content_type}
             raise webob.exc.HTTPInternalServerError(**kwargs)
 
@@ -161,7 +161,7 @@ def translate(translatable, locale):
               was not translated
     """
     localize = gettextutils.translate
-    if isinstance(translatable, exceptions.NeutronException):
+    if isinstance(translatable, exceptions.TackerException):
         translatable.msg = localize(translatable.msg, locale)
     elif isinstance(translatable, webob.exc.HTTPError):
         translatable.detail = localize(translatable.detail, locale)
