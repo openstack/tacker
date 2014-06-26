@@ -18,9 +18,9 @@
 Common utilities and helper functions for Openstack Networking Plugins.
 """
 
-from neutron.common import exceptions as n_exc
-from neutron.common import utils
-from neutron.plugins.common import constants
+from tacker.common import exceptions as n_exc
+from tacker.common import utils
+from tacker.plugins.common import constants
 
 
 def verify_vlan_range(vlan_range):
