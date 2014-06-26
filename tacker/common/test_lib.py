@@ -40,5 +40,5 @@
 # describes parameters used by different unit/functional tests
 # a plugin-specific testing mechanism should import this dictionary
 # and override the values in it if needed (e.g., run_tests.py in
-# neutron/plugins/openvswitch/ )
+# tacker/plugins/openvswitch/ )
 test_config = {}

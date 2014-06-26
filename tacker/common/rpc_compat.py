@@ -16,9 +16,9 @@
 from oslo.config import cfg
 from oslo import messaging
 
-from neutron.common import rpc as n_rpc
-from neutron.openstack.common import log as logging
-from neutron.openstack.common import service
+from tacker.common import rpc as n_rpc
+from tacker.openstack.common import log as logging
+from tacker.openstack.common import service
 
 
 LOG = logging.getLogger(__name__)

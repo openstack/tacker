@@ -14,14 +14,14 @@
 #    under the License.
 
 """
-Neutron base exception handling.
+Tacker base exception handling.
 """
 
-from neutron.openstack.common import excutils
+from tacker.openstack.common import excutils
 
 
-class NeutronException(Exception):
-    """Base Neutron Exception.
+class TackerException(Exception):
+    """Base Tacker Exception.
 
     To correctly use this class, inherit from it and define
     a 'message' property. That message will get printf'd
@@ -31,14 +31,14 @@ class NeutronException(Exception):
 
     def __init__(self, **kwargs):
         try:
-            super(NeutronException, self).__init__(self.message % kwargs)
+            super(TackerException, self).__init__(self.message % kwargs)
             self.msg = self.message % kwargs
         except Exception:
             with excutils.save_and_reraise_exception() as ctxt:
                 if not self.use_fatal_exceptions():
                     ctxt.reraise = False
                     # at least get the core message out if something happened
-                    super(NeutronException, self).__init__(self.message)
+                    super(TackerException, self).__init__(self.message)
 
     def __unicode__(self):
         return unicode(self.msg)
@@ -47,23 +47,23 @@ class NeutronException(Exception):
         return False
 
 
-class BadRequest(NeutronException):
+class BadRequest(TackerException):
     message = _('Bad %(resource)s request: %(msg)s')
 
 
-class NotFound(NeutronException):
+class NotFound(TackerException):
     pass
 
 
-class Conflict(NeutronException):
+class Conflict(TackerException):
     pass
 
 
-class NotAuthorized(NeutronException):
+class NotAuthorized(TackerException):
     message = _("Not authorized.")
 
 
-class ServiceUnavailable(NeutronException):
+class ServiceUnavailable(TackerException):
     message = _("The service is unavailable")
 
 
@@ -96,11 +96,11 @@ class PolicyFileNotFound(NotFound):
     message = _("Policy configuration policy.json could not be found")
 
 
-class PolicyInitError(NeutronException):
+class PolicyInitError(TackerException):
     message = _("Failed to init policy %(policy)s because %(reason)s")
 
 
-class PolicyCheckError(NeutronException):
+class PolicyCheckError(TackerException):
     message = _("Failed to check policy %(policy)s because %(reason)s")
 
 
@@ -108,7 +108,7 @@ class StateInvalid(BadRequest):
     message = _("Unsupported port state: %(port_state)s")
 
 
-class InUse(NeutronException):
+class InUse(TackerException):
     message = _("The resource is inuse")
 
 
@@ -188,7 +188,7 @@ class MalformedRequestBody(BadRequest):
     message = _("Malformed request body: %(reason)s")
 
 
-class Invalid(NeutronException):
+class Invalid(TackerException):
     def __init__(self, message=None):
         self.message = message
         super(Invalid, self).__init__()
@@ -220,15 +220,15 @@ class IpAddressGenerationFailure(Conflict):
     message = _("No more IP addresses available on network %(net_id)s.")
 
 
-class BridgeDoesNotExist(NeutronException):
+class BridgeDoesNotExist(TackerException):
     message = _("Bridge %(bridge)s does not exist.")
 
 
-class PreexistingDeviceFailure(NeutronException):
+class PreexistingDeviceFailure(TackerException):
     message = _("Creation failed. %(dev_name)s already exists.")
 
 
-class SudoRequired(NeutronException):
+class SudoRequired(TackerException):
     message = _("Sudo privilege is required to run this command.")
 
 
@@ -262,7 +262,7 @@ class ExtensionsNotFound(NotFound):
     message = _("Extensions not found: %(extensions)s")
 
 
-class InvalidContentType(NeutronException):
+class InvalidContentType(TackerException):
     message = _("Invalid content type %(content_type)s")
 
 
@@ -271,11 +271,11 @@ class ExternalIpAddressExhausted(BadRequest):
                 "network %(net_id)s.")
 
 
-class TooManyExternalNetworks(NeutronException):
+class TooManyExternalNetworks(TackerException):
     message = _("More than one external network exists")
 
 
-class InvalidConfigurationOption(NeutronException):
+class InvalidConfigurationOption(TackerException):
     message = _("An invalid value was provided for %(opt_name)s: "
                 "%(opt_value)s")
 
@@ -290,7 +290,7 @@ class GatewayIpInUse(InUse):
                 "by port %(port_id)s. Unable to update.")
 
 
-class NetworkVlanRangeError(NeutronException):
+class NetworkVlanRangeError(TackerException):
     message = _("Invalid network VLAN range: '%(vlan_range)s' - '%(error)s'")
 
     def __init__(self, **kwargs):
@@ -300,15 +300,15 @@ class NetworkVlanRangeError(NeutronException):
         super(NetworkVlanRangeError, self).__init__(**kwargs)
 
 
-class NetworkVxlanPortRangeError(NeutronException):
+class NetworkVxlanPortRangeError(TackerException):
     message = _("Invalid network VXLAN port range: '%(vxlan_range)s'")
 
 
-class VxlanNetworkUnsupported(NeutronException):
+class VxlanNetworkUnsupported(TackerException):
     message = _("VXLAN Network unsupported.")
 
 
-class DuplicatedExtension(NeutronException):
+class DuplicatedExtension(TackerException):
     message = _("Found duplicate extension: %(alias)s")
 
 

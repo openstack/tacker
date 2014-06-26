@@ -32,14 +32,14 @@ import uuid
 from eventlet.green import subprocess
 from oslo.config import cfg
 
-from neutron.common import constants as q_const
-from neutron.openstack.common import lockutils
-from neutron.openstack.common import log as logging
+from tacker.common import constants as q_const
+from tacker.openstack.common import lockutils
+from tacker.openstack.common import log as logging
 
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 LOG = logging.getLogger(__name__)
-SYNCHRONIZED_PREFIX = 'neutron-'
+SYNCHRONIZED_PREFIX = 'tacker-'
 
 synchronized = lockutils.synchronized_with_prefix(SYNCHRONIZED_PREFIX)
 
@@ -140,21 +140,21 @@ def find_config_file(options, config_file):
     root = os.path.join(dir_to_common, '..', '..', '..', '..')
     # Handle standard directory search for the config file
     config_file_dirs = [fix_path(os.path.join(os.getcwd(), 'etc')),
-                        fix_path(os.path.join('~', '.neutron-venv', 'etc',
-                                              'neutron')),
+                        fix_path(os.path.join('~', '.tacker-venv', 'etc',
+                                              'tacker')),
                         fix_path('~'),
                         os.path.join(cfg.CONF.state_path, 'etc'),
-                        os.path.join(cfg.CONF.state_path, 'etc', 'neutron'),
+                        os.path.join(cfg.CONF.state_path, 'etc', 'tacker'),
                         fix_path(os.path.join('~', '.local',
-                                              'etc', 'neutron')),
-                        '/usr/etc/neutron',
-                        '/usr/local/etc/neutron',
-                        '/etc/neutron/',
+                                              'etc', 'tacker')),
+                        '/usr/etc/tacker',
+                        '/usr/local/etc/tacker',
+                        '/etc/tacker/',
                         '/etc']
 
     if 'plugin' in options:
         config_file_dirs = [
-            os.path.join(x, 'neutron', 'plugins', options['plugin'])
+            os.path.join(x, 'tacker', 'plugins', options['plugin'])
             for x in config_file_dirs
         ]
 

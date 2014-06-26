@@ -19,9 +19,9 @@ from oslo.config import cfg
 from oslo import messaging
 from oslo.messaging import serializer as om_serializer
 
-from neutron.common import exceptions
-from neutron import context
-from neutron.openstack.common import log as logging
+from tacker.common import exceptions
+from tacker import context
+from tacker.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)
@@ -37,14 +37,14 @@ EXTRA_EXMODS = []
 
 
 TRANSPORT_ALIASES = {
-    'neutron.openstack.common.rpc.impl_fake': 'fake',
-    'neutron.openstack.common.rpc.impl_qpid': 'qpid',
-    'neutron.openstack.common.rpc.impl_kombu': 'rabbit',
-    'neutron.openstack.common.rpc.impl_zmq': 'zmq',
-    'neutron.rpc.impl_fake': 'fake',
-    'neutron.rpc.impl_qpid': 'qpid',
-    'neutron.rpc.impl_kombu': 'rabbit',
-    'neutron.rpc.impl_zmq': 'zmq',
+    'tacker.openstack.common.rpc.impl_fake': 'fake',
+    'tacker.openstack.common.rpc.impl_qpid': 'qpid',
+    'tacker.openstack.common.rpc.impl_kombu': 'rabbit',
+    'tacker.openstack.common.rpc.impl_zmq': 'zmq',
+    'tacker.rpc.impl_fake': 'fake',
+    'tacker.rpc.impl_qpid': 'qpid',
+    'tacker.rpc.impl_kombu': 'rabbit',
+    'tacker.rpc.impl_zmq': 'zmq',
 }
 
 
@@ -105,7 +105,7 @@ def get_notifier(service=None, host=None, publisher_id=None):
 
 class PluginRpcSerializer(om_serializer.Serializer):
     """This serializer is used to convert RPC common context into
-    Neutron Context.
+    Tacker Context.
     """
     def __init__(self, base):
         super(PluginRpcSerializer, self).__init__()
