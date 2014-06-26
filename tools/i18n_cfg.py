@@ -92,6 +92,6 @@ msg_format_checkers = [
 ]
 
 
-file_black_list = ["./neutron/tests/unit",
-                   "./neutron/openstack",
-                   "./neutron/plugins/bigswitch/tests"]
+file_black_list = ["./tacker/tests/unit",
+                   "./tacker/openstack",
+                   "./tacker/plugins/bigswitch/tests"]

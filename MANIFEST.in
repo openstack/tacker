@@ -2,11 +2,11 @@ include AUTHORS
 include README.rst
 include ChangeLog
 include LICENSE
-include neutron/db/migration/README
-include neutron/db/migration/alembic.ini
-include neutron/db/migration/alembic_migrations/script.py.mako
-include neutron/db/migration/alembic_migrations/versions/README
-recursive-include neutron/locale *
+include tacker/db/migration/README
+include tacker/db/migration/alembic.ini
+include tacker/db/migration/alembic_migrations/script.py.mako
+include tacker/db/migration/alembic_migrations/versions/README
+recursive-include tacker/locale *
 
 exclude .gitignore
 exclude .gitreview

@@ -9,13 +9,10 @@ dist/
 doc/build
 *.DS_Store
 *.pyc
-neutron.egg-info/
-neutron/vcsversion.py
-neutron/versioninfo
+tacker.egg-info/
+tacker/vcsversion.py
+tacker/versioninfo
 pbr*.egg/
-quantum.egg-info/
-quantum/vcsversion.py
-quantum/versioninfo
 run_tests.err.log
 run_tests.log
 setuptools*.egg/
