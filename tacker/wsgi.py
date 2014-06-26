@@ -30,22 +30,22 @@ from xml.etree import ElementTree as etree
 from xml.parsers import expat
 
 import eventlet.wsgi
-eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
+#eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
 from oslo.config import cfg
 import routes.middleware
 import webob.dec
 import webob.exc
 
-from neutron.common import constants
-from neutron.common import exceptions as exception
-from neutron import context
-from neutron.db import api
-from neutron.openstack.common import excutils
-from neutron.openstack.common import gettextutils
-from neutron.openstack.common import jsonutils
-from neutron.openstack.common import log as logging
-from neutron.openstack.common import service as common_service
-from neutron.openstack.common import systemd
+from tacker.common import constants
+from tacker.common import exceptions as exception
+from tacker import context
+from tacker.db import api
+from tacker.openstack.common import excutils
+from tacker.openstack.common import gettextutils
+from tacker.openstack.common import jsonutils
+from tacker.openstack.common import log as logging
+from tacker.openstack.common import service as common_service
+from tacker.openstack.common import systemd
 
 socket_opts = [
     cfg.IntOpt('backlog',
@@ -356,14 +356,14 @@ class Request(webob.Request):
         """
         if not self.accept_language:
             return None
-        all_languages = gettextutils.get_available_languages('neutron')
+        all_languages = gettextutils.get_available_languages('tacker')
         return self.accept_language.best_match(all_languages)
 
     @property
     def context(self):
-        if 'neutron.context' not in self.environ:
-            self.environ['neutron.context'] = context.get_admin_context()
-        return self.environ['neutron.context']
+        if 'tacker.context' not in self.environ:
+            self.environ['tacker.context'] = context.get_admin_context()
+        return self.environ['tacker.context']
 
 
 class ActionDispatcher(object):
@@ -887,7 +887,7 @@ class Application(object):
 
         which would result in a call to the `Wadl` class as
 
-            import neutron.api.fancy_api
+            import tacker.api.fancy_api
             fancy_api.Wadl(latest_version='1.3')
 
         You could of course re-implement the `factory` method in subclasses,

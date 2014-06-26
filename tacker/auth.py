@@ -18,15 +18,15 @@ from oslo.config import cfg
 import webob.dec
 import webob.exc
 
-from neutron import context
-from neutron.openstack.common import log as logging
-from neutron.openstack.common.middleware import request_id
-from neutron import wsgi
+from tacker import context
+from tacker.openstack.common import log as logging
+from tacker.openstack.common.middleware import request_id
+from tacker import wsgi
 
 LOG = logging.getLogger(__name__)
 
 
-class NeutronKeystoneContext(wsgi.Middleware):
+class TackerKeystoneContext(wsgi.Middleware):
     """Make a request context from keystone headers."""
 
     @webob.dec.wsgify
@@ -56,7 +56,7 @@ class NeutronKeystoneContext(wsgi.Middleware):
                               request_id=req_id)
 
         # Inject the context...
-        req.environ['neutron.context'] = ctx
+        req.environ['tacker.context'] = ctx
 
         return self.application
 

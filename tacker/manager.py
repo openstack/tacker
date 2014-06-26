@@ -1,0 +1,165 @@
+# Copyright 2011 VMware, Inc
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+from oslo.config import cfg
+
+from tacker.common import rpc_compat
+from tacker.common import utils
+from tacker.openstack.common import importutils
+from tacker.openstack.common import log as logging
+from tacker.openstack.common import periodic_task
+from tacker.plugins.common import constants
+
+
+LOG = logging.getLogger(__name__)
+
+
+class Manager(rpc_compat.RpcCallback, periodic_task.PeriodicTasks):
+
+    # Set RPC API version to 1.0 by default.
+    RPC_API_VERSION = '1.0'
+
+    def __init__(self, host=None):
+        if not host:
+            host = cfg.CONF.host
+        self.host = host
+        super(Manager, self).__init__()
+
+    def periodic_tasks(self, context, raise_on_error=False):
+        self.run_periodic_tasks(context, raise_on_error=raise_on_error)
+
+    def init_host(self):
+        """Handle initialization if this is a standalone service.
+
+        Child classes should override this method.
+
+        """
+        pass
+
+    def after_start(self):
+        """Handler post initialization stuff.
+
+        Child classes can override this method.
+        """
+        pass
+
+
+def validate_post_plugin_load():
+    """Checks if the configuration variables are valid.
+
+    If the configuration is invalid then the method will return an error
+    message. If all is OK then it will return None.
+    """
+    pass
+
+
+def validate_pre_plugin_load():
+    """Checks if the configuration variables are valid.
+
+    If the configuration is invalid then the method will return an error
+    message. If all is OK then it will return None.
+    """
+    pass
+
+
+class TackerManager(object):
+    """Tacker's Manager class.
+
+    Tacker's Manager class is responsible for parsing a config file and
+    instantiating the correct plugin that concretely implement
+    tacker_plugin_base class.
+    The caller should make sure that TackerManager is a singleton.
+    """
+    _instance = None
+
+    def __init__(self, options=None, config_file=None):
+        # If no options have been provided, create an empty dict
+        if not options:
+            options = {}
+
+        msg = validate_pre_plugin_load()
+        if msg:
+            LOG.critical(msg)
+            raise Exception(msg)
+
+        msg = validate_post_plugin_load()
+        if msg:
+            LOG.critical(msg)
+            raise Exception(msg)
+
+        self.service_plugins = {}
+        self._load_service_plugins()
+
+    def _load_service_plugins(self):
+        """Loads service plugins.
+
+        Starts from the core plugin and checks if it supports
+        advanced services then loads classes provided in configuration.
+        """
+        # plugin_providers = cfg.CONF.service_plugins
+        plugin_providers = ['tacker.vm.plugin.ServiceVMPlugin']
+        LOG.debug(_("Loading service plugins: %s"), plugin_providers)
+        for provider in plugin_providers:
+            if provider == '':
+                continue
+            try:
+                LOG.info(_("Loading Plugin: %s"), provider)
+                plugin_class = importutils.import_class(provider)
+            except ImportError:
+                LOG.exception(_("Error loading plugin"))
+                raise ImportError(_("Plugin not found."))
+            plugin_inst = plugin_class()
+
+            # only one implementation of svc_type allowed
+            # specifying more than one plugin
+            # for the same type is a fatal exception
+            if plugin_inst.get_plugin_type() in self.service_plugins:
+                raise ValueError(_("Multiple plugins for service "
+                                   "%s were configured"),
+                                 plugin_inst.get_plugin_type())
+
+            self.service_plugins[plugin_inst.get_plugin_type()] = plugin_inst
+
+            # # search for possible agent notifiers declared in service plugin
+            # # (needed by agent management extension)
+            # if (hasattr(self.plugin, 'agent_notifiers') and
+            #         hasattr(plugin_inst, 'agent_notifiers')):
+            #     self.plugin.agent_notifiers.update(plugin_inst.agent_notifiers)
+
+            LOG.debug(_("Successfully loaded %(type)s plugin. "
+                        "Description: %(desc)s"),
+                      {"type": plugin_inst.get_plugin_type(),
+                       "desc": plugin_inst.get_plugin_description()})
+
+    @classmethod
+    @utils.synchronized("manager")
+    def _create_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+
+    @classmethod
+    def get_instance(cls):
+        # double checked locking
+        if cls._instance is None:
+            cls._create_instance()
+        return cls._instance
+
+    @classmethod
+    def get_plugin(cls):
+        return cls.get_instance().plugin
+
+    @classmethod
+    def get_service_plugins(cls):
+        return cls.get_instance().service_plugins

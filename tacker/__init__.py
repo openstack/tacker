@@ -1,6 +1,7 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-#    Copyright 2011 OpenStack Foundation
+# Copyright 2011 OpenStack Foundation
+# All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -14,6 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import pbr.version
+import gettext
 
-version_info = pbr.version.VersionInfo('neutron')
+
+gettext.install('tacker', unicode=1)

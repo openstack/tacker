@@ -19,19 +19,15 @@ import os
 import random
 
 from oslo.config import cfg
-from oslo.messaging import server as rpc_server
 
-from neutron.common import config
-from neutron.common import rpc_compat
-from neutron import context
-from neutron.db import api as session
-from neutron import manager
-from neutron.openstack.common import excutils
-from neutron.openstack.common import importutils
-from neutron.openstack.common import log as logging
-from neutron.openstack.common import loopingcall
-from neutron.openstack.common import service as common_service
-from neutron import wsgi
+from tacker.common import config
+from tacker.common import rpc_compat
+from tacker import context
+from tacker.openstack.common import excutils
+from tacker.openstack.common import importutils
+from tacker.openstack.common import log as logging
+from tacker.openstack.common import loopingcall
+from tacker import wsgi
 
 
 service_opts = [
@@ -41,9 +37,6 @@ service_opts = [
     cfg.IntOpt('api_workers',
                default=0,
                help=_('Number of separate worker processes for service')),
-    cfg.IntOpt('rpc_workers',
-               default=0,
-               help=_('Number of RPC worker processes for service')),
     cfg.IntOpt('periodic_fuzzy_delay',
                default=5,
                help=_('Range of seconds to randomly delay when starting the '
@@ -76,11 +69,11 @@ class WsgiService(object):
         self.wsgi_app.wait()
 
 
-class NeutronApiService(WsgiService):
-    """Class for neutron-api service."""
+class TackerApiService(WsgiService):
+    """Class for tacker-api service."""
 
     @classmethod
-    def create(cls, app_name='neutron'):
+    def create(cls, app_name='tacker'):
 
         # Setup logging early, supplying both the CLI options and the
         # configuration mapping from the config file
@@ -108,73 +101,17 @@ def serve_wsgi(cls):
     return service
 
 
-class RpcWorker(object):
-    """Wraps a worker to be handled by ProcessLauncher"""
-    def __init__(self, plugin):
-        self._plugin = plugin
-        self._servers = []
-
-    def start(self):
-        # We may have just forked from parent process.  A quick disposal of the
-        # existing sql connections avoids producing errors later when they are
-        # discovered to be broken.
-        session.get_engine().pool.dispose()
-        self._servers = self._plugin.start_rpc_listeners()
-
-    def wait(self):
-        for server in self._servers:
-            if isinstance(server, rpc_server.MessageHandlingServer):
-                server.wait()
-
-    def stop(self):
-        for server in self._servers:
-            if isinstance(server, rpc_server.MessageHandlingServer):
-                server.kill()
-            self._servers = []
-
-
-def serve_rpc():
-    plugin = manager.NeutronManager.get_plugin()
-
-    # If 0 < rpc_workers then start_rpc_listeners would be called in a
-    # subprocess and we cannot simply catch the NotImplementedError.  It is
-    # simpler to check this up front by testing whether the plugin supports
-    # multiple RPC workers.
-    if not plugin.rpc_workers_supported():
-        LOG.debug(_("Active plugin doesn't implement start_rpc_listeners"))
-        if 0 < cfg.CONF.rpc_workers:
-            msg = _("'rpc_workers = %d' ignored because start_rpc_listeners "
-                    "is not implemented.")
-            LOG.error(msg, cfg.CONF.rpc_workers)
-        raise NotImplementedError
-
-    try:
-        rpc = RpcWorker(plugin)
-
-        if cfg.CONF.rpc_workers < 1:
-            rpc.start()
-            return rpc
-        else:
-            launcher = common_service.ProcessLauncher(wait_interval=1.0)
-            launcher.launch_service(rpc, workers=cfg.CONF.rpc_workers)
-            return launcher
-    except Exception:
-        with excutils.save_and_reraise_exception():
-            LOG.exception(_('Unrecoverable error: please check log '
-                            'for details.'))
-
-
 def _run_wsgi(app_name):
     app = config.load_paste_app(app_name)
     if not app:
         LOG.error(_('No known API applications configured.'))
         return
-    server = wsgi.Server("Neutron")
+    server = wsgi.Server("Tacker")
     server.start(app, cfg.CONF.bind_port, cfg.CONF.bind_host,
                  workers=cfg.CONF.api_workers)
     # Dump all option values here after all options are parsed
     cfg.CONF.log_opt_values(LOG, std_logging.DEBUG)
-    LOG.info(_("Neutron service started, listening on %(host)s:%(port)s"),
+    LOG.info(_("Tacker service started, listening on %(host)s:%(port)s"),
              {'host': cfg.CONF.bind_host,
               'port': cfg.CONF.bind_port})
     return server
@@ -248,7 +185,7 @@ class Service(rpc_compat.Service):
         if not binary:
             binary = os.path.basename(inspect.stack()[-1][1])
         if not topic:
-            topic = binary.rpartition('neutron-')[2]
+            topic = binary.rpartition('tacker-')[2]
             topic = topic.replace("-", "_")
         if not manager:
             manager = CONF.get('%s_manager' % topic, None)
@@ -295,5 +232,5 @@ class Service(rpc_compat.Service):
 
     def report_state(self):
         """Update the state of this service."""
-        # Todo(gongysh) report state to neutron server
+        # Todo(gongysh) report state to tacker server
         pass

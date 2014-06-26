@@ -21,11 +21,11 @@ import copy
 
 import datetime
 
-from neutron.db import api as db_api
-from neutron.openstack.common import context as common_context
-from neutron.openstack.common import local
-from neutron.openstack.common import log as logging
-from neutron import policy
+from tacker.db import api as db_api
+from tacker.openstack.common import context as common_context
+from tacker.openstack.common import local
+from tacker.openstack.common import log as logging
+from tacker import policy
 
 
 LOG = logging.getLogger(__name__)

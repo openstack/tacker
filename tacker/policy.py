@@ -16,20 +16,20 @@
 #    under the License.
 
 """
-Policy engine for neutron.  Largely copied from nova.
+Policy engine for tacker.  Largely copied from nova.
 """
 import itertools
 import re
 
 from oslo.config import cfg
 
-from neutron.api.v2 import attributes
-from neutron.common import exceptions
-import neutron.common.utils as utils
-from neutron.openstack.common import excutils
-from neutron.openstack.common import importutils
-from neutron.openstack.common import log as logging
-from neutron.openstack.common import policy
+from tacker.api.v1 import attributes
+from tacker.common import exceptions
+import tacker.common.utils as utils
+from tacker.openstack.common import excutils
+from tacker.openstack.common import importutils
+from tacker.openstack.common import log as logging
+from tacker.openstack.common import policy
 
 
 LOG = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ DEPRECATED_ACTION_MAP = {
     'set': ['create', 'update']
 }
 
-cfg.CONF.import_opt('policy_file', 'neutron.common.config')
+cfg.CONF.import_opt('policy_file', 'tacker.common.config')
 
 
 def reset():
@@ -264,12 +264,12 @@ class OwnerCheck(policy.Check):
             # check more general
             # FIXME(ihrachys): if import is put in global, circular
             # import failure occurs
-            from neutron import manager
-            f = getattr(manager.NeutronManager.get_instance().plugin,
+            from tacker import manager
+            f = getattr(manager.TackerManager.get_instance().plugin,
                         'get_%s' % parent_res)
-            # f *must* exist, if not found it is better to let neutron
+            # f *must* exist, if not found it is better to let tacker
             # explode. Check will be performed with admin context
-            context = importutils.import_module('neutron.context')
+            context = importutils.import_module('tacker.context')
             try:
                 data = f(context.get_admin_context(),
                          target[parent_foreign_key],
@@ -329,7 +329,7 @@ def _prepare_check(context, action, target):
 def check(context, action, target, plugin=None, might_not_exist=False):
     """Verifies that the action is valid on the target in this context.
 
-    :param context: neutron context
+    :param context: tacker context
     :param action: string representing the action to be checked
         this should be colon separated for clarity.
     :param target: dictionary representing the object of the action
@@ -351,7 +351,7 @@ def check(context, action, target, plugin=None, might_not_exist=False):
 def enforce(context, action, target, plugin=None):
     """Verifies that the action is valid on the target in this context.
 
-    :param context: neutron context
+    :param context: tacker context
     :param action: string representing the action to be checked
         this should be colon separated for clarity.
     :param target: dictionary representing the object of the action
@@ -360,7 +360,7 @@ def enforce(context, action, target, plugin=None):
     :param plugin: currently unused and deprecated.
         Kept for backward compatibility.
 
-    :raises neutron.exceptions.PolicyNotAuthorized: if verification fails.
+    :raises tacker.exceptions.PolicyNotAuthorized: if verification fails.
     """
 
     rule, target, credentials = _prepare_check(context, action, target)
