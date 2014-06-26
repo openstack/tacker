@@ -15,7 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-# If ../neutron/__init__.py exists, add ../ to Python search path, so that
+# If ../tacker/__init__.py exists, add ../ to Python search path, so that
 # it will override what happens to be installed in /usr/(local/)lib/python...
 
 import sys
@@ -25,12 +25,13 @@ eventlet.monkey_patch()
 
 from oslo.config import cfg
 
-from neutron.common import config
-from neutron import service
+from tacker.common import config
+from tacker.openstack.common import service as common_service
+from tacker import service
 
-from neutron.openstack.common import gettextutils
-from neutron.openstack.common import log as logging
-gettextutils.install('neutron', lazy=True)
+from tacker.openstack.common import gettextutils
+from tacker.openstack.common import log as logging
+gettextutils.install('tacker', lazy=True)
 
 LOG = logging.getLogger(__name__)
 
@@ -40,26 +41,14 @@ def main():
     config.init(sys.argv[1:])
     if not cfg.CONF.config_file:
         sys.exit(_("ERROR: Unable to find configuration file via the default"
-                   " search paths (~/.neutron/, ~/, /etc/neutron/, /etc/) and"
+                   " search paths (~/.tacker/, ~/, /etc/tacker/, /etc/) and"
                    " the '--config-file' option!"))
+
     try:
-        pool = eventlet.GreenPool()
-
-        neutron_api = service.serve_wsgi(service.NeutronApiService)
-        api_thread = pool.spawn(neutron_api.wait)
-
-        try:
-            neutron_rpc = service.serve_rpc()
-        except NotImplementedError:
-            LOG.info(_("RPC was already started in parent process by plugin."))
-        else:
-            rpc_thread = pool.spawn(neutron_rpc.wait)
-
-            # api and rpc should die together.  When one dies, kill the other.
-            rpc_thread.link(lambda gt: api_thread.kill())
-            api_thread.link(lambda gt: rpc_thread.kill())
-
-        pool.waitall()
+        tacker_api = service.serve_wsgi(service.TackerApiService)
+        launcher = common_service.launch(tacker_api,
+                                         workers=cfg.CONF.api_workers)
+        launcher.wait()
     except KeyboardInterrupt:
         pass
     except RuntimeError as e:
