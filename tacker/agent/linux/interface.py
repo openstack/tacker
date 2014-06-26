@@ -21,14 +21,14 @@ import netaddr
 from oslo.config import cfg
 import six
 
-from neutron.agent.common import config
-from neutron.agent.linux import ip_lib
-from neutron.agent.linux import ovs_lib
-from neutron.agent.linux import utils
-from neutron.common import exceptions
-from neutron.extensions import flavor
-from neutron.openstack.common import importutils
-from neutron.openstack.common import log as logging
+from tacker.agent.common import config
+from tacker.agent.linux import ip_lib
+from tacker.agent.linux import ovs_lib
+from tacker.agent.linux import utils
+from tacker.common import exceptions
+from tacker.extensions import flavor
+from tacker.openstack.common import importutils
+from tacker.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)
@@ -394,8 +394,8 @@ class BridgeInterfaceDriver(LinuxInterfaceDriver):
 class MetaInterfaceDriver(LinuxInterfaceDriver):
     def __init__(self, conf):
         super(MetaInterfaceDriver, self).__init__(conf)
-        from neutronclient.v2_0 import client
-        self.neutron = client.Client(
+        from tackerclient.v2_0 import client
+        self.tacker = client.Client(
             username=self.conf.admin_user,
             password=self.conf.admin_password,
             tenant_name=self.conf.admin_tenant_name,
@@ -411,7 +411,7 @@ class MetaInterfaceDriver(LinuxInterfaceDriver):
             self.flavor_driver_map[net_flavor] = self._load_driver(driver_name)
 
     def _get_flavor_by_network_id(self, network_id):
-        network = self.neutron.show_network(network_id)
+        network = self.tacker.show_network(network_id)
         return network['network'][flavor.FLAVOR_NETWORK]
 
     def _get_driver_by_network_id(self, network_id):

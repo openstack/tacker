@@ -20,9 +20,9 @@ import os
 
 from oslo.config import cfg
 
-from neutron.agent.linux import ip_lib
-from neutron.agent.linux import utils
-from neutron.openstack.common import log as logging
+from tacker.agent.linux import ip_lib
+from tacker.agent.linux import utils
+from tacker.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ cfg.CONF.register_opts(OPTS)
 
 
 class ProcessManager(object):
-    """An external process manager for Neutron spawned processes.
+    """An external process manager for Tacker spawned processes.
 
     Note: The manager expects uuid to be in cmdline.
     """

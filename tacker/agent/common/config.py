@@ -19,8 +19,8 @@ import os
 
 from oslo.config import cfg
 
-from neutron.common import config
-from neutron.openstack.common import log as logging
+from tacker.common import config
+from tacker.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)
@@ -111,7 +111,7 @@ def get_root_helper(conf):
 def setup_conf():
     bind_opts = [
         cfg.StrOpt('state_path',
-                   default='/var/lib/neutron',
+                   default='/var/lib/tacker',
                    help=_('Top-level directory for maintaining dhcp state')),
     ]
 

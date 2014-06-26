@@ -18,8 +18,8 @@ import contextlib
 
 import eventlet
 
-from neutron.agent.linux import ovsdb_monitor
-from neutron.plugins.openvswitch.common import constants
+from tacker.agent.linux import ovsdb_monitor
+from tacker.plugins.openvswitch.common import constants
 
 
 @contextlib.contextmanager

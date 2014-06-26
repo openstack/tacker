@@ -18,8 +18,8 @@ import eventlet
 import eventlet.event
 import eventlet.queue
 
-from neutron.agent.linux import utils
-from neutron.openstack.common import log as logging
+from tacker.agent.linux import utils
+from tacker.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)
@@ -131,7 +131,7 @@ class AsyncProcess(object):
         # If root helper was used, two or more processes will be created:
         #
         #  - a root helper process (e.g. sudo myscript)
-        #  - possibly a rootwrap script (e.g. neutron-rootwrap)
+        #  - possibly a rootwrap script (e.g. tacker-rootwrap)
         #  - a child process (e.g. myscript)
         #
         # Killing the root helper process will leave the child process

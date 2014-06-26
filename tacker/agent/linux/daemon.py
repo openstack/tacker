@@ -22,7 +22,7 @@ import os
 import signal
 import sys
 
-from neutron.openstack.common import log as logging
+from tacker.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 

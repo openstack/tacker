@@ -17,11 +17,11 @@
 
 import itertools
 
-from neutron.common import rpc_compat
-from neutron.common import topics
+from tacker.common import rpc_compat
+from tacker.common import topics
 
-from neutron.openstack.common import log as logging
-from neutron.openstack.common import timeutils
+from tacker.openstack.common import log as logging
+from tacker.openstack.common import timeutils
 
 
 LOG = logging.getLogger(__name__)
