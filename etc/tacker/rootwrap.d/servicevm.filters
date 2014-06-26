@@ -1,0 +1,21 @@
+# tacker-rootwrap command filters for nodes on which tacker is
+# expected to control network
+#
+# This file should be owned by (and only-writeable by) the root user
+
+# format seems to be
+# cmd-name: filter-name, raw-command, user, args
+
+[Filters]
+
+# rpc proxy
+servicevm_ns_rpc_proxy: CommandFilter, tacker-servicevm-ns-rpc-proxy, root
+
+# If installed from source (say, by devstack), the prefix will be
+# /usr/local instead of /usr/bin.
+servicevm_ns_rpc_proxy_local: CommandFilter, /usr/local/bin/tacker-servicevm-ns-rpc-proxy, root
+
+# RHEL invocation of the metadata proxy will report /usr/bin/python
+kill_metadata: KillFilter, root, /usr/bin/python, -9
+kill_metadata7: KillFilter, root, /usr/bin/python2.7, -9
+kill_metadata6: KillFilter, root, /usr/bin/python2.6, -9
