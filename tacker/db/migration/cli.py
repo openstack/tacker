@@ -26,21 +26,6 @@ from oslo.config import cfg
 HEAD_FILENAME = 'HEAD'
 
 
-_core_opts = [
-    cfg.StrOpt('core_plugin',
-               default='',
-               help=_('Neutron plugin provider module')),
-    cfg.ListOpt('service_plugins',
-                default=[],
-                help=_("The service plugins Neutron will use")),
-]
-
-_quota_opts = [
-    cfg.StrOpt('quota_driver',
-               default='',
-               help=_('Neutron quota driver class')),
-]
-
 _db_opts = [
     cfg.StrOpt('connection',
                deprecated_name='sql_connection',
@@ -53,9 +38,7 @@ _db_opts = [
 ]
 
 CONF = cfg.ConfigOpts()
-CONF.register_cli_opts(_core_opts)
 CONF.register_cli_opts(_db_opts, 'database')
-CONF.register_opts(_quota_opts, 'QUOTAS')
 
 
 def do_alembic_command(config, cmd, *args, **kwargs):
@@ -162,9 +145,9 @@ def main():
         os.path.join(os.path.dirname(__file__), 'alembic.ini')
     )
     config.set_main_option('script_location',
-                           'neutron.db.migration:alembic_migrations')
-    # attach the Neutron conf to the Alembic conf
-    config.neutron_config = CONF
+                           'tacker.db.migration:alembic_migrations')
+    # attach the Tacker conf to the Alembic conf
+    config.tacker_config = CONF
 
     CONF()
     #TODO(gongysh) enable logging

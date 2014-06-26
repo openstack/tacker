@@ -16,16 +16,14 @@
 from oslo.config import cfg
 import sqlalchemy as sql
 
-from neutron.db import model_base
-from neutron.openstack.common.db.sqlalchemy import session
-from neutron.openstack.common import log as logging
+from tacker.db import model_base
+from tacker.openstack.common.db.sqlalchemy import session
+from tacker.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 
-BASE = model_base.BASEV2
-
 cfg.CONF.import_opt('connection',
-                    'neutron.openstack.common.db.options',
+                    'tacker.openstack.common.db.options',
                     group='database')
 
 _FACADE = None
@@ -50,7 +48,7 @@ def configure_db():
     register_models()
 
 
-def clear_db(base=BASE):
+def clear_db(base=model_base.BASE):
     unregister_models(base)
 
 
@@ -67,7 +65,7 @@ def get_session(autocommit=True, expire_on_commit=False):
                               expire_on_commit=expire_on_commit)
 
 
-def register_models(base=BASE):
+def register_models(base=model_base.BASE):
     """Register Models and create properties."""
     try:
         facade = _create_facade_lazily()
@@ -79,7 +77,7 @@ def register_models(base=BASE):
     return True
 
 
-def unregister_models(base=BASE):
+def unregister_models(base=model_base.BASE):
     """Unregister Models, useful clearing out data before testing."""
     try:
         facade = _create_facade_lazily()

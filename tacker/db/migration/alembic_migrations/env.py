@@ -19,30 +19,20 @@ from logging import config as logging_config
 from alembic import context
 from sqlalchemy import create_engine, pool
 
-from neutron.db import model_base
-from neutron.openstack.common import importutils
+from tacker.db import model_base
 
-
-DATABASE_QUOTA_DRIVER = 'neutron.extensions._quotav2_driver.DbQuotaDriver'
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-neutron_config = config.neutron_config
+tacker_config = config.tacker_config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 logging_config.fileConfig(config.config_file_name)
 
-plugin_class_path = neutron_config.core_plugin
-active_plugins = [plugin_class_path]
-active_plugins += neutron_config.service_plugins
-
-for class_path in active_plugins:
-    importutils.import_class(class_path)
-
 # set the target for 'autogenerate' support
-target_metadata = model_base.BASEV2.metadata
+target_metadata = model_base.BASE.metadata
 
 
 def run_migrations_offline():
@@ -56,15 +46,14 @@ def run_migrations_offline():
 
     """
     kwargs = dict()
-    if neutron_config.database.connection:
-        kwargs['url'] = neutron_config.database.connection
+    if tacker_config.database.connection:
+        kwargs['url'] = tacker_config.database.connection
     else:
-        kwargs['dialect_name'] = neutron_config.database.engine
+        kwargs['dialect_name'] = tacker_config.database.engine
     context.configure(**kwargs)
 
     with context.begin_transaction():
-        context.run_migrations(active_plugins=active_plugins,
-                               options=build_options())
+        context.run_migrations()
 
 
 def run_migrations_online():
@@ -75,7 +64,7 @@ def run_migrations_online():
 
     """
     engine = create_engine(
-        neutron_config.database.connection,
+        tacker_config.database.connection,
         poolclass=pool.NullPool)
 
     connection = engine.connect()
@@ -86,18 +75,9 @@ def run_migrations_online():
 
     try:
         with context.begin_transaction():
-            context.run_migrations(active_plugins=active_plugins,
-                                   options=build_options())
+            context.run_migrations()
     finally:
         connection.close()
-
-
-def build_options():
-    return {'folsom_quota_db_enabled': is_db_quota_enabled()}
-
-
-def is_db_quota_enabled():
-    return neutron_config.QUOTAS.quota_driver == DATABASE_QUOTA_DRIVER
 
 
 if context.is_offline_mode():

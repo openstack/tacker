@@ -17,8 +17,8 @@ from six import moves
 import sqlalchemy
 from sqlalchemy.orm.properties import RelationshipProperty
 
-from neutron.common import exceptions as n_exc
-from neutron.openstack.common import log as logging
+from tacker.common import exceptions as n_exc
+from tacker.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)

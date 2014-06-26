@@ -16,11 +16,11 @@
 from sqlalchemy.ext import declarative
 from sqlalchemy import orm
 
-from neutron.openstack.common.db.sqlalchemy import models
+from tacker.openstack.common.db.sqlalchemy import models
 
 
-class NeutronBase(models.ModelBase):
-    """Base class for Neutron Models."""
+class TackerBase(models.ModelBase):
+    """Base class for Tacker Models."""
 
     __table_args__ = {'mysql_engine': 'InnoDB'}
 
@@ -41,7 +41,7 @@ class NeutronBase(models.ModelBase):
                                                id(self), ', '.join(items))
 
 
-class NeutronBaseV2(NeutronBase):
+class TackerBaseV1(TackerBase):
 
     @declarative.declared_attr
     def __tablename__(cls):
@@ -49,4 +49,4 @@ class NeutronBaseV2(NeutronBase):
         return cls.__name__.lower() + 's'
 
 
-BASEV2 = declarative.declarative_base(cls=NeutronBaseV2)
+BASE = declarative.declarative_base(cls=TackerBaseV1)
