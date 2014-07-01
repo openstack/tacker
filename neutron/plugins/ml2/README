@@ -1,0 +1,53 @@
+The Modular Layer 2 (ML2) plugin is a framework allowing OpenStack
+Networking to simultaneously utilize the variety of layer 2 networking
+technologies found in complex real-world data centers. It supports the
+Open vSwitch, Linux bridge, and Hyper-V L2 agents, replacing and
+deprecating the monolithic plugins previously associated with those
+agents, and can also support hardware devices and SDN controllers. The
+ML2 framework is intended to greatly simplify adding support for new
+L2 networking technologies, requiring much less initial and ongoing
+effort than would be required for an additional monolithic core
+plugin. It is also intended to foster innovation through its
+organization as optional driver modules.
+
+The ML2 plugin supports all the non-vendor-specific neutron API
+extensions, and works with the standard neutron DHCP agent. It
+utilizes the service plugin interface to implement the L3 router
+abstraction, allowing use of either the standard neutron L3 agent or
+alternative L3 solutions. Additional service plugins can also be used
+with the ML2 core plugin.
+
+Drivers within ML2 implement separately extensible sets of network
+types and of mechanisms for accessing networks of those types. Unlike
+with the metaplugin, multiple mechanisms can be used simultaneously to
+access different ports of the same virtual network. Mechanisms can
+utilize L2 agents via RPC and/or interact with external devices or
+controllers. By utilizing the multiprovidernet extension, virtual
+networks can be composed of multiple segments of the same or different
+types. Type and mechanism drivers are loaded as python entrypoints
+using the stevedore library.
+
+Each available network type is managed by an ML2 type driver.  Type
+drivers maintain any needed type-specific network state, and perform
+provider network validation and tenant network allocation. As of the
+havana release, drivers for the local, flat, vlan, gre, and vxlan
+network types are included.
+
+Each available networking mechanism is managed by an ML2 mechanism
+driver. All registered mechanism drivers are called twice when
+networks, subnets, and ports are created, updated, or deleted. They
+are first called as part of the DB transaction, where they can
+maintain any needed driver-specific state. Once the transaction has
+been committed, they are called again, at which point they can
+interact with external devices and controllers. Mechanism drivers are
+also called as part of the port binding process, to determine whether
+the associated mechanism can provide connectivity for the network, and
+if so, the network segment and VIF driver to be used. The havana
+release includes mechanism drivers for the Open vSwitch, Linux bridge,
+and Hyper-V L2 agents, for Arista and Cisco switches, and for the
+Tail-f NCS. It also includes an L2 Population mechanism driver that
+can help optimize tunneled virtual network traffic.
+
+For additional information regarding the ML2 plugin and its collection
+of type and mechanism drivers, see the OpenStack manuals and
+http://wiki.openstack.org/wiki/Neutron/ML2.
