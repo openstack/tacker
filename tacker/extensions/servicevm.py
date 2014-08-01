@@ -44,10 +44,6 @@ class MgmtDriverNotSpecified(exceptions.InvalidInput):
     message = _('management driver is not speicfied')
 
 
-class ServiceTypesNotSpecified(exceptions.InvalidInput):
-    message = _('service types are not speicfied')
-
-
 class DeviceTemplateInUse(exceptions.InUse):
     message = _('device template %(device_template_id)s is still in use')
 
@@ -92,66 +88,6 @@ class DeviceNotFound(exceptions.NotFound):
     message = _('device %(device_id)s could not be found')
 
 
-class ServiceInstanceNotManagedByUser(exceptions.InUse):
-    message = _('service instance %(service_instance_id)s is '
-                'managed by other service')
-
-
-class ServiceInstanceInUse(exceptions.InUse):
-    message = _('service instance %(service_instance_id)s is still in use')
-
-
-class ServiceInstanceNotFound(exceptions.NotFound):
-    message = _('service instance %(service_instance_id)s could not be found')
-
-
-def _validate_service_type_list(data, valid_values=None):
-    if not isinstance(data, list):
-        msg = _("invalid data format for service list: '%s'") % data
-        LOG.debug(msg)
-        return msg
-    if not data:
-        msg = _("empty list is not allowed for service list. '%s'") % data
-        LOG.debug(msg)
-        return msg
-    key_specs = {
-        'service_type': {
-            'type:string': None,
-        }
-    }
-    for service in data:
-        msg = attr._validate_dict(service, key_specs)
-        if msg:
-            LOG.debug(msg)
-            return msg
-
-
-def _validate_service_context_list(data, valid_values=None):
-    if not isinstance(data, list):
-        msg = _("invalid data format for service context list: '%s'") % data
-        LOG.debug(msg)
-        return msg
-
-    key_specs = {
-        'network_id': {'type:uuid': None},
-        'subnet_id': {'type:uuid': None},
-        'port_id': {'type:uuid': None},
-        'router_id': {'type:uuid': None},
-        'role': {'type:string': None},
-        'index': {'type:non_negative': None,
-                  'convert_to': attr.convert_to_int},
-    }
-    for sc_entry in data:
-        msg = attr._validate_dict_or_empty(sc_entry, key_specs=key_specs)
-        if msg:
-            LOG.debug(msg)
-            return msg
-
-
-attr.validators['type:service_type_list'] = _validate_service_type_list
-attr.validators['type:service_context_list'] = _validate_service_context_list
-
-
 RESOURCE_ATTRIBUTE_MAP = {
 
     'device_templates': {
@@ -182,14 +118,6 @@ RESOURCE_ATTRIBUTE_MAP = {
             'validate': {'type:string': None},
             'is_visible': True,
             'default': '',
-        },
-        'service_types': {
-            'allow_post': True,
-            'allow_put': False,
-            'convert_to': attr.convert_to_list,
-            'validate': {'type:service_type_list': None},
-            'is_visible': True,
-            'default': attr.ATTR_NOT_SPECIFIED,
         },
         'device_driver': {
             'allow_post': True,
@@ -255,94 +183,10 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
             'default': {},
         },
-        'service_contexts': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:service_context_list': None},
-            'is_visible': True,
-        },
-        'services': {
-            'allow_post': False,
-            'allow_put': False,
-            'validate': {'type:uuid': None},
-            'is_visible': True,
-        },
         'status': {
             'allow_post': False,
             'allow_put': False,
             'is_visible': True,
-        },
-    },
-
-    'service_instances': {
-        'id': {
-            'allow_post': False,
-            'allow_put': False,
-            'validate': {'type:uuid': None},
-            'is_visible': True,
-            'primary_key': True
-        },
-        'tenant_id': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:string': None},
-            'required_by_policy': True,
-            'is_visible': True
-        },
-        'name': {
-            'allow_post': True,
-            'allow_put': True,
-            'validate': {'type:string': None},
-            'is_visible': True,
-        },
-        'service_type_id': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:uuid': None},
-            'is_visible': True,
-        },
-        'service_table_id': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:string': None},
-            'is_visible': True,
-        },
-        'mgmt_driver': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:string': None},
-            'is_visible': True,
-        },
-        'mgmt_address': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:string': None},
-            'is_visible': True,
-        },
-        'service_contexts': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:service_context_list': None},
-            'is_visible': True,
-        },
-        'devices': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:uuid_list': None},
-            'convert_to': attr.convert_to_list,
-            'is_visible': True,
-        },
-        'status': {
-            'allow_post': False,
-            'allow_put': False,
-            'is_visible': True,
-        },
-        'kwargs': {
-            'allow_post': True,
-            'allow_put': True,
-            'validate': {'type:dict_or_none': None},
-            'is_visible': True,
-            'default': {},
         },
     },
 }
@@ -375,9 +219,6 @@ class Servicevm(extensions.ExtensionDescriptor):
         plural_mappings = resource_helper.build_plural_mappings(
             special_mappings, RESOURCE_ATTRIBUTE_MAP)
         plural_mappings['devices'] = 'device'
-        plural_mappings['service_types'] = 'service_type'
-        plural_mappings['service_contexts'] = 'service_context'
-        plural_mappings['services'] = 'service'
         attr.PLURALS.update(plural_mappings)
         return resource_helper.build_resource_info(
             plural_mappings, RESOURCE_ATTRIBUTE_MAP, constants.SERVICEVM,
@@ -437,23 +278,9 @@ class ServiceVMPluginBase(ServicePluginBase):
         pass
 
     @abc.abstractmethod
-    def update_device(
-            self, context, device_id, device):
+    def update_device(self, context, device_id, device):
         pass
 
     @abc.abstractmethod
     def delete_device(self, context, device_id):
-        pass
-
-    @abc.abstractmethod
-    def get_service_instances(self, context, filters=None, fields=None):
-        pass
-
-    @abc.abstractmethod
-    def get_service_instance(self, context, service_instance_id, fields=None):
-        pass
-
-    @abc.abstractmethod
-    def update_service_instance(self, context, service_instance_id,
-                                service_instance):
         pass

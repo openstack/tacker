@@ -18,8 +18,8 @@
 #
 # @author: Isaku Yamahata, Intel Corporation.
 
-from tacker.common import topics
 from tacker.common import rpc_compat
+from tacker.common import topics
 from tacker.vm.mgmt_drivers import abstract_driver
 from tacker.vm.mgmt_drivers import constants
 

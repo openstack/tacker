@@ -20,7 +20,6 @@ from tacker.common import utils
 from tacker.openstack.common import importutils
 from tacker.openstack.common import log as logging
 from tacker.openstack.common import periodic_task
-from tacker.plugins.common import constants
 
 
 LOG = logging.getLogger(__name__)

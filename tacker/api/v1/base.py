@@ -18,8 +18,6 @@
 import netaddr
 import webob.exc
 
-from oslo.config import cfg
-
 from tacker.api import api_common
 from tacker.api.v1 import attributes
 from tacker.api.v1 import resource as wsgi_resource
