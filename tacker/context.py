@@ -41,7 +41,7 @@ class ContextBase(common_context.RequestContext):
     def __init__(self, user_id, tenant_id, is_admin=None, read_deleted="no",
                  roles=None, timestamp=None, load_admin_roles=True,
                  request_id=None, tenant_name=None, user_name=None,
-                 overwrite=True, **kwargs):
+                 overwrite=True, auth_token=None, **kwargs):
         """Object initialization.
 
         :param read_deleted: 'no' indicates deleted records are hidden, 'yes'
@@ -56,7 +56,8 @@ class ContextBase(common_context.RequestContext):
         """
         super(ContextBase, self).__init__(user=user_id, tenant=tenant_id,
                                           is_admin=is_admin,
-                                          request_id=request_id)
+                                          request_id=request_id,
+                                          auth_token=auth_token)
         self.user_name = user_name
         self.tenant_name = tenant_name
 
@@ -132,6 +133,7 @@ class ContextBase(common_context.RequestContext):
                 'tenant_name': self.tenant_name,
                 'project_name': self.tenant_name,
                 'user_name': self.user_name,
+                'auth_token': self.auth_token,
                 }
 
     @classmethod
