@@ -18,37 +18,17 @@
 # service type constants:
 CORE = "CORE"
 DUMMY = "DUMMY"
-LOADBALANCER = "LOADBALANCER"
-FIREWALL = "FIREWALL"
-VPN = "VPN"
-METERING = "METERING"
-L3_ROUTER_NAT = "L3_ROUTER_NAT"
 SERVICEVM = "SERVICEVM"
-
 
 #maps extension alias to service type
 EXT_TO_SERVICE_MAPPING = {
     'dummy': DUMMY,
-    'lbaas': LOADBALANCER,
-    'fwaas': FIREWALL,
-    'vpnaas': VPN,
-    'metering': METERING,
-    'router': L3_ROUTER_NAT,
     'servicevm': SERVICEVM,
 }
-
-# TODO(salvatore-orlando): Move these (or derive them) from conf file
-ALLOWED_SERVICES = [CORE, DUMMY, LOADBALANCER, FIREWALL, VPN, METERING,
-                    L3_ROUTER_NAT]
 
 COMMON_PREFIXES = {
     CORE: "",
     DUMMY: "/dummy_svc",
-    LOADBALANCER: "/lb",
-    FIREWALL: "/fw",
-    VPN: "/vpn",
-    METERING: "/metering",
-    L3_ROUTER_NAT: "",
     SERVICEVM: "",
 }
 
@@ -66,23 +46,3 @@ ACTIVE_PENDING_STATUSES = (
     PENDING_CREATE,
     PENDING_UPDATE
 )
-
-# FWaaS firewall rule action
-FWAAS_ALLOW = "allow"
-FWAAS_DENY = "deny"
-
-# L3 Protocol name constants
-TCP = "tcp"
-UDP = "udp"
-ICMP = "icmp"
-
-# Network Type constants
-TYPE_FLAT = 'flat'
-TYPE_GRE = 'gre'
-TYPE_LOCAL = 'local'
-TYPE_VXLAN = 'vxlan'
-TYPE_VLAN = 'vlan'
-TYPE_NONE = 'none'
-
-# The maximum length of an interface name (in Linux)
-MAX_DEV_NAME_LEN = 16
