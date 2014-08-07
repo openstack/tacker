@@ -100,7 +100,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
     """
     OPTS = [
         cfg.MultiStrOpt(
-            'device_driver', default=[],
+            'infra_driver', default=[],
             help=_('Hosting device drivers servicevm plugin will use')),
     ]
     cfg.CONF.register_opts(OPTS, 'servicevm')
@@ -111,7 +111,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         self._pool = eventlet.GreenPool()
         self._device_manager = driver_manager.DriverManager(
             'tacker.servicevm.device.drivers',
-            cfg.CONF.servicevm.device_driver)
+            cfg.CONF.servicevm.infra_driver)
 
     def spawn_n(self, function, *args, **kwargs):
         self._pool.spawn_n(function, *args, **kwargs)
@@ -123,26 +123,16 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         template = device_template['device_template']
         LOG.debug(_('template %s'), template)
 
-        device_driver = template.get('device_driver')
-        if not attributes.is_attr_set(device_driver):
+        infra_driver = template.get('infra_driver')
+        if not attributes.is_attr_set(infra_driver):
             LOG.debug(_('hosting device driver must be specified'))
-            raise servicevm.DeviceDriverNotSpecified()
-        if device_driver not in self._device_manager:
+            raise servicevm.InfraDriverNotSpecified()
+        if infra_driver not in self._device_manager:
             LOG.debug(_('unknown hosting device driver '
-                        '%(device_driver)s in %(drivers)s'),
-                      {'device_driver': device_driver,
-                       'drivers': cfg.CONF.servicevm.device_driver})
-            raise servicevm.InvalidDeviceDriver(device_driver=device_driver)
-
-        mgmt_driver = template.get('mgmt_driver')
-        if not attributes.is_attr_set(mgmt_driver):
-            LOG.debug(_('mgmt driver must be specified'))
-            raise servicevm.MgmtDriverNotSpecified()
-        if mgmt_driver not in self._mgmt_manager:
-            LOG.debug(_('unknown mgmt driver %(mgmt_driver)s in %(drivers)s'),
-                      {'mgmt_driver': mgmt_driver,
-                       'drivers': cfg.CONF.servicevm.mgmt_driver})
-            raise servicevm.InvalidMgmtDriver(mgmt_driver=mgmt_driver)
+                        '%(infra_driver)s in %(drivers)s'),
+                      {'infra_driver': infra_driver,
+                       'drivers': cfg.CONF.servicevm.infra_driver})
+            raise servicevm.InvalidInfraDriver(infra_driver=infra_driver)
 
         return super(ServiceVMPlugin, self).create_device_template(
             context, device_template)
@@ -151,7 +141,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
     # hosting device
 
     def _create_device_wait(self, context, device_dict):
-        driver_name = self._device_driver_name(device_dict)
+        driver_name = self._infra_driver_name(device_dict)
         device_id = device_dict['id']
         instance_id = self._instance_id(device_dict)
 
@@ -193,7 +183,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
     def _create_device(self, context, device):
         device_dict = self._create_device_pre(context, device)
         device_id = device_dict['id']
-        driver_name = self._device_driver_name(device_dict)
+        driver_name = self._infra_driver_name(device_dict)
         LOG.debug(_('device_dict %s'), device_dict)
         self.mgmt_create_pre(context, device_dict)
         instance_id = self._device_manager.invoke(
@@ -232,7 +222,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         return device_dict
 
     def _update_device_wait(self, context, device_dict):
-        driver_name = self._device_driver_name(device_dict)
+        driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
         kwargs = {
             mgmt_constants.KEY_ACTION: mgmt_constants.ACTION_UPDATE_DEVICE,
@@ -252,7 +242,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
 
     def update_device(self, context, device_id, device):
         device_dict = self._update_device_pre(context, device_id)
-        driver_name = self._device_driver_name(device_dict)
+        driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
 
         try:
@@ -269,7 +259,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         return device_dict
 
     def _delete_device_wait(self, context, device_dict):
-        driver_name = self._device_driver_name(device_dict)
+        driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
 
         e = None
@@ -286,7 +276,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
 
     def delete_device(self, context, device_id):
         device_dict = self._delete_device_pre(context, device_id)
-        driver_name = self._device_driver_name(device_dict)
+        driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
 
         kwargs = {
@@ -312,7 +302,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
 
     def _do_interface(self, context, device_id, port_id, action):
         device_dict = self._update_device_pre(context, device_id)
-        driver_name = self._device_driver_name(device_dict)
+        driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
 
         try:

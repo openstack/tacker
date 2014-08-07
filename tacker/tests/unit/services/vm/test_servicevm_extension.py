@@ -66,7 +66,7 @@ class ServicevmExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
                 'description': 'mytemplate0',
                 'service_types': [{'service_type': 'SERVICE0'},
                                   {'service_type': 'SERVICE1'}],
-                'device_driver': 'noop',
+                'infra_driver': 'noop',
                 'mgmt_driver': 'noop',
                 'attributes': {'key0': 'value0', 'key1': 'value1'},
             }
@@ -95,7 +95,7 @@ class ServicevmExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
             'description': 'description0',
             'service_types': [{'service_type': 'SERVICE0'},
                               {'service_type': 'SERVICE1'}],
-            'device_driver': 'noop',
+            'infra_driver': 'noop',
             'mgmt_driver': 'noop',
             'attributes': {'key0': 'value0', 'key1': 'value1'},
         }]
@@ -117,7 +117,7 @@ class ServicevmExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
             'description': 'description0',
             'service_types': [{'service_type': 'SERVICE0'},
                               {'service_type': 'SERVICE1'}],
-            'device_driver': 'noop',
+            'infra_driver': 'noop',
             'mgmt_driver': 'noop',
             'attributes': {'key0': 'value0', 'key1': 'value1'},
         }

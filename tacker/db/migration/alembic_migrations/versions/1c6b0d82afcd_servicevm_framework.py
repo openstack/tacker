@@ -42,7 +42,7 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('tenant_id', sa.String(length=255), nullable=True),
         sa.Column('name', sa.String(length=255), nullable=True),
         sa.Column('description', sa.String(length=255), nullable=True),
-        sa.Column('device_driver', sa.String(length=255), nullable=True),
+        sa.Column('infra_driver', sa.String(length=255), nullable=True),
         sa.Column('mgmt_driver', sa.String(length=255), nullable=True),
         sa.PrimaryKeyConstraint('id'),
     )

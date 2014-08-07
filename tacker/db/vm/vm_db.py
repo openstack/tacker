@@ -52,43 +52,13 @@ class DeviceTemplate(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     description = sa.Column(sa.String(255))
 
     # driver to create hosting device. e.g. noop, nova, heat, etc...
-    device_driver = sa.Column(sa.String(255))
-
-    # mgmt driver to communicate with hosting device.
-    # e.g. noop, OpenStack MGMT, OpenStack notification, netconf, snmp,
-    #      ssh, etc...
-    mgmt_driver = sa.Column(sa.String(255))
+    infra_driver = sa.Column(sa.String(255))
 
     # (key, value) pair to spin up
     attributes = orm.relationship('DeviceTemplateAttribute',
                                   backref='template')
 
-    # TODO(yamahata): re-think the necessity of following columns
-    #                 They are all commented out for minimalism for now.
-    #                 They will be added when it is found really necessary.
-    #
-    # the name of the interface inside the VM
-    # For agent in hosting device
-    # (or something responsible for it in hosting device) to recieve
-    # requests from management tools
-    # vm_mgmt_if = sa.Column(sa.String(255), default='eth0')
-    #
-    # security_group = sa.Column(sa.String(36))
-    # multi_tenant = sa.Column(sa.Boolean(), default=False)
-    #
-    # max_lsi = sa.Column(sa.Integer, default=0)
-    # dp_if_types = sa.Column(sa.String(255))
-    #
-    # classification = sa.Column(sa.String(255), nullable=True)
-    # availability_zone = sa.Column(sa.String(36), nullable=True)
-    # host_aggregate = sa.Column(sa.String(36), nullable=True)
-    # allow_mgmt_access = sa.Column(sa.Boolean(), default=False)
-    # access_cred_uname = sa.Column(sa.String(255), nullable=True)
-    # access_cred_passwd = sa.Column(sa.String(255), nullable=True)
 
-
-# this table corresponds to image, flavor in ServiceVM of the original spec
-# Or just string long enough?
 class DeviceTemplateAttribute(model_base.BASE, models_v1.HasId):
     """Represents attributes necessary for spinning up VM in (key, value) pair
     key value pair is adopted for being agnostic to actuall manager of VMs
@@ -114,14 +84,14 @@ class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     instance_id = sa.Column(sa.String(255), nullable=True)
 
     # For a management tool to talk to manage this hosting device.
-    # opaque string. mgmt_driver interprets it.
-    # e.g. (driver, mgmt_address) = (ssh, ip address), ...
-    mgmt_address = sa.Column(sa.String(255), nullable=True)
+    # opaque string.
+    # e.g. (driver, mgmt_url) = (ssh, ip address), ...
+    mgmt_url = sa.Column(sa.String(255), nullable=True)
 
     status = sa.Column(sa.String(255), nullable=False)
 
 
-class DeviceArg(model_base.BASE, models_v1.HasId):
+class DeviceAttribute(model_base.BASE, models_v1.HasId):
     """Represents kwargs necessary for spinning up VM in (key, value) pair
     key value pair is adopted for being agnostic to actuall manager of VMs
     like nova, heat or others. e.g. image-id, flavor-id for Nova.
@@ -174,8 +144,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             'service_types':
             self._make_service_types_list(template['service_types']),
         }
-        key_list = ('id', 'tenant_id', 'name', 'description',
-                    'device_driver', 'mgmt_driver')
+        key_list = ('id', 'tenant_id', 'name', 'description', 'infra_driver')
         res.update((key, template[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -190,21 +159,13 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             'kwargs': self._make_kwargs_dict(device_db.kwargs),
         }
         key_list = ('id', 'tenant_id', 'instance_id', 'template_id', 'status',
-                    'mgmt_address')
+                    'mgmt_url')
         res.update((key, device_db[key]) for key in key_list)
         return self._fields(res, fields)
 
     @staticmethod
-    def _device_driver_name(device_dict):
-        return device_dict['device_template']['device_driver']
-
-    @staticmethod
-    def _mgmt_device_driver(device_dict):
-        return device_dict['device_template']['mgmt_driver']
-
-    @staticmethod
-    def _mgmt_service_driver(service_instance_dict):
-        return service_instance_dict['mgmt_driver']
+    def _infra_driver_name(device_dict):
+        return device_dict['device_template']['infra_driver']
 
     @staticmethod
     def _instance_id(device_dict):
@@ -217,15 +178,11 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
         template = device_template['device_template']
         LOG.debug(_('template %s'), template)
         tenant_id = self._get_tenant_id_for_create(context, template)
-        device_driver = template.get('device_driver')
-        mgmt_driver = template.get('mgmt_driver')
+        infra_driver = template.get('infra_driver')
 
-        if (not attributes.is_attr_set(device_driver)):
+        if (not attributes.is_attr_set(infra_driver)):
             LOG.debug(_('hosting device driver unspecified'))
-            raise servicevm.DeviceDriverNotSpecified()
-        if (not attributes.is_attr_set(mgmt_driver)):
-            LOG.debug(_('mgmt driver unspecified'))
-            raise servicevm.MGMTDriverNotSpecified()
+            raise servicevm.InfraDriverNotSpecified()
 
         with context.session.begin(subtransactions=True):
             template_id = str(uuid.uuid4())
@@ -234,8 +191,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                 tenant_id=tenant_id,
                 name=template.get('name'),
                 description=template.get('description'),
-                device_driver=device_driver,
-                mgmt_driver=mgmt_driver)
+                infra_driver=infra_driver)
             context.session.add(template_db)
             for (key, value) in template.get('attributes', {}).items():
                 attribute_db = DeviceTemplateAttribute(
@@ -324,8 +280,9 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                                status=constants.PENDING_CREATE)
             context.session.add(device_db)
             for key, value in kwargs.items():
-                arg = DeviceArg(id=str(uuid.uuid4()), device_id=device_id,
-                                key=key, value=jsonutils.dumps(value))
+                arg = DeviceAttribute(
+                    id=str(uuid.uuid4()), device_id=device_id,
+                    key=key, value=jsonutils.dumps(value))
                 context.session.add(arg)
 
         return self._make_device_dict(device_db)
@@ -333,14 +290,13 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
     # called internally, not by REST API
     # intsance_id = None means error on creation
     def _create_device_post(self, context, device_id, instance_id,
-                            mgmt_address):
+                            mgmt_url):
         with context.session.begin(subtransactions=True):
             query = (self._model_query(context, Device).
                      filter(Device.id == device_id).
                      filter(Device.status == constants.PENDING_CREATE).
                      one())
-            query.update({'instance_id': instance_id,
-                          'mgmt_address': mgmt_address})
+            query.update({'instance_id': instance_id, 'mgmt_url': mgmt_url})
             if instance_id is None:
                 query.update({'status': constants.ERROR})
 
@@ -395,8 +351,8 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             if error:
                 query.update({'status': constants.ERROR})
             else:
-                (self._model_query(context, DeviceArg).
-                 filter(DeviceArg.device_id == device_id).delete())
+                (self._model_query(context, DeviceAttribute).
+                 filter(DeviceAttribute.device_id == device_id).delete())
                 query.delete()
 
     # reference implementation. needs to be overrided by subclass

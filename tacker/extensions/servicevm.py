@@ -36,12 +36,8 @@ from tacker.services.service_base import ServicePluginBase
 LOG = logging.getLogger(__name__)
 
 
-class DeviceDriverNotSpecified(exceptions.InvalidInput):
-    message = _('device driver is not speicfied')
-
-
-class MgmtDriverNotSpecified(exceptions.InvalidInput):
-    message = _('management driver is not speicfied')
+class InfraDriverNotSpecified(exceptions.InvalidInput):
+    message = _('infra driver is not speicfied')
 
 
 class DeviceTemplateInUse(exceptions.InUse):
@@ -52,12 +48,8 @@ class DeviceInUse(exceptions.InUse):
     message = _('Device %(device_id)s is still in use')
 
 
-class InvalidDeviceDriver(exceptions.InvalidInput):
-    message = _('invalid name for device driver %(device_driver)s')
-
-
-class InvalidMgmtDriver(exceptions.InvalidInput):
-    message = _('invalid name for management driver %(mgmt_driver)s')
+class InvalidInfraDriver(exceptions.InvalidInput):
+    message = _('invalid name for infra driver %(infra_driver)s')
 
 
 class InvalidServiceType(exceptions.InvalidInput):
@@ -119,14 +111,7 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
             'default': '',
         },
-        'device_driver': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:string': None},
-            'is_visible': True,
-            'default': attr.ATTR_NOT_SPECIFIED,
-        },
-        'mgmt_driver': {
+        'infra_driver': {
             'allow_post': True,
             'allow_put': False,
             'validate': {'type:string': None},
@@ -170,13 +155,13 @@ RESOURCE_ATTRIBUTE_MAP = {
             'validate': {'type:string': None},
             'is_visible': True,
         },
-        'mgmt_address': {
+        'mgmt_url': {
             'allow_post': False,
             'allow_put': False,
             'validate': {'type:string': None},
             'is_visible': True,
         },
-        'kwargs': {
+        'attributes': {
             'allow_post': True,
             'allow_put': True,
             'validate': {'type:dict_or_none': None},
