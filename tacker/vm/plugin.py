@@ -309,3 +309,24 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
 
         self._delete_device_post(context, device_id, None)
         self.spawn_n(self._delete_device_wait, context, device_dict)
+
+    def _do_interface(self, context, device_id, port_id, action):
+        device_dict = self._update_device_pre(context, device_id)
+        driver_name = self._device_driver_name(device_dict)
+        instance_id = self._instance_id(device_dict)
+
+        try:
+            self._device_manager.invoke(driver_name, action, plugin=self,
+                                        context=context, device_id=instance_id)
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                device_dict['status'] = constants.ERROR
+                self._update_device_post(context, device_id, constants.ERROR)
+
+        self._update_device_post(context, device_dict['id'], constants.ACTIVE)
+
+    def attach_interface(self, context, id, port_id):
+        return self._do_interface(context, id, port_id, 'attach_interface')
+
+    def detach_interface(self, context, id, port_id):
+        return self._do_interface(context, id, port_id, 'dettach_interface')

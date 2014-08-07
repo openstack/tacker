@@ -243,3 +243,17 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
                 raise RuntimeError(_("deletion of server %s faild") %
                                    device_id)
             time.sleep(5)
+
+    def attach_interface(self, plugin, context, device_id, port_id):
+        LOG.debug(_('ataching interface %(device_id)s %(port_id)s'),
+                  {'device_id': device_id, 'port_id': port_id})
+        nova = self._nova_client()
+        instance = nova.servers.get(device_id)
+        instance.interface_attach(port_id, None, None)
+
+    def dettach_interface(self, plugin, context, device_id, port_id):
+        LOG.debug(_('detaching interface %(device_id)s %(port_id)s'),
+                  {'device_id': device_id, 'port_id': port_id})
+        nova = self._nova_client()
+        instance = nova.servers.get(device_id)
+        instance.interface_detach(port_id)

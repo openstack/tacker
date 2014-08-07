@@ -220,9 +220,11 @@ class Servicevm(extensions.ExtensionDescriptor):
             special_mappings, RESOURCE_ATTRIBUTE_MAP)
         plural_mappings['devices'] = 'device'
         attr.PLURALS.update(plural_mappings)
+        action_map = {'device': {'attach_interface': 'PUT',
+                                 'detach_interface': 'PUT'}}
         return resource_helper.build_resource_info(
             plural_mappings, RESOURCE_ATTRIBUTE_MAP, constants.SERVICEVM,
-            translate_name=True)
+            translate_name=True, action_map=action_map)
 
     @classmethod
     def get_plugin_interface(cls):
@@ -283,4 +285,12 @@ class ServiceVMPluginBase(ServicePluginBase):
 
     @abc.abstractmethod
     def delete_device(self, context, device_id):
+        pass
+
+    @abc.abstractmethod
+    def attach_interface(self, context, id, port_id):
+        pass
+
+    @abc.abstractmethod
+    def detach_interface(self, contexct, id, port_id):
         pass
