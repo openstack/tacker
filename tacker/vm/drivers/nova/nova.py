@@ -80,6 +80,8 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
             'insecure': CONF.servicevm_nova.insecure,
             # 'http_log_debug': True,
         }
+        if token:
+            kwargs['token'] = token
         LOG.debug(_('kwargs %s'), kwargs)
         return self._novaclient.Client("1.1", **kwargs)
 
