@@ -18,7 +18,7 @@
 import abc
 
 import netaddr
-from oslo.config import cfg
+from oslo_config import cfg
 import six
 
 from tacker.agent.common import config

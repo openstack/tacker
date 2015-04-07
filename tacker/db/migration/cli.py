@@ -20,7 +20,7 @@ from alembic import command as alembic_command
 from alembic import config as alembic_config
 from alembic import script as alembic_script
 from alembic import util as alembic_util
-from oslo.config import cfg
+from oslo_config import cfg
 
 
 HEAD_FILENAME = 'HEAD'

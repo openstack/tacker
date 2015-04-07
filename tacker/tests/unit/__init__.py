@@ -17,7 +17,7 @@
 
 import os
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 
 reldir = os.path.join(os.path.dirname(__file__), '..', '..', '..')

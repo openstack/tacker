@@ -18,7 +18,7 @@ import abc
 import imp
 import os
 
-from oslo.config import cfg
+from oslo_config import cfg
 import routes
 import six
 import webob.dec

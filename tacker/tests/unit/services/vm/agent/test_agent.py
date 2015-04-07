@@ -21,10 +21,10 @@
 import uuid
 
 import mock
-from oslo.config import cfg
 import oslo.messaging.rpc.client
 from oslo.messaging import target
 from oslo.messaging import transport
+from oslo_config import cfg
 
 import tacker.agent.linux.ip_lib
 from tacker import context

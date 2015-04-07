@@ -878,13 +878,13 @@ class EngineFacade(object):
     @classmethod
     def from_config(cls, connection_string, conf,
                     sqlite_fk=False, autocommit=True, expire_on_commit=False):
-        """Initialize EngineFacade using oslo.config config instance options.
+        """Initialize EngineFacade using oslo_config config instance options.
 
         :param connection_string: SQLAlchemy connection string
         :type connection_string: string
 
-        :param conf: oslo.config config instance
-        :type conf: oslo.config.cfg.ConfigOpts
+        :param conf: oslo_config config instance
+        :type conf: oslo_config.cfg.ConfigOpts
 
         :param sqlite_fk: enable foreign keys in SQLite
         :type sqlite_fk: bool

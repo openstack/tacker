@@ -31,7 +31,7 @@ from xml.parsers import expat
 
 import eventlet.wsgi
 #eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
-from oslo.config import cfg
+from oslo_config import cfg
 import routes.middleware
 import webob.dec
 import webob.exc

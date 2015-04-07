@@ -15,7 +15,7 @@
 import os
 import ssl
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.openstack.common.gettextutils import _
 

@@ -21,7 +21,7 @@
 import uuid
 
 import mock
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.common import topics
 from tacker import context

@@ -21,7 +21,7 @@
 import uuid
 
 import mock
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.api.v1 import attributes
 import tacker.openstack.common.rpc.proxy

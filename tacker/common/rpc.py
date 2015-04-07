@@ -15,9 +15,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo.config import cfg
 from oslo import messaging
 from oslo.messaging import serializer as om_serializer
+from oslo_config import cfg
 
 from tacker.common import exceptions
 from tacker import context

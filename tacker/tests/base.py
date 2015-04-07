@@ -28,8 +28,8 @@ import weakref
 import eventlet.timeout
 import fixtures
 import mock
-from oslo.config import cfg
 from oslo.messaging import conffixture as messaging_conffixture
+from oslo_config import cfg
 import testtools
 
 from tacker.common import config

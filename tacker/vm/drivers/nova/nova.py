@@ -22,7 +22,7 @@
 
 import time
 
-from oslo.config import cfg
+from oslo_config import cfg
 from tacker.api.v1 import attributes
 from tacker.openstack.common import log as logging
 from tacker.vm.drivers import abstract_driver

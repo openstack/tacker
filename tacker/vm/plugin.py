@@ -23,7 +23,7 @@
 import inspect
 
 import eventlet
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager

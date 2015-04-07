@@ -21,7 +21,7 @@ Policy engine for tacker.  Largely copied from nova.
 import itertools
 import re
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.api.v1 import attributes
 from tacker.common import exceptions

@@ -14,7 +14,7 @@
 
 import logging
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.openstack.common import notifier
 

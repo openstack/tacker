@@ -14,7 +14,7 @@
 #    under the License.
 # @author: Paul Michali Cisco Systems, Inc.
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.api import extensions
 from tacker.api.v1 import base

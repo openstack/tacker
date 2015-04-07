@@ -13,7 +13,7 @@
 
 import time
 
-from oslo.config import cfg
+from oslo_config import cfg
 import six
 
 from tacker.openstack.common.gettextutils import _, _LE, _LI

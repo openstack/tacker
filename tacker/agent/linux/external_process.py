@@ -18,7 +18,7 @@
 
 import os
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.agent.linux import ip_lib
 from tacker.agent.linux import utils

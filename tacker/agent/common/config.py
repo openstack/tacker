@@ -17,7 +17,7 @@
 
 import os
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.common import config
 from tacker.openstack.common import log as logging

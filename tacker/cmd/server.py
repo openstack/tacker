@@ -23,7 +23,7 @@ import sys
 import eventlet
 eventlet.monkey_patch()
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.common import config
 from tacker.openstack.common import service as common_service

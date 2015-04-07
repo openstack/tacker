@@ -19,8 +19,8 @@ Routines for configuring Tacker
 
 import os
 
-from oslo.config import cfg
 from oslo import messaging
+from oslo_config import cfg
 from paste import deploy
 
 from tacker.common import utils

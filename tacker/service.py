@@ -18,7 +18,7 @@ import logging as std_logging
 import os
 import random
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.common import config
 from tacker.common import rpc_compat

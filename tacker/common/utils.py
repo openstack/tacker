@@ -30,7 +30,7 @@ import socket
 import uuid
 
 from eventlet.green import subprocess
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.common import constants as q_const
 from tacker.openstack.common import lockutils

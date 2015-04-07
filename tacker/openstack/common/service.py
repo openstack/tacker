@@ -35,7 +35,7 @@ except ImportError:
 
 import eventlet
 from eventlet import event
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.openstack.common import eventlet_backdoor
 from tacker.openstack.common.gettextutils import _LE, _LI, _LW
