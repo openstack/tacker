@@ -141,8 +141,6 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
     def _make_template_dict(self, template, fields=None):
         res = {
             'attributes': self._make_attributes_dict(template['attributes']),
-            'service_types':
-            self._make_service_types_list(template['service_types']),
         }
         key_list = ('id', 'tenant_id', 'name', 'description', 'infra_driver')
         res.update((key, template[key]) for key in key_list)
@@ -201,11 +199,9 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                     value=value)
                 context.session.add(attribute_db)
 
-        LOG.debug(_('template_db %(template_db)s %(attributes)s '
-                    '%(service_types)s'),
+        LOG.debug(_('template_db %(template_db)s %(attributes)s '),
                   {'template_db': template_db,
-                   'attributes': template_db.attributes,
-                   'service_types': template_db.service_types})
+                   'attributes': template_db.attributes})
         return self._make_template_dict(template_db)
 
     def update_device_template(self, context, device_template_id,

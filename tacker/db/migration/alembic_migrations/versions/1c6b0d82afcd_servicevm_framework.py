@@ -47,14 +47,6 @@ def upgrade(active_plugins=None, options=None):
         sa.PrimaryKeyConstraint('id'),
     )
     op.create_table(
-        'servicetypes',
-        sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('tenant_id', sa.String(length=255), nullable=True),
-        sa.Column('template_id', sa.String(length=36), nullable=False),
-        sa.Column('service_type', sa.String(length=255), nullable=False),
-        sa.PrimaryKeyConstraint('id'),
-    )
-    op.create_table(
         'devicetemplateattributes',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('template_id', sa.String(length=36), nullable=False),
@@ -69,13 +61,13 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('tenant_id', sa.String(length=255), nullable=True),
         sa.Column('template_id', sa.String(length=36), nullable=True),
         sa.Column('instance_id', sa.String(length=255), nullable=True),
-        sa.Column('mgmt_address', sa.String(length=255), nullable=True),
+        sa.Column('mgmt_url', sa.String(length=255), nullable=True),
         sa.Column('status', sa.String(length=255), nullable=True),
         sa.ForeignKeyConstraint(['template_id'], ['devicetemplates.id'], ),
         sa.PrimaryKeyConstraint('id'),
     )
     op.create_table(
-        'deviceargs',
+        'deviceattributes',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('device_id', sa.String(length=36)),
         sa.Column('key', sa.String(length=255), nullable=False),
@@ -83,63 +75,3 @@ def upgrade(active_plugins=None, options=None):
         sa.ForeignKeyConstraint(['device_id'], ['devices.id'], ),
         sa.PrimaryKeyConstraint('id'),
     )
-    op.create_table(
-        'deviceservicecontexts',
-        sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('device_id', sa.String(length=36)),
-        sa.Column('network_id', sa.String(length=36), nullable=True),
-        sa.Column('subnet_id', sa.String(length=36), nullable=True),
-        sa.Column('port_id', sa.String(length=36), nullable=True),
-        sa.Column('router_id', sa.String(length=36), nullable=True),
-        sa.Column('role', sa.String(length=256), nullable=True),
-        sa.Column('index', sa.Integer(), nullable=True),
-        sa.PrimaryKeyConstraint('id'),
-    )
-    op.create_table(
-        'serviceinstances',
-        sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('tenant_id', sa.String(length=255), nullable=True),
-        sa.Column('name', sa.String(length=255), nullable=True),
-        sa.Column('service_type_id', sa.String(length=36), nullable=True),
-        sa.Column('service_table_id', sa.String(length=36), nullable=True),
-        sa.Column('managed_by_user', sa.Boolean(), nullable=False),
-        sa.Column('mgmt_driver', sa.String(length=255), nullable=True),
-        sa.Column('mgmt_address', sa.String(length=255), nullable=True),
-        sa.Column('status', sa.String(length=255), nullable=True),
-        sa.ForeignKeyConstraint(['service_type_id'], ['servicetypes.id'], ),
-        sa.PrimaryKeyConstraint('id'),
-    )
-    op.create_table(
-        'servicecontexts',
-        sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('service_instance_id', sa.String(length=36)),
-        sa.Column('network_id', sa.String(length=36), nullable=True),
-        sa.Column('subnet_id', sa.String(length=36), nullable=True),
-        sa.Column('port_id', sa.String(length=36), nullable=True),
-        sa.Column('router_id', sa.String(length=36), nullable=True),
-        sa.Column('role', sa.String(length=256), nullable=True),
-        sa.Column('index', sa.Integer(), nullable=True),
-        sa.PrimaryKeyConstraint('id'),
-    )
-    op.create_table(
-        'servicedevicebindings',
-        sa.Column('service_instance_id', sa.String(length=36), nullable=True),
-        sa.Column('device_id', sa.String(length=36), nullable=True),
-        sa.ForeignKeyConstraint(['device_id'], ['devices.id'], ),
-        sa.ForeignKeyConstraint(['service_instance_id'],
-                                ['serviceinstances.id'], ),
-        sa.PrimaryKeyConstraint('service_instance_id'),
-        sa.PrimaryKeyConstraint('device_id'),
-    )
-
-
-def downgrade(active_plugins=None, options=None):
-    op.drop_table('devicetemplates')
-    op.drop_table('servicetypes')
-    op.drop_table('devicetemplateattributes')
-    op.drop_table('devices')
-    op.drop_table('deviceargs')
-    op.drop_table('deviceservicecontexts')
-    op.drop_table('serviceinstances')
-    op.drop_table('servicecontexts')
-    op.drop_table('servicedevicebindings')

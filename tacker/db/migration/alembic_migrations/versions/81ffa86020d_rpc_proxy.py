@@ -52,8 +52,3 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('clt_ns_proxy_id', sa.String(36)),
         sa.PrimaryKeyConstraint('service_instance_id'),
     )
-
-
-def downgrade(active_plugins=None, options=None):
-    op.drop_table('proxymgmtport')
-    op.drop_table('proxyserviceport')
