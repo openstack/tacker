@@ -18,7 +18,7 @@
 
 EXT_NS_COMP = '_backward_comp_e_ns'
 EXT_NS = '_extension_ns'
-XML_NS_V20 = 'http://openstack.org/tacker/api/v2.0'
+XML_NS_V10 = 'http://openstack.org/tacker/api/v1.0'
 XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
 XSI_ATTR = "xsi:nil"
 XSI_NIL_ATTR = "xmlns:xsi"

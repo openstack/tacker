@@ -619,6 +619,6 @@ EXT_NSES_BC = {}
 
 def get_attr_metadata():
     return {'plurals': PLURALS,
-            'xmlns': constants.XML_NS_V20,
+            'xmlns': constants.XML_NS_V10,
             constants.EXT_NS: EXT_NSES,
             constants.EXT_NS_COMP: EXT_NSES_BC}

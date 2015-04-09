@@ -412,7 +412,7 @@ class XMLDictSerializer(DictSerializer):
         if not xmlns:
             xmlns = self.metadata.get('xmlns')
         if not xmlns:
-            xmlns = constants.XML_NS_V20
+            xmlns = constants.XML_NS_V10
         self.xmlns = xmlns
 
     def default(self, data):
@@ -644,7 +644,7 @@ class XMLDeserializer(TextDeserializer):
         self.metadata = metadata or {}
         xmlns = self.metadata.get('xmlns')
         if not xmlns:
-            xmlns = constants.XML_NS_V20
+            xmlns = constants.XML_NS_V10
         self.xmlns = xmlns
 
     def _get_key(self, tag):
