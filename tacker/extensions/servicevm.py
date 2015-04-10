@@ -443,7 +443,7 @@ class ServiceVMPluginBase(ServicePluginBase):
     def attach_interface(self, context, id, port_id):
         pass
 
-    @abc.abstractmetho
+    @abc.abstractmethod
     def detach_interface(self, contexct, id, port_id):
         pass
 
