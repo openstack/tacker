@@ -27,12 +27,14 @@ from oslo_config import cfg
 
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
+from tacker.common import topics
 from tacker.db.vm import vm_db
 from tacker.extensions import servicevm
 from tacker.openstack.common import excutils
 from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
 from tacker.vm.mgmt_drivers import constants as mgmt_constants
+from tacker.vm import proxy_api
 
 LOG = logging.getLogger(__name__)
 
@@ -112,6 +114,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         self._device_manager = driver_manager.DriverManager(
             'tacker.servicevm.device.drivers',
             cfg.CONF.servicevm.infra_driver)
+        self.proxy_api = proxy_api.ServiceVMPluginApi(topics.SERVICEVM_AGENT)
 
     def spawn_n(self, function, *args, **kwargs):
         self._pool.spawn_n(function, *args, **kwargs)

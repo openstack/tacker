@@ -18,7 +18,7 @@
 #
 # @author: Isaku Yamahata, Intel Corporation.
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from tacker.db.vm import proxy_db
 from tacker.openstack.common import log as logging

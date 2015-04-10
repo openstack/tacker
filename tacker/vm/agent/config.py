@@ -1,6 +1,8 @@
-# Copyright 2014 Intel Corporation.
-# Copyright 2014 Isaku Yamahata <isaku.yamahata at intel com>
-#                               <isaku.yamahata at gmail com>
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+#
+# Copyright 2013, 2014 Intel Corporation.
+# Copyright 2013, 2014 Isaku Yamahata <isaku.yamahata at intel com>
+#                                     <isaku.yamahata at gmail com>
 # All Rights Reserved.
 #
 #
@@ -20,15 +22,10 @@
 
 from oslo_config import cfg
 
-from tacker.common import topics
 
-
-_RPC_AGENT_OPTS = [
-    cfg.StrOpt('device_id', default=None, help=_('The device id')),
-    cfg.StrOpt('topic', default=topics.SERVICEVM_AGENT,
-               help=_('rpc topic for agent to subscribe')),
+OPTS = [
+    cfg.StrOpt('svcvm-proxy-dir',
+               default='$state_path/svcvm_proxy_dir',
+               help=_('Location for servicevm agent proxy '
+                      'UNIX domain socket')),
 ]
-
-
-def register_servicevm_agent_opts(conf):
-    conf.register_opts(_RPC_AGENT_OPTS, group='servicevm_agent')
