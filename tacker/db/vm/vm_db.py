@@ -59,6 +59,9 @@ class DeviceTemplate(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     # driver to create hosting device. e.g. noop, nova, heat, etc...
     infra_driver = sa.Column(sa.String(255))
 
+    # driver to communicate with service managment
+    mgmt_driver = sa.Column(sa.String(255))
+
     # (key, value) pair to spin up
     attributes = orm.relationship('DeviceTemplateAttribute',
                                   backref='template')
@@ -293,7 +296,8 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
         res = {
             'attributes': self._make_attributes_dict(template['attributes']),
         }
-        key_list = ('id', 'tenant_id', 'name', 'description', 'infra_driver')
+        key_list = ('id', 'tenant_id', 'name', 'description',
+                    'infra_driver', 'mgmt_driver')
         res.update((key, template[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -352,6 +356,10 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
         return device_dict['device_template']['infra_driver']
 
     @staticmethod
+    def _mgmt_driver_name(device_dict):
+        return device_dict['device_template']['mgmt_driver']
+
+    @staticmethod
     def _instance_id(device_dict):
         return device_dict['instance_id']
 
@@ -383,7 +391,8 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                 tenant_id=tenant_id,
                 name=template.get('name'),
                 description=template.get('description'),
-                infra_driver=infra_driver)
+                infra_driver=infra_driver,
+                mgmt_driver=mgmt_driver)
             context.session.add(template_db)
             for (key, value) in template.get('attributes', {}).items():
                 attribute_db = DeviceTemplateAttribute(

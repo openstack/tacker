@@ -59,7 +59,7 @@ class ServiceVMMgmtMixin(object):
     def _invoke(self, device_dict, **kwargs):
         method = inspect.stack()[1][3]
         return self._mgmt_manager.invoke(
-            self._mgmt_device_driver(device_dict), method, **kwargs)
+            self._mgmt_driver_name(device_dict), method, **kwargs)
 
     def mgmt_create_pre(self, context, device_dict):
         return self._invoke(
