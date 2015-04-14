@@ -22,36 +22,53 @@
 
 import time
 
+from keystoneclient import auth as ks_auth
+from keystoneclient.auth.identity import v2 as v2_auth
+from keystoneclient import session as ks_session
 from oslo_config import cfg
+
 from tacker.api.v1 import attributes
+from tacker.i18n import _LW
 from tacker.openstack.common import log as logging
 from tacker.vm.drivers import abstract_driver
 
 LOG = logging.getLogger(__name__)
-OPTS = [
-    cfg.StrOpt('project-id', default='',
-               help=_('project id used '
-                      'by nova driver of service vm extension')),
-    cfg.StrOpt('auth-url', default='http://0.0.0.0:5000/v2.0',
-               help=_('auth URL used by nova driver of service vm extension')),
-    cfg.StrOpt('user-name', default='',
-               help=_('user name used '
-                      'by nova driver of service vm extension')),
-    cfg.StrOpt('api-key', default='',
-               help=_('api-key used by nova driver of service vm extension')),
-    cfg.StrOpt('ca-file',
-               help=_('Optional CA cert file for nova driver to use in SSL'
-                      ' connections ')),
-    cfg.BoolOpt('insecure', default=False,
-                help=_("If set then the server's certificate will not "
-                       "be verified by nova driver")),
-]
 CONF = cfg.CONF
-CONF.register_opts(OPTS, group='servicevm_nova')
+NOVA_API_VERSION = "2"
+SERVICEVM_NOVA_CONF_SECTION = 'servicevm_nova'
+ks_session.Session.register_conf_options(cfg.CONF, SERVICEVM_NOVA_CONF_SECTION)
+ks_auth.register_conf_options(cfg.CONF, SERVICEVM_NOVA_CONF_SECTION)
+OPTS = [
+    cfg.StrOpt('region_name',
+               help=_('Name of nova region to use. Useful if keystone manages'
+                      ' more than one region.')),
+]
+CONF.register_opts(OPTS, group=SERVICEVM_NOVA_CONF_SECTION)
 _NICS = 'nics'          # converted by novaclient => 'networks'
 _NET_ID = 'net-id'      # converted by novaclient => 'uuid'
 _PORT_ID = 'port-id'    # converted by novaclient => 'port'
 _FILES = 'files'
+
+
+class DefaultAuthPlugin(v2_auth.Password):
+    """A wrapper around standard v2 user/pass to handle bypass url.
+
+    This is only necessary because novaclient doesn't support endpoint_override
+    yet - bug #1403329.
+
+    When this bug is fixed we can pass the endpoint_override to the client
+    instead and remove this class.
+    """
+
+    def __init__(self, **kwargs):
+        self._endpoint_override = kwargs.pop('endpoint_override', None)
+        super(DefaultAuthPlugin, self).__init__(**kwargs)
+
+    def get_endpoint(self, session, **kwargs):
+        if self._endpoint_override:
+            return self._endpoint_override
+
+        return super(DefaultAuthPlugin, self).get_endpoint(session, **kwargs)
 
 
 class DeviceNova(abstract_driver.DeviceAbstractDriver):
@@ -60,30 +77,37 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
 
     def __init__(self):
         super(DeviceNova, self).__init__()
+        # avoid circular import
         from novaclient import client
-        from novaclient import shell
         self._novaclient = client
-        self._novashell = shell
 
     def _nova_client(self, token=None):
-        computeshell = self._novashell.OpenStackComputeShell()
-        extensions = computeshell._discover_extensions("1.1")
+        auth = ks_auth.load_from_conf_options(cfg.CONF,
+                                              SERVICEVM_NOVA_CONF_SECTION)
+        endpoint_override = None
 
-        kwargs = {
-            'project_id': CONF.servicevm_nova.project_id,
-            'auth_url': CONF.servicevm_nova.auth_url,
-            'service_type': 'compute',
-            'username': CONF.servicevm_nova.user_name,
-            'api_key': CONF.servicevm_nova.api_key,
-            'extensions': extensions,
-            'cacert': CONF.servicevm_nova.ca_file,
-            'insecure': CONF.servicevm_nova.insecure,
-            # 'http_log_debug': True,
-        }
-        if token:
-            kwargs['token'] = token
-        LOG.debug(_('kwargs %s'), kwargs)
-        return self._novaclient.Client("1.1", **kwargs)
+        if not auth:
+            LOG.warning(_LW('Authenticating to nova using nova_admin_* options'
+                            ' is deprecated. This should be done using'
+                            ' an auth plugin, like password'))
+
+            if cfg.CONF.nova_admin_tenant_id:
+                endpoint_override = "%s/%s" % (cfg.CONF.nova_url,
+                                               cfg.CONF.nova_admin_tenant_id)
+
+            auth = DefaultAuthPlugin(
+                auth_url=cfg.CONF.nova_admin_auth_url,
+                username=cfg.CONF.nova_admin_username,
+                password=cfg.CONF.nova_admin_password,
+                tenant_id=cfg.CONF.nova_admin_tenant_id,
+                tenant_name=cfg.CONF.nova_admin_tenant_name,
+                endpoint_override=endpoint_override)
+
+        session = ks_session.Session.load_from_conf_options(
+            cfg.CONF, SERVICEVM_NOVA_CONF_SECTION, auth=auth)
+        novaclient_cls = self._novaclient.get_client_class(NOVA_API_VERSION)
+        return novaclient_cls(session=session,
+                              region_name=cfg.CONF.servicevm_nova.region_name)
 
     def get_type(self):
         return 'nova'
