@@ -30,6 +30,12 @@ ATTR_KEY_IMAGE = 'image'
 ATTR_KEY_FLAVOR = 'flavor'
 ATTR_KEY_MGMT_NETWORK = 'mgmt-network'
 
+# attribute key for device template for heat
+ATTR_KEY_HEAT_STACK_NAME = 'stack_name'
+ATTR_KEY_HEAT_TEMPLATE_URL = 'template_url'
+ATTR_KEY_HEAT_TEMPLATE = 'template'
+ATTR_KEY_HEAT_FILES = 'files'
+ATTR_KEY_HEAT_PARAMETERS = 'parameters'
 
 # Role of service context
 ROLE_NONE = 'None'

@@ -156,8 +156,8 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
     """ServiceVMPlugin which supports ServiceVM framework
     """
     OPTS = [
-        cfg.MultiStrOpt(
-            'infra_driver', default=[],
+        cfg.ListOpt(
+            'infra_driver', default=['heat'],
             help=_('Hosting device drivers servicevm plugin will use')),
     ]
     cfg.CONF.register_opts(OPTS, 'servicevm')
