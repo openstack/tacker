@@ -487,7 +487,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
         tenant_id = self._get_tenant_id_for_create(context, device)
         template_id = device['template_id']
         device_id = device.get('id') or str(uuid.uuid4())
-        kwargs = device.get('kwargs', {})
+        kwargs = device.get('attributes', {})
         service_context = device.get('service_context', [])
         with context.session.begin(subtransactions=True):
             device_db = Device(id=device_id,
