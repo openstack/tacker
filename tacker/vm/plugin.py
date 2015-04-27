@@ -19,10 +19,12 @@
 #    under the License.
 #
 # @author: Isaku Yamahata, Intel Corporation.
-
-import inspect
-
 import eventlet
+import inspect
+import os
+import threading
+import time
+
 from oslo_config import cfg
 from sqlalchemy.orm import exc as orm_exc
 
@@ -39,6 +41,84 @@ from tacker.vm.mgmt_drivers import constants as mgmt_constants
 from tacker.vm import proxy_api
 
 LOG = logging.getLogger(__name__)
+
+
+def _is_pingable(ip):
+    """Checks whether an IP address is reachable by pinging.
+
+    Use linux utils to execute the ping (ICMP ECHO) command.
+    Sends 5 packets with an interval of 0.2 seconds and timeout of 1
+    seconds. Runtime error implies unreachability else IP is pingable.
+    :param ip: IP to check
+    :return: bool - True or False depending on pingability.
+    """
+    ping_cmd = 'ping -c 5 -W 1 -i 2 ' + ip + '> /dev/null 2>&1'
+    LOG.debug('Pinging %s', ping_cmd)
+    return os.system(ping_cmd)
+
+
+class DeviceStatus(object):
+    """Device status"""
+
+    _instance = None
+    _hosting_devices = []
+    _status_check_intvl = 0
+    _lock = threading.Lock()
+
+    def __new__(cls, check_intvl):
+        if not cls._instance:
+            cls._instance = super(DeviceStatus, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self, check_intvl):
+        self._status_check_intvl = check_intvl
+        LOG.debug('Spawning device status thread')
+        threading.Thread(target=self.__run__).start()
+
+    def __run__(self):
+        while(1):
+            time.sleep(self._status_check_intvl)
+            with self._lock:
+                for hosting_device in self._hosting_devices:
+                    self.is_hosting_device_reachable(hosting_device)
+
+    def add_hosting_device(self, new_device):
+        LOG.debug('Adding host %(host)s, Mgmt IP %(ip)',
+                  {'host': new_device['host'],
+                   'ip': new_device['management_ip_address']})
+        with self._lock:
+            self._hosting_devices.append(new_device)
+
+    def delete_hosting_device(self, del_device):
+        LOG.debug('Adding host %(host)s, Mgmt IP %(ip)',
+                  {'host': del_device['host'],
+                   'ip': del_device['management_ip_address']})
+        with self._lock:
+            for hosting_device in self._hosting_devices:
+                if hosting_device == del_device:
+                    self._hosting_devices.remove(del_device)
+                    break
+
+    def is_hosting_device_reachable(self, hosting_device):
+        """Check the hosting device which hosts this resource is reachable.
+
+        If the resource is not reachable, it is added to the backlog.
+
+        :param hosting_device : dict of the hosting device
+        :return True if device is reachable, else None
+        """
+        hd_down_cb = hosting_device['down_cb']
+        if _is_pingable(hosting_device['management_ip_address']) == 0:
+            LOG.debug('Host %(host)s:%(ip), is reachable',
+                      {'host': hosting_device['host'],
+                       'ip': hosting_device['management_ip_address']})
+            return True
+        else:
+            LOG.debug('Host %(host)s:%(ip), is unreachable',
+                      {'host': hosting_device['host'],
+                      'ip': hosting_device['management_ip_address']})
+            hd_down_cb(hosting_device)
+            return False
 
 
 class ServiceVMMgmtMixin(object):
