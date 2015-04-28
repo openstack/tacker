@@ -266,77 +266,77 @@ RESOURCE_ATTRIBUTE_MAP = {
         },
     },
 
-    'service_instances': {
-        'id': {
-            'allow_post': False,
-            'allow_put': False,
-            'validate': {'type:uuid': None},
-            'is_visible': True,
-            'primary_key': True
-        },
-        'tenant_id': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:string': None},
-            'required_by_policy': True,
-            'is_visible': True
-        },
-        'name': {
-            'allow_post': True,
-            'allow_put': True,
-            'validate': {'type:string': None},
-            'is_visible': True,
-        },
-        'service_type_id': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:uuid': None},
-            'is_visible': True,
-        },
-        'service_table_id': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:string': None},
-            'is_visible': True,
-        },
-        'mgmt_driver': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:string': None},
-            'is_visible': True,
-        },
-        'mgmt_address': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:string': None},
-            'is_visible': True,
-        },
-        'service_contexts': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:service_context_list': None},
-            'is_visible': True,
-        },
-        'devices': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:uuid_list': None},
-            'convert_to': attr.convert_to_list,
-            'is_visible': True,
-        },
-        'status': {
-            'allow_post': False,
-            'allow_put': False,
-            'is_visible': True,
-        },
-        'kwargs': {
-            'allow_post': True,
-            'allow_put': True,
-            'validate': {'type:dict_or_none': None},
-            'is_visible': True,
-            'default': {},
-        },
-    },
+    # 'service_instances': {
+    #     'id': {
+    #         'allow_post': False,
+    #         'allow_put': False,
+    #         'validate': {'type:uuid': None},
+    #         'is_visible': True,
+    #         'primary_key': True
+    #     },
+    #     'tenant_id': {
+    #         'allow_post': True,
+    #         'allow_put': False,
+    #         'validate': {'type:string': None},
+    #         'required_by_policy': True,
+    #         'is_visible': True
+    #     },
+    #     'name': {
+    #         'allow_post': True,
+    #         'allow_put': True,
+    #         'validate': {'type:string': None},
+    #         'is_visible': True,
+    #     },
+    #     'service_type_id': {
+    #         'allow_post': True,
+    #         'allow_put': False,
+    #         'validate': {'type:uuid': None},
+    #         'is_visible': True,
+    #     },
+    #     'service_table_id': {
+    #         'allow_post': True,
+    #         'allow_put': False,
+    #         'validate': {'type:string': None},
+    #         'is_visible': True,
+    #     },
+    #     'mgmt_driver': {
+    #         'allow_post': True,
+    #         'allow_put': False,
+    #         'validate': {'type:string': None},
+    #         'is_visible': True,
+    #     },
+    #     'mgmt_address': {
+    #         'allow_post': True,
+    #         'allow_put': False,
+    #         'validate': {'type:string': None},
+    #         'is_visible': True,
+    #     },
+    #     'service_contexts': {
+    #         'allow_post': True,
+    #         'allow_put': False,
+    #         'validate': {'type:service_context_list': None},
+    #         'is_visible': True,
+    #     },
+    #     'devices': {
+    #         'allow_post': True,
+    #         'allow_put': False,
+    #         'validate': {'type:uuid_list': None},
+    #         'convert_to': attr.convert_to_list,
+    #         'is_visible': True,
+    #     },
+    #     'status': {
+    #         'allow_post': False,
+    #         'allow_put': False,
+    #         'is_visible': True,
+    #     },
+    #     'kwargs': {
+    #         'allow_post': True,
+    #         'allow_put': True,
+    #         'validate': {'type:dict_or_none': None},
+    #         'is_visible': True,
+    #         'default': {},
+    #     },
+    # },
 }
 
 
