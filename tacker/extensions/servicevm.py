@@ -252,6 +252,7 @@ RESOURCE_ATTRIBUTE_MAP = {
             'allow_put': False,
             'validate': {'type:service_context_list': None},
             'is_visible': True,
+            'default': [],
         },
         'services': {
             'allow_post': False,
