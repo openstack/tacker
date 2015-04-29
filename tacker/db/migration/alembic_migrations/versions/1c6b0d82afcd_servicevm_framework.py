@@ -51,7 +51,7 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('template_id', sa.String(length=36), nullable=False),
         sa.Column('key', sa.String(length=255), nullable=False),
-        sa.Column('value', sa.String(length=255), nullable=True),
+        sa.Column('value', sa.String(length=4096), nullable=True),
         sa.ForeignKeyConstraint(['template_id'], ['devicetemplates.id'], ),
         sa.PrimaryKeyConstraint('id'),
     )

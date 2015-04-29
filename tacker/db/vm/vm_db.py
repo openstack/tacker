@@ -86,7 +86,7 @@ class DeviceTemplateAttribute(model_base.BASE, models_v1.HasId):
     template_id = sa.Column(sa.String(36), sa.ForeignKey('devicetemplates.id'),
                             nullable=False)
     key = sa.Column(sa.String(255), nullable=False)
-    value = sa.Column(sa.String(255), nullable=True)
+    value = sa.Column(sa.String(4096), nullable=True)
 
 
 class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
