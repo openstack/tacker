@@ -22,6 +22,7 @@
 # shamelessly many codes are stolen from gbp simplechain_driver.py
 
 import time
+import yaml
 
 from heatclient import client as heat_client
 from heatclient import exc as heatException
@@ -52,6 +53,10 @@ CONF.register_opts(OPTS, group='servicevm_heat')
 STACK_RETRIES = cfg.CONF.servicevm_heat.stack_retries
 STACK_RETRY_WAIT = cfg.CONF.servicevm_heat.stack_retry_wait
 
+HEAT_TEMPLATE_BASE = """
+heat_template_version: 2013-05-23
+"""
+
 
 class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
@@ -74,6 +79,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         LOG.debug(_('device %s'), device)
         heatclient_ = HeatClient(context)
         attributes = device['device_template']['attributes'].copy()
+        vnfd_yaml = attributes.pop('vnfd', None)
         fields = dict((key, attributes.pop(key)) for key
                       in ('stack_name', 'template_url', 'template')
                       if key in attributes)
@@ -91,6 +97,37 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             if key in kwargs:
                 kwargs[key] = jsonutils.loads(kwargs.pop(key))
         fields['parameters'].update(kwargs)
+        if vnfd_yaml is not None:
+            assert 'template' not in fields
+            assert 'template_url' not in fields
+            template_dict = yaml.load(HEAT_TEMPLATE_BASE)
+
+            vnfd_dict = yaml.load(vnfd_yaml)
+            LOG.debug('vnfd_dict %s', vnfd_dict)
+            KEY_LIST = (('description', 'description'),
+                        )
+            for (key, vnfd_key) in KEY_LIST:
+                if vnfd_key in vnfd_dict:
+                    template_dict[key] = vnfd_dict[vnfd_key]
+
+            for vdu_id, vdu_dict in template_dict.get('vdus', []):
+                template_dict['resources'][vdu_id] = {
+                    "type": "OS::Nova::Server"
+                }
+                resource_dict = template_dict['resources'][vdu_id]
+                KEY_LIST = (('image_id', 'vm_image'),
+                            ('instance_type', 'instance_type'))
+                for (key, vdu_key) in KEY_LIST:
+                    resource_dict[key] = vdu_dict[vdu_key]
+                if 'network_interfaces' in vdu_dict:
+                    resource_dict['networks'] = (
+                        vdu_dict['network_interfaces'].values())
+
+                # monitoring_policy = vdu_dict.get('monitoring_policy', None)
+                # failure_policy = vdu_dict.get('failure_policy', None)
+
+            fields['template'] = yaml.dump(template_dict)
+
         if 'stack_name' not in fields:
             name = (__name__ + '_' + self.__class__.__name__ + '-' +
                     device['id'])
