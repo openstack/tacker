@@ -90,6 +90,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
         # overwrite parameters with given kwargs for device creation
         kwargs = device['kwargs'].copy()
+        config_yaml = kwargs.pop('config', None)
         fields.update(dict((key, kwargs.pop(key)) for key
                       in ('stack_name', 'template_url', 'template')
                       if key in kwargs))
@@ -129,9 +130,26 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                     'availability_zone' in vdu_dict['placement_policy']):
                     properties['availability_zone'] = vdu_dict[
                         'placement_policy']['availability_zone']
+                if 'config' in vdu_dict:
+                    properties['config_drive'] = True
+                    properties.setdefault('metadata', {}).update(
+                        vdu_dict['config'])
 
                 # monitoring_policy = vdu_dict.get('monitoring_policy', None)
                 # failure_policy = vdu_dict.get('failure_policy', None)
+
+            if config_yaml is not None:
+                config_dict = yaml.load(config_yaml)
+                resources = template_dict.setdefault('resources', {})
+                for vdu_id, vdu_dict in config_dict.get('vdus', {}).items():
+                    if vdu_id not in resources:
+                        continue
+                    config = vdu_dict.get('config', None)
+                    if not config:
+                        continue
+                    properties = resources[vdu_id].setdefault('properties', {})
+                    properties['config_drive'] = True
+                    properties.setdefault('metadata', {}).update(config)
 
             fields['template'] = yaml.dump(template_dict)
 
@@ -144,6 +162,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         LOG.debug(_('service_context: %s'), device.get('service_context', []))
 
         LOG.debug(_('fields: %s'), fields)
+        LOG.debug(_('template: %s'), fields['template'])
         stack = heatclient_.create(fields)
         return stack['stack']['id']
 
