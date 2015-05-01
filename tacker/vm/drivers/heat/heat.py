@@ -97,6 +97,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             if key in kwargs:
                 kwargs[key] = jsonutils.loads(kwargs.pop(key))
         fields['parameters'].update(kwargs)
+        LOG.debug('vnfd_yaml %s', vnfd_yaml)
         if vnfd_yaml is not None:
             assert 'template' not in fields
             assert 'template_url' not in fields
@@ -110,18 +111,24 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 if vnfd_key in vnfd_dict:
                     template_dict[key] = vnfd_dict[vnfd_key]
 
-            for vdu_id, vdu_dict in template_dict.get('vdus', []):
-                template_dict['resources'][vdu_id] = {
+            for vdu_id, vdu_dict in vnfd_dict.get('vdus', {}).items():
+                template_dict.setdefault('resources', {})[vdu_id] = {
                     "type": "OS::Nova::Server"
                 }
                 resource_dict = template_dict['resources'][vdu_id]
-                KEY_LIST = (('image_id', 'vm_image'),
-                            ('instance_type', 'instance_type'))
+                KEY_LIST = (('image', 'vm_image'),
+                            ('flavor', 'instance_type'))
+                resource_dict['properties'] = {}
+                properties = resource_dict['properties']
                 for (key, vdu_key) in KEY_LIST:
-                    resource_dict[key] = vdu_dict[vdu_key]
+                    properties[key] = vdu_dict[vdu_key]
                 if 'network_interfaces' in vdu_dict:
-                    resource_dict['networks'] = (
+                    properties['networks'] = (
                         vdu_dict['network_interfaces'].values())
+                if ('placement_policy' in vdu_dict and
+                    'availability_zone' in vdu_dict['placement_policy']):
+                    properties['availability_zone'] = vdu_dict[
+                        'placement_policy']['availability_zone']
 
                 # monitoring_policy = vdu_dict.get('monitoring_policy', None)
                 # failure_policy = vdu_dict.get('failure_policy', None)
