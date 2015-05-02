@@ -228,6 +228,13 @@ RESOURCE_ATTRIBUTE_MAP = {
             'validate': {'type:uuid': None},
             'is_visible': True,
         },
+        'name': {
+            'allow_post': True,
+            'allow_put': True,
+            'validate': {'type:string': None},
+            'is_visible': True,
+            'default': '',
+        },
         'instance_id': {
             'allow_post': False,
             'allow_put': False,

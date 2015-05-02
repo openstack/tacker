@@ -97,6 +97,8 @@ class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     template_id = sa.Column(sa.String(36), sa.ForeignKey('devicetemplates.id'))
     template = orm.relationship('DeviceTemplate')
 
+    name = sa.Column(sa.String(255), nullable=True)
+
     # sufficient information to uniquely identify hosting device.
     # In case of service VM, it's UUID of nova VM.
     instance_id = sa.Column(sa.String(255), nullable=True)
@@ -324,8 +326,8 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             'service_context':
             self._make_device_service_context_dict(device_db.service_context),
         }
-        key_list = ('id', 'tenant_id', 'instance_id', 'template_id', 'status',
-                    'mgmt_url')
+        key_list = ('id', 'tenant_id', 'name', 'instance_id', 'template_id',
+                    'status', 'mgmt_url')
         res.update((key, device_db[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -486,12 +488,14 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
         LOG.debug(_('device %s'), device)
         tenant_id = self._get_tenant_id_for_create(context, device)
         template_id = device['template_id']
+        name = device.get('name')
         device_id = device.get('id') or str(uuid.uuid4())
         kwargs = device.get('attributes', {})
         service_context = device.get('service_context', [])
         with context.session.begin(subtransactions=True):
             device_db = Device(id=device_id,
                                tenant_id=tenant_id,
+                               name=name,
                                instance_id=None,
                                template_id=template_id,
                                status=constants.PENDING_CREATE)

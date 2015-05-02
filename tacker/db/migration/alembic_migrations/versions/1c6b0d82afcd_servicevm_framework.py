@@ -59,6 +59,7 @@ def upgrade(active_plugins=None, options=None):
         'devices',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('tenant_id', sa.String(length=255), nullable=True),
+        sa.Column('name', sa.String(length=255), nullable=True),
         sa.Column('template_id', sa.String(length=36), nullable=True),
         sa.Column('instance_id', sa.String(length=255), nullable=True),
         sa.Column('mgmt_url', sa.String(length=255), nullable=True),
