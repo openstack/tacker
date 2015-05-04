@@ -80,7 +80,7 @@ class DeviceMGMTAbstractDriver(extensions.PluginInterface):
         return {}
 
     @abc.abstractmethod
-    def mgmt_address(self, plugin, context, device):
+    def mgmt_url(self, plugin, context, device):
         pass
 
     @abc.abstractmethod
@@ -126,7 +126,7 @@ class DeviceMGMTAbstractDriver(extensions.PluginInterface):
 
 
 class DeviceMGMTByNetwork(DeviceMGMTAbstractDriver):
-    def mgmt_address(self, plugin, context, device):
+    def mgmt_url(self, plugin, context, device):
         mgmt_entries = [sc_entry for sc_entry in device.service_context
                         if (sc_entry.role == constants.ROLE_MGMT and
                             sc_entry.port_id)]
@@ -135,11 +135,11 @@ class DeviceMGMTByNetwork(DeviceMGMTAbstractDriver):
         port = plugin._core_plugin.get_port(context, mgmt_entries[0].port_id)
         if not port:
             return
-        mgmt_address = port['fixed_ips'][0]     # subnet_id and ip_address
-        mgmt_address['network_id'] = port['network_id']
-        mgmt_address['port_id'] = port['id']
-        mgmt_address['mac_address'] = port['mac_address']
-        return jsonutils.dumps(mgmt_address)
+        mgmt_url = port['fixed_ips'][0]     # subnet_id and ip_address
+        mgmt_url['network_id'] = port['network_id']
+        mgmt_url['port_id'] = port['id']
+        mgmt_url['mac_address'] = port['mac_address']
+        return jsonutils.dumps(mgmt_url)
 
     def mgmt_service_address(self, plugin, context, device, service_instance):
         mgmt_entries = [sc_entry for sc_entry
@@ -151,8 +151,8 @@ class DeviceMGMTByNetwork(DeviceMGMTAbstractDriver):
         port = plugin._core_plugin.get_port(context, mgmt_entries[0].port_id)
         if not port:
             return
-        mgmt_address = port['fixed_ips'][0]     # subnet_id and ip_address
-        mgmt_address['network_id'] = port['network_id']
-        mgmt_address['port_id'] = port['id']
-        mgmt_address['mac_address'] = port['mac_address']
-        return jsonutils.dumps(mgmt_address)
+        mgmt_url = port['fixed_ips'][0]     # subnet_id and ip_address
+        mgmt_url['network_id'] = port['network_id']
+        mgmt_url['port_id'] = port['id']
+        mgmt_url['mac_address'] = port['mac_address']
+        return jsonutils.dumps(mgmt_url)

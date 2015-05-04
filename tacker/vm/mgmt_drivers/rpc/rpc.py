@@ -77,12 +77,12 @@ class AgentRpcMGMTDriver(abstract_driver.DeviceMGMTAbstractDriver):
     def _mgmt_topic(self, device):
         return '%s-%s' % (self._TOPIC, self._mgmt_server(device))
 
-    def mgmt_address(self, plugin, context, device):
+    def mgmt_url(self, plugin, context, device):
         return self._address(self._mgmt_topic(device),
                              self._mgmt_server(device))
 
     def mgmt_call(self, plugin, context, device, kwargs):
-        topic = device['mgmt_address']
+        topic = device['mgmt_url']
         method = kwargs[constants.KEY_ACTION]
         kwargs_ = kwargs[constants.KEY_KWARGS]
         self._rpc_api.rpc_cast(context, method, kwargs_, topic)
@@ -103,5 +103,5 @@ class AgentRpcMGMTDriver(abstract_driver.DeviceMGMTAbstractDriver):
                           service_instance, kwargs):
         method = kwargs[constants.KEY_ACTION]
         kwargs_ = kwargs[constants.KEY_KWARGS]
-        topic = service_instance['mgmt_address']
+        topic = service_instance['mgmt_url']
         self._rpc_api.rpc_cast(context, method, kwargs_, topic)

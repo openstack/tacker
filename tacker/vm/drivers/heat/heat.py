@@ -103,6 +103,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             assert 'template' not in fields
             assert 'template_url' not in fields
             template_dict = yaml.load(HEAT_TEMPLATE_BASE)
+            outputs_dict = {}
+            template_dict['outputs'] = outputs_dict
 
             vnfd_dict = yaml.load(vnfd_yaml)
             LOG.debug('vnfd_dict %s', vnfd_dict)
@@ -124,8 +126,20 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 for (key, vdu_key) in KEY_LIST:
                     properties[key] = vdu_dict[vdu_key]
                 if 'network_interfaces' in vdu_dict:
-                    properties['networks'] = (
-                        vdu_dict['network_interfaces'].values())
+                    # properties['networks'] = (
+                    #     vdu_dict['network_interfaces'].values())
+                    networks_list = []
+                    properties['networks'] = networks_list
+                    for network_param in vdu_dict[
+                            'network_interfaces'].values():
+                        if network_param.pop('management', False):
+                            outputs_dict['mgmt_ip'] = {
+                                'description': 'management ip address',
+                                'value': {
+                                    'get_attr': [vdu_id, 'networks',
+                                                 network_param.values()[0], 0]}
+                            }
+                        networks_list.append(network_param)
                 if ('placement_policy' in vdu_dict and
                     'availability_zone' in vdu_dict['placement_policy']):
                     properties['availability_zone'] = vdu_dict[
@@ -166,7 +180,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         stack = heatclient_.create(fields)
         return stack['stack']['id']
 
-    def create_wait(self, plugin, context, device_id):
+    def create_wait(self, plugin, context, device_dict, device_id):
         heatclient_ = HeatClient(context)
 
         stack = heatclient_.get(device_id)
@@ -186,7 +200,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             LOG.debug(_('status: %s'), status)
             stack_retries = stack_retries - 1
 
-        LOG.debug(_('status: %s'), status)
+        LOG.debug(_('stack status: %(stack)s %(status)s'),
+                  {'stack': stack, 'status': status})
         if stack_retries == 0:
             LOG.warn(_("Resource creation is"
                        " not completed within %(wait)s seconds as "
@@ -195,6 +210,12 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                       'stack': device_id})
         if status != 'CREATE_COMPLETE':
             raise RuntimeError(_("creation of server %s faild") % device_id)
+        outputs = stack.outputs
+        LOG.debug(_('outputs %s'), outputs)
+        mgmt_ip = [output['output_value'] for output in outputs if
+                   output.get('output_key', None) == 'mgmt_ip']
+        if mgmt_ip:
+            device_dict['mgmt_url'] = mgmt_ip[0]
 
     def update(self, plugin, context, device):
         # do nothing but checking if the stack exists at the moment

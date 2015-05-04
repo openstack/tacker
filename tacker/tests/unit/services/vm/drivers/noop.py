@@ -52,7 +52,7 @@ class DeviceNoop(abstract_driver.DeviceAbstractDriver):
         self._instances.add(instance_id)
         return instance_id
 
-    def create_wait(self, plugin, context, device_id):
+    def create_wait(self, plugin, context, device_dict, device_id):
         LOG.debug(_('create_wait %s'), device_id)
 
     def update(self, plugin, context, device_id, **kwargs):

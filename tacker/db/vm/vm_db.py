@@ -182,7 +182,7 @@ class ServiceInstance(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
 
     # For a management tool to talk to manage this service instance.
     # opaque string. mgmt_driver interprets it.
-    mgmt_address = sa.Column(sa.String(255), nullable=True)
+    mgmt_url = sa.Column(sa.String(255), nullable=True)
 
     service_context = orm.relationship('ServiceContext')
     devices = orm.relationship('ServiceDeviceBinding')
@@ -348,7 +348,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             self._make_service_device_list(instance_db.devices)
         }
         key_list = ('id', 'tenant_id', 'name', 'service_type_id',
-                    'service_table_id', 'mgmt_driver', 'mgmt_address',
+                    'service_table_id', 'mgmt_driver', 'mgmt_url',
                     'status')
         res.update((key, instance_db[key]) for key in key_list)
         return self._fields(res, fields)
@@ -659,14 +659,14 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
         """
         :param service_instance_param: dictionary to create
             instance of ServiceInstance. The following keys are used.
-            name, service_type_id, service_table_id, mgmt_driver, mgmt_address
-        mgmt_driver, mgmt_address can be determined later.
+            name, service_type_id, service_table_id, mgmt_driver, mgmt_url
+        mgmt_driver, mgmt_url can be determined later.
         """
         name = service_instance_param['name']
         service_type_id = service_instance_param['service_type_id']
         service_table_id = service_instance_param['service_table_id']
         mgmt_driver = service_instance_param.get('mgmt_driver')
-        mgmt_address = service_instance_param.get('mgmt_address')
+        mgmt_url = service_instance_param.get('mgmt_url')
 
         service_instance_id = str(uuid.uuid4())
         LOG.debug('service_instance_id %s device_id %s',
@@ -686,7 +686,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                 managed_by_user=managed_by_user,
                 status=constants.PENDING_CREATE,
                 mgmt_driver=mgmt_driver,
-                mgmt_address=mgmt_address)
+                mgmt_url=mgmt_url)
             context.session.add(instance_db)
             context.session.flush()
 
@@ -702,14 +702,14 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             context, service_instance['service_instance'], True)
 
     def _update_service_instance_mgmt(self, context, service_instance_id,
-                                      mgmt_driver, mgmt_address):
+                                      mgmt_driver, mgmt_url):
         with context.session.begin(subtransactions=True):
             (self._model_query(context, ServiceInstance).
              filter(ServiceInstance.id == service_instance_id).
              filter(ServiceInstance.status == constants.PENDING_CREATE).
              one().
              update({'mgmt_driver': mgmt_driver,
-                     'mgmt_address': mgmt_address}))
+                     'mgmt_url': mgmt_url}))
 
     def _update_service_instance_pre(self, context, service_instance_id,
                                      service_instance):

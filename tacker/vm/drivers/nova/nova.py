@@ -225,7 +225,7 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
         instance = nova.servers.create(name, image, flavor, **attributes)
         return instance.id
 
-    def create_wait(self, plugin, context, device_id):
+    def create_wait(self, plugin, context, device_dict, device_id):
         nova = self._nova_client()
         instance = nova.servers.get(device_id)
         status = instance.status

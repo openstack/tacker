@@ -169,7 +169,7 @@ class ServiceVMMgmtMixin(object):
         return self._invoke(
             device_dict, plugin=self, context=context, device=device_dict)
 
-    def mgmt_address(self, context, device_dict):
+    def mgmt_url(self, context, device_dict):
         return self._invoke(
             device_dict, plugin=self, context=context, device=device_dict)
 
@@ -295,26 +295,28 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
 
         try:
             self._device_manager.invoke(
-                driver_name, 'create_wait', plugin=self,
-                context=context, device_id=instance_id)
+                driver_name, 'create_wait', plugin=self, context=context,
+                device_dict=device_dict, device_id=instance_id)
         except servicevm.DeviceCreateWaitFailed:
             instance_id = None
             del device_dict['instance_id']
 
         if instance_id is None:
-            mgmt_address = None
+            mgmt_url = None
         else:
-            mgmt_address = self.mgmt_address(context, device_dict)
+            # mgmt_url = self.mgmt_url(context, device_dict)
+            # FIXME(yamahata):
+            mgmt_url = device_dict['mgmt_url']
 
         self._create_device_post(
-            context, device_id, instance_id, mgmt_address,
+            context, device_id, instance_id, mgmt_url,
             device_dict['service_context'])
         if instance_id is None:
             self.mgmt_create_post(context, device_dict)
             return
 
         self.mgmt_create_post(context, device_dict)
-        device_dict['mgmt_address'] = mgmt_address
+        device_dict['mgmt_url'] = mgmt_url
 
         kwargs = {
             mgmt_constants.KEY_ACTION: mgmt_constants.ACTION_CREATE_DEVICE,
@@ -488,18 +490,18 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         mgmt_driver = self.mgmt_service_driver(
             context, device_dict, service_instance_dict)
         service_instance_dict['mgmt_driver'] = mgmt_driver
-        mgmt_address = self.mgmt_service_address(
+        mgmt_url = self.mgmt_service_address(
             context, device_dict, service_instance_dict)
-        service_instance_dict['mgmt_address'] = mgmt_address
+        service_instance_dict['mgmt_url'] = mgmt_url
         LOG.debug(_('service_instance_dict '
                     '%(service_instance_dict)s '
                     'mgmt_driver %(mgmt_driver)s '
-                    'mgmt_address %(mgmt_address)s'),
+                    'mgmt_url %(mgmt_url)s'),
                   {'service_instance_dict':
                    service_instance_dict,
-                   'mgmt_driver': mgmt_driver, 'mgmt_address': mgmt_address})
+                   'mgmt_driver': mgmt_driver, 'mgmt_url': mgmt_url})
         self._update_service_instance_mgmt(
-            context, service_instance_dict['id'], mgmt_driver, mgmt_address)
+            context, service_instance_dict['id'], mgmt_driver, mgmt_url)
 
         self.mgmt_service_create_pre(
             context, device_dict, service_instance_dict)

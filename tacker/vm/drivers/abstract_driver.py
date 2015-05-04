@@ -49,7 +49,7 @@ class DeviceAbstractDriver(extensions.PluginInterface):
         """Create device and return its id."""
 
     @abc.abstractmethod
-    def create_wait(self, plugin, context, device_id):
+    def create_wait(self, plugin, context, device_dict, device_id):
         """wait for device creation to complete."""
 
     @abc.abstractmethod

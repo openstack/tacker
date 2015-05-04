@@ -37,9 +37,9 @@ class DeviceMgmtNoop(abstract_driver.DeviceMGMTAbstractDriver):
     def get_description(self):
         return 'Tacker DeviceMgmt Noop Driver'
 
-    def mgmt_address(self, plugin, context, device):
-        LOG.debug(_('mgmt_address %s'), device)
-        return 'noop-mgmt-address'
+    def mgmt_url(self, plugin, context, device):
+        LOG.debug(_('mgmt_url %s'), device)
+        return 'noop-mgmt-url'
 
     def mgmt_call(self, plugin, context, device, kwargs):
         LOG.debug(_('mgmt_device_call %(device)s %(kwargs)s'),
