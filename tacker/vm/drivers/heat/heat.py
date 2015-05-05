@@ -133,11 +133,25 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                     for network_param in vdu_dict[
                             'network_interfaces'].values():
                         if network_param.pop('management', False):
+                            MGMT_PORT = 'mgmt_port'
+                            mgmt_port_dict = {
+                                'type': 'OS::Neutron::Port',
+                                'properties': {
+                                    'port_security_enabled': False,
+                                }
+                            }
+                            mgmt_port_dict['properties'].update(network_param)
+                            template_dict['resources'][
+                                MGMT_PORT] = mgmt_port_dict
+                            network_param = {
+                                'port': {'get_resource': MGMT_PORT}
+                            }
                             outputs_dict['mgmt_ip'] = {
                                 'description': 'management ip address',
                                 'value': {
-                                    'get_attr': [vdu_id, 'networks',
-                                                 network_param.values()[0], 0]}
+                                    'get_attr': [MGMT_PORT, 'fixed_ips',
+                                                 0, 'ip_address']
+                                }
                             }
                         networks_list.append(network_param)
                 if ('placement_policy' in vdu_dict and
