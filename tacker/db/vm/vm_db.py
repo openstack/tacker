@@ -33,7 +33,6 @@ from tacker.db import model_base
 from tacker.db import models_v1
 from tacker.extensions import servicevm
 from tacker import manager
-from tacker.openstack.common import jsonutils
 from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
 
@@ -107,6 +106,7 @@ class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     # opaque string.
     # e.g. (driver, mgmt_url) = (ssh, ip address), ...
     mgmt_url = sa.Column(sa.String(255), nullable=True)
+    attributes = orm.relationship("DeviceAttribute", backref="device")
 
     service_context = orm.relationship('DeviceServiceContext')
     services = orm.relationship('ServiceDeviceBinding', backref='device')
@@ -122,7 +122,6 @@ class DeviceAttribute(model_base.BASE, models_v1.HasId):
     """
     device_id = sa.Column(sa.String(36), sa.ForeignKey('devices.id'),
                           nullable=False)
-    device = orm.relationship('Device', backref='kwargs')
     key = sa.Column(sa.String(255), nullable=False)
     # json encoded value. example
     # "nic": [{"net-id": <net-uuid>}, {"port-id": <port-uuid>}]
@@ -306,8 +305,8 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
     def _make_services_list(self, binding_db):
         return [binding.service_instance_id for binding in binding_db]
 
-    def _make_kwargs_dict(self, kwargs_db):
-        return dict((arg.key, jsonutils.loads(arg.value)) for arg in kwargs_db)
+    def _make_dev_attrs_dict(self, dev_attrs_db):
+        return dict((arg.key, arg.value) for arg in dev_attrs_db)
 
     def _make_device_service_context_dict(self, service_context):
         key_list = ('id', 'network_id', 'subnet_id', 'port_id', 'router_id',
@@ -317,12 +316,13 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
 
     def _make_device_dict(self, device_db, fields=None):
         LOG.debug(_('device_db %s'), device_db)
+        LOG.debug(_('device_db attributes %s'), device_db.attributes)
         res = {
             'services':
             self._make_services_list(getattr(device_db, 'services', [])),
             'device_template':
             self._make_template_dict(device_db.template),
-            'kwargs': self._make_kwargs_dict(device_db.kwargs),
+            'attributes': self._make_dev_attrs_dict(device_db.attributes),
             'service_context':
             self._make_device_service_context_dict(device_db.service_context),
         }
@@ -482,6 +482,19 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
     ###########################################################################
     # hosting device
 
+    def _device_attribute_update_or_create(
+            self, context, device_id, key, value):
+        arg = (self._model_query(context, DeviceAttribute).
+            filter(DeviceAttribute.device_id == device_id).
+            filter(DeviceAttribute.key == key).first())
+        if arg:
+            arg.value = value
+        else:
+            arg = DeviceAttribute(
+                id=str(uuid.uuid4()), device_id=device_id,
+                key=key, value=value)
+            context.session.add(arg)
+
     # called internally, not by REST API
     def _create_device_pre(self, context, device):
         device = device['device']
@@ -490,7 +503,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
         template_id = device['template_id']
         name = device.get('name')
         device_id = device.get('id') or str(uuid.uuid4())
-        kwargs = device.get('attributes', {})
+        attributes = device.get('attributes', {})
         service_context = device.get('service_context', [])
         with context.session.begin(subtransactions=True):
             device_db = Device(id=device_id,
@@ -500,10 +513,10 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                                template_id=template_id,
                                status=constants.PENDING_CREATE)
             context.session.add(device_db)
-            for key, value in kwargs.items():
+            for key, value in attributes.items():
                 arg = DeviceAttribute(
                     id=str(uuid.uuid4()), device_id=device_id,
-                    key=key, value=jsonutils.dumps(value))
+                    key=key, value=value)
                 context.session.add(arg)
 
             LOG.debug(_('service_context %s'), service_context)
@@ -527,7 +540,8 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
     # called internally, not by REST API
     # intsance_id = None means error on creation
     def _create_device_post(self, context, device_id, instance_id,
-                            mgmt_url, service_context):
+                            mgmt_url, device_dict):
+        LOG.debug(_('device_dict %s'), device_dict)
         with context.session.begin(subtransactions=True):
             query = (self._model_query(context, Device).
                      filter(Device.id == device_id).
@@ -537,7 +551,11 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             if instance_id is None:
                 query.update({'status': constants.ERROR})
 
-            for sc_entry in service_context:
+            for (key, value) in device_dict['attributes'].items():
+                self._device_attribute_update_or_create(context, device_id,
+                                                        key, value)
+
+            for sc_entry in device_dict['service_context']:
                 # some member of service context is determined during
                 # creating hosting device.
                 (self._model_query(context, DeviceServiceContext).
@@ -620,7 +638,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
         instance_id = str(uuid.uuid4())
         device_dict['instance_id'] = instance_id
         self._create_device_post(context, device_dict['id'], instance_id, None,
-                                 device_dict['service_context'])
+                                 device_dict)
         self._create_device_status(context, device_dict['id'],
                                    constants.ACTIVE)
         return device_dict

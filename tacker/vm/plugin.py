@@ -309,8 +309,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
             mgmt_url = device_dict['mgmt_url']
 
         self._create_device_post(
-            context, device_id, instance_id, mgmt_url,
-            device_dict['service_context'])
+            context, device_id, instance_id, mgmt_url, device_dict)
         if instance_id is None:
             self.mgmt_create_post(context, device_dict)
             return

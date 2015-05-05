@@ -88,16 +88,16 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 fields[key] = jsonutils.loads(attributes.pop(key))
         fields.setdefault('parameters', {}).update(attributes)
 
-        # overwrite parameters with given kwargs for device creation
-        kwargs = device['kwargs'].copy()
-        config_yaml = kwargs.pop('config', None)
-        fields.update(dict((key, kwargs.pop(key)) for key
+        # overwrite parameters with given dev_attrs for device creation
+        dev_attrs = device['attributes'].copy()
+        config_yaml = dev_attrs.pop('config', None)
+        fields.update(dict((key, dev_attrs.pop(key)) for key
                       in ('stack_name', 'template_url', 'template')
-                      if key in kwargs))
+                      if key in dev_attrs))
         for key in ('files', 'parameters'):
-            if key in kwargs:
-                kwargs[key] = jsonutils.loads(kwargs.pop(key))
-        fields['parameters'].update(kwargs)
+            if key in dev_attrs:
+                dev_attrs[key] = dev_attrs.pop(key)
+        fields['parameters'].update(dev_attrs)
         LOG.debug('vnfd_yaml %s', vnfd_yaml)
         if vnfd_yaml is not None:
             assert 'template' not in fields
@@ -165,6 +165,12 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
                 # monitoring_policy = vdu_dict.get('monitoring_policy', None)
                 # failure_policy = vdu_dict.get('failure_policy', None)
+
+                # to pass necessary parameters to plugin upwards.
+                for key in ('monitoring_policy', 'failure_policy'):
+                    if key in vdu_dict:
+                        device.setdefault(
+                            'attributes', {})[key] = vdu_dict[key]
 
             if config_yaml is not None:
                 config_dict = yaml.load(config_yaml)
