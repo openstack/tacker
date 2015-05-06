@@ -21,9 +21,6 @@
 # @author: Isaku Yamahata, Intel Corporation.
 import eventlet
 import inspect
-import os
-import threading
-import time
 
 from oslo_config import cfg
 from sqlalchemy.orm import exc as orm_exc
@@ -42,95 +39,6 @@ from tacker.vm import monitor
 from tacker.vm import proxy_api
 
 LOG = logging.getLogger(__name__)
-
-
-def _is_pingable(ip):
-    """Checks whether an IP address is reachable by pinging.
-
-    Use linux utils to execute the ping (ICMP ECHO) command.
-    Sends 5 packets with an interval of 0.2 seconds and timeout of 1
-    seconds. Runtime error implies unreachability else IP is pingable.
-    :param ip: IP to check
-    :return: bool - True or False depending on pingability.
-    """
-    ping_cmd = 'ping -c 5 -W 1 -i 2 ' + ip + '> /dev/null 2>&1'
-    LOG.debug('Pinging %s', ping_cmd)
-    return os.system(ping_cmd)
-
-
-class DeviceStatus(object):
-    """Device status"""
-
-    _instance = None
-    _hosting_devices = dict()   # device_id => dict of parameters
-    _status_check_intvl = 0
-    _lock = threading.Lock()
-
-    def __new__(cls, check_intvl):
-        if not cls._instance:
-            cls._instance = super(DeviceStatus, cls).__new__(cls)
-        return cls._instance
-
-    def __init__(self, check_intvl):
-        self._status_check_intvl = check_intvl
-        LOG.debug('Spawning device status thread')
-        threading.Thread(target=self.__run__).start()
-
-    def __run__(self):
-        while(1):
-            time.sleep(self._status_check_intvl)
-            with self._lock:
-                for hosting_device in self._hosting_devices.values():
-                    if not hosting_device.get('dead', False):
-                        self.is_hosting_device_reachable(hosting_device)
-
-    @staticmethod
-    def to_hosting_device(device_dict, down_cb):
-        return {
-            'id': device_dict['id'],
-            'management_ip_address': device_dict['mgmt_url'],
-            'down_cb': down_cb,
-        }
-
-    def add_hosting_device(self, new_device):
-        LOG.debug('Adding host %(device_id)s, Mgmt IP %(ip)',
-                  {'id': new_device['id'],
-                   'ip': new_device['management_ip_address']})
-        with self._lock:
-            self._hosting_devices[new_device['id']] = new_device
-
-    def delete_hosting_device(self, device_id):
-        LOG.debug('deleting device_id %(device_id)s, Mgmt IP %(ip)',
-                  {'device_id': device_id})
-        with self._lock:
-            hosting_device = self._hosting_devices.pop(device_id, None)
-            if hosting_device:
-                LOG.debug('deleting device_id %(device_id)s, Mgmt IP %(ip)',
-                        {'device_id': device_id,
-                         'ip': hosting_device['management_ip_address']})
-
-    def is_hosting_device_reachable(self, hosting_device):
-        """Check the hosting device which hosts this resource is reachable.
-
-        If the resource is not reachable, it is added to the backlog.
-
-        :param hosting_device : dict of the hosting device
-        :return True if device is reachable, else None
-        """
-        if _is_pingable(hosting_device['management_ip_address']) == 0:
-            LOG.debug('Host %(id)s:%(ip), is reachable',
-                      {'id': hosting_device['id'],
-                       'ip': hosting_device['management_ip_address']})
-            return True
-        else:
-            LOG.debug('Host %(id)s:%(ip), is unreachable',
-                      {'id': hosting_device['id'],
-                       'ip': hosting_device['management_ip_address']})
-            hosting_device['down_cb'](hosting_device)
-            return False
-
-    def mark_dead(self, device_id):
-        self._hosting_device['id']['dead'] = True
 
 
 class ServiceVMMgmtMixin(object):
@@ -262,6 +170,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
             'tacker.servicevm.device.drivers',
             cfg.CONF.servicevm.infra_driver)
         self.proxy_api = proxy_api.ServiceVMPluginApi(topics.SERVICEVM_AGENT)
+        self._device_status = monitor.DeviceStatus()
 
     def spawn_n(self, function, *args, **kwargs):
         self._pool.spawn_n(function, *args, **kwargs)
@@ -340,25 +249,25 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
             new_status = constants.ERROR
         device_dict['status'] = new_status
         self._create_device_status(context, device_id, new_status)
-
-        if device_dict['attributes']['monitoring_policy'] == 'ping':
-            device_status = DeviceStatus()
+        dev_attrs = device_dict['attributes']
+        if dev_attrs.get('monitoring_policy') == 'ping':
             device_dict_copy = device_dict.copy()
 
-            def down_cb():
+            def down_cb(hosting_device_):
                 if self._mark_device_dead(device_id):
-                    device_status.mark_dead(device_id)
+                    self._device_status.mark_dead(device_id)
                     failure_cls = monitor.FailurePolicy.get_policy(
-                        device_dict['attributes']['failure_policy'])
+                        dev_attrs.get('failure_policy'))
                     if failure_cls:
-                        failure_cls.on_failure(device_dict_copy)
+                        failure_cls.on_failure(self, device_dict_copy)
 
-            hosting_device = device_status.to_hosting_device(
+            hosting_device = self._device_status.to_hosting_device(
                 device_dict, down_cb)
             KEY_LIST = ('monitoring_policy', 'failure_policy')
             for key in KEY_LIST:
-                hosting_device[key] = device_dict[key]
-            device_status.add_hosting_device(hosting_device)
+                if key in dev_attrs:
+                    hosting_device[key] = dev_attrs[key]
+            self._device_status.add_hosting_device(hosting_device)
 
     def _create_device(self, context, device):
         device_dict = self._create_device_pre(context, device)
@@ -458,7 +367,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
 
     def delete_device(self, context, device_id):
         device_dict = self._delete_device_pre(context, device_id)
-        DeviceStatus().delete_hosting_device(device_id)
+        self._device_status.delete_hosting_device(device_id)
         driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
 
