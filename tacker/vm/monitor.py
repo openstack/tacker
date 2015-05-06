@@ -25,6 +25,7 @@ import time
 
 from keystoneclient.v2_0 import client as ks_client
 from oslo_config import cfg
+from oslo_utils import timeutils
 
 from tacker.agent.linux import utils as linux_utils
 from tacker import context as t_context
@@ -38,6 +39,9 @@ OPTS = [
     cfg.IntOpt('check_intvl',
                default=10,
                help=_("check interval for monitor")),
+    cfg.IntOpt('boot_wait',
+               default=30,
+               help=_("boot wait for monitor")),
 ]
 CONF.register_opts(OPTS, group='monitor')
 
@@ -89,14 +93,20 @@ class DeviceStatus(object):
             time.sleep(self._status_check_intvl)
             with self._lock:
                 for hosting_device in self._hosting_devices.values():
-                    if not hosting_device.get('dead', False):
-                        self.is_hosting_device_reachable(hosting_device)
+                    if hosting_device.get('dead', False):
+                        continue
+                    if not timeutils.is_older_than(
+                            hosting_device['boot_at'],
+                            hosting_device['boot_wait']):
+                        continue
+                    self.is_hosting_device_reachable(hosting_device)
 
     @staticmethod
     def to_hosting_device(device_dict, down_cb):
         return {
             'id': device_dict['id'],
             'management_ip_address': device_dict['mgmt_url'],
+            'boot_wait': cfg.CONF.monitor.boot_wait,
             'down_cb': down_cb,
         }
 
@@ -104,6 +114,7 @@ class DeviceStatus(object):
         LOG.debug('Adding host %(id)s, Mgmt IP %(ip)s',
                   {'id': new_device['id'],
                    'ip': new_device['management_ip_address']})
+        new_device['boot_at'] = timeutils.utcnow()
         with self._lock:
             self._hosting_devices[new_device['id']] = new_device
 
@@ -134,6 +145,7 @@ class DeviceStatus(object):
             LOG.debug('Host %(id)s:%(ip)s, is unreachable',
                       {'id': hosting_device['id'],
                        'ip': hosting_device['management_ip_address']})
+            hosting_device['dead_at'] = timeutils.utcnow()
             hosting_device['down_cb'](hosting_device)
             return False
 
