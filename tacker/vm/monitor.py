@@ -23,6 +23,7 @@ import six
 import threading
 import time
 
+from keystoneclient.v2_0 import client as ks_client
 from oslo_config import cfg
 
 from tacker.agent.linux import utils as linux_utils
@@ -172,8 +173,24 @@ class Respawn(FailurePolicy):
         for key in ('tenant_id', 'template_id', 'name'):
             new_device[key] = device_dict[key]
         LOG.debug(_('new_device %s'), new_device)
-        new_device_dict = plugin.create_device(
-            t_context.get_admin_context(), {'device': new_device})
+
+        # keystone v2.0 specific
+        auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
+        authtoken = CONF.keystone_authtoken
+        kc = ks_client.Client(
+            tenant_name=authtoken.project_name,
+            username=authtoken.username,
+            password=authtoken.password,
+            auth_url=auth_url)
+        token = kc.service_catalog.get_token()
+
+        context = t_context.get_admin_context()
+        context.tenant_name = authtoken.project_name
+        context.user_name = authtoken.username
+        context.auth_token = token['id']
+        context.tenant_id = token['tenant_id']
+        context.user_id = token['user_id']
+        new_device_dict = plugin.create_device(context, {'device': new_device})
         LOG.info(_('respawned new device %s'), new_device_dict['id'])
 
 

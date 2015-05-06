@@ -86,7 +86,6 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         for key in ('files', 'parameters'):
             if key in attributes:
                 fields[key] = jsonutils.loads(attributes.pop(key))
-        fields.setdefault('parameters', {}).update(attributes)
 
         # overwrite parameters with given dev_attrs for device creation
         dev_attrs = device['attributes'].copy()
@@ -96,8 +95,9 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                       if key in dev_attrs))
         for key in ('files', 'parameters'):
             if key in dev_attrs:
-                dev_attrs[key] = dev_attrs.pop(key)
-        fields['parameters'].update(dev_attrs)
+                fields.setdefault(key, {}).update(
+                    jsonutils.loads(dev_attrs.pop(key)))
+
         LOG.debug('vnfd_yaml %s', vnfd_yaml)
         if vnfd_yaml is not None:
             assert 'template' not in fields
