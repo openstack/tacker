@@ -27,6 +27,7 @@ from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
 
 from tacker.api.v1 import attributes
+from tacker import context as t_context
 from tacker.db import api as qdbapi
 from tacker.db import db_base
 from tacker.db import model_base
@@ -38,6 +39,8 @@ from tacker.plugins.common import constants
 
 LOG = logging.getLogger(__name__)
 _ACTIVE_UPDATE = (constants.ACTIVE, constants.PENDING_UPDATE)
+_ACTIVE_UPDATE_DEAD = (
+    constants.ACTIVE, constants.PENDING_UPDATE, constants.DEAD)
 
 
 ###########################################################################
@@ -574,13 +577,12 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                 filter(Device.status == constants.PENDING_CREATE).
                 update({'status': new_status}))
 
-    def _get_device_db(self, context, device_id, new_status):
+    def _get_device_db(self, context, device_id, current_statuses, new_status):
         try:
             device_db = (
                 self._model_query(context, Device).
                 filter(Device.id == device_id).
-                filter(Device.status.in_(_ACTIVE_UPDATE)).
-                filter(Device.status == constants.ACTIVE).
+                filter(Device.status.in_(current_statuses)).
                 with_lockmode('update').one())
         except orm_exc.NoResultFound:
             raise servicevm.DeviceNotFound(device_id=device_id)
@@ -591,8 +593,8 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
 
     def _update_device_pre(self, context, device_id):
         with context.session.begin(subtransactions=True):
-            device_db = self._get_device_db(context, device_id,
-                                            constants.PENDING_UPDATE)
+            device_db = self._get_device_db(
+                context, device_id, _ACTIVE_UPDATE, constants.PENDING_UPDATE)
         return self._make_device_dict(device_db)
 
     def _update_device_post(self, context, device_id, new_status):
@@ -609,8 +611,9 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                           filter_by(device_id=device_id).first())
             if binding_db is not None:
                 raise servicevm.DeviceInUse(device_id=device_id)
-            device_db = self._get_device_db(context, device_id,
-                                            constants.PENDING_DELETE)
+            device_db = self._get_device_db(
+                context, device_id, _ACTIVE_UPDATE_DEAD,
+                constants.PENDING_DELETE)
 
         return self._make_device_dict(device_db)
 
@@ -667,6 +670,29 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
     def get_devices(self, context, filters=None, fields=None):
         return self._get_collection(context, Device, self._make_device_dict,
                                     filters=filters, fields=fields)
+
+    def _mark_device_dead(self, device_id):
+        context = t_context.get_admin_context()
+        EXCLUDE_STATUS = [
+            constants.DOWN,
+            constants.PENDING_CREATE,
+            constants.PENDING_UPDATE,
+            constants.PENDING_DELETE,
+            constants.INACTIVE,
+            constants.ERROR]
+        with context.session.begin(subtransactions=True):
+            try:
+                device_db = (
+                    self._model_query(context, Device).
+                    filter(Device.id == device_id).
+                    filter(~Device.status.in_(EXCLUDE_STATUS)).
+                    with_lockmode('update').one())
+            except orm_exc.NoResultFound:
+                LOG.warn(_('no device found %s'), device_id)
+                return False
+
+            device_db.update({'status': constants.DEAD})
+        return True
 
     ###########################################################################
     # logical service instance
