@@ -203,6 +203,10 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
             # so doesn't check it here yet.
             pass
 
+        self._device_manager.invoke(
+            infra_driver, 'create_device_template_pre', plugin=self,
+            context=context, device_template=device_template)
+
         return super(ServiceVMPlugin, self).create_device_template(
             context, device_template)
 

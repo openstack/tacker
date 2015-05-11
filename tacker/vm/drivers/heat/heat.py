@@ -75,6 +75,20 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         return 'Heat infra driver'
 
     @log.log
+    def create_device_template_pre(self, plugin, context, device_template):
+        device_template_dict = device_template['device_template']
+        vnfd_yaml = device_template_dict['attributes'].get('vnfd')
+        if vnfd_yaml is None:
+            return
+
+        vnfd_dict = yaml.load(vnfd_yaml)
+        KEY_LIST = (('name', 'template_name'), ('description', 'description'))
+        device_template_dict.update(
+            dict((key, vnfd_dict[vnfd_key]) for (key, vnfd_key) in KEY_LIST
+                 if (not key in device_template_dict.get(key) and
+                     vnfd_key in vnfd_dict)))
+
+    @log.log
     def create(self, plugin, context, device):
         LOG.debug(_('device %s'), device)
         heatclient_ = HeatClient(context)

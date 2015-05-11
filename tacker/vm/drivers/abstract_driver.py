@@ -44,6 +44,11 @@ class DeviceAbstractDriver(extensions.PluginInterface):
     def get_description(self):
         pass
 
+    # @abc.abstractmethod
+    def create_device_template_pre(self, plugin, context, device_template):
+        """Called before creating device template."""
+        pass
+
     @abc.abstractmethod
     def create(self, plugin, context, device):
         """Create device and return its id."""
