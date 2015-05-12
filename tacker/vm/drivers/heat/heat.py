@@ -148,7 +148,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                     for network_param in vdu_dict[
                             'network_interfaces'].values():
                         if network_param.pop('management', False):
-                            MGMT_PORT = 'mgmt_port'
+                            mgmt_port = 'mgmt_port-%s' % vdu_id
                             mgmt_port_dict = {
                                 'type': 'OS::Neutron::Port',
                                 'properties': {
@@ -157,14 +157,15 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                             }
                             mgmt_port_dict['properties'].update(network_param)
                             template_dict['resources'][
-                                MGMT_PORT] = mgmt_port_dict
+                                mgmt_port] = mgmt_port_dict
                             network_param = {
-                                'port': {'get_resource': MGMT_PORT}
+                                'port': {'get_resource': mgmt_port}
                             }
-                            outputs_dict['mgmt_ip'] = {
+                            mgmt_ip = 'mgmt_ip-%s' % vdu_id
+                            outputs_dict[mgmt_ip] = {
                                 'description': 'management ip address',
                                 'value': {
-                                    'get_attr': [MGMT_PORT, 'fixed_ips',
+                                    'get_attr': [mgmt_port, 'fixed_ips',
                                                  0, 'ip_address']
                                 }
                             }
@@ -252,10 +253,11 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             raise RuntimeError(_("creation of server %s faild") % device_id)
         outputs = stack.outputs
         LOG.debug(_('outputs %s'), outputs)
-        mgmt_ip = [output['output_value'] for output in outputs if
-                   output.get('output_key', None) == 'mgmt_ip']
-        if mgmt_ip:
-            device_dict['mgmt_url'] = mgmt_ip[0]
+        mgmt_ips = [output['output_value'] for output in outputs if
+                    output.get('output_key', '').startswith('mgmt_ip-')]
+        if mgmt_ips:
+            # work around. mgmt suports Only single vm for now.
+            device_dict['mgmt_url'] = mgmt_ips[0]
 
     def update(self, plugin, context, device):
         # do nothing but checking if the stack exists at the moment
