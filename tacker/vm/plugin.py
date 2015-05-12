@@ -19,6 +19,7 @@
 #    under the License.
 #
 # @author: Isaku Yamahata, Intel Corporation.
+import copy
 import eventlet
 import inspect
 
@@ -255,13 +256,14 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         self._create_device_status(context, device_id, new_status)
         dev_attrs = device_dict['attributes']
         if dev_attrs.get('monitoring_policy') == 'ping':
-            device_dict_copy = device_dict.copy()
+            device_dict_copy = copy.deepcopy(device_dict)
 
             def down_cb(hosting_device_):
                 if self._mark_device_dead(device_id):
                     self._device_status.mark_dead(device_id)
                     failure_cls = monitor.FailurePolicy.get_policy(
-                        dev_attrs.get('failure_policy'))
+                        device_dict_copy['attributes'].get('failure_policy'),
+                        device_dict_copy)
                     if failure_cls:
                         failure_cls.on_failure(self, device_dict_copy)
 

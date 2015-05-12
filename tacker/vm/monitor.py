@@ -31,6 +31,7 @@ from tacker.agent.linux import utils as linux_utils
 from tacker import context as t_context
 from tacker.i18n import _LW
 from tacker.openstack.common import log as logging
+from tacker.vm.drivers.heat import heat
 
 
 LOG = logging.getLogger(__name__)
@@ -108,6 +109,7 @@ class DeviceStatus(object):
             'management_ip_address': device_dict['mgmt_url'],
             'boot_wait': cfg.CONF.monitor.boot_wait,
             'down_cb': down_cb,
+            'device': device_dict,
         }
 
     def add_hosting_device(self, new_device):
@@ -163,15 +165,26 @@ class FailurePolicy(object):
     _POLICIES = {}
 
     @staticmethod
-    def register(policy):
+    def register(policy, infra_driver=None):
         def _register(cls):
-            cls._POLICIES[policy] = cls
+            cls._POLICIES.setdefault(policy, {})[infra_driver] = cls
             return cls
         return _register
 
     @classmethod
-    def get_policy(cls, policy):
-        return cls._POLICIES.get(policy)
+    def get_policy(cls, policy, device):
+        failure_clses = cls._POLICIES.get(policy)
+        if not failure_clses:
+            return None
+        infra_driver = device['device_template'].get('infra_driver')
+        cls = failure_clses.get(infra_driver)
+        if cls:
+            return cls
+        return failure_clses.get(None)
+
+    @abc.abstractmethod
+    def on_failure(cls, plugin, device_dict):
+        pass
 
 
 @FailurePolicy.register('respawn')
@@ -202,6 +215,54 @@ class Respawn(FailurePolicy):
         context.auth_token = token['id']
         context.tenant_id = token['tenant_id']
         context.user_id = token['user_id']
+        new_device_dict = plugin.create_device(context, {'device': new_device})
+        LOG.info(_('respawned new device %s'), new_device_dict['id'])
+
+
+@FailurePolicy.register('respawn', 'heat')
+class RespawnHeat(FailurePolicy):
+    @classmethod
+    def on_failure(cls, plugin, device_dict):
+        device_id = device_dict['id']
+        LOG.error(_('device %s dead'), device_id)
+        attributes = device_dict['attributes']
+        failure_count = int(attributes.get('failure_count', '0')) + 1
+        failure_count_str = str(failure_count)
+        attributes['failure_count'] = failure_count_str
+        attributes['dead_instance_id_' + failure_count_str] = device_dict[
+            'instance_id']
+
+        attributes = device_dict['attributes'].copy()
+        attributes['dead_device_id'] = device_dict['id']
+        new_device = {'attributes': attributes}
+        for key in ('id', 'tenant_id', 'template_id', 'name'):
+            new_device[key] = device_dict[key]
+        LOG.debug(_('new_device %s'), new_device)
+
+        # update device_dict and kill dead heat stack
+        # ungly hack to keep id unchanged
+        heatclient = heat.HeatClient(None)
+        heatclient.delete(device_dict['instance_id'])
+        device_dict['id'] = device_dict['id'] + '-DEAD-' + failure_count_str
+        plugin.update_dead_device(device_id, device_dict)
+
+        # keystone v2.0 specific
+        auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
+        authtoken = CONF.keystone_authtoken
+        kc = ks_client.Client(
+            tenant_name=authtoken.project_name,
+            username=authtoken.username,
+            password=authtoken.password,
+            auth_url=auth_url)
+        token = kc.service_catalog.get_token()
+
+        context = t_context.get_admin_context()
+        context.tenant_name = authtoken.project_name
+        context.user_name = authtoken.username
+        context.auth_token = token['id']
+        context.tenant_id = token['tenant_id']
+        context.user_id = token['user_id']
+
         new_device_dict = plugin.create_device(context, {'device': new_device})
         LOG.info(_('respawned new device %s'), new_device_dict['id'])
 

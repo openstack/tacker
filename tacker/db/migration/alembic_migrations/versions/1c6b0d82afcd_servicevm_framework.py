@@ -57,7 +57,7 @@ def upgrade(active_plugins=None, options=None):
     )
     op.create_table(
         'devices',
-        sa.Column('id', sa.String(length=36), nullable=False),
+        sa.Column('id', sa.String(length=255), nullable=False),
         sa.Column('tenant_id', sa.String(length=255), nullable=True),
         sa.Column('name', sa.String(length=255), nullable=True),
         sa.Column('template_id', sa.String(length=36), nullable=True),
@@ -70,9 +70,9 @@ def upgrade(active_plugins=None, options=None):
     op.create_table(
         'deviceattributes',
         sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('device_id', sa.String(length=36)),
+        sa.Column('device_id', sa.String(length=255)),
         sa.Column('key', sa.String(length=255), nullable=False),
-        sa.Column('value', sa.String(length=255), nullable=True),
+        sa.Column('value', sa.String(length=4096), nullable=True),
         sa.ForeignKeyConstraint(['device_id'], ['devices.id'], ),
         sa.PrimaryKeyConstraint('id'),
     )

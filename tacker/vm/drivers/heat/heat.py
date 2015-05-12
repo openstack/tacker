@@ -26,6 +26,7 @@ import yaml
 
 from heatclient import client as heat_client
 from heatclient import exc as heatException
+from keystoneclient.v2_0 import client as ks_client
 from oslo_config import cfg
 
 from tacker.common import log
@@ -199,11 +200,16 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                     properties['config_drive'] = True
                     properties.setdefault('metadata', {}).update(config)
 
-            fields['template'] = yaml.dump(template_dict)
+            heat_template_yaml = yaml.dump(template_dict)
+            fields['template'] = heat_template_yaml
+            if not device['attributes'].get('heat_template'):
+                device['attributes']['heat_template'] = heat_template_yaml
 
         if 'stack_name' not in fields:
             name = (__name__ + '_' + self.__class__.__name__ + '-' +
                     device['id'])
+            if device['attributes'].get('failure_count'):
+                name += ('-%s') % str(device['attributes']['failure_count'])
             fields['stack_name'] = name
 
         # service context is ignored
@@ -307,12 +313,23 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
 class HeatClient:
     def __init__(self, context, password=None):
+        # context, password are unused
+        auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
+        authtoken = CONF.keystone_authtoken
+        kc = ks_client.Client(
+            tenant_name=authtoken.project_name,
+            username=authtoken.username,
+            password=authtoken.password,
+            auth_url=auth_url)
+        token = kc.service_catalog.get_token()
+
         api_version = "1"
-        endpoint = "%s/%s" % (cfg.CONF.servicevm_heat.heat_uri, context.tenant)
+        endpoint = "%s/%s" % (cfg.CONF.servicevm_heat.heat_uri,
+                              token['tenant_id'])
         kwargs = {
-            'token': context.auth_token,
-            'username': context.user_name,
-            'password': password
+            'token': token['id'],
+            'tenant_name': authtoken.project_name,
+            'username': authtoken.username,
         }
         self.client = heat_client.Client(api_version, endpoint, **kwargs)
         self.stacks = self.client.stacks

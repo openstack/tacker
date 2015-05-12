@@ -35,6 +35,7 @@ from tacker.db import models_v1
 from tacker.extensions import servicevm
 from tacker import manager
 from tacker.openstack.common import log as logging
+from tacker.openstack.common import uuidutils
 from tacker.plugins.common import constants
 
 LOG = logging.getLogger(__name__)
@@ -91,11 +92,15 @@ class DeviceTemplateAttribute(model_base.BASE, models_v1.HasId):
     value = sa.Column(sa.String(4096), nullable=True)
 
 
-class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
+class Device(model_base.BASE, models_v1.HasTenant):
     """Represents devices that hosts services.
     Here the term, 'VM', is intentionally avoided because it can be
     VM or other container.
     """
+    id = sa.Column(sa.String(255),
+                   primary_key=True,
+                   default=uuidutils.generate_uuid)
+
     template_id = sa.Column(sa.String(36), sa.ForeignKey('devicetemplates.id'))
     template = orm.relationship('DeviceTemplate')
 
@@ -123,7 +128,7 @@ class DeviceAttribute(model_base.BASE, models_v1.HasId):
     like nova, heat or others. e.g. image-id, flavor-id for Nova.
     The interpretation is up to actual driver of hosting device.
     """
-    device_id = sa.Column(sa.String(36), sa.ForeignKey('devices.id'),
+    device_id = sa.Column(sa.String(255), sa.ForeignKey('devices.id'),
                           nullable=False)
     key = sa.Column(sa.String(255), nullable=False)
     # json encoded value. example
@@ -693,6 +698,37 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
 
             device_db.update({'status': constants.DEAD})
         return True
+
+    # used by failure policy
+    def update_dead_device(self, device_id, dead_device_dict):
+        # ugly hack...
+        dead_device_id = dead_device_dict['id']
+        context = t_context.get_admin_context()
+        with context.session.begin(subtransactions=True):
+            dead_device_db = Device(
+                id=dead_device_id,
+                tenant_id=dead_device_dict['tenant_id'],
+                name=dead_device_dict['name'],
+                instance_id=dead_device_dict['instance_id'],
+                template_id=dead_device_dict['template_id'],
+                mgmt_url=dead_device_dict['mgmt_url'],
+                status=constants.DEAD)
+
+            context.session.add(dead_device_db)
+            (self._model_query(context, DeviceAttribute).
+             filter(DeviceAttribute.device_id == device_id).
+             update({'device_id': dead_device_id}))
+            for (key, value) in dead_device_dict['attributes'].items():
+                self._device_attribute_update_or_create(
+                    context, dead_device_id, key, value)
+
+            try:
+                (self._model_query(context, Device).
+                 filter(Device.id == device_id).
+                 filter(Device.status == constants.DEAD).
+                 delete())
+            except orm_exc.NoResultFound:
+                LOG.exception(_('no device found %s'), device_id)
 
     ###########################################################################
     # logical service instance
