@@ -121,8 +121,7 @@ class DeviceStatus(object):
             self._hosting_devices[new_device['id']] = new_device
 
     def delete_hosting_device(self, device_id):
-        LOG.debug('deleting device_id %(device_id)s, Mgmt IP %(ip)s',
-                  {'device_id': device_id})
+        LOG.debug('deleting device_id %(device_id)s', {'device_id': device_id})
         with self._lock:
             hosting_device = self._hosting_devices.pop(device_id, None)
             if hosting_device:
