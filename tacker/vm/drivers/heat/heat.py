@@ -88,6 +88,12 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             dict((key, vnfd_dict[vnfd_key]) for (key, vnfd_key) in KEY_LIST
                  if (not key in device_template_dict.get(key) and
                      vnfd_key in vnfd_dict)))
+        service_types = vnfd_dict.get('service_properties', {}).get('type', [])
+        if service_types:
+            device_template_dict.setdefault('service_types', []).extend(
+                [{'service_type': service_type}
+                 for service_type in service_types])
+        LOG.debug(_('device_template %s'), device_template)
 
     @log.log
     def create(self, plugin, context, device):
@@ -183,7 +189,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 # failure_policy = vdu_dict.get('failure_policy', None)
 
                 # to pass necessary parameters to plugin upwards.
-                for key in ('monitoring_policy', 'failure_policy'):
+                for key in ('monitoring_policy', 'failure_policy',
+                            'service_type'):
                     if key in vdu_dict:
                         device.setdefault(
                             'attributes', {})[key] = vdu_dict[key]

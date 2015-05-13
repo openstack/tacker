@@ -305,6 +305,8 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
     def _make_template_dict(self, template, fields=None):
         res = {
             'attributes': self._make_attributes_dict(template['attributes']),
+            'service_types': self._make_service_types_list(
+                template.service_types)
         }
         key_list = ('id', 'tenant_id', 'name', 'description',
                     'infra_driver', 'mgmt_driver')
