@@ -40,8 +40,9 @@ from tacker.plugins.common import constants
 
 LOG = logging.getLogger(__name__)
 _ACTIVE_UPDATE = (constants.ACTIVE, constants.PENDING_UPDATE)
-_ACTIVE_UPDATE_DEAD = (
-    constants.ACTIVE, constants.PENDING_UPDATE, constants.DEAD)
+_ACTIVE_UPDATE_ERROR_DEAD = (
+    constants.PENDING_CREATE, constants.ACTIVE, constants.PENDING_UPDATE,
+    constants.ERROR, constants.DEAD)
 
 
 ###########################################################################
@@ -617,7 +618,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             if binding_db is not None:
                 raise servicevm.DeviceInUse(device_id=device_id)
             device_db = self._get_device_db(
-                context, device_id, _ACTIVE_UPDATE_DEAD,
+                context, device_id, _ACTIVE_UPDATE_ERROR_DEAD,
                 constants.PENDING_DELETE)
 
         return self._make_device_dict(device_db)
@@ -676,28 +677,36 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
         return self._get_collection(context, Device, self._make_device_dict,
                                     filters=filters, fields=fields)
 
-    def _mark_device_dead(self, device_id):
+    def _mark_device_status(self, device_id, exclude_status, new_status):
         context = t_context.get_admin_context()
-        EXCLUDE_STATUS = [
+        with context.session.begin(subtransactions=True):
+            try:
+                device_db = (
+                    self._model_query(context, Device).
+                    filter(Device.id == device_id).
+                    filter(~Device.status.in_(exclude_status)).
+                    with_lockmode('update').one())
+            except orm_exc.NoResultFound:
+                LOG.warn(_('no device found %s'), device_id)
+                return False
+
+            device_db.update({'status': new_status})
+        return True
+
+    def _mark_device_error(self, device_id):
+        return self._mark_device_status(
+            device_id, [constants.DEAD], constants.ERROR)
+
+    def _mark_device_dead(self, device_id):
+        exclude_status = [
             constants.DOWN,
             constants.PENDING_CREATE,
             constants.PENDING_UPDATE,
             constants.PENDING_DELETE,
             constants.INACTIVE,
             constants.ERROR]
-        with context.session.begin(subtransactions=True):
-            try:
-                device_db = (
-                    self._model_query(context, Device).
-                    filter(Device.id == device_id).
-                    filter(~Device.status.in_(EXCLUDE_STATUS)).
-                    with_lockmode('update').one())
-            except orm_exc.NoResultFound:
-                LOG.warn(_('no device found %s'), device_id)
-                return False
-
-            device_db.update({'status': constants.DEAD})
-        return True
+        return self._mark_device_status(
+            device_id, exclude_status, constants.DEAD)
 
     # used by failure policy
     def update_dead_device(self, device_id, dead_device_dict):

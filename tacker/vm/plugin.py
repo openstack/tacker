@@ -281,9 +281,13 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         driver_name = self._infra_driver_name(device_dict)
         LOG.debug(_('device_dict %s'), device_dict)
         self.mgmt_create_pre(context, device_dict)
-        instance_id = self._device_manager.invoke(
-            driver_name, 'create', plugin=self,
-            context=context, device=device_dict)
+        try:
+            instance_id = self._device_manager.invoke(
+                driver_name, 'create', plugin=self,
+                context=context, device=device_dict)
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                self._mark_device_error(device_id)
 
         if instance_id is None:
             self._create_device_post(context, device_id, None, None)
