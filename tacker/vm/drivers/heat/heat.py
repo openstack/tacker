@@ -93,6 +93,10 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             device_template_dict.setdefault('service_types', []).extend(
                 [{'service_type': service_type}
                  for service_type in service_types])
+        for vdu in vnfd_dict.get('vdus', {}).values():
+            mgmt_driver = vdu.get('mgmt_driver')
+            if mgmt_driver:
+                device_template_dict['mgmt_driver'] = mgmt_driver
         LOG.debug(_('device_template %s'), device_template)
 
     @log.log
