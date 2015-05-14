@@ -58,7 +58,9 @@ class DeviceAbstractDriver(extensions.PluginInterface):
         """wait for device creation to complete."""
 
     @abc.abstractmethod
-    def update(self, plugin, context, device):
+    def update(self, plugin, context, device_id, device_dict, device):
+        # device_dict: old device_dict to be updated
+        # device: update with device dict
         pass
 
     @abc.abstractmethod

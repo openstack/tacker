@@ -605,12 +605,23 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                 context, device_id, _ACTIVE_UPDATE, constants.PENDING_UPDATE)
         return self._make_device_dict(device_db)
 
-    def _update_device_post(self, context, device_id, new_status):
+    def _update_device_post(self, context, device_id, new_status,
+                            new_device_dict=None):
         with context.session.begin(subtransactions=True):
             (self._model_query(context, Device).
              filter(Device.id == device_id).
              filter(Device.status == constants.PENDING_UPDATE).
              update({'status': new_status}))
+
+            dev_attrs = new_device_dict.get('attributes', {})
+            (context.session.query(DeviceAttribute).
+             filter(DeviceAttribute.device_id == device_id).
+             filter(~DeviceAttribute.key.in_(dev_attrs.keys())).
+             delete(synchronize_session='fetch'))
+
+            for (key, value) in dev_attrs.items():
+                self._device_attribute_update_or_create(context, device_id,
+                                                        key, value)
 
     def _delete_device_pre(self, context, device_id):
         with context.session.begin(subtransactions=True):

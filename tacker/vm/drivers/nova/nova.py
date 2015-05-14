@@ -240,9 +240,8 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
         if status == 'ERROR':
             raise RuntimeError(_("creation of server %s faild") % device_id)
 
-    def update(self, plugin, context, device):
+    def update(self, plugin, context, device_id, device_dict, device):
         # do nothing but checking if the instance exists at the moment
-        device_id = device['id']
         nova = self._nova_client()
         nova.servers.get(device_id)
 

@@ -339,7 +339,9 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
             new_status = constants.ERROR
         device_dict['status'] = new_status
         self.mgmt_update_post(context, device_dict)
-        self._update_device_post(context, device_dict['id'], new_status)
+
+        self._update_device_post(context, device_dict['id'],
+                                 new_status, device_dict)
 
     def update_device(self, context, device_id, device):
         device_dict = self._update_device_pre(context, device_id)
@@ -348,8 +350,9 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
 
         try:
             self.mgmt_update_pre(context, device_dict)
-            self._device_manager.invoke(driver_name, 'update', plugin=self,
-                                        context=context, device_id=instance_id)
+            self._device_manager.invoke(
+                driver_name, 'update', plugin=self, context=context,
+                device_id=instance_id, device_dict=device_dict, device=device)
         except Exception:
             with excutils.save_and_reraise_exception():
                 device_dict['status'] = constants.ERROR

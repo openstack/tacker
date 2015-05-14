@@ -22,6 +22,7 @@
 # TODO(yamahata): once unittests are impletemted, move this there
 import uuid
 
+from tacker.common import log
 from tacker.openstack.common import log as logging
 from tacker.vm.drivers import abstract_driver
 
@@ -46,28 +47,30 @@ class DeviceNoop(abstract_driver.DeviceAbstractDriver):
     def get_description(self):
         return 'Nuetron Device Noop driver'
 
+    @log.log
     def create(self, **kwargs):
-        LOG.debug(_('create %s'), kwargs)
         instance_id = str(uuid.uuid4())
         self._instances.add(instance_id)
         return instance_id
 
+    @log.log
     def create_wait(self, plugin, context, device_dict, device_id):
-        LOG.debug(_('create_wait %s'), device_id)
+        pass
 
-    def update(self, plugin, context, device_id, **kwargs):
-        LOG.debug(_('update device_id %(devcie_id)s kwargs %(kwargs)s'),
-                  {'device_id': device_id, 'kwargs': kwargs})
+    @log.log
+    def update(self, plugin, context, device_id, device_dict, device):
         if device_id not in self._instances:
             LOG.debug(_('not found'))
             raise ValueError('No instance %s' % device_id)
 
+    @log.log
     def update_wait(self, plugin, context, device_id):
-        LOG.debug(_('update_wait %s'), device_id)
+        pass
 
+    @log.log
     def delete(self, plugin, context, device_id):
-        LOG.debug(_('delete %s'), device_id)
         self._instances.remove(device_id)
 
+    @log.log
     def delete_wait(self, plugin, context, device_id):
-        LOG.debug(_('delete_wait %s'), device_id)
+        pass

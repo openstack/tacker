@@ -266,10 +266,39 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             # work around. mgmt suports Only single vm for now.
             device_dict['mgmt_url'] = mgmt_ips[0]
 
-    def update(self, plugin, context, device):
-        # do nothing but checking if the stack exists at the moment
+    @log.log
+    def update(self, plugin, context, device_id, device_dict, device):
+        # checking if the stack exists at the moment
         heatclient_ = HeatClient(context)
-        heatclient_.get(device['id'])
+        heatclient_.get(device_id)
+
+        # update config attribute
+        config_yaml = device_dict.get('attributes', {}).get('config', '')
+        update_yaml = device['device'].get('attributes', {}).get('config', '')
+        LOG.debug('yaml orig %(orig)s update %(update)s',
+                  {'orig': config_yaml, 'update': update_yaml})
+        config_dict = yaml.load(config_yaml) or {}
+        update_dict = yaml.load(update_yaml)
+        if not update_dict:
+            return
+
+        @log.log
+        def deep_update(orig_dict, new_dict):
+            for key, value in new_dict.items():
+                if isinstance(value, dict):
+                    if key in orig_dict and isinstance(orig_dict[key], dict):
+                        deep_update(orig_dict[key], value)
+                        continue
+
+                orig_dict[key] = value
+
+        LOG.debug('dict orig %(orig)s update %(update)s',
+                  {'orig': config_dict, 'update': update_dict})
+        deep_update(config_dict, update_dict)
+        LOG.debug('dict new %(new)s update %(update)s',
+                  {'new': config_dict, 'update': update_dict})
+        new_yaml = yaml.dump(config_dict)
+        device_dict.setdefault('attributes', {})['config'] = new_yaml
 
     def update_wait(self, plugin, context, device_id):
         # do nothing but checking if the stack exists at the moment
