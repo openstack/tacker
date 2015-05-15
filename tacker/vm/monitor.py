@@ -30,6 +30,7 @@ from oslo_utils import timeutils
 from tacker.agent.linux import utils as linux_utils
 from tacker import context as t_context
 from tacker.i18n import _LW
+from tacker.openstack.common import jsonutils
 from tacker.openstack.common import log as logging
 from tacker.vm.drivers.heat import heat
 
@@ -106,16 +107,17 @@ class DeviceStatus(object):
     def to_hosting_device(device_dict, down_cb):
         return {
             'id': device_dict['id'],
-            'management_ip_address': device_dict['mgmt_url'],
+            'management_ip_addresses': jsonutils.loads(
+                device_dict['mgmt_url']),
             'boot_wait': cfg.CONF.monitor.boot_wait,
             'down_cb': down_cb,
             'device': device_dict,
         }
 
     def add_hosting_device(self, new_device):
-        LOG.debug('Adding host %(id)s, Mgmt IP %(ip)s',
+        LOG.debug('Adding host %(id)s, Mgmt IP %(ips)s',
                   {'id': new_device['id'],
-                   'ip': new_device['management_ip_address']})
+                   'ips': new_device['management_ip_addresses']})
         new_device['boot_at'] = timeutils.utcnow()
         with self._lock:
             self._hosting_devices[new_device['id']] = new_device
@@ -125,9 +127,9 @@ class DeviceStatus(object):
         with self._lock:
             hosting_device = self._hosting_devices.pop(device_id, None)
             if hosting_device:
-                LOG.debug('deleting device_id %(device_id)s, Mgmt IP %(ip)s',
+                LOG.debug('deleting device_id %(device_id)s, Mgmt IP %(ips)s',
                         {'device_id': device_id,
-                         'ip': hosting_device['management_ip_address']})
+                         'ips': hosting_device['management_ip_addresses']})
 
     def is_hosting_device_reachable(self, hosting_device):
         """Check the hosting device which hosts this resource is reachable.
@@ -137,18 +139,23 @@ class DeviceStatus(object):
         :param hosting_device : dict of the hosting device
         :return True if device is reachable, else None
         """
-        if _is_pingable(hosting_device['management_ip_address']):
-            LOG.debug('Host %(id)s:%(ip)s, is reachable',
+        for key, mgmt_ip_address in hosting_device[
+                'management_ip_addresses'].items():
+            if not _is_pingable(mgmt_ip_address):
+                LOG.debug('Host %(id)s:%(key)s:%(ip)s, is unreachable',
+                          {'id': hosting_device['id'],
+                           'key': key,
+                           'ip': mgmt_ip_address})
+                hosting_device['dead_at'] = timeutils.utcnow()
+                hosting_device['down_cb'](hosting_device)
+                return False
+
+            LOG.debug('Host %(id)s:%(key)s:%(ip)s, is reachable',
                       {'id': hosting_device['id'],
-                       'ip': hosting_device['management_ip_address']})
-            return True
-        else:
-            LOG.debug('Host %(id)s:%(ip)s, is unreachable',
-                      {'id': hosting_device['id'],
-                       'ip': hosting_device['management_ip_address']})
-            hosting_device['dead_at'] = timeutils.utcnow()
-            hosting_device['down_cb'](hosting_device)
-            return False
+                       'key': key,
+                       'ip': mgmt_ip_address})
+
+        return True
 
     def mark_dead(self, device_id):
         self._hosting_devices[device_id]['dead'] = True

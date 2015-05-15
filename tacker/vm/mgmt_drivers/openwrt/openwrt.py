@@ -24,6 +24,7 @@ from oslo_config import cfg
 
 from tacker.agent.linux import utils
 from tacker.common import log
+from tacker.openstack.common import jsonutils
 from tacker.openstack.common import log as logging
 from tacker.vm.mgmt_drivers import abstract_driver
 from tacker.vm.mgmt_drivers import constants as mgmt_constants
@@ -52,12 +53,12 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
         return device.get('mgmt_url', '')
 
     @log.log
-    def _config_service(self, mgmt_url, service, config):
+    def _config_service(self, mgmt_ip_address, service, config):
         user = cfg.CONF.openwrt.user
         password = cfg.CONF.openwrt.password
         cmd = ["sshpass", "-p", "%s" % password,
                "ssh", "-o", "StrictHostKeyChecking=no",
-               "%s@%s" % (user, mgmt_url),
+               "%s@%s" % (user, mgmt_ip_address),
                "uci import %s; /etc/init.d/%s restart" % (service, service)]
         utils.execute(cmd, process_input=config)
 
@@ -70,7 +71,7 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
         service_type = dev_attrs.get('service_type')
         if not service_type:
             return
-        mgmt_url = device.get('mgmt_url', '')
+        mgmt_url = jsonutils.loads(device.get('mgmt_url', '{}'))
         if not mgmt_url:
             return
 
@@ -79,13 +80,18 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
         if not config_yaml:
             return
         vdus_config_dict = config_yaml.get('vdus', {})
-        for vdu_dict in vdus_config_dict.values():
+        for vdu, vdu_dict in vdus_config_dict.items():
             config = vdu_dict.get('config', {})
             for key, conf_value in config.items():
                 KNOWN_SERVICES = ('firewall', )
                 if key not in KNOWN_SERVICES:
                     continue
-                self._config_service(mgmt_url, key, conf_value)
+                mgmt_ip_address = mgmt_url.get(vdu, '')
+                if not mgmt_ip_address:
+                    LOG.warn(_('tried to configure unknown mgmt address %s'),
+                             vdu)
+                    continue
+                self._config_service(mgmt_ip_address, key, conf_value)
 
     def mgmt_service_address(self, plugin, context,
                              device, service_instance):

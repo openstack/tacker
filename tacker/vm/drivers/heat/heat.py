@@ -264,11 +264,13 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             raise RuntimeError(_("creation of server %s faild") % device_id)
         outputs = stack.outputs
         LOG.debug(_('outputs %s'), outputs)
-        mgmt_ips = [output['output_value'] for output in outputs if
-                    output.get('output_key', '').startswith('mgmt_ip-')]
+        PREFIX = 'mgmt_ip-'
+        mgmt_ips = dict((output['output_key'][len(PREFIX):],
+                         output['output_value'])
+                        for output in outputs
+                        if output.get('output_key', '').startswith(PREFIX))
         if mgmt_ips:
-            # work around. mgmt suports Only single vm for now.
-            device_dict['mgmt_url'] = mgmt_ips[0]
+            device_dict['mgmt_url'] = jsonutils.dumps(mgmt_ips)
 
     @log.log
     def update(self, plugin, context, device_id, device_dict, device):
