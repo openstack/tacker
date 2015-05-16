@@ -283,8 +283,10 @@ class RespawnHeat(FailurePolicy):
         with context.session.begin(subtransactions=True):
             plugin.rename_device_id(context, device_id, dead_device_id)
             plugin.rename_device_id(context, new_device_id, device_id)
-        plugin.add_device_to_monitor(new_device_dict)
         plugin.delete_device(context, dead_device_id)
+
+        new_device_dict['id'] = device_id
+        plugin.add_device_to_monitor(new_device_dict)
 
 
 @FailurePolicy.register('log_and_kill')
