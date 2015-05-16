@@ -284,8 +284,9 @@ class RespawnHeat(FailurePolicy):
             plugin.rename_device_id(context, device_id, dead_device_id)
             plugin.rename_device_id(context, new_device_id, device_id)
         plugin.delete_device(context, dead_device_id)
-
         new_device_dict['id'] = device_id
+        plugin.config_device(context, new_device_dict)
+
         plugin.add_device_to_monitor(new_device_dict)
 
 

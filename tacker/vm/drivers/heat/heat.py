@@ -186,8 +186,10 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                         'placement_policy']['availability_zone']
                 if 'config' in vdu_dict:
                     properties['config_drive'] = True
-                    properties.setdefault('metadata', {}).update(
-                        vdu_dict['config'])
+                    metadata = properties.setdefault('metadata', {})
+                    metadata.update(vdu_dict['config'])
+                    for key, value in metadata.items():
+                        metadata[key] = value[:255]
 
                 # monitoring_policy = vdu_dict.get('monitoring_policy', None)
                 # failure_policy = vdu_dict.get('failure_policy', None)
@@ -210,7 +212,10 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                         continue
                     properties = resources[vdu_id].setdefault('properties', {})
                     properties['config_drive'] = True
-                    properties.setdefault('metadata', {}).update(config)
+                    metadata = properties.setdefault('metadata', {})
+                    metadata.update(config)
+                    for key, value in metadata.items():
+                        metadata[key] = value[:255]
 
             heat_template_yaml = yaml.dump(template_dict)
             fields['template'] = heat_template_yaml

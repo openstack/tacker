@@ -237,6 +237,20 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
                     hosting_device[key] = dev_attrs[key]
             self._device_status.add_hosting_device(hosting_device)
 
+    def config_device(self, context, device_dict):
+        config = device_dict['attributes'].get('config')
+        if not config:
+            return
+        eventlet.sleep(30)      # wait for vm to be ready
+        device_id = device_dict['id']
+        update = {
+            'device': {
+                'id': device_id,
+                'attributes': {'config': config},
+            }
+        }
+        self.update_device(context, device_id, update)
+
     def _create_device_wait(self, context, device_dict):
         driver_name = self._infra_driver_name(device_dict)
         device_id = device_dict['id']
@@ -305,6 +319,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         def create_device_wait():
             self._create_device_wait(context, device_dict)
             self.add_device_to_monitor(device_dict)
+            self.config_device(context, device_dict)
         self.spawn_n(create_device_wait)
         return device_dict
 
