@@ -687,8 +687,11 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
         return self._make_device_dict(device_db, fields)
 
     def get_devices(self, context, filters=None, fields=None):
-        return self._get_collection(context, Device, self._make_device_dict,
+        devices = self._get_collection(context, Device, self._make_device_dict,
                                     filters=filters, fields=fields)
+        # Ugly hack to mask internaly used record
+        return [device for device in devices
+                if uuidutils.is_uuid_like(device['id'])]
 
     def _mark_device_status(self, device_id, exclude_status, new_status):
         context = t_context.get_admin_context()
