@@ -326,6 +326,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             time.sleep(STACK_RETRY_WAIT)
             try:
                 stack = heatclient_.get(device_id)
+            except heatException.HTTPNotFound:
+                return
             except Exception:
                 LOG.exception(_("Device Instance cleanup may not have "
                                 "happened because Heat API request failed "

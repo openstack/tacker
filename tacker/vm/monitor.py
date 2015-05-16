@@ -93,6 +93,7 @@ class DeviceStatus(object):
     def __run__(self):
         while(1):
             time.sleep(self._status_check_intvl)
+            dead_hosting_devices = []
             with self._lock:
                 for hosting_device in self._hosting_devices.values():
                     if hosting_device.get('dead', False):
@@ -101,7 +102,10 @@ class DeviceStatus(object):
                             hosting_device['boot_at'],
                             hosting_device['boot_wait']):
                         continue
-                    self.is_hosting_device_reachable(hosting_device)
+                    if not self.is_hosting_device_reachable(hosting_device):
+                        dead_hosting_devices.append(hosting_device)
+            for hosting_device in dead_hosting_devices:
+                hosting_device['down_cb'](hosting_device)
 
     @staticmethod
     def to_hosting_device(device_dict, down_cb):
@@ -147,7 +151,6 @@ class DeviceStatus(object):
                            'key': key,
                            'ip': mgmt_ip_address})
                 hosting_device['dead_at'] = timeutils.utcnow()
-                hosting_device['down_cb'](hosting_device)
                 return False
 
             LOG.debug('Host %(id)s:%(key)s:%(ip)s, is reachable',
@@ -238,19 +241,17 @@ class RespawnHeat(FailurePolicy):
         attributes['dead_instance_id_' + failure_count_str] = device_dict[
             'instance_id']
 
+        new_device_id = device_id + '-RESPAWN-' + failure_count_str
         attributes = device_dict['attributes'].copy()
-        attributes['dead_device_id'] = device_dict['id']
-        new_device = {'attributes': attributes}
-        for key in ('id', 'tenant_id', 'template_id', 'name'):
+        attributes['dead_device_id'] = device_id
+        new_device = {'id': new_device_id, 'attributes': attributes}
+        for key in ('tenant_id', 'template_id', 'name'):
             new_device[key] = device_dict[key]
         LOG.debug(_('new_device %s'), new_device)
 
-        # update device_dict and kill dead heat stack
-        # ungly hack to keep id unchanged
+        # kill heat stack
         heatclient = heat.HeatClient(None)
         heatclient.delete(device_dict['instance_id'])
-        device_dict['id'] = device_dict['id'] + '-DEAD-' + failure_count_str
-        plugin.update_dead_device(device_id, device_dict)
 
         # keystone v2.0 specific
         auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
@@ -269,8 +270,21 @@ class RespawnHeat(FailurePolicy):
         context.tenant_id = token['tenant_id']
         context.user_id = token['user_id']
 
-        new_device_dict = plugin.create_device(context, {'device': new_device})
+        new_device_dict = plugin.create_device_sync(
+            context, {'device': new_device})
         LOG.info(_('respawned new device %s'), new_device_dict['id'])
+
+        # ungly hack to keep id unchanged
+        dead_device_id = device_id + '-DEAD-' + failure_count_str
+        LOG.debug(_('%(dead)s %(new)s %(cur)s'),
+                  {'dead': dead_device_id,
+                   'new': new_device_id,
+                   'cur': device_id})
+        with context.session.begin(subtransactions=True):
+            plugin.rename_device_id(context, device_id, dead_device_id)
+            plugin.rename_device_id(context, new_device_id, device_id)
+        plugin.add_device_to_monitor(new_device_dict)
+        plugin.delete_device(context, dead_device_id)
 
 
 @FailurePolicy.register('log_and_kill')

@@ -214,6 +214,29 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
     ###########################################################################
     # hosting device
 
+    def add_device_to_monitor(self, device_dict):
+        device_id = device_dict['id']
+        dev_attrs = device_dict['attributes']
+        if dev_attrs.get('monitoring_policy') == 'ping':
+            device_dict_copy = copy.deepcopy(device_dict)
+
+            def down_cb(hosting_device_):
+                if self._mark_device_dead(device_id):
+                    self._device_status.mark_dead(device_id)
+                    failure_cls = monitor.FailurePolicy.get_policy(
+                        device_dict_copy['attributes'].get('failure_policy'),
+                        device_dict_copy)
+                    if failure_cls:
+                        failure_cls.on_failure(self, device_dict_copy)
+
+            hosting_device = self._device_status.to_hosting_device(
+                device_dict, down_cb)
+            KEY_LIST = ('monitoring_policy', 'failure_policy')
+            for key in KEY_LIST:
+                if key in dev_attrs:
+                    hosting_device[key] = dev_attrs[key]
+            self._device_status.add_hosting_device(hosting_device)
+
     def _create_device_wait(self, context, device_dict):
         driver_name = self._infra_driver_name(device_dict)
         device_id = device_dict['id']
@@ -254,26 +277,6 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
             new_status = constants.ERROR
         device_dict['status'] = new_status
         self._create_device_status(context, device_id, new_status)
-        dev_attrs = device_dict['attributes']
-        if dev_attrs.get('monitoring_policy') == 'ping':
-            device_dict_copy = copy.deepcopy(device_dict)
-
-            def down_cb(hosting_device_):
-                if self._mark_device_dead(device_id):
-                    self._device_status.mark_dead(device_id)
-                    failure_cls = monitor.FailurePolicy.get_policy(
-                        device_dict_copy['attributes'].get('failure_policy'),
-                        device_dict_copy)
-                    if failure_cls:
-                        failure_cls.on_failure(self, device_dict_copy)
-
-            hosting_device = self._device_status.to_hosting_device(
-                device_dict, down_cb)
-            KEY_LIST = ('monitoring_policy', 'failure_policy')
-            for key in KEY_LIST:
-                if key in dev_attrs:
-                    hosting_device[key] = dev_attrs[key]
-            self._device_status.add_hosting_device(hosting_device)
 
     def _create_device(self, context, device):
         device_dict = self._create_device_pre(context, device)
@@ -298,28 +301,18 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
 
     def create_device(self, context, device):
         device_dict = self._create_device(context, device)
-        self.spawn_n(self._create_device_wait, context, device_dict)
+
+        def create_device_wait():
+            self._create_device_wait(context, device_dict)
+            self.add_device_to_monitor(device_dict)
+        self.spawn_n(create_device_wait)
         return device_dict
 
-    # not for wsgi, but for service to creaste hosting device
-    def create_device_sync(self, context, template_id, kwargs,
-                           service_context):
-        assert template_id is not None
-        device = {
-            'device': {
-                'template_id': template_id,
-                'kwargs': kwargs,
-                'service_context': service_context,
-            },
-        }
+    # not for wsgi, but for service to create hosting device
+    # the device is NOT added to monitor.
+    def create_device_sync(self, context, device):
         device_dict = self._create_device(context, device)
-        if 'instance_id' not in device_dict:
-            raise servicevm.DeviceCreateFailed(device_template_id=template_id)
-
         self._create_device_wait(context, device_dict)
-        if 'instance_id' not in device_dict:
-            raise servicevm.DeviceCreateFailed(device_template_id=template_id)
-
         return device_dict
 
     def _update_device_wait(self, context, device_dict):

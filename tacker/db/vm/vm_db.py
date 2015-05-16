@@ -722,35 +722,25 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             device_id, exclude_status, constants.DEAD)
 
     # used by failure policy
-    def update_dead_device(self, device_id, dead_device_dict):
+    def rename_device_id(self, context, device_id, new_device_id):
         # ugly hack...
-        dead_device_id = dead_device_dict['id']
         context = t_context.get_admin_context()
         with context.session.begin(subtransactions=True):
-            dead_device_db = Device(
-                id=dead_device_id,
-                tenant_id=dead_device_dict['tenant_id'],
-                name=dead_device_dict['name'],
-                instance_id=dead_device_dict['instance_id'],
-                template_id=dead_device_dict['template_id'],
-                mgmt_url=dead_device_dict['mgmt_url'],
-                status=constants.DEAD)
+            device_db = self._get_resource(context, Device, device_id)
+            new_device_db = Device(
+                id=new_device_id,
+                tenant_id=device_db.tenant_id,
+                template_id=device_db.template_id,
+                name=device_db.name,
+                instance_id=device_db.instance_id,
+                mgmt_url=device_db.mgmt_url,
+                status=device_db.status)
+            context.session.add(new_device_db)
 
-            context.session.add(dead_device_db)
             (self._model_query(context, DeviceAttribute).
              filter(DeviceAttribute.device_id == device_id).
-             update({'device_id': dead_device_id}))
-            for (key, value) in dead_device_dict['attributes'].items():
-                self._device_attribute_update_or_create(
-                    context, dead_device_id, key, value)
-
-            try:
-                (self._model_query(context, Device).
-                 filter(Device.id == device_id).
-                 filter(Device.status == constants.DEAD).
-                 delete())
-            except orm_exc.NoResultFound:
-                LOG.exception(_('no device found %s'), device_id)
+             update({'device_id': new_device_id}))
+            context.session.delete(device_db)
 
     ###########################################################################
     # logical service instance
