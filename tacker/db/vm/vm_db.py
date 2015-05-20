@@ -739,6 +739,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                 tenant_id=device_db.tenant_id,
                 template_id=device_db.template_id,
                 name=device_db.name,
+                description=device_db.description,
                 instance_id=device_db.instance_id,
                 mgmt_url=device_db.mgmt_url,
                 status=device_db.status)
