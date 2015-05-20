@@ -235,6 +235,8 @@ class RespawnHeat(FailurePolicy):
         device_id = device_dict['id']
         LOG.error(_('device %s dead'), device_id)
         attributes = device_dict['attributes']
+        config = attributes.get('config')
+        LOG.debug(_('device config %s dead'), config)
         failure_count = int(attributes.get('failure_count', '0')) + 1
         failure_count_str = str(failure_count)
         attributes['failure_count'] = failure_count_str
@@ -285,6 +287,8 @@ class RespawnHeat(FailurePolicy):
             plugin.rename_device_id(context, new_device_id, device_id)
         plugin.delete_device(context, dead_device_id)
         new_device_dict['id'] = device_id
+        if config:
+            new_device_dict.setdefault('attributes', {})['config'] = config
         plugin.config_device(context, new_device_dict)
 
         plugin.add_device_to_monitor(new_device_dict)

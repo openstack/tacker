@@ -19,7 +19,7 @@
 #    under the License.
 #
 # @author: Isaku Yamahata, Intel Corporation.
-import copy
+
 import eventlet
 import inspect
 
@@ -29,6 +29,7 @@ from sqlalchemy.orm import exc as orm_exc
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
 from tacker.common import topics
+from tacker import context as t_context
 from tacker.db.vm import proxy_db  # noqa
 from tacker.db.vm import vm_db
 from tacker.extensions import servicevm
@@ -218,16 +219,16 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         device_id = device_dict['id']
         dev_attrs = device_dict['attributes']
         if dev_attrs.get('monitoring_policy') == 'ping':
-            device_dict_copy = copy.deepcopy(device_dict)
-
             def down_cb(hosting_device_):
                 if self._mark_device_dead(device_id):
                     self._device_status.mark_dead(device_id)
+                    device_dict_ = self.get_device(
+                        t_context.get_admin_context(), device_id)
                     failure_cls = monitor.FailurePolicy.get_policy(
-                        device_dict_copy['attributes'].get('failure_policy'),
-                        device_dict_copy)
+                        device_dict_['attributes'].get('failure_policy'),
+                        device_dict_)
                     if failure_cls:
-                        failure_cls.on_failure(self, device_dict_copy)
+                        failure_cls.on_failure(self, device_dict_)
 
             hosting_device = self._device_status.to_hosting_device(
                 device_dict, down_cb)
