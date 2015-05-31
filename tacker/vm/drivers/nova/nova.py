@@ -138,7 +138,7 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
         port_data = {
             'tenant_id': tenant_id,
             'network_id': network_id,
-            'admin_state_up': False,
+            'admin_state_up': True,
             'fixed_ips': attributes.ATTR_NOT_SPECIFIED,
         }
         if subnet_id:
