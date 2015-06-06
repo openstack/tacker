@@ -1,4 +1,4 @@
-Neutron WSGI/HTTP API layer
+Tacker WSGI/HTTP API layer
 ===========================
 
 This section will cover the internals of Neutron's HTTP API, and the classes
