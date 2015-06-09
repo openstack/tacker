@@ -28,7 +28,7 @@ from keystoneclient import session as ks_session
 from oslo_config import cfg
 
 from tacker.api.v1 import attributes
-from tacker.i18n import _LW
+from tacker.i18n import _LE, _LW
 from tacker.openstack.common import log as logging
 from tacker.vm.drivers import abstract_driver
 
@@ -252,7 +252,12 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
 
     def delete(self, plugin, context, device_id):
         nova = self._nova_client()
-        instance = nova.servers.get(device_id)
+        try:
+            instance = nova.servers.get(device_id)
+        except self._novaclient.exceptions.NotFound:
+            LOG.error(_LE("server %s is not found") %
+            device_id)
+            return
         instance.delete()
 
     def delete_wait(self, plugin, context, device_id):
