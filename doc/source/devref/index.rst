@@ -32,7 +32,7 @@ Programming HowTos and Tutorials
     development.environment
 
 
-Neutron Internals
+Tacker Internals
 -----------------
 .. toctree::
    :maxdepth: 3

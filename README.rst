@@ -1,25 +1,19 @@
-# -- Welcome!
+Welcome!
+========
 
-  You have come across a cloud computing network fabric controller.  It has
-  identified itself as "Neutron."  It aims to tame your (cloud) networking!
+Tacker is an OpenStack based VNF Manager service and a framework used to
+deploy and operate Virtual Network Functions (VNFs) on an OpenStack
+based NFV Platform.
 
-# -- External Resources:
+External Resources:
+===================
 
- The homepage for Neutron is: http://launchpad.net/neutron .  Use this
- site for asking for help, and filing bugs. Code is available on github at
- <http://github.com/openstack/neutron>.
+The homepage for Tacker is: http://launchpad.net/tacker.  Use this
+site for asking for help, and filing bugs. Code is available on
+git.openstack.org at <http://git.openstack.org/cgit/stackforge/tacker>.
 
- The latest and most in-depth documentation on how to use Neutron is
- available at: <http://docs.openstack.org>.  This includes:
+Tacker Wiki:
+https://wiki.openstack.org/wiki/Tacker
 
- Neutron Administrator Guide
- http://docs.openstack.org/trunk/openstack-network/admin/content/
-
- Neutron API Reference:
- http://docs.openstack.org/api/openstack-network/2.0/content/
-
- The start of some developer documentation is available at:
- http://wiki.openstack.org/NeutronDevelopment
-
- For help using or hacking on Neutron, you can send mail to
- <mailto:openstack-dev@lists.openstack.org>.
+For help on usage and hacking of Tacker, please send mail to
+<mailto:openstack-dev@lists.openstack.org> with [tacker] tag.
