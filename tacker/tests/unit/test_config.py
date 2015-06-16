@@ -33,16 +33,11 @@ class ConfigurationTest(base.BaseTestCase):
         self.assertEqual('keystone', cfg.CONF.auth_strategy)
         self.assertIsNone(cfg.CONF.core_plugin)
         self.assertEqual(0, len(cfg.CONF.service_plugins))
-        self.assertEqual('fa:16:3e:00:00:00', cfg.CONF.base_mac)
-        self.assertEqual(16, cfg.CONF.mac_generation_retries)
         self.assertTrue(cfg.CONF.allow_bulk)
-        self.assertEqual(5, cfg.CONF.max_dns_nameservers)
-        self.assertEqual(20, cfg.CONF.max_subnet_host_routes)
         relative_dir = os.path.join(os.path.dirname(__file__),
                                     '..', '..', '..')
         absolute_dir = os.path.abspath(relative_dir)
         self.assertEqual(absolute_dir, cfg.CONF.state_path)
-        self.assertEqual(86400, cfg.CONF.dhcp_lease_duration)
         self.assertFalse(cfg.CONF.allow_overlapping_ips)
         self.assertEqual('tacker', cfg.CONF.control_exchange)
 
