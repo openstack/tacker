@@ -278,12 +278,22 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
         LOG.debug(_('ataching interface %(device_id)s %(port_id)s'),
                   {'device_id': device_id, 'port_id': port_id})
         nova = self._nova_client()
-        instance = nova.servers.get(device_id)
+        try:
+            instance = nova.servers.get(device_id)
+        except self._novaclient.exceptions.NotFound:
+            LOG.error(_LE("server %s is not found") %
+            device_id)
+            return
         instance.interface_attach(port_id, None, None)
 
     def dettach_interface(self, plugin, context, device_id, port_id):
         LOG.debug(_('detaching interface %(device_id)s %(port_id)s'),
                   {'device_id': device_id, 'port_id': port_id})
         nova = self._nova_client()
-        instance = nova.servers.get(device_id)
+        try:
+            instance = nova.servers.get(device_id)
+        except self._novaclient.exceptions.NotFound:
+            LOG.error(_LE("server %s is not found") %
+            device_id)
+            return
         instance.interface_detach(port_id)
