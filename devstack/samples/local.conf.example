@@ -1,0 +1,60 @@
+[[local|localrc]]
+############################################################
+# Customize the following HOST_IP based on your installation
+############################################################
+HOST_IP=10.18.161.164
+
+ADMIN_PASSWORD=devstack
+MYSQL_PASSWORD=devstack
+RABBIT_PASSWORD=devstack
+SERVICE_PASSWORD=$ADMIN_PASSWORD
+SERVICE_TOKEN=devstack
+
+############################################################
+# Customize the following section based on your installation
+############################################################
+
+# Pip
+PIP_USE_MIRRORS=False
+USE_GET_PIP=1
+
+#OFFLINE=False
+#RECLONE=True
+
+# Logging
+LOGFILE=$DEST/logs/stack.sh.log
+SCREEN_LOGDIR=$DEST/logs/screen
+VERBOSE=True
+ENABLE_DEBUG_LOG_LEVEL=True
+ENABLE_VERBOSE_LOG_LEVEL=True
+
+# Neutron ML2 with OpenVSwitch
+
+Q_PLUGIN=ml2
+Q_AGENT=openvswitch
+
+#PUBLIC NETWORK CONFIGURATION
+Q_USE_PROVIDERNET_FOR_PUBLIC=False
+FLOATING_RANGE=10.12.161.0/24
+Q_FLOATING_ALLOCATION_POOL="start=10.12.161.150,end=10.12.161.201"
+PUBLIC_NETWORK_NAME=external
+PUBLIC_NETWORK_GATEWAY=10.12.161.1
+PUBLIC_PHYSICAL_NETWORK=public
+
+# Required for l3-agent to connect to external-network-bridge
+PUBLIC_BRIDGE=br-ext
+
+#PRIVATE NETWORK CONFIGURATION
+
+NETWORK_GATEWAY=${NETWORK_GATEWAY:-15.0.0.1}
+FIXED_RANGE=${FIXED_RANGE:-15.0.0.0/24}
+
+
+enable_plugin tacker https://github.com/stackforge/tacker master
+
+enable_service n-novnc
+enable_service n-cauth
+
+disable_service tempest
+
+
