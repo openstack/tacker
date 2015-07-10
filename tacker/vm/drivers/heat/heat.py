@@ -21,6 +21,7 @@
 # @author: Isaku Yamahata, Intel Corporation.
 # shamelessly many codes are stolen from gbp simplechain_driver.py
 
+import sys
 import time
 import yaml
 
@@ -29,6 +30,7 @@ from heatclient import exc as heatException
 from keystoneclient.v2_0 import client as ks_client
 from oslo_config import cfg
 
+from tacker.common import exceptions
 from tacker.common import log
 from tacker.openstack.common import jsonutils
 from tacker.openstack.common import log as logging
@@ -392,7 +394,12 @@ class HeatClient:
             'disable_rollback': True})
         if 'password' in fields.get('template', {}):
             fields['password'] = fields['template']['password']
-        return self.stacks.create(**fields)
+
+        try:
+            return self.stacks.create(**fields)
+        except heatException.HTTPException:
+            type_, value, tb = sys.exc_info()
+            raise exceptions.HeatClientError(msg=value)
 
     def delete(self, stack_id):
         try:

@@ -305,10 +305,11 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
                 context=context, device=device_dict)
         except Exception:
             with excutils.save_and_reraise_exception():
-                self._mark_device_error(device_id)
+                self.delete_device(context, device_id)
 
         if instance_id is None:
-            self._create_device_post(context, device_id, None, None)
+            self._create_device_post(context, device_id, None, None,
+                device_dict)
             return
 
         device_dict['instance_id'] = instance_id
