@@ -325,7 +325,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         heatclient_ = HeatClient(context)
 
         stack = heatclient_.get(device_id)
-        status = stack.satck_status
+        status = stack.stack_status
         stack_retries = STACK_RETRIES
         while (status == 'DELETE_IN_PROGRESS' and stack_retries > 0):
             time.sleep(STACK_RETRY_WAIT)
@@ -339,7 +339,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                                 "while waiting for the stack %(stack)s to be "
                                 "deleted"), {'stack': device_id})
                 break
-            status = stack.satck_status
+            status = stack.stack_status
             stack_retries = stack_retries - 1
 
         if stack_retries == 0:
