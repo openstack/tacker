@@ -289,6 +289,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         try:
             self.mgmt_call(context, device_dict, kwargs)
         except Exception:
+            LOG.exception(_('create_device_wait'))
             new_status = constants.ERROR
         device_dict['status'] = new_status
         self._create_device_status(context, device_id, new_status)
@@ -346,6 +347,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
                 context=context, device_id=instance_id)
             self.mgmt_call(context, device_dict, kwargs)
         except Exception:
+            LOG.exception(_('_update_device_wait'))
             new_status = constants.ERROR
         device_dict['status'] = new_status
         self.mgmt_update_post(context, device_dict)
@@ -384,6 +386,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         except Exception as e_:
             e = e_
             device_dict['status'] = constants.ERROR
+            LOG.exception(_('_delete_device_wait'))
         self.mgmt_delete_post(context, device_dict)
         device_id = device_dict['id']
         self._delete_device_post(context, device_id, e)
@@ -502,6 +505,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
             self._create_service_instance_mgmt(
                 context, device_dict, service_instance_dict)
         except Exception:
+            LOG.exception(_('_create_service_instance_by_type'))
             new_status = constants.ERROR
             raise
         finally:
