@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+#IMPORTANT: THIS FIX IS APPLICABLE ONLY FOR DEVSTACK KILO RELEASE
+#For devstack master branch, the fix is already provided upstream
+# `local.sh.mysql_fixup`` for user-configurable tasks to run automatically
+# at the successful conclusion of ``stack.sh``.
+
+# NOTE: Copy this file to the root DevStack directory for it to work properly.
+
+
+
+# Keep track of the DevStack directory
+TOP_DIR=$(cd $(dirname "$0") && pwd)
+
+# Import common functions
+source $TOP_DIR/functions
+
+# Use openrc + stackrc + localrc for settings
+source $TOP_DIR/stackrc
+
+# Destination path for installation ``DEST``
+DEST=${DEST:-/opt/stack}
+
+echo_summary "Configuring additional parameters for mysql database"
+
+
+if is_service_enabled mysql; then
+    if is_ubuntu; then
+        my_conf=/etc/mysql/my.cnf
+        mysql=mysql
+    elif is_suse || is_oraclelinux; then
+        my_conf=/etc/my.cnf
+        mysql=mysql
+    elif is_fedora; then
+        mysql=mariadb
+        my_conf=/etc/my.cnf
+    else
+        exit_distro_not_supported "mysql configuration"
+    fi
+
+    sudo bash -c "source $TOP_DIR/functions && \
+        iniset $my_conf mysqld max_connections 1024 && \
+        iniset $my_conf mysqld query_cache_type OFF && \
+        iniset $my_conf mysqld query_cache_size 0"
+    restart_service $mysql
+fi
