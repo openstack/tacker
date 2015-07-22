@@ -84,10 +84,14 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
         vnfd_dict = yaml.load(vnfd_yaml)
         KEY_LIST = (('name', 'template_name'), ('description', 'description'))
+
         device_template_dict.update(
             dict((key, vnfd_dict[vnfd_key]) for (key, vnfd_key) in KEY_LIST
-                 if (not key in device_template_dict.get(key) and
-                     vnfd_key in vnfd_dict)))
+                 if ((not key in device_template_dict or
+                      device_template_dict[key] == '') and
+                     vnfd_key in vnfd_dict and
+                     vnfd_dict[vnfd_key] != '')))
+
         service_types = vnfd_dict.get('service_properties', {}).get('type', [])
         if service_types:
             device_template_dict.setdefault('service_types', []).extend(
