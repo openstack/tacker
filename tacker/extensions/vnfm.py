@@ -42,11 +42,11 @@ class ServiceTypesNotSpecified(exceptions.InvalidInput):
 
 
 class DeviceTemplateInUse(exceptions.InUse):
-    message = _('device template %(device_template_id)s is still in use')
+    message = _('VNFD %(device_template_id)s is still in use')
 
 
 class DeviceInUse(exceptions.InUse):
-    message = _('Device %(device_id)s is still in use')
+    message = _('VNF %(device_id)s is still in use')
 
 
 class InvalidInfraDriver(exceptions.InvalidInput):
@@ -58,19 +58,19 @@ class InvalidServiceType(exceptions.InvalidInput):
 
 
 class DeviceCreateFailed(exceptions.TackerException):
-    message = _('creating device based on %(device_template_id)s failed')
+    message = _('creating VNF based on %(device_template_id)s failed')
 
 
 class DeviceCreateWaitFailed(exceptions.TackerException):
-    message = _('waiting for creation of device %(device_id)s failed')
+    message = _('waiting for creation of VNF %(device_id)s failed')
 
 
 class DeviceDeleteFailed(exceptions.TackerException):
-    message = _('deleting device %(device_id)s failed')
+    message = _('deleting VNF %(device_id)s failed')
 
 
 class DeviceTemplateNotFound(exceptions.NotFound):
-    message = _('device template %(device_tempalte_id)s could not be found')
+    message = _('VNFD template %(device_tempalte_id)s could not be found')
 
 
 class ServiceTypeNotFound(exceptions.NotFound):
@@ -78,7 +78,7 @@ class ServiceTypeNotFound(exceptions.NotFound):
 
 
 class DeviceNotFound(exceptions.NotFound):
-    message = _('device %(device_id)s could not be found')
+    message = _('VNF %(device_id)s could not be found')
 
 
 class ServiceInstanceNotManagedByUser(exceptions.InUse):
