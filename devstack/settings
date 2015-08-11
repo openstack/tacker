@@ -21,11 +21,6 @@ enable_service h-api-cw
 
 enable_service tacker
 
-# heat is patched
-#HEAT_BRANCH=stable/kilo
-HEAT_REPO=https://github.com/yamahata/heat.git
-HEAT_BRANCH=bug/1451629
-
 # python-tackerclient and tacker-horizon isn't installable from pip
 LIBS_FROM_GIT=python-tackerclient,tacker-horizon
 

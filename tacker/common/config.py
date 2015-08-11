@@ -19,8 +19,8 @@ Routines for configuring Tacker
 
 import os
 
-from oslo import messaging
 from oslo_config import cfg
+import oslo_messaging
 from paste import deploy
 
 from tacker.common import utils
@@ -91,7 +91,7 @@ cfg.CONF.register_opts(core_opts)
 cfg.CONF.register_cli_opts(core_cli_opts)
 
 # Ensure that the control exchange is set correctly
-messaging.set_transport_defaults(control_exchange='tacker')
+oslo_messaging.set_transport_defaults(control_exchange='tacker')
 _SQL_CONNECTION_DEFAULT = 'sqlite://'
 # Update the default QueuePool parameters. These can be tweaked by the
 # configuration variables - max_pool_size, max_overflow and pool_timeout

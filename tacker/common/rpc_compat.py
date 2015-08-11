@@ -13,8 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo import messaging
 from oslo_config import cfg
+import oslo_messaging
 
 from tacker.common import rpc as n_rpc
 from tacker.openstack.common import log as logging
@@ -35,7 +35,7 @@ class RpcProxy(object):
 
     def __init__(self, topic, default_version, version_cap=None):
         self.topic = topic
-        target = messaging.Target(topic=topic, version=default_version)
+        target = oslo_messaging.Target(topic=topic, version=default_version)
         self._client = n_rpc.get_client(target, version_cap=version_cap)
 
     def make_msg(self, method, **kwargs):
@@ -83,7 +83,7 @@ class RpcCallback(object):
 
     def __init__(self):
         super(RpcCallback, self).__init__()
-        self.target = messaging.Target(version=self.RPC_API_VERSION)
+        self.target = oslo_messaging.Target(version=self.RPC_API_VERSION)
 
 
 class Service(service.Service):
@@ -143,7 +143,7 @@ class Connection(object):
         self.servers = []
 
     def create_consumer(self, topic, endpoints, fanout=False):
-        target = messaging.Target(
+        target = oslo_messaging.Target(
             topic=topic, server=cfg.CONF.host, fanout=fanout)
         server = n_rpc.get_server(target, endpoints)
         self.servers.append(server)
@@ -160,6 +160,6 @@ def create_connection(new=True):
 
 
 # exceptions
-RPCException = messaging.MessagingException
-RemoteError = messaging.RemoteError
-MessagingTimeout = messaging.MessagingTimeout
+RPCException = oslo_messaging.MessagingException
+RemoteError = oslo_messaging.RemoteError
+MessagingTimeout = oslo_messaging.MessagingTimeout

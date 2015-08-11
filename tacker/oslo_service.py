@@ -24,7 +24,7 @@ import inspect
 import os.path
 import random
 
-from oslo import messaging
+import oslo_messaging
 
 from tacker import context
 from tacker.openstack.common.gettextutils import _
@@ -64,11 +64,11 @@ class RpcService(service.Service):
     def start(self):
         super(RpcService, self).start()
 
-        target = messaging.Target(topic=self.topic, server=self.host)
+        target = oslo_messaging.Target(topic=self.topic, server=self.host)
         endpoints = [self.manager]
-        transport = messaging.get_transport(self.conf,
+        transport = oslo_messaging.get_transport(self.conf,
                                             aliases=TRANSPORT_ALIASES)
-        self.rpcserver = messaging.get_rpc_server(
+        self.rpcserver = oslo_messaging.get_rpc_server(
             transport, target, endpoints, executor='eventlet',
             serializer=self.serializer)
 
