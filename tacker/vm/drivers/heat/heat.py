@@ -31,7 +31,7 @@ from keystoneclient.v2_0 import client as ks_client
 from oslo_config import cfg
 
 from tacker.common import log
-from tacker.extensions import servicevm
+from tacker.extensions import vnfm
 from tacker.openstack.common import jsonutils
 from tacker.openstack.common import log as logging
 from tacker.vm.drivers import abstract_driver
@@ -119,13 +119,13 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                         self._update_params(value, paramvalues[key], False)
                     else:
                         LOG.debug('Key missing Value: %s', key)
-                        raise servicevm.InputValuesMissing()
+                        raise vnfm.InputValuesMissing()
                 elif 'get_input' in value:
                     if value['get_input'] in paramvalues:
                         original[key] = paramvalues[value['get_input']]
                     else:
                         LOG.debug('Key missing Value: %s', key)
-                        raise servicevm.InputValuesMissing()
+                        raise vnfm.InputValuesMissing()
                 else:
                     self._update_params(value, paramvalues, True)
 
@@ -172,12 +172,12 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                         LOG.debug('param_vattrs_yaml', param_vattrs_dict)
                     except Exception as e:
                         LOG.debug("Not Well Formed: %s", str(e))
-                        raise servicevm.ParamYAMLNotWellFormed(
+                        raise vnfm.ParamYAMLNotWellFormed(
                             error_msg_details=str(e))
                     else:
                         self._update_params(vnfd_dict, param_vattrs_dict)
                 else:
-                    raise servicevm.ParamYAMLInputMissing()
+                    raise vnfm.ParamYAMLInputMissing()
 
             KEY_LIST = (('description', 'description'),
                         )
@@ -231,7 +231,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                         'user_data_format']
                     properties['user_data'] = vdu_dict['user_data']
                 elif 'user_data' in vdu_dict or 'user_data_format' in vdu_dict:
-                    raise servicevm.UserDataFormatNotFound()
+                    raise vnfm.UserDataFormatNotFound()
                 if ('placement_policy' in vdu_dict and
                     'availability_zone' in vdu_dict['placement_policy']):
                     properties['availability_zone'] = vdu_dict[
@@ -449,7 +449,7 @@ class HeatClient:
             return self.stacks.create(**fields)
         except heatException.HTTPException:
             type_, value, tb = sys.exc_info()
-            raise servicevm.HeatClientException(msg=value)
+            raise vnfm.HeatClientException(msg=value)
 
     def delete(self, stack_id):
         try:

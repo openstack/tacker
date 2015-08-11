@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 
 
 @six.add_metaclass(abc.ABCMeta)
-class ServicePluginBase(extensions.PluginInterface):
+class NFVPluginBase(extensions.PluginInterface):
     """Define base interface for any Advanced Service plugin."""
     supported_extension_aliases = []
 

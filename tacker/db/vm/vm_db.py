@@ -32,7 +32,7 @@ from tacker.db import api as qdbapi
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
-from tacker.extensions import servicevm
+from tacker.extensions import vnfm
 from tacker import manager
 from tacker.openstack.common import log as logging
 from tacker.openstack.common import uuidutils
@@ -265,8 +265,7 @@ class ServiceContextEntry(dict):
         })
 
 
-class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
-                              db_base.CommonDbMixin):
+class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     @property
     def _core_plugin(self):
@@ -278,20 +277,20 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
 
     def __init__(self):
         qdbapi.register_models()
-        super(ServiceResourcePluginDb, self).__init__()
+        super(VNFMPluginDb, self).__init__()
 
     def _get_resource(self, context, model, id):
         try:
             return self._get_by_id(context, model, id)
         except orm_exc.NoResultFound:
             if issubclass(model, DeviceTemplate):
-                raise servicevm.DeviceTemplateNotFound(device_tempalte_id=id)
+                raise vnfm.DeviceTemplateNotFound(device_tempalte_id=id)
             elif issubclass(model, ServiceType):
-                raise servicevm.ServiceTypeNotFound(service_type_id=id)
+                raise vnfm.ServiceTypeNotFound(service_type_id=id)
             elif issubclass(model, ServiceInstance):
-                raise servicevm.ServiceInstanceNotFound(service_instance_id=id)
+                raise vnfm.ServiceInstanceNotFound(service_instance_id=id)
             if issubclass(model, Device):
-                raise servicevm.DeviceNotFound(device_id=id)
+                raise vnfm.DeviceNotFound(device_id=id)
             else:
                 raise
 
@@ -390,13 +389,13 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
 
         if (not attributes.is_attr_set(infra_driver)):
             LOG.debug(_('hosting device driver unspecified'))
-            raise servicevm.InfraDriverNotSpecified()
+            raise vnfm.InfraDriverNotSpecified()
         if (not attributes.is_attr_set(mgmt_driver)):
             LOG.debug(_('mgmt driver unspecified'))
-            raise servicevm.MGMTDriverNotSpecified()
+            raise vnfm.MGMTDriverNotSpecified()
         if (not attributes.is_attr_set(service_types)):
             LOG.debug(_('service types unspecified'))
-            raise servicevm.SeviceTypesNotSpecified()
+            raise vnfm.SeviceTypesNotSpecified()
 
         with context.session.begin(subtransactions=True):
             template_id = str(uuid.uuid4())
@@ -444,7 +443,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             devices_db = context.session.query(Device).filter_by(
                 template_id=device_template_id).first()
             if devices_db is not None:
-                raise servicevm.DeviceTemplateInUse(
+                raise vnfm.DeviceTemplateInUse(
                     device_template_id=device_template_id)
 
             context.session.query(ServiceType).filter_by(
@@ -597,9 +596,9 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                 filter(Device.status.in_(current_statuses)).
                 with_lockmode('update').one())
         except orm_exc.NoResultFound:
-            raise servicevm.DeviceNotFound(device_id=device_id)
+            raise vnfm.DeviceNotFound(device_id=device_id)
         if device_db.status == constants.PENDING_UPDATE:
-            raise servicevm.DeviceInUse(device_id=device_id)
+            raise vnfm.DeviceInUse(device_id=device_id)
         device_db.update({'status': new_status})
         return device_db
 
@@ -633,7 +632,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             binding_db = (context.session.query(ServiceDeviceBinding).
                           filter_by(device_id=device_id).first())
             if binding_db is not None:
-                raise servicevm.DeviceInUse(device_id=device_id)
+                raise vnfm.DeviceInUse(device_id=device_id)
             device_db = self._get_device_db(
                 context, device_id, _ACTIVE_UPDATE_ERROR_DEAD,
                 constants.PENDING_DELETE)
@@ -851,7 +850,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
                 with_lockmode('update').one())
 
             if service_instance.managed_by_user != managed_by_user:
-                raise servicevm.ServiceInstanceNotManagedByUser(
+                raise vnfm.ServiceInstanceNotManagedByUser(
                     service_instance_id=service_instance_id)
 
             service_instance.status = constants.PENDING_DELETE
@@ -864,7 +863,7 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
             assert binding_db
             # check only. _post method will delete it.
             if len(binding_db) > 1:
-                raise servicevm.ServiceInstanceInUse(
+                raise vnfm.ServiceInstanceInUse(
                     service_instance_id=service_instance_id)
 
     def _delete_service_instance_post(self, context, service_instance_id):
@@ -930,3 +929,18 @@ class ServiceResourcePluginDb(servicevm.ServiceVMPluginBase,
         return self._get_collection(
             context, ServiceInstance, self._make_service_instance_dict,
             filters=filters, fields=fields)
+
+    def get_vnfs(self, context, filters=None, fields=None):
+        return self.get_devices(context, filters, fields)
+
+    def get_vnf(self, context, vnf_id, fields=None):
+        return self.get_device(context, vnf_id, fields)
+
+    def delete_vnfd(self, context, vnfd_id):
+        self.delete_device_template(context, vnfd_id)
+
+    def get_vnfd(self, context, vnfd_id, fields=None):
+        return self.get_device_template(context, vnfd_id, fields)
+
+    def get_vnfds(self, context, filters=None, fields=None):
+        return self.get_device_templates(context, filters, fields)

@@ -18,18 +18,12 @@
 # service type constants:
 CORE = "CORE"
 DUMMY = "DUMMY"
-SERVICEVM = "SERVICEVM"
-
-#maps extension alias to service type
-EXT_TO_SERVICE_MAPPING = {
-    'dummy': DUMMY,
-    'servicevm': SERVICEVM,
-}
+VNFM = "VNFM"
 
 COMMON_PREFIXES = {
     CORE: "",
     DUMMY: "/dummy_svc",
-    SERVICEVM: "",
+    VNFM: "",
 }
 
 # Service operation status constants

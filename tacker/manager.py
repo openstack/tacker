@@ -107,8 +107,7 @@ class TackerManager(object):
         Starts from the core plugin and checks if it supports
         advanced services then loads classes provided in configuration.
         """
-        # plugin_providers = cfg.CONF.service_plugins
-        plugin_providers = ['tacker.vm.plugin.ServiceVMPlugin']
+        plugin_providers = cfg.CONF.service_plugins
         LOG.debug(_("Loading service plugins: %s"), plugin_providers)
         for provider in plugin_providers:
             if provider == '':

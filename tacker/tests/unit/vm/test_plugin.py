@@ -1,0 +1,162 @@
+# Copyright 2015 Brocade Communications System, Inc.
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+import mock
+import uuid
+
+from tacker import context
+from tacker.db.vm import vm_db
+from tacker.tests.unit.db import base as db_base
+from tacker.tests.unit.db import utils
+from tacker.vm import plugin
+
+
+class FakeDriverManager(mock.Mock):
+    def invoke(self, *args, **kwargs):
+        if 'create' in args:
+            return str(uuid.uuid4())
+
+
+class FakeDeviceStatus(mock.Mock):
+    pass
+
+
+class FakeGreenPool(mock.Mock):
+    pass
+
+
+class TestVNFMPlugin(db_base.SqlTestCase):
+    def setUp(self):
+        super(TestVNFMPlugin, self).setUp()
+        self.addCleanup(mock.patch.stopall)
+        self.context = context.get_admin_context()
+        self._mock_device_manager()
+        self._mock_device_status()
+        self._mock_green_pool()
+        self.vnfm_plugin = plugin.VNFMPlugin()
+
+    def _mock_device_manager(self):
+        self._device_manager = mock.Mock(wraps=FakeDriverManager())
+        self._device_manager.__contains__ = mock.Mock(
+            return_value=True)
+        fake_device_manager = mock.Mock()
+        fake_device_manager.return_value = self._device_manager
+        self._mock(
+            'tacker.common.driver_manager.DriverManager', fake_device_manager)
+
+    def _mock_device_status(self):
+        self._device_status = mock.Mock(wraps=FakeDeviceStatus())
+        fake_device_status = mock.Mock()
+        fake_device_status.return_value = self._device_status
+        self._mock(
+            'tacker.vm.monitor.DeviceStatus', fake_device_status)
+
+    def _mock_green_pool(self):
+        self._pool = mock.Mock(wraps=FakeGreenPool())
+        fake_green_pool = mock.Mock()
+        fake_green_pool.return_value = self._pool
+        self._mock(
+            'eventlet.GreenPool', fake_green_pool)
+
+    def _mock(self, target, new=mock.DEFAULT):
+        patcher = mock.patch(target, new)
+        return patcher.start()
+
+    def _insert_dummy_device_template(self):
+        session = self.context.session
+        device_template = vm_db.DeviceTemplate(
+            id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='fake_template',
+            description='fake_template_description',
+            infra_driver='fake_driver',
+            mgmt_driver='fake_mgmt_driver')
+        session.add(device_template)
+        session.flush()
+        return device_template
+
+    def _insert_dummy_device(self):
+        session = self.context.session
+        device_db = vm_db.Device(id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                                 tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+                                 name='fake_device',
+                                 description='fake_device_description',
+                                 instance_id=
+                                 'da85ea1a-4ec4-4201-bbb2-8d9249eca7ec',
+                                 template_id=
+                                 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                                 status='ACTIVE')
+        session.add(device_db)
+        session.flush()
+        return device_db
+
+    def test_create_vnfd(self):
+        vnfd_obj = utils.get_dummy_vnfd_obj()
+        result = self.vnfm_plugin.create_vnfd(self.context, vnfd_obj)
+        self.assertIsNotNone(result)
+        self.assertIn('id', result)
+        self.assertIn('service_types', result)
+        self.assertIn('attributes', result)
+        self._device_manager.invoke.assert_called_once_with(mock.ANY,
+                                                            mock.ANY,
+                                                            plugin=mock.ANY,
+                                                            context=mock.ANY,
+                                                            device_template=
+                                                            mock.ANY)
+
+    def test_create_vnf(self):
+        device_template_obj = self._insert_dummy_device_template()
+        vnf_obj = utils.get_dummy_vnf_obj()
+        vnf_obj['vnf']['vnfd_id'] = device_template_obj['id']
+        result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
+        self.assertIsNotNone(result)
+        self.assertIn('id', result)
+        self.assertIn('instance_id', result)
+        self.assertIn('status', result)
+        self.assertIn('attributes', result)
+        self.assertIn('mgmt_url', result)
+        self._device_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
+                                                       plugin=mock.ANY,
+                                                       context=mock.ANY,
+                                                       device=mock.ANY)
+        self._pool.spawn_n.assert_called_once_with(mock.ANY)
+
+    def test_delete_vnf(self):
+        self._insert_dummy_device_template()
+        dummy_device_obj = self._insert_dummy_device()
+        self.vnfm_plugin.delete_vnf(self.context, dummy_device_obj[
+            'id'])
+        self._device_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
+                                                       plugin=mock.ANY,
+                                                       context=mock.ANY,
+                                                       device_id=mock.ANY)
+        self._device_status.delete_hosting_device.assert_called_with(mock.ANY)
+        self._pool.spawn_n.assert_called_once_with(mock.ANY, mock.ANY,
+                                                   mock.ANY)
+
+    def test_update_vnf(self):
+        self._insert_dummy_device_template()
+        dummy_device_obj = self._insert_dummy_device()
+        vnf_config_obj = utils.get_dummy_vnf_config_obj()
+        result = self.vnfm_plugin.update_vnf(self.context, dummy_device_obj[
+            'id'], vnf_config_obj)
+        self.assertIsNotNone(result)
+        self.assertEqual(dummy_device_obj['id'], result['id'])
+        self.assertIn('instance_id', result)
+        self.assertIn('status', result)
+        self.assertIn('attributes', result)
+        self.assertIn('mgmt_url', result)
+        self._pool.spawn_n.assert_called_once_with(mock.ANY, mock.ANY,
+                                                   mock.ANY)

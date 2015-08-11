@@ -30,7 +30,7 @@ class VnfTestJSON(base.BaseTackerTest):
         toscal_str = open(yaml_file).read()
         data['tosca'] = toscal_str
         toscal = data['tosca']
-        tosca_arg = {'vnfd': {'vnfd': toscal}}
+        tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
         self.assertIsNotNone(vnfd_instance)
 

@@ -1,10 +1,5 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-#
-# Copyright 2013, 2014 Intel Corporation.
-# Copyright 2013, 2014 Isaku Yamahata <isaku.yamahata at intel com>
-#                                     <isaku.yamahata at gmail com>
+# Copyright 2015 Intel Corporation..
 # All Rights Reserved.
-#
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -17,8 +12,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-#
-# @author: Isaku Yamahata, Intel Corporation.
 
 import abc
 
@@ -30,7 +23,7 @@ from tacker.api.v1 import resource_helper
 from tacker.common import exceptions
 from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
-from tacker.services.service_base import ServicePluginBase
+from tacker.services.service_base import NFVPluginBase
 
 
 LOG = logging.getLogger(__name__)
@@ -163,8 +156,136 @@ def _validate_service_context_list(data, valid_values=None):
 attr.validators['type:service_type_list'] = _validate_service_type_list
 attr.validators['type:service_context_list'] = _validate_service_context_list
 
-
 RESOURCE_ATTRIBUTE_MAP = {
+
+    'vnfds': {
+        'id': {
+            'allow_post': False,
+            'allow_put': False,
+            'validate': {'type:uuid': None},
+            'is_visible': True,
+            'primary_key': True,
+        },
+        'tenant_id': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:string': None},
+            'required_by_policy': True,
+            'is_visible': True,
+        },
+        'name': {
+            'allow_post': True,
+            'allow_put': True,
+            'validate': {'type:string': None},
+            'is_visible': True,
+            'default': '',
+        },
+        'description': {
+            'allow_post': True,
+            'allow_put': True,
+            'validate': {'type:string': None},
+            'is_visible': True,
+            'default': '',
+        },
+        'service_types': {
+            'allow_post': True,
+            'allow_put': False,
+            'convert_to': attr.convert_to_list,
+            'validate': {'type:service_type_list': None},
+            'is_visible': True,
+            'default': attr.ATTR_NOT_SPECIFIED,
+        },
+        'infra_driver': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:string': None},
+            'is_visible': True,
+            'default': attr.ATTR_NOT_SPECIFIED,
+        },
+        'mgmt_driver': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:string': None},
+            'is_visible': True,
+            'default': attr.ATTR_NOT_SPECIFIED,
+        },
+        'attributes': {
+            'allow_post': True,
+            'allow_put': False,
+            'convert_to': attr.convert_none_to_empty_dict,
+            'validate': {'type:dict_or_nodata': None},
+            'is_visible': True,
+            'default': None,
+        },
+    },
+
+    'vnfs': {
+        'id': {
+            'allow_post': False,
+            'allow_put': False,
+            'validate': {'type:uuid': None},
+            'is_visible': True,
+            'primary_key': True
+        },
+        'tenant_id': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:string': None},
+            'required_by_policy': True,
+            'is_visible': True
+        },
+        'vnfd_id': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:uuid': None},
+            'is_visible': True,
+        },
+        'name': {
+            'allow_post': True,
+            'allow_put': True,
+            'validate': {'type:string': None},
+            'is_visible': True,
+            'default': '',
+        },
+        'description': {
+            'allow_post': True,
+            'allow_put': True,
+            'validate': {'type:string': None},
+            'is_visible': True,
+            'default': '',
+        },
+        'instance_id': {
+            'allow_post': False,
+            'allow_put': False,
+            'validate': {'type:string': None},
+            'is_visible': True,
+        },
+        'mgmt_url': {
+            'allow_post': False,
+            'allow_put': False,
+            'validate': {'type:string': None},
+            'is_visible': True,
+        },
+        'attributes': {
+            'allow_post': True,
+            'allow_put': True,
+            'validate': {'type:dict_or_none': None},
+            'is_visible': True,
+            'default': {},
+        },
+        'service_contexts': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:service_context_list': None},
+            'is_visible': True,
+            'default': [],
+        },
+        'status': {
+            'allow_post': False,
+            'allow_put': False,
+            'is_visible': True,
+        },
+    },
 
     'device_templates': {
         'id': {
@@ -288,109 +409,31 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
             'default': [],
         },
-        'services': {
-            'allow_post': False,
-            'allow_put': False,
-            'validate': {'type:uuid': None},
-            'is_visible': True,
-        },
         'status': {
             'allow_post': False,
             'allow_put': False,
             'is_visible': True,
         },
     },
-
-    # 'service_instances': {
-    #     'id': {
-    #         'allow_post': False,
-    #         'allow_put': False,
-    #         'validate': {'type:uuid': None},
-    #         'is_visible': True,
-    #         'primary_key': True
-    #     },
-    #     'tenant_id': {
-    #         'allow_post': True,
-    #         'allow_put': False,
-    #         'validate': {'type:string': None},
-    #         'required_by_policy': True,
-    #         'is_visible': True
-    #     },
-    #     'name': {
-    #         'allow_post': True,
-    #         'allow_put': True,
-    #         'validate': {'type:string': None},
-    #         'is_visible': True,
-    #     },
-    #     'service_type_id': {
-    #         'allow_post': True,
-    #         'allow_put': False,
-    #         'validate': {'type:uuid': None},
-    #         'is_visible': True,
-    #     },
-    #     'service_table_id': {
-    #         'allow_post': True,
-    #         'allow_put': False,
-    #         'validate': {'type:string': None},
-    #         'is_visible': True,
-    #     },
-    #     'mgmt_driver': {
-    #         'allow_post': True,
-    #         'allow_put': False,
-    #         'validate': {'type:string': None},
-    #         'is_visible': True,
-    #     },
-    #     'mgmt_url': {
-    #         'allow_post': True,
-    #         'allow_put': False,
-    #         'validate': {'type:string': None},
-    #         'is_visible': True,
-    #     },
-    #     'service_contexts': {
-    #         'allow_post': True,
-    #         'allow_put': False,
-    #         'validate': {'type:service_context_list': None},
-    #         'is_visible': True,
-    #     },
-    #     'devices': {
-    #         'allow_post': True,
-    #         'allow_put': False,
-    #         'validate': {'type:uuid_list': None},
-    #         'convert_to': attr.convert_to_list,
-    #         'is_visible': True,
-    #     },
-    #     'status': {
-    #         'allow_post': False,
-    #         'allow_put': False,
-    #         'is_visible': True,
-    #     },
-    #     'kwargs': {
-    #         'allow_post': True,
-    #         'allow_put': True,
-    #         'validate': {'type:dict_or_none': None},
-    #         'is_visible': True,
-    #         'default': {},
-    #     },
-    # },
 }
 
 
-class Servicevm(extensions.ExtensionDescriptor):
+class Vnfm(extensions.ExtensionDescriptor):
     @classmethod
     def get_name(cls):
-        return 'Service VM'
+        return 'VNFM'
 
     @classmethod
     def get_alias(cls):
-        return 'servicevm'
+        return 'VNF Manager'
 
     @classmethod
     def get_description(cls):
-        return "Extension for ServiceVM service"
+        return "Extension for VNF Manager"
 
     @classmethod
     def get_namespace(cls):
-        return 'http://wiki.openstack.org/Tacker/ServiceVM'
+        return 'http://wiki.openstack.org/Tacker'
 
     @classmethod
     def get_updated(cls):
@@ -401,23 +444,19 @@ class Servicevm(extensions.ExtensionDescriptor):
         special_mappings = {}
         plural_mappings = resource_helper.build_plural_mappings(
             special_mappings, RESOURCE_ATTRIBUTE_MAP)
-        plural_mappings['devices'] = 'device'
         plural_mappings['service_types'] = 'service_type'
         plural_mappings['service_contexts'] = 'service_context'
-        plural_mappings['services'] = 'service'
         attr.PLURALS.update(plural_mappings)
-        action_map = {'device': {'attach_interface': 'PUT',
-                                 'detach_interface': 'PUT'}}
         return resource_helper.build_resource_info(
-            plural_mappings, RESOURCE_ATTRIBUTE_MAP, constants.SERVICEVM,
-            translate_name=True, action_map=action_map)
+            plural_mappings, RESOURCE_ATTRIBUTE_MAP, constants.VNFM,
+            translate_name=True)
 
     @classmethod
     def get_plugin_interface(cls):
-        return ServiceVMPluginBase
+        return VNFMPluginBase
 
     def update_attributes_map(self, attributes):
-        super(Servicevm, self).update_attributes_map(
+        super(Vnfm, self).update_attributes_map(
             attributes, extension_attrs_map=RESOURCE_ATTRIBUTE_MAP)
 
     def get_extended_resources(self, version):
@@ -426,16 +465,52 @@ class Servicevm(extensions.ExtensionDescriptor):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class ServiceVMPluginBase(ServicePluginBase):
-
+class VNFMPluginBase(NFVPluginBase):
     def get_plugin_name(self):
-        return constants.SERVICEVM
+        return constants.VNFM
 
     def get_plugin_type(self):
-        return constants.SERVICEVM
+        return constants.VNFM
 
     def get_plugin_description(self):
-        return 'Service VM plugin'
+        return 'Tacker VNF Manager plugin'
+
+    @abc.abstractmethod
+    def create_vnfd(self, context, vnfd):
+        pass
+
+    @abc.abstractmethod
+    def delete_vnfd(self, context, vnfd_id):
+        pass
+
+    @abc.abstractmethod
+    def get_vnfd(self, context, vnfd_id, fields=None):
+        pass
+
+    @abc.abstractmethod
+    def get_vnfds(self, context, filters=None, fields=None):
+        pass
+
+    @abc.abstractmethod
+    def get_vnfs(self, context, filters=None, fields=None):
+        pass
+
+    @abc.abstractmethod
+    def get_vnf(self, context, vnf_id, fields=None):
+        pass
+
+    @abc.abstractmethod
+    def create_vnf(self, context, vnf):
+        pass
+
+    @abc.abstractmethod
+    def update_vnf(
+            self, context, vnf_id, vnf):
+        pass
+
+    @abc.abstractmethod
+    def delete_vnf(self, context, vnf_id):
+        pass
 
     @abc.abstractmethod
     def create_device_template(self, context, device_template):
@@ -472,25 +547,4 @@ class ServiceVMPluginBase(ServicePluginBase):
 
     @abc.abstractmethod
     def delete_device(self, context, device_id):
-        pass
-
-    @abc.abstractmethod
-    def attach_interface(self, context, id, port_id):
-        pass
-
-    @abc.abstractmethod
-    def detach_interface(self, contexct, id, port_id):
-        pass
-
-    @abc.abstractmethod
-    def get_service_instances(self, context, filters=None, fields=None):
-        pass
-
-    @abc.abstractmethod
-    def get_service_instance(self, context, service_instance_id, fields=None):
-        pass
-
-    @abc.abstractmethod
-    def update_service_instance(self, context, service_instance_id,
-                                service_instance):
         pass

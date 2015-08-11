@@ -31,7 +31,7 @@ from tacker.common import driver_manager
 from tacker import context as t_context
 from tacker.db.vm import proxy_db  # noqa
 from tacker.db.vm import vm_db
-from tacker.extensions import servicevm
+from tacker.extensions import vnfm
 from tacker.openstack.common import excutils
 from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
@@ -41,7 +41,7 @@ from tacker.vm import monitor
 LOG = logging.getLogger(__name__)
 
 
-class ServiceVMMgmtMixin(object):
+class VNFMMgmtMixin(object):
     OPTS = [
         cfg.MultiStrOpt(
             'mgmt_driver', default=[],
@@ -52,7 +52,7 @@ class ServiceVMMgmtMixin(object):
     cfg.CONF.register_opts(OPTS, 'servicevm')
 
     def __init__(self):
-        super(ServiceVMMgmtMixin, self).__init__()
+        super(VNFMMgmtMixin, self).__init__()
         self._mgmt_manager = driver_manager.DriverManager(
             'tacker.servicevm.mgmt.drivers', cfg.CONF.servicevm.mgmt_driver)
 
@@ -152,7 +152,7 @@ class ServiceVMMgmtMixin(object):
             service_instance=service_instance_dict, kwargs=kwargs)
 
 
-class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
+class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
     """ServiceVMPlugin which supports ServiceVM framework
     """
     OPTS = [
@@ -161,10 +161,10 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
             help=_('Hosting device drivers servicevm plugin will use')),
     ]
     cfg.CONF.register_opts(OPTS, 'servicevm')
-    supported_extension_aliases = ['servicevm']
+    supported_extension_aliases = ['vnfm']
 
     def __init__(self):
-        super(ServiceVMPlugin, self).__init__()
+        super(VNFMPlugin, self).__init__()
         self._pool = eventlet.GreenPool()
         self._device_manager = driver_manager.DriverManager(
             'tacker.servicevm.device.drivers',
@@ -184,18 +184,18 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         infra_driver = template.get('infra_driver')
         if not attributes.is_attr_set(infra_driver):
             LOG.debug(_('hosting device driver must be specified'))
-            raise servicevm.InfraDriverNotSpecified()
+            raise vnfm.InfraDriverNotSpecified()
         if infra_driver not in self._device_manager:
             LOG.debug(_('unknown hosting device driver '
                         '%(infra_driver)s in %(drivers)s'),
                       {'infra_driver': infra_driver,
                        'drivers': cfg.CONF.servicevm.infra_driver})
-            raise servicevm.InvalidInfraDriver(infra_driver=infra_driver)
+            raise vnfm.InvalidInfraDriver(infra_driver=infra_driver)
 
         service_types = template.get('service_types')
         if not attributes.is_attr_set(service_types):
             LOG.debug(_('service type must be specified'))
-            raise servicevm.ServiceTypesNotSpecified()
+            raise vnfm.ServiceTypesNotSpecified()
         for service_type in service_types:
             # TODO(yamahata):
             # framework doesn't know what services are valid for now.
@@ -206,7 +206,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
             infra_driver, 'create_device_template_pre', plugin=self,
             context=context, device_template=device_template)
 
-        return super(ServiceVMPlugin, self).create_device_template(
+        return super(VNFMPlugin, self).create_device_template(
             context, device_template)
 
     ###########################################################################
@@ -258,7 +258,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
             self._device_manager.invoke(
                 driver_name, 'create_wait', plugin=self, context=context,
                 device_dict=device_dict, device_id=instance_id)
-        except servicevm.DeviceCreateWaitFailed:
+        except vnfm.DeviceCreateWaitFailed:
             instance_id = None
             del device_dict['instance_id']
 
@@ -415,27 +415,6 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         self._delete_device_post(context, device_id, None)
         self.spawn_n(self._delete_device_wait, context, device_dict)
 
-    def _do_interface(self, context, device_id, port_id, action):
-        device_dict = self._update_device_pre(context, device_id)
-        driver_name = self._infra_driver_name(device_dict)
-        instance_id = self._instance_id(device_dict)
-
-        try:
-            self._device_manager.invoke(driver_name, action, plugin=self,
-                                        context=context, device_id=instance_id)
-        except Exception:
-            with excutils.save_and_reraise_exception():
-                device_dict['status'] = constants.ERROR
-                self._update_device_post(context, device_id, constants.ERROR)
-
-        self._update_device_post(context, device_dict['id'], constants.ACTIVE)
-
-    def attach_interface(self, context, id, port_id):
-        return self._do_interface(context, id, port_id, 'attach_interface')
-
-    def detach_interface(self, context, id, port_id):
-        return self._do_interface(context, id, port_id, 'dettach_interface')
-
     ###########################################################################
     # logical service instance
     #
@@ -473,7 +452,7 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
 
     def _create_service_instance_db(self, context, device_id,
                                     service_instance_param, managed_by_user):
-        return super(ServiceVMPlugin, self)._create_service_instance(
+        return super(VNFMPlugin, self)._create_service_instance(
             context, device_id, service_instance_param, managed_by_user)
 
     def _create_service_instance_by_type(
@@ -683,3 +662,24 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         self.spawn_n(
             self._delete_service_instance_wait, context, device,
             service_instance, {}, None, None)
+
+    def create_vnf(self, context, vnf):
+        vnf['device'] = vnf.pop('vnf')
+        vnf_attributes = vnf['device']
+        vnf_attributes['template_id'] = vnf_attributes.pop('vnfd_id')
+        vnf_dict = self.create_device(context, vnf)
+        vnf_dict['vnfd_id'] = vnf_dict.pop('template_id')
+        return vnf_dict
+
+    def update_vnf(
+            self, context, vnf_id, vnf):
+        vnf['device'] = vnf.pop('vnf')
+        return self.update_device(context, vnf_id, vnf)
+
+    def delete_vnf(self, context, vnf_id):
+        self.delete_device(context, vnf_id)
+
+    def create_vnfd(self, context, vnfd):
+        vnfd['device_template'] = vnfd.pop('vnfd')
+        new_dict = self.create_device_template(context, vnfd)
+        return new_dict

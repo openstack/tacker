@@ -18,6 +18,7 @@ netaddr>=0.7.12
 #python-tackerclient>=2.3.4,<3
 SQLAlchemy<1.1.0,>=0.9.7
 WebOb>=1.2.3
+python-heatclient>=0.3.0
 python-keystoneclient>=1.1.0
 alembic>=0.7.2
 six>=1.9.0
