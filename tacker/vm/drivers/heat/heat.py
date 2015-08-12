@@ -32,6 +32,7 @@ from oslo_config import cfg
 
 from tacker.common import exceptions
 from tacker.common import log
+from tacker.extensions import servicevm
 from tacker.openstack.common import jsonutils
 from tacker.openstack.common import log as logging
 from tacker.vm.drivers import abstract_driver
@@ -106,6 +107,30 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         LOG.debug(_('device_template %s'), device_template)
 
     @log.log
+    def _update_params(self, original, paramvalues, match=False):
+        for key, value in original.iteritems():
+            if not isinstance(value, dict):
+                pass
+            elif isinstance(value, dict):
+                if not match:
+                    if key in paramvalues and 'param' in paramvalues[key]:
+                        self._update_params(value, paramvalues[key]['param'],
+                                            True)
+                    elif key in paramvalues:
+                        self._update_params(value, paramvalues[key], False)
+                    else:
+                        LOG.debug('Key missing Value: %s', key)
+                        raise servicevm.InputValuesMissing()
+                elif 'get_input' in value:
+                    if value['get_input'] in paramvalues:
+                        original[key] = paramvalues[value['get_input']]
+                    else:
+                        LOG.debug('Key missing Value: %s', key)
+                        raise servicevm.InputValuesMissing()
+                else:
+                    self._update_params(value, paramvalues, True)
+
+    @log.log
     def create(self, plugin, context, device):
         LOG.debug(_('device %s'), device)
         heatclient_ = HeatClient(context)
@@ -139,6 +164,22 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
             vnfd_dict = yaml.load(vnfd_yaml)
             LOG.debug('vnfd_dict %s', vnfd_dict)
+
+            if 'get_input' in vnfd_yaml:
+                param_vattrs_yaml = dev_attrs.pop('param_values', None)
+                if param_vattrs_yaml:
+                    try:
+                        param_vattrs_dict = yaml.load(param_vattrs_yaml)
+                        LOG.debug('param_vattrs_yaml', param_vattrs_dict)
+                    except Exception as e:
+                        LOG.debug("Not Well Formed: %s", str(e))
+                        raise servicevm.ParamYAMLNotWellFormed(
+                            error_msg_details=str(e))
+                    else:
+                        self._update_params(vnfd_dict, param_vattrs_dict)
+                else:
+                    raise servicevm.ParamYAMLInputMissing()
+
             KEY_LIST = (('description', 'description'),
                         )
             for (key, vnfd_key) in KEY_LIST:
