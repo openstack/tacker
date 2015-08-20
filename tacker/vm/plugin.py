@@ -28,7 +28,6 @@ from sqlalchemy.orm import exc as orm_exc
 
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
-from tacker.common import topics
 from tacker import context as t_context
 from tacker.db.vm import proxy_db  # noqa
 from tacker.db.vm import vm_db
@@ -38,7 +37,6 @@ from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
 from tacker.vm.mgmt_drivers import constants as mgmt_constants
 from tacker.vm import monitor
-from tacker.vm import proxy_api
 
 LOG = logging.getLogger(__name__)
 
@@ -171,7 +169,6 @@ class ServiceVMPlugin(vm_db.ServiceResourcePluginDb, ServiceVMMgmtMixin):
         self._device_manager = driver_manager.DriverManager(
             'tacker.servicevm.device.drivers',
             cfg.CONF.servicevm.infra_driver)
-        self.proxy_api = proxy_api.ServiceVMPluginApi(topics.SERVICEVM_AGENT)
         self._device_status = monitor.DeviceStatus()
 
     def spawn_n(self, function, *args, **kwargs):
