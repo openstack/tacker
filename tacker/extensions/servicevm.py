@@ -97,6 +97,18 @@ class ServiceInstanceNotFound(exceptions.NotFound):
     message = _('service instance %(service_instance_id)s could not be found')
 
 
+class ParamYAMLNotWellFormed(exceptions.InvalidInput):
+    message = _("Parameter YAML not well formed - %(error_msg_details)")
+
+
+class InputValuesMissing(exceptions.InvalidInput):
+    message = _("Input values missing for 'get_input")
+
+
+class ParamYAMLInputMissing(exceptions.InvalidInput):
+    message = _("Parameter YAML input missing")
+
+
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("invalid data format for service list: '%s'") % data
