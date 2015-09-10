@@ -98,7 +98,7 @@ class ServiceInstanceNotFound(exceptions.NotFound):
 
 
 class ParamYAMLNotWellFormed(exceptions.InvalidInput):
-    message = _("Parameter YAML not well formed - %(error_msg_details)")
+    message = _("Parameter YAML not well formed - %(error_msg_details)s")
 
 
 class InputValuesMissing(exceptions.InvalidInput):
@@ -107,6 +107,10 @@ class InputValuesMissing(exceptions.InvalidInput):
 
 class ParamYAMLInputMissing(exceptions.InvalidInput):
     message = _("Parameter YAML input missing")
+
+
+class HeatClientException(exceptions.TackerException):
+    message = _("%(msg)s")
 
 
 def _validate_service_type_list(data, valid_values=None):
