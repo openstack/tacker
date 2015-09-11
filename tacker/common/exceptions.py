@@ -79,19 +79,6 @@ class NetworkNotFound(NotFound):
     message = _("Network %(net_id)s could not be found")
 
 
-class SubnetNotFound(NotFound):
-    message = _("Subnet %(subnet_id)s could not be found")
-
-
-class PortNotFound(NotFound):
-    message = _("Port %(port_id)s could not be found")
-
-
-class PortNotFoundOnNetwork(NotFound):
-    message = _("Port %(port_id)s could not be found "
-                "on network %(net_id)s")
-
-
 class PolicyFileNotFound(NotFound):
     message = _("Policy configuration policy.json could not be found")
 
@@ -112,76 +99,8 @@ class InUse(TackerException):
     message = _("The resource is inuse")
 
 
-class NetworkInUse(InUse):
-    message = _("Unable to complete operation on network %(net_id)s. "
-                "There are one or more ports still in use on the network.")
-
-
-class SubnetInUse(InUse):
-    message = _("Unable to complete operation on subnet %(subnet_id)s. "
-                "One or more ports have an IP allocation from this subnet.")
-
-
-class PortInUse(InUse):
-    message = _("Unable to complete operation on port %(port_id)s "
-                "for network %(net_id)s. Port already has an attached"
-                "device %(device_id)s.")
-
-
-class MacAddressInUse(InUse):
-    message = _("Unable to complete operation for network %(net_id)s. "
-                "The mac address %(mac)s is in use.")
-
-
-class HostRoutesExhausted(BadRequest):
-    # NOTE(xchenum): probably make sense to use quota exceeded exception?
-    message = _("Unable to complete operation for %(subnet_id)s. "
-                "The number of host routes exceeds the limit %(quota)s.")
-
-
-class DNSNameServersExhausted(BadRequest):
-    # NOTE(xchenum): probably make sense to use quota exceeded exception?
-    message = _("Unable to complete operation for %(subnet_id)s. "
-                "The number of DNS nameservers exceeds the limit %(quota)s.")
-
-
-class IpAddressInUse(InUse):
-    message = _("Unable to complete operation for network %(net_id)s. "
-                "The IP address %(ip_address)s is in use.")
-
-
-class VlanIdInUse(InUse):
-    message = _("Unable to create the network. "
-                "The VLAN %(vlan_id)s on physical network "
-                "%(physical_network)s is in use.")
-
-
-class FlatNetworkInUse(InUse):
-    message = _("Unable to create the flat network. "
-                "Physical network %(physical_network)s is in use.")
-
-
-class TunnelIdInUse(InUse):
-    message = _("Unable to create the network. "
-                "The tunnel ID %(tunnel_id)s is in use.")
-
-
-class TenantNetworksDisabled(ServiceUnavailable):
-    message = _("Tenant network creation is not enabled.")
-
-
 class ResourceExhausted(ServiceUnavailable):
     pass
-
-
-class NoNetworkAvailable(ResourceExhausted):
-    message = _("Unable to create the network. "
-                "No tenant network is available for allocation.")
-
-
-class SubnetMismatchForPort(BadRequest):
-    message = _("Subnet on port %(port_id)s does not match "
-                "the requested subnet %(subnet_id)s")
 
 
 class MalformedRequestBody(BadRequest):
