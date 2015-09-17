@@ -19,6 +19,7 @@
 # @author: Isaku Yamahata, Intel Corporation.
 
 import abc
+import inspect
 import six
 import threading
 import time
@@ -27,9 +28,8 @@ from keystoneclient.v2_0 import client as ks_client
 from oslo_config import cfg
 from oslo_utils import timeutils
 
-from tacker.agent.linux import utils as linux_utils
+from tacker.common import driver_manager
 from tacker import context as t_context
-from tacker.i18n import _LW
 from tacker.openstack.common import jsonutils
 from tacker.openstack.common import log as logging
 from tacker.vm.drivers.heat import heat
@@ -48,127 +48,141 @@ OPTS = [
 CONF.register_opts(OPTS, group='monitor')
 
 
-def _is_pingable(ip):
-    """Checks whether an IP address is reachable by pinging.
-
-    Use linux utils to execute the ping (ICMP ECHO) command.
-    Sends 5 packets with an interval of 0.2 seconds and timeout of 1
-    seconds. Runtime error implies unreachability else IP is pingable.
-    :param ip: IP to check
-    :return: bool - True or False depending on pingability.
-    """
-    ping_cmd = ['ping',
-                '-c', '5',
-                '-W', '1',
-                '-i', '0.2',
-                ip]
-    try:
-        linux_utils.execute(ping_cmd, check_exit_code=True)
-        return True
-    except RuntimeError:
-        LOG.warning(_LW("Cannot ping ip address: %s"), ip)
-        return False
-
-
-class DeviceStatus(object):
-    """Device status"""
+class VNFMonitor(object):
+    """VNF Monitor"""
 
     _instance = None
-    _hosting_devices = dict()   # device_id => dict of parameters
+    _hosting_vnfs = dict()   # device_id => dict of parameters
     _status_check_intvl = 0
-    _lock = threading.Lock()
+    _lock = threading.RLock()
+
+    OPTS = [
+        cfg.MultiStrOpt(
+            'monitor_driver', default=[],
+            help=_('Monitor driver to communicate with '
+                   'Hosting VNF/logical service '
+                   'instance servicevm plugin will use')),
+    ]
+    cfg.CONF.register_opts(OPTS, 'servicevm')
 
     def __new__(cls, check_intvl=None):
         if not cls._instance:
-            cls._instance = super(DeviceStatus, cls).__new__(cls)
+            cls._instance = super(VNFMonitor, cls).__new__(cls)
         return cls._instance
 
     def __init__(self, check_intvl=None):
+        self._monitor_manager = driver_manager.DriverManager(
+            'tacker.servicevm.monitor.drivers',
+            cfg.CONF.servicevm.monitor_driver)
+
         if check_intvl is None:
             check_intvl = cfg.CONF.monitor.check_intvl
         self._status_check_intvl = check_intvl
-        LOG.debug('Spawning device status thread')
+        LOG.debug('Spawning VNF monitor thread')
         threading.Thread(target=self.__run__).start()
 
     def __run__(self):
         while(1):
             time.sleep(self._status_check_intvl)
-            dead_hosting_devices = []
+
             with self._lock:
-                for hosting_device in self._hosting_devices.values():
-                    if hosting_device.get('dead', False):
+                for hosting_vnf in self._hosting_vnfs.values():
+                    if hosting_vnf.get('dead', False):
                         continue
-                    if not timeutils.is_older_than(
-                            hosting_device['boot_at'],
-                            hosting_device['boot_wait']):
-                        continue
-                    if not self.is_hosting_device_reachable(hosting_device):
-                        dead_hosting_devices.append(hosting_device)
-            for hosting_device in dead_hosting_devices:
-                hosting_device['down_cb'](hosting_device)
+
+                    self.run_monitor(hosting_vnf)
 
     @staticmethod
-    def to_hosting_device(device_dict, down_cb):
+    def to_hosting_vnf(device_dict, action_cb):
         return {
             'id': device_dict['id'],
             'management_ip_addresses': jsonutils.loads(
                 device_dict['mgmt_url']),
-            'boot_wait': cfg.CONF.monitor.boot_wait,
-            'down_cb': down_cb,
+            'action_cb': action_cb,
             'device': device_dict,
+            'monitoring_policy': jsonutils.loads(
+                device_dict['attributes']['monitoring_policy'])
         }
 
-    def add_hosting_device(self, new_device):
+    def add_hosting_vnf(self, new_device):
         LOG.debug('Adding host %(id)s, Mgmt IP %(ips)s',
                   {'id': new_device['id'],
                    'ips': new_device['management_ip_addresses']})
         new_device['boot_at'] = timeutils.utcnow()
         with self._lock:
-            self._hosting_devices[new_device['id']] = new_device
+            self._hosting_vnfs[new_device['id']] = new_device
 
-    def delete_hosting_device(self, device_id):
+    def delete_hosting_vnf(self, device_id):
         LOG.debug('deleting device_id %(device_id)s', {'device_id': device_id})
         with self._lock:
-            hosting_device = self._hosting_devices.pop(device_id, None)
-            if hosting_device:
+            hosting_vnf = self._hosting_vnfs.pop(device_id, None)
+            if hosting_vnf:
                 LOG.debug('deleting device_id %(device_id)s, Mgmt IP %(ips)s',
                         {'device_id': device_id,
-                         'ips': hosting_device['management_ip_addresses']})
+                         'ips': hosting_vnf['management_ip_addresses']})
 
-    def is_hosting_device_reachable(self, hosting_device):
-        """Check the hosting device which hosts this resource is reachable.
+    def run_monitor(self, hosting_vnf):
+        mgmt_ips = hosting_vnf['management_ip_addresses']
+        vdupolicies = hosting_vnf['monitoring_policy']['vdus']
 
-        If the resource is not reachable, it is added to the backlog.
+        vnf_delay = hosting_vnf['monitoring_policy'].get(
+                        'monitoring_delay', cfg.CONF.monitor.boot_wait)
 
-        :param hosting_device : dict of the hosting device
-        :return True if device is reachable, else None
-        """
-        for key, mgmt_ip_address in hosting_device[
-                'management_ip_addresses'].items():
-            if not _is_pingable(mgmt_ip_address):
-                LOG.debug('Host %(id)s:%(key)s:%(ip)s, is unreachable',
-                          {'id': hosting_device['id'],
-                           'key': key,
-                           'ip': mgmt_ip_address})
-                hosting_device['dead_at'] = timeutils.utcnow()
-                return False
+        for vdu in vdupolicies.keys():
+            if hosting_vnf.get('dead'):
+                return
 
-            LOG.debug('Host %(id)s:%(key)s:%(ip)s, is reachable',
-                      {'id': hosting_device['id'],
-                       'key': key,
-                       'ip': mgmt_ip_address})
+            policy = vdupolicies[vdu]
+            for driver in policy.keys():
+                params = policy[driver].get('monitoring_params', {})
 
-        return True
+                vdu_delay = params.get('monitoring_delay', vnf_delay)
+
+                if not timeutils.is_older_than(
+                            hosting_vnf['boot_at'],
+                            vdu_delay):
+                        continue
+
+                actions = policy[driver].get('actions', {})
+                if 'mgmt_ip' not in params:
+                    params['mgmt_ip'] = mgmt_ips[vdu]
+
+                driver_return = self.monitor_call(driver,
+                                                  hosting_vnf['device'],
+                                                  params)
+
+                LOG.debug('driver_return %s', driver_return)
+
+                if driver_return in actions:
+                    action = actions[driver_return]
+                    hosting_vnf['action_cb'](hosting_vnf, action)
 
     def mark_dead(self, device_id):
-        self._hosting_devices[device_id]['dead'] = True
+        self._hosting_vnfs[device_id]['dead'] = True
+
+    def _invoke(self, driver, **kwargs):
+        method = inspect.stack()[1][3]
+        return self._monitor_manager.invoke(
+            driver, method, **kwargs)
+
+    def monitor_get_config(self, device_dict):
+        return self._invoke(
+            device_dict, monitor=self, device=device_dict)
+
+    def monitor_url(self, device_dict):
+        return self._invoke(
+            device_dict, monitor=self, device=device_dict)
+
+    def monitor_call(self, driver, device_dict, kwargs):
+        return self._invoke(driver,
+            device=device_dict, kwargs=kwargs)
 
 
 @six.add_metaclass(abc.ABCMeta)
-class FailurePolicy(object):
+class ActionPolicy(object):
     @classmethod
     @abc.abstractmethod
-    def on_failure(cls, plugin, device_dict):
+    def execute_action(cls, plugin, device_dict):
         pass
 
     _POLICIES = {}
@@ -182,122 +196,142 @@ class FailurePolicy(object):
 
     @classmethod
     def get_policy(cls, policy, device):
-        failure_clses = cls._POLICIES.get(policy)
-        if not failure_clses:
+        action_clses = cls._POLICIES.get(policy)
+        if not action_clses:
             return None
         infra_driver = device['device_template'].get('infra_driver')
-        cls = failure_clses.get(infra_driver)
+        cls = action_clses.get(infra_driver)
         if cls:
             return cls
-        return failure_clses.get(None)
+        return action_clses.get(None)
+
+    @classmethod
+    def get_supported_actions(cls):
+        return cls._POLICIES.keys()
 
     @abc.abstractmethod
-    def on_failure(cls, plugin, device_dict):
+    def execute_action(cls, plugin, device_dict):
         pass
 
 
-@FailurePolicy.register('respawn')
-class Respawn(FailurePolicy):
+@ActionPolicy.register('respawn')
+class ActionRespawn(ActionPolicy):
     @classmethod
-    def on_failure(cls, plugin, device_dict):
+    def execute_action(cls, plugin, device_dict):
         LOG.error(_('device %s dead'), device_dict['id'])
-        attributes = device_dict['attributes'].copy()
-        attributes['dead_device_id'] = device_dict['id']
-        new_device = {'attributes': attributes}
-        for key in ('tenant_id', 'template_id', 'name'):
-            new_device[key] = device_dict[key]
-        LOG.debug(_('new_device %s'), new_device)
+        if plugin._mark_device_dead(device_dict['id']):
+            plugin._vnf_monitor.mark_dead(device_dict['id'])
 
-        # keystone v2.0 specific
-        auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
-        authtoken = CONF.keystone_authtoken
-        kc = ks_client.Client(
-            tenant_name=authtoken.project_name,
-            username=authtoken.username,
-            password=authtoken.password,
-            auth_url=auth_url)
-        token = kc.service_catalog.get_token()
+            attributes = device_dict['attributes'].copy()
+            attributes['dead_device_id'] = device_dict['id']
+            new_device = {'attributes': attributes}
+            for key in ('tenant_id', 'template_id', 'name'):
+                new_device[key] = device_dict[key]
+            LOG.debug(_('new_device %s'), new_device)
 
-        context = t_context.get_admin_context()
-        context.tenant_name = authtoken.project_name
-        context.user_name = authtoken.username
-        context.auth_token = token['id']
-        context.tenant_id = token['tenant_id']
-        context.user_id = token['user_id']
-        new_device_dict = plugin.create_device(context, {'device': new_device})
-        LOG.info(_('respawned new device %s'), new_device_dict['id'])
+            # keystone v2.0 specific
+            auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
+            authtoken = CONF.keystone_authtoken
+            kc = ks_client.Client(
+                tenant_name=authtoken.project_name,
+                username=authtoken.username,
+                password=authtoken.password,
+                auth_url=auth_url)
+            token = kc.service_catalog.get_token()
+
+            context = t_context.get_admin_context()
+            context.tenant_name = authtoken.project_name
+            context.user_name = authtoken.username
+            context.auth_token = token['id']
+            context.tenant_id = token['tenant_id']
+            context.user_id = token['user_id']
+            new_device_dict = plugin.create_device(context,
+                                                   {'device': new_device})
+            LOG.info(_('respawned new device %s'), new_device_dict['id'])
 
 
-@FailurePolicy.register('respawn', 'heat')
-class RespawnHeat(FailurePolicy):
+@ActionPolicy.register('respawn', 'heat')
+class ActionRespawnHeat(ActionPolicy):
     @classmethod
-    def on_failure(cls, plugin, device_dict):
+    def execute_action(cls, plugin, device_dict):
         device_id = device_dict['id']
         LOG.error(_('device %s dead'), device_id)
-        attributes = device_dict['attributes']
-        config = attributes.get('config')
-        LOG.debug(_('device config %s dead'), config)
-        failure_count = int(attributes.get('failure_count', '0')) + 1
-        failure_count_str = str(failure_count)
-        attributes['failure_count'] = failure_count_str
-        attributes['dead_instance_id_' + failure_count_str] = device_dict[
-            'instance_id']
+        if plugin._mark_device_dead(device_dict['id']):
+            plugin._vnf_monitor.mark_dead(device_dict['id'])
+            attributes = device_dict['attributes']
+            config = attributes.get('config')
+            LOG.debug(_('device config %s dead'), config)
+            failure_count = int(attributes.get('failure_count', '0')) + 1
+            failure_count_str = str(failure_count)
+            attributes['failure_count'] = failure_count_str
+            attributes['dead_instance_id_' + failure_count_str] = device_dict[
+                'instance_id']
 
-        new_device_id = device_id + '-RESPAWN-' + failure_count_str
-        attributes = device_dict['attributes'].copy()
-        attributes['dead_device_id'] = device_id
-        new_device = {'id': new_device_id, 'attributes': attributes}
-        for key in ('tenant_id', 'template_id', 'name'):
-            new_device[key] = device_dict[key]
-        LOG.debug(_('new_device %s'), new_device)
+            new_device_id = device_id + '-RESPAWN-' + failure_count_str
+            attributes = device_dict['attributes'].copy()
+            attributes['dead_device_id'] = device_id
+            new_device = {'id': new_device_id, 'attributes': attributes}
+            for key in ('tenant_id', 'template_id', 'name'):
+                new_device[key] = device_dict[key]
+            LOG.debug(_('new_device %s'), new_device)
 
-        # kill heat stack
-        heatclient = heat.HeatClient(None)
-        heatclient.delete(device_dict['instance_id'])
+            # kill heat stack
+            heatclient = heat.HeatClient(None)
+            heatclient.delete(device_dict['instance_id'])
 
-        # keystone v2.0 specific
-        auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
-        authtoken = CONF.keystone_authtoken
-        kc = ks_client.Client(
-            tenant_name=authtoken.project_name,
-            username=authtoken.username,
-            password=authtoken.password,
-            auth_url=auth_url)
-        token = kc.service_catalog.get_token()
+            # keystone v2.0 specific
+            auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
+            authtoken = CONF.keystone_authtoken
+            kc = ks_client.Client(
+                tenant_name=authtoken.project_name,
+                username=authtoken.username,
+                password=authtoken.password,
+                auth_url=auth_url)
+            token = kc.service_catalog.get_token()
 
-        context = t_context.get_admin_context()
-        context.tenant_name = authtoken.project_name
-        context.user_name = authtoken.username
-        context.auth_token = token['id']
-        context.tenant_id = token['tenant_id']
-        context.user_id = token['user_id']
+            context = t_context.get_admin_context()
+            context.tenant_name = authtoken.project_name
+            context.user_name = authtoken.username
+            context.auth_token = token['id']
+            context.tenant_id = token['tenant_id']
+            context.user_id = token['user_id']
 
-        new_device_dict = plugin.create_device_sync(
-            context, {'device': new_device})
-        LOG.info(_('respawned new device %s'), new_device_dict['id'])
+            new_device_dict = plugin.create_device_sync(
+                context, {'device': new_device})
+            LOG.info(_('respawned new device %s'), new_device_dict['id'])
 
-        # ungly hack to keep id unchanged
-        dead_device_id = device_id + '-DEAD-' + failure_count_str
-        LOG.debug(_('%(dead)s %(new)s %(cur)s'),
+            # ungly hack to keep id unchanged
+            dead_device_id = device_id + '-DEAD-' + failure_count_str
+            LOG.debug(_('%(dead)s %(new)s %(cur)s'),
                   {'dead': dead_device_id,
                    'new': new_device_id,
                    'cur': device_id})
-        with context.session.begin(subtransactions=True):
             plugin.rename_device_id(context, device_id, dead_device_id)
             plugin.rename_device_id(context, new_device_id, device_id)
-        plugin.delete_device(context, dead_device_id)
-        new_device_dict['id'] = device_id
-        if config:
-            new_device_dict.setdefault('attributes', {})['config'] = config
-        plugin.config_device(context, new_device_dict)
+            LOG.debug('Delete dead device')
+            plugin.delete_device(context, dead_device_id)
+            new_device_dict['id'] = device_id
+            if config:
+                new_device_dict.setdefault('attributes', {})['config'] = config
 
-        plugin.add_device_to_monitor(new_device_dict)
+            plugin.config_device(context, new_device_dict)
+            plugin.add_device_to_monitor(new_device_dict)
 
 
-@FailurePolicy.register('log_and_kill')
-class LogAndKill(FailurePolicy):
+@ActionPolicy.register('log')
+class ActionLogOnly(ActionPolicy):
     @classmethod
-    def on_failure(cls, plugin, device_dict):
+    def execute_action(cls, plugin, device_dict):
         device_id = device_dict['id']
         LOG.error(_('device %s dead'), device_id)
-        plugin.delete_device(t_context.get_admin_context(), device_id)
+
+
+@ActionPolicy.register('log_and_kill')
+class ActionLogAndKill(ActionPolicy):
+    @classmethod
+    def execute_action(cls, plugin, device_dict):
+        device_id = device_dict['id']
+        if plugin._mark_device_dead(device_dict['id']):
+            plugin._vnf_monitor.mark_dead(device_dict['id'])
+            plugin.delete_device(t_context.get_admin_context(), device_id)
+        LOG.error(_('device %s dead'), device_id)

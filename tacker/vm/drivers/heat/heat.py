@@ -245,6 +245,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 if vnfd_key in vnfd_dict:
                     template_dict[key] = vnfd_dict[vnfd_key]
 
+            monitoring_dict = {'vdus': {}}
+
             for vdu_id, vdu_dict in vnfd_dict.get('vdus', {}).items():
                 template_dict.setdefault('resources', {})[vdu_id] = {
                     "type": "OS::Nova::Server"
@@ -277,15 +279,32 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                     for key, value in metadata.items():
                         metadata[key] = value[:255]
 
-                # monitoring_policy = vdu_dict.get('monitoring_policy', None)
-                # failure_policy = vdu_dict.get('failure_policy', None)
+                monitoring_policy = vdu_dict.get('monitoring_policy', 'noop')
+                failure_policy = vdu_dict.get('failure_policy', 'noop')
+
+                # Convert the old monitoring specification to the new format
+                # This should be removed after Mitaka
+                if monitoring_policy == 'ping' and failure_policy == 'respawn':
+                    vdu_dict['monitoring_policy'] = {'ping': {
+                                                       'actions': {
+                                                           'failure': 'respawn'
+                                                       }}}
+                    vdu_dict.pop('failure_policy')
+
+                if monitoring_policy != 'noop':
+                    monitoring_dict['vdus'][vdu_id] = \
+                        vdu_dict['monitoring_policy']
 
                 # to pass necessary parameters to plugin upwards.
-                for key in ('monitoring_policy', 'failure_policy',
-                            'service_type'):
+                for key in ('service_type'):
                     if key in vdu_dict:
                         device.setdefault(
-                            'attributes', {})[key] = vdu_dict[key]
+                            'attributes', {})[vdu_id] = jsonutils.dumps(
+                                {key: vdu_dict[key]})
+
+            if monitoring_dict.keys():
+                device['attributes']['monitoring_policy'] = jsonutils.dumps(
+                                                              monitoring_dict)
 
             if config_yaml is not None:
                 config_dict = yaml.load(config_yaml)
