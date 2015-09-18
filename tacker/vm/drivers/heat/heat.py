@@ -226,6 +226,12 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                                 }
                             }
                         networks_list.append(network_param)
+                if 'user_data' in vdu_dict and 'user_data_format' in vdu_dict:
+                    properties['user_data_format'] = vdu_dict[
+                        'user_data_format']
+                    properties['user_data'] = vdu_dict['user_data']
+                elif 'user_data' in vdu_dict or 'user_data_format' in vdu_dict:
+                    raise servicevm.UserDataFormatNotFound()
                 if ('placement_policy' in vdu_dict and
                     'availability_zone' in vdu_dict['placement_policy']):
                     properties['availability_zone'] = vdu_dict[
