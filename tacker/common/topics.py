@@ -13,31 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-NETWORK = 'network'
-SUBNET = 'subnet'
-PORT = 'port'
-SECURITY_GROUP = 'security_group'
-L2POPULATION = 'l2population'
 
 CREATE = 'create'
 DELETE = 'delete'
 UPDATE = 'update'
-
-AGENT = 'q-agent-notifier'
-PLUGIN = 'q-plugin'
-L3PLUGIN = 'q-l3-plugin'
-DHCP = 'q-dhcp-notifer'
-FIREWALL_PLUGIN = 'q-firewall-plugin'
-METERING_PLUGIN = 'q-metering-plugin'
-LOADBALANCER_PLUGIN = 'n-lbaas-plugin'
-SERVICEVM_PLUGIN = 'q-servicevm-plugin'
-
-L3_AGENT = 'l3_agent'
-DHCP_AGENT = 'dhcp_agent'
-METERING_AGENT = 'metering_agent'
-LOADBALANCER_AGENT = 'n-lbaas_agent'
-SERVICEVM_AGENT = 'servicevm-agent'
-SERVICEVM_AGENT_NAMEPSACE = 'servicevm-agent-namespace'
 
 
 def get_topic_name(prefix, table, operation, host=None):
