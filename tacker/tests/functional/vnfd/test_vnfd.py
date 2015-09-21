@@ -12,23 +12,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
-
 from oslo_config import cfg
 
 from tacker.tests.functional.vnfd import base
+from tacker.tests.utils import read_file
 
 CONF = cfg.CONF
 
 
-class VnfTestJSON(base.BaseTackerTest):
+class VnfdTestJSON(base.BaseTackerTest):
     def test_create_list_delete_vnfd(self):
         data = dict()
-        yaml_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                    "../../etc/samples/"
-                                    "sample_cirros_vnf.yaml"))
-        toscal_str = open(yaml_file).read()
-        data['tosca'] = toscal_str
+        data['tosca'] = read_file('sample_cirros_vnf.yaml')
         toscal = data['tosca']
         tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)

@@ -12,11 +12,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
+
 from oslo_config import cfg
+from tempest_lib.tests import base
 
 from tacker import version
 from tackerclient.v1_0 import client as tacker_client
-from tempest_lib.tests import base
 
 CONF = cfg.CONF
 
@@ -60,3 +62,18 @@ class BaseTackerTest(base.TestCase):
         return tacker_client.Client(username=username, password=password,
                                  tenant_name=tenant_name,
                                  auth_url=auth_uri)
+
+    @classmethod
+    def wait_until_vnf_status(cls, vnf_id, target_status, timeout):
+        start_time = int(time.time())
+        while True:
+                vnf_result = cls.client.show_vnf(vnf_id)
+                status = vnf_result['vnf']['status']
+                if (status == target_status) or ((int(time.time()) -
+                                            start_time) > timeout):
+                    break
+                time.sleep(5)
+
+    @classmethod
+    def wait_until_vnf_active(cls, vnf_id, timeout):
+        cls.wait_until_vnf_status(vnf_id,'ACTIVE',timeout)
