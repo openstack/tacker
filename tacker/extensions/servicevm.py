@@ -113,6 +113,10 @@ class HeatClientException(exceptions.TackerException):
     message = _("%(msg)s")
 
 
+class UserDataFormatNotFound(exceptions.NotFound):
+    message = _("user_data and/or user_data_format not provided")
+
+
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("invalid data format for service list: '%s'") % data
