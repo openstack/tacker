@@ -361,8 +361,7 @@ function tacker_horizon_install {
     git_clone_by_name "tacker-horizon"
     setup_dev_lib "tacker-horizon"
     sudo cp $DEST/tacker-horizon/openstack_dashboard_extensions/* $DEST/horizon/openstack_dashboard/enabled/
-    sudo service apache2 restart
-    sleep 3
+    restart_apache_server
 }
 
 function tacker_create_initial_network {
