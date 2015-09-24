@@ -12,11 +12,9 @@ Installation:
 Installation instructions:
 https://wiki.openstack.org/wiki/Tacker/Installation
 
-**MUST READ: Important Note:**
-
-Tacker code base currently ONLY works with OpenStack stable/kilo release
-components (including devstack, nova, neutron, etc). Please follow the
-instructions in the above wiki for a successful installation.
+Tacker code base now supports OpenStack master and kilo releases. Please
+follow the instructions in the above wiki for a successful installation of
+corresponding release.
 
 Code:
 =====
