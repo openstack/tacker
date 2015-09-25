@@ -28,6 +28,8 @@ esac
 
 sudo chown -R $owner:stack $TACKER_DIR
 
+cd $TACKER_DIR
+
 # Run functional tests
 echo "Running Tacker $VENV test suite"
 source $DEVSTACK_DIR/openrc admin admin
