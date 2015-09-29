@@ -130,6 +130,78 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                     self._update_params(value, paramvalues, True)
 
     @log.log
+    def _process_parameterized_input(self, dev_attrs, vnfd_dict):
+        param_vattrs_yaml = dev_attrs.pop('param_values', None)
+        if param_vattrs_yaml:
+            try:
+                param_vattrs_dict = yaml.load(param_vattrs_yaml)
+                LOG.debug('param_vattrs_yaml', param_vattrs_dict)
+            except Exception as e:
+                LOG.debug("Not Well Formed: %s", str(e))
+                raise vnfm.ParamYAMLNotWellFormed(
+                    error_msg_details=str(e))
+            else:
+                self._update_params(vnfd_dict, param_vattrs_dict)
+        else:
+            raise vnfm.ParamYAMLInputMissing()
+
+    @log.log
+    def _process_vdu_network_interfaces(self, vdu_id, vdu_dict, properties,
+                                        template_dict):
+        def make_port_dict():
+            port_dict = {
+                'type': 'OS::Neutron::Port',
+                'properties': {
+                    'port_security_enabled': False
+                }
+            }
+            port_dict['properties'].setdefault('fixed_ips', [])
+            return port_dict
+
+        def make_mgmt_outputs_dict(port):
+            mgmt_ip = 'mgmt_ip-%s' % vdu_id
+            outputs_dict[mgmt_ip] = {
+                'description': 'management ip address',
+                'value': {
+                    'get_attr': [port, 'fixed_ips',
+                                 0, 'ip_address']
+                }
+            }
+
+        def handle_port_creation(network_param, ip_list=[],
+                                 mgmt_port=False):
+            port = '%s-%s-port' % (vdu_id, network_param['network'])
+            port_dict = make_port_dict()
+            if mgmt_port:
+                make_mgmt_outputs_dict(port)
+            for ip in ip_list:
+                port_dict['properties']['fixed_ips'].append({"ip_address": ip})
+            port_dict['properties'].update(network_param)
+            template_dict['resources'][port] = port_dict
+            return port
+
+        networks_list = []
+        outputs_dict = {}
+        template_dict['outputs'] = outputs_dict
+        properties['networks'] = networks_list
+        for network_param in vdu_dict[
+                'network_interfaces'].values():
+            port = None
+            if 'addresses' in network_param:
+                ip_list = network_param.pop('addresses', [])
+                if not isinstance(ip_list, list):
+                    raise vnfm.IPAddrInvalidInput()
+                mgmt_flag = network_param.pop('management', False)
+                port = handle_port_creation(network_param, ip_list, mgmt_flag)
+            if network_param.pop('management', False):
+                port = handle_port_creation(network_param, [], True)
+            if port is not None:
+                network_param = {
+                    'port': {'get_resource': port}
+                }
+            networks_list.append(network_param)
+
+    @log.log
     def create(self, plugin, context, device):
         LOG.debug(_('device %s'), device)
         heatclient_ = HeatClient(context)
@@ -165,19 +237,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             LOG.debug('vnfd_dict %s', vnfd_dict)
 
             if 'get_input' in vnfd_yaml:
-                param_vattrs_yaml = dev_attrs.pop('param_values', None)
-                if param_vattrs_yaml:
-                    try:
-                        param_vattrs_dict = yaml.load(param_vattrs_yaml)
-                        LOG.debug('param_vattrs_yaml', param_vattrs_dict)
-                    except Exception as e:
-                        LOG.debug("Not Well Formed: %s", str(e))
-                        raise vnfm.ParamYAMLNotWellFormed(
-                            error_msg_details=str(e))
-                    else:
-                        self._update_params(vnfd_dict, param_vattrs_dict)
-                else:
-                    raise vnfm.ParamYAMLInputMissing()
+                self._process_parameterized_input(dev_attrs, vnfd_dict)
 
             KEY_LIST = (('description', 'description'),
                         )
@@ -197,35 +257,9 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 for (key, vdu_key) in KEY_LIST:
                     properties[key] = vdu_dict[vdu_key]
                 if 'network_interfaces' in vdu_dict:
-                    # properties['networks'] = (
-                    #     vdu_dict['network_interfaces'].values())
-                    networks_list = []
-                    properties['networks'] = networks_list
-                    for network_param in vdu_dict[
-                            'network_interfaces'].values():
-                        if network_param.pop('management', False):
-                            mgmt_port = 'mgmt_port-%s' % vdu_id
-                            mgmt_port_dict = {
-                                'type': 'OS::Neutron::Port',
-                                'properties': {
-                                    'port_security_enabled': False,
-                                }
-                            }
-                            mgmt_port_dict['properties'].update(network_param)
-                            template_dict['resources'][
-                                mgmt_port] = mgmt_port_dict
-                            network_param = {
-                                'port': {'get_resource': mgmt_port}
-                            }
-                            mgmt_ip = 'mgmt_ip-%s' % vdu_id
-                            outputs_dict[mgmt_ip] = {
-                                'description': 'management ip address',
-                                'value': {
-                                    'get_attr': [mgmt_port, 'fixed_ips',
-                                                 0, 'ip_address']
-                                }
-                            }
-                        networks_list.append(network_param)
+                    self._process_vdu_network_interfaces(vdu_id, vdu_dict,
+                                                         properties,
+                                                         template_dict)
                 if 'user_data' in vdu_dict and 'user_data_format' in vdu_dict:
                     properties['user_data_format'] = vdu_dict[
                         'user_data_format']
