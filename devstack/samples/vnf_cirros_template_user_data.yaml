@@ -1,0 +1,44 @@
+template_name: cirros_user_data
+description: Parameterized VNF descriptor that supports
+  passing values for 'user_data' and 'user_data_format'
+  during VNF deploy using the format show in
+  vnf_cirros_param_values_user_data.yaml file
+
+service_properties:
+  Id: cirros
+  vendor: ACME
+  version: 1
+  type:
+    - router
+    - firewall
+
+vdus:
+  vdu1:
+    id: vdu1
+    vm_image: { get_input: vm_image }
+    instance_type: {get_input: flavor }
+    service_type: {get_input: service}
+    mgmt_driver: noop
+    user_data: {get_input: user_data}
+    user_data_format: {get_input: user_data_format}
+
+    network_interfaces:
+      management:
+        network: { get_input: network }
+        management: { get_input: management }
+      pkt_in:
+        network: { get_input: pkt_in_network }
+      pkt_out:
+        network: { get_input: pkt_out_network }
+
+    placement_policy:
+      availability_zone: { get_input: zone }
+
+    auto-scaling: noop
+
+    monitoring_policy: noop
+    failure_policy: noop
+
+    config:
+      param0: key0
+      param1: key1

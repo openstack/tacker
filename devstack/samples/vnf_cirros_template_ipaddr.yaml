@@ -1,0 +1,45 @@
+template_name: cirros_ipaddr_template
+description: Parameterized VNF descriptor that supports
+  fixed IP addresses with IP address values passed using
+  the format show in vnf_cirros_param_values_ipaddr.yaml
+  file
+
+service_properties:
+  Id: cirros
+  vendor: ACME
+  version: 1
+  type:
+    - router
+    - firewall
+
+vdus:
+  vdu1:
+    id: vdu1
+    vm_image: { get_input: vm_image }
+    instance_type: {get_input: flavor }
+    service_type: {get_input: service}
+    mgmt_driver: noop
+
+    network_interfaces:
+      management:
+        network: { get_input: network }
+        management: { get_input: management }
+        addresses: { get_input: mgmt_ip}
+      pkt_in:
+        network: { get_input: pkt_in_network }
+        addresses: { get_input: pkt_in_ip}
+      pkt_out:
+        network: { get_input: pkt_out_network }
+        addresses: { get_input: pkt_out_ip}
+
+    placement_policy:
+      availability_zone: { get_input: zone }
+
+    auto-scaling: noop
+
+    monitoring_policy: noop
+    failure_policy: noop
+
+    config:
+      param0: key0
+      param1: key1
