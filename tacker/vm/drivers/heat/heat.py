@@ -108,7 +108,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
     @log.log
     def _update_params(self, original, paramvalues, match=False):
         for key, value in original.iteritems():
-            if not isinstance(value, dict):
+            if not isinstance(value, dict) or 'get_input' not in str(value):
                 pass
             elif isinstance(value, dict):
                 if not match:
