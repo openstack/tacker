@@ -117,9 +117,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                                                             mock.ANY)
 
     def test_create_vnf(self):
-        device_template_obj = self._insert_dummy_device_template()
+        self._insert_dummy_device_template()
         vnf_obj = utils.get_dummy_vnf_obj()
-        vnf_obj['vnf']['vnfd_id'] = device_template_obj['id']
         result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
         self.assertIsNotNone(result)
         self.assertIn('id', result)
