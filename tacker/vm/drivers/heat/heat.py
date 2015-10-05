@@ -344,7 +344,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             stack_retries = stack_retries - 1
 
         LOG.debug(_('stack status: %(stack)s %(status)s'),
-                  {'stack': stack, 'status': status})
+                  {'stack': str(stack), 'status': status})
         if stack_retries == 0:
             LOG.warn(_("Resource creation is"
                        " not completed within %(wait)s seconds as "
@@ -352,7 +352,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                      {'wait': (STACK_RETRIES * STACK_RETRY_WAIT),
                       'stack': device_id})
         if status != 'CREATE_COMPLETE':
-            raise RuntimeError(_("creation of server %s faild") % device_id)
+            raise vnfm.DeviceCreateWaitFailed(device_id=device_id)
         outputs = stack.outputs
         LOG.debug(_('outputs %s'), outputs)
         PREFIX = 'mgmt_ip-'
