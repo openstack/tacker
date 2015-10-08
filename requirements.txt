@@ -11,8 +11,6 @@ greenlet>=0.3.2
 httplib2>=0.7.5
 requests>=2.2.0,!=2.4.0
 iso8601>=0.1.9
-jsonrpclib
-Jinja2>=2.6  # BSD License (3 clause)
 kombu>=2.5.0
 netaddr>=0.7.12
 #python-tackerclient>=2.3.4,<3
