@@ -21,6 +21,9 @@ enable_service h-api-cw
 
 enable_service tacker
 
+TACKERCLIENT_BRANCH=stable/kilo
+TACKERHORZION_BRANCH=stable/kilo
+
 # heat is patched
 #HEAT_BRANCH=stable/kilo
 HEAT_REPO=https://github.com/yamahata/heat.git

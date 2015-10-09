@@ -50,7 +50,7 @@ NETWORK_GATEWAY=${NETWORK_GATEWAY:-15.0.0.1}
 FIXED_RANGE=${FIXED_RANGE:-15.0.0.0/24}
 
 
-enable_plugin tacker https://github.com/stackforge/tacker master
+enable_plugin tacker https://github.com/stackforge/tacker stable/kilo
 
 enable_service n-novnc
 enable_service n-cauth
