@@ -29,7 +29,6 @@ from sqlalchemy.orm import exc as orm_exc
 
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
-from tacker import context as t_context
 from tacker.db.vm import proxy_db  # noqa
 from tacker.db.vm import vm_db
 from tacker.extensions import vnfm
@@ -170,7 +169,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         self._device_manager = driver_manager.DriverManager(
             'tacker.servicevm.device.drivers',
             cfg.CONF.servicevm.infra_driver)
-        self._device_status = monitor.DeviceStatus()
+        self._vnf_monitor = monitor.VNFMonitor()
 
     def spawn_n(self, function, *args, **kwargs):
         self._pool.spawn_n(function, *args, **kwargs)
@@ -212,29 +211,20 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     ###########################################################################
     # hosting device
-
     def add_device_to_monitor(self, device_dict):
-        device_id = device_dict['id']
         dev_attrs = device_dict['attributes']
-        if dev_attrs.get('monitoring_policy') == 'ping':
-            def down_cb(hosting_device_):
-                if self._mark_device_dead(device_id):
-                    self._device_status.mark_dead(device_id)
-                    device_dict_ = self.get_device(
-                        t_context.get_admin_context(), device_id)
-                    failure_cls = monitor.FailurePolicy.get_policy(
-                        device_dict_['attributes'].get('failure_policy'),
-                        device_dict_)
-                    if failure_cls:
-                        failure_cls.on_failure(self, device_dict_)
 
-            hosting_device = self._device_status.to_hosting_device(
-                device_dict, down_cb)
-            KEY_LIST = ('monitoring_policy', 'failure_policy')
-            for key in KEY_LIST:
-                if key in dev_attrs:
-                    hosting_device[key] = dev_attrs[key]
-            self._device_status.add_hosting_device(hosting_device)
+        if 'monitoring_policy' in dev_attrs:
+            def action_cb(hosting_vnf_, action):
+                action_cls = monitor.ActionPolicy.get_policy(action,
+                    device_dict)
+                if action_cls:
+                    action_cls.execute_action(self, hosting_vnf['device'])
+
+            hosting_vnf = self._vnf_monitor.to_hosting_vnf(
+                device_dict, action_cb)
+            LOG.debug('hosting_vnf: %s', hosting_vnf)
+            self._vnf_monitor.add_hosting_vnf(hosting_vnf)
 
     def config_device(self, context, device_dict):
         config = device_dict['attributes'].get('config')
@@ -391,7 +381,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     def delete_device(self, context, device_id):
         device_dict = self._delete_device_pre(context, device_id)
-        self._device_status.delete_hosting_device(device_id)
+        self._vnf_monitor.delete_hosting_vnf(device_id)
         driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
 
