@@ -64,7 +64,8 @@ class BaseTackerTest(base.TestCase):
                                  auth_url=auth_uri)
 
     @classmethod
-    def wait_until_vnf_status(cls, vnf_id, target_status, timeout):
+    def wait_until_vnf_status(cls, vnf_id, target_status, timeout,
+                              sleep_interval):
         start_time = int(time.time())
         while True:
                 vnf_result = cls.client.show_vnf(vnf_id)
@@ -72,8 +73,17 @@ class BaseTackerTest(base.TestCase):
                 if (status == target_status) or ((int(time.time()) -
                                             start_time) > timeout):
                     break
-                time.sleep(5)
+                time.sleep(sleep_interval)
+
+        if (status == target_status):
+            return target_status
 
     @classmethod
-    def wait_until_vnf_active(cls, vnf_id, timeout):
-        cls.wait_until_vnf_status(vnf_id,'ACTIVE',timeout)
+    def wait_until_vnf_active(cls, vnf_id, timeout, sleep_interval):
+        return cls.wait_until_vnf_status(vnf_id, 'ACTIVE', timeout,
+                                         sleep_interval)
+
+    @classmethod
+    def wait_until_vnf_dead(cls, vnf_id, timeout, sleep_interval):
+        return cls.wait_until_vnf_status(vnf_id, 'DEAD', timeout,
+                                         sleep_interval)
