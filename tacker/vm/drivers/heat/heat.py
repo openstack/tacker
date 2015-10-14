@@ -181,8 +181,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             return port
 
         networks_list = []
-        outputs_dict = {}
-        template_dict['outputs'] = outputs_dict
+        outputs_dict = template_dict['outputs']
         properties['networks'] = networks_list
         for network_param in vdu_dict[
                 'network_interfaces'].values():
