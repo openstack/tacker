@@ -296,7 +296,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                         vdu_dict['monitoring_policy']
 
                 # to pass necessary parameters to plugin upwards.
-                for key in ('service_type'):
+                for key in ('service_type',):
                     if key in vdu_dict:
                         device.setdefault(
                             'attributes', {})[vdu_id] = jsonutils.dumps(
