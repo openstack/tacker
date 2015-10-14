@@ -168,7 +168,9 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                             mgmt_port_dict = {
                                 'type': 'OS::Neutron::Port',
                                 'properties': {
-                                    'port_security_enabled': False,
+                                    'value_specs': {
+                                        'port_security_enabled': False
+                                    }
                                 }
                             }
                             mgmt_port_dict['properties'].update(network_param)
