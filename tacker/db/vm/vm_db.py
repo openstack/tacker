@@ -562,7 +562,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                      filter(Device.status == constants.PENDING_CREATE).
                      one())
             query.update({'instance_id': instance_id, 'mgmt_url': mgmt_url})
-            if instance_id is None:
+            if instance_id is None or device_dict['status'] == constants.ERROR:
                 query.update({'status': constants.ERROR})
 
             for (key, value) in device_dict['attributes'].items():
