@@ -1,12 +1,12 @@
-Testing Neutron
-=============================================================
+Testing Tacker
+==============
 
 Overview
 --------
 
 The unit tests are meant to cover as much code as possible and should
 be executed without the service running. They are designed to test
-the various pieces of the neutron tree to make sure any new changes
+the various pieces of the tacker tree to make sure any new changes
 don't break existing functionality.
 
 The functional tests are intended to validate actual system
@@ -23,21 +23,6 @@ come with tests for that feature or code area. Ideally any bugs
 fixes that are submitted also have tests to prove that they stay
 fixed!  In addition, before proposing for merge, all of the
 current tests should be passing.
-
-Virtual environments
-~~~~~~~~~~~~~~~~~~~~
-
-Testing OpenStack projects, including Neutron, is made easier with `DevStack <https://git.openstack.org/cgit/openstack-dev/devstack>`_.
-
-Create a machine (such as a VM or Vagrant box) running a distribution supported
-by DevStack and install DevStack there. For example, there is a Vagrant script
-for DevStack at https://github.com/bcwaldon/vagrant_devstack.
-
- .. note::
-
-    If you prefer not to use DevStack, you can still check out source code on your local
-    machine and develop from there.
-
 
 Running unit tests
 ------------------
@@ -77,7 +62,7 @@ There are disadvantages to running Nose - the tests are run sequentially, so
 race condition bugs will not be triggered, and the full test suite will
 take significantly longer than tox & testr. The upside is that testr has
 some rough edges when it comes to diagnosing errors and failures, and there is
-no easy way to set a breakpoint in the Neutron code, and enter an
+no easy way to set a breakpoint in the Tacker code, and enter an
 interactive debugging session while using testr.
 
 .. _nose: https://nose.readthedocs.org/en/latest/index.html
@@ -85,7 +70,7 @@ interactive debugging session while using testr.
 With `tox`
 ~~~~~~~~~~
 
-Neutron, like other OpenStack projects, uses `tox`_ for managing the virtual
+Tacker, like other OpenStack projects, uses `tox`_ for managing the virtual
 environments for running test cases. It uses `Testr`_ for managing the running
 of the test cases.
 
@@ -96,7 +81,7 @@ Testr handles the parallel execution of series of test cases as well as
 the tracking of long-running tests and other things.
 
 Running unit tests is as easy as executing this in the root directory of the
-Neutron source code::
+Tacker source code::
 
     tox
 
@@ -120,19 +105,19 @@ the dot-separated path to the module you want as an argument to it.
 For executing a specific test case, specify the name of the test case
 class separating it from the module path with a colon.
 
-For example, the following would run only the JSONV2TestCase tests from
-neutron/tests/unit/test_api_v2.py::
+For example, the following would run only the TestVNFMPlugin tests from
+tacker/tests/unit/vm/test_plugin.py::
 
-      $ ./run_tests.sh neutron.tests.unit.test_api_v2:JSONV2TestCase
+      $ ./run_tests.sh tacker.tests.unit.vm.test_plugin:TestVNFMPlugin
 
 or::
 
-      $ ./tox neutron.tests.unit.test_api_v2:JSONV2TestCase
+      $ ./tox tacker.tests.unit.vm.test_plugin:TestVNFMPlugin
 
 Adding more tests
 ~~~~~~~~~~~~~~~~~
 
-Neutron has a fast growing code base and there is plenty of areas that
+Tacker has a fast growing code base and there is plenty of areas that
 need to be covered by unit and functional tests.
 
 To get a grasp of the areas where tests are needed, you can check
@@ -159,7 +144,7 @@ after a tox run and reused for debugging::
     $ . .tox/venv/bin/activate
     $ python -m testtools.run [test module path]
 
-Tox packages and installs the neutron source tree in a given venv
+Tox packages and installs the tacker source tree in a given venv
 on every invocation, but if modifications need to be made between
 invocation (e.g. adding more pdb statements), it is recommended
 that the source tree be installed in the venv in editable mode::

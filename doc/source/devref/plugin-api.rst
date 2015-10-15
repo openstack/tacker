@@ -1,3 +1,0 @@
-Tacker Plugin Architecture
-===========================
-

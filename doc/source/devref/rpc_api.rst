@@ -1,2 +1,0 @@
-Tacker RPC API Layer
-=====================

@@ -1,2 +1,0 @@
-Tacker Database Layer
-======================
