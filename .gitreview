@@ -1,5 +1,5 @@
 [gerrit]
 host=review.openstack.org
 port=29418
-project=stackforge/tacker.git
+project=openstack/tacker.git
 defaultbranch=stable/kilo
