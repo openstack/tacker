@@ -58,6 +58,6 @@ References
 ==========
 
 [1] https://bugs.launchpad.net/tacker
-[2] https://github.com/stackforge/tacker-specs
-[3] https://github.com/stackforge/tacker-specs/blob/master/specs/template.rst
+[2] https://github.com/openstack/tacker-specs
+[3] https://github.com/openstack/tacker-specs/blob/master/specs/template.rst
 [4] https://blueprints.launchpad.net/tacker/

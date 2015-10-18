@@ -40,11 +40,11 @@ if is_ssl_enabled_service "tacker" || is_service_enabled tls-proxy; then
 fi
 
 # Set up default directories
-GITREPO["python-tackerclient"]=${TACKERCLIENT_REPO:-${GIT_BASE}/stackforge/python-tackerclient.git}
+GITREPO["python-tackerclient"]=${TACKERCLIENT_REPO:-${GIT_BASE}/openstack/python-tackerclient.git}
 GITBRANCH["python-tackerclient"]=${TACKERCLIENT_BRANCH:-master}
 GITDIR["python-tackerclient"]=$DEST/python-tackerclient
 
-GITREPO["tacker-horizon"]=${TACKERHORIZON_REPO:-${GIT_BASE}/stackforge/tacker-horizon.git}
+GITREPO["tacker-horizon"]=${TACKERHORIZON_REPO:-${GIT_BASE}/openstack/tacker-horizon.git}
 GITBRANCH["tacker-horizon"]=${TACKERHORZION_BRANCH:-master}
 GITDIR["tacker-horizon"]=$DEST/tacker-horizon
 

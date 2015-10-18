@@ -21,9 +21,9 @@ Code:
 
 Tacker code is available in following repositories:
 
-* **Tacker server:** http://git.openstack.org/cgit/stackforge/tacker
-* **Tacker Python client:** http://git.openstack.org/cgit/stackforge/python-tackerclient
-* **Tacker Horizon UI:** http://git.openstack.org/cgit/stackforge/tacker-horizon
+* **Tacker server:** http://git.openstack.org/cgit/openstack/tacker
+* **Tacker Python client:** http://git.openstack.org/cgit/openstack/python-tackerclient
+* **Tacker Horizon UI:** http://git.openstack.org/cgit/openstack/tacker-horizon
 
 Bugs:
 =====
