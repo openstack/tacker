@@ -1,8 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 #
 # Copyright 2015 Intel Corporation.
-# Copyright 2015 Isaku Yamahata <isaku.yamahata at intel com>
-#                               <isaku.yamahata at gmail com>
 # All Rights Reserved.
 #
 #
@@ -17,9 +15,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-#
-# @author: Isaku Yamahata, Intel Corporation.
-# shamelessly many codes are stolen from gbp simplechain_driver.py
 
 import sys
 import time
@@ -29,6 +24,7 @@ from heatclient import client as heat_client
 from heatclient import exc as heatException
 from keystoneclient.v2_0 import client as ks_client
 from oslo_config import cfg
+from toscaparser.utils import yamlparser
 
 from tacker.common import log
 from tacker.extensions import vnfm
@@ -198,7 +194,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 network_param = {
                     'port': {'get_resource': port}
                 }
-            networks_list.append(network_param)
+            networks_list.append(dict(network_param))
 
     @log.log
     def create(self, plugin, context, device):
@@ -232,7 +228,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             outputs_dict = {}
             template_dict['outputs'] = outputs_dict
 
-            vnfd_dict = yaml.load(vnfd_yaml)
+            vnfd_dict = yamlparser.simple_ordered_parse(vnfd_yaml)
             LOG.debug('vnfd_dict %s', vnfd_dict)
 
             if 'get_input' in vnfd_yaml:
