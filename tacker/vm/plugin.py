@@ -244,16 +244,17 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         driver_name = self._infra_driver_name(device_dict)
         device_id = device_dict['id']
         instance_id = self._instance_id(device_dict)
+        create_failed = False
 
         try:
             self._device_manager.invoke(
                 driver_name, 'create_wait', plugin=self, context=context,
                 device_dict=device_dict, device_id=instance_id)
         except vnfm.DeviceCreateWaitFailed:
-            instance_id = None
-            del device_dict['instance_id']
+            create_failed = True
+            device_dict['status'] = constants.ERROR
 
-        if instance_id is None:
+        if instance_id is None or create_failed:
             mgmt_url = None
         else:
             # mgmt_url = self.mgmt_url(context, device_dict)
@@ -262,11 +263,11 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
         self._create_device_post(
             context, device_id, instance_id, mgmt_url, device_dict)
-        if instance_id is None:
-            self.mgmt_create_post(context, device_dict)
+        self.mgmt_create_post(context, device_dict)
+
+        if instance_id is None or create_failed:
             return
 
-        self.mgmt_create_post(context, device_dict)
         device_dict['mgmt_url'] = mgmt_url
 
         kwargs = {
