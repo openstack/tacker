@@ -39,8 +39,9 @@ Feature Documentation
 =====================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
+   devref/vnfd_template_parameterization.rst
 
 API Documentation
 =================
