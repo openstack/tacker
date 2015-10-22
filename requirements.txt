@@ -13,7 +13,6 @@ requests>=2.2.0,!=2.4.0
 iso8601>=0.1.9
 kombu>=2.5.0
 netaddr>=0.7.12
-#python-tackerclient>=2.3.4,<3
 SQLAlchemy<1.1.0,>=0.9.7
 WebOb>=1.2.3
 python-heatclient>=0.3.0
@@ -24,5 +23,6 @@ stevedore>=1.5.0 # Apache-2.0
 oslo.config>=1.11.0 # Apache-2.0
 oslo.messaging!=1.17.0,!=1.17.1,>=1.16.0 # Apache-2.0
 oslo.rootwrap>=2.0.0 # Apache-2.0
+oslosphinx>=2.5.0,<2.6.0  # Apache-2.0
 python-novaclient>=2.22.0
 tosca-parser>=0.1.0
