@@ -68,9 +68,7 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
             mgmt_constants.ACTION_UPDATE_DEVICE):
             return
         dev_attrs = device.get('attributes', {})
-        service_type = dev_attrs.get('service_type')
-        if not service_type:
-            return
+
         mgmt_url = jsonutils.loads(device.get('mgmt_url', '{}'))
         if not mgmt_url:
             return

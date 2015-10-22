@@ -211,7 +211,6 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
         # overwrite parameters with given dev_attrs for device creation
         dev_attrs = device['attributes'].copy()
-        config_yaml = dev_attrs.pop('config', None)
         fields.update(dict((key, dev_attrs.pop(key)) for key
                       in ('stack_name', 'template_url', 'template')
                       if key in dev_attrs))
@@ -301,22 +300,6 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 device['attributes']['monitoring_policy'] = jsonutils.dumps(
                                                               monitoring_dict)
 
-            if config_yaml is not None:
-                config_dict = yaml.load(config_yaml)
-                resources = template_dict.setdefault('resources', {})
-                for vdu_id, vdu_dict in config_dict.get('vdus', {}).items():
-                    if vdu_id not in resources:
-                        continue
-                    config = vdu_dict.get('config', None)
-                    if not config:
-                        continue
-                    properties = resources[vdu_id].setdefault('properties', {})
-                    properties['config_drive'] = True
-                    metadata = properties.setdefault('metadata', {})
-                    metadata.update(config)
-                    for key, value in metadata.items():
-                        metadata[key] = value[:255]
-
             heat_template_yaml = yaml.dump(template_dict)
             fields['template'] = heat_template_yaml
             if not device['attributes'].get('heat_template'):
@@ -388,7 +371,13 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         update_yaml = device['device'].get('attributes', {}).get('config', '')
         LOG.debug('yaml orig %(orig)s update %(update)s',
                   {'orig': config_yaml, 'update': update_yaml})
-        config_dict = yaml.load(config_yaml) or {}
+
+        # If config_yaml is None, yaml.load() will raise Attribute Error.
+        # So set config_yaml to {}, if it is None.
+        if not config_yaml:
+            config_dict = {}
+        else:
+            config_dict = yaml.load(config_yaml) or {}
         update_dict = yaml.load(update_yaml)
         if not update_dict:
             return
