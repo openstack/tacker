@@ -18,8 +18,10 @@
 Welcome to Tacker's Developer Documentation!
 ============================================
 
-Tacker is an OpenStack project which offers container orchestration engines
-for deploying and managing containers as first class resources in OpenStack.
+Tacker is OpenStack project building an Open NFV Orchestrator with in-built
+general purpose VNF Manager to deploy and operate Virtual Network Functions
+(VNFs) on an NFV Platform. It is based on ETSI MANO Architectural Framework
+and provides full functional stack to Orchestrate VNFs end-to-end.
 
 * **Free software:** under the `Apache license <http://www.apache.org/licenses/LICENSE-2.0>`_
 * **Source:** http://git.openstack.org/cgit/openstack/tacker
@@ -39,8 +41,9 @@ Feature Documentation
 =====================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
+   devref/monitor-api.rst
    devref/vnfd_template_parameterization.rst
 
 API Documentation
