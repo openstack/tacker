@@ -1,6 +1,8 @@
-===========================================
-**VNFD Template Parameterization Overview**
-===========================================
+VNFD Template Parameterization
+==============================
+
+Overview
+--------
 
 Parameterization allows for the ability to use a single VNFD to be deployed
 multiple times with different values for the VDU parameters provided at
@@ -11,9 +13,8 @@ non-parameterized template that has fixed IP addresses specified for network
 interface a second time without deleting the first instance of VNF would lead
 to an error.
 
-==============================================
-**Non-parameterized VNFD template**
-==============================================
+Non-parameterized VNFD template
+-------------------------------
 
 Find below an example of a non-parameterized VNFD where the text italicized
 are the VDU parameters and text in bold are the values for those VDU
@@ -87,9 +88,8 @@ vdus:
 
       *param1*: **key1**
 
-==============================================
-**Parameterized VNFD template**
-==============================================
+Parameterized VNFD template
+---------------------------
 This section will walk through parameterizing the template in above section
 for re-use and allow for deploying multiple VNFs with the same template.
 (Note: All the parameters italicized in the above template could be
@@ -172,9 +172,9 @@ vdus:
 
       *param1*: **key1**
 
-==============================================
-**Parameter values file at VNF deploy**
-==============================================
+
+Parameter values file at VNF deploy
+-----------------------------------
 The below illustrates the parameters value file to be supplied containing the
 values to be substituted for the above parameterized template above during
 VNF deploy. Note that the structure of the parameters file follows closely
@@ -200,9 +200,8 @@ vdus:
         echo "my hostname is `hostname`" > /tmp/hostname
         df -h > /home/cirros/diskinfo
 
-==============================================
-**Key Summary**
-==============================================
+Key Summary
+-----------
 - Parameterize your VNFD if you want to re-use for multiple VNF deployments.
 - Identify parameters that would need to be provided values at deploy time
   and substitute value in VNFD template with {get_input: <param_value_name>},
@@ -223,3 +222,4 @@ vdus:
   Horizon UI.
 - Sample VNFD parameterized templates and parameter values files can be found
   at https://github.com/openstack/tacker/tree/master/devstack/samples
+
