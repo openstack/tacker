@@ -41,9 +41,6 @@ OPTS = [
     cfg.IntOpt('check_intvl',
                default=10,
                help=_("check interval for monitor")),
-    cfg.IntOpt('boot_wait',
-               default=30,
-               help=_("boot wait for monitor")),
 ]
 CONF.register_opts(OPTS, group='monitor')
 
@@ -65,16 +62,17 @@ class VNFMonitor(object):
     ]
     cfg.CONF.register_opts(OPTS, 'servicevm')
 
-    def __new__(cls, check_intvl=None):
+    def __new__(cls, boot_wait, check_intvl=None):
         if not cls._instance:
             cls._instance = super(VNFMonitor, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, check_intvl=None):
+    def __init__(self, boot_wait, check_intvl=None):
         self._monitor_manager = driver_manager.DriverManager(
             'tacker.servicevm.monitor.drivers',
             cfg.CONF.servicevm.monitor_driver)
 
+        self.boot_wait = boot_wait
         if check_intvl is None:
             check_intvl = cfg.CONF.monitor.check_intvl
         self._status_check_intvl = check_intvl
@@ -126,7 +124,7 @@ class VNFMonitor(object):
         vdupolicies = hosting_vnf['monitoring_policy']['vdus']
 
         vnf_delay = hosting_vnf['monitoring_policy'].get(
-                        'monitoring_delay', cfg.CONF.monitor.boot_wait)
+                        'monitoring_delay', self.boot_wait)
 
         for vdu in vdupolicies.keys():
             if hosting_vnf.get('dead'):

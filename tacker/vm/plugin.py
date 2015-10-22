@@ -48,6 +48,8 @@ class VNFMMgmtMixin(object):
             help=_('MGMT driver to communicate with '
                    'Hosting Device/logical service '
                    'instance servicevm plugin will use')),
+        cfg.IntOpt('boot_wait', default=30,
+            help=_('Time interval to wait for VM to boot')),
     ]
     cfg.CONF.register_opts(OPTS, 'servicevm')
 
@@ -166,10 +168,11 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
     def __init__(self):
         super(VNFMPlugin, self).__init__()
         self._pool = eventlet.GreenPool()
+        self.boot_wait = cfg.CONF.servicevm.boot_wait
         self._device_manager = driver_manager.DriverManager(
             'tacker.servicevm.device.drivers',
             cfg.CONF.servicevm.infra_driver)
-        self._vnf_monitor = monitor.VNFMonitor()
+        self._vnf_monitor = monitor.VNFMonitor(self.boot_wait)
 
     def spawn_n(self, function, *args, **kwargs):
         self._pool.spawn_n(function, *args, **kwargs)
@@ -230,7 +233,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         config = device_dict['attributes'].get('config')
         if not config:
             return
-        eventlet.sleep(30)      # wait for vm to be ready
+        eventlet.sleep(self.boot_wait)      # wait for vm to be ready
         device_id = device_dict['id']
         update = {
             'device': {
