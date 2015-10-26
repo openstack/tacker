@@ -23,6 +23,7 @@ import functools
 import hashlib
 import logging as std_logging
 import multiprocessing
+import netaddr
 import os
 import random
 import signal
@@ -299,3 +300,11 @@ def cpu_count():
         return multiprocessing.cpu_count()
     except NotImplementedError:
         return 1
+
+
+def is_valid_ipv4(address):
+    """Verify that address represents a valid IPv4 address."""
+    try:
+        return netaddr.valid_ipv4(address)
+    except Exception:
+        return False

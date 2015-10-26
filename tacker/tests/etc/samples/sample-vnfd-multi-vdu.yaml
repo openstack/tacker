@@ -1,0 +1,75 @@
+template_name: sample-vnfd-multiple-vdus
+description: demo-example
+
+service_properties:
+  Id: sample-vnfd-multiple-vdus
+  vendor: tacker
+  version: 1
+  type:
+    - firewall
+
+vdus:
+  vdu1:
+    id: vdu1
+    vm_image: cirros-0.3.4-x86_64-uec
+    instance_type: m1.tiny
+
+    network_interfaces:
+      management:
+        network: net_mgmt
+        management: true
+      pkt_in:
+        network: net0
+      pkt_out:
+        network: net1
+
+    placement_policy:
+      availability_zone: nova
+
+    config:
+      param0: key0
+      param1: key1
+
+
+  vdu2:
+    id: vdu2
+    vm_image: cirros-0.3.4-x86_64-uec-ramdisk
+    instance_type: m1.medium
+
+    network_interfaces:
+      management:
+        network: net_mgmt
+        management: true
+      pkt_in:
+        network: net0
+      pkt_out:
+        network: net1
+
+    placement_policy:
+      availability_zone: nova
+
+    config:
+      param0: key0
+      param1: key1
+
+
+  vdu3:
+    id: vdu3
+    vm_image: cirros-0.3.4-x86_64-uec
+    instance_type: m1.tiny
+
+    network_interfaces:
+      management:
+        network: net_mgmt
+        management: true
+      pkt_in:
+        network: net0
+      pkt_out:
+        network: net1
+
+    placement_policy:
+      availability_zone: nova
+
+    config:
+      param0: key0
+      param1: key1
