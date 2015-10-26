@@ -87,3 +87,10 @@ class BaseTackerTest(base.TestCase):
     def wait_until_vnf_dead(cls, vnf_id, timeout, sleep_interval):
         return cls.wait_until_vnf_status(vnf_id, 'DEAD', timeout,
                                          sleep_interval)
+
+    def validate_vnf_instance(self, vnfd_instance, vnf_instance):
+        self.assertIsNotNone(vnf_instance)
+        self.assertIsNotNone(vnf_instance['vnf']['id'])
+        self.assertIsNotNone(vnf_instance['vnf']['instance_id'])
+        self.assertEqual(vnf_instance['vnf']['vnfd_id'], vnfd_instance[
+            'vnfd']['id'])
