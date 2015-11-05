@@ -1,0 +1,54 @@
+template_name: http-ping
+description: http-ping-cirros-example
+
+service_properties:
+  Id: cirros-vnfd-http-moniotring
+  vendor: canonical
+  version: 1
+
+vdus:
+  vdu1:
+    id: vdu1
+    vm_image: cirros-0.3.4-x86_64-uec
+    instance_type: m1.tiny
+    user_data_format: RAW
+    user_data: |
+       #!/bin/sh
+       cd /tmp
+       rm -f httpsrv.sh
+       cat > httpsrv.sh << EOL
+       eth0_ip=$(ifconfig eth0|grep 'inet addr'|awk -F: '{print $2}'| awk '{print $1}')
+       while true; do echo -e "HTTP/1.0 200 OK\r\n\r\nWelcome to $eth0_ip" | sudo nc -l -p 80 ; done&
+       EOL
+       sudo chmod +x httpsrv.sh
+       sudo ./httpsrv.sh &
+       sleep 150
+       cat > kill.sh << EOL
+       cat <<'EOF' > kill.sh
+       pid = `ps -ef | grep httpsrv | grep exe | grep -v grep | awk '{print $1}'`
+       echo "killing $pid"
+       kill -9 $pid
+       EOF
+       sudo chmod +x kill.sh
+
+    network_interfaces:
+      management:
+        network: net_mgmt
+        management: true
+
+    placement_policy:
+      availability_zone: nova
+
+    monitoring_policy:
+      http_ping:
+        monitoring_params:
+          monitoring_delay: 60
+          retry: 5
+          timeout: 10
+          port: 80
+        actions:
+          failure: respawn
+
+    config:
+      param0: key0
+      param1: key1
