@@ -12,20 +12,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_config import cfg
-
-from tacker.tests import constants
 from tacker.tests.functional.vnfd import base
 from tacker.tests.utils import read_file
 
-CONF = cfg.CONF
 
+class VnfTestPingMonitor(base.BaseTackerTest):
 
-class VnfTestJSON(base.BaseTackerTest):
-    def test_create_delete_vnf_monitoring(self):
+    def _test_vnf_with_monitoring(self, vnfd_file, vnf_name):
         data = dict()
-        data['tosca'] = read_file(
-            'sample_vnfd_no_param_monitoring_respawn.yaml')
+        data['tosca'] = read_file(vnfd_file)
         toscal = data['tosca']
         tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
 
@@ -35,42 +30,33 @@ class VnfTestJSON(base.BaseTackerTest):
 
         ##Create vnf with vnfd_id
         vnfd_id = vnfd_instance['vnfd']['id']
-        vnf_name = 'test_vnf_with_user_data_respawn'
-
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
-
         vnf_instance = self.client.create_vnf(body = vnf_arg)
-        self.assertIsNotNone(vnf_instance)
-        self.assertIsNotNone(vnf_instance['vnf']['id'])
-        self.assertIsNotNone(vnf_instance['vnf']['instance_id'])
-        self.assertEqual(vnf_instance['vnf']['vnfd_id'], vnfd_instance[
-            'vnfd']['id'])
 
-        ##Verify vnf is in ACTIVE state, then DEAD state and back ACTIVE again
-        vnf_id = vnf_instance['vnf']['id']
-        vnf_current_status = self.wait_until_vnf_active(vnf_id,
-                                    constants.VNF_CIRROS_CREATE_TIMEOUT,
-                                    constants.ACTIVE_SLEEP_TIME)
-
-        self.assertEqual(vnf_current_status, 'ACTIVE')
-        vnf_current_status = self.wait_until_vnf_dead(vnf_id,
-                                    constants.VNF_CIRROS_DEAD_TIMEOUT,
-                                    constants.DEAD_SLEEP_TIME)
-        self.assertEqual(vnf_current_status, 'DEAD')
-        vnf_current_status = self.wait_until_vnf_active(vnf_id,
-                                    constants.VNF_CIRROS_CREATE_TIMEOUT,
-                                    constants.ACTIVE_SLEEP_TIME)
-
-        self.assertEqual(vnf_current_status, 'ACTIVE')
+        ##Verify vnf goes from ACTIVE->DEAD->ACTIVE states
+        self.verify_vnf_restart(vnfd_instance, vnf_instance)
 
         ##Delete vnf_instance with vnf_id
+        vnf_id = vnf_instance['vnf']['id']
         try:
             self.client.delete_vnf(vnf_id)
         except Exception:
-            assert False, "vnf Delete failed after the monitor test"
+            assert False, ("Failed to delete vnf %s after the monitor test" %
+                           vnf_id)
 
         ##Delete vnfd_instance
         try:
             self.client.delete_vnfd(vnfd_id)
         except Exception:
-            assert False, "vnfd Delete failed after the monitor test"
+            assert False, ("Failed to delete vnfd %s after the monitor test" %
+                           vnfd_id)
+
+    def test_create_delete_vnf_monitoring(self):
+        self._test_vnf_with_monitoring(
+            'sample_vnfd_no_param_monitoring_respawn.yaml',
+            'ping monitor vnf')
+
+    def test_create_delete_vnf_http_monitoring(self):
+        self._test_vnf_with_monitoring(
+            'sample_cirros_http_monitoring.yaml',
+            'http monitor vnf')

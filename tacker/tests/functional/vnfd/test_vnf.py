@@ -14,6 +14,7 @@
 
 from oslo_config import cfg
 
+from tacker.tests import constants
 from tacker.tests.functional.vnfd import base
 from tacker.tests.utils import read_file
 
@@ -22,7 +23,7 @@ CONF = cfg.CONF
 VNF_CIRROS_CREATE_TIMEOUT = 120
 
 
-class VnfTestJSON(base.BaseTackerTest):
+class VnfTestCreate(base.BaseTackerTest):
     def test_create_delete_vnf_no_monitoring(self):
         data = dict()
         data['tosca'] = read_file('sample_cirros_vnf_no_monitoring.yaml')
@@ -35,22 +36,17 @@ class VnfTestJSON(base.BaseTackerTest):
 
         ##Create vnf with vnfd_id
         vnfd_id = vnfd_instance['vnfd']['id']
-        vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name':
-            "test_vnf_with_cirros_no_monitoring"}}
+        vnf_name = 'test_vnf_with_cirros_no_monitoring'
+        vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
         vnf_instance = self.client.create_vnf(body = vnf_arg)
-        self.assertIsNotNone(vnf_instance)
-        self.assertIsNotNone(vnf_instance['vnf']['id'])
-        self.assertIsNotNone(vnf_instance['vnf']['instance_id'])
-        self.assertEqual(vnf_instance['vnf']['vnfd_id'], vnfd_instance[
-            'vnfd']['id'])
+
+        self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
         vnf_id = vnf_instance['vnf']['id']
-        sleep_time = 5
         vnf_current_status = self.wait_until_vnf_active(vnf_id,
-                                              VNF_CIRROS_CREATE_TIMEOUT,
-                                                        sleep_time)
-        self.assertEqual(vnf_current_status,
-                         'ACTIVE')
+                                    constants.VNF_CIRROS_CREATE_TIMEOUT,
+                                    constants.ACTIVE_SLEEP_TIME)
+        self.assertEqual(vnf_current_status, 'ACTIVE')
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
         ##Delete vnf_instance with vnf_id

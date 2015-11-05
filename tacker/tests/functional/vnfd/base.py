@@ -17,6 +17,7 @@ import time
 from oslo_config import cfg
 from tempest_lib.tests import base
 
+from tacker.tests import constants
 from tacker import version
 from tackerclient.v1_0 import client as tacker_client
 
@@ -94,3 +95,22 @@ class BaseTackerTest(base.TestCase):
         self.assertIsNotNone(vnf_instance['vnf']['instance_id'])
         self.assertEqual(vnf_instance['vnf']['vnfd_id'], vnfd_instance[
             'vnfd']['id'])
+
+    def verify_vnf_restart(self, vnfd_instance, vnf_instance):
+        vnf_id = vnf_instance['vnf']['id']
+        vnf_current_status = self.wait_until_vnf_active(vnf_id,
+                                    constants.VNF_CIRROS_CREATE_TIMEOUT,
+                                    constants.ACTIVE_SLEEP_TIME)
+        self.assertEqual(vnf_current_status, 'ACTIVE')
+        self.validate_vnf_instance(vnfd_instance, vnf_instance)
+        self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
+
+        vnf_current_status = self.wait_until_vnf_dead(vnf_id,
+                                    constants.VNF_CIRROS_DEAD_TIMEOUT,
+                                    constants.DEAD_SLEEP_TIME)
+        self.assertEqual(vnf_current_status, 'DEAD')
+        vnf_current_status = self.wait_until_vnf_active(vnf_id,
+                                    constants.VNF_CIRROS_CREATE_TIMEOUT,
+                                    constants.ACTIVE_SLEEP_TIME)
+        self.assertEqual(vnf_current_status, 'ACTIVE')
+        self.validate_vnf_instance(vnfd_instance, vnf_instance)
