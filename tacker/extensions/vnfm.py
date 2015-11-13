@@ -30,11 +30,15 @@ LOG = logging.getLogger(__name__)
 
 
 class InfraDriverNotSpecified(exceptions.InvalidInput):
-    message = _('infra driver is not speicfied')
+    message = _('infra driver is not specified')
+
+
+class MGMTDriverNotSpecified(exceptions.InvalidInput):
+    message = _('mgmt driver is not specified')
 
 
 class ServiceTypesNotSpecified(exceptions.InvalidInput):
-    message = _('service types are not speicfied')
+    message = _('service types are not specified')
 
 
 class DeviceTemplateInUse(exceptions.InUse):
@@ -69,7 +73,7 @@ class DeviceTemplateNotFound(exceptions.NotFound):
     message = _('device template %(device_tempalte_id)s could not be found')
 
 
-class SeviceTypeNotFound(exceptions.NotFound):
+class ServiceTypeNotFound(exceptions.NotFound):
     message = _('service type %(service_type_id)s could not be found')
 
 
