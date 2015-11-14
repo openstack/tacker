@@ -34,7 +34,7 @@ vdus:
   vdu2:
     id: vdu2
     vm_image: cirros-0.3.4-x86_64-uec-ramdisk
-    instance_type: m1.medium
+    instance_type: m1.tiny
 
     network_interfaces:
       management:
