@@ -71,6 +71,7 @@ Developer Info
    devref/development.environment.rst
    devref/api_layer.rst
    devref/api_extensions.rst
+   devref/tacker_functional_test.rst
 
 Indices and tables
 ------------------
