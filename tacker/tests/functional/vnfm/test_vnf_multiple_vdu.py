@@ -15,7 +15,7 @@ from oslo_config import cfg
 
 from tacker.common import utils
 from tacker.tests import constants
-from tacker.tests.functional.vnfd import base
+from tacker.tests.functional.vnfm import base
 from tacker.tests.utils import read_file
 
 import yaml

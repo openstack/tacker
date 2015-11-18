@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from tacker.tests.functional.vnfd import base
+from tacker.tests.functional.vnfm import base
 from tacker.tests.utils import read_file
 
 
@@ -60,3 +60,8 @@ class VnfTestPingMonitor(base.BaseTackerTest):
         self._test_vnf_with_monitoring(
             'sample_cirros_http_monitoring.yaml',
             'http monitor vnf')
+
+    def test_create_delete_vnf_multi_vdu_ping_monitoring(self):
+        self._test_vnf_with_monitoring(
+            'sample-vnfd-multi-vdu-monitoring.yaml',
+            'multi vdu ping monitor vnf')
