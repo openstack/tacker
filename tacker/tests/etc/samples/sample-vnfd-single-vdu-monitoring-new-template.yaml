@@ -1,0 +1,46 @@
+template_name: sample-vnfd-monitoring-new-template
+description: demo-example
+
+service_properties:
+  Id: sample-vnfd
+  vendor: tacker
+  version: 1
+
+vdus:
+  vdu1:
+    id: vdu1
+    vm_image: cirros-0.3.4-x86_64-uec
+    instance_type: m1.tiny
+    user_data_format: RAW
+    user_data: |
+       #!/bin/sh
+       df -h > /home/cirros/diskinfo
+       sleep 90
+       sudo ifdown eth0
+
+    network_interfaces:
+      management:
+        network: net_mgmt
+        management: true
+      pkt_in:
+        network: net0
+      pkt_out:
+        network: net1
+
+    placement_policy:
+      availability_zone: nova
+
+    auto-scaling: noop
+    monitoring_policy:
+      ping:
+        monitoring_params:
+          monitoring_delay: 45
+          count: 3
+          interval: .5
+          timeout: 2
+        actions:
+          failure: respawn
+
+    config:
+      param0: key0
+      param1: key1

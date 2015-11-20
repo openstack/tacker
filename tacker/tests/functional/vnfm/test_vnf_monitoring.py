@@ -53,7 +53,7 @@ class VnfTestPingMonitor(base.BaseTackerTest):
 
     def test_create_delete_vnf_monitoring(self):
         self._test_vnf_with_monitoring(
-            'sample_vnfd_no_param_monitoring_respawn.yaml',
+            'sample-vnfd-single-vdu-monitoring.yaml',
             'ping monitor vnf')
 
     def test_create_delete_vnf_http_monitoring(self):
@@ -65,3 +65,8 @@ class VnfTestPingMonitor(base.BaseTackerTest):
         self._test_vnf_with_monitoring(
             'sample-vnfd-multi-vdu-monitoring.yaml',
             'multi vdu ping monitor vnf')
+
+    def test_create_delete_vnf_monitoring_new_template(self):
+        self._test_vnf_with_monitoring(
+            'sample-vnfd-single-vdu-monitoring-new-template.yaml',
+            'ping monitor vnf new template')
