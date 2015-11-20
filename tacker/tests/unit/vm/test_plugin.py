@@ -18,6 +18,7 @@ import uuid
 
 from tacker import context
 from tacker.db.vm import vm_db
+from tacker.extensions import vnfm
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.db import utils
 from tacker.vm import plugin
@@ -115,6 +116,20 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                                                             context=mock.ANY,
                                                             device_template=
                                                             mock.ANY)
+
+    def test_create_vnfd_no_service_types(self):
+        vnfd_obj = utils.get_dummy_vnfd_obj()
+        vnfd_obj['vnfd'].pop('service_types')
+        self.assertRaises(vnfm.ServiceTypesNotSpecified,
+                          self.vnfm_plugin.create_vnfd,
+                          self.context, vnfd_obj)
+
+    def test_create_vnfd_no_mgmt_driver(self):
+        vnfd_obj = utils.get_dummy_vnfd_obj()
+        vnfd_obj['vnfd'].pop('mgmt_driver')
+        self.assertRaises(vnfm.MGMTDriverNotSpecified,
+                          self.vnfm_plugin.create_vnfd,
+                          self.context, vnfd_obj)
 
     def test_create_vnf(self):
         self._insert_dummy_device_template()

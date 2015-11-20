@@ -395,7 +395,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             raise vnfm.MGMTDriverNotSpecified()
         if (not attributes.is_attr_set(service_types)):
             LOG.debug(_('service types unspecified'))
-            raise vnfm.SeviceTypesNotSpecified()
+            raise vnfm.ServiceTypesNotSpecified()
 
         with context.session.begin(subtransactions=True):
             template_id = str(uuid.uuid4())
