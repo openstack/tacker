@@ -90,14 +90,3 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
                              vdu)
                     continue
                 self._config_service(mgmt_ip_address, key, conf_value)
-
-    def mgmt_service_address(self, plugin, context,
-                             device, service_instance):
-        LOG.debug(_('mgmt_service_address %(device)s %(service_instance)s'),
-                  {'device': device, 'service_instance': service_instance})
-        return 'noop-mgmt-service-address'
-
-    def mgmt_service_call(self, plugin, context, device,
-                          service_instance, kwargs):
-        LOG.debug(_('mgmt_service_call %(device)s %(service_instance)s'),
-                  {'device': device, 'service_instance': service_instance})
