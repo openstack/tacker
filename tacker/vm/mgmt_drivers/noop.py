@@ -44,14 +44,3 @@ class DeviceMgmtNoop(abstract_driver.DeviceMGMTAbstractDriver):
     def mgmt_call(self, plugin, context, device, kwargs):
         LOG.debug(_('mgmt_device_call %(device)s %(kwargs)s'),
                   {'device': device, 'kwargs': kwargs})
-
-    def mgmt_service_address(self, plugin, context,
-                             device, service_instance):
-        LOG.debug(_('mgmt_service_address %(device)s %(service_instance)s'),
-                  {'device': device, 'service_instance': service_instance})
-        return 'noop-mgmt-service-address'
-
-    def mgmt_service_call(self, plugin, context, device,
-                          service_instance, kwargs):
-        LOG.debug(_('mgmt_service_call %(device)s %(service_instance)s'),
-                  {'device': device, 'service_instance': service_instance})
