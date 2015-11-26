@@ -25,15 +25,6 @@ Create Date: 2014-08-01 11:48:10.319498
 revision = '4c31092895b8'
 down_revision = '81ffa86020d'
 
-# from alembic import op
-
 
 def upgrade(active_plugins=None, options=None):
-    # op.drop_column('devicetameplates', 'service_types')
-
-    # op.drop_table('servicetypes')
-    # op.drop_table('deviceservicecontexts')
-    # op.drop_table('serviceinstances')
-    # op.drop_table('servicecontexts')
-    # op.drop_table('servicedevicebindings')
     pass
