@@ -22,6 +22,7 @@ from alembic import script as alembic_script
 from alembic import util as alembic_util
 from oslo_config import cfg
 
+from tacker.db.migration.models import head  # noqa
 
 HEAD_FILENAME = 'HEAD'
 
