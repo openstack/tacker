@@ -20,7 +20,7 @@ from tacker.tests.utils import read_file
 CONF = cfg.CONF
 
 
-class VnfdTestJSON(base.BaseTackerTest):
+class VnfdTestCreate(base.BaseTackerTest):
     def test_create_list_delete_vnfd(self):
         data = dict()
         data['tosca'] = read_file('sample_cirros_vnf.yaml')
