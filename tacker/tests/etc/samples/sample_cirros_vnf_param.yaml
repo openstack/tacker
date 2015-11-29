@@ -1,0 +1,38 @@
+template_name: tacker-test
+description: tacker-test
+
+service_properties:
+  Id: tacker-test
+  vendor: {get_input: vendor }
+  version: 1
+  type:
+    - router
+    - firewall
+
+vdus:
+  vdu1:
+    id: vdu1
+    vm_image: { get_input: vm_image }
+    instance_type: {get_input: flavor }
+    service_type: {get_input: service}
+    mgmt_driver: noop
+
+    network_interfaces:
+      management:
+        network: { get_input: network }
+        management: { get_input: management }
+      pkt_in:
+        network: { get_input: pkt_in_network }
+      pkt_out:
+        network: { get_input: pkt_out_network }
+
+    placement_policy:
+      availability_zone: { get_input: zone }
+
+    auto-scaling: noop
+
+    monitoring_policy: noop
+
+    config:
+      param0: key0
+      param1: key1
