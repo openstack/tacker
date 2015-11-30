@@ -36,12 +36,13 @@ LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 OPTS = [
     cfg.IntOpt('stack_retries',
-               default=10,
-               help=_("Number of attempts to retry for stack deletion")),
+               default=60,
+               help=_("Number of attempts to retry for stack"
+                      "creation/deletion")),
     cfg.IntOpt('stack_retry_wait',
                default=5,
-               help=_("Wait time between two successive stack delete "
-                      "retries")),
+               help=_("Wait time between two successive stack"
+                      "create/delete retries")),
 ]
 CONF.register_opts(OPTS, group='servicevm_heat')
 STACK_RETRIES = cfg.CONF.servicevm_heat.stack_retries
