@@ -1,4 +1,4 @@
-template_name: sample-vnfd-nonparam-respawn
+template_name: sample-vnfd-monitoring
 description: demo-example
 
 service_properties:
