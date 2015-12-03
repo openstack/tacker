@@ -67,8 +67,8 @@ class TestDeviceHeat(testtools.TestCase):
             '      - port: {get_resource: vdu1-net_mgmt-port}\n      - '
             '{network: net0}\n      - {network: net1}\n    type: OS::Nova::'
             'Server\n  vdu1-net_mgmt-port:\n    properties:\n      fixed_ips: '
-            '[]\n      network: net_mgmt\n      value_specs: {'
-            'port_security_enabled: false}\n    type: OS::Neutron::Port\n'}
+            '[]\n      network: net_mgmt\n      port_security_enabled: false\n'
+            '    type: OS::Neutron::Port\n'}
 
     def _get_expected_fields_user_data(self):
         return {'stack_name': 'tacker.vm.drivers.heat.heat_DeviceHeat-18685f68'
@@ -87,8 +87,8 @@ class TestDeviceHeat(testtools.TestCase):
             'df -h > /home/cirros/diskinfo\n\n        \'\n      '
             'user_data_format: RAW\n    type: OS::Nova::Server\n  '
             'vdu1-net_mgmt-port:\n    properties:\n      fixed_ips: []\n      '
-            'network: net_mgmt\n      value_specs: {port_security_enabled: '
-            'false}\n    type: OS::Neutron::Port\n'}
+            'network: net_mgmt\n      port_security_enabled: false\n    '
+            'type: OS::Neutron::Port\n'}
 
     def _get_expected_fields_ipaddr_data(self):
         return {'stack_name': 'tacker.vm.drivers.heat.heat_DeviceHeat-d1337add'
@@ -105,13 +105,13 @@ class TestDeviceHeat(testtools.TestCase):
             '\n      - port: {get_resource: vdu1-net1-port}\n    type: '
             'OS::Nova::Server\n  vdu1-net0-port:\n    properties:\n      '
             'fixed_ips:\n      - {ip_address: 10.10.0.98}\n      network: net0'
-            '\n      value_specs: {port_security_enabled: false}\n    type: '
+            '\n      port_security_enabled: false\n    type: '
             'OS::Neutron::Port\n  vdu1-net1-port:\n    properties:\n      '
             'fixed_ips:\n      - {ip_address: 10.10.1.98}\n      network: net1'
-            '\n      value_specs: {port_security_enabled: false}\n    type: '
+            '\n      port_security_enabled: false\n    type: '
             'OS::Neutron::Port\n  vdu1-net_mgmt-port:\n    properties:\n      '
             'fixed_ips:\n      - {ip_address: 192.168.120.98}\n      network: '
-            'net_mgmt\n      value_specs: {port_security_enabled: false}\n    '
+            'net_mgmt\n      port_security_enabled: false\n    '
             'type: OS::Neutron::Port\n'}
 
     def _get_expected_device_wait_obj(self):
