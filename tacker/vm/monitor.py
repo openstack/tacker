@@ -24,10 +24,10 @@ import six
 import threading
 import time
 
-from keystoneclient.v2_0 import client as ks_client
 from oslo_config import cfg
 from oslo_utils import timeutils
 
+from tacker.common import clients
 from tacker.common import driver_manager
 from tacker import context as t_context
 from tacker.openstack.common import jsonutils
@@ -228,14 +228,8 @@ class ActionRespawn(ActionPolicy):
             LOG.debug(_('new_device %s'), new_device)
 
             # keystone v2.0 specific
-            auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
             authtoken = CONF.keystone_authtoken
-            kc = ks_client.Client(
-                tenant_name=authtoken.project_name,
-                username=authtoken.username,
-                password=authtoken.password,
-                auth_url=auth_url)
-            token = kc.service_catalog.get_token()
+            token = clients.OpenstackClients().auth_token
 
             context = t_context.get_admin_context()
             context.tenant_name = authtoken.project_name
@@ -284,14 +278,8 @@ class ActionRespawnHeat(ActionPolicy):
             time.sleep(10)
 
             # keystone v2.0 specific
-            auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
             authtoken = CONF.keystone_authtoken
-            kc = ks_client.Client(
-                tenant_name=authtoken.project_name,
-                username=authtoken.username,
-                password=authtoken.password,
-                auth_url=auth_url)
-            token = kc.service_catalog.get_token()
+            token = clients.OpenstackClients().auth_token
 
             context = t_context.get_admin_context()
             context.tenant_name = authtoken.project_name

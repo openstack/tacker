@@ -20,12 +20,11 @@ import sys
 import time
 import yaml
 
-from heatclient import client as heat_client
 from heatclient import exc as heatException
-from keystoneclient.v2_0 import client as ks_client
 from oslo_config import cfg
 from toscaparser.utils import yamlparser
 
+from tacker.common import clients
 from tacker.common import log
 from tacker.extensions import vnfm
 from tacker.openstack.common import jsonutils
@@ -36,10 +35,6 @@ from tacker.vm.drivers import abstract_driver
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 OPTS = [
-    cfg.StrOpt('heat_uri',
-               default='http://localhost:8004/v1',
-               help=_("Heat server address to create services "
-                      "specified in the service chain.")),
     cfg.IntOpt('stack_retries',
                default=10,
                help=_("Number of attempts to retry for stack deletion")),
@@ -454,25 +449,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 class HeatClient:
     def __init__(self, context, password=None):
         # context, password are unused
-        auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
-        authtoken = CONF.keystone_authtoken
-        kc = ks_client.Client(
-            tenant_name=authtoken.project_name,
-            username=authtoken.username,
-            password=authtoken.password,
-            auth_url=auth_url)
-        token = kc.service_catalog.get_token()
-
-        api_version = "1"
-        endpoint = "%s/%s" % (cfg.CONF.servicevm_heat.heat_uri,
-                              token['tenant_id'])
-        kwargs = {
-            'token': token['id'],
-            'tenant_name': authtoken.project_name,
-            'username': authtoken.username,
-        }
-        self.client = heat_client.Client(api_version, endpoint, **kwargs)
-        self.stacks = self.client.stacks
+        self.stacks = clients.OpenstackClients().heat.stacks
 
     def create(self, fields):
         fields = fields.copy()
