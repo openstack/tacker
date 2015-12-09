@@ -417,6 +417,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         stack = heatclient_.get(device_id)
         status = stack.stack_status
         stack_retries = STACK_RETRIES
+        error_reason = None
         while status == 'CREATE_IN_PROGRESS' and stack_retries > 0:
             time.sleep(STACK_RETRY_WAIT)
             try:
@@ -433,14 +434,22 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
         LOG.debug(_('stack status: %(stack)s %(status)s'),
                   {'stack': str(stack), 'status': status})
-        if stack_retries == 0:
-            LOG.warning(_("Resource creation is"
-                          " not completed within %(wait)s seconds as "
-                          "creation of Stack %(stack)s is not completed"),
-                        {'wait': (STACK_RETRIES * STACK_RETRY_WAIT),
-                         'stack': device_id})
-        if status != 'CREATE_COMPLETE':
-            raise vnfm.DeviceCreateWaitFailed(device_id=device_id)
+        if stack_retries == 0 and status != 'CREATE_COMPLETE':
+            error_reason = _("Resource creation is not completed within"
+                           " {wait} seconds as creation of stack {stack}"
+                           " is not completed").format(
+                               wait=(STACK_RETRIES * STACK_RETRY_WAIT),
+                               stack=device_id)
+            LOG.warning(_("VNF Creation failed: %(reason)s"),
+                    {'reason': error_reason})
+            raise vnfm.DeviceCreateWaitFailed(device_id=device_id,
+                                              reason=error_reason)
+
+        elif stack_retries != 0 and status != 'CREATE_COMPLETE':
+            error_reason = stack.stack_status_reason
+            raise vnfm.DeviceCreateWaitFailed(device_id=device_id,
+                                              reason=error_reason)
+
         outputs = stack.outputs
         LOG.debug(_('outputs %s'), outputs)
         PREFIX = 'mgmt_ip-'
@@ -510,6 +519,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
         stack = heatclient_.get(device_id)
         status = stack.stack_status
+        error_reason = None
         stack_retries = STACK_RETRIES
         while (status == 'DELETE_IN_PROGRESS' and stack_retries > 0):
             time.sleep(STACK_RETRY_WAIT)
@@ -526,16 +536,23 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             status = stack.stack_status
             stack_retries = stack_retries - 1
 
-        if stack_retries == 0:
-            LOG.warning(_("Resource cleanup for device is"
-                          " not completed within %(wait)s seconds as "
-                          "deletion of Stack %(stack)s is not completed"),
-                        {'wait': (STACK_RETRIES * STACK_RETRY_WAIT),
-                         'stack': device_id})
-        if status != 'DELETE_COMPLETE':
-            LOG.warning(_("device (%(device_id)d) deletion is not completed. "
-                          "%(stack_status)s"),
-                        {'device_id': device_id, 'stack_status': status})
+        if stack_retries == 0 and status != 'DELETE_COMPLETE':
+            error_reason = _("Resource cleanup for device is"
+                             " not completed within {wait} seconds as "
+                             "deletion of Stack {stack} is "
+                             "not completed").format(stack=device_id,
+                             wait=(STACK_RETRIES * STACK_RETRY_WAIT))
+            LOG.warning(error_reason)
+            raise vnfm.DeviceCreateWaitFailed(device_id=device_id,
+                                              reason=error_reason)
+
+        if stack_retries != 0 and status != 'DELETE_COMPLETE':
+            error_reason = _("device {device_id} deletion is not completed. "
+                            "{stack_status}").format(device_id=device_id,
+                            stack_status=status)
+            LOG.warning(error_reason)
+            raise vnfm.DeviceCreateWaitFailed(device_id=device_id,
+                                              reason=error_reason)
 
 
 class HeatClient(object):
