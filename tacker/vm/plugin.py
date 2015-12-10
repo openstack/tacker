@@ -30,6 +30,7 @@ from tacker.db.vm import proxy_db  # noqa
 from tacker.db.vm import vm_db
 from tacker.extensions import vnfm
 from tacker.openstack.common import excutils
+from tacker.openstack.common.gettextutils import _LE
 from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
 from tacker.vm.mgmt_drivers import constants as mgmt_constants
@@ -160,8 +161,8 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
     # hosting device
     def add_device_to_monitor(self, device_dict):
         dev_attrs = device_dict['attributes']
-
-        if 'monitoring_policy' in dev_attrs:
+        mgmt_url = device_dict['mgmt_url']
+        if 'monitoring_policy' in dev_attrs and mgmt_url:
             def action_cb(hosting_vnf_, action):
                 action_cls = monitor.ActionPolicy.get_policy(action,
                     device_dict)
@@ -198,6 +199,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                 driver_name, 'create_wait', plugin=self, context=context,
                 device_dict=device_dict, device_id=instance_id)
         except vnfm.DeviceCreateWaitFailed:
+            LOG.error(_LE("VNF Create failed for vnf_id %s"), device_id)
             create_failed = True
             device_dict['status'] = constants.ERROR
 
