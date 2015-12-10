@@ -63,10 +63,7 @@ class Controller(object):
         self._native_sorting = self._is_native_sorting_supported()
         self._policy_attrs = [name for (name, info) in self._attr_info.items()
                               if info.get('required_by_policy')]
-        self._notifier = n_rpc.get_notifier('network')
-        # if cfg.CONF.notify_nova_on_port_data_changes:
-        #     from tacker.notifiers import nova
-        #     self._nova_notifier = nova.Notifier()
+        self._notifier = n_rpc.get_notifier('nfv')
         self._member_actions = member_actions
         self._primary_key = self._get_primary_key()
         if self._allow_pagination and self._native_pagination:
