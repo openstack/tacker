@@ -13,6 +13,7 @@
 #
 
 import json
+
 import mock
 import testtools
 

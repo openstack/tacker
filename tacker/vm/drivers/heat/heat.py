@@ -18,6 +18,7 @@
 
 import sys
 import time
+
 import yaml
 
 from heatclient import exc as heatException

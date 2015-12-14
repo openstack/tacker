@@ -21,8 +21,9 @@
 # @author: Isaku Yamahata, Intel Corporation.
 
 import copy
-import eventlet
 import inspect
+
+import eventlet
 
 from oslo_config import cfg
 

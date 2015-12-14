@@ -12,9 +12,10 @@
 #    under the License.
 #
 
+import urllib2
+
 import mock
 import testtools
-import urllib2
 
 from tacker.vm.monitor_drivers.http_ping import http_ping
 

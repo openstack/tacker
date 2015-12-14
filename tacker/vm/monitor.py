@@ -20,9 +20,10 @@
 
 import abc
 import inspect
-import six
 import threading
 import time
+
+import six
 
 from oslo_config import cfg
 from oslo_utils import timeutils

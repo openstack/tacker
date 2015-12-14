@@ -23,12 +23,13 @@ import functools
 import hashlib
 import logging as std_logging
 import multiprocessing
-import netaddr
 import os
 import random
 import signal
 import socket
 import uuid
+
+import netaddr
 
 from eventlet.green import subprocess
 from oslo_config import cfg

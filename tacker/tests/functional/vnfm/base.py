@@ -19,6 +19,7 @@ from tempest_lib.tests import base
 
 from tacker.tests import constants
 from tacker import version
+
 from tackerclient.v1_0 import client as tacker_client
 
 CONF = cfg.CONF

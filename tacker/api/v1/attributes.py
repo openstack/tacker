@@ -15,8 +15,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import netaddr
 import re
+
+import netaddr
 
 from tacker.common import constants
 from tacker.common import exceptions as n_exc
