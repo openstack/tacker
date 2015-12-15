@@ -24,7 +24,6 @@ import copy
 import inspect
 
 import eventlet
-
 from oslo_config import cfg
 
 from tacker.api.v1 import attributes

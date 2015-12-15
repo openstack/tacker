@@ -15,9 +15,8 @@
 import json
 
 import mock
-import testtools
-
 from oslo_utils import timeutils
+import testtools
 
 from tacker.vm.monitor import VNFMonitor
 

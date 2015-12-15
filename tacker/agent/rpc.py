@@ -19,7 +19,6 @@ import itertools
 
 from tacker.common import rpc_compat
 from tacker.common import topics
-
 from tacker.openstack.common import log as logging
 from tacker.openstack.common import timeutils
 

@@ -18,9 +18,8 @@
 #
 # @author: Isaku Yamahata, Intel Corporation.
 
-import yaml
-
 from oslo_config import cfg
+import yaml
 
 from tacker.agent.linux import utils
 from tacker.common import log

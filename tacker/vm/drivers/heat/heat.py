@@ -19,11 +19,10 @@
 import sys
 import time
 
-import yaml
-
 from heatclient import exc as heatException
 from oslo_config import cfg
 from toscaparser.utils import yamlparser
+import yaml
 
 from tacker.common import clients
 from tacker.common import log

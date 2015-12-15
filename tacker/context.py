@@ -18,7 +18,6 @@
 """Context: context for security/db session."""
 
 import copy
-
 import datetime
 
 from tacker.db import api as db_api

@@ -23,10 +23,9 @@ import inspect
 import threading
 import time
 
-import six
-
 from oslo_config import cfg
 from oslo_utils import timeutils
+import six
 
 from tacker.common import clients
 from tacker.common import driver_manager

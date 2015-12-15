@@ -22,15 +22,13 @@ import sys
 
 import eventlet
 eventlet.monkey_patch()
-
 from oslo_config import cfg
 
 from tacker.common import config
-from tacker.openstack.common import service as common_service
-from tacker import service
-
 from tacker.openstack.common import gettextutils
 from tacker.openstack.common import log as logging
+from tacker.openstack.common import service as common_service
+from tacker import service
 gettextutils.install('tacker', lazy=True)
 
 LOG = logging.getLogger(__name__)

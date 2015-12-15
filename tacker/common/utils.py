@@ -29,9 +29,8 @@ import signal
 import socket
 import uuid
 
-import netaddr
-
 from eventlet.green import subprocess
+import netaddr
 from oslo_config import cfg
 
 from tacker.common import constants as q_const
