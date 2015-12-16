@@ -44,9 +44,9 @@ OPTS = [
                help=_("Wait time between two successive stack"
                       "create/delete retries")),
 ]
-CONF.register_opts(OPTS, group='servicevm_heat')
-STACK_RETRIES = cfg.CONF.servicevm_heat.stack_retries
-STACK_RETRY_WAIT = cfg.CONF.servicevm_heat.stack_retry_wait
+CONF.register_opts(OPTS, group='tacker_heat')
+STACK_RETRIES = cfg.CONF.tacker_heat.stack_retries
+STACK_RETRY_WAIT = cfg.CONF.tacker_heat.stack_retry_wait
 
 HEAT_TEMPLATE_BASE = """
 heat_template_version: 2013-05-23

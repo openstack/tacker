@@ -56,9 +56,9 @@ class VNFMonitor(object):
             'monitor_driver', default=[],
             help=_('Monitor driver to communicate with '
                    'Hosting VNF/logical service '
-                   'instance servicevm plugin will use')),
+                   'instance tacker plugin will use')),
     ]
-    cfg.CONF.register_opts(OPTS, 'servicevm')
+    cfg.CONF.register_opts(OPTS, 'tacker')
 
     def __new__(cls, boot_wait, check_intvl=None):
         if not cls._instance:
@@ -67,8 +67,8 @@ class VNFMonitor(object):
 
     def __init__(self, boot_wait, check_intvl=None):
         self._monitor_manager = driver_manager.DriverManager(
-            'tacker.servicevm.monitor.drivers',
-            cfg.CONF.servicevm.monitor_driver)
+            'tacker.tacker.monitor.drivers',
+            cfg.CONF.tacker.monitor_driver)
 
         self.boot_wait = boot_wait
         if check_intvl is None:

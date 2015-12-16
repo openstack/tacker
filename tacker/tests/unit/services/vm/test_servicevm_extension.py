@@ -24,7 +24,7 @@ import uuid
 import mock
 from webob import exc
 
-from tacker.extensions import servicevm
+from tacker.extensions import tacker
 from tacker.plugins.common import constants
 from tacker.tests.unit import test_api_v2
 from tacker.tests.unit import test_api_v2_extension
@@ -34,24 +34,24 @@ _uuid = lambda: str(uuid.uuid4())
 _get_path = test_api_v2._get_path
 
 
-class ServicevmExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
+class TackerExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
     fmt = 'json'
 
     _DEVICE_TEMPLATE = 'device_template'
     _SERVICE_INSTANCE = 'service_instance'
     _DEVICE = 'device'
 
-    _PATH_SERVICEVM = 'servicevm'
-    _PATH_DEVICE_TEMPLATES = _PATH_SERVICEVM + '/device-templates'
-    _PATH_SERVICE_INSTANCES = _PATH_SERVICEVM + '/service-instances'
-    _PATH_DEVICES = _PATH_SERVICEVM + '/devices'
+    _PATH_TACKER = 'tacker'
+    _PATH_DEVICE_TEMPLATES = _PATH_TACKER + '/device-templates'
+    _PATH_SERVICE_INSTANCES = _PATH_TACKER + '/service-instances'
+    _PATH_DEVICES = _PATH_TACKER + '/devices'
 
     def setUp(self):
-        super(ServicevmExtensionTestCase, self).setUp()
+        super(TackerExtensionTestCase, self).setUp()
         self._setUpExtension(
-            'tacker.extensions.servicevm.ServiceVMPluginBase',
-            constants.SERVICEVM, servicevm.RESOURCE_ATTRIBUTE_MAP,
-            servicevm.Servicevm, self._PATH_SERVICEVM,
+            'tacker.extensions.tacker.TackerPluginBase',
+            constants.TACKER, tacker.RESOURCE_ATTRIBUTE_MAP,
+            tacker.Tacker, self._PATH_TACKER,
             translate_resource_name=True, use_quota=True)
 
     # hosting device template
@@ -267,5 +267,5 @@ class ServicevmExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
         self._test_entity_delete(self._DEVICE)
 
 
-class ServicevmExtensionTestCaseXML(ServicevmExtensionTestCase):
+class TackerExtensionTestCaseXML(TackerExtensionTestCase):
     fmt = 'xml'

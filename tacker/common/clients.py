@@ -24,7 +24,7 @@ OPTS = [
         help=_("Heat service URI to create VNF resources"
                "specified in the VNFD templates")),
 ]
-CONF.register_opts(OPTS, group='servicevm_heat')
+CONF.register_opts(OPTS, group='tacker_heat')
 
 
 class OpenstackClients(object):
@@ -49,7 +49,7 @@ class OpenstackClients(object):
     def _heat_client(self):
         tenant_id = self.auth_token['tenant_id']
         token = self.auth_token['id']
-        endpoint = CONF.servicevm_heat.heat_uri + '/' + tenant_id
+        endpoint = CONF.tacker_heat.heat_uri + '/' + tenant_id
         return heatclient.Client('1', endpoint=endpoint, token=token)
 
     @property

@@ -33,15 +33,15 @@ from tacker.vm.drivers import abstract_driver
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 NOVA_API_VERSION = "2"
-SERVICEVM_NOVA_CONF_SECTION = 'servicevm_nova'
-ks_session.Session.register_conf_options(cfg.CONF, SERVICEVM_NOVA_CONF_SECTION)
-ks_auth.register_conf_options(cfg.CONF, SERVICEVM_NOVA_CONF_SECTION)
+TACKER_NOVA_CONF_SECTION = 'tacker_nova'
+ks_session.Session.register_conf_options(cfg.CONF, TACKER_NOVA_CONF_SECTION)
+ks_auth.register_conf_options(cfg.CONF, TACKER_NOVA_CONF_SECTION)
 OPTS = [
     cfg.StrOpt('region_name',
                help=_('Name of nova region to use. Useful if keystone manages'
                       ' more than one region.')),
 ]
-CONF.register_opts(OPTS, group=SERVICEVM_NOVA_CONF_SECTION)
+CONF.register_opts(OPTS, group=TACKER_NOVA_CONF_SECTION)
 _NICS = 'nics'          # converted by novaclient => 'networks'
 _NET_ID = 'net-id'      # converted by novaclient => 'uuid'
 _PORT_ID = 'port-id'    # converted by novaclient => 'port'
@@ -81,7 +81,7 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
 
     def _nova_client(self, token=None):
         auth = ks_auth.load_from_conf_options(cfg.CONF,
-                                              SERVICEVM_NOVA_CONF_SECTION)
+                                              TACKER_NOVA_CONF_SECTION)
         endpoint_override = None
 
         if not auth:
@@ -102,10 +102,10 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
                 endpoint_override=endpoint_override)
 
         session = ks_session.Session.load_from_conf_options(
-            cfg.CONF, SERVICEVM_NOVA_CONF_SECTION, auth=auth)
+            cfg.CONF, TACKER_NOVA_CONF_SECTION, auth=auth)
         novaclient_cls = self._novaclient.get_client_class(NOVA_API_VERSION)
         return novaclient_cls(session=session,
-                              region_name=cfg.CONF.servicevm_nova.region_name)
+                              region_name=cfg.CONF.tacker_nova.region_name)
 
     def get_type(self):
         return 'nova'

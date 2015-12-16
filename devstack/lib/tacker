@@ -25,7 +25,7 @@
 # - stop_tacker
 # - cleanup_tacker
 
-# Tacker SeviceVM
+# Tacker
 # ---------------
 
 # Save trace setting
@@ -117,18 +117,13 @@ function create_tacker_cache_dir {
 # Migrated from keystone_data.sh
 function create_tacker_accounts {
     if is_service_enabled tacker; then
-        # openstack user create tacker --password service-password
-        # openstack role add admin --user <uuid> --project service
         create_service_user "tacker"
         get_or_create_role "advsvc"
         create_service_user "tacker" "advsvc"
 
         if [[ "$KEYSTONE_CATALOG_BACKEND" = 'sql' ]]; then
-
-            # openstack service create servicevm --name tacker '--description=tacker Service'
             local tacker_service=$(get_or_create_service "tacker" \
-                "servicevm" "Tacker Service")
-            # openstack endpoint create <uuid of service> --region RegionOne --publicurl 'http://143.183.96.146:8888/' --adminurl 'http://143.183.96.146:8888/' --internalurl 'http://143.183.96.146:8888/'
+                "nfv-orchestration" "Tacker NFV Orchestration Service")
             get_or_create_endpoint $tacker_service \
                 "$REGION_NAME" \
                 "$TACKER_PROTOCOL://$SERVICE_HOST:$TACKER_PORT/" \
@@ -143,8 +138,6 @@ function create_tacker_accounts {
 
 # init_tacker() - Initialize databases, etc.
 function init_tacker {
-    # mysql -uroot -pmysql-password -h143.183.96.146 -e 'DROP DATABASE IF EXISTS tacker;'
-    # mysql -uroot -pmysql-password -h143.183.96.146 -e 'CREATE DATABASE tacker CHARACTER SET utf8;'
     recreate_database $TACKER_DB_NAME
 
     # Run Tacker db migrations
@@ -153,7 +146,6 @@ function init_tacker {
 
 # install_tacker() - Collect source and prepare
 function install_tacker {
-    #git_clone $TACKER_REPO $TACKER_DIR $TACKER_BRANCH
     setup_develop $TACKER_DIR
 }
 
@@ -188,24 +180,9 @@ function start_tacker_api {
     fi
 }
 
-# TODO
-# Start running processes, including screen
-function start_tacker_agents {
-    # TODO
-    return
-
-    # Start up the tacker agents if enabled
-    run_process q-agt "python $AGENT_BINARY --config-file $TACKER_CONF"
-
-    if is_service_enabled q-servicevm-agent; then
-        screen_it q-servicevm "cd $TACKER_DIR && python $AGENT_SERVICEVM_BINARY --config-file $TACKER_CONF --config-file $SERVICEVM_CONF_FILENAME"
-    fi
-}
-
 # stop_tacker() - Stop running processes (non-screen)
 function stop_tacker {
-    stop_process tacker-svc
-    # stop_process q-agt
+    stop_process tacker
 }
 
 # cleanup_tacker() - Remove residual data files, anything left over from previous
@@ -284,18 +261,18 @@ function configure_tacker {
     iniset $TACKER_CONF DEFAULT nova_api_insecure $TACKER_NOVA_API_INSECURE
     iniset $TACKER_CONF DEFAULT nova_region_name $REGION_NAME
 
-    iniset $TACKER_CONF servicevm_nova auth_plugin password
-    iniset $TACKER_CONF servicevm_nova auth_url $KEYSTONE_AUTH_URI
-    iniset $TACKER_CONF servicevm_nova username nova
-    iniset $TACKER_CONF servicevm_nova password $SERVICE_PASSWORD
-    iniset $TACKER_CONF servicevm_nova user_domain_id default
-    iniset $TACKER_CONF servicevm_nova project_name $SERVICE_TENANT_NAME
-    iniset $TACKER_CONF servicevm_nova project_domain_id default
-    iniset $TACKER_CONF servicevm_nova region_name $REGION_NAME
+    iniset $TACKER_CONF tacker_nova auth_plugin password
+    iniset $TACKER_CONF tacker_nova auth_url $KEYSTONE_AUTH_URI
+    iniset $TACKER_CONF tacker_nova username nova
+    iniset $TACKER_CONF tacker_nova password $SERVICE_PASSWORD
+    iniset $TACKER_CONF tacker_nova user_domain_id default
+    iniset $TACKER_CONF tacker_nova project_name $SERVICE_TENANT_NAME
+    iniset $TACKER_CONF tacker_nova project_domain_id default
+    iniset $TACKER_CONF tacker_nova region_name $REGION_NAME
 
-    iniset $TACKER_CONF servicevm_heat heat_uri http://$SERVICE_HOST:8004/v1
-    iniset $TACKER_CONF servicevm_heat stack_retries 60
-    iniset $TACKER_CONF servicevm_heat stack_retry_wait 5
+    iniset $TACKER_CONF tacker_heat heat_uri http://$SERVICE_HOST:8004/v1
+    iniset $TACKER_CONF tacker_heat stack_retries 60
+    iniset $TACKER_CONF tacker_heat stack_retry_wait 5
 
     _tacker_setup_rootwrap
     echo "Creating bridge"
