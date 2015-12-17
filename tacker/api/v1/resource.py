@@ -39,7 +39,9 @@ class Request(wsgi.Request):
 
 
 def Resource(controller, faults=None, deserializers=None, serializers=None):
-    """Represents an API entity resource and the associated serialization and
+    """API entity resource.
+
+    Represents an API entity resource and the associated serialization and
     deserialization logic
     """
     xml_deserializer = wsgi.XMLDeserializer(attributes.get_attr_metadata())

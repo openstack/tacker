@@ -395,7 +395,9 @@ def _extract_roles(rule, roles):
 
 
 def get_admin_roles():
-    """Return a list of roles which are granted admin rights according
+    """Get Admin roles.
+
+    Return a list of roles which are granted admin rights according
     to policy settings.
     """
     # NOTE(salvatore-orlando): This function provides a solution for

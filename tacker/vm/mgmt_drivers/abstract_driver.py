@@ -65,8 +65,9 @@ class DeviceMGMTAbstractDriver(extensions.PluginInterface):
         pass
 
     def mgmt_get_config(self, plugin, context, device):
-        """
-        returns dict of file-like objects which will be passed to hosting
+        """Get a dict of objects.
+
+        Returns dict of file-like objects which will be passed to hosting
         device.
         It depends on drivers how to use it.
         for nova case, it can be used for meta data, file injection or

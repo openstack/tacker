@@ -49,8 +49,8 @@ _ACTIVE_UPDATE_ERROR_DEAD = (
 # db tables
 
 class DeviceTemplate(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
-    """Represents template to create hosting device
-    """
+    """Represents template to create hosting device."""
+
     # Descriptive name
     name = sa.Column(sa.String(255))
     description = sa.Column(sa.String(255))
@@ -73,6 +73,7 @@ class DeviceTemplate(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
 
 class ServiceType(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     """Represents service type which hosting device provides.
+
     Since a device may provide many services, This is one-to-many
     relationship.
     """
@@ -83,6 +84,7 @@ class ServiceType(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
 
 class DeviceTemplateAttribute(model_base.BASE, models_v1.HasId):
     """Represents attributes necessary for spinning up VM in (key, value) pair
+
     key value pair is adopted for being agnostic to actuall manager of VMs
     like nova, heat or others. e.g. image-id, flavor-id for Nova.
     The interpretation is up to actual driver of hosting device.
@@ -95,6 +97,7 @@ class DeviceTemplateAttribute(model_base.BASE, models_v1.HasId):
 
 class Device(model_base.BASE, models_v1.HasTenant):
     """Represents devices that hosts services.
+
     Here the term, 'VM', is intentionally avoided because it can be
     VM or other container.
     """
@@ -122,7 +125,8 @@ class Device(model_base.BASE, models_v1.HasTenant):
 
 
 class DeviceAttribute(model_base.BASE, models_v1.HasId):
-    """Represents kwargs necessary for spinning up VM in (key, value) pair
+    """Represents kwargs necessary for spinning up VM in (key, value) pair.
+
     key value pair is adopted for being agnostic to actuall manager of VMs
     like nova, heat or others. e.g. image-id, flavor-id for Nova.
     The interpretation is up to actual driver of hosting device.

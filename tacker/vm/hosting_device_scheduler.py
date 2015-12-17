@@ -38,7 +38,8 @@ class ChanceScheduler(object):
 
     def schedule(self, plugin, context,
                  service_type, service_instance_id, name, service_context):
-        """
+        """Scheduler.
+
         :param service_context: list of DeviceServiceContext
                                 without service_instance_id
         [{'network_id': network_id,

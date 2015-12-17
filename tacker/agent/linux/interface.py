@@ -241,7 +241,9 @@ class MidonetInterfaceDriver(LinuxInterfaceDriver):
 
     def plug(self, network_id, port_id, device_name, mac_address,
              bridge=None, namespace=None, prefix=None):
-        """This method is called by the Dhcp agent or by the L3 agent
+        """Driver for creating an interface.
+
+        This method is called by the Dhcp agent or by the L3 agent
         when a new network is created
         """
         if not ip_lib.device_exists(device_name,

@@ -25,7 +25,8 @@ LOG = logging.getLogger(__name__)
 
 
 class RpcProxy(object):
-    '''
+    '''Emulates RpcProxy class behaviour using oslo.messaging.
+
     This class is created to facilitate migration from oslo-incubator
     RPC layer implementation to oslo.messaging and is intended to
     emulate RpcProxy class behaviour using oslo.messaging API once the
@@ -73,7 +74,8 @@ class RpcProxy(object):
 
 
 class RpcCallback(object):
-    '''
+    '''Sets callback version using oslo.messaging API.
+
     This class is created to facilitate migration from oslo-incubator
     RPC layer implementation to oslo.messaging and is intended to set
     callback version using oslo.messaging API once the migration is

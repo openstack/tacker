@@ -191,7 +191,9 @@ class CommonDbMixin(object):
         return None
 
     def _filter_non_model_columns(self, data, model):
-        """Remove all the attributes from data which are not columns of
+        """Removes attributes from data.
+
+        Remove all the attributes from data which are not columns of
         the model passed as second parameter.
         """
         columns = [c.name for c in model.__table__.columns]
