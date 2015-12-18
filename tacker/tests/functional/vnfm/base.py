@@ -32,13 +32,13 @@ class BaseTackerTest(base.TestCase):
     def setUpClass(cls):
         core_opts = [
             cfg.StrOpt('username', default='tacker',
-                       help=('The uuid of the admin nova tenant')),
+                       help=('Username to use for tacker API requests')),
             cfg.StrOpt('password', default = 'devstack',
-                       help=('The uuid of the admin nova tenant')),
+                       help=('Password to use for tacker API requests')),
             cfg.StrOpt('project_name', default = 'service',
-                       help=('The uuid of the admin nova tenant')),
+                       help=('Project name to use for tacker API requests')),
             cfg.StrOpt('auth_uri', default='http://127.0.0.1:5000',
-                       help=('URL for connection to nova')),
+                       help=('The keystone auth URI')),
         ]
 
         keystone_authtoken = cfg.OptGroup(name='keystone_authtoken',
