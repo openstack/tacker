@@ -83,7 +83,8 @@ LOG = logging.getLogger(__name__)
 
 
 class WorkerService(object):
-    """Wraps a worker to be handled by ProcessLauncher"""
+    """Wraps a worker to be handled by ProcessLauncher."""
+
     def __init__(self, service, application):
         self._service = service
         self._application = application

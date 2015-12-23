@@ -104,7 +104,9 @@ def get_notifier(service=None, host=None, publisher_id=None):
 
 
 class PluginRpcSerializer(om_serializer.Serializer):
-    """This serializer is used to convert RPC common context into
+    """Serializer.
+
+    This serializer is used to convert RPC common context into
     Tacker Context.
     """
     def __init__(self, base):

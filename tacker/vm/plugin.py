@@ -101,8 +101,8 @@ class VNFMMgmtMixin(object):
 
 
 class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
-    """ServiceVMPlugin which supports ServiceVM framework
-    """
+    """VNFMPlugin which supports VNFM framework."""
+
     OPTS = [
         cfg.ListOpt(
             'infra_driver', default=['heat'],

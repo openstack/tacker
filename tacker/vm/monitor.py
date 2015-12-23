@@ -46,7 +46,7 @@ CONF.register_opts(OPTS, group='monitor')
 
 
 class VNFMonitor(object):
-    """VNF Monitor"""
+    """VNF Monitor."""
 
     _instance = None
     _hosting_vnfs = dict()   # device_id => dict of parameters

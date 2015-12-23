@@ -38,20 +38,45 @@ class VNFMonitorAbstractDriver(extensions.PluginInterface):
 
     @abc.abstractmethod
     def get_description(self):
+        """Return description of VNF Monitor plugin."""
         pass
 
     def monitor_get_config(self, plugin, context, device):
-        """
-        returns dict of monitor configuration data
+        """Return dict of monitor configuration data.
+
+        :param plugin:
+        :param context:
+        :param device:
+        :returns: dict
+        :returns: dict of monitor configuration data
         """
         return {}
 
     @abc.abstractmethod
     def monitor_url(self, plugin, context, device):
+        """Return the url of device to monitor.
+
+        :param plugin:
+        :param context:
+        :param device:
+        :returns: string
+        :returns: url of device to monitor
+        """
         pass
 
     @abc.abstractmethod
     def monitor_call(self, device, kwargs):
+        """Monitor.
+
+        Return boolean value True if VNF is healthy
+        or return a event string like 'failure' or 'calls-capacity-reached'
+        for specific VNF health condition.
+
+        :param device:
+        :param kwargs:
+        :returns: boolean
+        :returns: True if VNF is healthy
+        """
         pass
 
     def monitor_service_driver(self, plugin, context, device,
