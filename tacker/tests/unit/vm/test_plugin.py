@@ -91,15 +91,14 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
     def _insert_dummy_device(self):
         session = self.context.session
-        device_db = vm_db.Device(id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                                 tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
-                                 name='fake_device',
-                                 description='fake_device_description',
-                                 instance_id=
-                                 'da85ea1a-4ec4-4201-bbb2-8d9249eca7ec',
-                                 template_id=
-                                 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                                 status='ACTIVE')
+        device_db = vm_db.Device(
+            id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='fake_device',
+            description='fake_device_description',
+            instance_id='da85ea1a-4ec4-4201-bbb2-8d9249eca7ec',
+            template_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            status='ACTIVE')
         session.add(device_db)
         session.flush()
         return device_db
@@ -111,12 +110,12 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('id', result)
         self.assertIn('service_types', result)
         self.assertIn('attributes', result)
-        self._device_manager.invoke.assert_called_once_with(mock.ANY,
-                                                            mock.ANY,
-                                                            plugin=mock.ANY,
-                                                            context=mock.ANY,
-                                                            device_template=
-                                                            mock.ANY)
+        self._device_manager.invoke.assert_called_once_with(
+            mock.ANY,
+            mock.ANY,
+            plugin=mock.ANY,
+            context=mock.ANY,
+            device_template=mock.ANY)
 
     def test_create_vnfd_no_service_types(self):
         vnfd_obj = utils.get_dummy_vnfd_obj()

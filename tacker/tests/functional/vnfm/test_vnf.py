@@ -38,7 +38,7 @@ class VnfTestCreate(base.BaseTackerTest):
         vnfd_id = vnfd_instance['vnfd']['id']
         vnf_name = 'test_vnf_with_cirros_no_monitoring'
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
-        vnf_instance = self.client.create_vnf(body = vnf_arg)
+        vnf_instance = self.client.create_vnf(body=vnf_arg)
 
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
