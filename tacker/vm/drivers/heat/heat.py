@@ -111,13 +111,13 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                         self._update_params(value, paramvalues[key], False)
                     else:
                         LOG.debug('Key missing Value: %s', key)
-                        raise vnfm.InputValuesMissing()
+                        raise vnfm.InputValuesMissing(key=key)
                 elif 'get_input' in value:
                     if value['get_input'] in paramvalues:
                         original[key] = paramvalues[value['get_input']]
                     else:
                         LOG.debug('Key missing Value: %s', key)
-                        raise vnfm.InputValuesMissing()
+                        raise vnfm.InputValuesMissing(key=key)
                 else:
                     self._update_params(value, paramvalues, True)
 
