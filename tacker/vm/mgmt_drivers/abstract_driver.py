@@ -87,63 +87,10 @@ class DeviceMGMTAbstractDriver(extensions.PluginInterface):
     def mgmt_call(self, plugin, context, device, kwargs):
         pass
 
-    def mgmt_service_driver(self, plugin, context, device, service_instance):
-        # use same mgmt driver to communicate with service
-        return self.get_name()
-
-    def mgmt_service_create_pre(self, plugin, context, device,
-                                service_instance):
-        pass
-
-    def mgmt_service_create_post(self, plugin, context, device,
-                                 service_instance):
-        pass
-
-    def mgmt_service_update_pre(self, plugin, context, device,
-                                service_instance):
-        pass
-
-    def mgmt_service_update_post(self, plugin, context, device,
-                                 service_instance):
-        pass
-
-    def mgmt_service_delete_pre(self, plugin, context, device,
-                                service_instance):
-        pass
-
-    def mgmt_service_delete_post(self, plugin, context, device,
-                                 service_instance):
-        pass
-
-    @abc.abstractmethod
-    def mgmt_service_address(self, plugin, context, device, service_instance):
-        pass
-
-    @abc.abstractmethod
-    def mgmt_service_call(self, plugin, context, device,
-                          service_instance, kwargs):
-        pass
-
 
 class DeviceMGMTByNetwork(DeviceMGMTAbstractDriver):
     def mgmt_url(self, plugin, context, device):
         mgmt_entries = [sc_entry for sc_entry in device.service_context
-                        if (sc_entry.role == constants.ROLE_MGMT and
-                            sc_entry.port_id)]
-        if not mgmt_entries:
-            return
-        port = plugin._core_plugin.get_port(context, mgmt_entries[0].port_id)
-        if not port:
-            return
-        mgmt_url = port['fixed_ips'][0]     # subnet_id and ip_address
-        mgmt_url['network_id'] = port['network_id']
-        mgmt_url['port_id'] = port['id']
-        mgmt_url['mac_address'] = port['mac_address']
-        return jsonutils.dumps(mgmt_url)
-
-    def mgmt_service_address(self, plugin, context, device, service_instance):
-        mgmt_entries = [sc_entry for sc_entry
-                        in service_instance.service_context
                         if (sc_entry.role == constants.ROLE_MGMT and
                             sc_entry.port_id)]
         if not mgmt_entries:

@@ -77,19 +77,6 @@ class DeviceNotFound(exceptions.NotFound):
     message = _('device %(device_id)s could not be found')
 
 
-class ServiceInstanceNotManagedByUser(exceptions.InUse):
-    message = _('service instance %(service_instance_id)s is '
-                'managed by other service')
-
-
-class ServiceInstanceInUse(exceptions.InUse):
-    message = _('service instance %(service_instance_id)s is still in use')
-
-
-class ServiceInstanceNotFound(exceptions.NotFound):
-    message = _('service instance %(service_instance_id)s could not be found')
-
-
 class ParamYAMLNotWellFormed(exceptions.InvalidInput):
     message = _("Parameter YAML not well formed - %(error_msg_details)s")
 
@@ -135,30 +122,8 @@ def _validate_service_type_list(data, valid_values=None):
             return msg
 
 
-def _validate_service_context_list(data, valid_values=None):
-    if not isinstance(data, list):
-        msg = _("invalid data format for service context list: '%s'") % data
-        LOG.debug(msg)
-        return msg
-
-    key_specs = {
-        'network_id': {'type:uuid': None},
-        'subnet_id': {'type:uuid': None},
-        'port_id': {'type:uuid': None},
-        'router_id': {'type:uuid': None},
-        'role': {'type:string': None},
-        'index': {'type:non_negative': None,
-                  'convert_to': attr.convert_to_int},
-    }
-    for sc_entry in data:
-        msg = attr._validate_dict_or_empty(sc_entry, key_specs=key_specs)
-        if msg:
-            LOG.debug(msg)
-            return msg
-
-
 attr.validators['type:service_type_list'] = _validate_service_type_list
-attr.validators['type:service_context_list'] = _validate_service_context_list
+
 
 RESOURCE_ATTRIBUTE_MAP = {
 
@@ -276,13 +241,6 @@ RESOURCE_ATTRIBUTE_MAP = {
             'validate': {'type:dict_or_none': None},
             'is_visible': True,
             'default': {},
-        },
-        'service_contexts': {
-            'allow_post': True,
-            'allow_put': False,
-            'validate': {'type:service_context_list': None},
-            'is_visible': True,
-            'default': [],
         },
         'status': {
             'allow_post': False,
@@ -449,7 +407,6 @@ class Vnfm(extensions.ExtensionDescriptor):
         plural_mappings = resource_helper.build_plural_mappings(
             special_mappings, RESOURCE_ATTRIBUTE_MAP)
         plural_mappings['service_types'] = 'service_type'
-        plural_mappings['service_contexts'] = 'service_context'
         attr.PLURALS.update(plural_mappings)
         return resource_helper.build_resource_info(
             plural_mappings, RESOURCE_ATTRIBUTE_MAP, constants.VNFM,

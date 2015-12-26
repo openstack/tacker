@@ -53,7 +53,7 @@ def get_dummy_vnf_obj():
     return {'vnf': {'description': 'dummy_vnf_description',
                     'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
                     'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                    'name': 'dummy_vnf', 'service_contexts': [],
+                    'name': 'dummy_vnf',
                     'attributes': {}}}
 
 
