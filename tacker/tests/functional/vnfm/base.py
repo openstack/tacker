@@ -44,11 +44,11 @@ class BaseTackerTest(base.TestCase):
         keystone_authtoken = cfg.OptGroup(name='keystone_authtoken',
                                           title='keystone options')
         # Register the configuration options
-        cfg.CONF.register_opts(core_opts, group = keystone_authtoken)
+        cfg.CONF.register_opts(core_opts, group=keystone_authtoken)
 
         kwargs = {}
 
-        cfg.CONF(args = ['--config-file', '/etc/tacker/tacker.conf'],
+        cfg.CONF(args=['--config-file', '/etc/tacker/tacker.conf'],
                  project='tacker',
                  version='%%prog %s' % version.version_info.release_string(),
                  **kwargs)

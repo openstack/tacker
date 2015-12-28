@@ -39,7 +39,7 @@ class VnfTestMultipleVDU(base.BaseTackerTest):
         vnfd_id = vnfd_instance['vnfd']['id']
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name':
             "test_vnf_with_multiple_vdus"}}
-        vnf_instance = self.client.create_vnf(body = vnf_arg)
+        vnf_instance = self.client.create_vnf(body=vnf_arg)
 
         vnf_id = vnf_instance['vnf']['id']
         self.wait_until_vnf_active(vnf_id,

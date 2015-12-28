@@ -31,7 +31,7 @@ class VnfTestPingMonitor(base.BaseTackerTest):
         ##Create vnf with vnfd_id
         vnfd_id = vnfd_instance['vnfd']['id']
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
-        vnf_instance = self.client.create_vnf(body = vnf_arg)
+        vnf_instance = self.client.create_vnf(body=vnf_arg)
 
         ##Verify vnf goes from ACTIVE->DEAD->ACTIVE states
         self.verify_vnf_restart(vnfd_instance, vnf_instance)
