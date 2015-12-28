@@ -75,7 +75,7 @@ environments for running test cases. It uses `Testr`_ for managing the running
 of the test cases.
 
 Tox handles the creation of a series of `virtualenvs`_ that target specific
-versions of Python (2.6, 2.7, 3.3, etc).
+versions of Python (2.7, 3.4, etc).
 
 Testr handles the parallel execution of series of test cases as well as
 the tracking of long-running tests and other things.
