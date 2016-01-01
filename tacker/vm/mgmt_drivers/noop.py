@@ -17,8 +17,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-#
-# @author: Isaku Yamahata, Intel Corporation.
 
 from tacker.openstack.common import log as logging
 from tacker.vm.mgmt_drivers import abstract_driver

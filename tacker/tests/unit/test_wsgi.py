@@ -783,7 +783,7 @@ class ResourceTest(base.BaseTestCase):
         def my_fault_body_function():
             return 'off'
 
-        class FakeRequest():
+        class FakeRequest(object):
             def __init__(self):
                 self.url = 'http://where.no'
                 self.environ = 'environ'
@@ -823,7 +823,7 @@ class ResourceTest(base.BaseTestCase):
         def my_fault_body_function():
             return 'off'
 
-        class FakeRequest():
+        class FakeRequest(object):
             def __init__(self):
                 self.url = 'http://where.no'
                 self.environ = 'environ'

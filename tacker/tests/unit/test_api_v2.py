@@ -1350,7 +1350,7 @@ class ExtensionTestCase(base.BaseTestCase):
         self.assertNotIn('v2attrs:something_else', net)
 
 
-class TestSubresourcePlugin():
+class TestSubresourcePlugin(object):
         def get_network_dummies(self, context, network_id,
                                 filters=None, fields=None):
             return []
