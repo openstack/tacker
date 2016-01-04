@@ -556,16 +556,17 @@ class ExtensionManager(object):
                     ext_name = mod_name[0].upper() + mod_name[1:]
                     new_ext_class = getattr(mod, ext_name, None)
                     if not new_ext_class:
-                        LOG.warn(_('Did not find expected name '
-                                   '"%(ext_name)s" in %(file)s'),
-                                 {'ext_name': ext_name,
-                                  'file': ext_path})
+                        LOG.warning(_('Did not find expected name '
+                                      '"%(ext_name)s" in %(file)s'),
+                                    {'ext_name': ext_name,
+                                     'file': ext_path})
                         continue
                     new_ext = new_ext_class()
                     self.add_extension(new_ext)
             except Exception as exception:
-                LOG.warn(_("Extension file %(f)s wasn't loaded due to "
-                           "%(exception)s"), {'f': f, 'exception': exception})
+                LOG.warning(_("Extension file %(f)s wasn't loaded due to "
+                              "%(exception)s"),
+                            {'f': f, 'exception': exception})
 
     def add_extension(self, ext):
         # Do nothing if the extension doesn't check out

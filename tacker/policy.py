@@ -92,8 +92,8 @@ def _set_rules(data):
     for pol in policies.keys():
         if any([pol.startswith(depr_pol) for depr_pol in
                 DEPRECATED_POLICY_MAP.keys()]):
-            LOG.warn(_("Found deprecated policy rule:%s. Please consider "
-                       "upgrading your policy configuration file"), pol)
+            LOG.warning(_("Found deprecated policy rule:%s. Please consider "
+                          "upgrading your policy configuration file"), pol)
             pol_name, action = pol.rsplit(':', 1)
             try:
                 new_actions = DEPRECATED_ACTION_MAP[action]
@@ -134,8 +134,8 @@ def _build_subattr_match_rule(attr_name, attr, action, target):
     validate = attr['validate']
     key = filter(lambda k: k.startswith('type:dict'), validate.keys())
     if not key:
-        LOG.warn(_("Unable to find data type descriptor for attribute %s"),
-                 attr_name)
+        LOG.warning(_("Unable to find data type descriptor for attribute %s"),
+                    attr_name)
         return
     data = validate[key[0]]
     if not isinstance(data, dict):

@@ -83,7 +83,8 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
                     continue
                 mgmt_ip_address = mgmt_url.get(vdu, '')
                 if not mgmt_ip_address:
-                    LOG.warn(_('tried to configure unknown mgmt address %s'),
-                             vdu)
+                    LOG.warning(_('tried to configure unknown mgmt '
+                                  'address %s'),
+                                vdu)
                     continue
                 self._config_service(mgmt_ip_address, key, conf_value)

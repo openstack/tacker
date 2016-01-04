@@ -497,7 +497,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                     filter(~Device.status.in_(exclude_status)).
                     with_lockmode('update').one())
             except orm_exc.NoResultFound:
-                LOG.warn(_('no device found %s'), device_id)
+                LOG.warning(_('no device found %s'), device_id)
                 return False
 
             device_db.update({'status': new_status})

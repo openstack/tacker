@@ -339,11 +339,11 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         LOG.debug(_('stack status: %(stack)s %(status)s'),
                   {'stack': str(stack), 'status': status})
         if stack_retries == 0:
-            LOG.warn(_("Resource creation is"
-                       " not completed within %(wait)s seconds as "
-                       "creation of Stack %(stack)s is not completed"),
-                     {'wait': (STACK_RETRIES * STACK_RETRY_WAIT),
-                      'stack': device_id})
+            LOG.warning(_("Resource creation is"
+                          " not completed within %(wait)s seconds as "
+                          "creation of Stack %(stack)s is not completed"),
+                        {'wait': (STACK_RETRIES * STACK_RETRY_WAIT),
+                         'stack': device_id})
         if status != 'CREATE_COMPLETE':
             raise vnfm.DeviceCreateWaitFailed(device_id=device_id)
         outputs = stack.outputs
@@ -428,15 +428,15 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             stack_retries = stack_retries - 1
 
         if stack_retries == 0:
-            LOG.warn(_("Resource cleanup for device is"
-                       " not completed within %(wait)s seconds as "
-                       "deletion of Stack %(stack)s is not completed"),
-                     {'wait': (STACK_RETRIES * STACK_RETRY_WAIT),
-                      'stack': device_id})
+            LOG.warning(_("Resource cleanup for device is"
+                          " not completed within %(wait)s seconds as "
+                          "deletion of Stack %(stack)s is not completed"),
+                        {'wait': (STACK_RETRIES * STACK_RETRY_WAIT),
+                         'stack': device_id})
         if status != 'DELETE_COMPLETE':
-            LOG.warn(_("device (%(device_id)d) deletion is not completed. "
-                       "%(stack_status)s"),
-                     {'device_id': device_id, 'stack_status': status})
+            LOG.warning(_("device (%(device_id)d) deletion is not completed. "
+                          "%(stack_status)s"),
+                        {'device_id': device_id, 'stack_status': status})
 
     @log.log
     def attach_interface(self, plugin, context, device_id, port_id):
@@ -470,8 +470,8 @@ class HeatClient(object):
         try:
             self.stacks.delete(stack_id)
         except heatException.HTTPNotFound:
-            LOG.warn(_("Stack %(stack)s created by service chain driver is "
-                       "not found at cleanup"), {'stack': stack_id})
+            LOG.warning(_("Stack %(stack)s created by service chain driver is "
+                          "not found at cleanup"), {'stack': stack_id})
 
     def get(self, stack_id):
         return self.stacks.get(stack_id)
