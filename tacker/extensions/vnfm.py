@@ -86,7 +86,7 @@ class ParamYAMLNotWellFormed(exceptions.InvalidInput):
 
 
 class InputValuesMissing(exceptions.InvalidInput):
-    message = _("Input values missing for 'get_input")
+    message = _("Parameter input values missing for the key '%(key)s'")
 
 
 class ParamYAMLInputMissing(exceptions.InvalidInput):
