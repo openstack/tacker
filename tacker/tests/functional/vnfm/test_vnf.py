@@ -30,11 +30,11 @@ class VnfTestCreate(base.BaseTackerTest):
         toscal = data['tosca']
         tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
 
-        ##Create vnfd with tosca template
+        # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
         self.assertIsNotNone(vnfd_instance)
 
-        ##Create vnf with vnfd_id
+        # Create vnf with vnfd_id
         vnfd_id = vnfd_instance['vnfd']['id']
         vnf_name = 'test_vnf_with_cirros_no_monitoring'
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
@@ -49,13 +49,13 @@ class VnfTestCreate(base.BaseTackerTest):
         self.assertEqual(vnf_current_status, 'ACTIVE')
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
-        ##Delete vnf_instance with vnf_id
+        # Delete vnf_instance with vnf_id
         try:
             self.client.delete_vnf(vnf_id)
         except Exception:
             assert False, "vnf Delete failed"
 
-        ##Delete vnfd_instance
+        # Delete vnfd_instance
         try:
             self.client.delete_vnfd(vnfd_id)
         except Exception:

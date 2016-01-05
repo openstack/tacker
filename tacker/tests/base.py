@@ -81,7 +81,7 @@ class BaseTestCase(testtools.TestCase):
         if check_plugin_deallocation:
             gc.collect()
 
-            #TODO(marun) Ensure that mocks are deallocated?
+            # TODO(marun) Ensure that mocks are deallocated?
             if plugin() and not isinstance(plugin(), mock.Base):
                 self.fail('The plugin for this test was not deallocated.')
 

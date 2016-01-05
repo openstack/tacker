@@ -34,7 +34,7 @@ class VnfmTestParam(base.BaseTackerTest):
         return vnfd_instance
 
     def _test_vnfd_delete(self, vnfd_instance):
-            #Delete vnfd
+        # Delete vnfd
         vnfd_id = vnfd_instance['vnfd']['id']
         self.assertIsNotNone(vnfd_id)
         try:
@@ -51,7 +51,7 @@ class VnfmTestParam(base.BaseTackerTest):
         vnfd_id = vnfd_instance['vnfd']['id']
         values_str = read_file(vnf_value_file)
 
-        #create vnf with values file
+        # Create vnf with values file
         vnf_dict = dict()
         vnf_dict = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name,
                     'attributes': {'param_values': values_str}}}

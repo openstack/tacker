@@ -31,11 +31,11 @@ class VnfTestMultipleVDU(base.BaseTackerTest):
         toscal = data['tosca']
         tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
 
-        ##Create vnfd with tosca template
+        # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
         self.assertIsNotNone(vnfd_instance)
 
-        ##Create vnf with vnfd_id
+        # Create vnf with vnfd_id
         vnfd_id = vnfd_instance['vnfd']['id']
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name':
             "test_vnf_with_multiple_vdus"}}
@@ -49,7 +49,7 @@ class VnfTestMultipleVDU(base.BaseTackerTest):
                          'ACTIVE')
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
-        ##Validate mgmt_url with input yaml file
+        # Validate mgmt_url with input yaml file
         mgmt_url = self.client.show_vnf(vnf_id)['vnf']['mgmt_url']
         self.assertIsNotNone(mgmt_url)
         mgmt_dict = yaml.load(str(mgmt_url))
@@ -60,13 +60,13 @@ class VnfTestMultipleVDU(base.BaseTackerTest):
             self.assertIsNotNone(mgmt_dict[vdu])
             self.assertEqual(True, utils.is_valid_ipv4(mgmt_dict[vdu]))
 
-        ##Delete vnf_instance with vnf_id
+        # Delete vnf_instance with vnf_id
         try:
             self.client.delete_vnf(vnf_id)
         except Exception:
             assert False, "vnf Delete of test_vnf_with_multiple_vdus failed"
 
-        ##Delete vnfd_instance
+        # Delete vnfd_instance
         try:
             self.client.delete_vnfd(vnfd_id)
         except Exception:

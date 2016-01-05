@@ -57,7 +57,7 @@ class ExtensionTestCase(testlib_api.WebTestCase):
         # Create the default configurations
         self.config_parse()
 
-        #just stubbing core plugin with plugin
+        # just stubbing core plugin with plugin
         self.setup_coreplugin(plugin)
         cfg.CONF.set_override('core_plugin', plugin)
         if service_type:

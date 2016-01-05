@@ -24,19 +24,19 @@ class VnfTestPingMonitor(base.BaseTackerTest):
         toscal = data['tosca']
         tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
 
-        #Create vnfd with tosca template
+        # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
         self.assertIsNotNone(vnfd_instance)
 
-        ##Create vnf with vnfd_id
+        # Create vnf with vnfd_id
         vnfd_id = vnfd_instance['vnfd']['id']
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
         vnf_instance = self.client.create_vnf(body=vnf_arg)
 
-        ##Verify vnf goes from ACTIVE->DEAD->ACTIVE states
+        # Verify vnf goes from ACTIVE->DEAD->ACTIVE states
         self.verify_vnf_restart(vnfd_instance, vnf_instance)
 
-        ##Delete vnf_instance with vnf_id
+        # Delete vnf_instance with vnf_id
         vnf_id = vnf_instance['vnf']['id']
         try:
             self.client.delete_vnf(vnf_id)
@@ -44,7 +44,7 @@ class VnfTestPingMonitor(base.BaseTackerTest):
             assert False, ("Failed to delete vnf %s after the monitor test" %
                            vnf_id)
 
-        ##Delete vnfd_instance
+        # Delete vnfd_instance
         try:
             self.client.delete_vnfd(vnfd_id)
         except Exception:

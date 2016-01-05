@@ -149,5 +149,5 @@ def main():
     config.tacker_config = CONF
 
     CONF()
-    #TODO(gongysh) enable logging
+    # TODO(gongysh) enable logging
     CONF.command.func(config, CONF.command.name)

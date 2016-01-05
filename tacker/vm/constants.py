@@ -23,7 +23,7 @@ SVC_TYPE_ROUTER = 'router'
 SVC_TYPE_LOADBALANCER = 'loadbalancer'
 
 # attribute key for service to spin up device
-## for nova driver. novaclient library uses those
+# for nova driver. novaclient library uses those
 ATTR_KEY_IMAGE = 'image'
 ATTR_KEY_FLAVOR = 'flavor'
 ATTR_KEY_MGMT_NETWORK = 'mgmt-network'

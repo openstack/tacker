@@ -30,7 +30,7 @@ from xml.etree import ElementTree as etree
 from xml.parsers import expat
 
 import eventlet.wsgi
-#eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
+# eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
 from oslo_config import cfg
 import routes.middleware
 import webob.dec
@@ -329,13 +329,13 @@ class Request(webob.Request):
             if _format in ['json', 'xml']:
                 return 'application/{0}'.format(_format)
 
-        #Then look up content header
+        # Then look up content header
         type_from_header = self.get_content_type()
         if type_from_header:
             return type_from_header
         ctypes = ['application/json', 'application/xml']
 
-        #Finally search in Accept-* headers
+        # Finally search in Accept-* headers
         bm = self.accept.best_match(ctypes)
         return bm or 'application/json'
 
@@ -459,7 +459,7 @@ class XMLDictSerializer(DictSerializer):
         self._add_xmlns(node, used_prefixes, has_atom)
         return etree.tostring(node, encoding='UTF-8')
 
-    #NOTE (ameade): the has_atom should be removed after all of the
+    # NOTE (ameade): the has_atom should be removed after all of the
     # xml serializers and view builders have been updated to the current
     # spec that required all responses include the xmlns:atom, the has_atom
     # flag is to prevent current tests from breaking
@@ -482,7 +482,7 @@ class XMLDictSerializer(DictSerializer):
         result = etree.SubElement(parent, nodename)
         if ":" in nodename:
             used_prefixes.append(nodename.split(":", 1)[0])
-        #TODO(bcwaldon): accomplish this without a type-check
+        # TODO(bcwaldon): accomplish this without a type-check
         if isinstance(data, list):
             if not data:
                 result.set(
@@ -498,7 +498,7 @@ class XMLDictSerializer(DictSerializer):
             for item in data:
                 self._to_xml_node(result, metadata, singular, item,
                                   used_prefixes)
-        #TODO(bcwaldon): accomplish this without a type-check
+        # TODO(bcwaldon): accomplish this without a type-check
         elif isinstance(data, dict):
             if not data:
                 result.set(
@@ -1124,7 +1124,7 @@ class Resource(Application):
 
         controller_method = getattr(self.controller, action)
         try:
-            #NOTE(salvatore-orlando): the controller method must have
+            # NOTE(salvatore-orlando): the controller method must have
             # an argument whose name is 'request'
             return controller_method(request=request, **action_args)
         except TypeError as exc:
