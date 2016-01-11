@@ -45,7 +45,7 @@ With `run_tests.sh`
 You can use the `run_tests.sh` script in the root source directory to execute
 tests in a virtualenv::
 
-    ./run_tests -V
+    ./run_tests.sh -V
 
 
 With `nose`
