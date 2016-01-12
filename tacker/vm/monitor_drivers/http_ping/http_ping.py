@@ -12,9 +12,9 @@
 #    under the License.
 #
 
-import urllib2
-
 from oslo_config import cfg
+import six.moves.urllib.error as urlerr
+import six.moves.urllib.request as urlreq
 
 from tacker.common import log
 from tacker.i18n import _LW
@@ -49,7 +49,7 @@ class VNFMonitorHTTPPing(abstract_driver.VNFMonitorAbstractDriver):
         return device.get('monitor_url', '')
 
     def _is_pingable(self, mgmt_ip='', retry=5, timeout=5, port=80, **kwargs):
-        """Checks whether the server is reachable by using urllib2.
+        """Checks whether the server is reachable by using urllib.
 
         Waits for connectivity for `timeout` seconds,
         and if connection refused, it will retry `retry`
@@ -63,9 +63,9 @@ class VNFMonitorHTTPPing(abstract_driver.VNFMonitorAbstractDriver):
         url = 'http://' + mgmt_ip + ':' + str(port)
         for retry_index in range(int(retry)):
             try:
-                urllib2.urlopen(url, timeout=timeout)
+                urlreq.urlopen(url, timeout=timeout)
                 return True
-            except urllib2.URLError:
+            except urlerr.URLError:
                 LOG.warning(_LW('Unable to reach to the url %s'), url)
         return 'failure'
 

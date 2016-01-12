@@ -15,11 +15,11 @@
 
 """Test of Policy Engine For Tacker"""
 
-import urllib2
-
 import fixtures
 import mock
 import six
+
+from six.moves.urllib import request as urlrequest
 
 import tacker
 from tacker.api.v1 import attributes
@@ -126,7 +126,7 @@ class PolicyTestCase(base.BaseTestCase):
         def fakeurlopen(url, post_data):
             return six.StringIO("True")
 
-        with mock.patch.object(urllib2, 'urlopen', new=fakeurlopen):
+        with mock.patch.object(urlrequest, 'urlopen', new=fakeurlopen):
             action = "example:get_http"
             target = {}
             result = policy.enforce(self.context, action, target)
@@ -137,7 +137,7 @@ class PolicyTestCase(base.BaseTestCase):
         def fakeurlopen(url, post_data):
             return six.StringIO("False")
 
-        with mock.patch.object(urllib2, 'urlopen', new=fakeurlopen):
+        with mock.patch.object(urlrequest, 'urlopen', new=fakeurlopen):
             action = "example:get_http"
             target = {}
             self.assertRaises(exceptions.PolicyNotAuthorized, policy.enforce,

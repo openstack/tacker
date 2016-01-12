@@ -13,9 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import urllib
-
 from oslo_config import cfg
+from six.moves.urllib import parse as urllib_parse
 from webob import exc
 
 from tacker.common import constants
@@ -57,7 +56,7 @@ def get_previous_link(request, items, id_key):
         marker = items[0][id_key]
         params['marker'] = marker
     params['page_reverse'] = True
-    return "%s?%s" % (request.path_url, urllib.urlencode(params))
+    return "%s?%s" % (request.path_url, urllib_parse.urlencode(params))
 
 
 def get_next_link(request, items, id_key):
@@ -67,7 +66,7 @@ def get_next_link(request, items, id_key):
         marker = items[-1][id_key]
         params['marker'] = marker
     params.pop('page_reverse', None)
-    return "%s?%s" % (request.path_url, urllib.urlencode(params))
+    return "%s?%s" % (request.path_url, urllib_parse.urlencode(params))
 
 
 def get_limit_and_marker(request):
