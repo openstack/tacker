@@ -13,9 +13,7 @@
 from heatclient import client as heatclient
 from keystoneclient.v2_0 import client as ks_client
 from oslo_config import cfg
-from oslo_log import log as logging
 
-LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
 OPTS = [
