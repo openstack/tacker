@@ -205,7 +205,7 @@ class ActionPolicy(object):
     def get_supported_actions(cls):
         return cls._POLICIES.keys()
 
-    @abc.abstractmethod
+    @abc.abstractmethod  # noqa
     def execute_action(cls, plugin, device_dict):
         pass
 

@@ -81,7 +81,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
         device_template_dict.update(
             dict((key, vnfd_dict[vnfd_key]) for (key, vnfd_key) in KEY_LIST
-                 if ((not key in device_template_dict or
+                 if ((key not in device_template_dict or
                       device_template_dict[key] == '') and
                      vnfd_key in vnfd_dict and
                      vnfd_dict[vnfd_key] != '')))
