@@ -30,7 +30,7 @@ driver path in setup.cfg file in root directory.
 For example:
 ::
 
-  tacker.servicevm.monitor_drivers =
+  tacker.tacker.monitor_drivers =
       ping = tacker.vm.monitor_drivers.ping.ping:VNFMonitorPing
 
 The methods that need to override in driver are:

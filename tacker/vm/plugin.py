@@ -45,16 +45,16 @@ class VNFMMgmtMixin(object):
             'mgmt_driver', default=[],
             help=_('MGMT driver to communicate with '
                    'Hosting Device/logical service '
-                   'instance servicevm plugin will use')),
+                   'instance tacker plugin will use')),
         cfg.IntOpt('boot_wait', default=30,
             help=_('Time interval to wait for VM to boot')),
     ]
-    cfg.CONF.register_opts(OPTS, 'servicevm')
+    cfg.CONF.register_opts(OPTS, 'tacker')
 
     def __init__(self):
         super(VNFMMgmtMixin, self).__init__()
         self._mgmt_manager = driver_manager.DriverManager(
-            'tacker.servicevm.mgmt.drivers', cfg.CONF.servicevm.mgmt_driver)
+            'tacker.tacker.mgmt.drivers', cfg.CONF.tacker.mgmt_driver)
 
     def _invoke(self, device_dict, **kwargs):
         method = inspect.stack()[1][3]
@@ -102,21 +102,23 @@ class VNFMMgmtMixin(object):
 class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
     """VNFMPlugin which supports VNFM framework."""
 
+    """Plugin which supports Tacker framework
+    """
     OPTS = [
         cfg.ListOpt(
             'infra_driver', default=['heat'],
-            help=_('Hosting device drivers servicevm plugin will use')),
+            help=_('Hosting device drivers tacker plugin will use')),
     ]
-    cfg.CONF.register_opts(OPTS, 'servicevm')
+    cfg.CONF.register_opts(OPTS, 'tacker')
     supported_extension_aliases = ['vnfm']
 
     def __init__(self):
         super(VNFMPlugin, self).__init__()
         self._pool = eventlet.GreenPool()
-        self.boot_wait = cfg.CONF.servicevm.boot_wait
+        self.boot_wait = cfg.CONF.tacker.boot_wait
         self._device_manager = driver_manager.DriverManager(
-            'tacker.servicevm.device.drivers',
-            cfg.CONF.servicevm.infra_driver)
+            'tacker.tacker.device.drivers',
+            cfg.CONF.tacker.infra_driver)
         self._vnf_monitor = monitor.VNFMonitor(self.boot_wait)
 
     def spawn_n(self, function, *args, **kwargs):
@@ -137,7 +139,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
             LOG.debug(_('unknown hosting device driver '
                         '%(infra_driver)s in %(drivers)s'),
                       {'infra_driver': infra_driver,
-                       'drivers': cfg.CONF.servicevm.infra_driver})
+                       'drivers': cfg.CONF.tacker.infra_driver})
             raise vnfm.InvalidInfraDriver(infra_driver=infra_driver)
 
         service_types = template.get('service_types')
