@@ -54,7 +54,7 @@ class BasePollingManager(object):
         self._polling_completed = True
 
     def _is_polling_required(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     @property
     def is_polling_required(self):
@@ -84,9 +84,12 @@ class BasePollingManager(object):
 
 class AlwaysPoll(BasePollingManager):
 
+    def _is_polling_required(self):
+        return True
+
     @property
     def is_polling_required(self):
-        return True
+        return self._is_polling_required()
 
 
 class InterfacePollingMinimizer(BasePollingManager):
