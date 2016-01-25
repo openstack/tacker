@@ -2,14 +2,18 @@
 disable_service n-net
 VIRT_DRIVER=libvirt
 
-enable_service q-l3
 #enable_service q-lbaas
 #enable_service q-fwaas
 
+# TACKER_NEUTRON_AGENTS can be disabled by adding
+# TACKER_NEUTRON_AGENTS='' in local.conf if neutron agents are running on a separate node
+TACKER_NEUTRON_AGENTS=${TACKER_NEUTRON_AGENTS:-q-agt,q-dhcp,q-meta,q-l3}
+for i in $(echo $TACKER_NEUTRON_AGENTS | sed 's/,/ /g')
+do
+    enable_service $i
+done
+
 enable_service q-svc
-enable_service q-agt
-enable_service q-dhcp
-enable_service q-meta
 enable_service neutron
 
 # Heat
