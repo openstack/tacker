@@ -134,7 +134,7 @@ class DeviceAttribute(model_base.BASE, models_v1.HasId):
     key = sa.Column(sa.String(255), nullable=False)
     # json encoded value. example
     # "nic": [{"net-id": <net-uuid>}, {"port-id": <port-uuid>}]
-    value = sa.Column(sa.String(4096), nullable=True)
+    value = sa.Column(sa.TEXT(65535), nullable=True)
 
 
 class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
