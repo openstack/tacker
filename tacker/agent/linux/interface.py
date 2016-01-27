@@ -72,12 +72,16 @@ class LinuxInterfaceDriver(object):
         self.root_helper = config.get_root_helper(conf)
 
     def init_l3(self, device_name, ip_cidrs, namespace=None,
-                preserve_ips=[], gateway=None, extra_subnets=[]):
+                preserve_ips=None, gateway=None, extra_subnets=None):
         """Set the L3 settings for the interface using data from the port.
 
         ip_cidrs: list of 'X.X.X.X/YY' strings
         preserve_ips: list of ip cidrs that should not be removed from device
         """
+        if not preserve_ips:
+            preserve_ips = []
+        if not extra_subnets:
+            extra_subnets = []
         device = ip_lib.IPDevice(device_name,
                                  self.root_helper,
                                  namespace=namespace)
