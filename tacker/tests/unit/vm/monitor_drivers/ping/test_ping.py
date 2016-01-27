@@ -31,10 +31,10 @@ class TestVNFMonitorPing(testtools.TestCase):
             'mgmt_ip': 'a.b.c.d'
         }
         mock_ping_cmd = ['ping',
-                '-c', 5,
-                '-W', 1,
-                '-i', '0.2',
-                'a.b.c.d']
+                         '-c', 5,
+                         '-W', 1,
+                         '-i', '0.2',
+                         'a.b.c.d']
         self.monitor_ping.monitor_call(test_device,
                                        test_kwargs)
         mock_utils_execute.assert_called_once_with(mock_ping_cmd,
@@ -48,7 +48,7 @@ class TestVNFMonitorPing(testtools.TestCase):
             'mgmt_ip': 'a.b.c.d'
         }
         monitor_return = self.monitor_ping.monitor_call(test_device,
-                                       test_kwargs)
+                                                        test_kwargs)
         self.assertEqual(monitor_return, 'failure')
 
     def test_monitor_url(self):

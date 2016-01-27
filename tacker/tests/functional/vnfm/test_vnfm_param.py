@@ -59,9 +59,10 @@ class VnfmTestParam(base.BaseTackerTest):
 
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
         vnf_id = vnf_instance['vnf']['id']
-        vnf_current_status = self.wait_until_vnf_active(vnf_id,
-                                    constants.VNF_CIRROS_CREATE_TIMEOUT,
-                                    constants.ACTIVE_SLEEP_TIME)
+        vnf_current_status = self.wait_until_vnf_active(
+            vnf_id,
+            constants.VNF_CIRROS_CREATE_TIMEOUT,
+            constants.ACTIVE_SLEEP_TIME)
         self.assertEqual('ACTIVE', vnf_current_status)
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
         vnf_instance = self.client.show_vnf(vnf_id)
@@ -93,7 +94,7 @@ class VnfmTestParam(base.BaseTackerTest):
     def test_vnf_param(self):
         vnfd_instance = self._test_vnfd_create('sample_cirros_vnf_param.yaml')
         vnf_instance = self._test_vnf_create(vnfd_instance,
-                                           'test_vnf_with_parameters',
-                              'sample_cirros_vnf_values.yaml')
+                                             'test_vnf_with_parameters',
+                                             'sample_cirros_vnf_values.yaml')
         self._test_vnf_delete(vnf_instance)
         self._test_vnfd_delete(vnfd_instance)

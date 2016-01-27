@@ -254,7 +254,7 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
             instance = nova.servers.get(device_id)
         except self._novaclient.exceptions.NotFound:
             LOG.error(_LE("server %s is not found") %
-            device_id)
+                      device_id)
             return
         instance.delete()
 
@@ -280,7 +280,7 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
             instance = nova.servers.get(device_id)
         except self._novaclient.exceptions.NotFound:
             LOG.error(_LE("server %s is not found") %
-            device_id)
+                      device_id)
             return
         instance.interface_attach(port_id, None, None)
 
@@ -292,6 +292,6 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
             instance = nova.servers.get(device_id)
         except self._novaclient.exceptions.NotFound:
             LOG.error(_LE("server %s is not found") %
-            device_id)
+                      device_id)
             return
         instance.interface_detach(port_id)

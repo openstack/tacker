@@ -31,4 +31,4 @@ import sqlalchemy as sa
 
 def upgrade(active_plugins=None, options=None):
     op.alter_column('devicetemplateattributes',
-        'value', type_=sa.TEXT(65535), nullable=True)
+                    'value', type_=sa.TEXT(65535), nullable=True)

@@ -20,9 +20,9 @@ CONF = cfg.CONF
 
 OPTS = [
     cfg.StrOpt('heat_uri',
-        default='http://localhost:8004/v1',
-        help=_("Heat service URI to create VNF resources"
-               "specified in the VNFD templates")),
+               default='http://localhost:8004/v1',
+               help=_("Heat service URI to create VNF resources"
+                      "specified in the VNFD templates")),
 ]
 CONF.register_opts(OPTS, group='tacker_heat')
 
@@ -41,10 +41,10 @@ class OpenstackClients(object):
 
     def _keystone_client(self):
         return ks_client.Client(
-                   tenant_name=self.auth_tenant_name,
-                   username=self.auth_username,
-                   password=self.auth_password,
-                   auth_url=self.auth_url)
+            tenant_name=self.auth_tenant_name,
+            username=self.auth_username,
+            password=self.auth_password,
+            auth_url=self.auth_url)
 
     def _heat_client(self):
         tenant_id = self.auth_token['tenant_id']

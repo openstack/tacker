@@ -147,7 +147,7 @@ class CommonDbMixin(object):
     def _apply_dict_extend_functions(self, resource_type,
                                      response, db_object):
         for func in self._dict_extend_functions.get(
-            resource_type, []):
+                resource_type, []):
             args = (response, db_object)
             if isinstance(func, basestring):
                 func = getattr(self, func, None)

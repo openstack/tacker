@@ -88,7 +88,7 @@ def validate_head_file(config):
 
     head_path = os.path.join(script.versions, HEAD_FILENAME)
     if (os.path.isfile(head_path) and
-        open(head_path).read().strip() == script.get_current_head()):
+            open(head_path).read().strip() == script.get_current_head()):
         return
     else:
         alembic_util.err(_('HEAD file does not match migration timeline head'))

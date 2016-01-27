@@ -62,8 +62,8 @@ class BaseTackerTest(base.TestCase):
         tenant_name = cfg.CONF.keystone_authtoken.project_name
         auth_uri = cfg.CONF.keystone_authtoken.auth_uri + '/v2.0'
         return tacker_client.Client(username=username, password=password,
-                                 tenant_name=tenant_name,
-                                 auth_url=auth_uri)
+                                    tenant_name=tenant_name,
+                                    auth_url=auth_uri)
 
     @classmethod
     def wait_until_vnf_status(cls, vnf_id, target_status, timeout,
@@ -72,8 +72,8 @@ class BaseTackerTest(base.TestCase):
         while True:
                 vnf_result = cls.client.show_vnf(vnf_id)
                 status = vnf_result['vnf']['status']
-                if (status == target_status) or ((int(time.time()) -
-                                            start_time) > timeout):
+                if (status == target_status) or (
+                        (int(time.time()) - start_time) > timeout):
                     break
                 time.sleep(sleep_interval)
 
@@ -99,19 +99,22 @@ class BaseTackerTest(base.TestCase):
 
     def verify_vnf_restart(self, vnfd_instance, vnf_instance):
         vnf_id = vnf_instance['vnf']['id']
-        vnf_current_status = self.wait_until_vnf_active(vnf_id,
-                                    constants.VNF_CIRROS_CREATE_TIMEOUT,
-                                    constants.ACTIVE_SLEEP_TIME)
+        vnf_current_status = self.wait_until_vnf_active(
+            vnf_id,
+            constants.VNF_CIRROS_CREATE_TIMEOUT,
+            constants.ACTIVE_SLEEP_TIME)
         self.assertEqual(vnf_current_status, 'ACTIVE')
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
-        vnf_current_status = self.wait_until_vnf_dead(vnf_id,
-                                    constants.VNF_CIRROS_DEAD_TIMEOUT,
-                                    constants.DEAD_SLEEP_TIME)
+        vnf_current_status = self.wait_until_vnf_dead(
+            vnf_id,
+            constants.VNF_CIRROS_DEAD_TIMEOUT,
+            constants.DEAD_SLEEP_TIME)
         self.assertEqual(vnf_current_status, 'DEAD')
-        vnf_current_status = self.wait_until_vnf_active(vnf_id,
-                                    constants.VNF_CIRROS_CREATE_TIMEOUT,
-                                    constants.ACTIVE_SLEEP_TIME)
+        vnf_current_status = self.wait_until_vnf_active(
+            vnf_id,
+            constants.VNF_CIRROS_CREATE_TIMEOUT,
+            constants.ACTIVE_SLEEP_TIME)
         self.assertEqual(vnf_current_status, 'ACTIVE')
         self.validate_vnf_instance(vnfd_instance, vnf_instance)

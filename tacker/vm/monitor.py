@@ -114,15 +114,15 @@ class VNFMonitor(object):
             hosting_vnf = self._hosting_vnfs.pop(device_id, None)
             if hosting_vnf:
                 LOG.debug('deleting device_id %(device_id)s, Mgmt IP %(ips)s',
-                        {'device_id': device_id,
-                         'ips': hosting_vnf['management_ip_addresses']})
+                          {'device_id': device_id,
+                           'ips': hosting_vnf['management_ip_addresses']})
 
     def run_monitor(self, hosting_vnf):
         mgmt_ips = hosting_vnf['management_ip_addresses']
         vdupolicies = hosting_vnf['monitoring_policy']['vdus']
 
         vnf_delay = hosting_vnf['monitoring_policy'].get(
-                        'monitoring_delay', self.boot_wait)
+            'monitoring_delay', self.boot_wait)
 
         for vdu in vdupolicies.keys():
             if hosting_vnf.get('dead'):
@@ -135,8 +135,8 @@ class VNFMonitor(object):
                 vdu_delay = params.get('monitoring_delay', vnf_delay)
 
                 if not timeutils.is_older_than(
-                            hosting_vnf['boot_at'],
-                            vdu_delay):
+                    hosting_vnf['boot_at'],
+                        vdu_delay):
                         continue
 
                 actions = policy[driver].get('actions', {})
@@ -171,7 +171,7 @@ class VNFMonitor(object):
 
     def monitor_call(self, driver, device_dict, kwargs):
         return self._invoke(driver,
-            device=device_dict, kwargs=kwargs)
+                            device=device_dict, kwargs=kwargs)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -293,9 +293,9 @@ class ActionRespawnHeat(ActionPolicy):
             # ungly hack to keep id unchanged
             dead_device_id = device_id + '-DEAD-' + failure_count_str
             LOG.debug(_('%(dead)s %(new)s %(cur)s'),
-                  {'dead': dead_device_id,
-                   'new': new_device_id,
-                   'cur': device_id})
+                      {'dead': dead_device_id,
+                       'new': new_device_id,
+                       'cur': device_id})
             plugin.rename_device_id(context, device_id, dead_device_id)
             plugin.rename_device_id(context, new_device_id, device_id)
             LOG.debug('Delete dead device')

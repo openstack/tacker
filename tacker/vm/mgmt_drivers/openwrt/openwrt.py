@@ -62,7 +62,7 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
     @log.log
     def mgmt_call(self, plugin, context, device, kwargs):
         if (kwargs[mgmt_constants.KEY_ACTION] !=
-            mgmt_constants.ACTION_UPDATE_DEVICE):
+                mgmt_constants.ACTION_UPDATE_DEVICE):
             return
         dev_attrs = device.get('attributes', {})
 
