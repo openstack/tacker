@@ -28,7 +28,7 @@ from oslo_config import cfg
 from tacker.api.v1 import attributes
 from tacker.i18n import _LE, _LW
 from tacker.openstack.common import log as logging
-from tacker.vm.drivers import abstract_driver
+from tacker.vm.infra_drivers import abstract_driver
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF

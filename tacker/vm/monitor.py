@@ -30,7 +30,7 @@ from tacker.common import driver_manager
 from tacker import context as t_context
 from tacker.openstack.common import jsonutils
 from tacker.openstack.common import log as logging
-from tacker.vm.drivers.heat import heat
+from tacker.vm.infra_drivers.heat import heat
 
 
 LOG = logging.getLogger(__name__)
@@ -52,8 +52,8 @@ class VNFMonitor(object):
     _lock = threading.RLock()
 
     OPTS = [
-        cfg.MultiStrOpt(
-            'monitor_driver', default=[],
+        cfg.ListOpt(
+            'monitor_driver', default=['ping', 'http_ping'],
             help=_('Monitor driver to communicate with '
                    'Hosting VNF/logical service '
                    'instance tacker plugin will use')),

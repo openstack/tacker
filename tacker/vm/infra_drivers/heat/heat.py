@@ -29,7 +29,7 @@ from tacker.common import log
 from tacker.extensions import vnfm
 from tacker.openstack.common import jsonutils
 from tacker.openstack.common import log as logging
-from tacker.vm.drivers import abstract_driver
+from tacker.vm.infra_drivers import abstract_driver
 
 
 LOG = logging.getLogger(__name__)

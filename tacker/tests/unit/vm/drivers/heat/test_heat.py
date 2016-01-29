@@ -18,7 +18,7 @@ import testtools
 
 from tacker import context
 from tacker.tests.unit.db import utils
-from tacker.vm.drivers.heat import heat
+from tacker.vm.infra_drivers.heat import heat
 
 
 class FakeHeatClient(mock.Mock):
@@ -48,15 +48,16 @@ class TestDeviceHeat(testtools.TestCase):
         fake_heat_client = mock.Mock()
         fake_heat_client.return_value = self.heat_client
         self._mock(
-            'tacker.vm.drivers.heat.heat.HeatClient', fake_heat_client)
+            'tacker.vm.infra_drivers.heat.heat.HeatClient', fake_heat_client)
 
     def _mock(self, target, new=mock.DEFAULT):
         patcher = mock.patch(target, new)
         return patcher.start()
 
     def _get_expected_fields(self):
-        return {'stack_name': 'tacker.vm.drivers.heat.heat_DeviceHeat-eb84260e'
-                              '-5ff7-4332-b032-50a14d6c1123', 'template':
+        return {'stack_name':
+            'tacker.vm.infra_drivers.heat.heat_DeviceHeat-eb84260e'
+            '-5ff7-4332-b032-50a14d6c1123', 'template':
             'description: OpenWRT with services\nheat_template_version: '
             '2013-05-23\noutputs:\n  mgmt_ip-vdu1:\n    description: '
             'management ip address\n    value:\n      get_attr: [vdu1-net_mgmt'
@@ -71,8 +72,9 @@ class TestDeviceHeat(testtools.TestCase):
             '    type: OS::Neutron::Port\n'}
 
     def _get_expected_fields_user_data(self):
-        return {'stack_name': 'tacker.vm.drivers.heat.heat_DeviceHeat-18685f68'
-                              '-2b2a-4185-8566-74f54e548811', 'template':
+        return {'stack_name':
+            'tacker.vm.infra_drivers.heat.heat_DeviceHeat-18685f68'
+            '-2b2a-4185-8566-74f54e548811', 'template':
             'description: Parameterized VNF descriptor\nheat_template_version:'
             ' 2013-05-23\noutputs:\n  mgmt_ip-vdu1:\n    description: '
             'management ip address\n    value:\n      get_attr: '
@@ -91,8 +93,9 @@ class TestDeviceHeat(testtools.TestCase):
             'type: OS::Neutron::Port\n'}
 
     def _get_expected_fields_ipaddr_data(self):
-        return {'stack_name': 'tacker.vm.drivers.heat.heat_DeviceHeat-d1337add'
-                              '-d5a1-4fd4-9447-bb9243c8460b', 'template':
+        return {'stack_name':
+            'tacker.vm.infra_drivers.heat.heat_DeviceHeat-d1337add'
+            '-d5a1-4fd4-9447-bb9243c8460b', 'template':
             'description: Parameterized VNF descriptor for IP addresses\n'
             'heat_template_version: 2013-05-23\noutputs:\n  mgmt_ip-vdu1:\n   '
             ' description: management ip address\n    value:\n      '
