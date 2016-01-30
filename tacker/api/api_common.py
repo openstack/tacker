@@ -280,6 +280,7 @@ class SortingEmulatedHelper(SortingHelper):
 class SortingNativeHelper(SortingHelper):
 
     def __init__(self, request, attr_info):
+        super(SortingNativeHelper, self).__init__(request, attr_info)
         self.sort_dict = get_sorts(request, attr_info)
 
     def update_args(self, args):
