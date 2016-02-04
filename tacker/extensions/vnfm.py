@@ -37,6 +37,10 @@ class MGMTDriverNotSpecified(exceptions.InvalidInput):
     message = _('mgmt driver is not specified')
 
 
+class MultipleMGMTDriversSpecified(exceptions.InvalidInput):
+    message = _('More than one MGMT Driver per template is not supported')
+
+
 class ServiceTypesNotSpecified(exceptions.InvalidInput):
     message = _('service types are not specified')
 
@@ -83,6 +87,14 @@ class DeviceNotFound(exceptions.NotFound):
 
 class ParamYAMLNotWellFormed(exceptions.InvalidInput):
     message = _("Parameter YAML not well formed - %(error_msg_details)s")
+
+
+class ToscaParserFailed(exceptions.InvalidInput):
+    message = _("tosca-parser failed: - %(error_msg_details)s")
+
+
+class HeatTranslatorFailed(exceptions.InvalidInput):
+    message = _("heat-translator failed: - %(error_msg_details)s")
 
 
 class InputValuesMissing(exceptions.InvalidInput):

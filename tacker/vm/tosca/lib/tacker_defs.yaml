@@ -1,0 +1,82 @@
+data_types:
+  tosca.datatypes.tacker.ActionMap:
+    properties:
+      trigger:
+        type: string
+        required: true
+      action:
+        type: string
+        required: true
+      params:
+        type: map
+        entry_schema:
+          type: string
+
+  tosca.datatypes.tacker.MonitoringType:
+    properties:
+      name:
+        type: string
+        required: true
+      actions:
+        type: list
+        entry_schema:
+          type: tosca.datatypes.tacker.ActionMap
+      parameters:
+        type: map
+        entry_schema:
+          type: string
+
+policy_types:
+  tosca.policies.tacker.Placement:
+    derived_from: tosca.policies.Root
+
+  tosca.policies.tacker.Failure:
+    derived_from: tosca.policies.Root
+    action:
+      type: string
+
+  tosca.policies.tacker.Failure.Respawn:
+    derived_from: tosca.policies.tacker.Failure
+    action: respawn
+
+  tosca.policies.tacker.Failure.Terminate:
+    derived_from: tosca.policies.tacker.Failure
+    action: log_and_kill
+
+  tosca.policies.tacker.Failure.Log:
+    derived_from: tosca.policies.tacker.Failure
+    action: log
+
+  tosca.policies.tacker.Monitoring:
+    derived_from: tosca.policies.Root
+    properties:
+      name:
+        type: string
+        required: true
+      parameters:
+        type: map
+        entry_schema:
+          type: string
+      actions:
+        type: map
+        entry_schema:
+          type: string
+
+  tosca.policies.tacker.Monitoring.NoOp:
+    derived_from: tosca.policies.tacker.Monitoring
+    properties:
+      name: noop
+
+  tosca.policies.tacker.Monitoring.Ping:
+    derived_from: tosca.policies.tacker.Monitoring
+    properties:
+      name: ping
+
+  tosca.policies.tacker.Monitoring.HttpPing:
+    derived_from: tosca.policies.tacker.Monitoring.Ping
+    properties:
+      name: http-ping
+
+group_types:
+  tosca.groups.tacker.VDU:
+    derived_from: tosca.groups.Root

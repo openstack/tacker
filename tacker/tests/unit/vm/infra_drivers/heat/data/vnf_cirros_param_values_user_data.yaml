@@ -1,0 +1,16 @@
+vdus:
+  vdu1:
+    param:
+      vm_image: cirros-0.3.4-x86_64-uec
+      flavor: m1.tiny
+      service: firewall
+      pkt_in_network: net0
+      pkt_out_network: net1
+      zone: nova
+      management: True
+      network: net_mgmt
+      user_data_format: RAW
+      user_data: |
+        #!/bin/sh
+        echo "my hostname is `hostname`" > /tmp/hostname
+        df -h > /home/cirros/diskinfo

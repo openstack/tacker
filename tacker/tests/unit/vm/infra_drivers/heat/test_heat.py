@@ -13,7 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import codecs
 import mock
+import os
 import testtools
 
 from tacker import context
@@ -35,7 +37,22 @@ class FakeHeatClient(mock.Mock):
         return self.Stack()
 
 
+def _get_template(name):
+    filename = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data/", name)
+    f = codecs.open(filename, encoding='utf-8', errors='strict')
+    return f.read()
+
+
 class TestDeviceHeat(testtools.TestCase):
+    hot_template = _get_template('hot_openwrt.yaml')
+    hot_param_template = _get_template('hot_openwrt_params.yaml')
+    hot_ipparam_template = _get_template('hot_openwrt_ipparams.yaml')
+    vnfd_openwrt = _get_template('openwrt.yaml')
+    tosca_openwrt = _get_template('test_tosca_openwrt.yaml')
+    hot_tosca_openwrt = _get_template('hot_tosca_openwrt.yaml')
+    config_data = _get_template('config_data.yaml')
+
     def setUp(self):
         super(TestDeviceHeat, self).setUp()
         self.context = context.get_admin_context()
@@ -54,68 +71,31 @@ class TestDeviceHeat(testtools.TestCase):
         patcher = mock.patch(target, new)
         return patcher.start()
 
+    def _get_device_template(self, template):
+        return {'device_template': {'attributes': {'vnfd': template}}}
+
+    def _get_expected_device_template(self, template):
+        return {'device_template': {'attributes': {'vnfd': template},
+                                    'description': 'OpenWRT with services',
+                                    'mgmt_driver': 'openwrt',
+                                    'name': 'OpenWRT'}}
+
     def _get_expected_fields(self):
         return {'stack_name':
-            'tacker.vm.infra_drivers.heat.heat_DeviceHeat-eb84260e'
-            '-5ff7-4332-b032-50a14d6c1123', 'template':
-            'description: OpenWRT with services\nheat_template_version: '
-            '2013-05-23\noutputs:\n  mgmt_ip-vdu1:\n    description: '
-            'management ip address\n    value:\n      get_attr: [vdu1-net_mgmt'
-            '-port, fixed_ips, 0, ip_address]\nresources:\n  vdu1:\n    '
-            'properties:\n      availability_zone: nova\n      config_drive: '
-            'true\n      flavor: m1.tiny\n      image: cirros-0.3.2-x86_64-uec'
-            '\n      metadata: {param0: key0, param1: key1}\n      networks:\n'
-            '      - port: {get_resource: vdu1-net_mgmt-port}\n      - '
-            '{network: net0}\n      - {network: net1}\n    type: OS::Nova::'
-            'Server\n  vdu1-net_mgmt-port:\n    properties:\n      fixed_ips: '
-            '[]\n      network: net_mgmt\n      port_security_enabled: false\n'
-            '    type: OS::Neutron::Port\n'}
+                'tacker.vm.infra_drivers.heat.heat_DeviceHeat-eb84260e'
+                '-5ff7-4332-b032-50a14d6c1123', 'template': self.hot_template}
 
     def _get_expected_fields_user_data(self):
         return {'stack_name':
-            'tacker.vm.infra_drivers.heat.heat_DeviceHeat-18685f68'
-            '-2b2a-4185-8566-74f54e548811', 'template':
-            'description: Parameterized VNF descriptor\nheat_template_version:'
-            ' 2013-05-23\noutputs:\n  mgmt_ip-vdu1:\n    description: '
-            'management ip address\n    value:\n      get_attr: '
-            '[vdu1-net_mgmt-port, fixed_ips, 0, ip_address]\nresources:\n  '
-            'vdu1:\n    properties:\n      availability_zone: nova\n      '
-            'config_drive: true\n      flavor: m1.tiny\n      image: '
-            'cirros-0.3.4-x86_64-uec\n      metadata: {param0: key0, param1: '
-            'key1}\n      networks:\n      - port: {get_resource: '
-            'vdu1-net_mgmt-port}\n      - {network: net0}\n      - '
-            '{network: net1}\n      user_data: \'#!/bin/sh\n\n        '
-            'echo "my hostname is `hostname`" > /tmp/hostname\n\n        '
-            'df -h > /home/cirros/diskinfo\n\n        \'\n      '
-            'user_data_format: RAW\n    type: OS::Nova::Server\n  '
-            'vdu1-net_mgmt-port:\n    properties:\n      fixed_ips: []\n      '
-            'network: net_mgmt\n      port_security_enabled: false\n    '
-            'type: OS::Neutron::Port\n'}
+                'tacker.vm.infra_drivers.heat.heat_DeviceHeat-18685f68'
+                '-2b2a-4185-8566-74f54e548811',
+                'template': self.hot_param_template}
 
     def _get_expected_fields_ipaddr_data(self):
         return {'stack_name':
-            'tacker.vm.infra_drivers.heat.heat_DeviceHeat-d1337add'
-            '-d5a1-4fd4-9447-bb9243c8460b', 'template':
-            'description: Parameterized VNF descriptor for IP addresses\n'
-            'heat_template_version: 2013-05-23\noutputs:\n  mgmt_ip-vdu1:\n   '
-            ' description: management ip address\n    value:\n      '
-            'get_attr: [vdu1-net_mgmt-port, fixed_ips, 0, ip_address]\n'
-            'resources:\n  vdu1:\n    properties:\n      availability_zone: '
-            'nova\n      config_drive: true\n      flavor: m1.tiny\n      '
-            'image: cirros-0.3.4-x86_64-uec\n      metadata: {param0: key0, '
-            'param1: key1}\n      networks:\n      - port: {get_resource: '
-            'vdu1-net_mgmt-port}\n      - port: {get_resource: vdu1-net0-port}'
-            '\n      - port: {get_resource: vdu1-net1-port}\n    type: '
-            'OS::Nova::Server\n  vdu1-net0-port:\n    properties:\n      '
-            'fixed_ips:\n      - {ip_address: 10.10.0.98}\n      network: net0'
-            '\n      port_security_enabled: false\n    type: '
-            'OS::Neutron::Port\n  vdu1-net1-port:\n    properties:\n      '
-            'fixed_ips:\n      - {ip_address: 10.10.1.98}\n      network: net1'
-            '\n      port_security_enabled: false\n    type: '
-            'OS::Neutron::Port\n  vdu1-net_mgmt-port:\n    properties:\n      '
-            'fixed_ips:\n      - {ip_address: 192.168.120.98}\n      network: '
-            'net_mgmt\n      port_security_enabled: false\n    '
-            'type: OS::Neutron::Port\n'}
+                'tacker.vm.infra_drivers.heat.heat_DeviceHeat-d1337add'
+                '-d5a1-4fd4-9447-bb9243c8460b',
+                'template': self.hot_ipparam_template}
 
     def _get_expected_device_wait_obj(self):
         return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
@@ -126,19 +106,9 @@ class TestDeviceHeat(testtools.TestCase):
             u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}], 'description':
             u'OpenWRT with services', 'tenant_id':
             u'ad7ebc56538745a08ef7c5e97f8bd437', 'mgmt_driver': u'openwrt',
-            'infra_driver': u'heat', 'attributes': {u'vnfd': u'template_name: '
-        u'OpenWRT\r\ndescription: OpenWRT with services\r\n\r\nvdus:\r\n  '
-        u'vdu1:\r\n    id: vdu1\r\n    vm_image: cirros-0.3.2-x86_64-uec\r\n  '
-        u'  instance_type: m1.tiny\r\n    service_type: firewall\r\n    '
-        u'mgmt_driver: openwrt\r\n\r\n    network_interfaces:\r\n      '
-        u'management:\r\n        network: net_mgmt\r\n        management: True'
-        u'\r\n      pkt_in:\r\n        network: net0\r\n      pkt_out:\r\n    '
-        u'    network: net1\r\n\r\n    placement_policy:\r\n      '
-        u'availability_zone: nova\r\n\r\n    auto-scaling: noop\r\n\r\n    '
-        u'monitoring_policy: noop\r\n    failure_policy: noop\r\n\r\n    '
-        u'monitoring_parameter:\r\n      a:\r\n\r\n    config:\r\n      '
-        u'param0: key0\r\n      param1: key1\r\n\r\n'}, 'id':
-            u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
+            'infra_driver': u'heat',
+            'attributes': {u'vnfd': self.vnfd_openwrt},
+            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
             u'openwrt_services'}, 'mgmt_url': '{"vdu1": "192.168.120.31"}',
                 'service_context': [], 'attributes': {
             u'param_values': u''}, 'id':
@@ -154,19 +124,9 @@ class TestDeviceHeat(testtools.TestCase):
             u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}], 'description':
             u'OpenWRT with services', 'tenant_id':
             u'ad7ebc56538745a08ef7c5e97f8bd437', 'mgmt_driver': u'openwrt',
-            'infra_driver': u'heat', 'attributes': {u'vnfd': u'template_name: '
-        u'OpenWRT\r\ndescription: OpenWRT with services\r\n\r\nvdus:\r\n  '
-        u'vdu1:\r\n    id: vdu1\r\n    vm_image: cirros-0.3.2-x86_64-uec\r\n  '
-        u'  instance_type: m1.tiny\r\n    service_type: firewall\r\n    '
-        u'mgmt_driver: openwrt\r\n\r\n    network_interfaces:\r\n      '
-        u'management:\r\n        network: net_mgmt\r\n        management: True'
-        u'\r\n      pkt_in:\r\n        network: net0\r\n      pkt_out:\r\n    '
-        u'    network: net1\r\n\r\n    placement_policy:\r\n      '
-        u'availability_zone: nova\r\n\r\n    auto-scaling: noop\r\n\r\n    '
-        u'monitoring_policy: noop\r\n    failure_policy: noop\r\n\r\n    '
-        u'monitoring_parameter:\r\n      a:\r\n\r\n    config:\r\n      '
-        u'param0: key0\r\n      param1: key1\r\n\r\n'}, 'id':
-            u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
+            'infra_driver': u'heat',
+            'attributes': {u'vnfd': self.vnfd_openwrt},
+            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
             u'openwrt_services'}, 'mgmt_url': None, 'service_context': [],
             'attributes': {u'config': 'vdus:\n  vdu1:\n    config: {firewall: '
                                       '"package firewall\\n\\nconfig defaults'
@@ -230,3 +190,56 @@ class TestDeviceHeat(testtools.TestCase):
                                 device_id, device_obj,
                                 device_config_obj)
         self.assertEqual(device_obj, expected_device_update)
+
+    def test_create_device_template_pre_tosca(self):
+        dtemplate = self._get_device_template(self.tosca_openwrt)
+        exp_tmpl = self._get_expected_device_template(self.tosca_openwrt)
+        self.heat_driver.create_device_template_pre(None, None, dtemplate)
+        self.assertEqual(dtemplate, exp_tmpl)
+
+    def _get_expected_fields_tosca(self):
+        return {'stack_name':
+                'tacker.vm.infra_drivers.heat.heat_DeviceHeat-eb84260e'
+                '-5ff7-4332-b032-50a14d6c1123',
+                'template': self.hot_tosca_openwrt}
+
+    def _get_expected_tosca_device(self):
+        exp_tmpl = self._get_expected_device_template(self.tosca_openwrt)
+        return {'device_template': exp_tmpl['device_template'],
+                'description': u'OpenWRT with services',
+                'attributes': {'heat_template': self.hot_tosca_openwrt,
+                               'monitoring_policy': '{"vdus": {"VDU1":'
+                               ' {"name": "ping", "actions": [{"trigger":'
+                               ' "failure", "action": "respawn"}],'
+                               ' "parameters": {"count": "3", "interval": "10"'
+                               '}}}}',
+                               'param_values': ''},
+                'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
+                'instance_id': None, 'mgmt_url': None, 'name': u'test_openwrt',
+                'service_context': [], 'status': 'PENDING_CREATE',
+                'template_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437'}
+
+    def _get_dummy_tosca_device(self, template=''):
+        tosca_template = getattr(self, 'tosca_' + template, None)
+        if not tosca_template:
+            tosca_template = self.tosca_openwrt
+        device = utils.get_dummy_device_obj()
+        dtemplate = self._get_expected_device_template(tosca_template)
+        dtemplate['service_types'] = [{'service_type': 'vnfd', 'id':
+            '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}]
+        dtemplate['tenant_id'] = 'ad7ebc56538745a08ef7c5e97f8bd437'
+        device['device_template'] = dtemplate['device_template']
+        return device
+
+    def test_create_tosca(self):
+        # self.skipTest("Not ready yet")
+        device = self._get_dummy_tosca_device()
+        expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
+        expected_fields = self._get_expected_fields_tosca()
+        expected_device = self._get_expected_tosca_device()
+        result = self.heat_driver.create(plugin=None, context=self.context,
+                                         device=device)
+        self.heat_client.create.assert_called_once_with(expected_fields)
+        self.assertEqual(expected_result, result)
+        self.assertEqual(device, expected_device)

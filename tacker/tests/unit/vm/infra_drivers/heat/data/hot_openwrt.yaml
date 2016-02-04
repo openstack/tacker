@@ -1,0 +1,26 @@
+description: OpenWRT with services
+heat_template_version: 2013-05-23
+outputs:
+  mgmt_ip-vdu1:
+    description: management ip address
+    value:
+      get_attr: [vdu1-net_mgmt-port, fixed_ips, 0, ip_address]
+resources:
+  vdu1:
+    properties:
+      availability_zone: nova
+      config_drive: true
+      flavor: m1.tiny
+      image: cirros-0.3.2-x86_64-uec
+      metadata: {param0: key0, param1: key1}
+      networks:
+      - port: {get_resource: vdu1-net_mgmt-port}
+      - {network: net0}
+      - {network: net1}
+    type: OS::Nova::Server
+  vdu1-net_mgmt-port:
+    properties:
+      fixed_ips: []
+      network: net_mgmt
+      port_security_enabled: false
+    type: OS::Neutron::Port

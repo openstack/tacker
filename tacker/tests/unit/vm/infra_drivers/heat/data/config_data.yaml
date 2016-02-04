@@ -1,0 +1,12 @@
+vdus:
+  vdu1:
+    config:
+      firewall: |
+        package firewall
+
+        config defaults
+          option syn_flood '1'
+          option input 'ACCEPT'
+          option output 'ACCEPT'
+          option forward 'REJECT'
+
