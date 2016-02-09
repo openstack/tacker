@@ -341,6 +341,28 @@ function tacker_horizon_install {
     restart_apache_server
 }
 
+function tacker_create_openwrt_image {
+    local image_url=https://downloads.openwrt.org/chaos_calmer/15.05/x86/kvm_guest/openwrt-15.05-x86-kvm_guest-combined-ext4.img.gz
+    local image image_fname image_name
+
+    image_fname=`basename "$image_url"`
+    if [[ $image_url != file* ]]; then
+        if [[ ! -f $FILES/$image_fname || "$(stat -c "%s" $FILES/$image_fname)" = "0" ]]; then
+            wget --progress=dot:giga -c $image_url -O $FILES/$image_fname
+            if [[ $? -ne 0 ]]; then
+                echo "Not found: $image_url"
+                return
+            fi
+        fi
+        image="$FILES/${image_fname}"
+    fi
+    disk_format=raw
+    container_format=bare
+    image_name="OpenWRT"
+    openstack --os-cloud=devstack-admin image create $image_name --public --container-format=$container_format --disk-format $disk_format < <(zcat --force "${image}")
+    glance image-list | grep OpenWRT | awk {print$2}
+}
+
 function tacker_create_initial_network {
     # create necessary networks
     # prepare network

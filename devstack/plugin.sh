@@ -32,6 +32,9 @@ if is_service_enabled tacker; then
         tacker_horizon_install
         echo_summary "Setup initial tacker network"
         tacker_create_initial_network
+        echo_summary "Upload OpenWrt image"
+        tacker_create_openwrt_image
+
     fi
 
     if [[ "$1" == "unstack" ]]; then
