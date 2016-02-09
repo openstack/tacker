@@ -15,7 +15,7 @@ Lists information for Tacker API version.
 
 **GET /**
 
-List API versions - Lists information about all Networking API versions.
+List API versions - Lists information about Tacker API version.
 
 ::
 
