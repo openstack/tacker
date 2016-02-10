@@ -323,8 +323,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
     def _device_attribute_update_or_create(
             self, context, device_id, key, value):
         arg = (self._model_query(context, DeviceAttribute).
-            filter(DeviceAttribute.device_id == device_id).
-            filter(DeviceAttribute.key == key).first())
+               filter(DeviceAttribute.device_id == device_id).
+               filter(DeviceAttribute.key == key).first())
         if arg:
             arg.value = value
         else:
@@ -482,7 +482,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def get_devices(self, context, filters=None, fields=None):
         devices = self._get_collection(context, Device, self._make_device_dict,
-                                    filters=filters, fields=fields)
+                                       filters=filters, fields=fields)
         # Ugly hack to mask internaly used record
         return [device for device in devices
                 if uuidutils.is_uuid_like(device['id'])]

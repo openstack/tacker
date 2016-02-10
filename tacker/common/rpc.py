@@ -52,8 +52,8 @@ def init(conf):
     global TRANSPORT, NOTIFIER
     exmods = get_allowed_exmods()
     TRANSPORT = oslo_messaging.get_transport(conf,
-                                        allowed_remote_exmods=exmods,
-                                        aliases=TRANSPORT_ALIASES)
+                                             allowed_remote_exmods=exmods,
+                                             aliases=TRANSPORT_ALIASES)
     NOTIFIER = oslo_messaging.Notifier(TRANSPORT)
 
 

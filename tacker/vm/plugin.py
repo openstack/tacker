@@ -47,7 +47,7 @@ class VNFMMgmtMixin(object):
                    'Hosting Device/logical service '
                    'instance tacker plugin will use')),
         cfg.IntOpt('boot_wait', default=30,
-            help=_('Time interval to wait for VM to boot')),
+                   help=_('Time interval to wait for VM to boot')),
     ]
     cfg.CONF.register_opts(OPTS, 'tacker')
 
@@ -167,7 +167,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         if 'monitoring_policy' in dev_attrs and mgmt_url:
             def action_cb(hosting_vnf_, action):
                 action_cls = monitor.ActionPolicy.get_policy(action,
-                    device_dict)
+                                                             device_dict)
                 if action_cls:
                     action_cls.execute_action(self, hosting_vnf['device'])
 
@@ -250,7 +250,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
         if instance_id is None:
             self._create_device_post(context, device_id, None, None,
-                device_dict)
+                                     device_dict)
             return
 
         device_dict['instance_id'] = instance_id

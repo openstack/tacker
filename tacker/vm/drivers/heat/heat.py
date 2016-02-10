@@ -259,7 +259,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 elif 'user_data' in vdu_dict or 'user_data_format' in vdu_dict:
                     raise vnfm.UserDataFormatNotFound()
                 if ('placement_policy' in vdu_dict and
-                    'availability_zone' in vdu_dict['placement_policy']):
+                        'availability_zone' in vdu_dict['placement_policy']):
                     properties['availability_zone'] = vdu_dict[
                         'placement_policy']['availability_zone']
                 if 'config' in vdu_dict:
@@ -276,9 +276,10 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 # This should be removed after Mitaka
                 if monitoring_policy == 'ping' and failure_policy == 'respawn':
                     vdu_dict['monitoring_policy'] = {'ping': {
-                                                       'actions': {
-                                                           'failure': 'respawn'
-                                                       }}}
+                                                     'actions':
+                                                     {
+                                                         'failure': 'respawn'
+                                                     }}}
                     vdu_dict.pop('failure_policy')
 
                 if monitoring_policy != 'noop':
@@ -294,7 +295,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
             if monitoring_dict.keys():
                 device['attributes']['monitoring_policy'] = jsonutils.dumps(
-                                                              monitoring_dict)
+                    monitoring_dict)
 
             heat_template_yaml = yaml.dump(template_dict)
             fields['template'] = heat_template_yaml

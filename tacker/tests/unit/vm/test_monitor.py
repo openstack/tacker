@@ -62,7 +62,7 @@ class TestVNFMonitor(testtools.TestCase):
             'mgmt_url': '{"vdu1": "a.b.c.d"}',
             'attributes': {
                 'monitoring_policy': json.dumps(
-                                         MOCK_VNF_DEVICE['monitoring_policy'])
+                        MOCK_VNF_DEVICE['monitoring_policy'])
             }
         }
         action_cb = mock.MagicMock()

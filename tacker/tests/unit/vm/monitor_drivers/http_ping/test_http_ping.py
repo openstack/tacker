@@ -44,7 +44,7 @@ class TestVNFMonitorHTTPPing(testtools.TestCase):
             'mgmt_ip': 'a.b.c.d'
         }
         monitor_return = self.monitor_http_ping.monitor_call(test_device,
-                                                   test_kwargs)
+                                                             test_kwargs)
         self.assertEqual(monitor_return, 'failure')
 
     def test_monitor_url(self):

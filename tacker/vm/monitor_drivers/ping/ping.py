@@ -58,10 +58,10 @@ class VNFMonitorPing(abstract_driver.VNFMonitorAbstractDriver):
         :return: bool - True or string 'failure' depending on pingability.
         """
         ping_cmd = ['ping',
-                '-c', count,
-                '-W', timeout,
-                '-i', interval,
-                mgmt_ip]
+                    '-c', count,
+                    '-W', timeout,
+                    '-i', interval,
+                    mgmt_ip]
 
         try:
             linux_utils.execute(ping_cmd, check_exit_code=True)

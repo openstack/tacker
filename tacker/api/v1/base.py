@@ -127,9 +127,9 @@ class Controller(object):
                     context,
                     '%s:%s' % (self._plugin_handlers[self.SHOW], attr_name),
                     data,
-                    might_not_exist=True):
-                    # this attribute is visible, check next one
-                    continue
+                        might_not_exist=True):
+                        # this attribute is visible, check next one
+                        continue
             # if the code reaches this point then either the policy check
             # failed or the attribute was not visible in the first place
             attributes_to_exclude.append(attr_name)
@@ -535,10 +535,10 @@ class Controller(object):
             for attr, attr_vals in attr_info.iteritems():
                 if attr_vals['allow_post']:
                     if ('default' not in attr_vals and
-                        attr not in res_dict):
-                        msg = _("Failed to parse request. Required "
-                                "attribute '%s' not specified") % attr
-                        raise webob.exc.HTTPBadRequest(msg)
+                            attr not in res_dict):
+                            msg = _("Failed to parse request. Required "
+                                    "attribute '%s' not specified") % attr
+                            raise webob.exc.HTTPBadRequest(msg)
                     res_dict[attr] = res_dict.get(attr,
                                                   attr_vals.get('default'))
                 else:
@@ -553,7 +553,7 @@ class Controller(object):
 
         for attr, attr_vals in attr_info.iteritems():
             if (attr not in res_dict or
-                res_dict[attr] is attributes.ATTR_NOT_SPECIFIED):
+                    res_dict[attr] is attributes.ATTR_NOT_SPECIFIED):
                 continue
             # Convert values if necessary
             if 'convert_to' in attr_vals:
