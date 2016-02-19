@@ -1,8 +1,8 @@
-************************
-Tacker MANO API Overview
-************************
+*******************
+Tacker API Overview
+*******************
 
-Tacker MANO API introduces new REST API end-points based on ETSI NFV MANO
+Tacker API introduces new REST API end-points based on ETSI NFV MANO
 standards[#]_.
 The two new resources introduced are 'vnfd' and 'vnf' for
 describing the 'vnfm' extension. The resources request and response formats are
