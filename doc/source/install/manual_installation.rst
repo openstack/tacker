@@ -14,9 +14,13 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-============================================================================
-Installing and Running Tacker liberty components manually on controller node
-============================================================================
+
+===================
+Manual Installation
+===================
+
+This document describes how to install and run Tacker manually on the
+controller node
 
 Pre-requisites
 ==============
