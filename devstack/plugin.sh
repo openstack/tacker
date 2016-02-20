@@ -1,4 +1,4 @@
-#plugin.shh - Devstack extras script to install tacker
+# plugin.sh - Devstack extras script to install tacker
 
 # Save trace setting
 XTRACE=$(set +o | grep xtrace)
