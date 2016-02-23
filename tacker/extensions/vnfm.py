@@ -254,11 +254,6 @@ RESOURCE_ATTRIBUTE_MAP = {
     },
 }
 
-# Note, device_templates and devices are for back compatible
-# will be removed in N cycle
-RESOURCE_ATTRIBUTE_MAP['device_templates'] = RESOURCE_ATTRIBUTE_MAP['vnfds']
-RESOURCE_ATTRIBUTE_MAP['devices'] = RESOURCE_ATTRIBUTE_MAP['vnfs']
-
 
 class Vnfm(extensions.ExtensionDescriptor):
     @classmethod
@@ -351,41 +346,4 @@ class VNFMPluginBase(NFVPluginBase):
 
     @abc.abstractmethod
     def delete_vnf(self, context, vnf_id):
-        pass
-
-    @abc.abstractmethod
-    def create_device_template(self, context, device_template):
-        pass
-
-    @abc.abstractmethod
-    def delete_device_template(self, context, device_template_id):
-        pass
-
-    @abc.abstractmethod
-    def get_device_template(self, context, device_template_id, fields=None):
-        pass
-
-    @abc.abstractmethod
-    def get_device_templates(self, context, filters=None, fields=None):
-        pass
-
-    @abc.abstractmethod
-    def get_devices(self, context, filters=None, fields=None):
-        pass
-
-    @abc.abstractmethod
-    def get_device(self, context, device_id, fields=None):
-        pass
-
-    @abc.abstractmethod
-    def create_device(self, context, device):
-        pass
-
-    @abc.abstractmethod
-    def update_device(
-            self, context, device_id, device):
-        pass
-
-    @abc.abstractmethod
-    def delete_device(self, context, device_id):
         pass
