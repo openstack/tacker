@@ -15,9 +15,12 @@
       under the License.
 
 
-============================================================================
-Installing and Running Tacker manually on controller node
-============================================================================
+===================
+Manual Installation
+===================
+
+This document describes how to install and run Tacker manually on the
+controller node
 
 Pre-requisites
 ==============

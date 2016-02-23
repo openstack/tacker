@@ -14,28 +14,33 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-============================================
-Welcome to Tacker's Developer Documentation!
-============================================
+===============================
+Welcome to Tacker Documentation
+===============================
 
-Tacker is OpenStack project building an Open NFV Orchestrator with in-built
-general purpose VNF Manager to deploy and operate Virtual Network Functions
-(VNFs) on an NFV Platform. It is based on ETSI MANO Architectural Framework
-and provides full functional stack to Orchestrate VNFs end-to-end.
+Tacker is an OpenStack service for NFV Orchestration with a general purpose
+VNF Manager to deploy and operate Virtual Network Functions (VNFs) and
+Network Services on an NFV Platform. It is based on ETSI MANO Architectural
+Framework.
 
-* **Free software:** under the `Apache license <http://www.apache.org/licenses/LICENSE-2.0>`_
-* **Source:** http://git.openstack.org/cgit/openstack/tacker
-* **Blueprints:** https://blueprints.launchpad.net/tacker
-* **Bugs:** http://bugs.launchpad.net/tacker
-* **REST Client:** http://git.openstack.org/cgit/openstack/python-tackerclient
+Installation
+============
 
-Features
-========
+There are two ways to install Tacker service:
 
-* VNF Catalog
-* VNFM Life Cycle Management - VNF Start/Stop
-* VNF Configuration Management Framework
-* VNF KPI Health Monitoring Framework
+.. toctree::
+   :maxdepth: 1
+
+   install/devstack.rst
+   install/manual_installation.rst
+
+Getting Started
+===============
+
+.. toctree::
+   :maxdepth: 1
+
+   install/getting_started.rst
 
 Feature Documentation
 =====================
@@ -54,8 +59,8 @@ API Documentation
 
    devref/mano_api.rst
 
-Development Process
-===================
+Contributing to Tacker
+======================
 
 .. toctree::
    :maxdepth: 1
@@ -71,6 +76,16 @@ Developer Info
    devref/development.environment.rst
    devref/api_layer.rst
    devref/api_extensions.rst
+
+Project Info
+============
+
+* **Free software:** under the `Apache license <http://www.apache.org/licenses/LICENSE-2.0>`_
+* **Tacker Service:** http://git.openstack.org/cgit/openstack/tacker
+* **Tacker Client Library:** http://git.openstack.org/cgit/openstack/python-tackerclient
+* **Tacker Service Bugs:** http://bugs.launchpad.net/tacker
+* **Client Bugs:** https://bugs.launchpad.net/python-tackerclient
+* **Blueprints:** https://blueprints.launchpad.net/tacker
 
 Indices and tables
 ------------------
