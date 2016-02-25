@@ -14,10 +14,10 @@
 #    under the License.
 
 import fixtures
-import testtools
 
 from tacker.db import api as db_api
 from tacker.db import model_base
+from tacker.tests.unit import base
 
 
 class SqlFixture(fixtures.Fixture):
@@ -42,7 +42,7 @@ class SqlFixture(fixtures.Fixture):
         self.addCleanup(clear_tables)
 
 
-class SqlTestCase(testtools.TestCase):
+class SqlTestCase(base.TestCase):
 
     def setUp(self):
         super(SqlTestCase, self).setUp()

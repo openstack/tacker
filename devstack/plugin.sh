@@ -34,7 +34,8 @@ if is_service_enabled tacker; then
         tacker_create_initial_network
         echo_summary "Upload OpenWrt image"
         tacker_create_openwrt_image
-
+        echo_summary "Registering default VIM"
+        tacker_register_default_vim
     fi
 
     if [[ "$1" == "unstack" ]]; then

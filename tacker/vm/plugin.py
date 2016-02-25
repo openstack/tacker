@@ -28,14 +28,16 @@ from tacker.api.v1 import attributes
 from tacker.common import driver_manager
 from tacker.db.vm import vm_db
 from tacker.extensions import vnfm
+from tacker.i18n import _LE
 from tacker.openstack.common import excutils
-from tacker.openstack.common.gettextutils import _LE
 from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
 from tacker.vm.mgmt_drivers import constants as mgmt_constants
 from tacker.vm import monitor
+from tacker.vm import vim_client
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 
 
 class VNFMMgmtMixin(object):
@@ -46,7 +48,7 @@ class VNFMMgmtMixin(object):
                    'Hosting Device/logical service '
                    'instance tacker plugin will use')),
         cfg.IntOpt('boot_wait', default=30,
-                   help=_('Time interval to wait for VM to boot')),
+            help=_('Time interval to wait for VM to boot'))
     ]
     cfg.CONF.register_opts(OPTS, 'tacker')
 
@@ -115,6 +117,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         super(VNFMPlugin, self).__init__()
         self._pool = eventlet.GreenPool()
         self.boot_wait = cfg.CONF.tacker.boot_wait
+        self.vim_client = vim_client.VimClient()
         self._device_manager = driver_manager.DriverManager(
             'tacker.tacker.device.drivers',
             cfg.CONF.tacker.infra_driver)
@@ -160,7 +163,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     ###########################################################################
     # hosting device
-    def add_device_to_monitor(self, device_dict):
+    def add_device_to_monitor(self, device_dict, vim_auth):
         dev_attrs = device_dict['attributes']
         mgmt_url = device_dict['mgmt_url']
         if 'monitoring_policy' in dev_attrs and mgmt_url:
@@ -168,7 +171,8 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                 action_cls = monitor.ActionPolicy.get_policy(action,
                                                              device_dict)
                 if action_cls:
-                    action_cls.execute_action(self, hosting_vnf['device'])
+                    action_cls.execute_action(self, hosting_vnf['device'],
+                                              vim_auth)
 
             hosting_vnf = self._vnf_monitor.to_hosting_vnf(
                 device_dict, action_cb)
@@ -189,7 +193,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         }
         self.update_device(context, device_id, update)
 
-    def _create_device_wait(self, context, device_dict):
+    def _create_device_wait(self, context, device_dict, auth_attr):
         driver_name = self._infra_driver_name(device_dict)
         device_id = device_dict['id']
         instance_id = self._instance_id(device_dict)
@@ -198,7 +202,8 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         try:
             self._device_manager.invoke(
                 driver_name, 'create_wait', plugin=self, context=context,
-                device_dict=device_dict, device_id=instance_id)
+                device_dict=device_dict, device_id=instance_id,
+                auth_attr=auth_attr)
         except vnfm.DeviceCreateWaitFailed:
             LOG.error(_LE("VNF Create failed for vnf_id %s"), device_id)
             create_failed = True
@@ -233,7 +238,16 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         device_dict['status'] = new_status
         self._create_device_status(context, device_id, new_status)
 
-    def _create_device(self, context, device):
+    def get_vim(self, context, device):
+        region_name = device.setdefault('placement_attr', {}).get(
+            'region_name', None)
+        vim_res = self.vim_client.get_vim(context, device['vim_id'],
+                                          region_name)
+        device['placement_attr']['vim_name'] = vim_res['vim_name']
+        device['vim_id'] = vim_res['vim_id']
+        return vim_res['vim_auth']
+
+    def _create_device(self, context, device, vim_auth):
         device_dict = self._create_device_pre(context, device)
         device_id = device_dict['id']
         driver_name = self._infra_driver_name(device_dict)
@@ -242,7 +256,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         try:
             instance_id = self._device_manager.invoke(
                 driver_name, 'create', plugin=self,
-                context=context, device=device_dict)
+                context=context, device=device_dict, auth_attr=vim_auth)
         except Exception:
             with excutils.save_and_reraise_exception():
                 self.delete_device(context, device_id)
@@ -251,16 +265,17 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
             self._create_device_post(context, device_id, None, None,
                                      device_dict)
             return
-
         device_dict['instance_id'] = instance_id
         return device_dict
 
     def create_device(self, context, device):
-        device_dict = self._create_device(context, device)
+        device_info = device['device']
+        vim_auth = self.get_vim(context, device_info)
+        device_dict = self._create_device(context, device_info, vim_auth)
 
         def create_device_wait():
-            self._create_device_wait(context, device_dict)
-            self.add_device_to_monitor(device_dict)
+            self._create_device_wait(context, device_dict, vim_auth)
+            self.add_device_to_monitor(device_dict, vim_auth)
             self.config_device(context, device_dict)
         self.spawn_n(create_device_wait)
         return device_dict
@@ -268,11 +283,13 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
     # not for wsgi, but for service to create hosting device
     # the device is NOT added to monitor.
     def create_device_sync(self, context, device):
-        device_dict = self._create_device(context, device)
-        self._create_device_wait(context, device_dict)
+        device_info = device['device']
+        vim_auth = self.get_vim(context, device_info)
+        device_dict = self._create_device(context, device_info, vim_auth)
+        self._create_device_wait(context, device_dict, vim_auth)
         return device_dict
 
-    def _update_device_wait(self, context, device_dict):
+    def _update_device_wait(self, context, device_dict, vim_auth):
         driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
         kwargs = {
@@ -280,10 +297,14 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
             mgmt_constants.KEY_KWARGS: {'device': device_dict},
         }
         new_status = constants.ACTIVE
+        placement_attr = device_dict['placement_attr']
+        region_name = placement_attr.get('region_name', None)
+
         try:
             self._device_manager.invoke(
                 driver_name, 'update_wait', plugin=self,
-                context=context, device_id=instance_id)
+                context=context, device_id=instance_id, auth_attr=vim_auth,
+                region_name=region_name)
             self.mgmt_call(context, device_dict, kwargs)
         except Exception:
             LOG.exception(_('_update_device_wait'))
@@ -296,6 +317,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     def update_device(self, context, device_id, device):
         device_dict = self._update_device_pre(context, device_id)
+        vim_auth = self.get_vim(context, device_dict)
         driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
 
@@ -303,25 +325,28 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
             self.mgmt_update_pre(context, device_dict)
             self._device_manager.invoke(
                 driver_name, 'update', plugin=self, context=context,
-                device_id=instance_id, device_dict=device_dict, device=device)
+                device_id=instance_id, device_dict=device_dict,
+                device=device, auth_attr=vim_auth)
         except Exception:
             with excutils.save_and_reraise_exception():
                 device_dict['status'] = constants.ERROR
                 self.mgmt_update_post(context, device_dict)
                 self._update_device_post(context, device_id, constants.ERROR)
 
-        self.spawn_n(self._update_device_wait, context, device_dict)
+        self.spawn_n(self._update_device_wait, context, device_dict, vim_auth)
         return device_dict
 
-    def _delete_device_wait(self, context, device_dict):
+    def _delete_device_wait(self, context, device_dict, auth_attr):
         driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
-
         e = None
+        placement_attr = device_dict['placement_attr']
+        region_name = placement_attr.get('region_name', None)
         try:
             self._device_manager.invoke(
                 driver_name, 'delete_wait', plugin=self,
-                context=context, device_id=instance_id)
+                context=context, device_id=instance_id, auth_attr=auth_attr,
+                region_name=region_name)
         except Exception as e_:
             e = e_
             device_dict['status'] = constants.ERROR
@@ -332,10 +357,12 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     def delete_device(self, context, device_id):
         device_dict = self._delete_device_pre(context, device_id)
+        vim_auth = self.get_vim(context, device_dict)
         self._vnf_monitor.delete_hosting_vnf(device_id)
         driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
-
+        placement_attr = device_dict['placement_attr']
+        region_name = placement_attr.get('region_name', None)
         kwargs = {
             mgmt_constants.KEY_ACTION: mgmt_constants.ACTION_DELETE_DEVICE,
             mgmt_constants.KEY_KWARGS: {'device': device_dict},
@@ -344,7 +371,10 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
             self.mgmt_delete_pre(context, device_dict)
             self.mgmt_call(context, device_dict, kwargs)
             self._device_manager.invoke(driver_name, 'delete', plugin=self,
-                                        context=context, device_id=instance_id)
+                                        context=context,
+                                        device_id=instance_id,
+                                        auth_attr=vim_auth,
+                                        region_name=region_name)
         except Exception as e:
             # TODO(yamahata): when the devaice is already deleted. mask
             # the error, and delete row in db
@@ -355,7 +385,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                 self._delete_device_post(context, device_id, e)
 
         self._delete_device_post(context, device_id, None)
-        self.spawn_n(self._delete_device_wait, context, device_dict)
+        self.spawn_n(self._delete_device_wait, context, device_dict, vim_auth)
 
     def create_vnf(self, context, vnf):
         vnf['device'] = vnf.pop('vnf')

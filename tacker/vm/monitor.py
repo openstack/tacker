@@ -239,7 +239,7 @@ class ActionRespawn(ActionPolicy):
 @ActionPolicy.register('respawn', 'heat')
 class ActionRespawnHeat(ActionPolicy):
     @classmethod
-    def execute_action(cls, plugin, device_dict):
+    def execute_action(cls, plugin, device_dict, auth_attr):
         device_id = device_dict['id']
         LOG.error(_('device %s dead'), device_id)
         if plugin._mark_device_dead(device_dict['id']):
@@ -257,25 +257,19 @@ class ActionRespawnHeat(ActionPolicy):
             attributes = device_dict['attributes'].copy()
             attributes['dead_device_id'] = device_id
             new_device = {'id': new_device_id, 'attributes': attributes}
-            for key in ('tenant_id', 'template_id', 'name'):
+            for key in ('tenant_id', 'template_id', 'name', 'vim_id',
+                        'placement_attr'):
                 new_device[key] = device_dict[key]
             LOG.debug(_('new_device %s'), new_device)
-
+            placement_attr = device_dict.get('placement_attr', {})
+            region_name = placement_attr.get('region_name', None)
             # kill heat stack
-            heatclient = heat.HeatClient(None)
+            heatclient = heat.HeatClient(auth_attr=auth_attr,
+                                         region_name=region_name)
             heatclient.delete(device_dict['instance_id'])
 
-            # keystone v2.0 specific
-            authtoken = CONF.keystone_authtoken
-            token = clients.OpenstackClients().auth_token
-
+            # TODO(anyone) set the current request ctxt instead of admin ctxt
             context = t_context.get_admin_context()
-            context.tenant_name = authtoken.project_name
-            context.user_name = authtoken.username
-            context.auth_token = token['id']
-            context.tenant_id = token['tenant_id']
-            context.user_id = token['user_id']
-
             new_device_dict = plugin.create_device_sync(
                 context, {'device': new_device})
             LOG.info(_('respawned new device %s'), new_device_dict['id'])
@@ -295,7 +289,7 @@ class ActionRespawnHeat(ActionPolicy):
                 new_device_dict.setdefault('attributes', {})['config'] = config
 
             plugin.config_device(context, new_device_dict)
-            plugin.add_device_to_monitor(new_device_dict)
+            plugin.add_device_to_monitor(new_device_dict, auth_attr)
 
 
 @ActionPolicy.register('log')

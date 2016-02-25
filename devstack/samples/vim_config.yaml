@@ -1,0 +1,4 @@
+auth_url: 'http://localhost:5000'
+username: 'nfv_user'
+password: 'devstack'
+project_name: 'nfv'

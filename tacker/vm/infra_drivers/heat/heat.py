@@ -174,11 +174,12 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
     @log.log
     def _process_vdu_network_interfaces(self, vdu_id, vdu_dict, properties,
                                         template_dict):
+
         def make_port_dict():
             port_dict = {
                 'type': 'OS::Neutron::Port',
                 'properties': {
-                    'port_security_enabled': False
+                        'port_security_enabled': False
                 }
             }
             port_dict['properties'].setdefault('fixed_ips', [])
@@ -229,9 +230,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             networks_list.append(dict(network_param))
 
     @log.log
-    def create(self, plugin, context, device):
+    def create(self, plugin, context, device, auth_attr):
         LOG.debug(_('device %s'), device)
-        heatclient_ = HeatClient(context)
         attributes = device['device_template']['attributes'].copy()
         vnfd_yaml = attributes.pop('vnfd', None)
         fields = dict((key, attributes.pop(key)) for key
@@ -250,6 +250,9 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             if key in dev_attrs:
                 fields.setdefault(key, {}).update(
                     jsonutils.loads(dev_attrs.pop(key)))
+
+        region_name = device.get('placement_attr', {}).get('region_name', None)
+        heatclient_ = HeatClient(auth_attr, region_name)
 
         LOG.debug('vnfd_yaml %s', vnfd_yaml)
         if vnfd_yaml is not None:
@@ -381,8 +384,10 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         stack = heatclient_.create(fields)
         return stack['stack']['id']
 
-    def create_wait(self, plugin, context, device_dict, device_id):
-        heatclient_ = HeatClient(context)
+    def create_wait(self, plugin, context, device_dict, device_id, auth_attr):
+        region_name = device_dict.get('placement_attr', {}).get(
+            'region_name', None)
+        heatclient_ = HeatClient(auth_attr, region_name)
 
         stack = heatclient_.get(device_id)
         status = stack.stack_status
@@ -422,9 +427,11 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             device_dict['mgmt_url'] = jsonutils.dumps(mgmt_ips)
 
     @log.log
-    def update(self, plugin, context, device_id, device_dict, device):
-        # checking if the stack exists at the moment
-        heatclient_ = HeatClient(context)
+    def update(self, plugin, context, device_id, device_dict, device,
+               auth_attr):
+        region_name = device_dict.get('placement_attr', {}).get(
+            'region_name', None)
+        heatclient_ = HeatClient(auth_attr, region_name)
         heatclient_.get(device_id)
 
         # update config attribute
@@ -461,18 +468,20 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
         new_yaml = yaml.dump(config_dict)
         device_dict.setdefault('attributes', {})['config'] = new_yaml
 
-    def update_wait(self, plugin, context, device_id):
+    def update_wait(self, plugin, context, device_id, auth_attr,
+                    region_name=None):
         # do nothing but checking if the stack exists at the moment
-        heatclient_ = HeatClient(context)
+        heatclient_ = HeatClient(auth_attr, region_name)
         heatclient_.get(device_id)
 
-    def delete(self, plugin, context, device_id):
-        heatclient_ = HeatClient(context)
+    def delete(self, plugin, context, device_id, auth_attr, region_name=None):
+        heatclient_ = HeatClient(auth_attr, region_name)
         heatclient_.delete(device_id)
 
     @log.log
-    def delete_wait(self, plugin, context, device_id):
-        heatclient_ = HeatClient(context)
+    def delete_wait(self, plugin, context, device_id, auth_attr,
+                    region_name=None):
+        heatclient_ = HeatClient(auth_attr, region_name)
 
         stack = heatclient_.get(device_id)
         status = stack.stack_status
@@ -513,9 +522,11 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
 
 class HeatClient(object):
-    def __init__(self, context, password=None):
+    def __init__(self, auth_attr, region_name=None):
         # context, password are unused
-        self.stacks = clients.OpenstackClients().heat.stacks
+        self.heat = clients.OpenstackClients(auth_attr, region_name).heat
+        self.stacks = self.heat.stacks
+        self.resource_types = self.heat.resource_types
 
     def create(self, fields):
         fields = fields.copy()

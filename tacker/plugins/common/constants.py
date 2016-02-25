@@ -19,11 +19,13 @@
 CORE = "CORE"
 DUMMY = "DUMMY"
 VNFM = "VNFM"
+NFVO = "NFVO"
 
 COMMON_PREFIXES = {
     CORE: "",
     DUMMY: "/dummy_svc",
     VNFM: "",
+    NFVO: ""
 }
 
 # Service operation status constants

@@ -16,10 +16,10 @@
 import codecs
 import mock
 import os
-import testtools
 import yaml
 
 from tacker import context
+from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
 from tacker.vm.infra_drivers.heat import heat
 
@@ -45,7 +45,7 @@ def _get_template(name):
     return f.read()
 
 
-class TestDeviceHeat(testtools.TestCase):
+class TestDeviceHeat(base.TestCase):
     hot_template = _get_template('hot_openwrt.yaml')
     hot_param_template = _get_template('hot_openwrt_params.yaml')
     hot_ipparam_template = _get_template('hot_openwrt_ipparams.yaml')
@@ -142,7 +142,8 @@ class TestDeviceHeat(testtools.TestCase):
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields()
         result = self.heat_driver.create(plugin=None, context=self.context,
-                                         device=device_obj)
+                                         device=device_obj,
+                                         auth_attr=utils.get_vim_auth_obj())
         self.heat_client.create.assert_called_once_with(expected_fields)
         self.assertEqual(expected_result, result)
 
@@ -151,7 +152,8 @@ class TestDeviceHeat(testtools.TestCase):
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields_user_data()
         result = self.heat_driver.create(plugin=None, context=self.context,
-                                         device=device_obj)
+                                         device=device_obj,
+                                         auth_attr=utils.get_vim_auth_obj())
         self.heat_client.create.assert_called_once_with(expected_fields)
         self.assertEqual(expected_result, result)
 
@@ -160,7 +162,8 @@ class TestDeviceHeat(testtools.TestCase):
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields_ipaddr_data()
         result = self.heat_driver.create(plugin=None, context=self.context,
-                                         device=device_obj)
+                                         device=device_obj,
+                                         auth_attr=utils.get_vim_auth_obj())
         self.heat_client.create.assert_called_once_with(expected_fields)
         self.assertEqual(expected_result, result)
 
@@ -171,13 +174,15 @@ class TestDeviceHeat(testtools.TestCase):
         self.heat_driver.create_wait(plugin=None,
                                      context=self.context,
                                      device_dict=device_obj,
-                                     device_id=device_id)
+                                     device_id=device_id,
+                                     auth_attr=utils.get_vim_auth_obj())
         self.assertEqual(device_obj, expected_result)
 
     def test_delete(self):
         device_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         self.heat_driver.delete(plugin=None, context=self.context,
-                                device_id=device_id)
+                                device_id=device_id,
+                                auth_attr=utils.get_vim_auth_obj())
         self.heat_client.delete.assert_called_once_with(device_id)
 
     def test_update(self):
@@ -185,9 +190,10 @@ class TestDeviceHeat(testtools.TestCase):
         device_config_obj = utils.get_dummy_device_update_config_attr()
         expected_device_update = self._get_expected_device_update_obj()
         device_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
-        self.heat_driver.update(None, self.context,
-                                device_id, device_obj,
-                                device_config_obj)
+        self.heat_driver.update(plugin=None, context=self.context,
+                                device_id=device_id, device_dict=device_obj,
+                                device=device_config_obj,
+                                auth_attr=utils.get_vim_auth_obj())
         self.assertEqual(device_obj, expected_device_update)
 
     def test_create_device_template_pre_tosca(self):
@@ -238,10 +244,10 @@ class TestDeviceHeat(testtools.TestCase):
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields_tosca(hot_tpl_name)
         expected_device = self._get_expected_tosca_device(tosca_tpl_name,
-            hot_tpl_name)
+                                                          hot_tpl_name)
         result = self.heat_driver.create(plugin=None, context=self.context,
-                                         device=device)
-        # self.heat_client.create.assert_called_once_with(expected_fields)
+                                         device=device,
+                                         auth_attr=utils.get_vim_auth_obj())
         actual_fields = self.heat_client.create.call_args[0][0]
         actual_fields["template"] = yaml.safe_load(actual_fields["template"])
         expected_fields["template"] = \
@@ -249,6 +255,7 @@ class TestDeviceHeat(testtools.TestCase):
         self.assertEqual(actual_fields, expected_fields)
         device["attributes"]["heat_template"] = yaml.safe_load(
             device["attributes"]["heat_template"])
+        self.heat_client.create.assert_called_once_with(expected_fields)
         self.assertEqual(expected_result, result)
         self.assertEqual(device, expected_device)
 

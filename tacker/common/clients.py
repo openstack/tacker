@@ -11,48 +11,33 @@
 # under the License.
 
 from heatclient import client as heatclient
-from keystoneclient.v2_0 import client as ks_client
-from oslo_config import cfg
-
-CONF = cfg.CONF
-
-OPTS = [
-    cfg.StrOpt('heat_uri',
-               default='http://localhost:8004/v1',
-               help=_("Heat service URI to create VNF resources"
-                      "specified in the VNFD templates")),
-]
-CONF.register_opts(OPTS, group='tacker_heat')
+from tacker.vm import keystone
 
 
 class OpenstackClients(object):
 
-    def __init__(self):
+    def __init__(self, auth_attr, region_name=None):
         super(OpenstackClients, self).__init__()
-        self.keystone_client = None
+        self.keystone_plugin = keystone.Keystone()
         self.heat_client = None
-        self.nova_client = None
-        self.auth_url = CONF.keystone_authtoken.auth_uri + '/v2.0'
-        self.auth_username = CONF.keystone_authtoken.username
-        self.auth_password = CONF.keystone_authtoken.password
-        self.auth_tenant_name = CONF.keystone_authtoken.project_name
+        self.keystone_client = None
+        self.region_name = region_name
+        self.auth_attr = auth_attr
 
     def _keystone_client(self):
-        return ks_client.Client(
-            tenant_name=self.auth_tenant_name,
-            username=self.auth_username,
-            password=self.auth_password,
-            auth_url=self.auth_url)
+        version = self.auth_attr['auth_url'].rpartition('/')[2]
+        return self.keystone_plugin.initialize_client(version,
+                                                      **self.auth_attr)
 
     def _heat_client(self):
-        tenant_id = self.auth_token['tenant_id']
-        token = self.auth_token['id']
-        endpoint = CONF.tacker_heat.heat_uri + '/' + tenant_id
-        return heatclient.Client('1', endpoint=endpoint, token=token)
+        endpoint = self.keystone_session.get_endpoint(
+            service_type='orchestration', region_name=self.region_name)
+        return heatclient.Client('1', endpoint=endpoint,
+                                 session=self.keystone_session)
 
     @property
-    def auth_token(self):
-        return self.keystone.service_catalog.get_token()
+    def keystone_session(self):
+        return self.keystone.session
 
     @property
     def keystone(self):

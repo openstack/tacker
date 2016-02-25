@@ -27,13 +27,17 @@ import os
 import random
 import signal
 import socket
+import sys
 import uuid
 
 from eventlet.green import subprocess
 import netaddr
 from oslo_config import cfg
+from oslo_utils import importutils
+from stevedore import driver
 
 from tacker.common import constants as q_const
+from tacker.i18n import _LE
 from tacker.openstack.common import lockutils
 from tacker.openstack.common import log as logging
 
@@ -63,7 +67,7 @@ MEM_UNITS = {
         }
     }
 }
-
+CONF = cfg.CONF
 synchronized = lockutils.synchronized_with_prefix(SYNCHRONIZED_PREFIX)
 
 
@@ -347,3 +351,44 @@ def change_memory_unit(mem, to):
         return eval(mem_arr[0] +
                     MEM_UNITS[unit][to]["op"] +
                     MEM_UNITS[unit][to]["val"])
+
+
+def load_class_by_alias_or_classname(namespace, name):
+    """Load class using stevedore alias or the class name
+
+    Load class using the stevedore driver manager
+    :param namespace: namespace where the alias is defined
+    :param name: alias or class name of the class to be loaded
+    :returns class if calls can be loaded
+    :raises ImportError if class cannot be loaded
+    """
+
+    if not name:
+        LOG.error(_LE("Alias or class name is not set"))
+        raise ImportError(_("Class not found."))
+    try:
+        # Try to resolve class by alias
+        mgr = driver.DriverManager(namespace, name)
+        class_to_load = mgr.driver
+    except RuntimeError:
+        e1_info = sys.exc_info()
+        # Fallback to class name
+        try:
+            class_to_load = importutils.import_class(name)
+        except (ImportError, ValueError):
+            LOG.error(_LE("Error loading class by alias"),
+                      exc_info=e1_info)
+            LOG.error(_LE("Error loading class by class name"),
+                      exc_info=True)
+            raise ImportError(_("Class not found."))
+    return class_to_load
+
+
+def deep_update(orig_dict, new_dict):
+    for key, value in new_dict.items():
+        if isinstance(value, dict):
+            if key in orig_dict and isinstance(orig_dict[key], dict):
+                deep_update(orig_dict[key], value)
+                continue
+
+        orig_dict[key] = value

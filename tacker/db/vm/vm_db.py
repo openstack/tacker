@@ -120,6 +120,9 @@ class Device(model_base.BASE, models_v1.HasTenant):
     attributes = orm.relationship("DeviceAttribute", backref="device")
 
     status = sa.Column(sa.String(255), nullable=False)
+    vim_id = sa.Column(sa.String(36), sa.ForeignKey('vims.id'), nullable=False)
+    placement_attr = sa.Column(sa.PickleType, nullable=True)
+    vim = orm.relationship('Vim')
 
 
 class DeviceAttribute(model_base.BASE, models_v1.HasId):
@@ -195,7 +198,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             'attributes': self._make_dev_attrs_dict(device_db.attributes),
         }
         key_list = ('id', 'tenant_id', 'name', 'description', 'instance_id',
-                    'template_id', 'status', 'mgmt_url')
+                    'vim_id', 'placement_attr', 'template_id', 'status',
+                    'mgmt_url')
         res.update((key, device_db[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -335,13 +339,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     # called internally, not by REST API
     def _create_device_pre(self, context, device):
-        device = device['device']
         LOG.debug(_('device %s'), device)
         tenant_id = self._get_tenant_id_for_create(context, device)
         template_id = device['template_id']
         name = device.get('name')
         device_id = device.get('id') or str(uuid.uuid4())
         attributes = device.get('attributes', {})
+        vim_id = device.get('vim_id')
+        placement_attr = device.get('placement_attr', {})
         with context.session.begin(subtransactions=True):
             template_db = self._get_resource(context, DeviceTemplate,
                                              template_id)
@@ -351,13 +356,15 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                                description=template_db.description,
                                instance_id=None,
                                template_id=template_id,
+                               vim_id=vim_id,
+                               placement_attr=placement_attr,
                                status=constants.PENDING_CREATE)
             context.session.add(device_db)
             for key, value in attributes.items():
-                arg = DeviceAttribute(
-                    id=str(uuid.uuid4()), device_id=device_id,
-                    key=key, value=value)
-                context.session.add(arg)
+                    arg = DeviceAttribute(
+                        id=str(uuid.uuid4()), device_id=device_id,
+                        key=key, value=value)
+                    context.session.add(arg)
 
         return self._make_device_dict(device_db)
 
@@ -376,8 +383,10 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 query.update({'status': constants.ERROR})
 
             for (key, value) in device_dict['attributes'].items():
-                self._device_attribute_update_or_create(context, device_id,
-                                                        key, value)
+                # do not store decrypted vim auth in device attr table
+                if 'vim_auth' not in key:
+                    self._device_attribute_update_or_create(context, device_id,
+                                                            key, value)
 
     def _create_device_status(self, context, device_id, new_status):
         with context.session.begin(subtransactions=True):
@@ -421,7 +430,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
              delete(synchronize_session='fetch'))
 
             for (key, value) in dev_attrs.items():
-                self._device_attribute_update_or_create(context, device_id,
+                if 'vim_auth' not in key:
+                    self._device_attribute_update_or_create(context, device_id,
                                                         key, value)
 
     def _delete_device_pre(self, context, device_id):
@@ -532,7 +542,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 description=device_db.description,
                 instance_id=device_db.instance_id,
                 mgmt_url=device_db.mgmt_url,
-                status=device_db.status)
+                status=device_db.status,
+                vim_id=device_db.vim_id,
+                placement_attr=device_db.placement_attr)
             context.session.add(new_device_db)
 
             (self._model_query(context, DeviceAttribute).

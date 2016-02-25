@@ -23,7 +23,7 @@ from tacker.api.v1 import resource_helper
 from tacker.common import exceptions
 from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
-from tacker.services.service_base import NFVPluginBase
+from tacker.services import service_base
 
 
 LOG = logging.getLogger(__name__)
@@ -225,6 +225,13 @@ RESOURCE_ATTRIBUTE_MAP = {
             'validate': {'type:uuid': None},
             'is_visible': True,
         },
+        'vim_id': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:string': None},
+            'is_visible': True,
+            'default': '',
+        },
         'name': {
             'allow_post': True,
             'allow_put': True,
@@ -254,6 +261,13 @@ RESOURCE_ATTRIBUTE_MAP = {
         'attributes': {
             'allow_post': True,
             'allow_put': True,
+            'validate': {'type:dict_or_none': None},
+            'is_visible': True,
+            'default': {},
+        },
+        'placement_attr': {
+            'allow_post': True,
+            'allow_put': False,
             'validate': {'type:dict_or_none': None},
             'is_visible': True,
             'default': {},
@@ -313,7 +327,7 @@ class Vnfm(extensions.ExtensionDescriptor):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class VNFMPluginBase(NFVPluginBase):
+class VNFMPluginBase(service_base.NFVPluginBase):
     def get_plugin_name(self):
         return constants.VNFM
 

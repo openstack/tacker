@@ -47,6 +47,7 @@ def get_dummy_vnfd_obj():
 def get_dummy_vnf_obj():
     return {'vnf': {'description': 'dummy_vnf_description',
                     'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                    'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
                     'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                     'name': 'dummy_vnf',
                     'attributes': {}}}
@@ -152,3 +153,10 @@ def get_dummy_device_obj_userdata_attr():
             'services': [], 'attributes': {u'param_values': userdata_params},
             'id': '18685f68-2b2a-4185-8566-74f54e548811',
             'description': u"Parameterized VNF descriptor"}
+
+
+def get_vim_auth_obj():
+    return {'username': 'test_user', 'password': 'test_password',
+            'project_id': None, 'project_name': 'test_project',
+            'auth_url': 'http://localhost:5000/v3', 'user_domain_id':
+                'default', 'project_domain_id': 'default'}
