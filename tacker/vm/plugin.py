@@ -41,8 +41,8 @@ LOG = logging.getLogger(__name__)
 
 class VNFMMgmtMixin(object):
     OPTS = [
-        cfg.MultiStrOpt(
-            'mgmt_driver', default=[],
+        cfg.ListOpt(
+            'mgmt_driver', default=['noop', 'openwrt'],
             help=_('MGMT driver to communicate with '
                    'Hosting Device/logical service '
                    'instance tacker plugin will use')),
@@ -106,7 +106,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
     """
     OPTS = [
         cfg.ListOpt(
-            'infra_driver', default=['heat'],
+            'infra_driver', default=['nova', 'heat', 'noop'],
             help=_('Hosting device drivers tacker plugin will use')),
     ]
     cfg.CONF.register_opts(OPTS, 'tacker')
