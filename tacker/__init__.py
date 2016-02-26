@@ -17,5 +17,9 @@
 
 import gettext
 
+import six
 
-gettext.install('tacker', unicode=1)
+if six.PY2:
+    gettext.install('tacker', unicode=1)
+else:
+    gettext.install('tacker')
