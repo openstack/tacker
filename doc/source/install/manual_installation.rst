@@ -25,11 +25,11 @@ controller node
 Pre-requisites
 ==============
 
-1) Ensure that OpenStack components Keystone, Glance, Nova, Neutron, Heat and
+1). Ensure that OpenStack components Keystone, Glance, Nova, Neutron, Heat and
 Horizon are installed. Refer http://docs.openstack.org/ for installation of
 OpenStack on different Operating Systems.
 
-2) Create client environment scripts "admin-openrc.sh" and "demo-openrc.sh"
+2). Create client environment scripts "admin-openrc.sh" and "demo-openrc.sh"
 for the admin and demo projects. Sample instructions for Ubuntu can be found
 at link below:
 http://docs.openstack.org/liberty/install-guide-ubuntu/keystone-openrc.html#creating-the-scripts

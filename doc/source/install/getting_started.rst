@@ -34,7 +34,7 @@ i). Create a sample-vnfd.yml file with the following content:
       version: 1
 
     vdus:
-    ..vdu1:
+      vdu1:
         id: vdu1
         vm_image: <IMAGE>
         instance_type: <FLAVOR>
