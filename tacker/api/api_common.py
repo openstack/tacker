@@ -26,7 +26,7 @@ from tacker.openstack.common import log as logging
 LOG = logging.getLogger(__name__)
 
 
-def get_filters(request, attr_info, skips=[]):
+def get_filters(request, attr_info, skips=None):
     """Extracts the filters from the request string.
 
     Returns a dict of lists for the filters:
@@ -35,6 +35,8 @@ def get_filters(request, attr_info, skips=[]):
     {'check': [u'a', u'b'], 'name': [u'Bob']}
     """
     res = {}
+    if skips is None:
+        skips = []
     for key, values in request.GET.dict_of_lists().iteritems():
         if key in skips:
             continue
