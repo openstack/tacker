@@ -269,12 +269,6 @@ class ActionRespawnHeat(ActionPolicy):
             heatclient = heat.HeatClient(None)
             heatclient.delete(device_dict['instance_id'])
 
-            # TODO(sripriya): sleep timer has been provided as a temporary
-            # workaround for the nova neutron port still in use issue. Need
-            # to come up with a better fix for the issue
-            LOG.debug('Sleeping for 10 seconds before initiating respawn')
-            time.sleep(10)
-
             # keystone v2.0 specific
             authtoken = CONF.keystone_authtoken
             token = clients.OpenstackClients().auth_token
