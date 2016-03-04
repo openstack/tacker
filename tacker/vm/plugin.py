@@ -28,6 +28,7 @@ from oslo_config import cfg
 
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
+from tacker.common.utils import deprecated
 from tacker.db.vm import proxy_db  # noqa
 from tacker.db.vm import vm_db
 from tacker.extensions import vnfm
@@ -126,7 +127,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
     ###########################################################################
     # hosting device template
 
-    def create_device_template(self, context, device_template):
+    def _inner_create_device_template(self, context, device_template):
         template = device_template['device_template']
         LOG.debug(_('template %s'), template)
 
@@ -158,6 +159,10 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         return super(VNFMPlugin, self).create_device_template(
             context, device_template)
 
+    @deprecated("create_device_template")
+    def create_device_template(self, context, device):
+        return self._inner_create_device_template(context, device)
+
     ###########################################################################
     # hosting device
     def add_device_to_monitor(self, device_dict):
@@ -187,7 +192,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                 'attributes': {'config': config},
             }
         }
-        self.update_device(context, device_id, update)
+        self._inner_update_device(context, device_id, update)
 
     def _create_device_wait(self, context, device_dict):
         driver_name = self._infra_driver_name(device_dict)
@@ -254,7 +259,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         device_dict['instance_id'] = instance_id
         return device_dict
 
-    def create_device(self, context, device):
+    def _inner_create_device(self, context, device):
         device_dict = self._create_device(context, device)
 
         def create_device_wait():
@@ -263,6 +268,10 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
             self.config_device(context, device_dict)
         self.spawn_n(create_device_wait)
         return device_dict
+
+    @deprecated("create_device")
+    def create_device(self, context, device):
+        return self._inner_create_device(context, device)
 
     # not for wsgi, but for service to create hosting device
     # the device is NOT added to monitor.
@@ -293,7 +302,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         self._update_device_post(context, device_dict['id'],
                                  new_status, device_dict)
 
-    def update_device(self, context, device_id, device):
+    def _inner_update_device(self, context, device_id, device):
         device_dict = self._update_device_pre(context, device_id)
         driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
@@ -312,6 +321,10 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         self.spawn_n(self._update_device_wait, context, device_dict)
         return device_dict
 
+    @deprecated("update_device")
+    def update_device(self, context, device_id, device):
+        return self._inner_update_device(context, device_id, device)
+
     def _delete_device_wait(self, context, device_dict):
         driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
@@ -329,7 +342,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         device_id = device_dict['id']
         self._delete_device_post(context, device_id, e)
 
-    def delete_device(self, context, device_id):
+    def _inner_delete_device(self, context, device_id):
         device_dict = self._delete_device_pre(context, device_id)
         self._vnf_monitor.delete_hosting_vnf(device_id)
         driver_name = self._infra_driver_name(device_dict)
@@ -356,11 +369,15 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         self._delete_device_post(context, device_id, None)
         self.spawn_n(self._delete_device_wait, context, device_dict)
 
+    @deprecated("delete_device")
+    def delete_device(self, context, device_id):
+        self._inner_delete_device(context, device_id)
+
     def create_vnf(self, context, vnf):
         vnf['device'] = vnf.pop('vnf')
         vnf_attributes = vnf['device']
         vnf_attributes['template_id'] = vnf_attributes.pop('vnfd_id')
-        vnf_dict = self.create_device(context, vnf)
+        vnf_dict = self._inner_create_device(context, vnf)
         vnf_response = copy.deepcopy(vnf_dict)
         vnf_response['vnfd_id'] = vnf_response.pop('template_id')
         return vnf_response
@@ -368,12 +385,12 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
     def update_vnf(
             self, context, vnf_id, vnf):
         vnf['device'] = vnf.pop('vnf')
-        return self.update_device(context, vnf_id, vnf)
+        return self._inner_update_device(context, vnf_id, vnf)
 
     def delete_vnf(self, context, vnf_id):
-        self.delete_device(context, vnf_id)
+        self._inner_delete_device(context, vnf_id)
 
     def create_vnfd(self, context, vnfd):
         vnfd['device_template'] = vnfd.pop('vnfd')
-        new_dict = self.create_device_template(context, vnfd)
+        new_dict = self._inner_create_device_template(context, vnfd)
         return new_dict

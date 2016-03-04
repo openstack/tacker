@@ -308,3 +308,17 @@ def is_valid_ipv4(address):
         return netaddr.valid_ipv4(address)
     except Exception:
         return False
+
+
+def deprecated(name):
+    """On the basis of tacker version, this decorator
+
+    can be used to mark a call as deprecated.
+    """
+    def _deprecate(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            LOG.deprecated("Call to %s deprecated, avoid its usage" % name)
+            return func(*args, **kwargs)
+        return wrapper
+    return _deprecate
