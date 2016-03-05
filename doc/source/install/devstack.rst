@@ -59,9 +59,10 @@ Install from Liberty
 Multi Node Environment
 ~~~~~~~~~~~~~~~~~~~~~~
 
-In a multi-node devstack environment where controller, network and compute nodes are separate, some
-neutron agents should not be installed in the controller node. In such cases, use the following
-local.conf setting to disable neutron agents in the controller node. ::
+In a multi-node devstack environment where controller, network and compute
+nodes are separate, some neutron agents should not be installed in the
+controller node. In such cases, use the following local.conf setting to disable
+neutron agents in the controller node::
 
     [[local|localrc]]
     TACKER_NEUTRON_AGENTS=''
