@@ -160,8 +160,10 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 }
             }
 
-        def handle_port_creation(network_param, ip_list=[],
+        def handle_port_creation(network_param, ip_list=None,
                                  mgmt_port=False):
+            if ip_list is None:
+                ip_list = []
             port = '%s-%s-port' % (vdu_id, network_param['network'])
             port_dict = make_port_dict()
             if mgmt_port:
