@@ -26,7 +26,6 @@ from oslo_config import cfg
 
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
-from tacker.db.vm import proxy_db  # noqa
 from tacker.db.vm import vm_db
 from tacker.extensions import vnfm
 from tacker.openstack.common import excutils
@@ -100,9 +99,9 @@ class VNFMMgmtMixin(object):
 
 
 class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
-    """VNFMPlugin which supports VNFM framework."""
+    """VNFMPlugin which supports VNFM framework.
 
-    """Plugin which supports Tacker framework
+    Plugin which supports Tacker framework
     """
     OPTS = [
         cfg.ListOpt(
