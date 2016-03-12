@@ -1,0 +1,34 @@
+heat_template_version: 2013-05-23
+
+description: >
+  OpenWRT with services
+
+outputs:
+  mgmt_ip-VDU1:
+    value:
+      get_attr: [CP1, fixed_ips, 0, ip_address]
+
+parameters: {}
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      config_drive: false
+      flavor: m1.nano
+      image: {get_resource: VDU1_image}
+      networks:
+        - port:
+            get_resource: CP1
+      user_data_format: SOFTWARE_CONFIG
+  CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: existing_network_1
+
+  VDU1_image:
+    type: OS::Glance::Image
+    properties:
+      container_format: bare
+      disk_format: raw
+      location: http://URL/vRouterVNF.qcow2
+      name: vm_image

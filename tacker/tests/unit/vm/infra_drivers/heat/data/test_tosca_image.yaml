@@ -1,0 +1,42 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: OpenWRT with services
+
+metadata:
+  template_name: OpenWRT
+
+topology_template:
+  node_templates:
+
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      artifacts:
+        vm_image:
+          type: tosca.artifacts.Deployment.Image.VM
+          file: http://URL/vRouterVNF.qcow2
+      properties:
+        flavor: m1.nano
+        mgmt_driver: noop
+        monitoring_policy:
+          name: ping
+          actions:
+            - {trigger: failure, action: respawn}
+          parameters:
+            count: "3"
+            interval: "10"
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: existing_network_1
+        vendor: ACME

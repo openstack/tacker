@@ -133,6 +133,11 @@ class NumaNodesInvalidKeys(exceptions.InvalidInput):
                 "Supported keys are: %(valid_keys)s")
 
 
+class FilePathMissing(exceptions.InvalidInput):
+    message = _("'file' attribute is missing for "
+                "tosca.artifacts.Deployment.Image.VM artifact type")
+
+
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("invalid data format for service list: '%s'") % data

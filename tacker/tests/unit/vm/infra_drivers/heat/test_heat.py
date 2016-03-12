@@ -312,3 +312,7 @@ class TestDeviceHeat(base.TestCase):
         self._test_assert_equal_for_tosca_templates(
             'tosca_flavor_numa_nodes.yaml',
             'hot_tosca_flavor_numa_nodes.yaml')
+
+    def test_create_tosca_with_new_image(self):
+        self._test_assert_equal_for_tosca_templates('test_tosca_image.yaml',
+            'hot_tosca_image.yaml')

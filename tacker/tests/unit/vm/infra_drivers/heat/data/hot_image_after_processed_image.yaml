@@ -1,0 +1,16 @@
+heat_template_version: 2013-05-23
+description: OpenWRT with services
+outputs: {}
+resources:
+  VDU1:
+    properties:
+      config_drive: true
+      flavor: m1.tiny
+      image: {get_resource: VDU1_image}
+  VDU1_image:
+    type: OS::Glance::Image
+    properties:
+      location: http://URL/v1/openwrt.qcow2
+      container_format: bare
+      disk_format: raw
+
