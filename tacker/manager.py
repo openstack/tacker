@@ -60,7 +60,8 @@ def validate_post_plugin_load():
     If the configuration is invalid then the method will return an error
     message. If all is OK then it will return None.
     """
-    pass
+    message = None
+    return message
 
 
 def validate_pre_plugin_load():
@@ -69,7 +70,8 @@ def validate_pre_plugin_load():
     If the configuration is invalid then the method will return an error
     message. If all is OK then it will return None.
     """
-    pass
+    message = None
+    return message
 
 
 class TackerManager(object):
