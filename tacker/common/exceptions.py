@@ -17,6 +17,8 @@
 Tacker base exception handling.
 """
 
+import six
+
 from tacker.openstack.common import excutils
 
 
@@ -41,7 +43,7 @@ class TackerException(Exception):
                     super(TackerException, self).__init__(self.message)
 
     def __unicode__(self):
-        return unicode(self.msg)
+        return six.text_type(self.msg)
 
     def use_fatal_exceptions(self):
         return False
