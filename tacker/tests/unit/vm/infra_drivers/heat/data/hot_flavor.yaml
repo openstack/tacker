@@ -1,0 +1,32 @@
+heat_template_version: 2013-05-23
+
+description: >
+  OpenWRT with services
+
+outputs:
+  mgmt_ip-VDU1:
+    value:
+      get_attr: [CP1, fixed_ips, 0, ip_address]
+
+parameters: {}
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      config_drive: false
+      flavor: {get_resource: VDU1_flavor}
+      image: OpenWRT
+      networks:
+        - port:
+            get_resource: CP1
+      user_data_format: SOFTWARE_CONFIG
+  CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: existing_network_1
+  VDU1_flavor:
+    type: OS::Nova::Flavor
+    properties:
+      disk: 10
+      ram: 512
+      vcpus: 2

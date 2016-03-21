@@ -1,6 +1,9 @@
 node_types:
   tosca.nodes.nfv.VDU.Tacker:
     derived_from: tosca.nodes.nfv.VDU
+    capabilities:
+      nfv_compute:
+        type: tosca.datatypes.compute_properties
     properties:
       image:
 #        type: tosca.artifacts.Deployment.Image.VM

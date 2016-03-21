@@ -17,6 +17,7 @@ import codecs
 import mock
 import os
 import testtools
+import yaml
 
 from tacker import context
 from tacker.tests.unit.db import utils
@@ -49,8 +50,6 @@ class TestDeviceHeat(testtools.TestCase):
     hot_param_template = _get_template('hot_openwrt_params.yaml')
     hot_ipparam_template = _get_template('hot_openwrt_ipparams.yaml')
     vnfd_openwrt = _get_template('openwrt.yaml')
-    tosca_openwrt = _get_template('test_tosca_openwrt.yaml')
-    hot_tosca_openwrt = _get_template('hot_tosca_openwrt.yaml')
     config_data = _get_template('config_data.yaml')
 
     def setUp(self):
@@ -192,22 +191,25 @@ class TestDeviceHeat(testtools.TestCase):
         self.assertEqual(device_obj, expected_device_update)
 
     def test_create_device_template_pre_tosca(self):
-        dtemplate = self._get_device_template(self.tosca_openwrt)
-        exp_tmpl = self._get_expected_device_template(self.tosca_openwrt)
+        tosca_tpl = _get_template('test_tosca_openwrt.yaml')
+        dtemplate = self._get_device_template(tosca_tpl)
+        exp_tmpl = self._get_expected_device_template(tosca_tpl)
         self.heat_driver.create_device_template_pre(None, None, dtemplate)
         self.assertEqual(dtemplate, exp_tmpl)
 
-    def _get_expected_fields_tosca(self):
+    def _get_expected_fields_tosca(self, template):
         return {'stack_name':
                 'tacker.vm.infra_drivers.heat.heat_DeviceHeat-eb84260e'
                 '-5ff7-4332-b032-50a14d6c1123',
-                'template': self.hot_tosca_openwrt}
+                'template': _get_template(template)}
 
-    def _get_expected_tosca_device(self):
-        exp_tmpl = self._get_expected_device_template(self.tosca_openwrt)
+    def _get_expected_tosca_device(self, tosca_tpl_name, hot_tpl_name):
+        tosca_tpl = _get_template(tosca_tpl_name)
+        exp_tmpl = self._get_expected_device_template(tosca_tpl)
+        tosca_hw_dict = yaml.safe_load(_get_template(hot_tpl_name))
         return {'device_template': exp_tmpl['device_template'],
                 'description': u'OpenWRT with services',
-                'attributes': {'heat_template': self.hot_tosca_openwrt,
+                'attributes': {'heat_template': tosca_hw_dict,
                                'monitoring_policy': '{"vdus": {"VDU1":'
                                ' {"name": "ping", "actions": [{"trigger":'
                                ' "failure", "action": "respawn"}],'
@@ -220,10 +222,8 @@ class TestDeviceHeat(testtools.TestCase):
                 'template_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
                 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437'}
 
-    def _get_dummy_tosca_device(self, template=''):
-        tosca_template = getattr(self, 'tosca_' + template, None)
-        if not tosca_template:
-            tosca_template = self.tosca_openwrt
+    def _get_dummy_tosca_device(self, template):
+        tosca_template = _get_template(template)
         device = utils.get_dummy_device_obj()
         dtemplate = self._get_expected_device_template(tosca_template)
         dtemplate['service_types'] = [{'service_type': 'vnfd', 'id':
@@ -232,14 +232,46 @@ class TestDeviceHeat(testtools.TestCase):
         device['device_template'] = dtemplate['device_template']
         return device
 
-    def test_create_tosca(self):
-        # self.skipTest("Not ready yet")
-        device = self._get_dummy_tosca_device()
+    def _test_assert_equal_for_tosca_templates(self, tosca_tpl_name,
+                                               hot_tpl_name):
+        device = self._get_dummy_tosca_device(tosca_tpl_name)
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
-        expected_fields = self._get_expected_fields_tosca()
-        expected_device = self._get_expected_tosca_device()
+        expected_fields = self._get_expected_fields_tosca(hot_tpl_name)
+        expected_device = self._get_expected_tosca_device(tosca_tpl_name,
+            hot_tpl_name)
         result = self.heat_driver.create(plugin=None, context=self.context,
                                          device=device)
-        self.heat_client.create.assert_called_once_with(expected_fields)
+        # self.heat_client.create.assert_called_once_with(expected_fields)
+        actual_fields = self.heat_client.create.call_args[0][0]
+        actual_fields["template"] = yaml.safe_load(actual_fields["template"])
+        expected_fields["template"] = \
+            yaml.safe_load(expected_fields["template"])
+        self.assertEqual(actual_fields, expected_fields)
+        device["attributes"]["heat_template"] = yaml.safe_load(
+            device["attributes"]["heat_template"])
         self.assertEqual(expected_result, result)
         self.assertEqual(device, expected_device)
+
+    def test_create_tosca(self):
+        # self.skipTest("Not ready yet")
+        self._test_assert_equal_for_tosca_templates('test_tosca_openwrt.yaml',
+            'hot_tosca_openwrt.yaml')
+
+    def test_create_tosca_with_new_flavor(self):
+        self._test_assert_equal_for_tosca_templates('test_tosca_flavor.yaml',
+            'hot_flavor.yaml')
+
+    def test_create_tosca_with_new_flavor_with_defaults(self):
+        self._test_assert_equal_for_tosca_templates(
+            'test_tosca_flavor_defaults.yaml',
+            'hot_flavor_defaults.yaml')
+
+    def test_create_tosca_with_flavor_and_capabilities(self):
+        self._test_assert_equal_for_tosca_templates(
+            'test_tosca_flavor_and_capabilities.yaml',
+            'hot_flavor_and_capabilities.yaml')
+
+    def test_create_tosca_with_flavor_no_units(self):
+        self._test_assert_equal_for_tosca_templates(
+            'test_tosca_flavor_no_units.yaml',
+            'hot_flavor_no_units.yaml')

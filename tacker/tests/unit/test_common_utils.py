@@ -381,3 +381,15 @@ class TestDict2Tuples(base.BaseTestCase):
         expected = ((42, 'baz'), ('aaa', 'zzz'), ('foo', 'bar'))
         output_tuple = utils.dict2tuple(input_dict)
         self.assertEqual(expected, output_tuple)
+
+
+class TestChangeMemory(testtools.TestCase):
+    def test_change_memory_from_mb_to_gb(self):
+        actual_val = utils.change_memory_unit("1024 mb", "GB")
+        expected_val = 1
+        self.assertEqual(actual_val, expected_val)
+
+    def test_change_memory_from_gb_to_mb(self):
+        actual_val = utils.change_memory_unit("1 GB", "MB")
+        expected_val = 1024
+        self.assertEqual(actual_val, expected_val)
