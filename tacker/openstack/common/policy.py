@@ -58,10 +58,11 @@ as it allows particular rules to be explicitly disabled.
 
 import abc
 import re
-import urllib
 
 import six
-import urllib2
+
+from six.moves.urllib import parse as urllib_parse
+from six.moves.urllib import request as urlrequest
 
 from tacker.openstack.common.gettextutils import _
 from tacker.openstack.common import jsonutils
@@ -756,8 +757,8 @@ class HttpCheck(Check):
         url = ('http:' + self.match) % target
         data = {'target': jsonutils.dumps(target),
                 'credentials': jsonutils.dumps(creds)}
-        post_data = urllib.urlencode(data)
-        f = urllib2.urlopen(url, post_data)
+        post_data = urllib_parse.urlencode(data)
+        f = urlrequest.urlopen(url, post_data)
         return f.read() == "True"
 
 
