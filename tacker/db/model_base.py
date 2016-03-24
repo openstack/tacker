@@ -29,7 +29,7 @@ class TackerBase(models.ModelBase):
         return self
 
     def next(self):
-        n = self._i.next().name
+        n = next(self._i).name
         return n, getattr(self, n)
 
     def __repr__(self):
