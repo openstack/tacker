@@ -35,6 +35,7 @@ class TestToscaUtils(testtools.TestCase):
     toscautils.updateimports(vnfd_dict)
     tosca = ToscaTemplate(parsed_params={}, a_file=False,
                           yaml_dict_tpl=vnfd_dict)
+    tosca_flavor = _get_template('test_tosca_flavor.yaml')
 
     def setUp(self):
         super(TestToscaUtils, self).setUp()
@@ -106,7 +107,7 @@ class TestToscaUtils(testtools.TestCase):
         expected_heat_tpl = _get_template('hot_tosca_openwrt.yaml')
         mgmt_ports = toscautils.get_mgmt_ports(self.tosca)
         heat_tpl = toscautils.post_process_heat_template(
-            heat_template_yaml, mgmt_ports)
+            heat_template_yaml, mgmt_ports, {})
 
         heatdict = yaml.load(heat_tpl)
         expecteddict = yaml.load(expected_heat_tpl)
@@ -120,3 +121,33 @@ class TestToscaUtils(testtools.TestCase):
         for vdu in vdus:
             self.assertEqual(vdu.type_definition.is_derived_from(
                 toscautils.TACKERVDU), True)
+
+    def test_get_flavor_dict(self):
+        vnfd_dict = yaml.load(self.tosca_flavor)
+        toscautils.updateimports(vnfd_dict)
+        tosca = ToscaTemplate(a_file=False, yaml_dict_tpl=vnfd_dict)
+        expected_flavor_dict = {
+            "VDU1": {
+                "vcpus": 2,
+                "disk": 10,
+                "ram": 512
+            }
+        }
+        actual_flavor_dict = toscautils.get_flavor_dict(tosca)
+        self.assertEqual(expected_flavor_dict, actual_flavor_dict)
+
+    def test_add_resources_tpl_for_flavor(self):
+        dummy_heat_dict = yaml.load(_get_template(
+            'hot_flavor_and_capabilities.yaml'))
+        expected_dict = yaml.load(_get_template('hot_flavor.yaml'))
+        dummy_heat_res = {
+            "flavor": {
+                "VDU1": {
+                    "vcpus": 2,
+                    "ram": 512,
+                    "disk": 10
+                }
+            }
+        }
+        toscautils.add_resources_tpl(dummy_heat_dict, dummy_heat_res)
+        self.assertEqual(dummy_heat_dict, expected_dict)

@@ -12,9 +12,11 @@
 #    under the License.
 
 import os
+import sys
 import yaml
 
 from tacker.common import log
+from tacker.common import utils
 from tacker.extensions import vnfm
 from tacker.openstack.common import log as logging
 
@@ -30,6 +32,15 @@ TACKERCP = 'tosca.nodes.nfv.CP.Tacker'
 TACKERVDU = 'tosca.nodes.nfv.VDU.Tacker'
 TOSCA_BINDS_TO = 'tosca.relationships.network.BindsTo'
 VDU = 'tosca.nodes.nfv.VDU'
+OS_RESOURCES = {
+    'flavor': 'get_flavor_dict'
+}
+
+FLAVOR_PROPS = {
+    "num_cpus": ("vcpus", 1, None),
+    "disk_size": ("disk", 1, "GB"),
+    "mem_size": ("ram", 512, "MB")
+}
 
 
 delpropmap = {TACKERVDU: ('mgmt_driver', 'config', 'service_type',
@@ -41,6 +52,10 @@ convert_prop = {TACKERCP: {'anti_spoofing_protection':
                            'port_security_enabled'}}
 
 deletenodes = (MONITORING, FAILURE, PLACEMENT)
+
+HEAT_RESOURCE_MAP = {
+    "flavor": "OS::Nova::Flavor"
+}
 
 
 @log.log
@@ -95,7 +110,24 @@ def get_mgmt_ports(tosca):
 
 
 @log.log
-def post_process_heat_template(heat_tpl, mgmt_ports):
+def add_resources_tpl(heat_dict, hot_res_tpl):
+    for res, res_dict in hot_res_tpl.iteritems():
+        for vdu, vdu_dict in res_dict.iteritems():
+            res_name = vdu + "_" + res
+            heat_dict["resources"][res_name] = {
+                "type": HEAT_RESOURCE_MAP[res],
+                "properties": {}
+            }
+
+            for prop, val in vdu_dict.iteritems():
+                heat_dict["resources"][res_name]["properties"][prop] = val
+            heat_dict["resources"][vdu]["properties"][res] = {
+                "get_resource": res_name
+            }
+
+
+@log.log
+def post_process_heat_template(heat_tpl, mgmt_ports, res_tpl):
     heat_dict = yamlparser.simple_ordered_parse(heat_tpl)
     for outputname, portname in mgmt_ports.items():
         ipval = {'get_attr': [portname, 'fixed_ips', 0, 'ip_address']}
@@ -105,7 +137,7 @@ def post_process_heat_template(heat_tpl, mgmt_ports):
         else:
             heat_dict['outputs'] = output
         LOG.debug(_('Added output for %s') % outputname)
-
+    add_resources_tpl(heat_dict, res_tpl)
     return yaml.dump(heat_dict)
 
 
@@ -156,3 +188,33 @@ def findvdus(template):
         if nt.type_definition.is_derived_from(TACKERVDU):
             vdus.append(nt)
     return vdus
+
+
+def get_flavor_dict(template):
+    flavor_dict = {}
+    vdus = findvdus(template)
+    for nt in vdus:
+        flavor_tmp = nt.get_properties().get('flavor', None)
+        if flavor_tmp:
+            continue
+        if nt.get_capabilities().get("nfv_compute", None):
+            flavor_dict[nt.name] = {}
+            properties = nt.get_capabilities()["nfv_compute"].get_properties()
+            for prop, (hot_prop, default, unit) in \
+                    FLAVOR_PROPS.iteritems():
+                hot_prop_val = (properties[prop].value
+                    if properties.get(prop, None) else None)
+                if unit and hot_prop_val:
+                    hot_prop_val = \
+                        utils.change_memory_unit(hot_prop_val, unit)
+                flavor_dict[nt.name][hot_prop] = \
+                    hot_prop_val if hot_prop_val else default
+    return flavor_dict
+
+
+def get_resources_dict(template):
+    res_dict = dict()
+    for res, method in OS_RESOURCES.iteritems():
+        res_dict[res] = getattr(sys.modules[__name__],
+                method)(template)
+    return res_dict

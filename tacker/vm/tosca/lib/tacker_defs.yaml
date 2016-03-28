@@ -26,6 +26,15 @@ data_types:
         entry_schema:
           type: string
 
+  tosca.datatypes.compute_properties:
+    properties:
+      num_cpus:
+        type: integer
+      mem_size:
+        type: string
+      disk_size:
+        type: string
+
 policy_types:
   tosca.policies.tacker.Placement:
     derived_from: tosca.policies.Root

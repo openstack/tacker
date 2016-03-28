@@ -41,6 +41,28 @@ from tacker.openstack.common import log as logging
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 LOG = logging.getLogger(__name__)
 SYNCHRONIZED_PREFIX = 'tacker-'
+MEM_UNITS = {
+    "MB": {
+        "MB": {
+            "op": "*",
+            "val": "1"
+        },
+        "GB": {
+            "op": "/",
+            "val": "1024"
+        }
+    },
+    "GB": {
+        "MB": {
+            "op": "*",
+            "val": "1024"
+        },
+        "GB": {
+            "op": "*",
+            "val": "1"
+        }
+    }
+}
 
 synchronized = lockutils.synchronized_with_prefix(SYNCHRONIZED_PREFIX)
 
@@ -308,3 +330,20 @@ def is_valid_ipv4(address):
         return netaddr.valid_ipv4(address)
     except Exception:
         return False
+
+
+def change_memory_unit(mem, to):
+    """Changes the memory value(mem) based on the unit('to') specified.
+
+    If the unit is not specified in 'mem', by default, it is considered
+    as "MB". And this method returns only integer.
+    """
+
+    mem = str(mem) + " MB" if str(mem).isdigit() else mem.upper()
+    for unit, value in MEM_UNITS.iteritems():
+        mem_arr = mem.split(unit)
+        if len(mem_arr) < 2:
+            continue
+        return eval(mem_arr[0] +
+                    MEM_UNITS[unit][to]["op"] +
+                    MEM_UNITS[unit][to]["val"])

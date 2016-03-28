@@ -273,6 +273,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
                 monitoring_dict = toscautils.get_vdu_monitoring(tosca)
                 mgmt_ports = toscautils.get_mgmt_ports(tosca)
+                res_tpl = toscautils.get_resources_dict(tosca)
                 toscautils.post_process_template(tosca)
                 try:
                     translator = TOSCATranslator(tosca, parsed_params)
@@ -281,7 +282,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                     LOG.debug("heat-translator error: %s", str(e))
                     raise vnfm.HeatTranslatorFailed(error_msg_details=str(e))
                 heat_template_yaml = toscautils.post_process_heat_template(
-                    heat_template_yaml, mgmt_ports)
+                    heat_template_yaml, mgmt_ports, res_tpl)
             else:
                 assert 'template' not in fields
                 assert 'template_url' not in fields
