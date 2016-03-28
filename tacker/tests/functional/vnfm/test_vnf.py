@@ -18,13 +18,12 @@ from tacker.tests import constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
 
-
 CONF = cfg.CONF
 VNF_CIRROS_CREATE_TIMEOUT = 120
 
 
 class VnfTestCreate(base.BaseTackerTest):
-    def test_create_delete_vnf_no_monitoring(self):
+    def _test_create_delete_vnf(self, vnf_name, vim_id=None):
         data = dict()
         data['tosca'] = read_file('sample_cirros_vnf_no_monitoring.yaml')
         toscal = data['tosca']
@@ -36,10 +35,10 @@ class VnfTestCreate(base.BaseTackerTest):
 
         # Create vnf with vnfd_id
         vnfd_id = vnfd_instance['vnfd']['id']
-        vnf_name = 'test_vnf_with_cirros_no_monitoring'
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
+        if vim_id:
+            vnf_arg['vnf']['vim_id'] = vim_id
         vnf_instance = self.client.create_vnf(body=vnf_arg)
-
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
         vnf_id = vnf_instance['vnf']['id']
@@ -49,6 +48,8 @@ class VnfTestCreate(base.BaseTackerTest):
             constants.ACTIVE_SLEEP_TIME)
         self.assertEqual(vnf_current_status, 'ACTIVE')
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
+        if vim_id:
+            self.assertEqual(vnf_instance['vnf']['vim_id'], vim_id)
 
         # Delete vnf_instance with vnf_id
         try:
@@ -61,3 +62,13 @@ class VnfTestCreate(base.BaseTackerTest):
             self.client.delete_vnfd(vnfd_id)
         except Exception:
             assert False, "vnfd Delete failed"
+
+    def test_create_delete_vnf_with_default_vim(self):
+        self._test_create_delete_vnf(
+            vnf_name='test_vnf_with_cirros_no_monitoring')
+
+    def test_create_delete_vnf_with_vim_id(self):
+        vim_list = self.client.list_vims()
+        vim0_id = self.get_vim(vim_list, 'VIM0')['id']
+        self._test_create_delete_vnf(vim_id=vim0_id,
+                           vnf_name='test_vnf_with_cirros_with_default_vim_id')
