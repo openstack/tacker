@@ -14,7 +14,7 @@
 
 from oslo_config import cfg
 
-from tacker.tests.functional.vnfm import base
+from tacker.tests.functional import base
 from tacker.tests.utils import read_file
 
 CONF = cfg.CONF
