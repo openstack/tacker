@@ -22,6 +22,7 @@ import itertools
 import re
 
 from oslo_config import cfg
+import six
 
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
@@ -280,7 +281,7 @@ class OwnerCheck(policy.Check):
                     LOG.exception(_('Policy check error while calling %s!'), f)
         match = self.match % target
         if self.kind in creds:
-            return match == unicode(creds[self.kind])
+            return match == six.text_type(creds[self.kind])
         return False
 
 

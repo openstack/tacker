@@ -33,6 +33,7 @@ import eventlet.wsgi
 # eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
 from oslo_config import cfg
 import routes.middleware
+import six
 import webob.dec
 import webob.exc
 
@@ -395,7 +396,7 @@ class JSONDictSerializer(DictSerializer):
 
     def default(self, data):
         def sanitizer(obj):
-            return unicode(obj)
+            return six.text_type(obj)
         return jsonutils.dumps(data, default=sanitizer)
 
 
@@ -535,9 +536,9 @@ class XMLDictSerializer(DictSerializer):
                       {'data': data,
                        'type': type(data)})
             if isinstance(data, str):
-                result.text = unicode(data, 'utf-8')
+                result.text = six.text_type(data, encoding='utf-8')
             else:
-                result.text = unicode(data)
+                result.text = six.text_type(data)
         return result
 
     def _create_link_nodes(self, xml_doc, links):
@@ -1090,7 +1091,7 @@ class Resource(Application):
         try:
             action_result = self.dispatch(request, action, args)
         except webob.exc.HTTPException as ex:
-            LOG.info(_("HTTP exception thrown: %s"), unicode(ex))
+            LOG.info(_("HTTP exception thrown: %s"), six.text_type(ex))
             action_result = Fault(ex,
                                   self._xmlns,
                                   self._fault_body_function)
