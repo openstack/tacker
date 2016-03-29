@@ -1,0 +1,22 @@
+heat_template_version: 2013-05-23
+
+description: >
+  OpenWRT with services
+
+parameters: {}
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      config_drive: false
+      flavor: {get_resource: VDU1_flavor}
+      image: OpenWRT
+      user_data_format: SOFTWARE_CONFIG
+  VDU1_flavor:
+    type: OS::Nova::Flavor
+    properties:
+      disk: 40
+      ram: 4096
+      vcpus: 6
+      extra_specs: {'hw:mem_page_size': 'any'}
+outputs: {}

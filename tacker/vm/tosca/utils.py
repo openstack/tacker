@@ -42,6 +42,19 @@ FLAVOR_PROPS = {
     "mem_size": ("ram", 512, "MB")
 }
 
+CPU_PROP_MAP = (('hw:cpu_policy', 'cpu_affinity'),
+                ('hw:cpu_threads_policy', 'thread_allocation'),
+                ('hw:cpu_sockets', 'socket_count'),
+                ('hw:cpu_threads', 'thread_count'),
+                ('hw:cpu_cores', 'core_count'))
+
+CPU_PROP_KEY_SET = {'cpu_affinity', 'thread_allocation', 'socket_count',
+                    'thread_count', 'core_count'}
+
+FLAVOR_EXTRA_SPECS_LIST = ('cpu_allocation',
+                           'mem_page_size',
+                           'numa_node_count',
+                           'numa_nodes')
 
 delpropmap = {TACKERVDU: ('mgmt_driver', 'config', 'service_type',
                           'placement_policy', 'monitoring_policy',
@@ -190,7 +203,7 @@ def findvdus(template):
     return vdus
 
 
-def get_flavor_dict(template):
+def get_flavor_dict(template, flavor_extra_input=None):
     flavor_dict = {}
     vdus = findvdus(template)
     for nt in vdus:
@@ -209,12 +222,59 @@ def get_flavor_dict(template):
                         utils.change_memory_unit(hot_prop_val, unit)
                 flavor_dict[nt.name][hot_prop] = \
                     hot_prop_val if hot_prop_val else default
+            if any(p in properties for p in FLAVOR_EXTRA_SPECS_LIST):
+                flavor_dict[nt.name]['extra_specs'] = {}
+                es_dict = flavor_dict[nt.name]['extra_specs']
+                populate_flavor_extra_specs(es_dict, properties,
+                                            flavor_extra_input)
     return flavor_dict
 
 
-def get_resources_dict(template):
+def populate_flavor_extra_specs(es_dict, properties, flavor_extra_input):
+    if 'mem_page_size' in properties:
+        mval = properties['mem_page_size'].value
+        if str(mval).isdigit():
+            mval = mval * 1024
+        elif mval not in ('small', 'large', 'any'):
+            raise vnfm.HugePageSizeInvalidInput(
+                error_msg_details=(mval + ":Invalid Input"))
+        es_dict['hw:mem_page_size'] = mval
+    if 'numa_node_count' in properties:
+        es_dict['hw:numa_nodes'] = \
+            properties['numa_node_count'].value
+    if 'numa_nodes' in properties and 'numa_node_count' not in properties:
+        nodes_dict = dict(properties['numa_nodes'].value)
+        dval = list(nodes_dict.values())
+        for ndict in dval:
+            invalid_input = set(ndict.keys()) - {'id', 'vcpus', 'memory'}
+            if invalid_input:
+                raise vnfm.NumaNodesInvalidKeys(
+                    error_msg_details=(', '.join(invalid_input)),
+                    valid_keys="id, vcpus and memory")
+            if 'id' in ndict and 'vcpus' in ndict:
+                vk = "hw:numa_cpus." + str(ndict['id'])
+                vval = ",".join([str(x) for x in ndict['vcpus']])
+                es_dict[vk] = vval
+            if 'id' in ndict and 'memory' in ndict:
+                mk = "hw:numa_mem." + str(ndict['id'])
+                es_dict[mk] = ndict['memory']
+    if 'cpu_allocation' in properties:
+        cpu_dict = dict(properties['cpu_allocation'].value)
+        invalid_input = set(cpu_dict.keys()) - CPU_PROP_KEY_SET
+        if invalid_input:
+            raise vnfm.CpuAllocationInvalidKeys(
+                error_msg_details=(', '.join(invalid_input)),
+                valid_keys=(', '.join(CPU_PROP_KEY_SET)))
+        for(k, v) in CPU_PROP_MAP:
+            if v in cpu_dict:
+                es_dict[k] = cpu_dict[v]
+    if flavor_extra_input:
+        es_dict.update(flavor_extra_input)
+
+
+def get_resources_dict(template, flavor_extra_input=None):
     res_dict = dict()
     for res, method in OS_RESOURCES.iteritems():
         res_dict[res] = getattr(sys.modules[__name__],
-                method)(template)
+                method)(template, flavor_extra_input)
     return res_dict

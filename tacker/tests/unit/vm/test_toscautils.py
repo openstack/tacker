@@ -151,3 +151,49 @@ class TestToscaUtils(testtools.TestCase):
         }
         toscautils.add_resources_tpl(dummy_heat_dict, dummy_heat_res)
         self.assertEqual(dummy_heat_dict, expected_dict)
+
+    def test_get_flavor_dict_extra_specs_all_numa_count(self):
+        tosca_fes_all_numa_count = _get_template(
+            'tosca_flavor_all_numa_count.yaml')
+        vnfd_dict = yaml.load(tosca_fes_all_numa_count)
+        toscautils.updateimports(vnfd_dict)
+        tosca = ToscaTemplate(a_file=False, yaml_dict_tpl=vnfd_dict)
+        expected_flavor_dict = {
+            "VDU1": {
+                "vcpus": 8,
+                "disk": 10,
+                "ram": 4096,
+                "extra_specs": {
+                    'hw:cpu_policy': 'dedicated', 'hw:mem_page_size': 'any',
+                    'hw:cpu_sockets': 2, 'hw:cpu_threads': 2,
+                    'hw:numa_nodes': 2, 'hw:cpu_cores': 2,
+                    'hw:cpu_threads_policy': 'avoid'
+                }
+            }
+        }
+        actual_flavor_dict = toscautils.get_flavor_dict(tosca)
+        self.assertEqual(expected_flavor_dict, actual_flavor_dict)
+
+    def test_tacker_conf_heat_extra_specs_all_numa_count(self):
+        tosca_fes_all_numa_count = _get_template(
+            'tosca_flavor_all_numa_count.yaml')
+        vnfd_dict = yaml.load(tosca_fes_all_numa_count)
+        toscautils.updateimports(vnfd_dict)
+        tosca = ToscaTemplate(a_file=False, yaml_dict_tpl=vnfd_dict)
+        expected_flavor_dict = {
+            "VDU1": {
+                "vcpus": 8,
+                "disk": 10,
+                "ram": 4096,
+                "extra_specs": {
+                    'hw:cpu_policy': 'dedicated', 'hw:mem_page_size': 'any',
+                    'hw:cpu_sockets': 2, 'hw:cpu_threads': 2,
+                    'hw:numa_nodes': 2, 'hw:cpu_cores': 2,
+                    'hw:cpu_threads_policy': 'avoid',
+                    'aggregate_instance_extra_specs:nfv': 'true'
+                }
+            }
+        }
+        actual_flavor_dict = toscautils.get_flavor_dict(
+            tosca, {"aggregate_instance_extra_specs:nfv": "true"})
+        self.assertEqual(expected_flavor_dict, actual_flavor_dict)
