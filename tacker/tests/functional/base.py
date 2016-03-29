@@ -129,3 +129,13 @@ class BaseTackerTest(base.TestCase):
                          config_data['username'])
         self.assertEqual(vim_instance['vim']['auth_cred']['project_name'],
                          config_data['project_name'])
+
+    def get_vim(self, vim_list, vim_name):
+        if len(vim_list.values()) == 0:
+            assert False, "vim_list is Empty: Default VIM is missing"
+
+        for vim_list in vim_list.values():
+            for vim in vim_list:
+                if vim['name'] == vim_name:
+                    return vim
+        return None
