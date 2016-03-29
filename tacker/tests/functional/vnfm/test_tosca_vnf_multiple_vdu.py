@@ -15,7 +15,7 @@ from oslo_config import cfg
 
 from tacker.common import utils
 from tacker.tests import constants
-from tacker.tests.functional.vnfm import base
+from tacker.tests.functional import base
 from tacker.tests.utils import read_file
 from tacker.vm.tosca import utils as toscautils
 
