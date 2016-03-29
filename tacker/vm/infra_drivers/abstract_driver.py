@@ -72,11 +72,3 @@ class DeviceAbstractDriver(extensions.PluginInterface):
     @abc.abstractmethod
     def delete_wait(self, plugin, context, device_id):
         pass
-
-    @abc.abstractmethod
-    def attach_interface(self, plugin, context, device_id, port_id):
-        pass
-
-    @abc.abstractmethod
-    def dettach_interface(self, plugin, context, device_id, port_id):
-        pass
