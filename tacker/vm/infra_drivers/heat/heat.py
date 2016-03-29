@@ -513,14 +513,6 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                           "%(stack_status)s"),
                         {'device_id': device_id, 'stack_status': status})
 
-    @log.log
-    def attach_interface(self, plugin, context, device_id, port_id):
-        raise NotImplementedError()
-
-    @log.log
-    def dettach_interface(self, plugin, context, device_id, port_id):
-        raise NotImplementedError()
-
 
 class HeatClient(object):
     def __init__(self, auth_attr, region_name=None):
