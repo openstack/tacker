@@ -46,10 +46,14 @@ OPTS = [
                default=5,
                help=_("Wait time between two successive stack"
                       "create/delete retries")),
+    cfg.DictOpt('flavor_extra_specs',
+               default={},
+               help=_("Flavor Extra Specs")),
 ]
 CONF.register_opts(OPTS, group='tacker_heat')
 STACK_RETRIES = cfg.CONF.tacker_heat.stack_retries
 STACK_RETRY_WAIT = cfg.CONF.tacker_heat.stack_retry_wait
+STACK_FLAVOR_EXTRA = cfg.CONF.tacker_heat.flavor_extra_specs
 
 HEAT_TEMPLATE_BASE = """
 heat_template_version: 2013-05-23
@@ -276,7 +280,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
                 monitoring_dict = toscautils.get_vdu_monitoring(tosca)
                 mgmt_ports = toscautils.get_mgmt_ports(tosca)
-                res_tpl = toscautils.get_resources_dict(tosca)
+                res_tpl = toscautils.get_resources_dict(tosca,
+                                                        STACK_FLAVOR_EXTRA)
                 toscautils.post_process_template(tosca)
                 try:
                     translator = TOSCATranslator(tosca, parsed_params)

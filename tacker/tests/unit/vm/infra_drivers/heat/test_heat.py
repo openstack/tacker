@@ -282,3 +282,33 @@ class TestDeviceHeat(base.TestCase):
         self._test_assert_equal_for_tosca_templates(
             'test_tosca_flavor_no_units.yaml',
             'hot_flavor_no_units.yaml')
+
+    def test_create_tosca_with_flavor_extra_specs_all_numa_count(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_flavor_all_numa_count.yaml',
+            'hot_tosca_flavor_all_numa_count.yaml')
+
+    def test_create_tosca_with_flavor_extra_specs_all_numa_nodes(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_flavor_all_numa_nodes.yaml',
+            'hot_tosca_flavor_all_numa_nodes.yaml')
+
+    def test_create_tosca_with_flavor_extra_specs_numa_node_count_trumps(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_flavor_numa_nodes_count.yaml',
+            'hot_tosca_flavor_numa_nodes_count.yaml')
+
+    def test_create_tosca_with_flavor_extra_specs_huge_pages(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_flavor_huge_pages.yaml',
+            'hot_tosca_flavor_huge_pages.yaml')
+
+    def test_create_tosca_with_flavor_extra_specs_cpu_allocations(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_flavor_cpu_allocations.yaml',
+            'hot_tosca_flavor_cpu_allocations.yaml')
+
+    def test_create_tosca_with_flavor_extra_specs_numa_nodes(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_flavor_numa_nodes.yaml',
+            'hot_tosca_flavor_numa_nodes.yaml')

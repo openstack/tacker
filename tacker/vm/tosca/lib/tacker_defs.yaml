@@ -34,6 +34,16 @@ data_types:
         type: string
       disk_size:
         type: string
+      mem_page_size:
+        type: string
+      numa_node_count:
+        type: integer
+        constraints:
+          - greater_or_equal: 2
+      numa_nodes:
+        type: map
+      cpu_allocation:
+        type: map
 
 policy_types:
   tosca.policies.tacker.Placement:

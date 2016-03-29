@@ -117,6 +117,22 @@ class IPAddrInvalidInput(exceptions.InvalidInput):
     message = _("IP Address input values should be in a list format")
 
 
+class HugePageSizeInvalidInput(exceptions.InvalidInput):
+    message = _("Value specified for mem_page_size is invalid:"
+                "%(error_msg_details)s. The valid values are 'small', 'large',"
+                "'any' or an integer value in MB")
+
+
+class CpuAllocationInvalidKeys(exceptions.InvalidInput):
+    message = _("Invalid keys specified in VNFD - %(error_msg_details)s."
+                "Supported keys are: %(valid_keys)s")
+
+
+class NumaNodesInvalidKeys(exceptions.InvalidInput):
+    message = _("Invalid keys specified in VNFD - %(error_msg_details)s."
+                "Supported keys are: %(valid_keys)s")
+
+
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("invalid data format for service list: '%s'") % data
