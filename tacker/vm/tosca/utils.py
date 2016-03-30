@@ -32,8 +32,10 @@ TACKERCP = 'tosca.nodes.nfv.CP.Tacker'
 TACKERVDU = 'tosca.nodes.nfv.VDU.Tacker'
 TOSCA_BINDS_TO = 'tosca.relationships.network.BindsTo'
 VDU = 'tosca.nodes.nfv.VDU'
+IMAGE = 'tosca.artifacts.Deployment.Image.VM'
 OS_RESOURCES = {
-    'flavor': 'get_flavor_dict'
+    'flavor': 'get_flavor_dict',
+    'image': 'get_image_dict'
 }
 
 FLAVOR_PROPS = {
@@ -67,7 +69,8 @@ convert_prop = {TACKERCP: {'anti_spoofing_protection':
 deletenodes = (MONITORING, FAILURE, PLACEMENT)
 
 HEAT_RESOURCE_MAP = {
-    "flavor": "OS::Nova::Flavor"
+    "flavor": "OS::Nova::Flavor",
+    "image": "OS::Glance::Image"
 }
 
 
@@ -272,9 +275,33 @@ def populate_flavor_extra_specs(es_dict, properties, flavor_extra_input):
         es_dict.update(flavor_extra_input)
 
 
+def get_image_dict(template):
+    image_dict = {}
+    vdus = findvdus(template)
+    for vdu in vdus:
+        if not vdu.entity_tpl.get("artifacts", None):
+            continue
+        artifacts = vdu.entity_tpl["artifacts"]
+        for name, artifact in artifacts.iteritems():
+            if ('type' in artifact.keys() and
+              artifact["type"] == IMAGE):
+                if 'file' not in artifact.keys():
+                    raise vnfm.FilePathMissing()
+                image_dict[vdu.name] = {
+                    "location": artifact["file"],
+                    "container_format": "bare",
+                    "disk_format": "raw",
+                    "name": name
+                }
+    return image_dict
+
+
 def get_resources_dict(template, flavor_extra_input=None):
     res_dict = dict()
     for res, method in OS_RESOURCES.iteritems():
-        res_dict[res] = getattr(sys.modules[__name__],
-                method)(template, flavor_extra_input)
+        res_method = getattr(sys.modules[__name__], method)
+        if res is 'flavor':
+            res_dict[res] = res_method(template, flavor_extra_input)
+        else:
+            res_dict[res] = res_method(template)
     return res_dict

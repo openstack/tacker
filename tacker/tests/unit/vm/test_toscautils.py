@@ -197,3 +197,20 @@ class TestToscaUtils(testtools.TestCase):
         actual_flavor_dict = toscautils.get_flavor_dict(
             tosca, {"aggregate_instance_extra_specs:nfv": "true"})
         self.assertEqual(expected_flavor_dict, actual_flavor_dict)
+
+    def test_add_resources_tpl_for_image(self):
+        dummy_heat_dict = yaml.load(_get_template(
+            'hot_image_before_processed_image.yaml'))
+        expected_dict = yaml.load(_get_template(
+            'hot_image_after_processed_image.yaml'))
+        dummy_heat_res = {
+            "image": {
+                "VDU1": {
+                    "location": "http://URL/v1/openwrt.qcow2",
+                    "container_format": "bare",
+                    "disk_format": "raw"
+                }
+            }
+        }
+        toscautils.add_resources_tpl(dummy_heat_dict, dummy_heat_res)
+        self.assertEqual(dummy_heat_dict, expected_dict)
