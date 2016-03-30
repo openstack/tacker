@@ -79,8 +79,8 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
                     'user_domain_id'
                 ] = CONF.keystone_authtoken.user_domain_id
         else:
-            auth_cred['tenant_id'] = vim_project.pop('id', None)
-            auth_cred['tenant_name'] = vim_project.pop('name', None)
+            auth_cred['tenant_id'] = vim_project.get('id', None)
+            auth_cred['tenant_name'] = vim_project.get('name', None)
             # user_id is not supported in keystone v2
             auth_cred.pop('user_id', None)
         auth_cred['auth_url'] = vim_obj['auth_url']
@@ -106,8 +106,10 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
     def _find_regions(self, ks_client):
         if ks_client.version == 'v2.0':
             service_list = ks_client.services.list()
-            heat_service_id = (service.id for service in
-                               service_list if service.type == 'orchestration')
+            heat_service_id = None
+            for service in service_list:
+                if service.type == 'orchestration':
+                    heat_service_id = service.id
             endpoints_list = ks_client.endpoints.list()
             region_list = [endpoint.region for endpoint in endpoints_list if
                            endpoint.service_id == heat_service_id]
