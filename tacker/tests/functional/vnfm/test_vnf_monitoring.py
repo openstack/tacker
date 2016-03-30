@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from tacker.tests import constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
 
@@ -45,11 +46,9 @@ class VnfTestPingMonitor(base.BaseTackerTest):
                            vnf_id)
 
         # Delete vnfd_instance
-        try:
-            self.client.delete_vnfd(vnfd_id)
-        except Exception:
-            assert False, ("Failed to delete vnfd %s after the monitor test" %
-                           vnfd_id)
+        self.addCleanup(self.client.delete_vnfd, vnfd_id)
+        self.addCleanup(self.wait_until_vnf_delete, vnf_id,
+            constants.VNF_CIRROS_DELETE_TIMEOUT)
 
     def test_create_delete_vnf_monitoring(self):
         self._test_vnf_with_monitoring(

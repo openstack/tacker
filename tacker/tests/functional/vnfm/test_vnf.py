@@ -58,10 +58,9 @@ class VnfTestCreate(base.BaseTackerTest):
             assert False, "vnf Delete failed"
 
         # Delete vnfd_instance
-        try:
-            self.client.delete_vnfd(vnfd_id)
-        except Exception:
-            assert False, "vnfd Delete failed"
+        self.addCleanup(self.client.delete_vnfd, vnfd_id)
+        self.addCleanup(self.wait_until_vnf_delete, vnf_id,
+            constants.VNF_CIRROS_DELETE_TIMEOUT)
 
     def test_create_delete_vnf_with_default_vim(self):
         self._test_create_delete_vnf(

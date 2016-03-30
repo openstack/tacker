@@ -76,7 +76,6 @@ class VnfTestToscaMultipleVDU(base.BaseTackerTest):
             assert False, "vnf Delete of test_vnf_with_multiple_vdus failed"
 
         # Delete vnfd_instance
-        try:
-            self.client.delete_vnfd(vnfd_id)
-        except Exception:
-            assert False, "vnfd Delete of sample-vnfd-multiple-vdus failed"
+        self.addCleanup(self.client.delete_vnfd, vnfd_id)
+        self.addCleanup(self.wait_until_vnf_delete, vnf_id,
+            constants.VNF_CIRROS_DELETE_TIMEOUT)

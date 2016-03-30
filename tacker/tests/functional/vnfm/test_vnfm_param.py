@@ -97,4 +97,7 @@ class VnfmTestParam(base.BaseTackerTest):
                                              'test_vnf_with_parameters',
                                              'sample_cirros_vnf_values.yaml')
         self._test_vnf_delete(vnf_instance)
-        self._test_vnfd_delete(vnfd_instance)
+        vnf_id = vnf_instance['vnf']['id']
+        self.addCleanup(self.client.delete_vnfd, vnfd_instance['vnfd']['id'])
+        self.addCleanup(self.wait_until_vnf_delete, vnf_id,
+            constants.VNF_CIRROS_DELETE_TIMEOUT)
