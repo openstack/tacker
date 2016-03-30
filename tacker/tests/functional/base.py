@@ -119,17 +119,6 @@ class BaseTackerTest(base.TestCase):
         self.assertEqual(vnf_current_status, 'ACTIVE')
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
-    def verify_vim(self, vim_instance, config_data, name, description):
-        self.assertIsNotNone(vim_instance)
-        self.assertEqual(vim_instance['vim']['description'], description)
-        self.assertEqual(vim_instance['vim']['name'], name)
-        self.assertIsNotNone(vim_instance['vim']['tenant_id'])
-        self.assertIsNotNone(vim_instance['vim']['id'])
-        self.assertEqual(vim_instance['vim']['auth_cred']['username'],
-                         config_data['username'])
-        self.assertEqual(vim_instance['vim']['auth_cred']['project_name'],
-                         config_data['project_name'])
-
     def get_vim(self, vim_list, vim_name):
         if len(vim_list.values()) == 0:
             assert False, "vim_list is Empty: Default VIM is missing"
