@@ -20,10 +20,10 @@ topology_template:
         monitoring_policy:
           name: ping
           actions:
-            - {trigger: failure, action: respawn}
+            failure: respawn
           parameters:
-            count: "3"
-            interval: "10"
+            count: 3
+            interval: 10
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker
@@ -41,14 +41,3 @@ topology_template:
         network_name: existing_network_1
         vendor: ACME
 
-#  policies:
-#    - monitor_policy:
-#        type: tosca.policies.tacker.Monitoring.Ping
-#        description: Apply monitoring policy to VDUs
-#        targets: [ VDU1 ]
-#        properties:
-#          parameters:
-#            count: "3"
-#            interval: "10"
-#          actions:
-#            - {trigger: failure, action: respawn}

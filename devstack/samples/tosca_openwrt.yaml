@@ -19,11 +19,11 @@ topology_template:
         mgmt_driver: openwrt
         monitoring_policy:
           name: ping
-          actions:
-            - {trigger: failure, action: respawn}
           parameters:
-            count: "3"
-            interval: "10"
+            count: 3
+            interval: 10
+          actions:
+            failure: respawn
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker
