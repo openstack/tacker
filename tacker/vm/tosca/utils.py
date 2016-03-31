@@ -106,7 +106,11 @@ def get_vdu_monitoring(template):
             # mon_data = {mon_policy['name']: {'actions': {'failure':
             #                                              'respawn'}}}
             if mon_policy != 'noop':
-                monitoring_dict['vdus'][nt.name] = mon_policy
+                if 'parameters' in mon_policy:
+                    mon_policy['monitoring_params'] = mon_policy['parameters']
+                monitoring_dict['vdus'][nt.name] = {}
+                monitoring_dict['vdus'][nt.name][mon_policy['name']] = \
+                    mon_policy
     return monitoring_dict
 
 

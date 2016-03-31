@@ -26,7 +26,8 @@ node_types:
 
       monitoring_policy:
 #        type: tosca.policies.tacker.Monitoring
-        type: tosca.datatypes.tacker.MonitoringType
+#        type: tosca.datatypes.tacker.MonitoringType
+        type: map
 
       config:
         type: string

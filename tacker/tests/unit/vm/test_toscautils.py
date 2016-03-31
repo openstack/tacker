@@ -53,12 +53,14 @@ class TestToscaUtils(testtools.TestCase):
         self.assertEqual(mgmt_driver, expected_mgmt_driver)
 
     def test_get_vdu_monitoring(self):
-        expected_monitoring = {'vdus': {'VDU1': {'actions':
-                                 [{'action': 'respawn',
-                                   'trigger': 'failure'}],
+        expected_monitoring = {'vdus': {'VDU1': {'ping': {
+                               'actions':
+                               {'failure': 'respawn'},
                                'name': 'ping',
-                               'parameters': {'count': '3',
-                                              'interval': '10'}}}}
+                               'parameters': {'count': 3,
+                                              'interval': 10},
+                               'monitoring_params': {'count': 3,
+                                                  'interval': 10}}}}}
         monitoring = toscautils.get_vdu_monitoring(self.tosca)
         self.assertEqual(monitoring, expected_monitoring)
 
