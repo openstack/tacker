@@ -51,7 +51,7 @@ def build_resource_info(plural_mappings, resource_map, which_service,
                           are being created. This name will be used to pass
                           the appropriate plugin to the WSGI resource.
                           It can be set to None or "CORE"to create WSGI
-                          resources for the the core plugin
+                          resources for the core plugin
     :param action_map: custom resource actions
     :param translate_name: replaces underscores with dashes
     :param allow_bulk: True if bulk create are allowed
