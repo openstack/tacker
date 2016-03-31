@@ -28,6 +28,7 @@ from oslo_config import cfg
 from tacker.api.v1 import attributes
 from tacker.i18n import _LE, _LW
 from tacker.openstack.common import log as logging
+from tacker.openstack.common import versionutils
 from tacker.vm.infra_drivers import abstract_driver
 
 LOG = logging.getLogger(__name__)
@@ -69,6 +70,11 @@ class DefaultAuthPlugin(v2_auth.Password):
         return super(DefaultAuthPlugin, self).get_endpoint(session, **kwargs)
 
 
+@versionutils.deprecated(
+    versionutils.deprecated.MITAKA,
+    what='infra_driver nova',
+    in_favor_of='infra_driver heat',
+    remove_in=+1)
 class DeviceNova(abstract_driver.DeviceAbstractDriver):
 
     """Nova driver of hosting device."""
