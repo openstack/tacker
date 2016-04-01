@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-#
 # Copyright 2013 Intel Corporation.
 # Copyright 2013 Isaku Yamahata <isaku.yamahata at intel com>
 #                               <isaku.yamahata at gmail com>
