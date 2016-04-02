@@ -1,0 +1,71 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Demo example with auto image creation
+
+metadata:
+  template_name: sample-tosca-vnfd-image
+
+topology_template:
+  node_templates:
+    VDU1_image_func:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        flavor: m1.tiny
+        availability_zone: nova
+        mgmt_driver: noop
+        config: |
+          param0: key1
+          param1: key2
+      artifacts:
+        VNFImage_image_func:
+          type: tosca.artifacts.Deployment.Image.VM
+          file: http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-uec.tar.gz
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1_image_func
+
+    CP2:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL2
+        - virtualBinding:
+            node: VDU1_image_func
+
+    CP3:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL3
+        - virtualBinding:
+            node: VDU1_image_func
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net_mgmt
+        vendor: Tacker
+
+    VL2:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net0
+        vendor: Tacker
+
+    VL3:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net1
+        vendor: Tacker
