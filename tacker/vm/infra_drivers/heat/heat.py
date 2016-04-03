@@ -99,7 +99,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                     device_template_dict['description'] == ''):
                 device_template_dict['description'] = vnfd_dict.get(
                     'description', '')
-            if 'name' not in device_template_dict and 'metadata' in vnfd_dict:
+            if (('name' not in device_template_dict or not
+            len(device_template_dict['name'])) and ('metadata' in vnfd_dict)):
                 device_template_dict['name'] = vnfd_dict['metadata'].get(
                     'template_name', '')
 

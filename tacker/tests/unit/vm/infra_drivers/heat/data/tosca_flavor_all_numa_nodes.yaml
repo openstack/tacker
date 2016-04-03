@@ -21,11 +21,11 @@ topology_template:
               node0:
                 id: 0
                 vcpus: [0, 1]
-                memory: 1024
+                mem_size: 1024
               node1:
                 id: 1
                 vcpus: [2,3,4,5]
-                memory: 3072
+                mem_size: 3072
             cpu_allocation:
               cpu_affinity: dedicated
               thread_allocation: avoid

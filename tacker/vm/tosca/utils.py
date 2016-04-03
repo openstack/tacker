@@ -64,7 +64,12 @@ delpropmap = {TACKERVDU: ('mgmt_driver', 'config', 'service_type',
               TACKERCP: ('management',)}
 
 convert_prop = {TACKERCP: {'anti_spoofing_protection':
-                           'port_security_enabled'}}
+                           'port_security_enabled',
+                           'type':
+                           'binding:vnic_type'}}
+
+convert_prop_values = {TACKERCP: {'sriov': 'direct',
+                                  'vnic': 'normal'}}
 
 deletenodes = (MONITORING, FAILURE, PLACEMENT)
 
@@ -183,6 +188,13 @@ def post_process_template(template):
                         nt.get_properties_objects().append(newprop)
                         nt.get_properties_objects().remove(p)
 
+        if nt.type in convert_prop_values:
+            for key in convert_prop_values[nt.type].keys():
+                for p in nt.get_properties_objects():
+                    if key == p.value:
+                        v = convert_prop_values[nt.type][p.value]
+                        p.value = v
+
 
 @log.log
 def get_mgmt_driver(template):
@@ -249,18 +261,18 @@ def populate_flavor_extra_specs(es_dict, properties, flavor_extra_input):
         nodes_dict = dict(properties['numa_nodes'].value)
         dval = list(nodes_dict.values())
         for ndict in dval:
-            invalid_input = set(ndict.keys()) - {'id', 'vcpus', 'memory'}
+            invalid_input = set(ndict.keys()) - {'id', 'vcpus', 'mem_size'}
             if invalid_input:
                 raise vnfm.NumaNodesInvalidKeys(
                     error_msg_details=(', '.join(invalid_input)),
-                    valid_keys="id, vcpus and memory")
+                    valid_keys="id, vcpus and mem_size")
             if 'id' in ndict and 'vcpus' in ndict:
                 vk = "hw:numa_cpus." + str(ndict['id'])
                 vval = ",".join([str(x) for x in ndict['vcpus']])
                 es_dict[vk] = vval
-            if 'id' in ndict and 'memory' in ndict:
+            if 'id' in ndict and 'mem_size' in ndict:
                 mk = "hw:numa_mem." + str(ndict['id'])
-                es_dict[mk] = ndict['memory']
+                es_dict[mk] = ndict['mem_size']
     if 'cpu_allocation' in properties:
         cpu_dict = dict(properties['cpu_allocation'].value)
         invalid_input = set(cpu_dict.keys()) - CPU_PROP_KEY_SET

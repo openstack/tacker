@@ -316,3 +316,21 @@ class TestDeviceHeat(base.TestCase):
     def test_create_tosca_with_new_image(self):
         self._test_assert_equal_for_tosca_templates('test_tosca_image.yaml',
             'hot_tosca_image.yaml')
+
+    def test_create_tosca_sriov(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_sriov.yaml',
+            'hot_tosca_sriov.yaml'
+        )
+
+    def test_create_tosca_vnic_normal(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_vnic_port.yaml',
+            'hot_tosca_vnic_normal.yaml'
+        )
+
+    def test_create_tosca_mgmt_sriov_port(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_mgmt_sriov.yaml',
+            'hot_tosca_mgmt_sriov.yaml'
+        )
