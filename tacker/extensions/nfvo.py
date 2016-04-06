@@ -37,6 +37,12 @@ class VimInUseException(exceptions.TackerException):
     message = _("VIM %(vim_id)s is still in use by VNF")
 
 
+class VimDefaultNameNotDefined(exceptions.TackerException):
+    message = _("Default VIM is not set. Either specify a"
+                " valid VIM during the VNF creation or set default VIM"
+                " in tacker.conf")
+
+
 class VimDefaultIdException(exceptions.TackerException):
     message = _("Default VIM name %(vim_name)s is invalid or there are "
                 "multiple VIM matches found. Please specify a valid default "
