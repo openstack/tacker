@@ -48,10 +48,7 @@ class VimClient(object):
                         'VIM id'))
             vim_name = cfg.CONF.nfvo_vim.default_vim
             if not vim_name:
-                raise nfvo.VimDefaultIdException(
-                    message='Default VIM is not specified. Either specify a '
-                            'valid VIM in the VNF create or set default VIM in'
-                            ' tacker.conf')
+                raise nfvo.VimDefaultNameNotDefined()
             try:
                 vim_info = nfvo_plugin.get_vim_by_name(context, vim_name)
             except Exception:
