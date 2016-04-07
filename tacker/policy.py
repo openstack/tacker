@@ -181,7 +181,7 @@ def _build_match_rule(action, target):
                         validate = attribute.get('validate')
                         if (validate and any([k.startswith('type:dict') and v
                                               for (k, v) in
-                                              validate.iteritems()])):
+                                              six.iteritems(validate)])):
                             attr_rule = policy.AndCheck(
                                 [attr_rule, _build_subattr_match_rule(
                                     attribute_name, attribute,

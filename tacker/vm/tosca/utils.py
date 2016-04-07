@@ -20,6 +20,7 @@ from tacker.common import utils
 from tacker.extensions import vnfm
 from tacker.openstack.common import log as logging
 
+from six import iteritems
 from toscaparser.properties import Property
 from toscaparser.utils import yamlparser
 
@@ -127,15 +128,15 @@ def get_mgmt_ports(tosca):
 
 @log.log
 def add_resources_tpl(heat_dict, hot_res_tpl):
-    for res, res_dict in hot_res_tpl.iteritems():
-        for vdu, vdu_dict in res_dict.iteritems():
+    for res, res_dict in iteritems(hot_res_tpl):
+        for vdu, vdu_dict in iteritems(res_dict):
             res_name = vdu + "_" + res
             heat_dict["resources"][res_name] = {
                 "type": HEAT_RESOURCE_MAP[res],
                 "properties": {}
             }
 
-            for prop, val in vdu_dict.iteritems():
+            for prop, val in iteritems(vdu_dict):
                 heat_dict["resources"][res_name]["properties"][prop] = val
             heat_dict["resources"][vdu]["properties"][res] = {
                 "get_resource": res_name
@@ -217,7 +218,7 @@ def get_flavor_dict(template, flavor_extra_input=None):
             flavor_dict[nt.name] = {}
             properties = nt.get_capabilities()["nfv_compute"].get_properties()
             for prop, (hot_prop, default, unit) in \
-                    FLAVOR_PROPS.iteritems():
+                    iteritems(FLAVOR_PROPS):
                 hot_prop_val = (properties[prop].value
                     if properties.get(prop, None) else None)
                 if unit and hot_prop_val:
@@ -282,7 +283,7 @@ def get_image_dict(template):
         if not vdu.entity_tpl.get("artifacts", None):
             continue
         artifacts = vdu.entity_tpl["artifacts"]
-        for name, artifact in artifacts.iteritems():
+        for name, artifact in iteritems(artifacts):
             if ('type' in artifact.keys() and
               artifact["type"] == IMAGE):
                 if 'file' not in artifact.keys():
@@ -298,7 +299,7 @@ def get_image_dict(template):
 
 def get_resources_dict(template, flavor_extra_input=None):
     res_dict = dict()
-    for res, method in OS_RESOURCES.iteritems():
+    for res, method in iteritems(OS_RESOURCES):
         res_method = getattr(sys.modules[__name__], method)
         if res is 'flavor':
             res_dict[res] = res_method(template, flavor_extra_input)

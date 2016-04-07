@@ -19,6 +19,7 @@ import time
 
 from heatclient import exc as heatException
 from oslo_config import cfg
+from six import iteritems
 from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.utils import yamlparser
 from translator.hot.tosca_translator import TOSCATranslator
@@ -131,7 +132,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
     @log.log
     def _update_params(self, original, paramvalues, match=False):
-        for key, value in original.iteritems():
+        for key, value in iteritems(original):
             if not isinstance(value, dict) or 'get_input' not in str(value):
                 pass
             elif isinstance(value, dict):
