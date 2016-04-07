@@ -1,6 +1,4 @@
 # Copyright 2015 Intel Corporation.
-# Copyright 2015 Isaku Yamahata <isaku.yamahata at intel com>
-#                               <isaku.yamahata at gmail com>
 # All Rights Reserved.
 #
 #
