@@ -58,12 +58,22 @@ class deprecated(object):
     GRIZZLY = 'G'
     HAVANA = 'H'
     ICEHOUSE = 'I'
+    JUNO = 'J'
+    KILO = 'K'
+    LIBERTY = 'L'
+    MITAKA = 'M'
+    NEWTON = 'N'
 
     _RELEASES = {
         'F': 'Folsom',
         'G': 'Grizzly',
         'H': 'Havana',
         'I': 'Icehouse',
+        'J': 'Juno',
+        'K': 'Kilo',
+        'L': 'Liberty',
+        'M': 'Mitaka',
+        'N': 'Newton',
     }
 
     _deprecated_msg_with_alternative = _(
