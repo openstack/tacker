@@ -14,26 +14,65 @@
 
 # This script is executed inside post_test_hook function in devstack gate.
 
-VENV=${1:-"dsvm-functional"}
+set -xe
 
-export GATE_DEST=$BASE/new
-export DEVSTACK_DIR=$GATE_DEST/devstack
-export TACKER_DIR="$GATE_DEST/tacker"
+TACKER_DIR="$BASE/new/tacker"
+SCRIPTS_DIR="/usr/os-testr-env/bin/"
 
-case $VENV in
-    dsvm-functional)
-        owner=stack
-        ;;
-esac
+venv=${1:-"dsvm-functional"}
 
+function generate_test_logs {
+    local path="$1"
+    # Compress all $path/*.txt files and move the directories holding those
+    # files to /opt/stack/logs. Files with .log suffix have their
+    # suffix changed to .txt (so browsers will know to open the compressed
+    # files and not download them).
+    if [ -d "$path" ]
+    then
+        sudo find $path -iname "*.log" -type f -exec mv {} {}.txt \; -exec gzip -9 {}.txt \;
+        sudo mv $path/* /opt/stack/logs/
+    fi
+}
+
+function generate_testr_results {
+    # Give job user rights to access tox logs
+    sudo -H -u $owner chmod o+rw .
+    sudo -H -u $owner chmod o+rw -R .testrepository
+    if [ -f ".testrepository/0" ] ; then
+        .tox/$venv/bin/subunit-1to2 < .testrepository/0 > ./testrepository.subunit
+        $SCRIPTS_DIR/subunit2html ./testrepository.subunit testr_results.html
+        gzip -9 ./testrepository.subunit
+        gzip -9 ./testr_results.html
+        sudo mv ./*.gz /opt/stack/logs/
+    fi
+
+    if [[ "$venv" == dsvm-functional* ]]
+    then
+        generate_test_logs $log_dir
+    fi
+}
+
+
+if [[ "$venv" == dsvm-functional* ]]
+then
+    owner=stack
+    sudo_env=
+    log_dir="/tmp/${venv}-logs"
+fi
+
+# Set owner permissions according to job's requirements.
+cd $TACKER_DIR
 sudo chown -R $owner:stack $TACKER_DIR
 
-cd $TACKER_DIR
+# Run tests
+echo "Running tacker $venv test suite"
+set +e
 
-# Run functional tests
-echo "Running Tacker $VENV test suite"
-source $DEVSTACK_DIR/openrc admin admin
-sudo -E -H -u $owner tox -e functional -- --concurrency=1
-EXIT_CODE=$?
+sudo -H -u $owner $sudo_env tox -e $venv 
+testr_exit_code=$?
+set -e
 
-exit $EXIT_CODE
+# Collect and parse results
+generate_testr_results
+exit $testr_exit_code
+
