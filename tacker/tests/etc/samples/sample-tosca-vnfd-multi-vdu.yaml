@@ -22,6 +22,7 @@ topology_template:
       type: tosca.nodes.nfv.CP.Tacker
       properties:
         management: true
+        anti_spoofing_protection: false
       requirements:
         - virtualLink:
             node: VL1
@@ -30,6 +31,8 @@ topology_template:
 
     CP12:
       type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
       requirements:
         - virtualLink:
             node: VL2
@@ -38,6 +41,8 @@ topology_template:
 
     CP13:
       type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
       requirements:
         - virtualLink:
             node: VL3
@@ -59,6 +64,7 @@ topology_template:
       type: tosca.nodes.nfv.CP.Tacker
       properties:
         management: true
+        anti_spoofing_protection: false
       requirements:
         - virtualLink:
             node: VL1
@@ -67,6 +73,8 @@ topology_template:
 
     CP22:
       type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
       requirements:
         - virtualLink:
             node: VL2
@@ -75,6 +83,8 @@ topology_template:
 
     CP23:
       type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
       requirements:
         - virtualLink:
             node: VL3
@@ -96,6 +106,7 @@ topology_template:
       type: tosca.nodes.nfv.CP.Tacker
       properties:
         management: true
+        anti_spoofing_protection: false
       requirements:
         - virtualLink:
             node: VL1
@@ -104,6 +115,8 @@ topology_template:
 
     CP32:
       type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
       requirements:
         - virtualLink:
             node: VL2
@@ -112,6 +125,8 @@ topology_template:
 
     CP33:
       type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
       requirements:
         - virtualLink:
             node: VL3
