@@ -27,25 +27,16 @@ current tests should be passing.
 Running unit tests
 ------------------
 
-There are three mechanisms for running tests: run_tests.sh, tox,
-and nose. Before submitting a patch for review you should always
-ensure all test pass; a tox run is triggered by the jenkins gate
-executed on gerrit for each patch pushed for review.
+There are two mechanisms for running tests: tox and nose. Before
+submitting a patch for review you should always ensure all test pass;
+a tox run is triggered by the jenkins gate executed on gerrit for
+each patch pushed for review.
 
 With these mechanisms you can either run the tests in the standard
 environment or create a virtual environment to run them in.
 
 By default after running all of the tests, any pep8 errors
 found in the tree will be reported.
-
-
-With `run_tests.sh`
-~~~~~~~~~~~~~~~~~~~
-
-You can use the `run_tests.sh` script in the root source directory to execute
-tests in a virtualenv::
-
-    ./run_tests.sh -V
 
 
 With `nose`
@@ -108,30 +99,10 @@ class separating it from the module path with a colon.
 For example, the following would run only the TestVNFMPlugin tests from
 tacker/tests/unit/vm/test_plugin.py::
 
-      $ ./run_tests.sh tacker.tests.unit.vm.test_plugin:TestVNFMPlugin
-
-or::
-
       $ ./tox tacker.tests.unit.vm.test_plugin:TestVNFMPlugin
-
-Adding more tests
-~~~~~~~~~~~~~~~~~
-
-Tacker has a fast growing code base and there is plenty of areas that
-need to be covered by unit and functional tests.
-
-To get a grasp of the areas where tests are needed, you can check
-current coverage by running::
-
-    $ ./run_tests.sh -c
 
 Debugging
 ---------
-
-By default, calls to pdb.set_trace() will be ignored when tests
-are run.  For pdb statements to work, invoke run_tests as follows::
-
-    $ ./run_tests.sh -d [test module path]
 
 It's possible to debug tests in a tox environment::
 
@@ -155,11 +126,3 @@ that the source tree be installed in the venv in editable mode::
 Editable mode ensures that changes made to the source tree are
 automatically reflected in the venv, and that such changes are not
 overwritten during the next tox run.
-
-Post-mortem debugging
-~~~~~~~~~~~~~~~~~~~~~
-
-Setting OS_POST_MORTEM_DEBUG=1 in the shell environment will ensure
-that pdb.post_mortem() will be invoked on test failure::
-
-    $ OS_POST_MORTEM_DEBUG=1 ./run_tests.sh -d [test module path]
