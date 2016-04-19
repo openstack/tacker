@@ -24,6 +24,7 @@ topology_template:
       type: tosca.nodes.nfv.CP.Tacker
       properties:
         management: true
+        anti_spoofing_protection: false
       requirements:
         - virtualLink:
             node: VL1
