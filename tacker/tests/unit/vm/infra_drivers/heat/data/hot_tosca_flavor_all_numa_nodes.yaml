@@ -18,5 +18,5 @@ resources:
       disk: 40
       ram: 4096
       vcpus: 6
-      extra_specs: {'hw:cpu_policy': 'dedicated', 'hw:mem_page_size': 'any', 'hw:cpu_sockets': 2, 'hw:cpu_threads': 2, 'hw:numa_mem.1': 3072, 'hw:numa_mem.0': 1024, 'hw:numa_cpus.0': '0,1', 'hw:numa_cpus.1': '2,3,4,5', 'hw:cpu_cores': 2, 'hw:cpu_threads_policy': 'avoid'}
+      extra_specs: {'hw:cpu_policy': 'dedicated', 'hw:mem_page_size': 'any', 'hw:cpu_sockets': 2, 'hw:cpu_threads': 2, 'hw:numa_mem.1': 3072, 'hw:numa_mem.0': 1024, 'hw:numa_cpus.0': '0,1', 'hw:numa_cpus.1': '2,3,4,5', 'hw:cpu_cores': 2, 'hw:cpu_threads_policy': 'avoid', 'hw:numa_nodes': 2}
 outputs: {}
