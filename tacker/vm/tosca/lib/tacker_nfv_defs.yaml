@@ -33,6 +33,7 @@ node_types:
 
       mgmt_driver:
         type: string
+        default: noop
 
       service_type:
         type: string
@@ -46,4 +47,8 @@ node_types:
       anti_spoofing_protection:
         type: boolean
         required: false
-
+      type:
+        type: string
+        required: false
+        constraints:
+          - valid_values: [ sriov, vnic ]
