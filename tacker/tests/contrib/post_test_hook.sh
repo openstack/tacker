@@ -17,6 +17,7 @@
 set -xe
 
 TACKER_DIR="$BASE/new/tacker"
+DEVSTACK_DIR="$BASE/new/devstack"
 SCRIPTS_DIR="/usr/os-testr-env/bin/"
 
 venv=${1:-"dsvm-functional"}
@@ -52,12 +53,19 @@ function generate_testr_results {
     fi
 }
 
+function fixup_nova_quota {
+    echo "Disable nova compute instance & core quota"
+    source $DEVSTACK_DIR/openrc admin admin
+    nova quota-class-update --instances -1 --cores -1 default
+}
 
 if [[ "$venv" == dsvm-functional* ]]
 then
     owner=stack
     sudo_env=
     log_dir="/tmp/${venv}-logs"
+
+    fixup_nova_quota
 fi
 
 # Set owner permissions according to job's requirements.
