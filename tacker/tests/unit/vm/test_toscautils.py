@@ -107,7 +107,7 @@ class TestToscaUtils(testtools.TestCase):
         expected_heat_tpl = _get_template('hot_tosca_openwrt.yaml')
         mgmt_ports = toscautils.get_mgmt_ports(self.tosca)
         heat_tpl = toscautils.post_process_heat_template(
-            heat_template_yaml, mgmt_ports, {})
+            heat_template_yaml, mgmt_ports, {}, {})
 
         heatdict = yaml.load(heat_tpl)
         expecteddict = yaml.load(expected_heat_tpl)
@@ -214,3 +214,13 @@ class TestToscaUtils(testtools.TestCase):
         }
         toscautils.add_resources_tpl(dummy_heat_dict, dummy_heat_res)
         self.assertEqual(dummy_heat_dict, expected_dict)
+
+    def test_convert_unsupported_res_prop_kilo_ver(self):
+        unsupported_res_prop_dict = {'OS::Neutron::Port': {
+            'port_security_enabled': 'value_specs', }, }
+        dummy_heat_dict = yaml.load(_get_template('hot_tosca_openwrt.yaml'))
+        expected_heat_dict = yaml.load(_get_template(
+            'hot_tosca_openwrt_kilo.yaml'))
+        toscautils.convert_unsupported_res_prop(dummy_heat_dict,
+                                                unsupported_res_prop_dict)
+        self.assertEqual(dummy_heat_dict, expected_heat_dict)

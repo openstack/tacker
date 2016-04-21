@@ -143,7 +143,30 @@ def add_resources_tpl(heat_dict, hot_res_tpl):
 
 
 @log.log
-def post_process_heat_template(heat_tpl, mgmt_ports, res_tpl):
+def convert_unsupported_res_prop(heat_dict, unsupported_res_prop):
+    res_dict = heat_dict['resources']
+
+    for res, attr in res_dict.iteritems():
+        res_type = attr['type']
+        if res_type in unsupported_res_prop:
+            prop_dict = attr['properties']
+            unsupported_prop_dict = unsupported_res_prop[res_type]
+            unsupported_prop = set(prop_dict.keys()) & set(
+                unsupported_prop_dict.keys())
+            for prop in unsupported_prop:
+                    # some properties are just punted to 'value_specs'
+                    # property if they are incompatible
+                    new_prop = unsupported_prop_dict[prop]
+                    if new_prop == 'value_specs':
+                        prop_dict.setdefault(new_prop, {})[
+                            prop] = prop_dict.pop(prop)
+                    else:
+                        prop_dict[new_prop] = prop_dict.pop(prop)
+
+
+@log.log
+def post_process_heat_template(heat_tpl, mgmt_ports, res_tpl,
+                               unsupported_res_prop=None):
     heat_dict = yamlparser.simple_ordered_parse(heat_tpl)
     for outputname, portname in mgmt_ports.items():
         ipval = {'get_attr': [portname, 'fixed_ips', 0, 'ip_address']}
@@ -154,6 +177,8 @@ def post_process_heat_template(heat_tpl, mgmt_ports, res_tpl):
             heat_dict['outputs'] = output
         LOG.debug(_('Added output for %s') % outputname)
     add_resources_tpl(heat_dict, res_tpl)
+    if unsupported_res_prop:
+        convert_unsupported_res_prop(heat_dict, unsupported_res_prop)
     return yaml.dump(heat_dict)
 
 

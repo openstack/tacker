@@ -55,6 +55,16 @@ STACK_RETRIES = cfg.CONF.tacker_heat.stack_retries
 STACK_RETRY_WAIT = cfg.CONF.tacker_heat.stack_retry_wait
 STACK_FLAVOR_EXTRA = cfg.CONF.tacker_heat.flavor_extra_specs
 
+# Global map of individual resource type and
+# incompatible properties, alternate properties pair for
+# upgrade/downgrade across all Heat template versions (starting Kilo)
+#
+# Maintains a dictionary of {"resource type": {dict of "incompatible
+# property": "alternate_prop"}}
+
+HEAT_VERSION_INCOMPATIBILITY_MAP = {'OS::Neutron::Port': {
+    'port_security_enabled': 'value_specs', }, }
+
 HEAT_TEMPLATE_BASE = """
 heat_template_version: 2013-05-23
 """
@@ -173,15 +183,14 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
     @log.log
     def _process_vdu_network_interfaces(self, vdu_id, vdu_dict, properties,
-                                        template_dict):
+                                        template_dict,
+                                        unsupported_res_prop=None):
 
         def make_port_dict():
-            port_dict = {
-                'type': 'OS::Neutron::Port',
-                'properties': {
-                        'port_security_enabled': False
-                }
-            }
+            port_dict = {'type': 'OS::Neutron::Port'}
+            port_dict['properties'] = {'value_specs': {
+                'port_security_enabled': False}} if unsupported_res_prop \
+                else {'port_security_enabled': False}
             port_dict['properties'].setdefault('fixed_ips', [])
             return port_dict
 
@@ -229,6 +238,18 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                 }
             networks_list.append(dict(network_param))
 
+    def fetch_unsupported_resource_prop(self, heat_client):
+        unsupported_resource_prop = {}
+
+        for res, prop_dict in HEAT_VERSION_INCOMPATIBILITY_MAP.iteritems():
+            unsupported_prop = {}
+            for prop, val in prop_dict.iteritems():
+                if not heat_client.resource_attr_support(res, prop):
+                    unsupported_prop.update(prop_dict)
+            if unsupported_prop:
+                unsupported_resource_prop[res] = unsupported_prop
+        return unsupported_resource_prop
+
     @log.log
     def create(self, plugin, context, device, auth_attr):
         LOG.debug(_('device %s'), device)
@@ -253,6 +274,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
         region_name = device.get('placement_attr', {}).get('region_name', None)
         heatclient_ = HeatClient(auth_attr, region_name)
+        unsupported_res_prop = self.fetch_unsupported_resource_prop(
+            heatclient_)
 
         LOG.debug('vnfd_yaml %s', vnfd_yaml)
         if vnfd_yaml is not None:
@@ -286,7 +309,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                     LOG.debug("heat-translator error: %s", str(e))
                     raise vnfm.HeatTranslatorFailed(error_msg_details=str(e))
                 heat_template_yaml = toscautils.post_process_heat_template(
-                    heat_template_yaml, mgmt_ports, res_tpl)
+                    heat_template_yaml, mgmt_ports, res_tpl,
+                    unsupported_res_prop)
             else:
                 assert 'template' not in fields
                 assert 'template_url' not in fields
@@ -314,9 +338,9 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                     for (key, vdu_key) in KEY_LIST:
                         properties[key] = vdu_dict[vdu_key]
                     if 'network_interfaces' in vdu_dict:
-                        self._process_vdu_network_interfaces(vdu_id, vdu_dict,
-                                                             properties,
-                                                             template_dict)
+                        self._process_vdu_network_interfaces(vdu_id,
+                         vdu_dict, properties, template_dict,
+                         unsupported_res_prop)
                     if ('user_data' in vdu_dict and
                             'user_data_format' in vdu_dict):
                         properties['user_data_format'] = vdu_dict[
@@ -552,3 +576,7 @@ class HeatClient(object):
 
     def get(self, stack_id):
         return self.stacks.get(stack_id)
+
+    def resource_attr_support(self, resource_name, property_name):
+        resource = self.resource_types.get(resource_name)
+        return property_name in resource['attributes']
