@@ -17,10 +17,10 @@ topology_template:
         monitoring_policy:
           name: ping
           actions:
-            - {trigger: failure, action: respawn}
+            failure: respawn
           parameters:
-            count: "3"
-            interval: "10"
+            count: 3
+            interval: 10
         config: |
           param0: key1
           param1: key2

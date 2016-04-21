@@ -217,10 +217,11 @@ class TestDeviceHeat(base.TestCase):
                 'description': u'OpenWRT with services',
                 'attributes': {'heat_template': tosca_hw_dict,
                                'monitoring_policy': '{"vdus": {"VDU1":'
-                               ' {"name": "ping", "actions": [{"trigger":'
-                               ' "failure", "action": "respawn"}],'
-                               ' "parameters": {"count": "3", "interval": "10"'
-                               '}}}}',
+                               ' {"ping": {"name": "ping",'
+                               ' "actions": {"failure": "respawn"},'
+                               ' "parameters": {"count": 3, "interval": 10'
+                               '}, "monitoring_params": {"count": 3, '
+                               '"interval": 10}}}}}',
                                'param_values': ''},
                 'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
                 'instance_id': None, 'mgmt_url': None, 'name': u'test_openwrt',

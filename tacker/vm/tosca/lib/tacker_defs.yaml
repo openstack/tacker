@@ -12,19 +12,30 @@ data_types:
         entry_schema:
           type: string
 
+  tosca.datatypes.tacker.MonitoringParams:
+    properties:
+      monitoring_delay:
+        type: int
+      count:
+        type: int
+      interval:
+        type: int
+      timeout:
+        type: int
+      retry:
+        type: int
+      port:
+        type: int
+
   tosca.datatypes.tacker.MonitoringType:
     properties:
       name:
         type: string
         required: true
       actions:
-        type: list
-        entry_schema:
-          type: tosca.datatypes.tacker.ActionMap
-      parameters:
         type: map
-        entry_schema:
-          type: string
+      parameters:
+        type: tosca.datatypes.tacker.MonitoringParams
 
   tosca.datatypes.compute_properties:
     properties:
