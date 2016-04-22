@@ -14,6 +14,7 @@
 #    under the License.
 
 from oslo_config import cfg
+from six import iteritems
 from six.moves.urllib import parse as urllib_parse
 from webob import exc
 
@@ -36,7 +37,7 @@ def get_filters(request, attr_info, skips=None):
     res = {}
     if skips is None:
         skips = []
-    for key, values in request.GET.dict_of_lists().iteritems():
+    for key, values in iteritems(request.GET.dict_of_lists()):
         if key in skips:
             continue
         values = [v for v in values if v]

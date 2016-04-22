@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import routes as routes_mapper
+from six import iteritems
 import six.moves.urllib.parse as urlparse
 import webob
 import webob.dec
@@ -38,7 +39,7 @@ class Index(wsgi.Application):
                     'link': ['href', 'rel']}}}
 
         layout = []
-        for name, collection in self.resources.iteritems():
+        for name, collection in iteritems(self.resources):
             href = urlparse.urljoin(req.path_url, collection)
             resource = {'name': name,
                         'collection': collection,

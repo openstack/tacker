@@ -15,12 +15,12 @@
 
 import weakref
 
+from six import iteritems
 from sqlalchemy import sql
 
 from tacker.common import exceptions as n_exc
 from tacker.db import sqlalchemyutils
 from tacker.openstack.common import log as logging
-
 
 LOG = logging.getLogger(__name__)
 
@@ -87,8 +87,7 @@ class CommonDbMixin(object):
             else:
                 query_filter = (model.tenant_id == context.tenant_id)
         # Execute query hooks registered from mixins and plugins
-        for _name, hooks in self._model_query_hooks.get(model,
-                                                        {}).iteritems():
+        for _name, hooks in iteritems(self._model_query_hooks.get(model, {})):
             query_hook = hooks.get('query')
             if isinstance(query_hook, basestring):
                 query_hook = getattr(self, query_hook, None)
@@ -130,12 +129,12 @@ class CommonDbMixin(object):
 
     def _apply_filters_to_query(self, query, model, filters):
         if filters:
-            for key, value in filters.iteritems():
+            for key, value in iteritems(filters):
                 column = getattr(model, key, None)
                 if column:
                     query = query.filter(column.in_(value))
-            for _name, hooks in self._model_query_hooks.get(model,
-                                                            {}).iteritems():
+            for _name, hooks in iteritems(
+                    self._model_query_hooks.get(model, {})):
                 result_filter = hooks.get('result_filters', None)
                 if isinstance(result_filter, basestring):
                     result_filter = getattr(self, result_filter, None)
@@ -198,4 +197,4 @@ class CommonDbMixin(object):
         """
         columns = [c.name for c in model.__table__.columns]
         return dict((k, v) for (k, v) in
-                    data.iteritems() if k in columns)
+                    iteritems(data) if k in columns)

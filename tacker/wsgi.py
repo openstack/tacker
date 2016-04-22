@@ -429,7 +429,7 @@ class XMLDictSerializer(DictSerializer):
                 root_key = constants.VIRTUAL_ROOT_KEY
                 root_value = None
             else:
-                link_keys = [k for k in data.iterkeys() or []
+                link_keys = [k for k in data or []
                              if k.endswith('_links')]
                 if link_keys:
                     links = data.pop(link_keys[0], None)
@@ -949,7 +949,7 @@ class Debug(Middleware):
         resp = req.get_response(self.application)
 
         print(("*" * 40) + " RESPONSE HEADERS")
-        for (key, value) in resp.headers.iteritems():
+        for (key, value) in six.iteritems(resp.headers):
             print(key, "=", value)
         print()
 

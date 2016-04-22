@@ -16,10 +16,12 @@
 
 import time
 
+
 from keystoneclient import auth as ks_auth
 from keystoneclient.auth.identity import v2 as v2_auth
 from keystoneclient import session as ks_session
 from oslo_config import cfg
+from six import iteritems
 
 from tacker.api.v1 import attributes
 from tacker.i18n import _LE, _LW
@@ -145,8 +147,8 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
             port_data['fixed_ips'] = [{'subnet_id': subnet_id}]
 
         # See api.v2.base.prepare_request_body()
-        for attr, attr_vals in attributes.RESOURCE_ATTRIBUTE_MAP[
-                attributes.PORTS].iteritems():
+        for attr, attr_vals in iteritems(attributes.RESOURCE_ATTRIBUTE_MAP[
+                attributes.PORTS]):
             if not attr_vals.get('allow_post', False):
                 continue
             if attr in port_data:

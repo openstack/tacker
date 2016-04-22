@@ -34,6 +34,7 @@ from eventlet.green import subprocess
 import netaddr
 from oslo_config import cfg
 from oslo_utils import importutils
+from six import iteritems
 from stevedore import driver
 
 from tacker.common import constants as q_const
@@ -260,7 +261,7 @@ def compare_elements(a, b):
 
 def dict2str(dic):
     return ','.join("%s=%s" % (key, val)
-                    for key, val in sorted(dic.iteritems()))
+                    for key, val in sorted(iteritems(dic)))
 
 
 def str2dict(string):
@@ -344,7 +345,7 @@ def change_memory_unit(mem, to):
     """
 
     mem = str(mem) + " MB" if str(mem).isdigit() else mem.upper()
-    for unit, value in MEM_UNITS.iteritems():
+    for unit, value in iteritems(MEM_UNITS):
         mem_arr = mem.split(unit)
         if len(mem_arr) < 2:
             continue

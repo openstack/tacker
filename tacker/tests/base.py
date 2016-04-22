@@ -28,6 +28,7 @@ import fixtures
 import mock
 from oslo_config import cfg
 from oslo_messaging import conffixture as messaging_conffixture
+from six import iteritems
 import testtools
 
 from tacker.common import config
@@ -199,7 +200,7 @@ class BaseTestCase(testtools.TestCase):
         test by the fixtures cleanup process.
         """
         group = kw.pop('group', None)
-        for k, v in kw.iteritems():
+        for k, v in iteritems(kw):
             CONF.set_override(k, v, group)
 
     @contextlib.contextmanager
