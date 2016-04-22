@@ -20,12 +20,12 @@ topology_template:
         monitoring_policy:
           name: ping
           parameters:
-            monitoring_delay: "45"
-            count: "3"
-            interval: "0.5"
-            timeout: "2"
+            monitoring_delay: 45
+            count: 3
+            interval: 1
+            timeout: 2
           actions:
-            - {trigger: failure, action: respawn}
+            failure: respawn
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker

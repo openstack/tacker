@@ -20,11 +20,11 @@ topology_template:
         monitoring_policy:
           name: http_ping
           parameters:
-            retry: "5"
-            timeout: "10"
-            port: "8000"
+            retry: 5
+            timeout: 10
+            port: 8000
           actions:
-            - {trigger: failure, action: respawn}
+            failure: respawn
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker

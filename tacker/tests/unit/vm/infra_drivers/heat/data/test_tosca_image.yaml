@@ -20,10 +20,10 @@ topology_template:
         monitoring_policy:
           name: ping
           actions:
-            - {trigger: failure, action: respawn}
+            failure: respawn
           parameters:
-            count: "3"
-            interval: "10"
+            count: 3
+            interval: 10
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker
