@@ -156,7 +156,7 @@ def add_resources_tpl(heat_dict, hot_res_tpl):
 def convert_unsupported_res_prop(heat_dict, unsupported_res_prop):
     res_dict = heat_dict['resources']
 
-    for res, attr in res_dict.iteritems():
+    for res, attr in iteritems(res_dict):
         res_type = attr['type']
         if res_type in unsupported_res_prop:
             prop_dict = attr['properties']
