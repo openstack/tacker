@@ -35,8 +35,7 @@ def get_filters(request, attr_info, skips=None):
     {'check': [u'a', u'b'], 'name': [u'Bob']}
     """
     res = {}
-    if skips is None:
-        skips = []
+    skips = skips or []
     for key, values in iteritems(request.GET.dict_of_lists()):
         if key in skips:
             continue

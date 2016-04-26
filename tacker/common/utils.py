@@ -252,10 +252,8 @@ def compare_elements(a, b):
 
     This method doesn't consider ordering
     """
-    if a is None:
-        a = []
-    if b is None:
-        b = []
+    a = a or []
+    b = b or []
     return set(a) == set(b)
 
 

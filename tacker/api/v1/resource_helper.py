@@ -59,8 +59,7 @@ def build_resource_info(plural_mappings, resource_map, which_service,
     resources = []
     if not which_service:
         which_service = constants.CORE
-    if action_map is None:
-        action_map = {}
+    action_map = action_map or {}
     plugin = manager.TackerManager.get_service_plugins()[which_service]
     for collection_name in resource_map:
         resource_name = plural_mappings[collection_name]
