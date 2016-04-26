@@ -284,12 +284,17 @@ def populate_flavor_extra_specs(es_dict, properties, flavor_extra_input):
             raise vnfm.HugePageSizeInvalidInput(
                 error_msg_details=(mval + ":Invalid Input"))
         es_dict['hw:mem_page_size'] = mval
+    if 'numa_nodes' in properties and 'numa_node_count' in properties:
+        LOG.warning(_('Both numa_nodes and numa_node_count have been'
+                      'specified; numa_node definitions will be ignored and'
+                      'numa_node_count will be applied'))
     if 'numa_node_count' in properties:
         es_dict['hw:numa_nodes'] = \
             properties['numa_node_count'].value
     if 'numa_nodes' in properties and 'numa_node_count' not in properties:
         nodes_dict = dict(properties['numa_nodes'].value)
         dval = list(nodes_dict.values())
+        ncount = 0
         for ndict in dval:
             invalid_input = set(ndict.keys()) - {'id', 'vcpus', 'mem_size'}
             if invalid_input:
@@ -303,6 +308,8 @@ def populate_flavor_extra_specs(es_dict, properties, flavor_extra_input):
             if 'id' in ndict and 'mem_size' in ndict:
                 mk = "hw:numa_mem." + str(ndict['id'])
                 es_dict[mk] = ndict['mem_size']
+            ncount += 1
+        es_dict['hw:numa_nodes'] = ncount
     if 'cpu_allocation' in properties:
         cpu_dict = dict(properties['cpu_allocation'].value)
         invalid_input = set(cpu_dict.keys()) - CPU_PROP_KEY_SET
