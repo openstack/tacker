@@ -13,7 +13,7 @@ eventlet!=0.18.3,>=0.18.2 # MIT
 greenlet>=0.3.2 # MIT
 httplib2>=0.7.5 # MIT
 requests!=2.9.0,>=2.8.1 # Apache-2.0
-iso8601>=0.1.9 # MIT
+iso8601>=0.1.11 # MIT
 kombu>=3.0.25 # BSD
 netaddr!=0.7.16,>=0.7.12 # BSD
 SQLAlchemy<1.1.0,>=1.0.10 # MIT
