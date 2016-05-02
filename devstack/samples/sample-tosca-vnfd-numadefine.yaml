@@ -1,0 +1,46 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: NUMA Node Define example
+
+metadata:
+  template_name: sample-tosca-vnfd-numadefine
+
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      capabilities:
+        nfv_compute:
+          properties:
+            disk_size: 10 GB
+            mem_size: 4096 MB
+            num_cpus: 6
+            numa_nodes:
+              node0:
+                id: 0
+                vcpus: [0, 1]
+                mem_size: 1024
+              node1:
+                id: 1
+                vcpus: [2,3,4,5]
+                mem_size: 3072
+      properties:
+        image: cirros-0.3.4-x86_64-uec
+        mgmt_driver: noop
+        availability_zone: nova
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net-mgmt
+        vendor: Tacker
