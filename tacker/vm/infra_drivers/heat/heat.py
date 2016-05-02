@@ -242,9 +242,9 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
     def fetch_unsupported_resource_prop(self, heat_client):
         unsupported_resource_prop = {}
 
-        for res, prop_dict in HEAT_VERSION_INCOMPATIBILITY_MAP.iteritems():
+        for res, prop_dict in iteritems(HEAT_VERSION_INCOMPATIBILITY_MAP):
             unsupported_prop = {}
-            for prop, val in prop_dict.iteritems():
+            for prop, val in iteritems(prop_dict):
                 if not heat_client.resource_attr_support(res, prop):
                     unsupported_prop.update(prop_dict)
             if unsupported_prop:
