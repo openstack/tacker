@@ -238,7 +238,7 @@ def ssh_execute(ssh, cmd, process_input=None,
 
     # exit_status == -1 if no exit code was returned
     if exit_status != -1:
-        LOG.debug(_('Result was %s') % exit_status)
+        LOG.debug(_('Result was %s'), exit_status)
         if check_exit_code and exit_status != 0:
             raise ProcessExecutionError(exit_code=exit_status,
                                         stdout=stdout,

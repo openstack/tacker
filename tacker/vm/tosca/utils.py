@@ -95,7 +95,7 @@ def updateimports(template):
 
         template['imports'].append(nfvfile)
 
-    LOG.debug(_("%s") % path)
+    LOG.debug(_("%s"), path)
 
 
 @log.log
@@ -131,7 +131,7 @@ def get_mgmt_ports(tosca):
                 if vdu is not None:
                     name = 'mgmt_ip-%s' % vdu
                     mgmt_ports[name] = nt.name
-    LOG.debug('mgmt_ports: %s' % mgmt_ports)
+    LOG.debug('mgmt_ports: %s', mgmt_ports)
     return mgmt_ports
 
 
@@ -185,7 +185,7 @@ def post_process_heat_template(heat_tpl, mgmt_ports, res_tpl,
             heat_dict['outputs'].update(output)
         else:
             heat_dict['outputs'] = output
-        LOG.debug(_('Added output for %s') % outputname)
+        LOG.debug(_('Added output for %s'), outputname)
     add_resources_tpl(heat_dict, res_tpl)
     if unsupported_res_prop:
         convert_unsupported_res_prop(heat_dict, unsupported_res_prop)
