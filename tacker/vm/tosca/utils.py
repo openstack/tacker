@@ -252,10 +252,10 @@ def get_flavor_dict(template, flavor_extra_input=None):
     flavor_dict = {}
     vdus = findvdus(template)
     for nt in vdus:
-        flavor_tmp = nt.get_properties().get('flavor', None)
+        flavor_tmp = nt.get_properties().get('flavor')
         if flavor_tmp:
             continue
-        if nt.get_capabilities().get("nfv_compute", None):
+        if nt.get_capabilities().get("nfv_compute"):
             flavor_dict[nt.name] = {}
             properties = nt.get_capabilities()["nfv_compute"].get_properties()
             for prop, (hot_prop, default, unit) in \
@@ -328,7 +328,7 @@ def get_image_dict(template):
     image_dict = {}
     vdus = findvdus(template)
     for vdu in vdus:
-        if not vdu.entity_tpl.get("artifacts", None):
+        if not vdu.entity_tpl.get("artifacts"):
             continue
         artifacts = vdu.entity_tpl["artifacts"]
         for name, artifact in iteritems(artifacts):

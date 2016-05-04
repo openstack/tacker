@@ -68,8 +68,8 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
         if keystone_version not in auth_url:
             vim_obj['auth_url'] = auth_url + '/' + keystone_version
         if keystone_version == 'v3':
-            auth_cred['project_id'] = vim_project.get('id', None)
-            auth_cred['project_name'] = vim_project.get('name', None)
+            auth_cred['project_id'] = vim_project.get('id')
+            auth_cred['project_name'] = vim_project.get('name')
             if 'project_domain_id' not in auth_cred:
                 auth_cred[
                     'project_domain_id'
@@ -79,8 +79,8 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
                     'user_domain_id'
                 ] = CONF.keystone_authtoken.user_domain_id
         else:
-            auth_cred['tenant_id'] = vim_project.get('id', None)
-            auth_cred['tenant_name'] = vim_project.get('name', None)
+            auth_cred['tenant_id'] = vim_project.get('id')
+            auth_cred['tenant_name'] = vim_project.get('name')
             # user_id is not supported in keystone v2
             auth_cred.pop('user_id', None)
         auth_cred['auth_url'] = vim_obj['auth_url']

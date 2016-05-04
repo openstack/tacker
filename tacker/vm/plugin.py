@@ -294,7 +294,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         }
         new_status = constants.ACTIVE
         placement_attr = device_dict['placement_attr']
-        region_name = placement_attr.get('region_name', None)
+        region_name = placement_attr.get('region_name')
 
         try:
             self._device_manager.invoke(
@@ -337,7 +337,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         instance_id = self._instance_id(device_dict)
         e = None
         placement_attr = device_dict['placement_attr']
-        region_name = placement_attr.get('region_name', None)
+        region_name = placement_attr.get('region_name')
         try:
             self._device_manager.invoke(
                 driver_name, 'delete_wait', plugin=self,
@@ -358,7 +358,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
         placement_attr = device_dict['placement_attr']
-        region_name = placement_attr.get('region_name', None)
+        region_name = placement_attr.get('region_name')
         kwargs = {
             mgmt_constants.KEY_ACTION: mgmt_constants.ACTION_DELETE_DEVICE,
             mgmt_constants.KEY_KWARGS: {'device': device_dict},

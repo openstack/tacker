@@ -260,7 +260,7 @@ class ActionRespawnHeat(ActionPolicy):
                 new_device[key] = device_dict[key]
             LOG.debug(_('new_device %s'), new_device)
             placement_attr = device_dict.get('placement_attr', {})
-            region_name = placement_attr.get('region_name', None)
+            region_name = placement_attr.get('region_name')
             # kill heat stack
             heatclient = heat.HeatClient(auth_attr=auth_attr,
                                          region_name=region_name)

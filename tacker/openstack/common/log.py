@@ -568,7 +568,7 @@ class ContextFormatter(logging.Formatter):
             if key not in record.__dict__:
                 record.__dict__[key] = ''
 
-        if record.__dict__.get('request_id', None):
+        if record.__dict__.get('request_id'):
             self._fmt = CONF.logging_context_format_string
         else:
             self._fmt = CONF.logging_default_format_string

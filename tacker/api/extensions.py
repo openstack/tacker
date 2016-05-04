@@ -245,7 +245,7 @@ class ExtensionController(wsgi.Controller):
 
     def show(self, request, id):
         # NOTE(dprince): the extensions alias is used as the 'id' for show
-        ext = self.extension_manager.extensions.get(id, None)
+        ext = self.extension_manager.extensions.get(id)
         if not ext:
             raise webob.exc.HTTPNotFound(
                 _("Extension with alias %s does not exist") % id)
@@ -482,7 +482,7 @@ class ExtensionManager(object):
                     extended_attrs = ext.get_extended_resources(version)
                     for resource, resource_attrs in six.iteritems(
                             extended_attrs):
-                        if attr_map.get(resource, None):
+                        if attr_map.get(resource):
                             attr_map[resource].update(resource_attrs)
                         else:
                             attr_map[resource] = resource_attrs
