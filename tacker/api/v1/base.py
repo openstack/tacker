@@ -48,8 +48,7 @@ class Controller(object):
     def __init__(self, plugin, collection, resource, attr_info,
                  allow_bulk=False, member_actions=None, parent=None,
                  allow_pagination=False, allow_sorting=False):
-        if member_actions is None:
-            member_actions = []
+        member_actions = member_actions or []
         self._plugin = plugin
         self._collection = collection.replace('-', '_')
         self._resource = resource.replace('-', '_')
