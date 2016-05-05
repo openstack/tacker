@@ -391,7 +391,7 @@ def _parse_check(rule):
     try:
         kind, match = rule.split(':', 1)
     except Exception:
-        LOG.exception(_("Failed to understand rule %(rule)s") % locals())
+        LOG.exception(_("Failed to understand rule %(rule)s"), locals())
         # If the rule is invalid, we'll fail closed
         return FalseCheck()
 
@@ -401,7 +401,7 @@ def _parse_check(rule):
     elif None in _checks:
         return _checks[None](kind, match)
     else:
-        LOG.error(_("No handler for matches of kind %s") % kind)
+        LOG.error(_("No handler for matches of kind %s"), kind)
         return FalseCheck()
 
 
@@ -676,7 +676,7 @@ def _parse_text_rule(rule):
         return state.result
     except ValueError:
         # Couldn't parse the rule
-        LOG.exception(_("Failed to understand rule %(rule)r") % locals())
+        LOG.exception(_("Failed to understand rule %(rule)r"), locals())
 
         # Fail closed
         return FalseCheck()
