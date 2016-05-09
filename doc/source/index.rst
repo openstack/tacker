@@ -50,6 +50,7 @@ Feature Documentation
 
    devref/monitor-api.rst
    devref/vnfd_template_parameterization.rst
+   devref/enhanced_placement_awareness_usage_guide.rst
 
 API Documentation
 =================
