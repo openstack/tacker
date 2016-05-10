@@ -39,18 +39,22 @@ Install from master
 
     $ stack.sh
 
-Install from Liberty
-~~~~~~~~~~~~~~~~~~~~
+Install from stable branch
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+Choose the required stable branch name from the git repository and use it in
+place of branch-name as given below:
 
-1. Download DevStack liberty branch::
+1. Download DevStack stable branch::
 
-    $ git clone -b stable/liberty https://git.openstack.org/openstack-dev/devstack
+    $ git clone -b stable/<branch-name> https://git.openstack.org/openstack-dev/devstack
     $ cd devstack
+
 
 2. Add this repo as an external repository into your ``local.conf`` file::
 
     [[local|localrc]]
-    enable_plugin tacker https://git.openstack.org/openstack/tacker stable/liberty
+    enable_plugin tacker https://git.openstack.org/openstack/tacker stable/<branch-name>
+
 
 3. Run ``stack.sh``::
 
