@@ -33,32 +33,35 @@ For example:
   tacker.tacker.monitor_drivers =
       ping = tacker.vm.monitor_drivers.ping.ping:VNFMonitorPing
 
-The methods that need to override in driver are:
-1)def get_type(self)
-This method must return the type of driver ex: ping
+Following methods need to be overridden in the new driver:
 
-2)def get_name(self)
-This method must return the symbolic name of the device monitor plugin
+``def get_type(self)``
+    This method must return the type of driver. ex: ping
 
-3)def get_description(self)
-This method must return the description for the monitor driver
+``def get_name(self)``
+    This method must return the symbolic name of the device monitor plugin.
 
-4)def monitor_get_config(self, plugin, context, device)
-This method must return dict of monitor configuration data
+``def get_description(self)``
+    This method must return the description for the monitor driver.
 
-5)def monitor_url(self, plugin, context, device)
-This method must return the url of device to monitor
+``def monitor_get_config(self, plugin, context, device)``
+    This method must return dictionary of configuration data for the monitor
+    driver.
 
-6)def monitor_call(self, device, kwargs)
-This method must either return boolean value True if VNF is healthy or return
-a event string like 'failure' or 'calls-capacity-reached' for specific VNF
-health condition.
+``def monitor_url(self, plugin, context, device)``
+    This method must return the url of device to monitor.
+
+``def monitor_call(self, device, kwargs)``
+    This method must either return boolean value 'True', if VNF is healthy.
+    Otherwise it should return an event string like 'failure' or
+    'calls-capacity-reached' based on specific VNF health condition. More
+    details on these event is given in below section.
 
 Custom events
 --------------
-As mentioned above, the return value of monitor_call is health status. If the
-return value of monitor_call is other than boolean value True, then we have to
-map those event to the corresponding action as described below.
+As mentioned in above section, if the return value of monitor_call method is
+other than boolean value 'True', then we have to map those event to the
+corresponding action as described below.
 
 For example:
 
@@ -70,7 +73,7 @@ For example:
         actions:
           failure: respawn
 
-In this  example we have an event called 'failure'. So whenever monitor_call
+In this  example, we have an event called 'failure'. So whenever monitor_call
 returns 'failure' tacker will respawn the VNF.
 
 
@@ -79,9 +82,8 @@ Actions
 The available actions that a monitor driver can call when a particular event
 occurs
 
-1. respawn
-2. log_and_kill
-3. log
+#. respawn
+#. log
 
 How to write TOSCA template to monitor VNF entities
 ----------------------------------------------------
