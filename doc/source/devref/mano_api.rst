@@ -2,11 +2,12 @@
 Tacker API Overview
 *******************
 
-Tacker API introduces new REST API end-points based on ETSI NFV MANO
-standards[#]_.
+Tacker API provides REST API end-points based on `ETSI NFV MANO standards`_.
 The two new resources introduced are 'vnfd' and 'vnf' for
 describing the 'vnfm' extension. The resources request and response formats are
 described in below sections.
+
+.. _ETSI NFV MANO standards: http://www.etsi.org/deliver/etsi_gs/NFV-MAN/001_099/001/01.01.01_60/gs_nfv-man001v010101p.pdf
 
 API versions
 ============
@@ -278,8 +279,3 @@ Update vnf - Update a vnf based on user config file or data.
 **DELETE /v1.0/vnfs/{vnf_id}**
 
 Delete vnf - Deletes a specified vnf_id from the VNF list.
-
-References
-==========
-
-.. [#] `ETSI NFV MANO <http://www.etsi.org/deliver/etsi_gs/NFV-MAN/001_099/001/01.01.01_60/gs_nfv-man001v010101p.pdf>`_
