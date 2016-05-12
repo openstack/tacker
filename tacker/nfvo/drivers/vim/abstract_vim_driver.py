@@ -82,3 +82,11 @@ class VimAbstractDriver(extensions.PluginInterface):
         Delete VIM sensitive information such as keys from file system or DB
         """
         pass
+
+    @abc.abstractmethod
+    def vim_status(self, auth_url):
+        """Health check for VIM
+
+        Checks the health status of VIM and return a boolean value
+        """
+        pass

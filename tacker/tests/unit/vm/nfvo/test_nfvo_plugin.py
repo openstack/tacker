@@ -37,6 +37,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.addCleanup(mock.patch.stopall)
         self.context = context.get_admin_context()
         self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin.__run__').start()
         self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
 
     def _mock_driver_manager(self):
@@ -56,6 +57,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             name='fake_vim',
             description='fake_vim_description',
             type='openstack',
+            status='Active',
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
@@ -78,10 +80,10 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                     'tenant_id': 'test-project'}}
         vim_type = 'openstack'
         res = self.nfvo_plugin.create_vim(self.context, vim_dict)
-        self._driver_manager.invoke.assert_called_once_with(vim_type,
-                                                            'register_vim',
-                                                            vim_obj=vim_dict[
-                                                                'vim'])
+        self._driver_manager.invoke.assert_any_call(vim_type,
+            'register_vim', vim_obj=vim_dict['vim'])
+        self._driver_manager.invoke.assert_any_call('openstack', 'vim_status',
+            auth_url='http://localhost:5000')
         self.assertIsNotNone(res)
         self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
         self.assertIn('id', res)

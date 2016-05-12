@@ -20,8 +20,10 @@ from keystoneclient import exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from tacker.agent.linux import utils as linux_utils
 from tacker.common import log
 from tacker.extensions import nfvo
+from tacker.i18n import _LW
 from tacker.nfvo.drivers.vim import abstract_vim_driver
 from tacker.vm import keystone
 
@@ -31,7 +33,18 @@ CONF = cfg.CONF
 
 OPTS = [cfg.StrOpt('openstack', default='/etc/tacker/vim/fernet_keys',
                    help='Dir.path to store fernet keys.')]
+
+# same params as we used in ping monitor driver
+OPENSTACK_OPTS = [
+    cfg.StrOpt('count', default='1',
+               help=_('number of ICMP packets to send')),
+    cfg.StrOpt('timeout', default='1',
+               help=_('number of seconds to wait for a response')),
+    cfg.StrOpt('interval', default='1',
+               help=_('number of seconds to wait between packets'))
+]
 cfg.CONF.register_opts(OPTS, 'vim_keys')
+cfg.CONF.register_opts(OPENSTACK_OPTS, 'vim_monitor')
 
 
 class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
@@ -178,3 +191,20 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
                 LOG.debug(_('VIM auth successfully stored for vim %s'), vim_id)
         except IOError:
             raise nfvo.VimKeyNotFoundException(vim_id=vim_id)
+
+    @log.log
+    def vim_status(self, auth_url):
+        """Checks the VIM health status"""
+        vim_ip = auth_url.split("//")[-1].split(":")[0].split("/")[0]
+        ping_cmd = ['ping',
+                    '-c', cfg.CONF.vim_monitor.count,
+                    '-W', cfg.CONF.vim_monitor.timeout,
+                    '-i', cfg.CONF.vim_monitor.interval,
+                    vim_ip]
+
+        try:
+            linux_utils.execute(ping_cmd, check_exit_code=True)
+            return True
+        except RuntimeError:
+            LOG.warning(_LW("Cannot ping ip address: %s"), vim_ip)
+            return False

@@ -132,6 +132,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             name='fake_vim',
             description='fake_vim_description',
             type='openstack',
+            status='Active',
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',

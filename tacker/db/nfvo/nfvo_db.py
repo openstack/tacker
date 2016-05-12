@@ -33,7 +33,7 @@ from tacker import manager
 
 
 VIM_ATTRIBUTES = ('id', 'type', 'tenant_id', 'name', 'description',
-                  'placement_attr', 'shared')
+                  'placement_attr', 'shared', 'status')
 VIM_AUTH_ATTRIBUTES = ('auth_url', 'vim_project', 'password', 'auth_cred')
 
 
@@ -45,6 +45,7 @@ class Vim(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     shared = sa.Column(sa.Boolean, default=True, server_default=sql.true(
     ), nullable=False)
     vim_auth = orm.relationship('VimAuth')
+    status = sa.Column(sa.String(255), nullable=False)
 
 
 class VimAuth(model_base.BASE, models_v1.HasId):
@@ -102,7 +103,8 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                     tenant_id=vim.get('tenant_id'),
                     name=vim.get('name'),
                     description=vim.get('description'),
-                    placement_attr=vim.get('placement_attr'))
+                    placement_attr=vim.get('placement_attr'),
+                    status=vim.get('status'))
                 context.session.add(vim_db)
                 vim_auth_db = VimAuth(
                     id=str(uuid.uuid4()),
@@ -152,6 +154,16 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                                vim_cred.pop('password'), 'vim_project':
                                vim_project})
         return self.get_vim(context, vim_id)
+
+    def update_vim_status(self, context, vim_id, status):
+        with context.session.begin(subtransactions=True):
+            try:
+                vim_db = (self._model_query(context, Vim).filter(
+                    Vim.id == vim_id).with_lockmode('update').one())
+            except orm_exc.NoResultFound:
+                    raise nfvo.VimNotFoundException(vim_id=vim_id)
+            vim_db.update({'status': status})
+        return self._make_vim_dict(vim_db)
 
     def get_vim_by_name(self, context, vim_name, fields=None,
                         mask_password=True):
