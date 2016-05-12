@@ -18,10 +18,6 @@ import abc
 import six
 
 from tacker.api import extensions
-from tacker.openstack.common import log as logging
-
-
-LOG = logging.getLogger(__name__)
 
 
 @six.add_metaclass(abc.ABCMeta)

@@ -22,10 +22,7 @@ import webob.exc
 
 from tacker.api import extensions
 from tacker.api.v1 import attributes
-from tacker.openstack.common import log as logging
 from tacker import wsgi
-
-LOG = logging.getLogger(__name__)
 
 
 class Index(wsgi.Application):

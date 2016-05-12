@@ -19,10 +19,6 @@ from oslo_messaging import serializer as om_serializer
 
 from tacker.common import exceptions
 from tacker import context
-from tacker.openstack.common import log as logging
-
-
-LOG = logging.getLogger(__name__)
 
 
 TRANSPORT = None

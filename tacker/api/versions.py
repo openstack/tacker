@@ -17,11 +17,7 @@ import webob.dec
 
 from tacker.api.views import versions as versions_view
 from tacker.openstack.common import gettextutils
-from tacker.openstack.common import log as logging
 from tacker import wsgi
-
-
-LOG = logging.getLogger(__name__)
 
 
 class Versions(object):
