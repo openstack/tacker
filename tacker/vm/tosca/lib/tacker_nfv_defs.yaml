@@ -8,35 +8,46 @@ node_types:
       image:
 #        type: tosca.artifacts.Deployment.Image.VM
         type: string
+        required: false
       flavor:
         type: string
+        required: false
       availability_zone:
         type: string
+        required: false
       metadata:
         type: map
         entry_schema:
           type: string
+        required: false
       config_drive:
         type: boolean
         default: false
+        required: false
 
       placement_policy:
 #        type: tosca.policies.tacker.Placement
         type: string
+        required: false
 
       monitoring_policy:
 #        type: tosca.policies.tacker.Monitoring
 #        type: tosca.datatypes.tacker.MonitoringType
         type: map
+        required: false
 
       config:
         type: string
+        required: false
 
       mgmt_driver:
         type: string
+        default: noop
+        required: false
 
       service_type:
         type: string
+        required: false
 
   tosca.nodes.nfv.CP.Tacker:
     derived_from: tosca.nodes.nfv.CP

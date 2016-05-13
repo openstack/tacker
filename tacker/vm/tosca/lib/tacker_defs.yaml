@@ -11,21 +11,28 @@ data_types:
         type: map
         entry_schema:
           type: string
+        required: false
 
   tosca.datatypes.tacker.MonitoringParams:
     properties:
       monitoring_delay:
         type: int
+        required: false
       count:
         type: int
+        required: false
       interval:
         type: int
+        required: false
       timeout:
         type: int
+        required: false
       retry:
         type: int
+        required: false
       port:
         type: int
+        required: false
 
   tosca.datatypes.tacker.MonitoringType:
     properties:
@@ -34,27 +41,36 @@ data_types:
         required: true
       actions:
         type: map
+        required: true
       parameters:
         type: tosca.datatypes.tacker.MonitoringParams
+        required: false
 
   tosca.datatypes.compute_properties:
     properties:
       num_cpus:
         type: integer
+        required: false
       mem_size:
         type: string
+        required: false
       disk_size:
         type: string
+        required: false
       mem_page_size:
         type: string
+        required: false
       numa_node_count:
         type: integer
         constraints:
           - greater_or_equal: 2
+        required: false
       numa_nodes:
         type: map
+        required: false
       cpu_allocation:
         type: map
+        required: false
 
 policy_types:
   tosca.policies.tacker.Placement:
@@ -87,10 +103,12 @@ policy_types:
         type: map
         entry_schema:
           type: string
+        required: false
       actions:
         type: map
         entry_schema:
           type: string
+        required: true
 
   tosca.policies.tacker.Monitoring.NoOp:
     derived_from: tosca.policies.tacker.Monitoring
