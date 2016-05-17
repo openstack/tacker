@@ -1,0 +1,49 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: OpenWRT with services
+
+metadata:
+  template_name: OpenWRT
+
+topology_template:
+  node_templates:
+
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        image: OpenWRT
+        flavor: m1.tiny
+        config: |
+          param0: key1
+          param1: key2
+        mgmt_driver: openwrt
+        monitoring_policy:
+          name: ping
+          actions:
+            failure: respawn
+          parameters:
+            count: 3
+            interval: 10
+        user_data_format: RAW
+        user_data: |
+          #!/bin/sh
+          echo "my hostname is `hostname`" > /tmp/hostname
+          df -h > /home/openwrt/diskinfo
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: existing_network_1
+        vendor: ACME
+
