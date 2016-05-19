@@ -18,8 +18,8 @@
 Getting Started
 ===============
 
-Once manual installation of tacker components are completed, follow the below
-steps to get started with tacker and validate the installation.
+Once tacker is installed successfully, follow the steps given below to get
+started with tacker and validate the installation.
 
 i). Create a sample-vnfd.yml file with the following content:
 
