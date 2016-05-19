@@ -1,0 +1,4 @@
+---
+features:
+  - Made VNFD/VNF/VIM names mandatory in tacker.
+

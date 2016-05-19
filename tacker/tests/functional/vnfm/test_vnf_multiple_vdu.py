@@ -29,7 +29,9 @@ class VnfTestMultipleVDU(base.BaseTackerTest):
         input_yaml = read_file('sample-vnfd-multi-vdu.yaml')
         data['tosca'] = input_yaml
         toscal = data['tosca']
-        tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
+        vnfd_name = 'sample-vnfd-multi-vdu'
+        tosca_arg = {'vnfd': {'name': vnfd_name,
+                     'attributes': {'vnfd': toscal}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)

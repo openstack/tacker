@@ -184,7 +184,6 @@ RESOURCE_ATTRIBUTE_MAP = {
             'allow_put': True,
             'validate': {'type:string': None},
             'is_visible': True,
-            'default': '',
         },
         'description': {
             'allow_post': True,
@@ -258,7 +257,6 @@ RESOURCE_ATTRIBUTE_MAP = {
             'allow_put': True,
             'validate': {'type:string': None},
             'is_visible': True,
-            'default': '',
         },
         'description': {
             'allow_post': True,
