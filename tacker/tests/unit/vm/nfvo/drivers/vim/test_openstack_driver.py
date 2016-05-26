@@ -13,9 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from keystoneclient import exceptions
 import mock
 from oslo_config import cfg
 
+from tacker.extensions import nfvo
 from tacker.nfvo.drivers.vim import openstack_driver
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
@@ -115,3 +117,15 @@ class TestOpenstack_Driver(base.TestCase):
         mock_os_path.return_value = file_path
         self.openstack_driver.deregister_vim(vim_id)
         mock_os_remove.assert_called_once_with(file_path)
+
+    def test_register_vim_invalid_credentials(self):
+        attrs = {'regions.list.side_effect': exceptions.Unauthorized}
+        keystone_version = 'v3'
+        mock_ks_client = mock.Mock(version=keystone_version, **attrs)
+        self.keystone.get_version.return_value = keystone_version
+        self.keystone.initialize_client.return_value = mock_ks_client
+        self.assertRaises(nfvo.VimUnauthorizedException,
+                          self.openstack_driver.register_vim, self.vim_obj)
+        mock_ks_client.regions.list.assert_called_once_with()
+        self.keystone.initialize_client.assert_called_once_with(
+            version=keystone_version, **self.auth_obj)
