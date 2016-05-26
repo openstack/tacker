@@ -16,6 +16,7 @@
 
 import os
 
+from keystoneclient import exceptions
 from oslo_config import cfg
 
 from tacker.common import log
@@ -95,12 +96,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
         return keystone_version
 
     def _initialize_keystone(self, version, auth):
-        try:
-            ks_client = self.keystone.initialize_client(version=version,
-                                                        **auth)
-        except Exception as e:
-            LOG.error(_('VIM authentication failed'))
-            raise nfvo.VimUnauthorizedException(message=e.message)
+        ks_client = self.keystone.initialize_client(version=version, **auth)
         return ks_client
 
     def _find_regions(self, ks_client):
@@ -111,14 +107,12 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
                 if service.type == 'orchestration':
                     heat_service_id = service.id
             endpoints_list = ks_client.endpoints.list()
-            region_list = [endpoint.region for endpoint in endpoints_list if
-                           endpoint.service_id == heat_service_id]
+            region_list = [endpoint.region for endpoint in
+                           endpoints_list if endpoint.service_id ==
+                           heat_service_id]
         else:
             region_info = ks_client.regions.list()
             region_list = [region.id for region in region_info]
-        if not region_list:
-            LOG.info(_('Unable to find VIM regions'))
-            return
         return region_list
 
     def discover_placement_attr(self, vim_obj, ks_client):
@@ -126,7 +120,11 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
 
         Attributes can include regions, AZ.
         """
-        regions_list = self._find_regions(ks_client)
+        try:
+            regions_list = self._find_regions(ks_client)
+        except exceptions.Unauthorized as e:
+            LOG.warn(_("Authorization failed for user"))
+            raise nfvo.VimUnauthorizedException(message=e.message)
         vim_obj['placement_attr'] = {'regions': regions_list}
         return vim_obj
 

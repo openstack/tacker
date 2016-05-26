@@ -58,13 +58,8 @@ class Keystone(object):
             from keystoneclient.v3 import client
             auth_plugin = identity.v3.Password(**kwargs)
         ses = self.get_session(auth_plugin=auth_plugin)
-        try:
-            cli = client.Client(session=ses)
-            return cli
-        except (exceptions.AuthorizationFailure,
-                exceptions.Unauthorized):
-            LOG.warn(_("Authorization failed for user"))
-            raise
+        cli = client.Client(session=ses)
+        return cli
 
     @staticmethod
     def create_key_dir(path):
