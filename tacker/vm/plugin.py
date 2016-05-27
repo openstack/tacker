@@ -392,7 +392,6 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                 self.mgmt_delete_post(context, device_dict)
                 self._delete_device_post(context, device_id, e)
 
-        self._delete_device_post(context, device_id, None)
         self.spawn_n(self._delete_device_wait, context, device_dict, vim_auth)
 
     def create_vnf(self, context, vnf):

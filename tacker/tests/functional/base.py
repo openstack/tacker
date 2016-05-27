@@ -17,6 +17,7 @@ import time
 from oslo_config import cfg
 from tempest_lib.tests import base
 
+from tacker.common.exceptions import TackerException
 from tacker.tests import constants
 from tacker import version
 
@@ -84,6 +85,20 @@ class BaseTackerTest(base.TestCase):
     def wait_until_vnf_active(cls, vnf_id, timeout, sleep_interval):
         return cls.wait_until_vnf_status(vnf_id, 'ACTIVE', timeout,
                                          sleep_interval)
+
+    @classmethod
+    def wait_until_vnf_delete(cls, vnf_id, timeout):
+        start_time = int(time.time())
+        while True:
+            try:
+                vnf_result = cls.client.show_vnf(vnf_id)
+                time.sleep(1)
+            except Exception:
+                return
+            status = vnf_result['vnf']['status']
+            if (status != 'PENDING_DELETE') or ((
+                    int(time.time()) - start_time) > timeout):
+                raise TackerException(_("Failed with status: %s"), status)
 
     @classmethod
     def wait_until_vnf_dead(cls, vnf_id, timeout, sleep_interval):
