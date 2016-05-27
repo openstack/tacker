@@ -26,9 +26,9 @@ from tacker import context as t_context
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
+from tacker.db import types
 from tacker.extensions import vnfm
 from tacker import manager
-from tacker.openstack.common import uuidutils
 from tacker.plugins.common import constants
 
 LOG = logging.getLogger(__name__)
@@ -71,7 +71,7 @@ class ServiceType(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     Since a device may provide many services, This is one-to-many
     relationship.
     """
-    template_id = sa.Column(sa.String(36), sa.ForeignKey('devicetemplates.id'),
+    template_id = sa.Column(types.Uuid, sa.ForeignKey('devicetemplates.id'),
                             nullable=False)
     service_type = sa.Column(sa.String(255), nullable=False)
 
@@ -83,23 +83,19 @@ class DeviceTemplateAttribute(model_base.BASE, models_v1.HasId):
     like nova, heat or others. e.g. image-id, flavor-id for Nova.
     The interpretation is up to actual driver of hosting device.
     """
-    template_id = sa.Column(sa.String(36), sa.ForeignKey('devicetemplates.id'),
+    template_id = sa.Column(types.Uuid, sa.ForeignKey('devicetemplates.id'),
                             nullable=False)
     key = sa.Column(sa.String(255), nullable=False)
     value = sa.Column(sa.TEXT(65535), nullable=True)
 
 
-class Device(model_base.BASE, models_v1.HasTenant):
+class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     """Represents devices that hosts services.
 
     Here the term, 'VM', is intentionally avoided because it can be
     VM or other container.
     """
-    id = sa.Column(sa.String(255),
-                   primary_key=True,
-                   default=uuidutils.generate_uuid)
-
-    template_id = sa.Column(sa.String(36), sa.ForeignKey('devicetemplates.id'))
+    template_id = sa.Column(types.Uuid, sa.ForeignKey('devicetemplates.id'))
     template = orm.relationship('DeviceTemplate')
 
     name = sa.Column(sa.String(255), nullable=True)
@@ -116,7 +112,7 @@ class Device(model_base.BASE, models_v1.HasTenant):
     attributes = orm.relationship("DeviceAttribute", backref="device")
 
     status = sa.Column(sa.String(255), nullable=False)
-    vim_id = sa.Column(sa.String(36), sa.ForeignKey('vims.id'), nullable=False)
+    vim_id = sa.Column(types.Uuid, sa.ForeignKey('vims.id'), nullable=False)
     placement_attr = sa.Column(sa.PickleType, nullable=True)
     vim = orm.relationship('Vim')
     error_reason = sa.Column(sa.Text, nullable=True)
@@ -129,7 +125,7 @@ class DeviceAttribute(model_base.BASE, models_v1.HasId):
     like nova, heat or others. e.g. image-id, flavor-id for Nova.
     The interpretation is up to actual driver of hosting device.
     """
-    device_id = sa.Column(sa.String(255), sa.ForeignKey('devices.id'),
+    device_id = sa.Column(types.Uuid, sa.ForeignKey('devices.id'),
                           nullable=False)
     key = sa.Column(sa.String(255), nullable=False)
     # json encoded value. example

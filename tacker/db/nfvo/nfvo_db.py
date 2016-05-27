@@ -25,10 +25,10 @@ from sqlalchemy import sql
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
+from tacker.db import types
 from tacker.db.vm import vm_db
 from tacker.extensions import nfvo
 from tacker import manager
-from tacker.openstack.common import uuidutils
 
 
 VIM_ATTRIBUTES = ('id', 'type', 'tenant_id', 'name', 'description',
@@ -36,12 +36,8 @@ VIM_ATTRIBUTES = ('id', 'type', 'tenant_id', 'name', 'description',
 VIM_AUTH_ATTRIBUTES = ('auth_url', 'vim_project', 'password', 'auth_cred')
 
 
-class Vim(model_base.BASE, models_v1.HasTenant):
-    id = sa.Column(sa.String(255),
-                   primary_key=True,
-                   default=uuidutils.generate_uuid)
+class Vim(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     type = sa.Column(sa.String(255), nullable=False)
-    tenant_id = sa.Column(sa.String(255), nullable=True)
     name = sa.Column(sa.String(255), nullable=True)
     description = sa.Column(sa.String(255), nullable=True)
     placement_attr = sa.Column(sa.PickleType, nullable=True)
@@ -51,7 +47,7 @@ class Vim(model_base.BASE, models_v1.HasTenant):
 
 
 class VimAuth(model_base.BASE, models_v1.HasId):
-    vim_id = sa.Column(sa.String(255), sa.ForeignKey('vims.id'),
+    vim_id = sa.Column(types.Uuid, sa.ForeignKey('vims.id'),
                        nullable=False)
     password = sa.Column(sa.String(128), nullable=False)
     auth_url = sa.Column(sa.String(255), nullable=False)

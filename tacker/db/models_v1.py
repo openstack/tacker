@@ -15,6 +15,7 @@
 
 import sqlalchemy as sa
 
+from tacker.db import types
 from tacker.openstack.common import uuidutils
 
 
@@ -28,6 +29,6 @@ class HasTenant(object):
 class HasId(object):
     """id mixin, add to subclasses that have an id."""
 
-    id = sa.Column(sa.String(36),
+    id = sa.Column(types.Uuid,
                    primary_key=True,
                    default=uuidutils.generate_uuid)
