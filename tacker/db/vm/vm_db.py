@@ -119,6 +119,7 @@ class Device(model_base.BASE, models_v1.HasTenant):
     vim_id = sa.Column(sa.String(36), sa.ForeignKey('vims.id'), nullable=False)
     placement_attr = sa.Column(sa.PickleType, nullable=True)
     vim = orm.relationship('Vim')
+    error_reason = sa.Column(sa.Text, nullable=True)
 
 
 class DeviceAttribute(model_base.BASE, models_v1.HasId):
@@ -195,7 +196,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         }
         key_list = ('id', 'tenant_id', 'name', 'description', 'instance_id',
                     'vim_id', 'placement_attr', 'template_id', 'status',
-                    'mgmt_url')
+                    'mgmt_url', 'error_reason')
         res.update((key, device_db[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -354,7 +355,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                                template_id=template_id,
                                vim_id=vim_id,
                                placement_attr=placement_attr,
-                               status=constants.PENDING_CREATE)
+                               status=constants.PENDING_CREATE,
+                               error_reason=None)
             context.session.add(device_db)
             for key, value in attributes.items():
                     arg = DeviceAttribute(
@@ -493,6 +495,12 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return [device for device in devices
                 if uuidutils.is_uuid_like(device['id'])]
 
+    def set_device_error_status_reason(self, context, device_id, new_reason):
+        with context.session.begin(subtransactions=True):
+            (self._model_query(context, Device).
+                filter(Device.id == device_id).
+                update({'error_reason': new_reason}))
+
     def _mark_device_status(self, device_id, exclude_status, new_status):
         context = t_context.get_admin_context()
         with context.session.begin(subtransactions=True):
@@ -540,7 +548,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 mgmt_url=device_db.mgmt_url,
                 status=device_db.status,
                 vim_id=device_db.vim_id,
-                placement_attr=device_db.placement_attr)
+                placement_attr=device_db.placement_attr,
+                error_reason=device_db.error_reason)
             context.session.add(new_device_db)
 
             (self._model_query(context, DeviceAttribute).

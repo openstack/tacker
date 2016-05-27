@@ -66,7 +66,7 @@ class DeviceCreateFailed(exceptions.TackerException):
 
 
 class DeviceCreateWaitFailed(exceptions.TackerException):
-    message = _('waiting for creation of VNF %(device_id)s failed')
+    message = _('%(reason)s')
 
 
 class DeviceDeleteFailed(exceptions.TackerException):
@@ -294,6 +294,11 @@ RESOURCE_ATTRIBUTE_MAP = {
             'default': {},
         },
         'status': {
+            'allow_post': False,
+            'allow_put': False,
+            'is_visible': True,
+        },
+        'error_reason': {
             'allow_post': False,
             'allow_put': False,
             'is_visible': True,

@@ -16,6 +16,7 @@
 
 import copy
 import inspect
+import six
 
 import eventlet
 from oslo_config import cfg
@@ -200,10 +201,12 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                 driver_name, 'create_wait', plugin=self, context=context,
                 device_dict=device_dict, device_id=instance_id,
                 auth_attr=auth_attr)
-        except vnfm.DeviceCreateWaitFailed:
+        except vnfm.DeviceCreateWaitFailed as e:
             LOG.error(_LE("VNF Create failed for vnf_id %s"), device_id)
             create_failed = True
             device_dict['status'] = constants.ERROR
+            self.set_device_error_status_reason(context, device_id,
+                                                six.text_type(e))
 
         if instance_id is None or create_failed:
             mgmt_url = None
@@ -231,6 +234,8 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         except Exception:
             LOG.exception(_('create_device_wait'))
             new_status = constants.ERROR
+            self.set_device_error_status_reason(context, device_id,
+                    'Unable to configure VDU')
         device_dict['status'] = new_status
         self._create_device_status(context, device_id, new_status)
 
@@ -302,9 +307,11 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                 context=context, device_id=instance_id, auth_attr=vim_auth,
                 region_name=region_name)
             self.mgmt_call(context, device_dict, kwargs)
-        except Exception:
+        except Exception as e:
             LOG.exception(_('_update_device_wait'))
             new_status = constants.ERROR
+            self.set_device_error_status_reason(context, device_dict['id'],
+                                                six.text_type(e))
         device_dict['status'] = new_status
         self.mgmt_update_post(context, device_dict)
 
@@ -323,9 +330,12 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                 driver_name, 'update', plugin=self, context=context,
                 device_id=instance_id, device_dict=device_dict,
                 device=device, auth_attr=vim_auth)
-        except Exception:
+        except Exception as e:
             with excutils.save_and_reraise_exception():
                 device_dict['status'] = constants.ERROR
+                self.set_device_error_status_reason(context,
+                                                    device_dict['id'],
+                                                    six.text_type(e))
                 self.mgmt_update_post(context, device_dict)
                 self._update_device_post(context, device_id, constants.ERROR)
 
@@ -346,6 +356,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         except Exception as e_:
             e = e_
             device_dict['status'] = constants.ERROR
+            device_dict['error_reason'] = six.text_type(e)
             LOG.exception(_('_delete_device_wait'))
         self.mgmt_delete_post(context, device_dict)
         device_id = device_dict['id']
@@ -377,6 +388,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
             # Other case mark error
             with excutils.save_and_reraise_exception():
                 device_dict['status'] = constants.ERROR
+                device_dict['error_reason'] = six.text_type(e)
                 self.mgmt_delete_post(context, device_dict)
                 self._delete_device_post(context, device_id, e)
 
