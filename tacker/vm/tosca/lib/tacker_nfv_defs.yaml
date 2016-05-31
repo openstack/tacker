@@ -49,6 +49,15 @@ node_types:
         type: string
         required: false
 
+      user_data:
+        type: string
+        required: false
+
+      user_data_format:
+        type: string
+        required: false
+
+
   tosca.nodes.nfv.CP.Tacker:
     derived_from: tosca.nodes.nfv.CP
     properties:

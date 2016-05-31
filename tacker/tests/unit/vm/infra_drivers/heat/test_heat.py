@@ -265,6 +265,11 @@ class TestDeviceHeat(base.TestCase):
         self._test_assert_equal_for_tosca_templates('test_tosca_openwrt.yaml',
             'hot_tosca_openwrt.yaml')
 
+    def test_create_tosca_with_userdata(self):
+        self._test_assert_equal_for_tosca_templates(
+            'test_tosca_openwrt_userdata.yaml',
+            'hot_tosca_openwrt_userdata.yaml')
+
     def test_create_tosca_with_new_flavor(self):
         self._test_assert_equal_for_tosca_templates('test_tosca_flavor.yaml',
             'hot_flavor.yaml')
