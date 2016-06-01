@@ -20,9 +20,6 @@ from sqlalchemy import sql
 
 from tacker.common import exceptions as n_exc
 from tacker.db import sqlalchemyutils
-from tacker.openstack.common import log as logging
-
-LOG = logging.getLogger(__name__)
 
 
 class CommonDbMixin(object):

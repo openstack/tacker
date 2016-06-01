@@ -18,10 +18,6 @@ import sqlalchemy
 from sqlalchemy.orm.properties import RelationshipProperty
 
 from tacker.common import exceptions as n_exc
-from tacker.openstack.common import log as logging
-
-
-LOG = logging.getLogger(__name__)
 
 
 def paginate_query(query, model, limit, sorts, marker_obj=None):
