@@ -113,7 +113,7 @@ class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
 
     status = sa.Column(sa.String(255), nullable=False)
     vim_id = sa.Column(types.Uuid, sa.ForeignKey('vims.id'), nullable=False)
-    placement_attr = sa.Column(sa.PickleType, nullable=True)
+    placement_attr = sa.Column(types.Json, nullable=True)
     vim = orm.relationship('Vim')
     error_reason = sa.Column(sa.Text, nullable=True)
 
