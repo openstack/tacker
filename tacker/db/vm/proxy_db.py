@@ -21,7 +21,7 @@ from tacker.db import model_base
 
 
 class ProxyMgmtPort(model_base.BASE):
-    device_id = sa.Column(sa.String(255), primary_key=True)
+    device_id = sa.Column(sa.String(64), primary_key=True)
     port_id = sa.Column(sa.String(36), nullable=False)
     dst_transport_url = sa.Column(sa.String(255))
     svr_proxy_id = sa.Column(sa.String(36))
@@ -31,7 +31,7 @@ class ProxyMgmtPort(model_base.BASE):
 
 
 class ProxyServicePort(model_base.BASE):
-    service_instance_id = sa.Column(sa.String(255), primary_key=True)
+    service_instance_id = sa.Column(sa.String(64), primary_key=True)
     svr_proxy_id = sa.Column(sa.String(36))
     svr_ns_proxy_id = sa.Column(sa.String(36))
     clt_proxy_id = sa.Column(sa.String(36))

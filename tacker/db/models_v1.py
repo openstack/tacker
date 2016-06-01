@@ -23,7 +23,7 @@ class HasTenant(object):
     """Tenant mixin, add to subclasses that have a tenant."""
 
     # NOTE(jkoelker) tenant_id is just a free form string ;(
-    tenant_id = sa.Column(sa.String(255))
+    tenant_id = sa.Column(sa.String(64))
 
 
 class HasId(object):

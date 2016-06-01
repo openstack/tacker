@@ -73,7 +73,7 @@ class ServiceType(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     """
     template_id = sa.Column(types.Uuid, sa.ForeignKey('devicetemplates.id'),
                             nullable=False)
-    service_type = sa.Column(sa.String(255), nullable=False)
+    service_type = sa.Column(sa.String(64), nullable=False)
 
 
 class DeviceTemplateAttribute(model_base.BASE, models_v1.HasId):
@@ -103,7 +103,7 @@ class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
 
     # sufficient information to uniquely identify hosting device.
     # In case of service VM, it's UUID of nova VM.
-    instance_id = sa.Column(sa.String(255), nullable=True)
+    instance_id = sa.Column(sa.String(64), nullable=True)
 
     # For a management tool to talk to manage this hosting device.
     # opaque string.
@@ -111,7 +111,7 @@ class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     mgmt_url = sa.Column(sa.String(255), nullable=True)
     attributes = orm.relationship("DeviceAttribute", backref="device")
 
-    status = sa.Column(sa.String(255), nullable=False)
+    status = sa.Column(sa.String(64), nullable=False)
     vim_id = sa.Column(types.Uuid, sa.ForeignKey('vims.id'), nullable=False)
     placement_attr = sa.Column(types.Json, nullable=True)
     vim = orm.relationship('Vim')
