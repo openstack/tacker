@@ -23,3 +23,6 @@ subunit.log
 *.mo
 *.sw?
 *~
+
+# Files created by releasenotes build
+releasenotes/build
