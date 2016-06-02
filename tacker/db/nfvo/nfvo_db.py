@@ -150,7 +150,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                 vim_auth_db = (self._model_query(context, VimAuth).filter(
                     VimAuth.vim_id == vim_id).with_lockmode('update').one())
             except orm_exc.NoResultFound:
-                    raise nfvo.VimNotFound(vim_id=vim_id)
+                    raise nfvo.VimNotFoundException(vim_id=vim_id)
             vim_auth_db.update({'auth_cred': vim_cred, 'password':
                                vim_cred.pop('password'), 'vim_project':
                                vim_project})
