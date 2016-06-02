@@ -346,18 +346,24 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         driver_name = self._infra_driver_name(device_dict)
         instance_id = self._instance_id(device_dict)
         e = None
-        placement_attr = device_dict['placement_attr']
-        region_name = placement_attr.get('region_name')
-        try:
-            self._device_manager.invoke(
-                driver_name, 'delete_wait', plugin=self,
-                context=context, device_id=instance_id, auth_attr=auth_attr,
-                region_name=region_name)
-        except Exception as e_:
-            e = e_
-            device_dict['status'] = constants.ERROR
-            device_dict['error_reason'] = six.text_type(e)
-            LOG.exception(_('_delete_device_wait'))
+        if instance_id:
+            placement_attr = device_dict['placement_attr']
+            region_name = placement_attr.get('region_name')
+            try:
+                self._device_manager.invoke(
+                    driver_name,
+                    'delete_wait',
+                    plugin=self,
+                    context=context,
+                    device_id=instance_id,
+                    auth_attr=auth_attr,
+                    region_name=region_name)
+            except Exception as e_:
+                e = e_
+                device_dict['status'] = constants.ERROR
+                device_dict['error_reason'] = six.text_type(e)
+                LOG.exception(_('_delete_device_wait'))
+
         self.mgmt_delete_post(context, device_dict)
         device_id = device_dict['id']
         self._delete_device_post(context, device_id, e)
@@ -377,11 +383,14 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         try:
             self.mgmt_delete_pre(context, device_dict)
             self.mgmt_call(context, device_dict, kwargs)
-            self._device_manager.invoke(driver_name, 'delete', plugin=self,
-                                        context=context,
-                                        device_id=instance_id,
-                                        auth_attr=vim_auth,
-                                        region_name=region_name)
+            if instance_id:
+                self._device_manager.invoke(driver_name,
+                                            'delete',
+                                            plugin=self,
+                                            context=context,
+                                            device_id=instance_id,
+                                            auth_attr=vim_auth,
+                                            region_name=region_name)
         except Exception as e:
             # TODO(yamahata): when the devaice is already deleted. mask
             # the error, and delete row in db
