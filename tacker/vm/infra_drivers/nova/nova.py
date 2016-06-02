@@ -68,15 +68,15 @@ class DefaultAuthPlugin(v2_auth.Password):
         return super(DefaultAuthPlugin, self).get_endpoint(session, **kwargs)
 
 
-@versionutils.deprecated(
-    versionutils.deprecated.MITAKA,
-    what='infra_driver nova',
-    in_favor_of='infra_driver heat',
-    remove_in=+1)
 class DeviceNova(abstract_driver.DeviceAbstractDriver):
 
     """Nova driver of hosting device."""
 
+    @versionutils.deprecated(
+        versionutils.deprecated.NEWTON,
+        what='infra_driver nova',
+        in_favor_of='infra_driver heat',
+        remove_in=+1)
     def __init__(self):
         super(DeviceNova, self).__init__()
         # avoid circular import
