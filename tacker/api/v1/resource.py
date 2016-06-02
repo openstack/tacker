@@ -20,6 +20,7 @@ Utility methods for working with WSGI servers redux
 import sys
 
 import netaddr
+from oslo_log import log as logging
 import six
 import webob.dec
 import webob.exc
@@ -27,7 +28,6 @@ import webob.exc
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
 from tacker.openstack.common import gettextutils
-from tacker.openstack.common import log as logging
 from tacker import wsgi
 
 

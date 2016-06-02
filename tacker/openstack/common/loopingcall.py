@@ -19,9 +19,9 @@ import sys
 
 from eventlet import event
 from eventlet import greenthread
+from oslo_log import log as logging
 
 from tacker.openstack.common.gettextutils import _
-from tacker.openstack.common import log as logging
 from tacker.openstack.common import timeutils
 
 LOG = logging.getLogger(__name__)

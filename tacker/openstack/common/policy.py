@@ -57,14 +57,13 @@ as it allows particular rules to be explicitly disabled.
 import abc
 import re
 
+from oslo_log import log as logging
 import six
-
 from six.moves.urllib import parse as urllib_parse
 from six.moves.urllib import request as urlrequest
 
 from tacker.openstack.common.gettextutils import _
 from tacker.openstack.common import jsonutils
-from tacker.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)

@@ -18,10 +18,11 @@
 import copy
 import datetime
 
+from oslo_log import log as logging
+
 from tacker.db import api as db_api
 from tacker.openstack.common import context as common_context
 from tacker.openstack.common import local
-from tacker.openstack.common import log as logging
 from tacker import policy
 
 

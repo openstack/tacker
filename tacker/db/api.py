@@ -14,11 +14,11 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_log import log as logging
 import sqlalchemy as sql
 
 from tacker.db import model_base
 from tacker.openstack.common.db.sqlalchemy import session
-from tacker.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 

@@ -14,10 +14,10 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_log import log as logging
 import oslo_messaging
 
 from tacker.common import rpc as n_rpc
-from tacker.openstack.common import log as logging
 from tacker.openstack.common import service
 
 

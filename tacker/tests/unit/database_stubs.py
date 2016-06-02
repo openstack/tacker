@@ -15,9 +15,9 @@
 
 """stubs.py provides interface methods for the database test cases"""
 
-from tacker.db import api as db
-from tacker.openstack.common import log as logging
+from oslo_log import log as logging
 
+from tacker.db import api as db
 
 LOG = logging.getLogger(__name__)
 

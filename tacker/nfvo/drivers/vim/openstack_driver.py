@@ -18,11 +18,11 @@ import os
 
 from keystoneclient import exceptions
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from tacker.common import log
 from tacker.extensions import nfvo
 from tacker.nfvo.drivers.vim import abstract_vim_driver
-from tacker.openstack.common import log as logging
 from tacker.vm import keystone
 
 

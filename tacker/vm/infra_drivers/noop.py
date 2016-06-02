@@ -17,8 +17,9 @@
 # TODO(yamahata): once unittests are impletemted, move this there
 import uuid
 
+from oslo_log import log as logging
+
 from tacker.common import log
-from tacker.openstack.common import log as logging
 from tacker.vm.infra_drivers import abstract_driver
 
 

@@ -19,6 +19,7 @@ import imp
 import os
 
 from oslo_config import cfg
+from oslo_log import log as logging
 import routes
 import six
 import webob.dec
@@ -27,7 +28,6 @@ import webob.exc
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
 import tacker.extensions
-from tacker.openstack.common import log as logging
 from tacker import policy
 from tacker import wsgi
 

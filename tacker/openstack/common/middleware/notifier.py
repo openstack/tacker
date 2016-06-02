@@ -20,12 +20,12 @@ import os.path
 import sys
 import traceback as tb
 
+from oslo_log import log as logging
 import six
 import webob.dec
 
 from tacker.openstack.common import context
 from tacker.openstack.common.gettextutils import _LE
-from tacker.openstack.common import log as logging
 from tacker.openstack.common.middleware import base
 from tacker.openstack.common.notifier import api
 

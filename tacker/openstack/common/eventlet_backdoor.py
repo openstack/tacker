@@ -28,9 +28,9 @@ import eventlet
 import eventlet.backdoor
 import greenlet
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from tacker.openstack.common.gettextutils import _
-from tacker.openstack.common import log as logging
 
 help_for_backdoor_port = (
     "Acceptable values are 0, <port>, and <start>:<end>, where 0 results "

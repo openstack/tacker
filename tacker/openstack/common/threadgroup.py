@@ -15,8 +15,8 @@
 import eventlet
 from eventlet import greenpool
 from eventlet import greenthread
+from oslo_log import log as logging
 
-from tacker.openstack.common import log as logging
 from tacker.openstack.common import loopingcall
 
 

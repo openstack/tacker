@@ -17,10 +17,10 @@ import os
 
 from cryptography.fernet import Fernet
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from tacker.extensions import nfvo
 from tacker import manager
-from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
 
 LOG = logging.getLogger(__name__)

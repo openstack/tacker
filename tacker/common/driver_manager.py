@@ -15,11 +15,11 @@
 #    under the License.
 #
 
-import logging as log
+from oslo_log import log as logging
 
 import stevedore.named
 
-LOG = log.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 class DriverManager(object):
