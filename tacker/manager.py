@@ -16,7 +16,6 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from tacker.common import rpc_compat
 from tacker.common import utils
 from tacker.openstack.common import periodic_task
 
@@ -24,7 +23,7 @@ from tacker.openstack.common import periodic_task
 LOG = logging.getLogger(__name__)
 
 
-class Manager(rpc_compat.RpcCallback, periodic_task.PeriodicTasks):
+class Manager(periodic_task.PeriodicTasks):
 
     # Set RPC API version to 1.0 by default.
     RPC_API_VERSION = '1.0'

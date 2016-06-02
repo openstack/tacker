@@ -165,11 +165,6 @@ class BaseTestCase(testtools.TestCase):
             'tacker.common.exceptions.TackerException.use_fatal_exceptions',
             fake_use_fatal_exceptions))
 
-        # don't actually start RPC listeners when testing
-        self.useFixture(fixtures.MonkeyPatch(
-            'tacker.common.rpc_compat.Connection.consume_in_threads',
-            fake_consume_in_threads))
-
         self.useFixture(fixtures.MonkeyPatch(
             'oslo.messaging.Notifier', fake_notifier.FakeNotifier))
 
