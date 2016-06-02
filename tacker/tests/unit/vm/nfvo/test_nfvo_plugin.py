@@ -72,7 +72,8 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                     'test_project'}, 'auth_cred': {'username': 'test_user',
                                                    'password':
                                                        'test_password'},
-                            'name': 'VIM0'}}
+                            'name': 'VIM0',
+                    'tenant_id': 'test-project'}}
         vim_type = 'openstack'
         res = self.nfvo_plugin.create_vim(self.context, vim_dict)
         self._driver_manager.invoke.assert_called_once_with(vim_type,
