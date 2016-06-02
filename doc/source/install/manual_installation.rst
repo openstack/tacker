@@ -104,9 +104,9 @@ d). Provide an endpoint to tacker service.
 .. code-block:: console
 
     openstack endpoint create --region RegionOne \
-        --publicurl 'http://<TACKER_NODE_IP>:8888/' \
-        --adminurl 'http://<TACKER_NODE_IP>:8888/' \
-        --internalurl 'http://<TACKER_NODE_IP>:8888/' <SERVICE-ID>
+        --publicurl 'http://<TACKER_NODE_IP>:9890/' \
+        --adminurl 'http://<TACKER_NODE_IP>:9890/' \
+        --internalurl 'http://<TACKER_NODE_IP>:9890/' <SERVICE-ID>
 ..
 
 

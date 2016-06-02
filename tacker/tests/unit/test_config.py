@@ -26,7 +26,7 @@ class ConfigurationTest(base.BaseTestCase):
 
     def test_defaults(self):
         self.assertEqual('0.0.0.0', cfg.CONF.bind_host)
-        self.assertEqual(8888, cfg.CONF.bind_port)
+        self.assertEqual(9890, cfg.CONF.bind_port)
         self.assertEqual('api-paste.ini', cfg.CONF.api_paste_config)
         self.assertEqual('', cfg.CONF.api_extensions_path)
         self.assertEqual('policy.json', cfg.CONF.policy_file)
