@@ -19,7 +19,8 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 import yaml
 
-from tacker.agent.linux import utils
+from tacker.common import cmd_executer
+from tacker.common.exceptions import MgmtDriverException
 from tacker.common import log
 from tacker.vm.mgmt_drivers import abstract_driver
 from tacker.vm.mgmt_drivers import constants as mgmt_constants
@@ -51,11 +52,16 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
     def _config_service(self, mgmt_ip_address, service, config):
         user = cfg.CONF.openwrt.user
         password = cfg.CONF.openwrt.password
-        cmd = ["sshpass", "-p", "%s" % password,
-               "ssh", "-o", "StrictHostKeyChecking=no",
-               "%s@%s" % (user, mgmt_ip_address),
-               "uci import %s; /etc/init.d/%s restart" % (service, service)]
-        utils.execute(cmd, process_input=config)
+        try:
+            cmd = "uci import %s; /etc/init.d/%s restart" % (service, service)
+            LOG.debug(_('execute command: %s'), (cmd))
+            commander = cmd_executer.RemoteCommandExecutor(user,
+                                                       password,
+                                                       mgmt_ip_address)
+            commander.execute_command(cmd, input_data=config)
+        except Exception as ex:
+            LOG.error(_("While executing command on remote: %s"), ex)
+            raise MgmtDriverException()
 
     @log.log
     def mgmt_call(self, plugin, context, device, kwargs):
