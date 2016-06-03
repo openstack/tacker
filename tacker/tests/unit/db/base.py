@@ -15,6 +15,7 @@
 
 import fixtures
 
+from tacker.common import config
 from tacker.db import api as db_api
 from tacker.db import model_base
 from tacker.tests.unit import base
@@ -45,5 +46,6 @@ class SqlFixture(fixtures.Fixture):
 class SqlTestCase(base.TestCase):
 
     def setUp(self):
+        config.set_db_defaults()
         super(SqlTestCase, self).setUp()
         self.useFixture(SqlFixture())

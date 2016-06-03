@@ -16,19 +16,18 @@
 
 import uuid
 
+from oslo_db import exception
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import sql
 
-from tacker.db import api as tdbapi
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
 from tacker.db.vm import vm_db
 from tacker.extensions import nfvo
 from tacker import manager
-from tacker.openstack.common.db import exception
 from tacker.openstack.common import uuidutils
 
 
@@ -64,7 +63,6 @@ class VimAuth(model_base.BASE, models_v1.HasId):
 class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
 
     def __init__(self):
-        tdbapi.register_models()
         super(NfvoPluginDb, self).__init__()
 
     @property

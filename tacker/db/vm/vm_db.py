@@ -23,7 +23,6 @@ from sqlalchemy.orm import exc as orm_exc
 
 from tacker.api.v1 import attributes
 from tacker import context as t_context
-from tacker.db import api as qdbapi
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
@@ -148,7 +147,6 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return subnet['network_id']
 
     def __init__(self):
-        qdbapi.register_models()
         super(VNFMPluginDb, self).__init__()
 
     def _get_resource(self, context, model, id):
