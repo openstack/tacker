@@ -156,7 +156,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             return self._get_by_id(context, model, id)
         except orm_exc.NoResultFound:
             if issubclass(model, DeviceTemplate):
-                raise vnfm.DeviceTemplateNotFound(device_tempalte_id=id)
+                raise vnfm.DeviceTemplateNotFound(device_template_id=id)
             elif issubclass(model, ServiceType):
                 raise vnfm.ServiceTypeNotFound(service_type_id=id)
             if issubclass(model, Device):

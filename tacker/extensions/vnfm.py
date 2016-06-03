@@ -74,7 +74,7 @@ class DeviceDeleteFailed(exceptions.TackerException):
 
 
 class DeviceTemplateNotFound(exceptions.NotFound):
-    message = _('VNFD template %(device_tempalte_id)s could not be found')
+    message = _('VNFD template %(device_template_id)s could not be found')
 
 
 class ServiceTypeNotFound(exceptions.NotFound):
