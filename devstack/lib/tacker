@@ -64,9 +64,9 @@ TACKER_CONF=$TACKER_CONF_DIR/tacker.conf
 # Default name for Tacker database
 TACKER_DB_NAME=${TACKER_DB_NAME:-tacker}
 # Default Tacker Port
-TACKER_PORT=${TACKER_PORT:-8888}
+TACKER_PORT=${TACKER_PORT:-9890}
 # Default Tacker Internal Port when using TLS proxy
-TACKER_PORT_INT=${TACKER_PORT_INT:-18888}       # TODO(FIX)
+TACKER_PORT_INT=${TACKER_PORT_INT:-19890}       # TODO(FIX)
 # Default Tacker Host
 TACKER_HOST=${TACKER_HOST:-$SERVICE_HOST}
 # Default protocol

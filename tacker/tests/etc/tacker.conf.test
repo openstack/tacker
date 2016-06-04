@@ -9,7 +9,7 @@ debug = False
 bind_host = 0.0.0.0
 
 # Port the bind the API server to
-bind_port = 8888
+bind_port = 9890
 
 # Path to the extensions
 api_extensions_path = unit/extensions
