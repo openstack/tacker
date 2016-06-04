@@ -15,13 +15,13 @@
 
 import abc
 
+from oslo_log import log as logging
 import six
 
 from tacker.api import extensions
 from tacker.api.v1 import attributes as attr
 from tacker.api.v1 import resource_helper
 from tacker.common import exceptions
-from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
 from tacker.services import service_base
 

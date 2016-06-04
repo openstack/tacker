@@ -14,11 +14,10 @@
 import time
 
 from oslo_config import cfg
+from oslo_log import log as logging
 import six
 
 from tacker.openstack.common.gettextutils import _, _LE, _LI
-from tacker.openstack.common import log as logging
-
 
 periodic_opts = [
     cfg.BoolOpt('run_external_periodic_tasks',

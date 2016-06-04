@@ -16,10 +16,10 @@
 
 import random
 
+from oslo_log import log as logging
 import sqlalchemy as sa
 
 from tacker.db.vm import vm_db
-from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
 
 

@@ -16,6 +16,7 @@
 import abc
 
 import mock
+from oslo_log import log as logging
 import routes
 import webob
 import webtest
@@ -24,7 +25,6 @@ from tacker.api import extensions
 from tacker.common import config
 from tacker.common import exceptions
 from tacker.openstack.common import jsonutils
-from tacker.openstack.common import log as logging
 from tacker.plugins.common import constants
 from tacker.tests import base
 from tacker.tests.unit import extension_stubs as ext_stubs

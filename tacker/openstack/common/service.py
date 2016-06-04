@@ -36,11 +36,11 @@ except ImportError:
 import eventlet
 from eventlet import event
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from tacker.openstack.common import eventlet_backdoor
 from tacker.openstack.common.gettextutils import _LE, _LI, _LW
 from tacker.openstack.common import importutils
-from tacker.openstack.common import log as logging
 from tacker.openstack.common import systemd
 from tacker.openstack.common import threadgroup
 

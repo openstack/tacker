@@ -16,14 +16,14 @@ import re
 import sys
 import yaml
 
-from tacker.common import log
-from tacker.common import utils
-from tacker.extensions import vnfm
-from tacker.openstack.common import log as logging
-
+from oslo_log import log as logging
 from six import iteritems
 from toscaparser.properties import Property
 from toscaparser.utils import yamlparser
+
+from tacker.common import log
+from tacker.common import utils
+from tacker.extensions import vnfm
 
 
 FAILURE = 'tosca.policies.tacker.Failure'

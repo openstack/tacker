@@ -19,11 +19,11 @@ It catches all exceptions from subsequent applications in WSGI pipeline
 to hide internal errors from API response.
 """
 
+from oslo_log import log as logging
 import webob.dec
 import webob.exc
 
 from tacker.openstack.common.gettextutils import _  # noqa
-from tacker.openstack.common import log as logging
 from tacker.openstack.common.middleware import base
 
 

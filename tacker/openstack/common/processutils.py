@@ -25,9 +25,9 @@ import signal
 
 from eventlet.green import subprocess
 from eventlet import greenthread
+from oslo_log import log as logging
 
 from tacker.openstack.common.gettextutils import _
-from tacker.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)

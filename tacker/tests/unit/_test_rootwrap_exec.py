@@ -16,9 +16,9 @@
 import os
 
 import fixtures
+from oslo_log import log as logging
 
 from tacker.agent.linux import utils
-from tacker.openstack.common import log as logging
 from tacker.tests import base
 
 

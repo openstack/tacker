@@ -14,13 +14,13 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from six import iteritems
 from six.moves.urllib import parse as urllib_parse
 from webob import exc
 
 from tacker.common import constants
 from tacker.common import exceptions
-from tacker.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)

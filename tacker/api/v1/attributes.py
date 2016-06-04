@@ -16,11 +16,11 @@
 import re
 
 import netaddr
+from oslo_log import log as logging
 from six import iteritems
 
 from tacker.common import constants
 from tacker.common import exceptions as n_exc
-from tacker.openstack.common import log as logging
 from tacker.openstack.common import uuidutils
 
 

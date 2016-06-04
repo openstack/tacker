@@ -22,10 +22,10 @@ import tempfile
 
 from eventlet.green import subprocess
 from eventlet import greenthread
+from oslo_log import log as logging
 
 from tacker.common import utils
 from tacker.openstack.common import excutils
-from tacker.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)

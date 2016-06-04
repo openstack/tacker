@@ -32,15 +32,15 @@ import uuid
 
 from eventlet.green import subprocess
 import netaddr
+from oslo_concurrency import lockutils
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import importutils
 from six import iteritems
 from stevedore import driver
 
 from tacker.common import constants as q_const
 from tacker.i18n import _LE
-from tacker.openstack.common import lockutils
-from tacker.openstack.common import log as logging
 
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"

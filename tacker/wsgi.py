@@ -30,6 +30,7 @@ from xml.parsers import expat
 import eventlet.wsgi
 # eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
 from oslo_config import cfg
+from oslo_log import log as logging
 import routes.middleware
 import six
 import webob.dec
@@ -42,7 +43,6 @@ from tacker.db import api
 from tacker.openstack.common import excutils
 from tacker.openstack.common import gettextutils
 from tacker.openstack.common import jsonutils
-from tacker.openstack.common import log as logging
 from tacker.openstack.common import service as common_service
 from tacker.openstack.common import systemd
 
@@ -247,7 +247,7 @@ class Server(object):
     def _run(self, application, socket):
         """Start a WSGI server in a new green thread."""
         eventlet.wsgi.server(socket, application, custom_pool=self.pool,
-                             log=logging.WritableLogger(LOG))
+                             log=LOG)
 
 
 class Middleware(object):

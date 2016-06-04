@@ -22,8 +22,8 @@ from keystoneclient import client
 from keystoneclient import exceptions
 from keystoneclient import session
 from oslo_config import cfg
+from oslo_log import log as logging
 
-from tacker.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF

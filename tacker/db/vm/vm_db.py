@@ -16,6 +16,7 @@
 
 import uuid
 
+from oslo_log import log as logging
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
@@ -28,7 +29,6 @@ from tacker.db import model_base
 from tacker.db import models_v1
 from tacker.extensions import vnfm
 from tacker import manager
-from tacker.openstack.common import log as logging
 from tacker.openstack.common import uuidutils
 from tacker.plugins.common import constants
 

@@ -13,11 +13,11 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_log import log as logging
 import webob.dec
 import webob.exc
 
 from tacker import context
-from tacker.openstack.common import log as logging
 from tacker.openstack.common.middleware import request_id
 from tacker import wsgi
 

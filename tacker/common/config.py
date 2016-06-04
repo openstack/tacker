@@ -20,12 +20,12 @@ Routines for configuring Tacker
 import os
 
 from oslo_config import cfg
+from oslo_log import log as logging
 import oslo_messaging
 from paste import deploy
 
 from tacker.common import utils
 from tacker.openstack.common.db import options as db_options
-from tacker.openstack.common import log as logging
 from tacker import version
 
 
@@ -88,6 +88,7 @@ core_cli_opts = [
                       "This directory must be writable by the agent.")),
 ]
 
+logging.register_options(cfg.CONF)
 # Register the configuration options
 cfg.CONF.register_opts(core_opts)
 cfg.CONF.register_cli_opts(core_cli_opts)
@@ -119,7 +120,7 @@ def setup_logging(conf):
     :param conf: a cfg.ConfOpts object
     """
     product_name = "tacker"
-    logging.setup(product_name)
+    logging.setup(conf, product_name)
     LOG.info(_("Logging enabled!"))
 
 
