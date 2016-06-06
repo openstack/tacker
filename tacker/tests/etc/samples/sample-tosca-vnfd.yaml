@@ -12,6 +12,7 @@ topology_template:
       properties:
         image: cirros-0.3.4-x86_64-uec
         flavor: m1.tiny
+        key_name: userKey
         availability_zone: nova
         mgmt_driver: noop
         config: |

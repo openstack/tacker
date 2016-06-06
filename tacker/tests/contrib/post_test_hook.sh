@@ -59,6 +59,14 @@ function fixup_nova_quota {
     nova quota-class-update --instances -1 --cores -1 default
 }
 
+# Adding nova keypair to support key_name (#1578785).
+function add_key {
+    echo "Adding nova key"
+    source $DEVSTACK_DIR/openrc admin admin
+    userId=$(openstack user list | awk '/\ nfv_user\ / {print $2}')
+    nova keypair-add userKey --user $userId > keypair.priv
+}
+
 if [[ "$venv" == dsvm-functional* ]]
 then
     owner=stack
@@ -66,6 +74,7 @@ then
     log_dir="/tmp/${venv}-logs"
 
     fixup_nova_quota
+    add_key
 fi
 
 # Set owner permissions according to job's requirements.
@@ -76,7 +85,7 @@ sudo chown -R $owner:stack $TACKER_DIR
 echo "Running tacker $venv test suite"
 set +e
 
-sudo -H -u $owner $sudo_env tox -e $venv 
+sudo -H -u $owner $sudo_env tox -e $venv
 testr_exit_code=$?
 set -e
 

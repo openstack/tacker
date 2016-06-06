@@ -12,6 +12,7 @@ resources:
       config_drive: true
       flavor: m1.tiny
       image: cirros-0.3.4-x86_64-uec
+      key_name: keyName
       metadata: {param0: key0, param1: key1}
       networks:
       - port: {get_resource: vdu1-net_mgmt-port}
