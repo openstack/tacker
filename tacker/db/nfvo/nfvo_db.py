@@ -18,6 +18,7 @@ import uuid
 
 from oslo_db import exception
 from oslo_utils import strutils
+from oslo_utils import timeutils
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
@@ -33,11 +34,16 @@ from tacker import manager
 
 
 VIM_ATTRIBUTES = ('id', 'type', 'tenant_id', 'name', 'description',
-                  'placement_attr', 'shared', 'is_default', 'status')
+                  'placement_attr', 'shared', 'is_default',
+                  'created_at', 'updated_at', 'status')
+
 VIM_AUTH_ATTRIBUTES = ('auth_url', 'vim_project', 'password', 'auth_cred')
 
 
-class Vim(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
+class Vim(model_base.BASE,
+          models_v1.HasId,
+          models_v1.HasTenant,
+          models_v1.Audit):
     type = sa.Column(sa.String(64), nullable=False)
     name = sa.Column(sa.String(255), nullable=False)
     description = sa.Column(sa.Text, nullable=True)
@@ -151,9 +157,9 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
             vim_cred = vim['auth_cred']
             vim_project = vim['vim_project']
             is_default = vim.get('is_default')
+            vim_db = self._get_resource(context, Vim, vim_id)
             try:
                 if is_default:
-                    vim_db = self._get_resource(context, Vim, vim_id)
                     vim_db.update({'is_default': is_default})
                 vim_auth_db = (self._model_query(context, VimAuth).filter(
                     VimAuth.vim_id == vim_id).with_lockmode('update').one())
@@ -162,6 +168,8 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
             vim_auth_db.update({'auth_cred': vim_cred, 'password':
                                vim_cred.pop('password'), 'vim_project':
                                vim_project})
+            vim_db.update({'updated_at': timeutils.utcnow()})
+
         return self.get_vim(context, vim_id)
 
     def update_vim_status(self, context, vim_id, status):

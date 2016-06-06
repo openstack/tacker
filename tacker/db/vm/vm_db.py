@@ -17,6 +17,8 @@
 import uuid
 
 from oslo_log import log as logging
+from oslo_utils import timeutils
+
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
@@ -42,7 +44,8 @@ CREATE_STATES = (constants.PENDING_CREATE, constants.DEAD)
 ###########################################################################
 # db tables
 
-class VNFD(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
+class VNFD(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
+           models_v1.Audit):
     """Represents VNFD to create VNF."""
 
     __tablename__ = 'vnfd'
@@ -92,7 +95,8 @@ class VNFDAttribute(model_base.BASE, models_v1.HasId):
     value = sa.Column(sa.TEXT(65535), nullable=True)
 
 
-class VNF(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
+class VNF(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
+          models_v1.Audit):
     """Represents devices that hosts services.
 
     Here the term, 'VM', is intentionally avoided because it can be
@@ -181,7 +185,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 template.service_types)
         }
         key_list = ('id', 'tenant_id', 'name', 'description',
-                    'infra_driver', 'mgmt_driver')
+                    'infra_driver', 'mgmt_driver',
+                    'created_at', 'updated_at')
         res.update((key, template[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -198,7 +203,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         }
         key_list = ('id', 'tenant_id', 'name', 'description', 'instance_id',
                     'vim_id', 'placement_attr', 'vnfd_id', 'status',
-                    'mgmt_url', 'error_reason')
+                    'mgmt_url', 'error_reason', 'created_at', 'updated_at')
         res.update((key, device_db[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -269,6 +274,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             template_db = self._get_resource(context, VNFD,
                                              device_template_id)
             template_db.update(device_template['device_template'])
+            template_db.update({'updated_at': timeutils.utcnow()})
         return self._make_template_dict(template_db)
 
     def delete_device_template(self, context, device_template_id):
@@ -435,6 +441,11 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
              filter(VNF.id == device_id).
              filter(VNF.status == constants.PENDING_UPDATE).
              update({'status': new_status}))
+            (self._model_query(context, VNF).
+             filter(VNF.id == device_id).
+             filter(VNF.status == constants.PENDING_UPDATE).
+             update({'status': new_status,
+                     'updated_at': timeutils.utcnow()}))
 
             dev_attrs = new_device_dict.get('attributes', {})
             (context.session.query(VNFAttribute).

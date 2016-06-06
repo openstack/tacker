@@ -224,6 +224,16 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
             'default': None,
         },
+        'created_at': {
+            'allow_post': False,
+            'allow_put': False,
+            'is_visible': True,
+        },
+        'updated_at': {
+            'allow_post': False,
+            'allow_put': False,
+            'is_visible': True,
+        },
     },
 
     'vnfs': {
@@ -299,6 +309,16 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
         },
         'error_reason': {
+            'allow_post': False,
+            'allow_put': False,
+            'is_visible': True,
+        },
+        'created_at': {
+            'allow_post': False,
+            'allow_put': False,
+            'is_visible': True,
+        },
+        'updated_at': {
             'allow_post': False,
             'allow_put': False,
             'is_visible': True,

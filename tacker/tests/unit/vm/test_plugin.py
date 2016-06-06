@@ -152,6 +152,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('id', result)
         self.assertIn('service_types', result)
         self.assertIn('attributes', result)
+        self.assertIn('created_at', result)
+        self.assertIn('updated_at', result)
         self._device_manager.invoke.assert_called_once_with(
             mock.ANY,
             mock.ANY,
@@ -183,6 +185,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('status', result)
         self.assertIn('attributes', result)
         self.assertIn('mgmt_url', result)
+        self.assertIn('created_at', result)
+        self.assertIn('updated_at', result)
         self._device_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
                                                        plugin=mock.ANY,
                                                        context=mock.ANY,
@@ -217,5 +221,6 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('status', result)
         self.assertIn('attributes', result)
         self.assertIn('mgmt_url', result)
+        self.assertIn('updated_at', result)
         self._pool.spawn_n.assert_called_once_with(mock.ANY, mock.ANY,
                                                    mock.ANY, mock.ANY)

@@ -160,6 +160,16 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
             'default': False
         },
+        'created_at': {
+            'allow_post': False,
+            'allow_put': False,
+            'is_visible': True,
+        },
+        'updated_at': {
+            'allow_post': False,
+            'allow_put': False,
+            'is_visible': True,
+        },
     }
 }
 

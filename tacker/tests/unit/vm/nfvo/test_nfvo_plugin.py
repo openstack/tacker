@@ -88,6 +88,8 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
         self.assertIn('id', res)
         self.assertIn('placement_attr', res)
+        self.assertIn('created_at', res)
+        self.assertIn('updated_at', res)
 
     def test_delete_vim(self):
         self._insert_dummy_vim()
@@ -118,3 +120,4 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertEqual(vim_project, res['vim_project'])
         self.assertEqual(vim_auth_username, res['auth_cred']['username'])
         self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
+        self.assertIn('updated_at', res)
