@@ -36,6 +36,7 @@ _ACTIVE_UPDATE = (constants.ACTIVE, constants.PENDING_UPDATE)
 _ACTIVE_UPDATE_ERROR_DEAD = (
     constants.PENDING_CREATE, constants.ACTIVE, constants.PENDING_UPDATE,
     constants.ERROR, constants.DEAD)
+CREATE_STATES = (constants.PENDING_CREATE, constants.DEAD)
 
 
 ###########################################################################
@@ -338,7 +339,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         tenant_id = self._get_tenant_id_for_create(context, device)
         template_id = device['template_id']
         name = device.get('name')
-        device_id = device.get('id') or str(uuid.uuid4())
+        device_id = str(uuid.uuid4())
         attributes = device.get('attributes', {})
         vim_id = device.get('vim_id')
         placement_attr = device.get('placement_attr', {})
@@ -372,7 +373,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         with context.session.begin(subtransactions=True):
             query = (self._model_query(context, Device).
                      filter(Device.id == device_id).
-                     filter(Device.status == constants.PENDING_CREATE).
+                     filter(Device.status.in_(CREATE_STATES)).
                      one())
             query.update({'instance_id': instance_id, 'mgmt_url': mgmt_url})
             if instance_id is None or device_dict['status'] == constants.ERROR:
@@ -386,10 +387,10 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def _create_device_status(self, context, device_id, new_status):
         with context.session.begin(subtransactions=True):
-            (self._model_query(context, Device).
-                filter(Device.id == device_id).
-                filter(Device.status == constants.PENDING_CREATE).
-                update({'status': new_status}))
+            query = (self._model_query(context, Device).
+                     filter(Device.id == device_id).
+                     filter(Device.status.in_(CREATE_STATES)).one())
+            query.update({'status': new_status})
 
     def _get_device_db(self, context, device_id, current_statuses, new_status):
         try:
@@ -487,11 +488,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return self._make_device_dict(device_db, fields)
 
     def get_devices(self, context, filters=None, fields=None):
-        devices = self._get_collection(context, Device, self._make_device_dict,
-                                       filters=filters, fields=fields)
-        # Ugly hack to mask internaly used record
-        return [device for device in devices
-                if uuidutils.is_uuid_like(device['id'])]
+        return self._get_collection(context, Device, self._make_device_dict,
+                                    filters=filters, fields=fields)
 
     def set_device_error_status_reason(self, context, device_id, new_reason):
         with context.session.begin(subtransactions=True):
@@ -529,31 +527,6 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             constants.ERROR]
         return self._mark_device_status(
             device_id, exclude_status, constants.DEAD)
-
-    # used by failure policy
-    def rename_device_id(self, context, device_id, new_device_id):
-        # ugly hack...
-        context = t_context.get_admin_context()
-        with context.session.begin(subtransactions=True):
-            device_db = self._get_resource(context, Device, device_id)
-            new_device_db = Device(
-                id=new_device_id,
-                tenant_id=device_db.tenant_id,
-                template_id=device_db.template_id,
-                name=device_db.name,
-                description=device_db.description,
-                instance_id=device_db.instance_id,
-                mgmt_url=device_db.mgmt_url,
-                status=device_db.status,
-                vim_id=device_db.vim_id,
-                placement_attr=device_db.placement_attr,
-                error_reason=device_db.error_reason)
-            context.session.add(new_device_db)
-
-            (self._model_query(context, DeviceAttribute).
-             filter(DeviceAttribute.device_id == device_id).
-             update({'device_id': new_device_id}))
-            context.session.delete(device_db)
 
     def get_vnfs(self, context, filters=None, fields=None):
         return self.get_devices(context, filters, fields)
