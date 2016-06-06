@@ -1,32 +1,38 @@
 tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
-description: Demo example
+description: VNFD With Ping Monitor
 
 metadata:
-  template_name: sample-tosca-vnfd
+  template_name: sample-tosca-vnfd-monitor
 
 topology_template:
   node_templates:
+
     VDU1:
       type: tosca.nodes.nfv.VDU.Tacker
       properties:
         image: cirros-0.3.4-x86_64-uec
         flavor: m1.tiny
-        availability_zone: nova
-        mgmt_driver: noop
         config: |
           param0: key1
           param1: key2
+        mgmt_driver: openwrt
         monitoring_policy:
-          properties:
-            name: ping
-            monitoring_params:
-              monitoring_delay: 45
-              count: 3
-              interval: .5
-              timeout: 2
-            actions:
-              failure: respawn
+          name: ping
+          actions:
+            failure: respawn
+          parameters:
+            count: 3
+            interval: 10
+            monitoring_delay: 45
+            timeout: 2
+        user_data_format: RAW
+        user_data: |
+          #!/bin/sh
+          echo "my hostname is `hostname`" > /tmp/hostname
+          df -h > /home/openwrt/diskinfo
+          sleep 90
+          sudo ifdown eth0
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker
@@ -63,7 +69,7 @@ topology_template:
       type: tosca.nodes.nfv.VL
       properties:
         network_name: net_mgmt
-        vendor: Tacker
+        vendor: ACME
 
     VL2:
       type: tosca.nodes.nfv.VL
