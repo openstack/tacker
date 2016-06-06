@@ -101,6 +101,11 @@ class CommonDbMixin(object):
         # condition, raising an exception
         if query_filter is not None:
             query = query.filter(query_filter)
+
+        # Don't list the deleted entries
+        if hasattr(model, 'deleted_at'):
+            query = query.filter_by(deleted_at=None)
+
         return query
 
     def _fields(self, resource, fields):
@@ -138,6 +143,7 @@ class CommonDbMixin(object):
 
                 if result_filter:
                     query = result_filter(query, filters)
+
         return query
 
     def _apply_dict_extend_functions(self, resource_type,

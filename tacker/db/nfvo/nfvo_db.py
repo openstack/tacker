@@ -16,7 +16,6 @@
 
 import uuid
 
-from oslo_db import exception
 from oslo_utils import strutils
 from oslo_utils import timeutils
 import sqlalchemy as sa
@@ -63,7 +62,6 @@ class VimAuth(model_base.BASE, models_v1.HasId):
     auth_url = sa.Column(sa.String(255), nullable=False)
     vim_project = sa.Column(types.Json, nullable=False)
     auth_cred = sa.Column(types.Json, nullable=False)
-    __table_args__ = (sa.UniqueConstraint('auth_url'), {})
 
 
 class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
@@ -101,10 +99,23 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
             else:
                 raise
 
+    def _does_already_exist(self, context, vim):
+        try:
+            query = self._model_query(context, VimAuth)
+            for v_auth in query.filter(VimAuth.auth_url == vim.get('auth_url')
+                                       ).all():
+                vim = self._get_by_id(context, Vim, v_auth.get('vim_id'))
+                if vim.get('deleted_at') is None:
+                    return True
+        except orm_exc.NoResultFound:
+            pass
+
+        return False
+
     def create_vim(self, context, vim):
         self._validate_default_vim(context, vim)
         vim_cred = vim['auth_cred']
-        try:
+        if not self._does_already_exist(context, vim):
             with context.session.begin(subtransactions=True):
                 vim_db = Vim(
                     id=vim.get('id'),
@@ -124,20 +135,23 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                     auth_url=vim.get('auth_url'),
                     auth_cred=vim_cred)
                 context.session.add(vim_auth_db)
-        except exception.DBDuplicateEntry:
+        else:
                 raise nfvo.VimDuplicateUrlException()
         return self._make_vim_dict(vim_db)
 
-    def delete_vim(self, context, vim_id):
+    def delete_vim(self, context, vim_id, soft_delete=True):
         with context.session.begin(subtransactions=True):
             vim_db = self._get_resource(context, Vim, vim_id)
-            context.session.query(VimAuth).filter_by(
-                vim_id=vim_id).delete()
-            context.session.delete(vim_db)
+            if soft_delete:
+                vim_db.update({'deleted_at': timeutils.utcnow()})
+            else:
+                context.session.query(VimAuth).filter_by(
+                    vim_id=vim_id).delete()
+                context.session.delete(vim_db)
 
     def is_vim_still_in_use(self, context, vim_id):
         with context.session.begin(subtransactions=True):
-            devices_db = context.session.query(vm_db.VNF).filter_by(
+            devices_db = self._model_query(context, vm_db.VNF).filter_by(
                 vim_id=vim_id).first()
             if devices_db is not None:
                 raise nfvo.VimInUseException(vim_id=vim_id)

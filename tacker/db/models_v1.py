@@ -40,3 +40,4 @@ class Audit(object):
     created_at = sa.Column(sa.DateTime,
                            default=lambda: timeutils.utcnow())
     updated_at = sa.Column(sa.DateTime)
+    deleted_at = sa.Column(sa.DateTime)

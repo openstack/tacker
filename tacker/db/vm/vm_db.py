@@ -277,23 +277,29 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             template_db.update({'updated_at': timeutils.utcnow()})
         return self._make_template_dict(template_db)
 
-    def delete_device_template(self, context, device_template_id):
+    def delete_device_template(self,
+                               context,
+                               device_template_id,
+                               soft_delete=True):
         with context.session.begin(subtransactions=True):
             # TODO(yamahata): race. prevent from newly inserting hosting device
             #                 that refers to this template
             devices_db = context.session.query(VNF).filter_by(
                 vnfd_id=device_template_id).first()
-            if devices_db is not None:
+            if devices_db is not None and devices_db.deleted_at is None:
                 raise vnfm.DeviceTemplateInUse(
                     device_template_id=device_template_id)
 
-            context.session.query(ServiceType).filter_by(
-                vnfd_id=device_template_id).delete()
-            context.session.query(VNFDAttribute).filter_by(
-                vnfd_id=device_template_id).delete()
             template_db = self._get_resource(context, VNFD,
                                              device_template_id)
-            context.session.delete(template_db)
+            if soft_delete:
+                template_db.update({'deleted_at': timeutils.utcnow()})
+            else:
+                context.session.query(ServiceType).filter_by(
+                    vnfd_id=device_template_id).delete()
+                context.session.query(VNFDAttribute).filter_by(
+                    vnfd_id=device_template_id).delete()
+                context.session.delete(template_db)
 
     def get_device_template(self, context, device_template_id, fields=None):
         template_db = self._get_resource(context, VNFD,
@@ -440,10 +446,6 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             (self._model_query(context, VNF).
              filter(VNF.id == device_id).
              filter(VNF.status == constants.PENDING_UPDATE).
-             update({'status': new_status}))
-            (self._model_query(context, VNF).
-             filter(VNF.id == device_id).
-             filter(VNF.status == constants.PENDING_UPDATE).
              update({'status': new_status,
                      'updated_at': timeutils.utcnow()}))
 
@@ -466,7 +468,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
         return self._make_device_dict(device_db)
 
-    def _delete_device_post(self, context, device_id, error):
+    def _delete_device_post(self, context, device_id, error, soft_delete=True):
         with context.session.begin(subtransactions=True):
             query = (
                 self._model_query(context, VNF).
@@ -475,9 +477,12 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             if error:
                 query.update({'status': constants.ERROR})
             else:
-                (self._model_query(context, VNFAttribute).
-                 filter(VNFAttribute.vnf_id == device_id).delete())
-                query.delete()
+                if soft_delete:
+                    query.update({'deleted_at': timeutils.utcnow()})
+                else:
+                    (self._model_query(context, VNFAttribute).
+                     filter(VNFAttribute.vnf_id == device_id).delete())
+                    query.delete()
 
     # reference implementation. needs to be overrided by subclass
     def create_device(self, context, device):
@@ -503,12 +508,15 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return device_dict
 
     # reference implementation. needs to be overrided by subclass
-    def delete_device(self, context, device_id):
+    def delete_device(self, context, device_id, soft_delete=True):
         self._delete_device_pre(context, device_id)
         # start actual deletion of hosting device.
         # Waiting for completion of deletion should be done backgroundly
         # by another thread if it takes a while.
-        self._delete_device_post(context, device_id, False)
+        self._delete_device_post(context,
+                                 device_id,
+                                 False,
+                                 soft_delete=soft_delete)
 
     def get_device(self, context, device_id, fields=None):
         device_db = self._get_resource(context, VNF, device_id)
