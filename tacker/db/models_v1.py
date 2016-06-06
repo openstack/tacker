@@ -31,10 +31,3 @@ class HasId(object):
     id = sa.Column(sa.String(36),
                    primary_key=True,
                    default=uuidutils.generate_uuid)
-
-
-class HasStatusDescription(object):
-    """Status with description mixin."""
-
-    status = sa.Column(sa.String(16), nullable=False)
-    status_description = sa.Column(sa.String(255))
