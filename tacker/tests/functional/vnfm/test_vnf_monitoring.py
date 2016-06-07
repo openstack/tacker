@@ -75,3 +75,13 @@ class VnfTestPingMonitor(base.BaseTackerTest):
         self._test_vnf_with_monitoring(
             'sample-tosca-vnfd-monitor.yaml',
             'ping monitor vnf with tosca template')
+
+    def test_create_delete_vnf_multi_vdu_monitoring_tosca_template(self):
+        self._test_vnf_with_monitoring(
+            'sample-tosca-vnfd-multi-vdu-monitoring.yaml',
+            'ping monitor multi vdu vnf with tosca template')
+
+    def test_create_delete_vnf_http_monitoring_tosca_template(self):
+        self._test_vnf_with_monitoring(
+            'sample-tosca-vnfd-http-monitor.yaml',
+            'http monitor vnf with tosca template')
