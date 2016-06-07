@@ -14,11 +14,11 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_middleware import request_id
 import webob.dec
 import webob.exc
 
 from tacker import context
-from tacker.openstack.common.middleware import request_id
 from tacker import wsgi
 
 LOG = logging.getLogger(__name__)

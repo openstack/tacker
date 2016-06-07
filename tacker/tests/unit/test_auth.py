@@ -13,10 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_middleware import request_id
 import webob
 
 from tacker import auth
-from tacker.openstack.common.middleware import request_id
 from tacker.tests import base
 
 
