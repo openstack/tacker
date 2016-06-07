@@ -31,6 +31,7 @@ import eventlet.wsgi
 # eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 import routes.middleware
 import six
 import webob.dec
@@ -42,7 +43,6 @@ from tacker import context
 from tacker.db import api
 from tacker.openstack.common import excutils
 from tacker.openstack.common import gettextutils
-from tacker.openstack.common import jsonutils
 from tacker.openstack.common import service as common_service
 from tacker.openstack.common import systemd
 

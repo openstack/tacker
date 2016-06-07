@@ -15,8 +15,9 @@
 
 import abc
 
+from oslo_serialization import jsonutils
+
 from tacker.api import extensions
-from tacker.openstack.common import jsonutils
 from tacker import wsgi
 
 

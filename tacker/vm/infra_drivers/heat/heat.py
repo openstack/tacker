@@ -20,6 +20,7 @@ import time
 from heatclient import exc as heatException
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from six import iteritems
 from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.utils import yamlparser
@@ -29,7 +30,6 @@ import yaml
 from tacker.common import clients
 from tacker.common import log
 from tacker.extensions import vnfm
-from tacker.openstack.common import jsonutils
 from tacker.vm.infra_drivers import abstract_driver
 from tacker.vm.tosca import utils as toscautils
 
