@@ -21,9 +21,9 @@ CONF = cfg.CONF
 
 
 class VnfdTestCreate(base.BaseTackerTest):
-    def test_create_list_delete_vnfd(self):
+    def _test_create_list_delete_vnfd(self, vnfd_file):
         data = dict()
-        data['tosca'] = read_file('sample_cirros_vnf.yaml')
+        data['tosca'] = read_file(vnfd_file)
         toscal = data['tosca']
         tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
@@ -37,3 +37,6 @@ class VnfdTestCreate(base.BaseTackerTest):
             self.client.delete_vnfd(vnfd_id)
         except Exception:
             assert False, "vnfd Delete failed"
+
+    def test_vnfd(self):
+        self._test_create_list_delete_vnfd('sample_cirros_vnf.yaml')
