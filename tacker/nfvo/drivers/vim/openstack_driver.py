@@ -138,7 +138,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
         ks_client = self.authenticate_vim(vim_obj)
         self.discover_placement_attr(vim_obj, ks_client)
         self.encode_vim_auth(vim_obj['id'], vim_obj['auth_cred'])
-        LOG.debug(_('VIM registration complete %s'), vim_obj)
+        LOG.debug(_('VIM registration completed for %s'), vim_obj)
 
     @log.log
     def deregister_vim(self, vim_id):
