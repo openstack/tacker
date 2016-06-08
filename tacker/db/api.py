@@ -14,17 +14,13 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_db.sqlalchemy import enginefacade
 from oslo_log import log as logging
-import sqlalchemy as sql
 
-from tacker.db import model_base
-from tacker.openstack.common.db.sqlalchemy import session
 
 LOG = logging.getLogger(__name__)
 
-cfg.CONF.import_opt('connection',
-                    'tacker.openstack.common.db.options',
-                    group='database')
+context_manager = enginefacade.transaction_context()
 
 _FACADE = None
 
@@ -33,23 +29,10 @@ def _create_facade_lazily():
     global _FACADE
 
     if _FACADE is None:
-        _FACADE = session.EngineFacade.from_config(
-            cfg.CONF.database.connection, cfg.CONF, sqlite_fk=True)
+        context_manager.configure(sqlite_fk=True, **cfg.CONF.database)
+        _FACADE = context_manager._factory.get_legacy_facade()
 
     return _FACADE
-
-
-def configure_db():
-    """Configure database.
-
-    Establish the database, create an engine if needed, and register
-    the models.
-    """
-    register_models()
-
-
-def clear_db(base=model_base.BASE):
-    unregister_models(base)
 
 
 def get_engine():
@@ -63,25 +46,3 @@ def get_session(autocommit=True, expire_on_commit=False):
     facade = _create_facade_lazily()
     return facade.get_session(autocommit=autocommit,
                               expire_on_commit=expire_on_commit)
-
-
-def register_models(base=model_base.BASE):
-    """Register Models and create properties."""
-    try:
-        facade = _create_facade_lazily()
-        engine = facade.get_engine()
-        base.metadata.create_all(engine)
-    except sql.exc.OperationalError as e:
-        LOG.info(_("Database registration exception: %s"), e)
-        return False
-    return True
-
-
-def unregister_models(base=model_base.BASE):
-    """Unregister Models, useful clearing out data before testing."""
-    try:
-        facade = _create_facade_lazily()
-        engine = facade.get_engine()
-        base.metadata.drop_all(engine)
-    except Exception:
-        LOG.exception(_("Database exception"))
