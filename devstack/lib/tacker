@@ -244,7 +244,6 @@ function configure_tacker {
     # allow tacker user to administer tacker to match tacker account
     sed -i 's/"context_is_admin":  "role:admin"/"context_is_admin":  "role:admin or user_name:tacker"/g' $TACKER_POLICY_FILE
 
-    iniset $TACKER_CONF DEFAULT verbose True
     iniset $TACKER_CONF DEFAULT debug $ENABLE_DEBUG_LOG_LEVEL
     iniset $TACKER_CONF DEFAULT policy_file $TACKER_POLICY_FILE
 

@@ -68,12 +68,7 @@ class TackerApiService(WsgiService):
     @classmethod
     def create(cls, app_name='tacker'):
 
-        # Setup logging early, supplying both the CLI options and the
-        # configuration mapping from the config file
-        # We only update the conf dict for the verbose and debug
-        # flags. Everything else must be set up in the conf file...
-        # Log the options used when starting if we're in debug mode...
-
+        # Setup logging early
         config.setup_logging(cfg.CONF)
         # Dump the initial option values
         cfg.CONF.log_opt_values(LOG, std_logging.DEBUG)

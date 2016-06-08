@@ -180,7 +180,6 @@ d). Provide an endpoint to tacker service.
     auth_strategy = keystone
     policy_file = /usr/local/etc/tacker/policy.json
     debug = True
-    verbose = True
     use_syslog = False
     state_path = /var/lib/tacker
     ...
