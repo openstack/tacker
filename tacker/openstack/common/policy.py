@@ -58,12 +58,12 @@ import abc
 import re
 
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 import six
 from six.moves.urllib import parse as urllib_parse
 from six.moves.urllib import request as urlrequest
 
 from tacker.openstack.common.gettextutils import _
-from tacker.openstack.common import jsonutils
 
 
 LOG = logging.getLogger(__name__)

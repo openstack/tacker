@@ -19,6 +19,7 @@ import fixtures
 import mock
 import six
 
+from oslo_serialization import jsonutils as json
 from six.moves.urllib import request as urlrequest
 
 import tacker
@@ -27,7 +28,6 @@ from tacker.common import exceptions
 from tacker import context
 from tacker import manager
 from tacker.openstack.common import importutils
-from tacker.openstack.common import jsonutils as json
 from tacker.openstack.common import policy as common_policy
 from tacker import policy
 from tacker.tests import base

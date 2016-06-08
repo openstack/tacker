@@ -16,10 +16,10 @@
 
 import abc
 
+from oslo_serialization import jsonutils
 import six
 
 from tacker.api import extensions
-from tacker.openstack.common import jsonutils
 from tacker.vm import constants
 
 

@@ -16,11 +16,11 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 import yaml
 
 from tacker.agent.linux import utils
 from tacker.common import log
-from tacker.openstack.common import jsonutils
 from tacker.vm.mgmt_drivers import abstract_driver
 from tacker.vm.mgmt_drivers import constants as mgmt_constants
 

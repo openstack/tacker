@@ -21,13 +21,13 @@ import time
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 import six
 
 from tacker.common import clients
 from tacker.common import driver_manager
 from tacker import context as t_context
-from tacker.openstack.common import jsonutils
 from tacker.vm.infra_drivers.heat import heat
 
 
