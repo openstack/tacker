@@ -21,12 +21,12 @@ import re
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import excutils
 import six
 
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
 import tacker.common.utils as utils
-from tacker.openstack.common import excutils
 from tacker.openstack.common import importutils
 from tacker.openstack.common import policy
 

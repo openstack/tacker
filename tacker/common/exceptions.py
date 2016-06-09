@@ -17,9 +17,8 @@
 Tacker base exception handling.
 """
 
+from oslo_utils import excutils
 import six
-
-from tacker.openstack.common import excutils
 
 
 class TackerException(Exception):

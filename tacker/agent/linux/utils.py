@@ -23,9 +23,9 @@ import tempfile
 from eventlet.green import subprocess
 from eventlet import greenthread
 from oslo_log import log as logging
+from oslo_utils import excutils
 
 from tacker.common import utils
-from tacker.openstack.common import excutils
 
 
 LOG = logging.getLogger(__name__)

@@ -22,11 +22,11 @@ from keystoneclient.auth.identity import v2 as v2_auth
 from keystoneclient import session as ks_session
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_log import versionutils
 from six import iteritems
 
 from tacker.api.v1 import attributes
 from tacker.i18n import _LE, _LW
-from tacker.openstack.common import versionutils
 from tacker.vm.infra_drivers import abstract_driver
 
 LOG = logging.getLogger(__name__)

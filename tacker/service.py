@@ -17,9 +17,9 @@ import logging as std_logging
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import excutils
 
 from tacker.common import config
-from tacker.openstack.common import excutils
 from tacker import wsgi
 
 
