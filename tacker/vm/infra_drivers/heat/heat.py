@@ -398,7 +398,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             name = (__name__ + '_' + self.__class__.__name__ + '-' +
                     device['id'])
             if device['attributes'].get('failure_count'):
-                name += ('-%s') % str(device['attributes']['failure_count'])
+                name += ('-RESPAWN-%s') % str(device['attributes'][
+                    'failure_count'])
             fields['stack_name'] = name
 
         # service context is ignored

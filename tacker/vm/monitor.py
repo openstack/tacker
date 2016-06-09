@@ -243,22 +243,11 @@ class ActionRespawnHeat(ActionPolicy):
         if plugin._mark_device_dead(device_dict['id']):
             plugin._vnf_monitor.mark_dead(device_dict['id'])
             attributes = device_dict['attributes']
-            config = attributes.get('config')
-            LOG.debug(_('device config %s dead'), config)
             failure_count = int(attributes.get('failure_count', '0')) + 1
             failure_count_str = str(failure_count)
             attributes['failure_count'] = failure_count_str
             attributes['dead_instance_id_' + failure_count_str] = device_dict[
                 'instance_id']
-
-            new_device_id = device_id + '-RESPAWN-' + failure_count_str
-            attributes = device_dict['attributes'].copy()
-            attributes['dead_device_id'] = device_id
-            new_device = {'id': new_device_id, 'attributes': attributes}
-            for key in ('tenant_id', 'template_id', 'name', 'vim_id',
-                        'placement_attr'):
-                new_device[key] = device_dict[key]
-            LOG.debug(_('new_device %s'), new_device)
             placement_attr = device_dict.get('placement_attr', {})
             region_name = placement_attr.get('region_name')
             # kill heat stack
@@ -268,26 +257,10 @@ class ActionRespawnHeat(ActionPolicy):
 
             # TODO(anyone) set the current request ctxt instead of admin ctxt
             context = t_context.get_admin_context()
-            new_device_dict = plugin.create_device_sync(
-                context, {'device': new_device})
-            LOG.info(_('respawned new device %s'), new_device_dict['id'])
-
-            # ungly hack to keep id unchanged
-            dead_device_id = device_id + '-DEAD-' + failure_count_str
-            LOG.debug(_('%(dead)s %(new)s %(cur)s'),
-                      {'dead': dead_device_id,
-                       'new': new_device_id,
-                       'cur': device_id})
-            plugin.rename_device_id(context, device_id, dead_device_id)
-            plugin.rename_device_id(context, new_device_id, device_id)
-            LOG.debug('Delete dead device')
-            plugin.delete_device(context, dead_device_id)
-            new_device_dict['id'] = device_id
-            if config:
-                new_device_dict.setdefault('attributes', {})['config'] = config
-
-            plugin.config_device(context, new_device_dict)
-            plugin.add_device_to_monitor(new_device_dict, auth_attr)
+            update_device_dict = plugin.create_device_sync(context,
+                                                           device_dict)
+            plugin.config_device(context, update_device_dict)
+            plugin.add_device_to_monitor(update_device_dict, auth_attr)
 
 
 @ActionPolicy.register('log')

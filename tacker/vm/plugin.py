@@ -249,7 +249,8 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         return vim_res['vim_auth']
 
     def _create_device(self, context, device, vim_auth):
-        device_dict = self._create_device_pre(context, device)
+        device_dict = self._create_device_pre(
+            context, device) if not device.get('id') else device
         device_id = device_dict['id']
         driver_name = self._infra_driver_name(device_dict)
         LOG.debug(_('device_dict %s'), device_dict)
@@ -284,9 +285,8 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
     # not for wsgi, but for service to create hosting device
     # the device is NOT added to monitor.
     def create_device_sync(self, context, device):
-        device_info = device['device']
-        vim_auth = self.get_vim(context, device_info)
-        device_dict = self._create_device(context, device_info, vim_auth)
+        vim_auth = self.get_vim(context, device)
+        device_dict = self._create_device(context, device, vim_auth)
         self._create_device_wait(context, device_dict, vim_auth)
         return device_dict
 
