@@ -17,6 +17,7 @@ import logging as std_logging
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_service import service
 from oslo_utils import excutils
 
 from tacker.common import config
@@ -42,7 +43,7 @@ CONF.register_opts(service_opts)
 LOG = logging.getLogger(__name__)
 
 
-class WsgiService(object):
+class WsgiService(service.ServiceBase):
     """Base class for WSGI based services.
 
     For each api you define, you must also define these flags:
@@ -59,7 +60,14 @@ class WsgiService(object):
         self.wsgi_app = _run_wsgi(self.app_name)
 
     def wait(self):
-        self.wsgi_app.wait()
+        if self.wsgi_app:
+            self.wsgi_app.wait()
+
+    def stop(self):
+        pass
+
+    def reset(self):
+        pass
 
 
 class TackerApiService(WsgiService):
@@ -80,7 +88,6 @@ def serve_wsgi(cls):
 
     try:
         service = cls.create()
-        service.start()
     except Exception:
         with excutils.save_and_reraise_exception():
             LOG.exception(_('Unrecoverable error: please check log '

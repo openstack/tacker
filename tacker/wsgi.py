@@ -32,6 +32,8 @@ import eventlet.wsgi
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
+from oslo_service import service as common_service
+from oslo_service import systemd
 from oslo_utils import excutils
 import routes.middleware
 import six
@@ -43,8 +45,6 @@ from tacker.common import exceptions as exception
 from tacker import context
 from tacker.db import api
 from tacker.openstack.common import gettextutils
-from tacker.openstack.common import service as common_service
-from tacker.openstack.common import systemd
 
 socket_opts = [
     cfg.IntOpt('backlog',
@@ -81,7 +81,7 @@ CONF.register_opts(socket_opts)
 LOG = logging.getLogger(__name__)
 
 
-class WorkerService(object):
+class WorkerService(common_service.ServiceBase):
     """Wraps a worker to be handled by ProcessLauncher."""
 
     def __init__(self, service, application):
@@ -105,6 +105,9 @@ class WorkerService(object):
         if isinstance(self._server, eventlet.greenthread.GreenThread):
             self._server.kill()
             self._server = None
+
+    def reset(self):
+        pass
 
 
 class Server(object):
@@ -174,7 +177,6 @@ class Server(object):
                                        family=family)
                 if CONF.use_ssl:
                     sock = wrap_ssl(sock)
-
             except socket.error as err:
                 with excutils.save_and_reraise_exception() as ctxt:
                     if err.errno == errno.EADDRINUSE:
@@ -215,7 +217,8 @@ class Server(object):
         else:
             # Minimize the cost of checking for child exit by extending the
             # wait interval past the default of 0.01s.
-            self._launcher = common_service.ProcessLauncher(wait_interval=1.0)
+            self._launcher = common_service.ProcessLauncher(CONF,
+                                                            wait_interval=1.0)
             self._server = WorkerService(self, application)
             self._launcher.launch_service(self._server, workers=workers)
 
