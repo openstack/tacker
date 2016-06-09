@@ -13,10 +13,10 @@
 #    under the License.
 
 
+import yaml
+
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
-
-import yaml
 
 
 class VimTestCreate(base.BaseTackerTest):

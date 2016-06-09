@@ -12,11 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import yaml
+
 from tacker.tests import constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
-
-import yaml
 
 
 class VnfmTestParam(base.BaseTackerTest):

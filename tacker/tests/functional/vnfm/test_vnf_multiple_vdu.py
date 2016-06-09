@@ -12,13 +12,12 @@
 #    under the License.
 
 from oslo_config import cfg
+import yaml
 
 from tacker.common import utils
 from tacker.tests import constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
-
-import yaml
 
 CONF = cfg.CONF
 
