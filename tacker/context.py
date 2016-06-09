@@ -18,10 +18,10 @@
 import copy
 import datetime
 
+from oslo_context import context as oslo_context
 from oslo_log import log as logging
 
 from tacker.db import api as db_api
-from tacker.openstack.common import context as common_context
 from tacker.openstack.common import local
 from tacker import policy
 
@@ -29,7 +29,7 @@ from tacker import policy
 LOG = logging.getLogger(__name__)
 
 
-class ContextBase(common_context.RequestContext):
+class ContextBase(oslo_context.RequestContext):
     """Security context and request information.
 
     Represents the user taking a given action within the system.
