@@ -37,7 +37,7 @@ VIM_AUTH_ATTRIBUTES = ('auth_url', 'vim_project', 'password', 'auth_cred')
 
 
 class Vim(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
-    type = sa.Column(sa.String(255), nullable=False)
+    type = sa.Column(sa.String(64), nullable=False)
     name = sa.Column(sa.String(255), nullable=True)
     description = sa.Column(sa.Text, nullable=True)
     placement_attr = sa.Column(types.Json, nullable=True)
