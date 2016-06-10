@@ -47,7 +47,7 @@ class DeviceTemplate(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
 
     # Descriptive name
     name = sa.Column(sa.String(255))
-    description = sa.Column(sa.String(255))
+    description = sa.Column(sa.Text)
 
     # service type that this service vm provides.
     # At first phase, this includes only single service
@@ -99,7 +99,7 @@ class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     template = orm.relationship('DeviceTemplate')
 
     name = sa.Column(sa.String(255), nullable=True)
-    description = sa.Column(sa.String(255), nullable=True)
+    description = sa.Column(sa.Text, nullable=True)
 
     # sufficient information to uniquely identify hosting device.
     # In case of service VM, it's UUID of nova VM.
