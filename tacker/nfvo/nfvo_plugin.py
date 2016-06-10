@@ -18,12 +18,12 @@ import uuid
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import excutils
 
 from tacker.common import driver_manager
 from tacker.common import log
 from tacker.common import utils
 from tacker.db.nfvo import nfvo_db
-from tacker.openstack.common import excutils
 
 LOG = logging.getLogger(__name__)
 
