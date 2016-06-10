@@ -40,7 +40,7 @@ class Vim(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     type = sa.Column(sa.String(255), nullable=False)
     name = sa.Column(sa.String(255), nullable=True)
     description = sa.Column(sa.String(255), nullable=True)
-    placement_attr = sa.Column(sa.PickleType, nullable=True)
+    placement_attr = sa.Column(types.Json, nullable=True)
     shared = sa.Column(sa.Boolean, default=True, server_default=sql.true(
     ), nullable=False)
     vim_auth = orm.relationship('VimAuth')
@@ -51,8 +51,8 @@ class VimAuth(model_base.BASE, models_v1.HasId):
                        nullable=False)
     password = sa.Column(sa.String(128), nullable=False)
     auth_url = sa.Column(sa.String(255), nullable=False)
-    vim_project = sa.Column(sa.PickleType, nullable=False)
-    auth_cred = sa.Column(sa.PickleType, nullable=False)
+    vim_project = sa.Column(types.Json, nullable=False)
+    auth_cred = sa.Column(types.Json, nullable=False)
     __table_args__ = (sa.UniqueConstraint('auth_url'), {})
 
 
