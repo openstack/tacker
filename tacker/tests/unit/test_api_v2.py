@@ -17,6 +17,7 @@ import os
 
 import mock
 from oslo_config import cfg
+from oslo_policy import policy as common_policy
 from oslo_utils import uuidutils
 import six
 import six.moves.urllib.parse as urlparse
@@ -32,7 +33,6 @@ from tacker.api.v1 import router
 from tacker.common import exceptions as n_exc
 from tacker import context
 from tacker import manager
-from tacker.openstack.common import policy as common_policy
 from tacker import policy
 from tacker.tests import base
 from tacker.tests import fake_notifier

@@ -26,6 +26,7 @@ from tacker.common import exceptions as n_exc
 
 LOG = logging.getLogger(__name__)
 
+ATTRIBUTES_TO_UPDATE = 'attributes_to_update'
 ATTR_NOT_SPECIFIED = object()
 # Defining a constant to avoid repeating string literal in several modules
 SHARED = 'shared'
@@ -607,6 +608,8 @@ validators = {'type:dict': _validate_dict,
 # Identify the attribute used by a resource to reference another resource
 
 RESOURCE_ATTRIBUTE_MAP = {}
+
+RESOURCE_FOREIGN_KEYS = {}
 
 PLURALS = {'extensions': 'extension'}
 EXT_NSES = {}

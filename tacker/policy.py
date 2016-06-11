@@ -13,116 +13,96 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""
-Policy engine for tacker.  Largely copied from nova.
-"""
-import itertools
+import collections
 import re
 
+
 from oslo_config import cfg
+from oslo_db import exception as db_exc
 from oslo_log import log as logging
+from oslo_policy import policy
 from oslo_utils import excutils
 from oslo_utils import importutils
 import six
 
+from tacker.i18n import _, _LE, _LW
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
-import tacker.common.utils as utils
-from tacker.openstack.common import policy
 
 
 LOG = logging.getLogger(__name__)
-_POLICY_PATH = None
-_POLICY_CACHE = {}
-ADMIN_CTX_POLICY = 'context_is_admin'
-# Maps deprecated 'extension' policies to new-style policies
-DEPRECATED_POLICY_MAP = {
-    'extension:provider_network':
-    ['network:provider:network_type',
-     'network:provider:physical_network',
-     'network:provider:segmentation_id'],
-    'extension:router':
-    ['network:router:external'],
-    'extension:port_binding':
-    ['port:binding:vif_type', 'port:binding:vif_details',
-     'port:binding:profile', 'port:binding:host_id']
-}
-DEPRECATED_ACTION_MAP = {
-    'view': ['get'],
-    'set': ['create', 'update']
-}
 
-cfg.CONF.import_opt('policy_file', 'tacker.common.config')
+_ENFORCER = None
+ADMIN_CTX_POLICY = 'context_is_admin'
 
 
 def reset():
-    global _POLICY_PATH
-    global _POLICY_CACHE
-    _POLICY_PATH = None
-    _POLICY_CACHE = {}
-    policy.reset()
+    global _ENFORCER
+    if _ENFORCER:
+        _ENFORCER.clear()
+        _ENFORCER = None
 
 
-def init():
-    global _POLICY_PATH
-    global _POLICY_CACHE
-    if not _POLICY_PATH:
-        _POLICY_PATH = utils.find_config_file({}, cfg.CONF.policy_file)
-        if not _POLICY_PATH:
-            raise exceptions.PolicyFileNotFound(path=cfg.CONF.policy_file)
-    # pass _set_brain to read_cached_file so that the policy brain
-    # is reset only if the file has changed
-    utils.read_cached_file(_POLICY_PATH, _POLICY_CACHE,
-                           reload_func=_set_rules)
+def init(conf=cfg.CONF, policy_file=None):
+    """Init an instance of the Enforcer class."""
+
+    global _ENFORCER
+    if not _ENFORCER:
+        _ENFORCER = policy.Enforcer(conf, policy_file=policy_file)
+        _ENFORCER.load_rules(True)
 
 
-def get_resource_and_action(action):
-    """Extract resource and action (write, read) from api operation."""
+def refresh(policy_file=None):
+    """Reset policy and init a new instance of Enforcer."""
+    reset()
+    init(policy_file=policy_file)
+
+
+def get_resource_and_action(action, pluralized=None):
+    """Return resource and enforce_attr_based_check(boolean).
+
+    It is per resource and action extracted from api operation.
+    """
+
     data = action.split(':', 1)[0].split('_', 1)
-    return ("%ss" % data[-1], data[0] != 'get')
+    resource = pluralized or ("%ss" % data[-1])
+    enforce_attr_based_check = data[0] not in ('get', 'delete')
+    return (resource, enforce_attr_based_check)
 
 
-def _set_rules(data):
-    default_rule = 'default'
-    LOG.debug(_("Loading policies from file: %s"), _POLICY_PATH)
-    # Ensure backward compatibility with folsom/grizzly convention
-    # for extension rules
-    policies = policy.Rules.load_json(data, default_rule)
-    for pol in policies.keys():
-        if any([pol.startswith(depr_pol) for depr_pol in
-                DEPRECATED_POLICY_MAP.keys()]):
-            LOG.warning(_("Found deprecated policy rule:%s. Please consider "
-                          "upgrading your policy configuration file"), pol)
-            pol_name, action = pol.rsplit(':', 1)
-            try:
-                new_actions = DEPRECATED_ACTION_MAP[action]
-                new_policies = DEPRECATED_POLICY_MAP[pol_name]
-                # bind new actions and policies together
-                for actual_policy in ['_'.join(item) for item in
-                                      itertools.product(new_actions,
-                                                        new_policies)]:
-                    if actual_policy not in policies:
-                        # New policy, same rule
-                        LOG.info(_("Inserting policy:%(new_policy)s in place "
-                                   "of deprecated policy:%(old_policy)s"),
-                                 {'new_policy': actual_policy,
-                                  'old_policy': pol})
-                        policies[actual_policy] = policies[pol]
-                # Remove old-style policy
-                del policies[pol]
-            except KeyError:
-                LOG.error(_("Backward compatibility unavailable for "
-                            "deprecated policy %s. The policy will "
-                            "not be enforced"), pol)
-    policy.set_rules(policies)
+def set_rules(policies, overwrite=True):
+    """Set rules based on the provided dict of rules.
+
+    :param policies: New policies to use. It should be an instance of dict.
+    :param overwrite: Whether to overwrite current rules or update them
+                          with the new rules.
+    """
+
+    LOG.debug("Loading policies from file: %s", _ENFORCER.policy_path)
+    init()
+    _ENFORCER.set_rules(policies, overwrite)
 
 
-def _is_attribute_explicitly_set(attribute_name, resource, target):
-    """Verify that an attribute is present and has a non-default value."""
+def _is_attribute_explicitly_set(attribute_name, resource, target, action):
+    """Verify that an attribute is present and is explicitly set."""
+    if 'update' in action:
+        # In the case of update, the function should not pay attention to a
+        # default value of an attribute, but check whether it was explicitly
+        # marked as being updated instead.
+        return (attribute_name in target[attributes.ATTRIBUTES_TO_UPDATE] and
+                target[attribute_name] is not attributes.ATTR_NOT_SPECIFIED)
     return ('default' in resource[attribute_name] and
             attribute_name in target and
             target[attribute_name] is not attributes.ATTR_NOT_SPECIFIED and
             target[attribute_name] != resource[attribute_name]['default'])
+
+
+def _should_validate_sub_attributes(attribute, sub_attr):
+    """Verify that sub-attributes are iterable and should be validated."""
+    validate = attribute.get('validate')
+    return (validate and isinstance(sub_attr, collections.Iterable) and
+            any([k.startswith('type:dict') and
+                 v for (k, v) in six.iteritems(validate)]))
 
 
 def _build_subattr_match_rule(attr_name, attr, action, target):
@@ -131,15 +111,16 @@ def _build_subattr_match_rule(attr_name, attr, action, target):
     # typing for API attributes
     # Expect a dict as type descriptor
     validate = attr['validate']
-    key = filter(lambda k: k.startswith('type:dict'), validate.keys())
+    key = list(filter(lambda k: k.startswith('type:dict'), validate.keys()))
     if not key:
-        LOG.warning(_("Unable to find data type descriptor for attribute %s"),
+        LOG.warning(_LW("Unable to find data type descriptor "
+                        "for attribute %s"),
                     attr_name)
         return
     data = validate[key[0]]
     if not isinstance(data, dict):
-        LOG.debug(_("Attribute type descriptor is not a dict. Unable to "
-                    "generate any sub-attr policy rule for %s."),
+        LOG.debug("Attribute type descriptor is not a dict. Unable to "
+                  "generate any sub-attr policy rule for %s.",
                   attr_name)
         return
     sub_attr_rules = [policy.RuleCheck('rule', '%s:%s:%s' %
@@ -150,7 +131,17 @@ def _build_subattr_match_rule(attr_name, attr, action, target):
     return policy.AndCheck(sub_attr_rules)
 
 
-def _build_match_rule(action, target):
+def _process_rules_list(rules, match_rule):
+    """Recursively walk a policy rule to extract a list of match entries."""
+    if isinstance(match_rule, policy.RuleCheck):
+        rules.append(match_rule.match)
+    elif isinstance(match_rule, policy.AndCheck):
+        for rule in match_rule.rules:
+            _process_rules_list(rules, rule)
+    return rules
+
+
+def _build_match_rule(action, target, pluralized):
     """Create the rule to match for a given action.
 
     The policy rule to be matched is built in the following way:
@@ -163,25 +154,23 @@ def _build_match_rule(action, target):
        (e.g.: create_router:external_gateway_info:network_id)
     """
     match_rule = policy.RuleCheck('rule', action)
-    resource, is_write = get_resource_and_action(action)
-    # Attribute-based checks shall not be enforced on GETs
-    if is_write:
+    resource, enforce_attr_based_check = get_resource_and_action(
+        action, pluralized)
+    if enforce_attr_based_check:
         # assigning to variable with short name for improving readability
         res_map = attributes.RESOURCE_ATTRIBUTE_MAP
         if resource in res_map:
             for attribute_name in res_map[resource]:
                 if _is_attribute_explicitly_set(attribute_name,
                                                 res_map[resource],
-                                                target):
+                                                target, action):
                     attribute = res_map[resource][attribute_name]
                     if 'enforce_policy' in attribute:
                         attr_rule = policy.RuleCheck('rule', '%s:%s' %
                                                      (action, attribute_name))
-                        # Build match entries for sub-attributes, if present
-                        validate = attribute.get('validate')
-                        if (validate and any([k.startswith('type:dict') and v
-                                              for (k, v) in
-                                              six.iteritems(validate)])):
+                        # Build match entries for sub-attributes
+                        if _should_validate_sub_attributes(
+                                attribute, target[attribute_name]):
                             attr_rule = policy.AndCheck(
                                 [attr_rule, _build_subattr_match_rule(
                                     attribute_name, attribute,
@@ -208,11 +197,11 @@ class OwnerCheck(policy.Check):
     def __init__(self, kind, match):
         # Process the match
         try:
-            self.target_field = re.findall('^\%\((.*)\)s$',
+            self.target_field = re.findall(r'^\%\((.*)\)s$',
                                            match)[0]
         except IndexError:
-            err_reason = (_("Unable to identify a target field from:%s."
-                            "match should be in the form %%(<field_name>)s") %
+            err_reason = (_("Unable to identify a target field from:%s. "
+                            "Match should be in the form %%(<field_name>)s") %
                           match)
             LOG.exception(err_reason)
             raise exceptions.PolicyInitError(
@@ -220,7 +209,7 @@ class OwnerCheck(policy.Check):
                 reason=err_reason)
         super(OwnerCheck, self).__init__(kind, match)
 
-    def __call__(self, target, creds):
+    def __call__(self, target, creds, enforcer):
         if self.target_field not in target:
             # policy needs a plugin check
             # target field is in the form resource:field
@@ -237,13 +226,13 @@ class OwnerCheck(policy.Check):
                     parent_res, parent_field = do_split(separator)
                     break
                 except ValueError:
-                    LOG.debug(_("Unable to find ':' as separator in %s."),
+                    LOG.debug("Unable to find ':' as separator in %s.",
                               self.target_field)
             else:
                 # If we are here split failed with both separators
                 err_reason = (_("Unable to find resource name in %s") %
                               self.target_field)
-                LOG.exception(err_reason)
+                LOG.error(err_reason)
                 raise exceptions.PolicyCheckError(
                     policy="%s:%s" % (self.kind, self.match),
                     reason=err_reason)
@@ -253,7 +242,7 @@ class OwnerCheck(policy.Check):
                 err_reason = (_("Unable to verify match:%(match)s as the "
                                 "parent resource: %(res)s was not found") %
                               {'match': self.match, 'res': parent_res})
-                LOG.exception(err_reason)
+                LOG.error(err_reason)
                 raise exceptions.PolicyCheckError(
                     policy="%s:%s" % (self.kind, self.match),
                     reason=err_reason)
@@ -261,9 +250,9 @@ class OwnerCheck(policy.Check):
             # resource is handled by the core plugin. It might be worth
             # having a way to map resources to plugins so to make this
             # check more general
-            # FIXME(ihrachys): if import is put in global, circular
+            # NOTE(ihrachys): if import is put in global, circular
             # import failure occurs
-            from tacker import manager
+            manager = importutils.import_module('tacker.manager')
             f = getattr(manager.TackerManager.get_instance().plugin,
                         'get_%s' % parent_res)
             # f *must* exist, if not found it is better to let tacker
@@ -274,9 +263,17 @@ class OwnerCheck(policy.Check):
                          target[parent_foreign_key],
                          fields=[parent_field])
                 target[self.target_field] = data[parent_field]
+            except exceptions.NotFound as e:
+                # NOTE(kevinbenton): a NotFound exception can occur if a
+                # list operation is happening at the same time as one of
+                # the parents and its children being deleted. So we issue
+                # a RetryRequest so the API will redo the lookup and the
+                # problem items will be gone.
+                raise db_exc.RetryRequest(e)
             except Exception:
                 with excutils.save_and_reraise_exception():
-                    LOG.exception(_('Policy check error while calling %s!'), f)
+                    LOG.exception(_LE('Policy check error while calling %s!'),
+                                  f)
         match = self.match % target
         if self.kind in creds:
             return match == six.text_type(creds[self.kind])
@@ -302,30 +299,39 @@ class FieldCheck(policy.Check):
 
         self.field = field
         self.value = conv_func(value)
+        self.regex = re.compile(value[1:]) if value.startswith('~') else None
 
-    def __call__(self, target_dict, cred_dict):
+    def __call__(self, target_dict, cred_dict, enforcer):
         target_value = target_dict.get(self.field)
         # target_value might be a boolean, explicitly compare with None
         if target_value is None:
-            LOG.debug(_("Unable to find requested field: %(field)s in "
-                        "target: %(target_dict)s"),
-                      {'field': self.field,
-                       'target_dict': target_dict})
+            LOG.debug("Unable to find requested field: %(field)s in target: "
+                      "%(target_dict)s",
+                      {'field': self.field, 'target_dict': target_dict})
             return False
+        if self.regex:
+            return bool(self.regex.match(target_value))
         return target_value == self.value
 
 
-def _prepare_check(context, action, target):
+def _prepare_check(context, action, target, pluralized):
     """Prepare rule, target, and credentials for the policy engine."""
     # Compare with None to distinguish case in which target is {}
     if target is None:
         target = {}
-    match_rule = _build_match_rule(action, target)
+    match_rule = _build_match_rule(action, target, pluralized)
     credentials = context.to_dict()
     return match_rule, target, credentials
 
 
-def check(context, action, target, plugin=None, might_not_exist=False):
+def log_rule_list(match_rule):
+    if LOG.isEnabledFor(logging.DEBUG):
+        rules = _process_rules_list([], match_rule)
+        LOG.debug("Enforcing rules: %s", rules)
+
+
+def check(context, action, target, plugin=None, might_not_exist=False,
+          pluralized=None):
     """Verifies that the action is valid on the target in this context.
 
     :param context: tacker context
@@ -339,15 +345,32 @@ def check(context, action, target, plugin=None, might_not_exist=False):
     :param might_not_exist: If True the policy check is skipped (and the
         function returns True) if the specified policy does not exist.
         Defaults to false.
+    :param pluralized: pluralized case of resource
+        e.g. firewall_policy -> pluralized = "firewall_policies"
 
     :return: Returns True if access is permitted else False.
     """
-    if might_not_exist and not (policy._rules and action in policy._rules):
+    # If we already know the context has admin rights do not perform an
+    # additional check and authorize the operation
+    if context.is_admin:
         return True
-    return policy.check(*(_prepare_check(context, action, target)))
+    if might_not_exist and not (_ENFORCER.rules and action in _ENFORCER.rules):
+        return True
+    match_rule, target, credentials = _prepare_check(context,
+                                                     action,
+                                                     target,
+                                                     pluralized)
+    result = _ENFORCER.enforce(match_rule,
+                               target,
+                               credentials,
+                               pluralized=pluralized)
+    # logging applied rules in case of failure
+    if not result:
+        log_rule_list(match_rule)
+    return result
 
 
-def enforce(context, action, target, plugin=None):
+def enforce(context, action, target, plugin=None, pluralized=None):
     """Verifies that the action is valid on the target in this context.
 
     :param context: tacker context
@@ -358,15 +381,27 @@ def enforce(context, action, target, plugin=None):
         location of the object e.g. ``{'project_id': context.project_id}``
     :param plugin: currently unused and deprecated.
         Kept for backward compatibility.
+    :param pluralized: pluralized case of resource
+        e.g. firewall_policy -> pluralized = "firewall_policies"
 
-    :raises tacker.exceptions.PolicyNotAuthorized: if verification fails.
+    :raises oslo_policy.policy.PolicyNotAuthorized:
+            if verification fails.
     """
-
-    rule, target, credentials = _prepare_check(context, action, target)
-    result = policy.check(rule, target, credentials, action=action)
-    if not result:
-        LOG.debug(_("Failed policy check for '%s'"), action)
-        raise exceptions.PolicyNotAuthorized(action=action)
+    # If we already know the context has admin rights do not perform an
+    # additional check and authorize the operation
+    if context.is_admin:
+        return True
+    rule, target, credentials = _prepare_check(context,
+                                               action,
+                                               target,
+                                               pluralized)
+    try:
+        result = _ENFORCER.enforce(rule, target, credentials, action=action,
+                                   do_raise=True)
+    except policy.PolicyNotAuthorized:
+        with excutils.save_and_reraise_exception():
+            log_rule_list(rule)
+            LOG.debug("Failed policy check for '%s'", action)
     return result
 
 
@@ -375,43 +410,6 @@ def check_is_admin(context):
     init()
     # the target is user-self
     credentials = context.to_dict()
-    target = credentials
-    # Backward compatibility: if ADMIN_CTX_POLICY is not
-    # found, default to validating role:admin
-    admin_policy = (ADMIN_CTX_POLICY in policy._rules
-                    and ADMIN_CTX_POLICY or 'role:admin')
-    return policy.check(admin_policy, target, credentials)
-
-
-def _extract_roles(rule, roles):
-    if isinstance(rule, policy.RoleCheck):
-        roles.append(rule.match.lower())
-    elif isinstance(rule, policy.RuleCheck):
-        _extract_roles(policy._rules[rule.match], roles)
-    elif hasattr(rule, 'rules'):
-        for rule in rule.rules:
-            _extract_roles(rule, roles)
-
-
-def get_admin_roles():
-    """Get Admin roles.
-
-    Return a list of roles which are granted admin rights according
-    to policy settings.
-    """
-    # NOTE(salvatore-orlando): This function provides a solution for
-    # populating implicit contexts with the appropriate roles so that
-    # they correctly pass policy checks, and will become superseded
-    # once all explicit policy checks are removed from db logic and
-    # plugin modules. For backward compatibility it returns the literal
-    # admin if ADMIN_CTX_POLICY is not defined
-    init()
-    if not policy._rules or ADMIN_CTX_POLICY not in policy._rules:
-        return ['admin']
-    try:
-        admin_ctx_rule = policy._rules[ADMIN_CTX_POLICY]
-    except (KeyError, TypeError):
-        return
-    roles = []
-    _extract_roles(admin_ctx_rule, roles)
-    return roles
+    if ADMIN_CTX_POLICY not in _ENFORCER.rules:
+        return False
+    return _ENFORCER.enforce(ADMIN_CTX_POLICY, credentials, credentials)
