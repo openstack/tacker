@@ -17,11 +17,11 @@ import re
 
 import netaddr
 from oslo_log import log as logging
+from oslo_utils import uuidutils
 from six import iteritems
 
 from tacker.common import constants
 from tacker.common import exceptions as n_exc
-from tacker.openstack.common import uuidutils
 
 
 LOG = logging.getLogger(__name__)
