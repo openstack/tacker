@@ -21,9 +21,9 @@ CONF = cfg.CONF
 
 
 class VnfdTestCreate(base.BaseTackerTest):
-    def test_create_list_delete_tosca_vnfd(self):
+    def _test_create_list_delete_tosca_vnfd(self, tosca_vnfd_file):
         data = dict()
-        data['tosca'] = read_file('sample-tosca-vnfd.yaml')
+        data['tosca'] = read_file(tosca_vnfd_file)
         toscal = data['tosca']
         tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
@@ -37,3 +37,10 @@ class VnfdTestCreate(base.BaseTackerTest):
             self.client.delete_vnfd(vnfd_id)
         except Exception:
             assert False, "vnfd Delete failed"
+
+    def test_tosca_vnfd(self):
+        self._test_create_list_delete_tosca_vnfd('sample-tosca-vnfd.yaml')
+
+    def test_tosca_large_vnfd(self):
+        self._test_create_list_delete_tosca_vnfd(
+            'sample-tosca-vnfd-large-template.yaml')
