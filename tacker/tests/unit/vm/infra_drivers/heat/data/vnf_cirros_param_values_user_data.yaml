@@ -10,6 +10,7 @@ vdus:
       management: True
       network: net_mgmt
       user_data_format: RAW
+      key_name: keyName
       user_data: |
         #!/bin/sh
         echo "my hostname is `hostname`" > /tmp/hostname

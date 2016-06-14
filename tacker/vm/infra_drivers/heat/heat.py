@@ -359,6 +359,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                         metadata.update(vdu_dict['config'])
                         for key, value in metadata.items():
                             metadata[key] = value[:255]
+                    if 'key_name' in vdu_dict:
+                        properties['key_name'] = vdu_dict['key_name']
 
                     monitoring_policy = vdu_dict.get('monitoring_policy',
                                                      'noop')

@@ -57,6 +57,9 @@ node_types:
         type: string
         required: false
 
+      key_name:
+        type: string
+        required: false
 
   tosca.nodes.nfv.CP.Tacker:
     derived_from: tosca.nodes.nfv.CP

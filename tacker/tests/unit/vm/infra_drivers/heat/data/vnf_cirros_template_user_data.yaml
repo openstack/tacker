@@ -18,6 +18,7 @@ vdus:
     mgmt_driver: noop
     user_data: {get_input: user_data}
     user_data_format: {get_input: user_data_format}
+    key_name: {get_input: key_name}
 
     network_interfaces:
       management:
