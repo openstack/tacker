@@ -223,16 +223,8 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
     def get_vim_by_name(self, context, vim_name, fields=None,
                         mask_password=True):
         vim_db = self._get_by_name(context, Vim, vim_name)
-        return self._make_vim_dict(vim_db, mask_password=mask_password)
-
-    # Deprecated. Will be removed in Ocata release
-    def _get_by_name(self, context, model, name):
-        try:
-            query = self._model_query(context, model)
-            return query.filter(model.name == name).one()
-        except orm_exc.NoResultFound:
-            if issubclass(model, Vim):
-                raise
+        return self._make_vim_dict(vim_db, mask_password=mask_password
+                                   )if vim_db else None
 
     def _validate_default_vim(self, context, vim, vim_id=None):
         if not vim.get('is_default'):

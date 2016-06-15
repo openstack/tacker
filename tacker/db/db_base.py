@@ -15,11 +15,15 @@
 
 import weakref
 
+from oslo_log import log as logging
 from six import iteritems
+from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import sql
 
 from tacker.common import exceptions as n_exc
 from tacker.db import sqlalchemyutils
+
+LOG = logging.getLogger(__name__)
 
 
 class CommonDbMixin(object):
@@ -201,3 +205,11 @@ class CommonDbMixin(object):
         columns = [c.name for c in model.__table__.columns]
         return dict((k, v) for (k, v) in
                     iteritems(data) if k in columns)
+
+    def _get_by_name(self, context, model, name):
+        try:
+            query = self._model_query(context, model)
+            return query.filter(model.name == name).one()
+        except orm_exc.NoResultFound:
+            LOG.info(_("No result found for %(name)s in %(model)s table"),
+                     {'name': name, 'model': model})

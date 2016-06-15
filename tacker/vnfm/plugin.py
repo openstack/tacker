@@ -157,6 +157,9 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 " will be removed in Ocata. infra_driver will be automatically"
                 " derived from target vim type. mgmt_driver will be derived "
                 "from TOSCA template values.")
+        name = vnfd_data['name']
+        if self._get_by_name(context, vnfm_db.VNFD, name):
+            raise exceptions.DuplicateResourceName(resource='VNFD', name=name)
 
         service_types = vnfd_data.get('service_types')
         if not attributes.is_attr_set(service_types):
@@ -344,6 +347,9 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     def create_vnf(self, context, vnf):
         vnf_info = vnf['vnf']
+        name = vnf_info['name']
+        if self._get_by_name(context, vnfm_db.VNF, name):
+            raise exceptions.DuplicateResourceName(resource='VNF', name=name)
         vnf_attributes = vnf_info['attributes']
         if vnf_attributes.get('param_values'):
             param = vnf_attributes['param_values']

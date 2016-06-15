@@ -53,7 +53,7 @@ class VimClient(object):
 
         if not vim_id:
             LOG.debug(_('VIM id not provided. Attempting to find default '
-                        'VIM id'))
+                        'VIM information'))
             try:
                 vim_info = nfvo_plugin.get_default_vim(context)
             except Exception:
@@ -66,8 +66,7 @@ class VimClient(object):
                     'default-vim in tacker.conf is deprecated and will be '
                     'removed in Newton cycle')
                 vim_info = self._get_default_vim_by_name(context,
-                                nfvo_plugin,
-                            vim_name)
+                                                         nfvo_plugin, vim_name)
         else:
             try:
                 vim_info = nfvo_plugin.get_vim(context, vim_id,
@@ -91,11 +90,10 @@ class VimClient(object):
 
     # Deprecated. Will be removed in Ocata release
     def _get_default_vim_by_name(self, context, plugin, vim_name):
-        try:
-            vim_info = plugin.get_vim_by_name(context, vim_name,
-                                              mask_password=False)
-        except Exception:
-            raise nfvo.VimDefaultIdException(vim_name=vim_name)
+        vim_info = plugin.get_vim_by_name(context, vim_name,
+                                          mask_password=False)
+        if not vim_info:
+            raise nfvo.VimDefaultNameNotFound(vim_name=vim_name)
         return vim_info
 
     def _build_vim_auth(self, vim_info):

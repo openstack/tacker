@@ -18,6 +18,8 @@ import uuid
 
 
 from mock import patch
+
+from tacker.common import exceptions
 from tacker import context
 from tacker.db.common_services import common_services_db
 from tacker.db.nfvo import nfvo_db
@@ -173,13 +175,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         session.flush()
 
     def test_create_vim(self):
-        vim_dict = {'vim': {'type': 'openstack', 'auth_url':
-                    'http://localhost:5000', 'vim_project': {'name':
-                    'test_project'}, 'auth_cred': {'username': 'test_user',
-                                                   'password':
-                                                       'test_password'},
-                            'name': 'VIM0',
-                    'tenant_id': 'test-project'}}
+        vim_dict = utils.get_vim_obj()
         vim_type = 'openstack'
         res = self.nfvo_plugin.create_vim(self.context, vim_dict)
         self._cos_db_plugin.create_event.assert_any_call(
@@ -200,6 +196,14 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertIn('placement_attr', res)
         self.assertIn('created_at', res)
         self.assertIn('updated_at', res)
+
+    def test_create_vim_duplicate_name(self):
+        self._insert_dummy_vim()
+        vim_dict = utils.get_vim_obj()
+        vim_dict['vim']['name'] = 'fake_vim'
+        self.assertRaises(exceptions.DuplicateResourceName,
+                          self.nfvo_plugin.create_vim,
+                          self.context, vim_dict)
 
     def test_delete_vim(self):
         self._insert_dummy_vim()
