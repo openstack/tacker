@@ -13,7 +13,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
 import sys
 import time
 
@@ -253,164 +252,199 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
     @log.log
     def create(self, plugin, context, device, auth_attr):
         LOG.debug(_('device %s'), device)
-        attributes = device['device_template']['attributes'].copy()
-        vnfd_yaml = attributes.pop('vnfd', None)
-        fields = dict((key, attributes.pop(key)) for key
-                      in ('stack_name', 'template_url', 'template')
-                      if key in attributes)
-        for key in ('files', 'parameters'):
-            if key in attributes:
-                fields[key] = jsonutils.loads(attributes.pop(key))
 
-        # overwrite parameters with given dev_attrs for device creation
-        dev_attrs = device['attributes'].copy()
-        fields.update(dict((key, dev_attrs.pop(key)) for key
-                      in ('stack_name', 'template_url', 'template')
-                      if key in dev_attrs))
-        for key in ('files', 'parameters'):
-            if key in dev_attrs:
-                fields.setdefault(key, {}).update(
-                    jsonutils.loads(dev_attrs.pop(key)))
+        attributes = device['device_template']['attributes'].copy()
+
+        vnfd_yaml = attributes.pop('vnfd', None)
+        if vnfd_yaml is None:
+            # TODO(kangaraj-manickam) raise user level exception
+            LOG.info(_("VNFD is not provided, so no device is created !!"))
+            return
+
+        LOG.debug('vnfd_yaml %s', vnfd_yaml)
+
+        def update_fields():
+            fields = dict((key, attributes.pop(key)) for key
+                          in ('stack_name', 'template_url', 'template')
+                          if key in attributes)
+            for key in ('files', 'parameters'):
+                if key in attributes:
+                    fields[key] = jsonutils.loads(attributes.pop(key))
+
+            # overwrite parameters with given dev_attrs for device creation
+            dev_attrs = device['attributes'].copy()
+            fields.update(dict((key, dev_attrs.pop(key)) for key
+                          in ('stack_name', 'template_url', 'template')
+                          if key in dev_attrs))
+            for key in ('files', 'parameters'):
+                if key in dev_attrs:
+                    fields.setdefault(key, {}).update(
+                        jsonutils.loads(dev_attrs.pop(key)))
+
+            return fields, dev_attrs
+
+        fields, dev_attrs = update_fields()
 
         region_name = device.get('placement_attr', {}).get('region_name', None)
         heatclient_ = HeatClient(auth_attr, region_name)
         unsupported_res_prop = self.fetch_unsupported_resource_prop(
             heatclient_)
 
-        LOG.debug('vnfd_yaml %s', vnfd_yaml)
-        if vnfd_yaml is not None:
+        def generate_hot_from_tosca(vnfd_dict):
+            parsed_params = dev_attrs.pop('param_values', {})
+
+            toscautils.updateimports(vnfd_dict)
+
+            try:
+                tosca = ToscaTemplate(parsed_params=parsed_params,
+                                      a_file=False,
+                                      yaml_dict_tpl=vnfd_dict)
+
+            except Exception as e:
+                LOG.debug("tosca-parser error: %s", str(e))
+                raise vnfm.ToscaParserFailed(error_msg_details=str(e))
+
+            monitoring_dict = toscautils.get_vdu_monitoring(tosca)
+            mgmt_ports = toscautils.get_mgmt_ports(tosca)
+            res_tpl = toscautils.get_resources_dict(tosca,
+                                                    STACK_FLAVOR_EXTRA)
+            toscautils.post_process_template(tosca)
+            try:
+                translator = TOSCATranslator(tosca, parsed_params)
+                heat_template_yaml = translator.translate()
+            except Exception as e:
+                LOG.debug("heat-translator error: %s", str(e))
+                raise vnfm.HeatTranslatorFailed(error_msg_details=str(e))
+            heat_template_yaml = toscautils.post_process_heat_template(
+                heat_template_yaml, mgmt_ports, res_tpl,
+                unsupported_res_prop)
+
+            return heat_template_yaml, monitoring_dict
+
+        def generate_hot_from_legacy(vnfd_dict):
+            assert 'template' not in fields
+            assert 'template_url' not in fields
+
+            monitoring_dict = {}
+
+            template_dict = yaml.load(HEAT_TEMPLATE_BASE)
+            outputs_dict = {}
+            template_dict['outputs'] = outputs_dict
+
+            if 'get_input' in vnfd_yaml:
+                self._process_parameterized_input(dev_attrs, vnfd_dict)
+
+            KEY_LIST = (('description', 'description'), )
+            for (key, vnfd_key) in KEY_LIST:
+                if vnfd_key in vnfd_dict:
+                    template_dict[key] = vnfd_dict[vnfd_key]
+
+            for vdu_id, vdu_dict in vnfd_dict.get('vdus', {}).items():
+                template_dict.setdefault('resources', {})[vdu_id] = {
+                    "type": "OS::Nova::Server"
+                }
+                resource_dict = template_dict['resources'][vdu_id]
+                KEY_LIST = (('image', 'vm_image'),
+                            ('flavor', 'instance_type'))
+                resource_dict['properties'] = {}
+                properties = resource_dict['properties']
+                for (key, vdu_key) in KEY_LIST:
+                    properties[key] = vdu_dict[vdu_key]
+                if 'network_interfaces' in vdu_dict:
+                    self._process_vdu_network_interfaces(vdu_id,
+                     vdu_dict, properties, template_dict,
+                     unsupported_res_prop)
+                if ('user_data' in vdu_dict and
+                        'user_data_format' in vdu_dict):
+                    properties['user_data_format'] = vdu_dict[
+                        'user_data_format']
+                    properties['user_data'] = vdu_dict['user_data']
+                elif ('user_data' in vdu_dict or
+                        'user_data_format' in vdu_dict):
+                    raise vnfm.UserDataFormatNotFound()
+                if 'placement_policy' in vdu_dict:
+                    if 'availability_zone' in vdu_dict['placement_policy']:
+                        properties['availability_zone'] = vdu_dict[
+                            'placement_policy']['availability_zone']
+                if 'config' in vdu_dict:
+                    properties['config_drive'] = True
+                    metadata = properties.setdefault('metadata', {})
+                    metadata.update(vdu_dict['config'])
+                    for key, value in metadata.items():
+                        metadata[key] = value[:255]
+                if 'key_name' in vdu_dict:
+                        properties['key_name'] = vdu_dict['key_name']
+
+                monitoring_policy = vdu_dict.get('monitoring_policy',
+                                                 'noop')
+                failure_policy = vdu_dict.get('failure_policy', 'noop')
+
+                # Convert the old monitoring specification to the new
+                # network.  This should be removed after Mitaka
+                if (monitoring_policy == 'ping' and
+                        failure_policy == 'respawn'):
+                    vdu_dict['monitoring_policy'] = {
+                        'ping': {'actions': {'failure': 'respawn'}}}
+                    vdu_dict.pop('failure_policy')
+
+                if monitoring_policy != 'noop':
+                    monitoring_dict['vdus'] = {}
+                    monitoring_dict['vdus'][vdu_id] = \
+                        vdu_dict['monitoring_policy']
+
+                # to pass necessary parameters to plugin upwards.
+                for key in ('service_type',):
+                    if key in vdu_dict:
+                        device.setdefault(
+                            'attributes', {})[vdu_id] = jsonutils.dumps(
+                                {key: vdu_dict[key]})
+
+                heat_template_yaml = yaml.dump(template_dict)
+
+            return heat_template_yaml, monitoring_dict
+
+        def generate_hot():
             vnfd_dict = yamlparser.simple_ordered_parse(vnfd_yaml)
             LOG.debug('vnfd_dict %s', vnfd_dict)
 
-            monitoring_dict = {'vdus': {}}
-
             if 'tosca_definitions_version' in vnfd_dict:
-                parsed_params = dev_attrs.pop('param_values', {})
-
-                toscautils.updateimports(vnfd_dict)
-
-                try:
-                    tosca = ToscaTemplate(parsed_params=parsed_params,
-                                      a_file=False, yaml_dict_tpl=vnfd_dict)
-
-                except Exception as e:
-                    LOG.debug("tosca-parser error: %s", str(e))
-                    raise vnfm.ToscaParserFailed(error_msg_details=str(e))
-
-                monitoring_dict = toscautils.get_vdu_monitoring(tosca)
-                mgmt_ports = toscautils.get_mgmt_ports(tosca)
-                res_tpl = toscautils.get_resources_dict(tosca,
-                                                        STACK_FLAVOR_EXTRA)
-                toscautils.post_process_template(tosca)
-                try:
-                    translator = TOSCATranslator(tosca, parsed_params)
-                    heat_template_yaml = translator.translate()
-                except Exception as e:
-                    LOG.debug("heat-translator error: %s", str(e))
-                    raise vnfm.HeatTranslatorFailed(error_msg_details=str(e))
-                heat_template_yaml = toscautils.post_process_heat_template(
-                    heat_template_yaml, mgmt_ports, res_tpl,
-                    unsupported_res_prop)
+                (heat_template_yaml,
+                 monitoring_dict) = generate_hot_from_tosca(vnfd_dict)
             else:
-                assert 'template' not in fields
-                assert 'template_url' not in fields
-                template_dict = yaml.load(HEAT_TEMPLATE_BASE)
-                outputs_dict = {}
-                template_dict['outputs'] = outputs_dict
-
-                if 'get_input' in vnfd_yaml:
-                    self._process_parameterized_input(dev_attrs, vnfd_dict)
-
-                KEY_LIST = (('description', 'description'), )
-                for (key, vnfd_key) in KEY_LIST:
-                    if vnfd_key in vnfd_dict:
-                        template_dict[key] = vnfd_dict[vnfd_key]
-
-                for vdu_id, vdu_dict in vnfd_dict.get('vdus', {}).items():
-                    template_dict.setdefault('resources', {})[vdu_id] = {
-                        "type": "OS::Nova::Server"
-                    }
-                    resource_dict = template_dict['resources'][vdu_id]
-                    KEY_LIST = (('image', 'vm_image'),
-                                ('flavor', 'instance_type'))
-                    resource_dict['properties'] = {}
-                    properties = resource_dict['properties']
-                    for (key, vdu_key) in KEY_LIST:
-                        properties[key] = vdu_dict[vdu_key]
-                    if 'network_interfaces' in vdu_dict:
-                        self._process_vdu_network_interfaces(vdu_id,
-                         vdu_dict, properties, template_dict,
-                         unsupported_res_prop)
-                    if ('user_data' in vdu_dict and
-                            'user_data_format' in vdu_dict):
-                        properties['user_data_format'] = vdu_dict[
-                            'user_data_format']
-                        properties['user_data'] = vdu_dict['user_data']
-                    elif ('user_data' in vdu_dict or
-                            'user_data_format' in vdu_dict):
-                        raise vnfm.UserDataFormatNotFound()
-                    if 'placement_policy' in vdu_dict:
-                        if 'availability_zone' in vdu_dict['placement_policy']:
-                            properties['availability_zone'] = vdu_dict[
-                                'placement_policy']['availability_zone']
-                    if 'config' in vdu_dict:
-                        properties['config_drive'] = True
-                        metadata = properties.setdefault('metadata', {})
-                        metadata.update(vdu_dict['config'])
-                        for key, value in metadata.items():
-                            metadata[key] = value[:255]
-                    if 'key_name' in vdu_dict:
-                        properties['key_name'] = vdu_dict['key_name']
-
-                    monitoring_policy = vdu_dict.get('monitoring_policy',
-                                                     'noop')
-                    failure_policy = vdu_dict.get('failure_policy', 'noop')
-
-                    # Convert the old monitoring specification to the new
-                    # network.  This should be removed after Mitaka
-                    if (monitoring_policy == 'ping' and
-                            failure_policy == 'respawn'):
-                        vdu_dict['monitoring_policy'] = {
-                            'ping': {'actions': {'failure': 'respawn'}}}
-                        vdu_dict.pop('failure_policy')
-
-                    if monitoring_policy != 'noop':
-                        monitoring_dict['vdus'][vdu_id] = \
-                            vdu_dict['monitoring_policy']
-
-                    # to pass necessary parameters to plugin upwards.
-                    for key in ('service_type',):
-                        if key in vdu_dict:
-                            device.setdefault(
-                                'attributes', {})[vdu_id] = jsonutils.dumps(
-                                    {key: vdu_dict[key]})
-
-                    heat_template_yaml = yaml.dump(template_dict)
+                (heat_template_yaml,
+                 monitoring_dict) = generate_hot_from_legacy(vnfd_dict)
 
             fields['template'] = heat_template_yaml
+
             if not device['attributes'].get('heat_template'):
                 device['attributes']['heat_template'] = \
-                    heat_template_yaml
+                    fields['template']
 
-            if monitoring_dict.keys():
+            if monitoring_dict:
                     device['attributes']['monitoring_policy'] = \
                         jsonutils.dumps(monitoring_dict)
 
-        if 'stack_name' not in fields:
-            name = (__name__ + '_' + self.__class__.__name__ + '-' +
-                    device['id'])
-            if device['attributes'].get('failure_count'):
-                name += ('-RESPAWN-%s') % str(device['attributes'][
-                    'failure_count'])
-            fields['stack_name'] = name
+        generate_hot()
 
-        # service context is ignored
-        LOG.debug(_('service_context: %s'), device.get('service_context', []))
+        def create_stack():
+            if 'stack_name' not in fields:
+                name = (__name__ + '_' + self.__class__.__name__ + '-' +
+                        device['id'])
+                if device['attributes'].get('failure_count'):
+                    name += ('-RESPAWN-%s') % str(device['attributes'][
+                        'failure_count'])
+                fields['stack_name'] = name
 
-        LOG.debug(_('fields: %s'), fields)
-        LOG.debug(_('template: %s'), fields['template'])
-        stack = heatclient_.create(fields)
-        return stack['stack']['id']
+            # service context is ignored
+            LOG.debug(_('service_context: %s'),
+                      device.get('service_context', []))
+            LOG.debug(_('fields: %s'), fields)
+            LOG.debug(_('template: %s'), fields['template'])
+            stack = heatclient_.create(fields)
+
+            return stack
+
+        return create_stack()['stack']['id']
 
     def create_wait(self, plugin, context, device_dict, device_id, auth_attr):
         region_name = device_dict.get('placement_attr', {}).get(
