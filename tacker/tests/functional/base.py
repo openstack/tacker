@@ -117,7 +117,7 @@ class BaseTackerTest(base.TestCase):
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual(vnf_current_status, 'ACTIVE')
+        self.assertEqual('ACTIVE', vnf_current_status)
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
@@ -125,12 +125,12 @@ class BaseTackerTest(base.TestCase):
             vnf_id,
             constants.VNF_CIRROS_DEAD_TIMEOUT,
             constants.DEAD_SLEEP_TIME)
-        self.assertEqual(vnf_current_status, 'DEAD')
+        self.assertEqual('DEAD', vnf_current_status)
         vnf_current_status = self.wait_until_vnf_active(
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual(vnf_current_status, 'ACTIVE')
+        self.assertEqual('ACTIVE', vnf_current_status)
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
     def get_vim(self, vim_list, vim_name):

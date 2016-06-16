@@ -45,12 +45,12 @@ class TestToscaUtils(testtools.TestCase):
         file1 = importspath + '/tacker_defs.yaml'
         file2 = importspath + '/tacker_nfv_defs.yaml'
         expected_imports = [file1, file2]
-        self.assertEqual(self.vnfd_dict['imports'], expected_imports)
+        self.assertEqual(expected_imports, self.vnfd_dict['imports'])
 
     def test_get_mgmt_driver(self):
         expected_mgmt_driver = 'openwrt'
         mgmt_driver = toscautils.get_mgmt_driver(self.tosca)
-        self.assertEqual(mgmt_driver, expected_mgmt_driver)
+        self.assertEqual(expected_mgmt_driver, mgmt_driver)
 
     def test_get_vdu_monitoring(self):
         expected_monitoring = {'vdus': {'VDU1': {'ping': {
@@ -62,12 +62,12 @@ class TestToscaUtils(testtools.TestCase):
                                'monitoring_params': {'count': 3,
                                                   'interval': 10}}}}}
         monitoring = toscautils.get_vdu_monitoring(self.tosca)
-        self.assertEqual(monitoring, expected_monitoring)
+        self.assertEqual(expected_monitoring, monitoring)
 
     def test_get_mgmt_ports(self):
         expected_mgmt_ports = {'mgmt_ip-VDU1': 'CP1'}
         mgmt_ports = toscautils.get_mgmt_ports(self.tosca)
-        self.assertEqual(mgmt_ports, expected_mgmt_ports)
+        self.assertEqual(expected_mgmt_ports, mgmt_ports)
 
     def test_post_process_template(self):
         tosca2 = ToscaTemplate(parsed_params={}, a_file=False,
@@ -80,7 +80,7 @@ class TestToscaUtils(testtools.TestCase):
                     nt.type_definition.is_derived_from(toscautils.PLACEMENT)):
                 invalidNodes += 1
 
-        self.assertEqual(invalidNodes, 0)
+        self.assertEqual(0, invalidNodes)
 
         deletedProperties = 0
         if nt.type in toscautils.delpropmap.keys():
@@ -89,7 +89,7 @@ class TestToscaUtils(testtools.TestCase):
                     if prop == p.name:
                         deletedProperties += 1
 
-        self.assertEqual(deletedProperties, 0)
+        self.assertEqual(0, deletedProperties)
 
         convertedProperties = 0
         if nt.type in toscautils.convert_prop:
@@ -98,7 +98,7 @@ class TestToscaUtils(testtools.TestCase):
                     if prop == p.name:
                         convertedProperties += 1
 
-        self.assertEqual(convertedProperties, 0)
+        self.assertEqual(0, convertedProperties)
 
     def test_post_process_heat_template(self):
         tosca1 = ToscaTemplate(parsed_params={}, a_file=False,
@@ -113,16 +113,16 @@ class TestToscaUtils(testtools.TestCase):
 
         heatdict = yaml.load(heat_tpl)
         expecteddict = yaml.load(expected_heat_tpl)
-        self.assertEqual(heatdict, expecteddict)
+        self.assertEqual(expecteddict, heatdict)
 
     def test_findvdus(self):
         vdus = toscautils.findvdus(self.tosca)
 
-        self.assertEqual(len(vdus), 1)
+        self.assertEqual(1, len(vdus))
 
         for vdu in vdus:
-            self.assertEqual(vdu.type_definition.is_derived_from(
-                toscautils.TACKERVDU), True)
+            self.assertEqual(True, vdu.type_definition.is_derived_from(
+                toscautils.TACKERVDU))
 
     def test_get_flavor_dict(self):
         vnfd_dict = yaml.load(self.tosca_flavor)
@@ -152,7 +152,7 @@ class TestToscaUtils(testtools.TestCase):
             }
         }
         toscautils.add_resources_tpl(dummy_heat_dict, dummy_heat_res)
-        self.assertEqual(dummy_heat_dict, expected_dict)
+        self.assertEqual(expected_dict, dummy_heat_dict)
 
     def test_get_flavor_dict_extra_specs_all_numa_count(self):
         tosca_fes_all_numa_count = _get_template(
@@ -215,7 +215,7 @@ class TestToscaUtils(testtools.TestCase):
             }
         }
         toscautils.add_resources_tpl(dummy_heat_dict, dummy_heat_res)
-        self.assertEqual(dummy_heat_dict, expected_dict)
+        self.assertEqual(expected_dict, dummy_heat_dict)
 
     def test_convert_unsupported_res_prop_kilo_ver(self):
         unsupported_res_prop_dict = {'OS::Neutron::Port': {
@@ -225,4 +225,4 @@ class TestToscaUtils(testtools.TestCase):
             'hot_tosca_openwrt_kilo.yaml'))
         toscautils.convert_unsupported_res_prop(dummy_heat_dict,
                                                 unsupported_res_prop_dict)
-        self.assertEqual(dummy_heat_dict, expected_heat_dict)
+        self.assertEqual(expected_heat_dict, dummy_heat_dict)

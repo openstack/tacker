@@ -71,9 +71,8 @@ to the aid of their party.\"\n")
         try:
             result = utils.execute(["bash", self.test_file, 'arg'],
                                    self.root_helper)
-            self.assertEqual(result,
-                             "0 arg Now is the time for all good men to \
-come to the aid of their party.")
+            self.assertEqual("0 arg Now is the time for all good men to \
+come to the aid of their party.", result)
         except Exception:
             LOG.exception("Losing in rootwrap test")
 

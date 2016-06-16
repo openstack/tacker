@@ -50,7 +50,7 @@ class VnfTestToscaCreate(base.BaseTackerTest):
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual(vnf_current_status, 'ACTIVE')
+        self.assertEqual('ACTIVE', vnf_current_status)
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
         # Delete vnf_instance with vnf_id
@@ -91,7 +91,7 @@ class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual(vnf_current_status, 'ACTIVE')
+        self.assertEqual('ACTIVE', vnf_current_status)
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
         servers = self.novaclient().servers.list()
@@ -146,7 +146,7 @@ class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual(vnf_current_status, 'ACTIVE')
+        self.assertEqual('ACTIVE', vnf_current_status)
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
         servers = self.novaclient().servers.list()

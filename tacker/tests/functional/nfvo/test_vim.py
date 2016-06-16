@@ -58,27 +58,27 @@ class VimTestCreate(base.BaseTackerTest):
                    version):
         expected_regions = ['RegionOne']
         self.assertIsNotNone(vim_instance)
-        self.assertEqual(vim_instance['description'], description)
-        self.assertEqual(vim_instance['name'], name)
+        self.assertEqual(description, vim_instance['description'])
+        self.assertEqual(name, vim_instance['name'])
         self.assertIsNotNone(vim_instance['tenant_id'])
         self.assertIsNotNone(vim_instance['id'])
-        self.assertEqual(vim_instance['auth_cred']['username'],
-                         config_data['username'])
+        self.assertEqual(config_data['username'],
+                         vim_instance['auth_cred']['username'])
         self.assertEqual(SECRET_PASSWORD,
                          vim_instance['auth_cred']['password'])
-        self.assertEqual(vim_instance['placement_attr']['regions'],
-                         expected_regions)
+        self.assertEqual(expected_regions,
+                         vim_instance['placement_attr']['regions'])
         if version:
             method_name = 'verify_vim_' + version
             getattr(self, method_name)(vim_instance, config_data)
 
     def verify_vim_v2(self, vim_instance, config_data):
-        self.assertEqual(vim_instance['auth_cred']['tenant_name'],
-                         config_data['project_name'])
+        self.assertEqual(config_data['project_name'],
+                         vim_instance['auth_cred']['tenant_name'])
 
     def verify_vim_v3(self, vim_instance, config_data):
-        self.assertEqual(vim_instance['auth_cred']['project_name'],
-                         config_data['project_name'])
+        self.assertEqual(config_data['project_name'],
+                         vim_instance['auth_cred']['project_name'])
 
     def test_create_delete_local_vim(self):
         name = 'Default vim'

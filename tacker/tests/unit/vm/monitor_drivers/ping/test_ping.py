@@ -49,7 +49,7 @@ class TestVNFMonitorPing(testtools.TestCase):
         }
         monitor_return = self.monitor_ping.monitor_call(test_device,
                                                         test_kwargs)
-        self.assertEqual(monitor_return, 'failure')
+        self.assertEqual('failure', monitor_return)
 
     def test_monitor_url(self):
         test_device = {
@@ -58,4 +58,4 @@ class TestVNFMonitorPing(testtools.TestCase):
         test_monitor_url = self.monitor_ping.monitor_url(mock.ANY,
                                                          mock.ANY,
                                                          test_device)
-        self.assertEqual(test_monitor_url, 'a.b.c.d')
+        self.assertEqual('a.b.c.d', test_monitor_url)

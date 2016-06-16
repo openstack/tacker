@@ -106,7 +106,7 @@ class PolicyTestCase(base.BaseTestCase):
     def test_check_bad_action_noraise(self):
         action = "example:denied"
         result = policy.check(self.context, action, self.target)
-        self.assertEqual(result, False)
+        self.assertEqual(False, result)
 
     def test_check_non_existent_action(self):
         action = "example:idonotexist"
@@ -119,7 +119,7 @@ class PolicyTestCase(base.BaseTestCase):
     def test_enforce_good_action(self):
         action = "example:allowed"
         result = policy.enforce(self.context, action, self.target)
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_enforce_http_true(self):
 
@@ -130,7 +130,7 @@ class PolicyTestCase(base.BaseTestCase):
             action = "example:get_http"
             target = {}
             result = policy.enforce(self.context, action, target)
-            self.assertEqual(result, True)
+            self.assertEqual(True, result)
 
     def test_enforce_http_false(self):
 
@@ -290,7 +290,7 @@ class TackerPolicyTestCase(base.BaseTestCase):
                               context, action, target)
         else:
             result = policy.enforce(context, action, target)
-            self.assertEqual(result, True)
+            self.assertEqual(True, result)
 
     def _test_nonadmin_action_on_attr(self, action, attr, value,
                                       exception=None):
@@ -317,7 +317,7 @@ class TackerPolicyTestCase(base.BaseTestCase):
         admin_context = context.get_admin_context()
         target = {'shared': True}
         result = policy.enforce(admin_context, action, target)
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_enforce_adminonly_attribute_create(self):
         self._test_enforce_adminonly_attribute('create_network')
@@ -374,7 +374,7 @@ class TackerPolicyTestCase(base.BaseTestCase):
         action = "create_something"
         target = {'tenant_id': 'fake', 'attr': {'sub_attr_1': 'x'}}
         result = policy.enforce(self.context, action, target, None)
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_enforce_admin_only_subattribute(self):
         action = "create_something"
@@ -382,7 +382,7 @@ class TackerPolicyTestCase(base.BaseTestCase):
                                                 'sub_attr_2': 'y'}}
         result = policy.enforce(context.get_admin_context(),
                                 action, target, None)
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_enforce_admin_only_subattribute_nonadminctx_returns_403(self):
         action = "create_something"
@@ -532,8 +532,8 @@ class TackerPolicyTestCase(base.BaseTestCase):
         # over items for compatibility with unittest2 in python 2.6
         for rule in expected_rules:
             self.assertIn(rule, common_policy._rules)
-            self.assertEqual(str(common_policy._rules[rule]),
-                             expected_rules[rule])
+            self.assertEqual(expected_rules[rule],
+                             str(common_policy._rules[rule]))
 
     def test_set_rules_with_deprecated_view_policy(self):
         self._test_set_rules_with_deprecated_policy(

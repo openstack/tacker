@@ -43,7 +43,7 @@ class TestTackerContext(base.BaseTestCase):
     def test_tacker_context_create_logs_unknown_kwarg(self):
         with mock.patch.object(context.LOG, 'debug') as mock_log:
             context.Context('user_id', 'tenant_id', foo=None)
-        self.assertEqual(mock_log.call_count, 1)
+        self.assertEqual(1, mock_log.call_count)
 
     def test_tacker_context_create_with_name(self):
         ctx = context.Context('user_id', 'tenant_id',
@@ -114,25 +114,25 @@ class TestTackerContext(base.BaseTestCase):
 
     def test_tacker_context_overwrite(self):
         ctx1 = context.Context('user_id', 'tenant_id')
-        self.assertEqual(ctx1.request_id,
-                         oslo_context.get_current().request_id)
+        self.assertEqual(oslo_context.get_current().request_id,
+                         ctx1.request_id)
 
         # If overwrite is not specified, request_id should be updated.
         ctx2 = context.Context('user_id', 'tenant_id')
         self.assertNotEqual(ctx2.request_id, ctx1.request_id)
-        self.assertEqual(ctx2.request_id,
-                         oslo_context.get_current().request_id)
+        self.assertEqual(oslo_context.get_current().request_id,
+                         ctx2.request_id)
 
         # If overwrite is specified, request_id should be kept.
         ctx3 = context.Context('user_id', 'tenant_id', overwrite=False)
         self.assertNotEqual(ctx3.request_id, ctx2.request_id)
-        self.assertEqual(ctx2.request_id,
-                         oslo_context.get_current().request_id)
+        self.assertEqual(oslo_context.get_current().request_id,
+                         ctx2.request_id)
 
     def test_tacker_context_get_admin_context_not_update_local_store(self):
         ctx = context.Context('user_id', 'tenant_id')
         req_id_before = oslo_context.get_current().request_id
-        self.assertEqual(ctx.request_id, req_id_before)
+        self.assertEqual(req_id_before, ctx.request_id)
 
         ctx_admin = context.get_admin_context()
         self.assertEqual(req_id_before,

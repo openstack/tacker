@@ -176,7 +176,7 @@ class TestDeviceHeat(base.TestCase):
                                      device_dict=device_obj,
                                      device_id=device_id,
                                      auth_attr=utils.get_vim_auth_obj())
-        self.assertEqual(device_obj, expected_result)
+        self.assertEqual(expected_result, device_obj)
 
     def test_delete(self):
         device_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
@@ -194,14 +194,14 @@ class TestDeviceHeat(base.TestCase):
                                 device_id=device_id, device_dict=device_obj,
                                 device=device_config_obj,
                                 auth_attr=utils.get_vim_auth_obj())
-        self.assertEqual(device_obj, expected_device_update)
+        self.assertEqual(expected_device_update, device_obj)
 
     def test_create_device_template_pre_tosca(self):
         tosca_tpl = _get_template('test_tosca_openwrt.yaml')
         dtemplate = self._get_device_template(tosca_tpl)
         exp_tmpl = self._get_expected_device_template(tosca_tpl)
         self.heat_driver.create_device_template_pre(None, None, dtemplate)
-        self.assertEqual(dtemplate, exp_tmpl)
+        self.assertEqual(exp_tmpl, dtemplate)
 
     def _get_expected_fields_tosca(self, template):
         return {'stack_name':
@@ -253,12 +253,12 @@ class TestDeviceHeat(base.TestCase):
         actual_fields["template"] = yaml.safe_load(actual_fields["template"])
         expected_fields["template"] = \
             yaml.safe_load(expected_fields["template"])
-        self.assertEqual(actual_fields, expected_fields)
+        self.assertEqual(expected_fields, actual_fields)
         device["attributes"]["heat_template"] = yaml.safe_load(
             device["attributes"]["heat_template"])
         self.heat_client.create.assert_called_once_with(expected_fields)
         self.assertEqual(expected_result, result)
-        self.assertEqual(device, expected_device)
+        self.assertEqual(expected_device, device)
 
     def test_create_tosca(self):
         # self.skipTest("Not ready yet")

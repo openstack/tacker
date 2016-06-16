@@ -105,7 +105,7 @@ class ExtensionExtendedAttributeTestCase(base.BaseTestCase):
         ext_test_resource = self._ext_test_resource_create()
         attr = _uuid()
         ext_test_resource = self._ext_test_resource_create(attr)
-        self.assertEqual(ext_test_resource[extattr.EXTENDED_ATTRIBUTE], attr)
+        self.assertEqual(attr, ext_test_resource[extattr.EXTENDED_ATTRIBUTE])
 
     def test_ext_test_resource_get(self):
         attr = _uuid()
@@ -114,4 +114,4 @@ class ExtensionExtendedAttributeTestCase(base.BaseTestCase):
         res = self._do_request('GET', _get_path(
             'ext_test_resources/{0}'.format(obj_id)))
         obj2 = res['ext_test_resource']
-        self.assertEqual(obj2[extattr.EXTENDED_ATTRIBUTE], attr)
+        self.assertEqual(attr, obj2[extattr.EXTENDED_ATTRIBUTE])

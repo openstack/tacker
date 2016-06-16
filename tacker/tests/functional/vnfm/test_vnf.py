@@ -48,10 +48,10 @@ class VnfTestCreate(base.BaseTackerTest):
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual(vnf_current_status, 'ACTIVE')
+        self.assertEqual('ACTIVE', vnf_current_status)
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
         if vim_id:
-            self.assertEqual(vnf_instance['vnf']['vim_id'], vim_id)
+            self.assertEqual(vim_id, vnf_instance['vnf']['vim_id'])
 
         # Delete vnf_instance with vnf_id
         try:

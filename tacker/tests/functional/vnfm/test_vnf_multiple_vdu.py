@@ -46,8 +46,8 @@ class VnfTestMultipleVDU(base.BaseTackerTest):
         self.wait_until_vnf_active(vnf_id,
                                    constants.VNF_CIRROS_CREATE_TIMEOUT,
                                    constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual(self.client.show_vnf(vnf_id)['vnf']['status'],
-                         'ACTIVE')
+        self.assertEqual('ACTIVE',
+                         self.client.show_vnf(vnf_id)['vnf']['status'])
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
         # Validate mgmt_url with input yaml file
@@ -56,7 +56,7 @@ class VnfTestMultipleVDU(base.BaseTackerTest):
         mgmt_dict = yaml.load(str(mgmt_url))
 
         input_dict = yaml.load(input_yaml)
-        self.assertEqual(len(mgmt_dict.keys()), len(input_dict['vdus'].keys()))
+        self.assertEqual(len(input_dict['vdus'].keys()), len(mgmt_dict.keys()))
         for vdu in input_dict['vdus'].keys():
             self.assertIsNotNone(mgmt_dict[vdu])
             self.assertEqual(True, utils.is_valid_ipv4(mgmt_dict[vdu]))

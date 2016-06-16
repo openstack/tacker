@@ -86,7 +86,7 @@ class TestVNFMonitor(testtools.TestCase):
         test_vnfmonitor = VNFMonitor(test_boot_wait)
         test_vnfmonitor.add_hosting_vnf(test_device_dict)
         test_device_id = list(test_vnfmonitor._hosting_vnfs.keys())[0]
-        self.assertEqual(test_device_id, MOCK_DEVICE_ID)
+        self.assertEqual(MOCK_DEVICE_ID, test_device_id)
 
     @mock.patch('tacker.vm.monitor.VNFMonitor.__run__')
     def test_run_monitor(self, mock_monitor_run):
