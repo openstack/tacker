@@ -1,0 +1,45 @@
+description: >
+  Generic VDU with parameterized image and flavor
+
+heat_template_version: 2013-05-23
+outputs:
+  mgmt_ip-VDU1:
+    value: {get_attr: [CP1, fixed_ips, 0, ip_address]}
+parameters:
+  flavor:
+    constraints:
+      - allowed_values: [m1.tiny, m1.small, m1.medium, m1.large, m1.large]
+    default: m1.large
+    description: Flavor name for the server
+    type: string
+  image:
+    default: cirros
+    description: Image name for the server
+    type: string
+resources:
+  CP1:
+    properties:
+      network: net_mgmt
+      port_security_enabled: False
+    type: OS::Neutron::Port
+  CP2:
+    properties:
+      network: pkt_in
+      port_security_enabled: False
+    type: OS::Neutron::Port
+  CP3:
+    properties:
+      network: pkt_out
+      port_security_enabled: False
+    type: OS::Neutron::Port
+  VDU1:
+    properties:
+      config_drive: False
+      flavor: { get_param: flavor }
+      image: { get_param: image }
+      networks:
+        - port: { get_resource: CP1 }
+        - port: { get_resource: CP2 }
+        - port: { get_resource: CP3 }
+      user_data_format: SOFTWARE_CONFIG
+    type: OS::Nova::Server

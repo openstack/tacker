@@ -296,7 +296,15 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             heatclient_)
 
         def generate_hot_from_tosca(vnfd_dict):
-            parsed_params = dev_attrs.pop('param_values', {})
+            parsed_params = {}
+            if ('param_values' in dev_attrs and
+                    dev_attrs['param_values'] != ""):
+                try:
+                    parsed_params = yaml.load(dev_attrs['param_values'])
+                except Exception as e:
+                    LOG.debug("Params not Well Formed: %s", str(e))
+                    raise vnfm.ParamYAMLNotWellFormed(
+                        error_msg_details=str(e))
 
             toscautils.updateimports(vnfd_dict)
 
