@@ -14,6 +14,7 @@
 
 import time
 
+from novaclient import client as nova_client
 from oslo_config import cfg
 from tempest_lib.tests import base
 
@@ -65,6 +66,15 @@ class BaseTackerTest(base.TestCase):
         return tacker_client.Client(username=username, password=password,
                                     tenant_name=tenant_name,
                                     auth_url=auth_uri)
+
+    @classmethod
+    def novaclient(cls):
+        username = 'nfv_user'
+        password = 'devstack'
+        tenant_name = 'nfv'
+        auth_uri = cfg.CONF.keystone_authtoken.auth_uri + '/v2.0'
+        return nova_client.Client('2', username, password, tenant_name,
+                                  auth_uri)
 
     @classmethod
     def wait_until_vnf_status(cls, vnf_id, target_status, timeout,
