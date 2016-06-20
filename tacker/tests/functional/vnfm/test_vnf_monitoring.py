@@ -23,7 +23,8 @@ class VnfTestPingMonitor(base.BaseTackerTest):
         data = dict()
         data['tosca'] = read_file(vnfd_file)
         toscal = data['tosca']
-        tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
+        tosca_arg = {'vnfd': {'name': vnf_name,
+                              'attributes': {'vnfd': toscal}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)

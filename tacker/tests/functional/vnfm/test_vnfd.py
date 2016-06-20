@@ -25,7 +25,9 @@ class VnfdTestCreate(base.BaseTackerTest):
         data = dict()
         data['tosca'] = read_file(vnfd_file)
         toscal = data['tosca']
-        tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
+        vnfd_name = 'sample_cirros_vnf'
+        tosca_arg = {'vnfd': {'name': vnfd_name,
+                              'attributes': {'vnfd': toscal}}}
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
         self.assertIsNotNone(vnfd_instance)
 

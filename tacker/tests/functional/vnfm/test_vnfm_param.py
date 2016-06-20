@@ -23,8 +23,10 @@ class VnfmTestParam(base.BaseTackerTest):
     def _test_vnfd_create(self, vnfd_file):
         yaml_input = dict()
         yaml_input['tosca'] = read_file(vnfd_file)
+        vnfd_name = 'sample_cirros_vnf'
         toscal = yaml_input['tosca']
-        req_dict = {'vnfd': {'attributes': {'vnfd': toscal}}}
+        req_dict = {'vnfd': {'name': vnfd_name,
+                    'attributes': {'vnfd': toscal}}}
 
         # Create vnfd
         vnfd_instance = self.client.create_vnfd(body=req_dict)

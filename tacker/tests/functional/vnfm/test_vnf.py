@@ -26,8 +26,10 @@ class VnfTestCreate(base.BaseTackerTest):
     def _test_create_delete_vnf(self, vnf_name, vim_id=None):
         data = dict()
         data['tosca'] = read_file('sample_cirros_vnf_no_monitoring.yaml')
+        vnfd_name = 'sample_cirros_vnf_no_monitoring'
         toscal = data['tosca']
-        tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
+        tosca_arg = {'vnfd': {'name': vnfd_name,
+                     'attributes': {'vnfd': toscal}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)

@@ -46,7 +46,7 @@ class DeviceTemplate(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     """Represents template to create hosting device."""
 
     # Descriptive name
-    name = sa.Column(sa.String(255))
+    name = sa.Column(sa.String(255), nullable=False)
     description = sa.Column(sa.Text)
 
     # service type that this service vm provides.
@@ -98,7 +98,7 @@ class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     template_id = sa.Column(types.Uuid, sa.ForeignKey('devicetemplates.id'))
     template = orm.relationship('DeviceTemplate')
 
-    name = sa.Column(sa.String(255), nullable=True)
+    name = sa.Column(sa.String(255), nullable=False)
     description = sa.Column(sa.Text, nullable=True)
 
     # sufficient information to uniquely identify hosting device.
