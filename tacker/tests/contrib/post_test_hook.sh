@@ -63,6 +63,7 @@ then
 
     fixup_quota
     add_key
+    add_secgrp
 fi
 
 # Set owner permissions according to job's requirements.

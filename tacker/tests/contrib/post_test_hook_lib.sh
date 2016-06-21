@@ -44,3 +44,37 @@ function add_key {
     userId=$(openstack user list | awk '/\ nfv_user\ / {print $2}')
     nova keypair-add userKey --user $userId > ${PRIVATE_KEY_FILE}
 }
+
+# Adding nova security groups (#1591372).
+function _create_secgrps {
+    openstack security group create --project nfv --description "tacker functest security group" test_secgrp
+    openstack security group rule create --project nfv --ingress --protocol icmp test_secgrp
+    openstack security group rule create --project nfv --ingress --protocol tcp --dst-port 22 test_secgrp
+}
+
+function _check_secgrps {
+    openstack security group show test_secgrp
+    if [[ "$?" != "0" ]]; then
+        echo "Warning: security group is not created correctly"
+    fi
+}
+
+function add_secgrp_if_not_exist {
+    echo "Adding nova security group"
+    source $DEVSTACK_DIR/openrc admin admin
+    openstack security group show test_secgrp
+    if [[ "$?" != "0" ]]; then
+        _create_secgrps
+        _check_secgrps
+    else
+        echo "Nova security group already exists"
+    fi
+}
+
+# Adding nova security groups (#1591372).
+function add_secgrp {
+    echo "Adding nova security group"
+    source $DEVSTACK_DIR/openrc admin admin
+    _create_secgrps
+    _check_secgrps
+}
