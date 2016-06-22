@@ -20,8 +20,10 @@ import six
 
 from tacker.api import extensions
 from tacker.api.v1 import attributes as attr
+from tacker.api.v1 import base
 from tacker.api.v1 import resource_helper
 from tacker.common import exceptions
+from tacker import manager
 from tacker.plugins.common import constants
 from tacker.services import service_base
 
@@ -305,6 +307,41 @@ RESOURCE_ATTRIBUTE_MAP = {
 }
 
 
+SUB_RESOURCE_ATTRIBUTE_MAP = {
+    'actions': {
+        'parent': {
+            'collection_name': 'vnfs',
+            'member_name': 'vnf'
+        },
+        'members': {
+            'scale': {
+                'parameters': {
+                    'policy': {
+                        'allow_post': True,
+                        'allow_put': False,
+                        'is_visible': True,
+                        'validate': {'type:string': None}
+                    },
+                    'type': {
+                        'allow_post': True,
+                        'allow_put': False,
+                        'is_visible': True,
+                        'validate': {'type:string': None}
+                    },
+                    'tenant_id': {
+                        'allow_post': True,
+                        'allow_put': False,
+                        'validate': {'type:string': None},
+                        'required_by_policy': False,
+                        'is_visible': False
+                    },
+                }
+            }
+        }
+    }
+}
+
+
 class Vnfm(extensions.ExtensionDescriptor):
     @classmethod
     def get_name(cls):
@@ -333,9 +370,31 @@ class Vnfm(extensions.ExtensionDescriptor):
             special_mappings, RESOURCE_ATTRIBUTE_MAP)
         plural_mappings['service_types'] = 'service_type'
         attr.PLURALS.update(plural_mappings)
-        return resource_helper.build_resource_info(
+        resources = resource_helper.build_resource_info(
             plural_mappings, RESOURCE_ATTRIBUTE_MAP, constants.VNFM,
             translate_name=True)
+        plugin = manager.TackerManager.get_service_plugins()[
+            constants.VNFM]
+        for collection_name in SUB_RESOURCE_ATTRIBUTE_MAP:
+            parent = SUB_RESOURCE_ATTRIBUTE_MAP[collection_name]['parent']
+
+            for resource_name in SUB_RESOURCE_ATTRIBUTE_MAP[
+                    collection_name]['members']:
+                params = SUB_RESOURCE_ATTRIBUTE_MAP[
+                    collection_name]['members'][resource_name]['parameters']
+
+                controller = base.create_resource(collection_name,
+                                                  resource_name,
+                                                  plugin, params,
+                                                  allow_bulk=True,
+                                                  parent=parent)
+
+            resource = extensions.ResourceExtension(
+                collection_name,
+                controller, parent,
+                attr_map=params)
+            resources.append(resource)
+        return resources
 
     @classmethod
     def get_plugin_interface(cls):
@@ -396,4 +455,9 @@ class VNFMPluginBase(service_base.NFVPluginBase):
 
     @abc.abstractmethod
     def delete_vnf(self, context, vnf_id):
+        pass
+
+    @abc.abstractmethod
+    def create_vnf_scale(
+            self, context, vnf_id, scale):
         pass

@@ -402,6 +402,19 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         device_db.update({'status': new_status})
         return device_db
 
+    def _update_vnf_scaling_status(self,
+                                   context,
+                                   policy,
+                                   previous_statuses,
+                                   status,
+                                   mgmt_url=None):
+        with context.session.begin(subtransactions=True):
+            device_db = self._get_device_db(
+                context, policy['vnf']['id'], previous_statuses, status)
+            if mgmt_url:
+                device_db.update({'mgmt_url': mgmt_url})
+        return self._make_device_dict(device_db)
+
     def _update_device_pre(self, context, device_id):
         with context.session.begin(subtransactions=True):
             device_db = self._get_device_db(
