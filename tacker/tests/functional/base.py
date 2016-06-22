@@ -17,9 +17,11 @@ import time
 from novaclient import client as nova_client
 from oslo_config import cfg
 from tempest_lib.tests import base
+import yaml
 
 from tacker.common.exceptions import TackerException
 from tacker.tests import constants
+from tacker.tests.utils import read_file
 from tacker import version
 
 from tackerclient.v1_0 import client as tacker_client
@@ -32,22 +34,6 @@ class BaseTackerTest(base.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        core_opts = [
-            cfg.StrOpt('username', default='tacker',
-                       help=('Username to use for tacker API requests')),
-            cfg.StrOpt('password', default = 'devstack',
-                       help=('Password to use for tacker API requests')),
-            cfg.StrOpt('project_name', default = 'service',
-                       help=('Project name to use for tacker API requests')),
-            cfg.StrOpt('auth_uri', default='http://127.0.0.1:5000',
-                       help=('The keystone auth URI')),
-        ]
-
-        keystone_authtoken = cfg.OptGroup(name='keystone_authtoken',
-                                          title='keystone options')
-        # Register the configuration options
-        cfg.CONF.register_opts(core_opts, group=keystone_authtoken)
-
         kwargs = {}
 
         cfg.CONF(args=['--config-file', '/etc/tacker/tacker.conf'],
@@ -58,23 +44,26 @@ class BaseTackerTest(base.TestCase):
         cls.client = cls.tackerclient()
 
     @classmethod
+    def get_credentials(cls):
+        vim_params = yaml.load(read_file('local-vim.yaml'))
+        vim_params['auth_url'] += '/v2.0'
+        return vim_params
+
+    @classmethod
     def tackerclient(cls):
-        username = cfg.CONF.keystone_authtoken.username
-        password = cfg.CONF.keystone_authtoken.password
-        tenant_name = cfg.CONF.keystone_authtoken.project_name
-        auth_uri = cfg.CONF.keystone_authtoken.auth_uri + '/v2.0'
-        return tacker_client.Client(username=username, password=password,
-                                    tenant_name=tenant_name,
-                                    auth_url=auth_uri)
+        vim_params = cls.get_credentials()
+        return tacker_client.Client(username=vim_params['username'],
+                                    password=vim_params['password'],
+                                    tenant_name=vim_params['project_name'],
+                                    auth_url=vim_params['auth_url'])
 
     @classmethod
     def novaclient(cls):
-        username = 'nfv_user'
-        password = 'devstack'
-        tenant_name = 'nfv'
-        auth_uri = cfg.CONF.keystone_authtoken.auth_uri + '/v2.0'
-        return nova_client.Client('2', username, password, tenant_name,
-                                  auth_uri)
+        vim_params = cls.get_credentials()
+        return nova_client.Client('2', vim_params['username'],
+                                  vim_params['password'],
+                                  vim_params['project_name'],
+                                  vim_params['auth_url'])
 
     @classmethod
     def wait_until_vnf_status(cls, vnf_id, target_status, timeout,

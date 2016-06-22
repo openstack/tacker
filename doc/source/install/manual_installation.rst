@@ -52,6 +52,14 @@ services after the below entry has been added.
 
 ..
 
+5). Modify heat's policy.json file under /etc/heat/policy.json file to allow
+ users in non-admin projects with 'admin' roles to create flavors.
+
+.. code-block:: ini
+
+   "resource_types:OS::Nova::Flavor": "role:admin"
+..
+
 Installing Tacker server
 ========================
 

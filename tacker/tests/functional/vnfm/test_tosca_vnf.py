@@ -68,17 +68,19 @@ class VnfTestToscaCreate(base.BaseTackerTest):
 class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
     def test_create_delete_vnf_tosca_no_monitoring(self):
         data = dict()
+        vnfd_name = 'tosca_vnfd_with_auto_flavor'
         data['tosca'] = read_file('sample-tosca-vnfd-flavor.yaml')
         toscal = data['tosca']
-        tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
+        tosca_arg = {'vnfd': {'name': vnfd_name, 'attributes': {'vnfd':
+                                                                toscal}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
         self.assertIsNotNone(vnfd_instance)
 
         # Create vnf with vnfd_id
+        vnf_name = 'tosca_vnf_with_auto_flavor'
         vnfd_id = vnfd_instance['vnfd']['id']
-        vnf_name = 'test_tosca_vnf_with_cirros_no_monitoring'
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
         vnf_instance = self.client.create_vnf(body=vnf_arg)
 
@@ -121,9 +123,11 @@ class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
 class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
     def test_create_delete_vnf_tosca_no_monitoring(self):
         data = dict()
+        vnfd_name = 'tosca_vnfd_with_auto_image'
         data['tosca'] = read_file('sample-tosca-vnfd-image.yaml')
         toscal = data['tosca']
-        tosca_arg = {'vnfd': {'attributes': {'vnfd': toscal}}}
+        tosca_arg = {'vnfd': {'name': vnfd_name, 'attributes': {'vnfd':
+                                                                toscal}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
@@ -131,7 +135,7 @@ class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
 
         # Create vnf with vnfd_id
         vnfd_id = vnfd_instance['vnfd']['id']
-        vnf_name = 'test_tosca_vnf_with_cirros_no_monitoring'
+        vnf_name = 'tosca_vnf_with_auto_image'
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
         vnf_instance = self.client.create_vnf(body=vnf_arg)
 

@@ -92,6 +92,8 @@ TACKER_NOVA_API_INSECURE=${TACKER_NOVA_API_INSECURE:-False}
 # Tell Tempest this project is present
 # TEMPEST_SERVICES+=,tacker
 
+HEAT_CONF_DIR=/etc/heat
+
 # Functions
 # ---------
 # Test if any Tacker services are enabled
@@ -406,4 +408,10 @@ function tacker_register_default_vim {
     default_vim_id=$(tacker vim-register --name $DEFAULT_VIM_NAME --config-file $VIM_CONFIG_FILE -f value -c id)
     echo $default_vim_id
     iniset $TACKER_CONF nfvo_vim default_vim $DEFAULT_VIM_NAME
+}
+
+function modify_heat_flavor_policy_rule {
+    local policy_file=$HEAT_CONF_DIR/policy.json
+    # Allow non-admin projects with 'admin' roles to create flavors in Heat
+    sed -i 's/"resource_types:OS::Nova::Flavor": "rule:context_is_admin"/"resource_types:OS::Nova::Flavor": "role:admin"/' $policy_file
 }
