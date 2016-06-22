@@ -13,6 +13,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import copy
 import sys
 import time
 
@@ -30,11 +31,13 @@ from tacker.common import clients
 from tacker.common import log
 from tacker.extensions import vnfm
 from tacker.vm.infra_drivers import abstract_driver
+from tacker.vm.infra_drivers import scale_driver
 from tacker.vm.tosca import utils as toscautils
 
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
+
 OPTS = [
     cfg.IntOpt('stack_retries',
                default=60,
@@ -48,6 +51,7 @@ OPTS = [
                default={},
                help=_("Flavor Extra Specs")),
 ]
+
 CONF.register_opts(OPTS, group='tacker_heat')
 
 
@@ -72,9 +76,15 @@ HEAT_TEMPLATE_BASE = """
 heat_template_version: 2013-05-23
 """
 
+OUTPUT_PREFIX = 'mgmt_ip-'
 
-class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
+def get_scaling_policy_name(action, policy_name):
+    return '%s_scale_%s' % (policy_name, action)
+
+
+class DeviceHeat(abstract_driver.DeviceAbstractDriver,
+                 scale_driver.VnfScaleAbstractDriver):
     """Heat driver of hosting device."""
 
     def __init__(self):
@@ -334,6 +344,112 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
             return heat_template_yaml, monitoring_dict
 
+        def generate_hot_scaling(vnfd_dict,
+                                 scale_resource_type="OS::Nova::Server"):
+            # Initialize the template
+            template_dict = yaml.load(HEAT_TEMPLATE_BASE)
+            template_dict['description'] = 'Tacker scaling template'
+
+            parameters = {}
+            template_dict['parameters'] = parameters
+
+            # Add scaling related resource defs
+            resources = {}
+            scaling_group_names = {}
+
+            # TODO(kanagaraj-manickam) now only one group is supported, so name
+            # is hard-coded with G1
+            def _get_scale_group_name(targets):
+                return 'G1'
+
+            def _convert_to_heat_scaling_group(policy_prp,
+                                               scale_resource_type,
+                                               name):
+                group_hot = {'type': 'OS::Heat::AutoScalingGroup'}
+                properties = {}
+                properties['min_size'] = policy_prp['min_instances']
+                properties['max_size'] = policy_prp['max_instances']
+                properties['desired_capacity'] = policy_prp[
+                    'default_instances']
+                properties['cooldown'] = policy_prp['cooldown']
+                properties['resource'] = {}
+                # TODO(kanagaraj-manickam) all VDU memebers are considered as 1
+                # group now and make it to form the groups based on the VDU
+                # list mentioned in the policy's targets
+                # scale_resource_type is custome type mapped the HOT template
+                # generated for all VDUs in the tosca template
+                properties['resource']['type'] = scale_resource_type
+
+                # TODO(kanagraj-manickam) add custom type params here, to
+                # support parameterized template
+                group_hot['properties'] = properties
+
+                return group_hot
+
+            # tosca policies
+            #
+            # properties:
+            #   adjust_by: 1
+            #   cooldown: 120
+            #   targets: [G1]
+            def _convert_to_heat_scaling_policy(policy_prp, name):
+                # Form the group
+                scale_grp = _get_scale_group_name(policy_prp['targets'])
+                scaling_group_names[name] = scale_grp
+                resources[scale_grp] = _convert_to_heat_scaling_group(
+                    policy_prp,
+                    scale_resource_type,
+                    scale_grp)
+
+                grp_id = {'get_resource': scale_grp}
+
+                policy_hot = {'type': 'OS::Heat::ScalingPolicy'}
+                properties = {}
+                properties['adjustment_type'] = 'change_in_capacity'
+                properties['cooldown'] = policy_prp['cooldown']
+                properties['scaling_adjustment'] = policy_prp['increment']
+                properties['auto_scaling_group_id'] = grp_id
+                policy_hot['properties'] = properties
+
+                # Add scale_out policy
+                policy_rsc_name = get_scaling_policy_name(
+                    action='out',
+                    policy_name=name
+                )
+                resources[policy_rsc_name] = policy_hot
+
+                # Add scale_in policy
+                in_value = '-%d' % int(policy_prp['increment'])
+                policy_hot_in = copy.deepcopy(policy_hot)
+                policy_hot_in['properties'][
+                    'scaling_adjustment'] = in_value
+                policy_rsc_name = get_scaling_policy_name(
+                    action='in',
+                    policy_name=name
+                )
+                resources[policy_rsc_name] = policy_hot_in
+
+            #   policies:
+            #     - SP1:
+            #         type: tosca.policy.tacker.Scaling
+            if 'policies' in vnfd_dict:
+                for policy_dict in vnfd_dict['policies']:
+                    name, policy = policy_dict.items()[0]
+                    if policy['type'] == 'tosca.policy.tacker.Scaling':
+                        _convert_to_heat_scaling_policy(policy['properties'],
+                                                        name)
+                        # TODO(kanagaraj-manickam) only one policy is supported
+                        # for all vdus. remove this break, once this limitation
+                        # is addressed.
+                        break
+
+            template_dict['resources'] = resources
+
+            # First return value helps to check if scaling resources exist
+            return ((len(template_dict['resources']) > 0),
+                    scaling_group_names,
+                    template_dict)
+
         def generate_hot_from_legacy(vnfd_dict):
             assert 'template' not in fields
             assert 'template_url' not in fields
@@ -420,18 +536,43 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             vnfd_dict = yamlparser.simple_ordered_parse(vnfd_yaml)
             LOG.debug('vnfd_dict %s', vnfd_dict)
 
+            is_tosca_format = False
             if 'tosca_definitions_version' in vnfd_dict:
                 (heat_template_yaml,
                  monitoring_dict) = generate_hot_from_tosca(vnfd_dict)
+                is_tosca_format = True
             else:
                 (heat_template_yaml,
                  monitoring_dict) = generate_hot_from_legacy(vnfd_dict)
 
             fields['template'] = heat_template_yaml
 
-            if not device['attributes'].get('heat_template'):
-                device['attributes']['heat_template'] = \
-                    fields['template']
+            # Handle scaling here
+            if is_tosca_format:
+                (is_scaling_needed,
+                 scaling_group_names,
+                 main_dict) = generate_hot_scaling(
+                    vnfd_dict['topology_template'],
+                    'scaling.yaml')
+
+                if is_scaling_needed:
+                    main_yaml = yaml.dump(main_dict)
+                    fields['template'] = main_yaml
+                    fields['files'] = {'scaling.yaml': heat_template_yaml}
+                    device['attributes']['heat_template'] = main_yaml
+                    # TODO(kanagaraj-manickam) when multiple groups are
+                    # supported, make this scaling atribute as
+                    # scaling name vs scaling template map and remove
+                    # scaling_group_names
+                    device['attributes']['scaling.yaml'] = heat_template_yaml
+                    device['attributes'][
+                        'scaling_group_names'] = jsonutils.dumps(
+                        scaling_group_names
+                    )
+                else:
+                    if not device['attributes'].get('heat_template'):
+                        device['attributes'][
+                            'heat_template'] = fields['template']
 
             if monitoring_dict:
                     device['attributes']['monitoring_policy'] = \
@@ -457,7 +598,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
 
             return stack
 
-        return create_stack()['stack']['id']
+        stack = create_stack()
+        return stack['stack']['id']
 
     def create_wait(self, plugin, context, device_dict, device_id, auth_attr):
         region_name = device_dict.get('placement_attr', {}).get(
@@ -500,13 +642,25 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             raise vnfm.DeviceCreateWaitFailed(device_id=device_id,
                                               reason=error_reason)
 
-        outputs = stack.outputs
-        LOG.debug(_('outputs %s'), outputs)
-        PREFIX = 'mgmt_ip-'
-        mgmt_ips = dict((output['output_key'][len(PREFIX):],
-                         output['output_value'])
-                        for output in outputs
-                        if output.get('output_key', '').startswith(PREFIX))
+        def _find_mgmt_ips(outputs):
+            LOG.debug(_('outputs %s'), outputs)
+            mgmt_ips = dict((output['output_key'][len(OUTPUT_PREFIX):],
+                             output['output_value'])
+                            for output in outputs
+                            if output.get('output_key',
+                                          '').startswith(OUTPUT_PREFIX))
+            return mgmt_ips
+
+        # scaling enabled
+        if device_dict['attributes'].get('scaling_group_names'):
+            group_names = jsonutils.loads(
+                device_dict['attributes'].get('scaling_group_names')).values()
+            mgmt_ips = self._find_mgmt_ips_from_groups(heatclient_,
+                                                       device_id,
+                                                       group_names)
+        else:
+            mgmt_ips = _find_mgmt_ips(stack.outputs)
+
         if mgmt_ips:
             device_dict['mgmt_url'] = jsonutils.dumps(mgmt_ips)
 
@@ -604,6 +758,100 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             raise vnfm.DeviceCreateWaitFailed(device_id=device_id,
                                               reason=error_reason)
 
+    @classmethod
+    def _find_mgmt_ips_from_groups(cls,
+                                   heat_client,
+                                   instance_id,
+                                   group_names):
+
+        def _find_mgmt_ips(attributes):
+            mgmt_ips = {}
+            for k, v in attributes.items():
+                if k.startswith(OUTPUT_PREFIX):
+                    mgmt_ips[k.replace(OUTPUT_PREFIX, '')] = v
+
+            return mgmt_ips
+
+        mgmt_ips = {}
+        for group_name in group_names:
+            grp = heat_client.resource_get(instance_id,
+                                           group_name)
+            # Get scale group
+            for rsc in heat_client.resource_get_list(
+                    grp.physical_resource_id):
+                # Get list of resoruces in scale group
+                scale_rsc = heat_client.resource_get(
+                    grp.physical_resource_id,
+                    rsc.resource_name)
+
+                # findout the mgmt ips from attributes
+                for k, v in _find_mgmt_ips(scale_rsc.attributes).items():
+                    if k not in mgmt_ips:
+                        mgmt_ips[k] = [v]
+                    else:
+                        mgmt_ips[k].append(v)
+
+        return mgmt_ips
+
+    @log.log
+    def scale(self,
+              context,
+              plugin,
+              auth_attr,
+              policy,
+              region_name):
+        heatclient_ = HeatClient(auth_attr, region_name)
+        return heatclient_.resource_signal(policy['instance_id'],
+                                           get_scaling_policy_name(
+            policy_name=policy['id'],
+            action=policy['action']
+        ))
+
+    @log.log
+    def scale_wait(self,
+                   context,
+                   plugin,
+                   auth_attr,
+                   policy,
+                   region_name):
+        heatclient_ = HeatClient(auth_attr, region_name)
+
+        # TODO(kanagaraj-manickam) make wait logic into separate utility method
+        # and make use of it here and other actions like create and delete
+        while (True):
+            time.sleep(STACK_RETRY_WAIT)
+            try:
+                rsc = heatclient_.resource_get(
+                    policy['instance_id'],
+                    get_scaling_policy_name(policy_name=policy['id'],
+                                            action=policy['action']))
+            except Exception:
+                LOG.exception(_("Device scaling may not have "
+                                "happened because Heat API request failed "
+                                "while waiting for the stack %(stack)s to be "
+                                "scaled"), {'stack': policy['instance_id']})
+                break
+
+            if rsc.resource_status == 'SIGNAL_IN_PROGRESS':
+                continue
+
+            break
+
+        def _fill_scaling_group_name():
+            vnf = policy['vnf']
+            scaling_group_names = vnf['attributes']['scaling_group_names']
+            policy['group_name'] = jsonutils.loads(
+                scaling_group_names)[policy['name']]
+
+        _fill_scaling_group_name()
+
+        mgmt_ips = self._find_mgmt_ips_from_groups(
+            heatclient_,
+            policy['instance_id'],
+            [policy['group_name']])
+
+        return jsonutils.dumps(mgmt_ips)
+
 
 class HeatClient(object):
     def __init__(self, auth_attr, region_name=None):
@@ -639,3 +887,13 @@ class HeatClient(object):
     def resource_attr_support(self, resource_name, property_name):
         resource = self.resource_types.get(resource_name)
         return property_name in resource['attributes']
+
+    def resource_get_list(self, stack_id, nested_depth=0):
+        return self.heat.resources.list(stack_id,
+                                        nested_depth=nested_depth)
+
+    def resource_signal(self, stack_id, rsc_name):
+        return self.heat.resources.signal(stack_id, rsc_name)
+
+    def resource_get(self, stack_id, rsc_name):
+        return self.heat.resources.get(stack_id, rsc_name)

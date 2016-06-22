@@ -1,0 +1,26 @@
+heat_template_version: 2013-05-23
+description: Tacker scaling template
+parameters: {}
+resources:
+  G1:
+    properties:
+      cooldown: 60
+      desired_capacity: 2
+      max_size: 3
+      min_size: 1
+      resource: {type: scaling.yaml}
+    type: OS::Heat::AutoScalingGroup
+  SP1_scale_in:
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: G1}
+      cooldown: 60
+      scaling_adjustment: '-1'
+    type: OS::Heat::ScalingPolicy
+  SP1_scale_out:
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: G1}
+      cooldown: 60
+      scaling_adjustment: 1
+    type: OS::Heat::ScalingPolicy

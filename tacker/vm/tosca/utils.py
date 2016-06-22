@@ -101,7 +101,7 @@ def updateimports(template):
 
 @log.log
 def get_vdu_monitoring(template):
-    monitoring_dict = {'vdus': {}}
+    monitoring_dict = {}
     for nt in template.nodetemplates:
         if nt.type_definition.is_derived_from(TACKERVDU):
             mon_policy = nt.get_property_value('monitoring_policy') or 'noop'
@@ -110,6 +110,7 @@ def get_vdu_monitoring(template):
             if mon_policy != 'noop':
                 if 'parameters' in mon_policy:
                     mon_policy['monitoring_params'] = mon_policy['parameters']
+                monitoring_dict['vdus'] = {}
                 monitoring_dict['vdus'][nt.name] = {}
                 monitoring_dict['vdus'][nt.name][mon_policy['name']] = \
                     mon_policy
