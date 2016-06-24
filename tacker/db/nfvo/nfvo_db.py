@@ -17,6 +17,7 @@
 import uuid
 
 from oslo_db import exception
+from oslo_utils import strutils
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
@@ -65,13 +66,15 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
     def _core_plugin(self):
         return manager.TackerManager.get_plugin()
 
-    def _make_vim_dict(self, vim_db, fields=None):
+    def _make_vim_dict(self, vim_db, fields=None, mask_password=True):
         res = dict((key, vim_db[key]) for key in VIM_ATTRIBUTES)
         vim_auth_db = vim_db.vim_auth
         res['auth_url'] = vim_auth_db[0].auth_url
         res['vim_project'] = vim_auth_db[0].vim_project
         res['auth_cred'] = vim_auth_db[0].auth_cred
         res['auth_cred']['password'] = vim_auth_db[0].password
+        if mask_password:
+            res['auth_cred'] = strutils.mask_dict_password(res['auth_cred'])
         return self._fields(res, fields)
 
     def _fields(self, resource, fields):
@@ -128,9 +131,9 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                 raise nfvo.VimInUseException(vim_id=vim_id)
         return devices_db
 
-    def get_vim(self, context, vim_id, fields=None):
+    def get_vim(self, context, vim_id, fields=None, mask_password=True):
         vim_db = self._get_resource(context, Vim, vim_id)
-        return self._make_vim_dict(vim_db)
+        return self._make_vim_dict(vim_db, mask_password=mask_password)
 
     def get_vims(self, context, filters=None, fields=None):
         return self._get_collection(context, Vim, self._make_vim_dict,
@@ -150,9 +153,10 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                                vim_project})
         return self.get_vim(context, vim_id)
 
-    def get_vim_by_name(self, context, vim_name, fields=None):
+    def get_vim_by_name(self, context, vim_name, fields=None,
+                        mask_password=True):
         vim_db = self._get_by_name(context, Vim, vim_name)
-        return self._make_vim_dict(vim_db)
+        return self._make_vim_dict(vim_db, mask_password=mask_password)
 
     def _get_by_name(self, context, model, name):
         try:

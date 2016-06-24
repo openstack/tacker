@@ -201,12 +201,13 @@ class NFVOPluginBase(service_base.NFVPluginBase):
         pass
 
     @abc.abstractmethod
-    def get_vim(self, context, vim_id, fields=None):
+    def get_vim(self, context, vim_id, fields=None, mask_password=True):
         pass
 
     @abc.abstractmethod
     def get_vims(self, context, filters=None, fields=None):
         pass
 
-    def get_vim_by_name(self, context, vim_name, fields=None):
+    def get_vim_by_name(self, context, vim_name, fields=None,
+                        mask_password=True):
         raise NotImplementedError()
