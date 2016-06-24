@@ -35,5 +35,5 @@ topology_template:
     VL1:
       type: tosca.nodes.nfv.VL
       properties:
-        network_name: net-mgmt
+        network_name: net_mgmt
         vendor: Tacker
