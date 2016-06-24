@@ -23,4 +23,4 @@ testtools>=1.4.0 # MIT
 WebTest>=2.0 # MIT
 
 # releasenotes
-reno>=1.6.2 # Apache2
+reno>=1.8.0 # Apache2
