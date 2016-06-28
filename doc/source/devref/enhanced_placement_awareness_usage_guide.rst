@@ -10,7 +10,7 @@ Enhanced Placement Awareness Usage Guide
 Overview
 --------
 
-OpenStack Tacker supports TOSCA VNFD templates that allows specifying
+OpenStack Tacker supports TOSCA VNFD templates that allow specifying
 requirements for a VNF that leverages features of a compute node such as
 NUMA topology, SR-IOV, Huge pages and CPU pinning. This allows for Enhanced
 Platform Awareness(EPA) placement of a VNF that has high performance and low
@@ -20,7 +20,7 @@ Configuring compute nodes to be EPA nodes
 -----------------------------------------
 
 The compute nodes requires configuration in the BIOS, Hypervisor and
-OpenStack to enable it be a EPA compute node for deploying high performance
+OpenStack to enable it be an EPA compute node for deploying high performance
 VNFs.
 
 Below table shows the configurations needed for the different features across
@@ -49,7 +49,7 @@ Below is a snippet of the /etc/default/grub file in Ubuntu that enables
 a) CPU isolation from kernel process to be used for VMs(refer keyword
 *isolcpus* in the code block below)
 
-b) Reserving huge memory pages (refer keywords *default_hugepages*,
+b) Reserving huge memory pages (refer keywords *default_hugepagesz*,
 *hugepagesz* and *hugepages* in the code block below)
 
 c) Enabling SR-IOV Virtual functions to be exposed (refer keyword
