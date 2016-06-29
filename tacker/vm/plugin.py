@@ -25,6 +25,7 @@ from oslo_utils import excutils
 
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
+from tacker.common.exceptions import MgmtDriverException
 from tacker.db.vm import vm_db
 from tacker.extensions import vnfm
 from tacker.i18n import _LE
@@ -231,11 +232,11 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         new_status = constants.ACTIVE
         try:
             self.mgmt_call(context, device_dict, kwargs)
-        except Exception:
-            LOG.exception(_('create_device_wait'))
+        except MgmtDriverException:
+            LOG.error(_('VNF configuration failed'))
             new_status = constants.ERROR
             self.set_device_error_status_reason(context, device_id,
-                    'Unable to configure VDU')
+            'Unable to configure VDU')
         device_dict['status'] = new_status
         self._create_device_status(context, device_id, new_status)
 
@@ -307,8 +308,8 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                 context=context, device_id=instance_id, auth_attr=vim_auth,
                 region_name=region_name)
             self.mgmt_call(context, device_dict, kwargs)
-        except Exception as e:
-            LOG.exception(_('_update_device_wait'))
+        except MgmtDriverException as e:
+            LOG.error(_('VNF configuration failed'))
             new_status = constants.ERROR
             self.set_device_error_status_reason(context, device_dict['id'],
                                                 six.text_type(e))

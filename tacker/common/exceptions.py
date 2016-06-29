@@ -239,3 +239,7 @@ class DeviceIDNotOwnedByTenant(Conflict):
 
 class InvalidCIDR(BadRequest):
     message = _("Invalid CIDR %(input)s given as IP prefix")
+
+
+class MgmtDriverException(TackerException):
+    message = _("VNF configuration failed")
