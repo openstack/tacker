@@ -15,9 +15,9 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_service import periodic_task
 
 from tacker.common import utils
-from tacker.openstack.common import periodic_task
 
 
 LOG = logging.getLogger(__name__)
