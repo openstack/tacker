@@ -11,7 +11,6 @@
 # ``stack.sh`` calls the entry points in this order:
 #
 # - install_tacker
-# - install_tackerclient
 # - configure_tacker
 # - create_tacker_accounts
 # - init_tacker
@@ -40,10 +39,6 @@ if is_ssl_enabled_service "tacker" || is_service_enabled tls-proxy; then
 fi
 
 # Set up default directories
-GITREPO["python-tackerclient"]=${TACKERCLIENT_REPO:-${GIT_BASE}/openstack/python-tackerclient.git}
-GITBRANCH["python-tackerclient"]=${TACKERCLIENT_BRANCH:-master}
-GITDIR["python-tackerclient"]=$DEST/python-tackerclient
-
 GITREPO["tacker-horizon"]=${TACKERHORIZON_REPO:-${GIT_BASE}/openstack/tacker-horizon.git}
 GITBRANCH["tacker-horizon"]=${TACKERHORZION_BRANCH:-master}
 GITDIR["tacker-horizon"]=$DEST/tacker-horizon
@@ -149,14 +144,6 @@ function init_tacker {
 # install_tacker() - Collect source and prepare
 function install_tacker {
     setup_develop $TACKER_DIR
-}
-
-# install_tackerclient() - Collect source and prepare
-function install_tackerclient {
-    if use_library_from_git "python-tackerclient"; then
-        git_clone_by_name "python-tackerclient"
-        setup_dev_lib "python-tackerclient"
-    fi
 }
 
 function start_tacker_api {

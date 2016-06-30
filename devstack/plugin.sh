@@ -14,7 +14,6 @@ if is_service_enabled tacker; then
         # Perform installation of service source
         echo_summary "Installing Tacker"
         install_tacker
-        install_tackerclient
 
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         # Configure after the other layer 1 and 2 services have been configured
