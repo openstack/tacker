@@ -28,28 +28,35 @@ down_revision = 'acf941e54075'
 
 from alembic import op
 
+from tacker.db import migration
 from tacker.db import types
+
+FK_MAP = {'vims': ('vimauths', 'devices'), 'devices': ('deviceattributes',
+          'proxymgmtports'), 'devicetemplates': ('devices', 'servicetypes',
+                                                 'devicetemplateattributes')}
 
 
 def upgrade(active_plugins=None, options=None):
-    for table in ['vims', 'vimauths', 'devices', 'deviceattributes',
+
+    pk_id_tables = ('vims', 'vimauths', 'devices', 'deviceattributes',
                   'servicetypes', 'devicetemplates',
-                  'devicetemplateattributes']:
-        op.alter_column(table,
-                        'id',
-                        type_=types.Uuid)
+                  'devicetemplateattributes')
+    for table in pk_id_tables:
+        with migration.modify_foreign_keys_constraint(FK_MAP.get(table, [])):
+                op.alter_column(table, 'id', type_=types.Uuid)
 
-    for table in ['devices', 'servicetypes', 'devicetemplateattributes']:
-        op.alter_column(table,
-                        'template_id',
-                        type_=types.Uuid)
+    fk_template_id_tables = ('devices', 'servicetypes',
+                             'devicetemplateattributes')
+    for table in fk_template_id_tables:
+        with migration.modify_foreign_keys_constraint(fk_template_id_tables):
+            op.alter_column(table, 'template_id', type_=types.Uuid)
 
-    for table in ['devices', 'vimauths']:
-        op.alter_column(table,
-                        'vim_id',
-                        type_=types.Uuid)
+    fk_vim_id_tables = ('devices', 'vimauths')
+    for table in fk_vim_id_tables:
+        with migration.modify_foreign_keys_constraint(fk_vim_id_tables):
+            op.alter_column(table, 'vim_id', type_=types.Uuid)
 
-    for table in ['deviceattributes', 'proxymgmtports']:
-        op.alter_column(table,
-                        'device_id',
-                        type_=types.Uuid)
+    fk_device_id_tables = ('deviceattributes', 'proxymgmtports')
+    for table in fk_device_id_tables:
+        with migration.modify_foreign_keys_constraint(fk_device_id_tables):
+            op.alter_column(table, 'device_id', type_=types.Uuid)
