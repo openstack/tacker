@@ -1,3 +1,157 @@
+data_types:
+  tosca.nfv.datatypes.pathType:
+    properties:
+      forwarder:
+        type: string
+        required: true
+      capability:
+        type: string
+        required: true
+
+  tosca.nfv.datatypes.aclType:
+    properties:
+      eth_type:
+        type: string
+        required: false
+      eth_src:
+        type: string
+        required: false
+      eth_dst:
+        type: string
+        required: false
+      vlan_id:
+        type: integer
+        constraints:
+          - in_range: [ 1, 4094 ]
+        required: false
+      vlan_pcp:
+        type: integer
+        constraints:
+          - in_range: [ 0, 7 ]
+        required: false
+      mpls_label:
+        type: integer
+        constraints:
+          - in_range: [ 16, 1048575]
+        required: false
+      mpls_tc:
+        type: integer
+        constraints:
+          - in_range: [ 0, 7 ]
+        required: false
+      ip_dscp:
+        type: integer
+        constraints:
+          - in_range: [ 0, 63 ]
+        required: false
+      ip_ecn:
+        type: integer
+        constraints:
+          - in_range: [ 0, 3 ]
+        required: false
+      ip_src_prefix:
+        type: string
+        required: false
+      ip_dst_prefix:
+        type: string
+        required: false
+      ip_proto:
+        type: integer
+        constraints:
+          - in_range: [ 1, 254 ]
+        required: false
+      destination_port_range:
+        type: string
+        required: false
+      source_port_range:
+        type: string
+        required: false
+      network_src_port_id:
+        type: string
+        required: false
+      network_dst_port_id:
+        type: string
+        required: false
+      network_id:
+        type: string
+        required: false
+      network_name:
+        type: string
+        required: false
+      tenant_id:
+        type: string
+        required: false
+      icmpv4_type:
+        type: integer
+        constraints:
+          - in_range: [ 0, 254 ]
+        required: false
+      icmpv4_code:
+        type: integer
+        constraints:
+          - in_range: [ 0, 15 ]
+        required: false
+      arp_op:
+        type: integer
+        constraints:
+          - in_range: [ 1, 25 ]
+        required: false
+      arp_spa:
+        type: string
+        required: false
+      arp_tpa:
+        type: string
+        required: false
+      arp_sha:
+        type: string
+        required: false
+      arp_tha:
+        type: string
+        required: false
+      ipv6_src:
+        type: string
+        required: false
+      ipv6_dst:
+        type: string
+        required: false
+      ipv6_flabel:
+        type: integer
+        constraints:
+          - in_range: [ 0, 1048575]
+        required: false
+      icmpv6_type:
+        type: integer
+        constraints:
+          - in_range: [ 0, 255]
+        required: false
+      icmpv6_code:
+        type: integer
+        constraints:
+          - in_range: [ 0, 7]
+        required: false
+      ipv6_nd_target:
+        type: string
+        required: false
+      ipv6_nd_sll:
+        type: string
+        required: false
+      ipv6_nd_tll:
+        type: string
+        required: false
+
+  tosca.nfv.datatypes.policyType:
+    properties:
+      type:
+        type: string
+        required: false
+        constraints:
+          - valid_values: [ ACL ]
+      criteria:
+        type: list
+        required: true
+        entry_schema:
+          type: tosca.nfv.datatypes.aclType
+
 node_types:
   tosca.nodes.nfv.VDU.Tacker:
     derived_from: tosca.nodes.nfv.VDU
@@ -75,3 +229,19 @@ node_types:
         required: false
         constraints:
           - valid_values: [ sriov, vnic ]
+
+  tosca.nodes.nfv.FP.Tacker:
+    derived_from: tosca.nodes.Root
+    properties:
+      id:
+        type: integer
+        required: false
+      policy:
+        type: tosca.nfv.datatypes.policyType
+        required: true
+        description: policy to use to match traffic for this FP
+      path:
+        type: list
+        required: true
+        entry_schema:
+          type: tosca.nfv.datatypes.pathType
