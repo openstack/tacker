@@ -221,5 +221,5 @@ Key Summary
 - Specifying a parameter values file during VNF creation is also supported in
   Horizon UI.
 - Sample VNFD parameterized templates and parameter values files can be found
-  at https://github.com/openstack/tacker/tree/master/devstack/samples
+  at https://github.com/openstack/tacker/tree/master/samples
 
