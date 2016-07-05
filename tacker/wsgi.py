@@ -438,7 +438,7 @@ class XMLDictSerializer(DictSerializer):
                     links = data.pop(link_keys[0], None)
                     has_atom = True
                 root_key = (len(data) == 1 and
-                            data.keys()[0] or constants.VIRTUAL_ROOT_KEY)
+                            list(data.keys())[0] or constants.VIRTUAL_ROOT_KEY)
                 root_value = data.get(root_key, data)
             doc = etree.Element("_temp_root")
             used_prefixes = []
