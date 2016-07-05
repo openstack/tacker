@@ -103,8 +103,8 @@ c). Create tacker service.
 
 .. code-block:: console
 
-    openstack service create --name tacker --description "Tacker Project" nfv
-    -orchestration
+    openstack service create --name tacker \
+        --description "Tacker Project" nfv-orchestration
 ..
 
 d). Provide an endpoint to tacker service.
@@ -199,12 +199,10 @@ d). Provide an endpoint to tacker service.
     auth_uri = http://<KEYSTONE_IP>:5000
     ...
     [agent]
-    root_helper = sudo /usr/local/bin/tacker-rootwrap /usr/local/etc/tacker/r
-    ootwrap.conf
+    root_helper = sudo /usr/local/bin/tacker-rootwrap /usr/local/etc/tacker/rootwrap.conf
     ...
     [DATABASE]
-    connection = mysql://tacker:<TACKERDB_PASSWORD>@<MYSQL_IP>:3306/tacker?ch
-    arset=utf8
+    connection = mysql://tacker:<TACKERDB_PASSWORD>@<MYSQL_IP>:3306/tacker?charset=utf8
     ...
     [tacker_nova]
     password = <NOVA_SERVICE_USER_PASSWORD>
@@ -275,8 +273,8 @@ Install Tacker horizon
 
 .. code-block:: console
 
-    sudo cp openstack_dashboard_extensions/* /usr/share/openstack-dashboard/o
-    penstack_dashboard/enabled/
+    sudo cp openstack_dashboard_extensions/* \
+        /usr/share/openstack-dashboard/openstack_dashboard/enabled/
 ..
 
 4). Restart Apache server
@@ -298,8 +296,9 @@ required because the console will be locked by a running process.
 
 .. code-block:: console
 
-    sudo python /usr/local/bin/tacker-server --config-file /usr/local/etc/tac
-    cker/tacker.conf --log-file /var/log/tacker/tacker.log
+    sudo python /usr/local/bin/tacker-server \
+        --config-file /usr/local/etc/tacker/tacker.conf \
+        --log-file /var/log/tacker/tacker.log
 ..
 
 Registering default VIM
