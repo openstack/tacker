@@ -25,8 +25,8 @@ enable_service h-api-cw
 
 enable_service tacker
 
-# python-tackerclient and tacker-horizon isn't installable from pip
-LIBS_FROM_GIT=python-tackerclient,tacker-horizon
+# tacker-horizon isn't installable from pip
+LIBS_FROM_GIT=tacker-horizon
 
 MGMT_PHYS_NET=${MGMT_PHYS_NET:-mgmtphysnet0}
 BR_MGMT=${BR_MGMT:-br-mgmt0}
