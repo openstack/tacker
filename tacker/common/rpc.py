@@ -31,10 +31,6 @@ EXTRA_EXMODS = []
 
 
 TRANSPORT_ALIASES = {
-    'tacker.openstack.common.rpc.impl_fake': 'fake',
-    'tacker.openstack.common.rpc.impl_qpid': 'qpid',
-    'tacker.openstack.common.rpc.impl_kombu': 'rabbit',
-    'tacker.openstack.common.rpc.impl_zmq': 'zmq',
     'tacker.rpc.impl_fake': 'fake',
     'tacker.rpc.impl_qpid': 'qpid',
     'tacker.rpc.impl_kombu': 'rabbit',
