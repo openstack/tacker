@@ -26,7 +26,7 @@ from oslo_log import versionutils
 from six import iteritems
 
 from tacker.api.v1 import attributes
-from tacker.i18n import _LE, _LW
+from tacker._i18n import _LE, _LW
 from tacker.vm.infra_drivers import abstract_driver
 
 LOG = logging.getLogger(__name__)

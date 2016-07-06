@@ -25,7 +25,7 @@ from oslo_utils import excutils
 from oslo_utils import importutils
 import six
 
-from tacker.i18n import _, _LE, _LW
+from tacker._i18n import _, _LE, _LW
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
 

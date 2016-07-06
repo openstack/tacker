@@ -28,3 +28,7 @@ _LI = _translators.log_info
 _LW = _translators.log_warning
 _LE = _translators.log_error
 _LC = _translators.log_critical
+
+
+def enable_lazy(enable=True):
+    return oslo_i18n.enable_lazy(enable)

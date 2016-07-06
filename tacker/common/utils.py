@@ -39,8 +39,8 @@ from oslo_utils import importutils
 from six import iteritems
 from stevedore import driver
 
+from tacker._i18n import _LE
 from tacker.common import constants as q_const
-from tacker.i18n import _LE
 
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"

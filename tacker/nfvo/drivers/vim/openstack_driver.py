@@ -20,10 +20,10 @@ from keystoneclient import exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from tacker._i18n import _LW
 from tacker.agent.linux import utils as linux_utils
 from tacker.common import log
 from tacker.extensions import nfvo
-from tacker.i18n import _LW
 from tacker.nfvo.drivers.vim import abstract_vim_driver
 from tacker.vm import keystone
 

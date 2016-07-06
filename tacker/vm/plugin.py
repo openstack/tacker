@@ -23,12 +23,12 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 
+from tacker._i18n import _LE
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
 from tacker.common.exceptions import MgmtDriverException
 from tacker.db.vm import vm_db
 from tacker.extensions import vnfm
-from tacker.i18n import _LE
 from tacker.plugins.common import constants
 from tacker.vm.mgmt_drivers import constants as mgmt_constants
 from tacker.vm import monitor

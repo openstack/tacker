@@ -23,12 +23,16 @@ import sys
 import eventlet
 eventlet.monkey_patch()
 from oslo_config import cfg
+import oslo_i18n
 from oslo_service import service as common_service
 
+from tacker import _i18n
+_i18n.enable_lazy()
 from tacker.common import config
-from tacker.openstack.common import gettextutils
 from tacker import service
-gettextutils.install('tacker', lazy=True)
+
+
+oslo_i18n.install("tacker")
 
 
 def main():

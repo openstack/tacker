@@ -20,6 +20,7 @@ Utility methods for working with WSGI servers redux
 import sys
 
 import netaddr
+import oslo_i18n
 from oslo_log import log as logging
 import six
 import webob.dec
@@ -27,7 +28,6 @@ import webob.exc
 
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
-from tacker.openstack.common import gettextutils
 from tacker import wsgi
 
 
@@ -162,7 +162,7 @@ def translate(translatable, locale):
     :returns: the translated object, or the object as-is if it
               was not translated
     """
-    localize = gettextutils.translate
+    localize = oslo_i18n.translate
     if isinstance(translatable, exceptions.TackerException):
         translatable.msg = localize(translatable.msg, locale)
     elif isinstance(translatable, webob.exc.HTTPError):

@@ -30,6 +30,7 @@ from xml.parsers import expat
 import eventlet.wsgi
 # eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
 from oslo_config import cfg
+import oslo_i18n as i18n
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_service import service as common_service
@@ -44,7 +45,7 @@ from tacker.common import constants
 from tacker.common import exceptions as exception
 from tacker import context
 from tacker.db import api
-from tacker.openstack.common import gettextutils
+
 
 socket_opts = [
     cfg.IntOpt('backlog',
@@ -359,7 +360,7 @@ class Request(webob.Request):
         """
         if not self.accept_language:
             return None
-        all_languages = gettextutils.get_available_languages('tacker')
+        all_languages = i18n.get_available_languages('tacker')
         return self.accept_language.best_match(all_languages)
 
     @property
@@ -1027,7 +1028,7 @@ class Router(object):
         if not match:
             language = req.best_match_language()
             msg = _('The resource could not be found.')
-            msg = gettextutils.translate(msg, language)
+            msg = i18n.translate(msg, language)
             return webob.exc.HTTPNotFound(explanation=msg)
         app = match['controller']
         return app

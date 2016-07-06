@@ -15,8 +15,9 @@
 
 import webob.dec
 
+import oslo_i18n
+
 from tacker.api.views import versions as versions_view
-from tacker.openstack.common import gettextutils
 from tacker import wsgi
 
 
@@ -39,7 +40,7 @@ class Versions(object):
         if req.path != '/':
             language = req.best_match_language()
             msg = _('Unknown API version specified')
-            msg = gettextutils.translate(msg, language)
+            msg = oslo_i18n.translate(msg, language)
             return webob.exc.HTTPNotFound(explanation=msg)
 
         builder = versions_view.get_view_builder(req)
