@@ -13,7 +13,9 @@
 #    under the License.
 
 from alembic import op
+import contextlib
 import sqlalchemy as sa
+from sqlalchemy.engine import reflection
 
 
 def alter_enum(table, column, enum_type, nullable):
@@ -35,3 +37,38 @@ def alter_enum(table, column, enum_type, nullable):
     else:
         op.alter_column(table, column, type_=enum_type,
                         existing_nullable=nullable)
+
+
+def create_foreign_key_constraint(table_name, fk_constraints):
+    for fk in fk_constraints:
+        op.create_foreign_key(
+            constraint_name=fk['name'],
+            source_table=table_name,
+            referent_table=fk['referred_table'],
+            local_cols=fk['constrained_columns'],
+            remote_cols=fk['referred_columns'],
+            ondelete=fk['options'].get('ondelete')
+        )
+
+
+def drop_foreign_key_constraint(table_name, fk_constraints):
+    for fk in fk_constraints:
+        op.drop_constraint(
+            constraint_name=fk['name'],
+            table_name=table_name,
+            type_='foreignkey'
+        )
+
+
+@contextlib.contextmanager
+def modify_foreign_keys_constraint(table_names):
+    inspector = reflection.Inspector.from_engine(op.get_bind())
+    try:
+        for table in table_names:
+            fk_constraints = inspector.get_foreign_keys(table)
+            drop_foreign_key_constraint(table, fk_constraints)
+        yield
+    finally:
+        for table in table_names:
+            fk_constraints = inspector.get_foreign_keys(table)
+            create_foreign_key_constraint(table, fk_constraints)
