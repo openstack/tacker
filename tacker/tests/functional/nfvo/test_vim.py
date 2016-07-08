@@ -18,6 +18,8 @@ import yaml
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
 
+SECRET_PASSWORD = '***'
+
 
 class VimTestCreate(base.BaseTackerTest):
     def _test_create_delete_vim(self, vim_file, name, description, vim_type,
@@ -62,6 +64,8 @@ class VimTestCreate(base.BaseTackerTest):
         self.assertIsNotNone(vim_instance['id'])
         self.assertEqual(vim_instance['auth_cred']['username'],
                          config_data['username'])
+        self.assertEqual(SECRET_PASSWORD,
+                         vim_instance['auth_cred']['password'])
         self.assertEqual(vim_instance['placement_attr']['regions'],
                          expected_regions)
         if version:

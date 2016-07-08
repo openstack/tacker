@@ -50,13 +50,15 @@ class VimClient(object):
             if not vim_name:
                 raise nfvo.VimDefaultNameNotDefined()
             try:
-                vim_info = nfvo_plugin.get_vim_by_name(context, vim_name)
+                vim_info = nfvo_plugin.get_vim_by_name(context, vim_name,
+                                                       mask_password=False)
             except Exception:
                     raise nfvo.VimDefaultIdException(
                         vim_name=vim_name)
         else:
             try:
-                vim_info = nfvo_plugin.get_vim(context, vim_id)
+                vim_info = nfvo_plugin.get_vim(context, vim_id,
+                                               mask_password=False)
             except Exception:
                 raise nfvo.VimNotFoundException(vim_id=vim_id)
         LOG.debug(_('VIM info found for vim id %s'), vim_id)

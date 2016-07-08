@@ -22,6 +22,8 @@ from tacker.db.nfvo import nfvo_db
 from tacker.nfvo import nfvo_plugin
 from tacker.tests.unit.db import base as db_base
 
+SECRET_PASSWORD = '***'
+
 
 class FakeDriverManager(mock.Mock):
     def invoke(self, *args, **kwargs):
@@ -81,6 +83,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                                                             vim_obj=vim_dict[
                                                                 'vim'])
         self.assertIsNotNone(res)
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
         self.assertIn('id', res)
         self.assertIn('placement_attr', res)
 
@@ -100,7 +103,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                                           'password': 'new_password'}}}
         vim_type = 'openstack'
         vim_auth_username = vim_dict['vim']['auth_cred']['username']
-        vim_auth_password = vim_dict['vim']['auth_cred']['password']
         vim_project = vim_dict['vim']['vim_project']
         self._insert_dummy_vim()
         res = self.nfvo_plugin.update_vim(self.context, vim_dict['vim']['id'],
@@ -113,4 +115,4 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertIn('placement_attr', res)
         self.assertEqual(vim_project, res['vim_project'])
         self.assertEqual(vim_auth_username, res['auth_cred']['username'])
-        self.assertEqual(vim_auth_password, res['auth_cred']['password'])
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
