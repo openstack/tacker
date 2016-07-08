@@ -18,6 +18,7 @@ run_tests.log
 setuptools*.egg/
 subunit.log
 .testrepository
+.idea/
 .tox/
 .venv/
 *.mo
