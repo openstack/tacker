@@ -41,6 +41,10 @@ OPTS = [
 CONF.register_opts(OPTS, group='monitor')
 
 
+def config_opts():
+    return [('monitor', OPTS), ('tacker', VNFMonitor.OPTS)]
+
+
 class VNFMonitor(object):
     """VNF Monitor."""
 

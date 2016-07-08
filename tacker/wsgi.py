@@ -79,6 +79,10 @@ socket_opts = [
 CONF = cfg.CONF
 CONF.register_opts(socket_opts)
 
+
+def config_opts():
+    return [(None, socket_opts)]
+
 LOG = logging.getLogger(__name__)
 
 

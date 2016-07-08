@@ -40,7 +40,7 @@ core_opts = [
                help=_("The API paste config file to use")),
     cfg.StrOpt('api_extensions_path', default="",
                help=_("The path for API extensions")),
-    cfg.ListOpt('service_plugins', default=[],
+    cfg.ListOpt('service_plugins', default=['nfvo', 'vnfm'],
                 help=_("The service plugins Tacker will use")),
     cfg.StrOpt('policy_file', default="policy.json",
                help=_("The policy file to use")),
@@ -92,6 +92,10 @@ logging.register_options(cfg.CONF)
 # Register the configuration options
 cfg.CONF.register_opts(core_opts)
 cfg.CONF.register_cli_opts(core_cli_opts)
+
+
+def config_opts():
+    return [(None, core_opts), (None, core_cli_opts)]
 
 # Ensure that the control exchange is set correctly
 oslo_messaging.set_transport_defaults(control_exchange='tacker')

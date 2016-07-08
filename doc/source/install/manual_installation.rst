@@ -169,7 +169,9 @@ d). Provide an endpoint to tacker service.
 
 ..
 
-7). Edit tacker.conf to ensure the below entries:
+7). Generate the tacker.conf.sample using tools/generate_config_file_sample.sh
+    or 'tox -e config-gen' command and rename it to tacker.conf. Then edit it
+    to ensure the below entries:
 
 .. note::
 

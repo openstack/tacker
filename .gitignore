@@ -25,5 +25,5 @@ subunit.log
 *.sw?
 *~
 
-# Files created by releasenotes build
 releasenotes/build
+etc/tacker/tacker.conf.sample

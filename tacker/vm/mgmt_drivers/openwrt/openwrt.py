@@ -34,6 +34,10 @@ OPTS = [
 cfg.CONF.register_opts(OPTS, 'openwrt')
 
 
+def config_opts():
+    return [('openwrt', OPTS)]
+
+
 class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
     def get_type(self):
         return 'openwrt'

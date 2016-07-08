@@ -34,6 +34,10 @@ OPTS = [
 cfg.CONF.register_opts(OPTS, 'monitor_http_ping')
 
 
+def config_opts():
+    return [('monitor_http_ping', OPTS)]
+
+
 class VNFMonitorHTTPPing(abstract_driver.VNFMonitorAbstractDriver):
     def get_type(self):
         return 'http_ping'

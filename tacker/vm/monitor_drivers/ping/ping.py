@@ -33,6 +33,10 @@ OPTS = [
 cfg.CONF.register_opts(OPTS, 'monitor_ping')
 
 
+def config_opts():
+    return [('monitor_ping', OPTS)]
+
+
 class VNFMonitorPing(abstract_driver.VNFMonitorAbstractDriver):
     def get_type(self):
         return 'ping'

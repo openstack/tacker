@@ -49,6 +49,11 @@ OPTS = [
                help=_("Flavor Extra Specs")),
 ]
 CONF.register_opts(OPTS, group='tacker_heat')
+
+
+def config_opts():
+    return [('tacker_heat', OPTS)]
+
 STACK_RETRIES = cfg.CONF.tacker_heat.stack_retries
 STACK_RETRY_WAIT = cfg.CONF.tacker_heat.stack_retry_wait
 STACK_FLAVOR_EXTRA = cfg.CONF.tacker_heat.flavor_extra_specs

@@ -31,6 +31,10 @@ from tacker.db.nfvo import nfvo_db
 LOG = logging.getLogger(__name__)
 
 
+def config_opts():
+    return [('nfvo', NfvoPlugin.OPTS)]
+
+
 class NfvoPlugin(nfvo_db.NfvoPluginDb):
     """NFVO reference plugin for NFVO extension
 

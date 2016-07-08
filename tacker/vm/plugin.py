@@ -39,6 +39,11 @@ LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
 
+def config_opts():
+    return [('tacker', VNFMMgmtMixin.OPTS),
+            ('tacker', VNFMPlugin.OPTS)]
+
+
 class VNFMMgmtMixin(object):
     OPTS = [
         cfg.ListOpt(

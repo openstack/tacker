@@ -47,6 +47,10 @@ cfg.CONF.register_opts(OPTS, 'vim_keys')
 cfg.CONF.register_opts(OPENSTACK_OPTS, 'vim_monitor')
 
 
+def config_opts():
+    return [('vim_keys', OPTS), ('vim_monitor', OPENSTACK_OPTS)]
+
+
 class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
     """Driver for OpenStack VIM
 

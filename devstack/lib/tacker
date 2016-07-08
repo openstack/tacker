@@ -192,12 +192,17 @@ function configure_tacker {
     iniset "/$Q_PLUGIN_CONF_FILE" ml2 extension_drivers port_security
     iniset "/$Q_PLUGIN_CONF_FILE" ml2_type_flat flat_networks $PUBLIC_PHYSICAL_NETWORK,$MGMT_PHYS_NET
     iniset "/$Q_PLUGIN_CONF_FILE" ovs bridge_mappings $PUBLIC_PHYSICAL_NETWORK:$PUBLIC_BRIDGE,$MGMT_PHYS_NET:$BR_MGMT
+
     _create_tacker_conf_dir
+
+    cd $TACKER_DIR
+    ./tools/generate_config_file_sample.sh
+    cd -
+
+    cp $TACKER_DIR/etc/tacker/tacker.conf.sample $TACKER_CONF
+
     iniset_rpc_backend tacker $TACKER_CONF
 
-    cp $TACKER_DIR/etc/tacker/tacker.conf $TACKER_CONF
-
-    # If# -  needed, move config file from ``$TACKER_DIR/etc/tacker`` to ``TACKER_CONF_DIR``
     iniset $TACKER_CONF database connection `database_connection_url $TACKER_DB_NAME`
     iniset $TACKER_CONF DEFAULT state_path $DATA_DIR/tacker
     iniset $TACKER_CONF DEFAULT use_syslog $SYSLOG
@@ -261,6 +266,12 @@ function configure_tacker {
     iniset $TACKER_CONF tacker_heat heat_uri http://$SERVICE_HOST:8004/v1
     iniset $TACKER_CONF tacker_heat stack_retries 60
     iniset $TACKER_CONF tacker_heat stack_retry_wait 5
+    iniset $TACKER_CONF keystone_authtoken identity_uri http://127.0.0.1:5000
+    iniset $TACKER_CONF keystone_authtoken project_domain_id default
+    iniset $TACKER_CONF keystone_authtoken user_domain_id default
+    iniset $TACKER_CONF keystone_authtoken auth_plugin password
+
+    iniset $TACKER_CONF nfvo_vim default_vim VIM0
 
     _tacker_setup_rootwrap
     echo "Creating bridge"

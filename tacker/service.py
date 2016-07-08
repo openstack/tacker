@@ -40,6 +40,11 @@ service_opts = [
 CONF = cfg.CONF
 CONF.register_opts(service_opts)
 
+
+def config_opts():
+    return [(None, service_opts)]
+
+
 LOG = logging.getLogger(__name__)
 
 

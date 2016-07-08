@@ -33,6 +33,10 @@ OPTS = [
 cfg.CONF.register_opts(OPTS, 'nfvo_vim')
 
 
+def config_opts():
+    return [('nfvo_vim', OPTS)]
+
+
 class VimClient(object):
     def get_vim(self, context, vim_id=None, region_name=None):
         """Get Vim information for provided VIM id
