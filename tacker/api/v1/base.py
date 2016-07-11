@@ -320,7 +320,7 @@ class Controller(object):
             return objs
         # Note(salvatore-orlando): broad catch as in theory a plugin
         # could raise any kind of exception
-        except Exception as ex:
+        except Exception:
             for obj in objs:
                 obj_deleter = getattr(self._plugin,
                                       self._plugin_handlers[self.DELETE])
@@ -338,7 +338,7 @@ class Controller(object):
             # plugin raised might have been created or not in the db.
             # We need a way for ensuring that if it has been created,
             # it is then deleted
-            raise ex
+            raise
 
     def create(self, request, body=None, **kwargs):
         """Creates a new instance of the requested entity."""
