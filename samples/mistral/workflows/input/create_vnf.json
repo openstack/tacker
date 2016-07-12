@@ -1,0 +1,11 @@
+{
+        "body": {
+                "vnf": {
+                        "attributes": {},
+                        "vim_id": "",
+                        "description": "Sample for tacker.create_vnf action",
+                        "vnfd_id": "dda99d4c-f24d-4550-b104-0958fef427b3",
+                        "name": "tacker-create-vnf"
+                }
+        }
+}

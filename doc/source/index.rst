@@ -53,6 +53,7 @@ Feature Documentation
    devref/vnfd_template_parameterization.rst
    devref/enhanced_placement_awareness_usage_guide.rst
    devref/multisite_vim_usage_guide.rst
+   devref/mistral_workflows_usage_guide.rst
 
 API Documentation
 =================

@@ -1,0 +1,53 @@
+---
+version: '2.0'
+
+std.create_vnf:
+  type: direct
+
+  description: |
+    Create a VNF and waits till VNF is active.
+
+  input:
+    - body
+  output:
+    vnf_id: <% $.vnf_id %>
+    vim_id: <% $.vim_id %>
+    mgmt_url: <% $.mgmt_url %>
+    status: <% $.status %>
+
+  task-defaults:
+    on-error:
+      - delete_vnf
+
+  tasks:
+    create_vnf:
+      description: Request to create a VNF.
+      action: tacker.create_vnf body=<% $.body %>
+      input:
+        body: <% $.body %>
+      publish:
+        vnf_id: <% task(create_vnf).result.vnf.id %>
+        vim_id: <% task(create_vnf).result.vnf.vim_id %>
+        mgmt_url: <% task(create_vnf).result.vnf.mgmt_url %>
+        status: <% task(create_vnf).result.vnf.status %>
+      on-success:
+        - wait_vnf_active
+
+    wait_vnf_active:
+      description: Waits till VNF is ACTIVE.
+      action: tacker.show_vnf vnf=<% $.vnf_id %>
+      retry:
+        count: 10
+        delay: 10
+        break-on: <% $.status = 'ACTIVE' %>
+        break-on: <% $.status = 'ERROR' %>
+        continue-on: <% $.status = 'PENDING_CREATE' %>
+      publish:
+        mgmt_url: <% task(wait_vnf_active).result.vnf.mgmt_url %>
+        status: <% task(wait_vnf_active).result.vnf.status %>
+      on-success:
+        - delete_vnf: <% $.status = 'ERROR' %>
+
+    delete_vnf:
+      description: Request to delete a VNF.
+      action: tacker.delete_vnf vnf=<% $.vnf_id %>

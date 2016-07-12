@@ -1,0 +1,16 @@
+---
+version: '2.0'
+
+std.delete_vnf:
+  type: direct
+
+  description: |
+    Delete a VNF.
+
+  input:
+    - vnf_id
+
+  tasks:
+    delete_vnf:
+      description: Request to delete a VNF.
+      action: tacker.delete_vnf vnf=<% $.vnf_id %>
