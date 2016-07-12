@@ -140,6 +140,15 @@ class FilePathMissing(exceptions.InvalidInput):
                 "tosca.artifacts.Deployment.Image.VM artifact type")
 
 
+class InfraDriverUnreachable(exceptions.ServiceUnavailable):
+    message = _("Could not retrieve VNF resource IDs and"
+                " types. Please check %(service)s status.")
+
+
+class VNFInactive(exceptions.InvalidInput):
+    message = _("VNF %(vnf_id)s is not in Active state %(message)s")
+
+
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("invalid data format for service list: '%s'") % data
@@ -358,6 +367,33 @@ SUB_RESOURCE_ATTRIBUTE_MAP = {
                 }
             }
         }
+    },
+    'resources': {
+        'parent': {
+            'collection_name': 'vnfs',
+            'member_name': 'vnf'
+        },
+        'members': {
+            'resource': {
+                'parameters': {
+                    'name': {
+                        'allow_post': False,
+                        'allow_put': False,
+                        'is_visible': True,
+                    },
+                    'type': {
+                        'allow_post': False,
+                        'allow_put': False,
+                        'is_visible': True,
+                    },
+                    'id': {
+                        'allow_post': False,
+                        'allow_put': False,
+                        'is_visible': True,
+                    },
+                }
+            }
+        }
     }
 }
 
@@ -462,6 +498,10 @@ class VNFMPluginBase(service_base.NFVPluginBase):
 
     @abc.abstractmethod
     def get_vnf(self, context, vnf_id, fields=None):
+        pass
+
+    @abc.abstractmethod
+    def get_vnf_resources(self, context, vnf_id, fields=None, filters=None):
         pass
 
     @abc.abstractmethod

@@ -32,6 +32,10 @@ class FakeDriverManager(mock.Mock):
     def invoke(self, *args, **kwargs):
         if 'create' in args:
             return str(uuid.uuid4())
+        if 'get_resource_info' in args:
+            return {'resources': {'name': 'dummy_vnf',
+                                  'type': 'dummy',
+                                  'id': str(uuid.uuid4())}}
 
 
 class FakeVNFMonitor(mock.Mock):
@@ -207,6 +211,22 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
             tstamp=mock.ANY, details=mock.ANY)
+
+    def test_show_vnf_details_vnf_inactive(self):
+        self._insert_dummy_device_template()
+        vnf_obj = utils.get_dummy_vnf_obj()
+        result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
+        self.assertRaises(vnfm.VNFInactive, self.vnfm_plugin.get_vnf_resources,
+                          self.context, result['id'])
+
+    def test_show_vnf_details_vnf_active(self):
+        self._insert_dummy_device_template()
+        active_vnf = self._insert_dummy_device()
+        resources = self.vnfm_plugin.get_vnf_resources(self.context,
+                                                       active_vnf['id'])[0]
+        self.assertIn('name', resources)
+        self.assertIn('type', resources)
+        self.assertIn('id', resources)
 
     def test_delete_vnf(self):
         self._insert_dummy_device_template()
