@@ -19,7 +19,6 @@ virtual environments.
 Since this script is used to bootstrap a virtualenv from the system's Python
 environment, it should be kept strictly compatible with Python 2.6.
 
-Synced in from openstack-common
 """
 
 from __future__ import print_function
