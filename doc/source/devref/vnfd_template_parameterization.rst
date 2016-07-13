@@ -65,9 +65,9 @@ vdus:
       management:
         *network*: **net_mgmt**
 
-        management: **True**
+        *management*: **True**
 
-        addresses:
+        *addresses*:
           \- 192.168.120.11
       pkt_in:
         *network*: **net0**
@@ -101,7 +101,7 @@ interface IP **addresses** during each deploy of the VNF.
 
 The next step is to substitute the identified parameter values that will be
 provided at deploy time with { get_input: <param_name>}. For example, the
-instance_type: **m1.tiny** would now be replaced as
+instance_type: **m1.tiny** would now be replaced as:
 **instance_type: {get_input: flavor}**. The **get_input** is a reserved
 keyword in the template that indicates value will be supplied at deploy time
 for the parameter instance_type. The **flavor** is the variable that will
@@ -110,7 +110,7 @@ that will be supplied at VNF deploy time.
 
 The template in above section will look like below when parameterized for
 **instance_type**, **user_data**, **user_data_format** and management
-interface IP **addresses**
+interface IP **addresses**.
 
 
 template_name: cirros_user_data
@@ -150,9 +150,9 @@ vdus:
       management:
         *network*: **net_mgmt**
 
-        management: **True**
+        *management*: **True**
 
-        addresses: **{ get_input: mgmt_ip}**
+        *addresses*: **{ get_input: mgmt_ip}**
       pkt_in:
         *network*: **net0**
       pkt_out:
@@ -216,10 +216,11 @@ Key Summary
     \- xxx.xxx.xxx.xxx
 - An example of a vnf-create python-tackerclient command specifying a
   parameterized template and parameter values file would like below:
+
   "tacker vnf-create --vnfd-name <vnfd_name> --param-file <param_yaml_file>
   <vnf_name>"
 - Specifying a parameter values file during VNF creation is also supported in
   Horizon UI.
 - Sample VNFD parameterized templates and parameter values files can be found
-  at https://github.com/openstack/tacker/tree/master/samples
+  at https://github.com/openstack/tacker/tree/master/samples.
 

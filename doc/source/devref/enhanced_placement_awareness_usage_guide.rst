@@ -24,7 +24,7 @@ OpenStack to enable it be an EPA compute node for deploying high performance
 VNFs.
 
 Below table shows the configurations needed for the different features across
-BIOS, Hypervisor and OpenStack
+BIOS, Hypervisor and OpenStack.
 
 +----------------+------+------------+-----------+
 |                | BIOS | Hypervisor | OpenStack |
@@ -84,7 +84,7 @@ nova.conf file.
 
 The SR-IOV feature enablement requires configuration on both the controller
 and compute nodes. Please refer link similar to below for the appropriate
-OpenStack release to setup SR-IOV
+OpenStack release to setup SR-IOV:
 http://docs.openstack.org/networking-guide/adv-config-sriov.html
 
 The CPU Pinning feature enablement requires configuring the nova.conf on

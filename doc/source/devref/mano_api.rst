@@ -161,7 +161,7 @@ Vnfs
 
 **GET /v1.0/vnfs**
 
-List vnfs - Lists instantiated vnfs in VNF Manager
+List vnfs - Lists instantiated vnfs in VNF Manager.
 
 ::
 

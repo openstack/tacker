@@ -15,7 +15,7 @@ tacker/tests/functional.
 
 Writing a testcase:A testcase is written by declaring a class name derived from
 class base.BaseTackerTest. BaseTackerTest is class declared in
-tacker/tests/functional/vnfd/base.py
+tacker/tests/functional/vnfd/base.py.
 
 A testcase body typically looks as below:
 
@@ -38,13 +38,13 @@ base.BaseTackerTest. Testcases typically has sections to setup, test, validate
 results and finally cleanup.
 
 Input yaml files: These are input files used in testcases for operations like
-create vnfd or create vnf. The location of files is tacker/tests/etc/samples/
+create vnfd or create vnf. The location of files is tacker/tests/etc/samples/.
 
 requirements.txt and test-requirements.txt : The file requirements.txt and
 test-requirements.txt lists all the packages needed for functional test.
 These packages are installed during devstack installation. If there are any
 new packages needed for functional test make sure they are added in
-test-requirements.txt
+test-requirements.txt.
 
 Asserting values in testcase: The base class BaseTackerTest
 inherits base.TestCase which has inbuild assert functions which can be used in
@@ -117,11 +117,10 @@ Committing testcase and opening a review:
 =========================================
 
 * Once testcase is added in local setup, commit the testcase and open for
-  review using below guidelines,
-  * http://docs.openstack.org/infra/manual/developers.html
+  review using below guidelines:
+  http://docs.openstack.org/infra/manual/developers.html
 
 Sample testcase:
 ================
 * Check sample tests under following directory:
-
-https://github.com/openstack/tacker/blob/master/tacker/tests/functional/
+  https://github.com/openstack/tacker/blob/master/tacker/tests/functional/
