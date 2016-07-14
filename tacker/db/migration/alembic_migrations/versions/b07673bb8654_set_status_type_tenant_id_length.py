@@ -33,22 +33,22 @@ def upgrade(active_plugins=None, options=None):
     for table in ['devices', 'devicetemplates', 'vims', 'servicetypes']:
         op.alter_column(table,
                         'tenant_id',
-                        type_=sa.String(64))
+                        type_=sa.String(64), nullable=False)
     op.alter_column('vims',
                     'type',
                     type_=sa.String(64))
     op.alter_column('devices',
                     'instance_id',
-                    type_=sa.String(64))
+                    type_=sa.String(64), nullable=True)
     op.alter_column('devices',
                     'status',
                     type_=sa.String(64))
     op.alter_column('proxymgmtports',
                     'device_id',
-                    type_=sa.String(64))
+                    type_=sa.String(64), nullable=False)
     op.alter_column('proxyserviceports',
                     'service_instance_id',
-                    type_=sa.String(64))
+                    type_=sa.String(64), nullable=False)
     op.alter_column('servicetypes',
                     'service_type',
                     type_=sa.String(64))
