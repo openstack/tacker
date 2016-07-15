@@ -305,34 +305,32 @@ required because the console will be locked by a running process.
 
 Registering default VIM
 =======================
-1). Register the VIM that will be used as a default VIM for VNF deployments.
+Register the VIM that will be used as a default VIM for VNF deployments.
 This will be required when the optional argument --vim-id is not provided by
 the user during vnf-create.
 
 .. code-block:: console
 
-    tacker vim-register --config-file config.yaml --name <Default VIM name>
-    --description <Default VIM description>
+    tacker vim-register --is-default --config-file config.yaml \
+        --name <Default VIM name> --description <Default VIM description>
 ..
 
 config.yaml will contain VIM specific parameters as below:
 
 .. code-block:: ini
 
-    auth_url: http://<keystone ip>:5000
+    auth_url: http://<keystone_public_endpoint_url>:5000
     username: <username>
     password: <password>
     project_name: <project_name>
 
-.. note::
-   Here username must point to the user having 'admin' and 'advsvc' role on the
-   project that will be used for deploying VNFs.
-
-2). Add the VIM name registered in step 1 in /etc/tacker/tacker.conf under
-[nfvo_vim] section:
+Add following parameters to config.yaml if VIM is using keystone v3:
 
 .. code-block:: ini
 
-   default_vim = <Default VIM Name>
+    project_domain_name: <domain>
+    user_domain_name: <domain>
 
-3). Restart tacker server
+.. note::
+   Here username must point to the user having 'admin' and 'advsvc' role on the
+   project that will be used for deploying VNFs.
