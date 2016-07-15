@@ -40,11 +40,11 @@ OPTS = [
     cfg.IntOpt('stack_retries',
                default=60,
                help=_("Number of attempts to retry for stack"
-                      "creation/deletion")),
+                      " creation/deletion")),
     cfg.IntOpt('stack_retry_wait',
                default=5,
-               help=_("Wait time between two successive stack"
-                      "create/delete retries")),
+               help=_("Wait time (in seconds) between consecutive stack"
+                      " create/delete retries")),
     cfg.DictOpt('flavor_extra_specs',
                default={},
                help=_("Flavor Extra Specs")),
