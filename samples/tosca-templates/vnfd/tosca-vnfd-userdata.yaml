@@ -1,29 +1,26 @@
 tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
-description: OpenWRT with services
+description: Demo with user-data
 
 metadata:
-  template_name: OpenWRT
+  template_name: sample-vnfd-userdata
 
 topology_template:
   node_templates:
-
     VDU1:
       type: tosca.nodes.nfv.VDU.Tacker
+      capabilities:
+        nfv_compute:
+          properties:
+            num_cpus: 1
+            mem_size: 512 MB
+            disk_size: 1 GB
       properties:
-        image: OpenWRT
-        flavor: m1.tiny
+        image: cirros-0.3.4-x86_64-uec
         config: |
           param0: key1
           param1: key2
-        mgmt_driver: openwrt
-        monitoring_policy:
-          name: ping
-          actions:
-            failure: respawn
-          parameters:
-            count: 3
-            interval: 10
+        mgmt_driver: noop
         user_data_format: RAW
         user_data: |
           #!/bin/sh
