@@ -42,8 +42,8 @@ To register a new OpenStack VIM inside Tacker
  +----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
  | Field          | Value                                                                                                                                                    |
  +----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
- | auth_cred      | {"username": "nfv_user", "password": "***", "project_name": "nfv", "user_id": "", "user_domain_id": "default", "auth_url":                               |
- |                | "http://10.18.161.165:5000/v3", "project_id": "", "project_domain_id": "default"}                                                                        |
+ | auth_cred      | {"username": "nfv_user", "password": "***", "project_name": "nfv", "user_id": "", "user_domain_name": "default", "auth_url":                               |
+ |                | "http://10.18.161.165:5000/v3", "project_id": "", "project_domain_name": "default"}                                                                        |
  | auth_url       | http://10.18.161.165:5000/v3                                                                                                                             |
  | description    | OpenStack Liberty                                                                                                                                        |
  | id             | 3f3c51c5-8bda-4bd3-adb3-5ae62eae65c3                                                                                                                     |

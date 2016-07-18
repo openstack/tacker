@@ -156,7 +156,10 @@ def get_dummy_device_obj_userdata_attr():
 
 
 def get_vim_auth_obj():
-    return {'username': 'test_user', 'password': 'test_password',
-            'project_id': None, 'project_name': 'test_project',
-            'auth_url': 'http://localhost:5000/v3', 'user_domain_id':
-                'default', 'project_domain_id': 'default'}
+    return {'username': 'test_user',
+            'password': 'test_password',
+            'project_id': None,
+            'project_name': 'test_project',
+            'auth_url': 'http://localhost:5000/v3',
+            'user_domain_name': 'default',
+            'project_domain_name': 'default'}
