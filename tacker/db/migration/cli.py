@@ -21,6 +21,7 @@ from alembic import util as alembic_util
 from oslo_config import cfg
 
 from tacker.db.migration.models import head  # noqa
+from tacker.db.migration import purge_tables
 
 HEAD_FILENAME = 'HEAD'
 
@@ -104,6 +105,14 @@ def update_head_file(config):
         f.write(script.get_current_head())
 
 
+def purge_deleted(config, cmd):
+    """Remove database records that have been previously soft deleted."""
+    purge_tables.purge_deleted(config.tacker_config,
+                      CONF.command.resource,
+                      CONF.command.age,
+                      CONF.command.granularity)
+
+
 def add_command_parsers(subparsers):
     for name in ['current', 'history', 'branches']:
         parser = subparsers.add_parser(name)
@@ -129,6 +138,23 @@ def add_command_parsers(subparsers):
     parser.add_argument('--autogenerate', action='store_true')
     parser.add_argument('--sql', action='store_true')
     parser.set_defaults(func=do_revision)
+
+    parser = subparsers.add_parser('purge_deleted')
+    parser.set_defaults(func=purge_deleted)
+    # positional parameter
+    parser.add_argument(
+        'resource',
+        choices=['all', 'events', 'vnf', 'vnfd', 'vims'],
+        help=_('Resource name for which deleted entries are to be purged.'))
+    # optional parameter, can be skipped. default='90'
+    parser.add_argument('-a', '--age', nargs='?', default='90',
+                        help=_('How long to preserve deleted data,'
+                               'defaults to 90'))
+    # optional parameter, can be skipped. default='days'
+    parser.add_argument(
+        '-g', '--granularity', default='days',
+        choices=['days', 'hours', 'minutes', 'seconds'],
+        help=_('Granularity to use for age argument, defaults to days.'))
 
 
 command_opt = cfg.SubCommandOpt('command',
