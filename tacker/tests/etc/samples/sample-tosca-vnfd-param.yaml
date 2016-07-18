@@ -1,0 +1,101 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: VNF TOSCA template with input parameters
+
+metadata:
+  template_name: sample-tosca-vnfd
+
+topology_template:
+  inputs:
+    image_name:
+      type: string
+      description: Image Name
+
+    flavor:
+      type: string
+      description: Flavor Information
+
+    zone:
+      type: string
+      description: Zone Information
+
+    network:
+      type: string
+      description: mgmt network
+
+    management:
+      type: string
+      description: management network
+
+    pkt_in_network:
+      type: string
+      description: In network
+
+    pkt_out_network:
+      type: string
+      description: Out network
+
+    vendor:
+      type: string
+      description: Vendor information
+
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        image: { get_input: image_name}
+        flavor: {get_input: flavor}
+        availability_zone: { get_input: zone }
+        mgmt_driver: noop
+        config: |
+          param0: key1
+          param1: key2
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: { get_input: management }
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    CP2:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL2
+        - virtualBinding:
+            node: VDU1
+
+    CP3:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL3
+        - virtualBinding:
+            node: VDU1
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: { get_input: network }
+        vendor: {get_input: vendor}
+
+    VL2:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: { get_input: pkt_in_network }
+        vendor: {get_input: vendor}
+
+    VL3:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: { get_input: pkt_out_network }
+        vendor: {get_input: vendor}

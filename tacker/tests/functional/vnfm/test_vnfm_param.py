@@ -89,15 +89,26 @@ class VnfmTestParam(base.BaseTackerTest):
         except Exception:
             assert True, "Vnf Delete success" + str(vfn_d) + str(Exception)
 
-    def test_vnfd_param(self):
-        vnfd_instance = self._test_vnfd_create('sample_cirros_vnf_param.yaml')
-        self._test_vnfd_delete(vnfd_instance)
-
     def test_vnf_param(self):
         vnfd_instance = self._test_vnfd_create('sample_cirros_vnf_param.yaml')
         vnf_instance = self._test_vnf_create(vnfd_instance,
                                              'test_vnf_with_parameters',
                                              'sample_cirros_vnf_values.yaml')
+        self._test_vnf_delete(vnf_instance)
+        vnf_id = vnf_instance['vnf']['id']
+        self.addCleanup(self.client.delete_vnfd, vnfd_instance['vnfd']['id'])
+        self.addCleanup(self.wait_until_vnf_delete, vnf_id,
+            constants.VNF_CIRROS_DELETE_TIMEOUT)
+
+    def test_vnfd_param_tosca_template(self):
+        vnfd_instance = self._test_vnfd_create('sample-tosca-vnfd-param.yaml')
+        self._test_vnfd_delete(vnfd_instance)
+
+    def test_vnf_param_tosca_template(self):
+        vnfd_instance = self._test_vnfd_create('sample-tosca-vnfd-param.yaml')
+        vnf_instance = self._test_vnf_create(vnfd_instance,
+                                    'test_vnf_with_parameters_tosca_template',
+                                             'sample-tosca-vnf-values.yaml')
         self._test_vnf_delete(vnf_instance)
         vnf_id = vnf_instance['vnf']['id']
         self.addCleanup(self.client.delete_vnfd, vnfd_instance['vnfd']['id'])
