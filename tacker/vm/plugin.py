@@ -21,6 +21,7 @@ import six
 import eventlet
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_log import versionutils
 from oslo_utils import excutils
 
 from tacker._i18n import _LE
@@ -129,6 +130,11 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     def create_device_template(self, context, device_template):
         template = device_template['device_template']
+        if "tosca_definitions_version" not in template['attributes']['vnfd']:
+            versionutils.report_deprecated_feature(LOG, 'VNFD legacy templates'
+                ' are deprecated since Mitaka release and will be removed in'
+                ' Ocata release. Please use NFV TOSCA templates.')
+
         LOG.debug(_('template %s'), template)
 
         infra_driver = template.get('infra_driver')

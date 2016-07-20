@@ -1,0 +1,4 @@
+---
+deprecations:
+  - Support for legacy templates for creating a VNFD is deprecated and will be
+    removed in 'Newton' cycle. Please use TOSCA based templates.
