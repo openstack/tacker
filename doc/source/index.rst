@@ -48,6 +48,7 @@ Feature Documentation
 .. toctree::
    :maxdepth: 1
 
+   devref/vnfd_template_description.rst
    devref/monitor-api.rst
    devref/vnfd_template_parameterization.rst
    devref/enhanced_placement_awareness_usage_guide.rst
