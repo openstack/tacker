@@ -37,16 +37,22 @@ class VimInUseException(exceptions.TackerException):
     message = _("VIM %(vim_id)s is still in use by VNF")
 
 
+# Deprecated. Will be removed in Ocata release
 class VimDefaultNameNotDefined(exceptions.TackerException):
     message = _("Default VIM is not set. Either specify a"
                 " valid VIM during the VNF creation or set default VIM"
                 " in tacker.conf")
 
 
+# Deprecated. Will be removed in Ocata release
 class VimDefaultIdException(exceptions.TackerException):
     message = _("Default VIM name %(vim_name)s is invalid or there are "
                 "multiple VIM matches found. Please specify a valid default "
                 "VIM in tacker.conf")
+
+
+class VimDefaultDuplicateException(exceptions.TackerException):
+    message = _("Default VIM already exists %(vim_id)s.")
 
 
 class VimNotFoundException(exceptions.TackerException):
@@ -139,6 +145,11 @@ RESOURCE_ATTRIBUTE_MAP = {
             'convert_to': attr.convert_to_boolean,
             'required_by_policy': True
         },
+        'is_default': {
+            'allow_post': True,
+            'allow_put': True,
+            'is_visible': True,
+        },
     }
 }
 
@@ -216,4 +227,7 @@ class NFVOPluginBase(service_base.NFVPluginBase):
 
     def get_vim_by_name(self, context, vim_name, fields=None,
                         mask_password=True):
+        raise NotImplementedError()
+
+    def get_default_vim(self, context):
         raise NotImplementedError()
