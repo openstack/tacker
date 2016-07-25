@@ -13,19 +13,21 @@
 #    under the License.
 
 import time
+import yaml
 
 from neutronclient.v2_0 import client as neutron_client
 from novaclient import client as nova_client
 from oslo_config import cfg
 from tempest.lib import base
-import yaml
 
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
+from tacker.tests.functional import clients
 from tacker.tests.utils import read_file
 from tacker import version
 
 from tackerclient.v1_0 import client as tacker_client
+
 
 CONF = cfg.CONF
 
@@ -44,6 +46,7 @@ class BaseTackerTest(base.BaseTestCase):
                  **kwargs)
 
         cls.client = cls.tackerclient()
+        cls.h_client = cls.heatclient()
 
     @classmethod
     def get_credentials(cls):
@@ -71,6 +74,15 @@ class BaseTackerTest(base.BaseTestCase):
     def neutronclient(cls):
         vim_params = cls.get_credentials()
         return neutron_client.Client(**vim_params)
+
+    @classmethod
+    def heatclient(cls):
+        data = yaml.load(read_file('local-vim.yaml'))
+        data['auth_url'] = data['auth_url'] + '/v3'
+        domain_name = data.pop('domain_name')
+        data['user_domain_name'] = domain_name
+        data['project_domain_name'] = domain_name
+        return clients.OpenstackClients(auth_attr=data).heat
 
     def wait_until_vnf_status(self, vnf_id, target_status, timeout,
                               sleep_interval):
@@ -179,3 +191,10 @@ class BaseTackerTest(base.BaseTestCase):
                 if vim['name'] == vim_name:
                     return vim
         return None
+
+    def verify_antispoofing_in_stack(self, stack_id, resource_name):
+        resource_types = self.h_client.resources
+        resource_details = resource_types.get(stack_id=stack_id,
+                                              resource_name=resource_name)
+        resource_dict = resource_details.to_dict()
+        self.assertTrue(resource_dict['attributes']['port_security_enabled'])
