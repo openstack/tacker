@@ -252,8 +252,8 @@ function configure_tacker {
     _tacker_setup_keystone $TACKER_CONF keystone_authtoken
 
     # Configuration for tacker requests to nova.
-        iniset $TACKER_CONF DEFAULT nova_url $TACKER_NOVA_URL
-    iniset $TACKER_CONF DEFAULT nova_amin_user_name nova
+    iniset $TACKER_CONF DEFAULT nova_url $TACKER_NOVA_URL
+    iniset $TACKER_CONF DEFAULT nova_admin_user_name nova
     iniset $TACKER_CONF DEFAULT nova_admin_password $SERVICE_PASSWORD
     iniset $TACKER_CONF DEFAULT nova_admin_tenant_id $SERVICE_TENANT_NAME
     iniset $TACKER_CONF DEFAULT nova_admin_auth_url $KEYSTONE_AUTH_URI
