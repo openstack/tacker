@@ -35,7 +35,8 @@ class VnffgAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def create_chain(self, fc_id, vnfs, symmetrical=False, auth_attr=None):
+    def create_chain(self, name, fc_id, vnfs, symmetrical=False,
+                     auth_attr=None):
         """Create service function chain and returns an ID"""
         pass
 
@@ -51,7 +52,8 @@ class VnffgAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def create_flow_classifier(self, fc, symmetrical=False, auth_attr=None):
+    def create_flow_classifier(self, name, fc, symmetrical=False,
+                               auth_attr=None):
         """Create flow classifier and returns an ID"""
         pass
 
