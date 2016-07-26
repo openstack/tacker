@@ -308,11 +308,11 @@ RESOURCE_ATTRIBUTE_MAP = {
 class Vnfm(extensions.ExtensionDescriptor):
     @classmethod
     def get_name(cls):
-        return 'VNFM'
+        return 'VNF Manager'
 
     @classmethod
     def get_alias(cls):
-        return 'VNF Manager'
+        return 'VNFM'
 
     @classmethod
     def get_description(cls):
