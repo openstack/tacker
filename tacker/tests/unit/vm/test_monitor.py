@@ -77,7 +77,7 @@ class TestVNFMonitor(testtools.TestCase):
         }
         output_dict = VNFMonitor.to_hosting_vnf(test_device_dict,
                                                 action_cb)
-        self.assertDictEqual(expected_output, output_dict)
+        self.assertEqual(expected_output, output_dict)
 
     @mock.patch('tacker.vm.monitor.VNFMonitor.__run__')
     def test_add_hosting_vnf(self, mock_monitor_run):
