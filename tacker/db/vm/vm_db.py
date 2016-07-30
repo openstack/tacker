@@ -25,6 +25,7 @@ from sqlalchemy.orm import exc as orm_exc
 
 from tacker.api.v1 import attributes
 from tacker import context as t_context
+from tacker.db.common_services import common_services_db
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
@@ -156,6 +157,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def __init__(self):
         super(VNFMPluginDb, self).__init__()
+        self._cos_db_plg = common_services_db.CommonServicesPluginDb()
 
     def _get_resource(self, context, model, id):
         try:
@@ -266,7 +268,15 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         LOG.debug(_('template_db %(template_db)s %(attributes)s '),
                   {'template_db': template_db,
                    'attributes': template_db.attributes})
-        return self._make_template_dict(template_db)
+        vnfd_dict = self._make_template_dict(template_db)
+        LOG.debug(_('vnfd_dict %s'), vnfd_dict)
+        self._cos_db_plg.create_event(
+            context, res_id=vnfd_dict['id'],
+            res_type=constants.RES_TYPE_VNFD,
+            res_state=constants.RES_EVT_VNFD_NA_STATE,
+            evt_type=constants.RES_EVT_CREATE,
+            tstamp=vnfd_dict[constants.RES_EVT_CREATED_FLD])
+        return vnfd_dict
 
     def update_device_template(self, context, device_template_id,
                                device_template):
@@ -275,7 +285,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                                              device_template_id)
             template_db.update(device_template['device_template'])
             template_db.update({'updated_at': timeutils.utcnow()})
-        return self._make_template_dict(template_db)
+            vnfd_dict = self._make_template_dict(template_db)
+            self._cos_db_plg.create_event(
+                context, res_id=vnfd_dict['id'],
+                res_type=constants.RES_TYPE_VNFD,
+                res_state=constants.RES_EVT_VNFD_NA_STATE,
+                evt_type=constants.RES_EVT_UPDATE,
+                tstamp=vnfd_dict[constants.RES_EVT_UPDATED_FLD])
+        return vnfd_dict
 
     def delete_device_template(self,
                                context,
@@ -294,6 +311,12 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                                              device_template_id)
             if soft_delete:
                 template_db.update({'deleted_at': timeutils.utcnow()})
+                self._cos_db_plg.create_event(
+                    context, res_id=template_db['id'],
+                    res_type=constants.RES_TYPE_VNFD,
+                    res_state=constants.RES_EVT_VNFD_NA_STATE,
+                    evt_type=constants.RES_EVT_DELETE,
+                    tstamp=template_db[constants.RES_EVT_DELETED_FLD])
             else:
                 context.session.query(ServiceType).filter_by(
                     vnfd_id=device_template_id).delete()
@@ -377,7 +400,13 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                         id=str(uuid.uuid4()), vnf_id=device_id,
                         key=key, value=value)
                     context.session.add(arg)
-
+        self._cos_db_plg.create_event(
+            context, res_id=device_id,
+            res_type=constants.RES_TYPE_VNF,
+            res_state=constants.PENDING_CREATE,
+            evt_type=constants.RES_EVT_CREATE,
+            tstamp=timeutils.utcnow(),
+            details="VNF UUID assigned")
         return self._make_device_dict(device_db)
 
     # called internally, not by REST API
@@ -399,6 +428,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 if 'vim_auth' not in key:
                     self._device_attribute_update_or_create(context, device_id,
                                                             key, value)
+        evt_details = ("Infra Instance ID created: %s and "
+                       "Mgmt URL set: %s") % (instance_id, mgmt_url)
+        self._cos_db_plg.create_event(
+            context, res_id=device_dict['id'],
+            res_type=constants.RES_TYPE_VNF,
+            res_state=device_dict['status'],
+            evt_type=constants.RES_EVT_CREATE,
+            tstamp=timeutils.utcnow(), details=evt_details)
 
     def _create_device_status(self, context, device_id, new_status):
         with context.session.begin(subtransactions=True):
@@ -406,6 +443,12 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                      filter(VNF.id == device_id).
                      filter(VNF.status.in_(CREATE_STATES)).one())
             query.update({'status': new_status})
+            self._cos_db_plg.create_event(
+                context, res_id=device_id,
+                res_type=constants.RES_TYPE_VNF,
+                res_state=new_status,
+                evt_type=constants.RES_EVT_CREATE,
+                tstamp=timeutils.utcnow(), details="VNF status updated")
 
     def _get_device_db(self, context, device_id, current_statuses, new_status):
         try:
@@ -438,7 +481,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         with context.session.begin(subtransactions=True):
             device_db = self._get_device_db(
                 context, device_id, _ACTIVE_UPDATE, constants.PENDING_UPDATE)
-        return self._make_device_dict(device_db)
+        updated_device_dict = self._make_device_dict(device_db)
+        self._cos_db_plg.create_event(
+            context, res_id=device_id,
+            res_type=constants.RES_TYPE_VNF,
+            res_state=updated_device_dict['status'],
+            evt_type=constants.RES_EVT_UPDATE,
+            tstamp=timeutils.utcnow())
+        return updated_device_dict
 
     def _update_device_post(self, context, device_id, new_status,
                             new_device_dict=None):
@@ -459,14 +509,26 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 if 'vim_auth' not in key:
                     self._device_attribute_update_or_create(context, device_id,
                                                         key, value)
+        self._cos_db_plg.create_event(
+            context, res_id=device_id,
+            res_type=constants.RES_TYPE_VNF,
+            res_state=new_device_dict['status'],
+            evt_type=constants.RES_EVT_UPDATE,
+            tstamp=new_device_dict[constants.RES_EVT_UPDATED_FLD])
 
     def _delete_device_pre(self, context, device_id):
         with context.session.begin(subtransactions=True):
             device_db = self._get_device_db(
                 context, device_id, _ACTIVE_UPDATE_ERROR_DEAD,
                 constants.PENDING_DELETE)
-
-        return self._make_device_dict(device_db)
+        deleted_device_db = self._make_device_dict(device_db)
+        self._cos_db_plg.create_event(
+            context, res_id=device_id,
+            res_type=constants.RES_TYPE_VNF,
+            res_state=deleted_device_db['status'],
+            evt_type=constants.RES_EVT_DELETE,
+            tstamp=timeutils.utcnow(), details="VNF delete initiated")
+        return deleted_device_db
 
     def _delete_device_post(self, context, device_id, error, soft_delete=True):
         with context.session.begin(subtransactions=True):
@@ -476,9 +538,24 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 filter(VNF.status == constants.PENDING_DELETE))
             if error:
                 query.update({'status': constants.ERROR})
+                self._cos_db_plg.create_event(
+                    context, res_id=device_id,
+                    res_type=constants.RES_TYPE_VNF,
+                    res_state=constants.ERROR,
+                    evt_type=constants.RES_EVT_DELETE,
+                    tstamp=timeutils.utcnow(),
+                    details="VNF Delete ERROR")
             else:
                 if soft_delete:
-                    query.update({'deleted_at': timeutils.utcnow()})
+                    deleted_time_stamp = timeutils.utcnow()
+                    query.update({'deleted_at': deleted_time_stamp})
+                    self._cos_db_plg.create_event(
+                        context, res_id=device_id,
+                        res_type=constants.RES_TYPE_VNF,
+                        res_state=constants.PENDING_DELETE,
+                        evt_type=constants.RES_EVT_DELETE,
+                        tstamp=deleted_time_stamp,
+                        details="VNF Delete Complete")
                 else:
                     (self._model_query(context, VNFAttribute).
                      filter(VNFAttribute.vnf_id == device_id).delete())

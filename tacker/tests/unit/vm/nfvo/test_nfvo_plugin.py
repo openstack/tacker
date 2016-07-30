@@ -18,8 +18,10 @@ import uuid
 import mock
 
 from tacker import context
+from tacker.db.common_services import common_services_db
 from tacker.db.nfvo import nfvo_db
 from tacker.nfvo import nfvo_plugin
+from tacker.plugins.common import constants
 from tacker.tests.unit.db import base as db_base
 
 SECRET_PASSWORD = '***'
@@ -39,6 +41,10 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self._mock_driver_manager()
         mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin.__run__').start()
         self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin = common_services_db.CommonServicesPluginDb()
 
     def _mock_driver_manager(self):
         self._driver_manager = mock.Mock(wraps=FakeDriverManager())
@@ -80,6 +86,10 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                     'tenant_id': 'test-project'}}
         vim_type = 'openstack'
         res = self.nfvo_plugin.create_vim(self.context, vim_dict)
+        self._cos_db_plugin.create_event.assert_any_call(
+            self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
+            tstamp=mock.ANY)
         self._driver_manager.invoke.assert_any_call(vim_type,
             'register_vim', vim_obj=vim_dict['vim'])
         self._driver_manager.invoke.assert_any_call('openstack', 'vim_status',
@@ -99,6 +109,10 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self._driver_manager.invoke.assert_called_once_with(vim_type,
                                                             'deregister_vim',
                                                             vim_id=vim_id)
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context, evt_type=constants.RES_EVT_DELETE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
+            tstamp=mock.ANY)
 
     def test_update_vim(self):
         vim_dict = {'vim': {'id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
@@ -121,3 +135,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertEqual(vim_auth_username, res['auth_cred']['username'])
         self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
         self.assertIn('updated_at', res)
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
+            tstamp=mock.ANY)

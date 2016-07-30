@@ -52,3 +52,16 @@ POLICY_SCALING = 'tosca.policy.tacker.Scaling'
 POLICY_SCALING_ACTIONS = (ACTION_SCALE_OUT,
                           ACTION_SCALE_IN) = ('out', 'in')
 POLICY_ACTIONS = {POLICY_SCALING: POLICY_SCALING_ACTIONS}
+
+RES_TYPE_VNFD = "vnfd"
+RES_TYPE_VNF = "vnf"
+RES_TYPE_VIM = "vim"
+
+RES_EVT_CREATE = "CREATE"
+RES_EVT_DELETE = "DELETE"
+RES_EVT_UPDATE = "UPDATE"
+RES_EVT_VNFD_NA_STATE = "Not Applicable"
+
+RES_EVT_CREATED_FLD = "created_at"
+RES_EVT_DELETED_FLD = "deleted_at"
+RES_EVT_UPDATED_FLD = "updated_at"

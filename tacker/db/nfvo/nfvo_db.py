@@ -23,6 +23,7 @@ from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import sql
 
+from tacker.db.common_services import common_services_db
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
@@ -30,6 +31,7 @@ from tacker.db import types
 from tacker.db.vm import vm_db
 from tacker.extensions import nfvo
 from tacker import manager
+from tacker.plugins.common import constants
 
 
 VIM_ATTRIBUTES = ('id', 'type', 'tenant_id', 'name', 'description',
@@ -68,6 +70,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
 
     def __init__(self):
         super(NfvoPluginDb, self).__init__()
+        self._cos_db_plg = common_services_db.CommonServicesPluginDb()
 
     @property
     def _core_plugin(self):
@@ -137,13 +140,26 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                 context.session.add(vim_auth_db)
         else:
                 raise nfvo.VimDuplicateUrlException()
-        return self._make_vim_dict(vim_db)
+        vim_dict = self._make_vim_dict(vim_db)
+        self._cos_db_plg.create_event(
+            context, res_id=vim_dict['id'],
+            res_type=constants.RES_TYPE_VIM,
+            res_state=vim_dict['status'],
+            evt_type=constants.RES_EVT_CREATE,
+            tstamp=vim_dict['created_at'])
+        return vim_dict
 
     def delete_vim(self, context, vim_id, soft_delete=True):
         with context.session.begin(subtransactions=True):
             vim_db = self._get_resource(context, Vim, vim_id)
             if soft_delete:
                 vim_db.update({'deleted_at': timeutils.utcnow()})
+                self._cos_db_plg.create_event(
+                    context, res_id=vim_db['id'],
+                    res_type=constants.RES_TYPE_VIM,
+                    res_state=vim_db['status'],
+                    evt_type=constants.RES_EVT_DELETE,
+                    tstamp=vim_db[constants.RES_EVT_DELETED_FLD])
             else:
                 context.session.query(VimAuth).filter_by(
                     vim_id=vim_id).delete()
@@ -183,6 +199,12 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                                vim_cred.pop('password'), 'vim_project':
                                vim_project})
             vim_db.update({'updated_at': timeutils.utcnow()})
+            self._cos_db_plg.create_event(
+                context, res_id=vim_db['id'],
+                res_type=constants.RES_TYPE_VIM,
+                res_state=vim_db['status'],
+                evt_type=constants.RES_EVT_UPDATE,
+                tstamp=vim_db[constants.RES_EVT_UPDATED_FLD])
 
         return self.get_vim(context, vim_id)
 
@@ -194,6 +216,12 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
             except orm_exc.NoResultFound:
                     raise nfvo.VimNotFoundException(vim_id=vim_id)
             vim_db.update({'status': status})
+            self._cos_db_plg.create_event(
+                context, res_id=vim_db['id'],
+                res_type=constants.RES_TYPE_VIM,
+                res_state=vim_db['status'],
+                evt_type=constants.RES_EVT_UPDATE,
+                tstamp=timeutils.utcnow())
         return self._make_vim_dict(vim_db)
 
     # Deprecated. Will be removed in Ocata release
