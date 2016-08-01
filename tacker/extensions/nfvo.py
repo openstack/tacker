@@ -66,6 +66,15 @@ class VimDuplicateUrlException(exceptions.TackerException):
     message = _("VIM with specified auth URL already exists. Cannot register "
                 "duplicate VIM")
 
+
+class VimProjectDomainNameMissingException(exceptions.TackerException):
+    message = _("'project_domain_name' is missing")
+
+
+class VimUserDomainNameMissingException(exceptions.TackerException):
+    message = _("'user_domain_name' is missing")
+
+
 RESOURCE_ATTRIBUTE_MAP = {
 
     'vims': {

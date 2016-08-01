@@ -28,13 +28,16 @@ class VimTestCreate(base.BaseTackerTest):
         username = data['username']
         project_name = data['project_name']
         auth_url = data['auth_url']
-
+        domain_name = data.get('domain_name', None)
         vim_arg = {'vim': {'name': name, 'description': description,
                            'type': vim_type,
                            'auth_url': auth_url,
                            'auth_cred': {'username': username,
-                                         'password': password},
-                           'vim_project': {'name': project_name}}}
+                                         'password': password,
+                                         'user_domain_name': domain_name},
+                           'vim_project': {'name': project_name,
+                                           'project_domain_name':
+                                               domain_name}}}
 
         # Register vim
         vim_res = self.client.create_vim(vim_arg)
