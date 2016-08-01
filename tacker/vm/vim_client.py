@@ -1,5 +1,5 @@
-# Copyright 2015-2016 Brocade Communications Systems Inc
-# All Rights Reserved.
+
+# Copyright 2015-2016 Brocade Communications Systems Ine All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -18,6 +18,7 @@ import os
 from cryptography.fernet import Fernet
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_log import versionutils
 
 from tacker.extensions import nfvo
 from tacker import manager
@@ -26,9 +27,12 @@ from tacker.plugins.common import constants
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
+
 OPTS = [
     cfg.StrOpt(
-        'default_vim', help=_('Default VIM for launching VNFs'))
+        'default_vim', help=_('Default VIM for launching VNFs. '
+        'This option is deprecated and will be removed in Ocata release.'),
+        deprecated_for_removal=True)
 ]
 cfg.CONF.register_opts(OPTS, 'nfvo_vim')
 
@@ -50,15 +54,20 @@ class VimClient(object):
         if not vim_id:
             LOG.debug(_('VIM id not provided. Attempting to find default '
                         'VIM id'))
-            vim_name = cfg.CONF.nfvo_vim.default_vim
-            if not vim_name:
-                raise nfvo.VimDefaultNameNotDefined()
             try:
-                vim_info = nfvo_plugin.get_vim_by_name(context, vim_name,
-                                                       mask_password=False)
+                vim_info = nfvo_plugin.get_default_vim(context)
             except Exception:
-                    raise nfvo.VimDefaultIdException(
-                        vim_name=vim_name)
+                LOG.debug(_('Default vim not set in db.'
+                    'Attempting to find default vim from tacker.conf'))
+                vim_name = cfg.CONF.nfvo_vim.default_vim
+                if not vim_name:
+                    raise nfvo.VimDefaultNameNotDefined()
+                versionutils.report_deprecated_feature(LOG, 'Configuration of '
+                    'default-vim in tacker.conf is deprecated and will be '
+                    'removed in Newton cycle')
+                vim_info = self._get_default_vim_by_name(context,
+                                nfvo_plugin,
+                            vim_name)
         else:
             try:
                 vim_info = nfvo_plugin.get_vim(context, vim_id,
@@ -78,6 +87,15 @@ class VimClient(object):
     @staticmethod
     def region_valid(vim_regions, region_name):
         return region_name in vim_regions
+
+    # Deprecated. Will be removed in Ocata release
+    def _get_default_vim_by_name(self, context, plugin, vim_name):
+        try:
+            vim_info = plugin.get_vim_by_name(context, vim_name,
+                                              mask_password=False)
+        except Exception:
+            raise nfvo.VimDefaultIdException(vim_name=vim_name)
+        return vim_info
 
     def _build_vim_auth(self, vim_info):
         LOG.debug('VIM id is %s', vim_info['id'])

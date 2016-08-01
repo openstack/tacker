@@ -33,7 +33,7 @@ from tacker import manager
 
 
 VIM_ATTRIBUTES = ('id', 'type', 'tenant_id', 'name', 'description',
-                  'placement_attr', 'shared', 'status')
+                  'placement_attr', 'shared', 'is_default', 'status')
 VIM_AUTH_ATTRIBUTES = ('auth_url', 'vim_project', 'password', 'auth_cred')
 
 
@@ -43,6 +43,8 @@ class Vim(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     description = sa.Column(sa.Text, nullable=True)
     placement_attr = sa.Column(types.Json, nullable=True)
     shared = sa.Column(sa.Boolean, default=True, server_default=sql.true(
+    ), nullable=False)
+    is_default = sa.Column(sa.Boolean, default=False, server_default=sql.false(
     ), nullable=False)
     vim_auth = orm.relationship('VimAuth')
     status = sa.Column(sa.String(255), nullable=False)
@@ -94,6 +96,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                 raise
 
     def create_vim(self, context, vim):
+        self._validate_default_vim(context, vim)
         vim_cred = vim['auth_cred']
         try:
             with context.session.begin(subtransactions=True):
@@ -104,6 +107,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                     name=vim.get('name'),
                     description=vim.get('description'),
                     placement_attr=vim.get('placement_attr'),
+                    is_default=vim.get('is_default'),
                     status=vim.get('status'))
                 context.session.add(vim_db)
                 vim_auth_db = VimAuth(
@@ -142,10 +146,15 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                                     filters=filters, fields=fields)
 
     def update_vim(self, context, vim_id, vim):
+        self._validate_default_vim(context, vim, vim_id=vim_id)
         with context.session.begin(subtransactions=True):
             vim_cred = vim['auth_cred']
             vim_project = vim['vim_project']
+            is_default = vim.get('is_default')
             try:
+                if is_default:
+                    vim_db = self._get_resource(context, Vim, vim_id)
+                    vim_db.update({'is_default': is_default})
                 vim_auth_db = (self._model_query(context, VimAuth).filter(
                     VimAuth.vim_id == vim_id).with_lockmode('update').one())
             except orm_exc.NoResultFound:
@@ -165,11 +174,13 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
             vim_db.update({'status': status})
         return self._make_vim_dict(vim_db)
 
+    # Deprecated. Will be removed in Ocata release
     def get_vim_by_name(self, context, vim_name, fields=None,
                         mask_password=True):
         vim_db = self._get_by_name(context, Vim, vim_name)
         return self._make_vim_dict(vim_db, mask_password=mask_password)
 
+    # Deprecated. Will be removed in Ocata release
     def _get_by_name(self, context, model, name):
         try:
             query = self._model_query(context, model)
@@ -177,3 +188,22 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
         except orm_exc.NoResultFound:
             if issubclass(model, Vim):
                 raise
+
+    def _validate_default_vim(self, context, vim, vim_id=None):
+        if not vim.get('is_default'):
+            return True
+        try:
+            vim_db = self._get_default_vim(context)
+        except orm_exc.NoResultFound:
+            return True
+        if vim_id == vim_db.id:
+            return True
+        raise nfvo.VimDefaultDuplicateException(vim_id=vim_db.id)
+
+    def _get_default_vim(self, context):
+        query = self._model_query(context, Vim)
+        return query.filter(Vim.is_default == sql.true()).one()
+
+    def get_default_vim(self, context):
+        vim_db = self._get_default_vim(context)
+        return self._make_vim_dict(vim_db, mask_password=False)

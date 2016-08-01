@@ -36,7 +36,8 @@ class VimTestCreate(base.BaseTackerTest):
                            'auth_url': auth_url,
                            'auth_cred': {'username': username,
                                          'password': password},
-                           'vim_project': {'name': project_name}}}
+                           'vim_project': {'name': project_name},
+                           'is_default': False}}
 
         # Register vim
         vim_res = self.client.create_vim(vim_arg)
