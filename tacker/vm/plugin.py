@@ -543,7 +543,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         vnf_attributes['template_id'] = vnf_attributes.pop('vnfd_id')
         vnf_dict = self.create_device(context, vnf)
         vnf_response = copy.deepcopy(vnf_dict)
-        vnf_response['vnfd_id'] = vnf_response.pop('template_id')
+        vnf_response['vnfd_id'] = vnf_response.pop('vnfd_id')
         return vnf_response
 
     def update_vnf(

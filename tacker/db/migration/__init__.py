@@ -72,3 +72,24 @@ def modify_foreign_keys_constraint(table_names):
         for table in table_names:
             fk_constraints = inspector.get_foreign_keys(table)
             create_foreign_key_constraint(table, fk_constraints)
+
+
+def modify_foreign_keys_constraint_with_col_change(
+        table_name, old_local_col, new_local_col, existing_type,
+        nullable=False):
+    inspector = reflection.Inspector.from_engine(op.get_bind())
+    fk_constraints = inspector.get_foreign_keys(table_name)
+    for fk in fk_constraints:
+        if old_local_col in fk['constrained_columns']:
+            drop_foreign_key_constraint(table_name, [fk])
+    op.alter_column(table_name, old_local_col,
+                    new_column_name=new_local_col,
+                    existing_type=existing_type,
+                    nullable=nullable)
+    fk_constraints = inspector.get_foreign_keys(table_name)
+    for fk in fk_constraints:
+        for i in range(len(fk['constrained_columns'])):
+            if old_local_col == fk['constrained_columns'][i]:
+                fk['constrained_columns'][i] = new_local_col
+                create_foreign_key_constraint(table_name, [fk])
+                break
