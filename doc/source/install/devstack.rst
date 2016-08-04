@@ -37,7 +37,7 @@ Install from master
 
 3. Run ``stack.sh``::
 
-    $ stack.sh
+    $ ./stack.sh
 
 Install from stable branch
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,7 +58,7 @@ place of branch-name as given below:
 
 3. Run ``stack.sh``::
 
-    $ stack.sh
+    $ ./stack.sh
 
 Multi Node Environment
 ~~~~~~~~~~~~~~~~~~~~~~
