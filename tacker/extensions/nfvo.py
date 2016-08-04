@@ -166,11 +166,11 @@ RESOURCE_ATTRIBUTE_MAP = {
 class Nfvo(extensions.ExtensionDescriptor):
     @classmethod
     def get_name(cls):
-        return 'NFVO'
+        return 'NFV Orchestrator'
 
     @classmethod
     def get_alias(cls):
-        return 'NFV Orchestrator'
+        return 'NFVO'
 
     @classmethod
     def get_description(cls):
