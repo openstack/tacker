@@ -15,7 +15,6 @@
 
 from keystoneclient import exceptions
 import mock
-from mock import sentinel
 from oslo_config import cfg
 
 from tacker.extensions import nfvo
@@ -122,8 +121,15 @@ class TestOpenstack_Driver(base.TestCase):
         self.openstack_driver.deregister_vim(vim_id)
         mock_os_remove.assert_called_once_with(file_path)
 
-    def test_register_vim_invalid_credentials(self):
+    def test_register_vim_invalid_auth(self):
         attrs = {'regions.list.side_effect': exceptions.Unauthorized}
+        self._test_register_vim_auth(attrs)
+
+    def test_register_vim_missing_auth(self):
+        attrs = {'regions.list.side_effect': exceptions.BadRequest}
+        self._test_register_vim_auth(attrs)
+
+    def _test_register_vim_auth(self, attrs):
         keystone_version = 'v3'
         mock_ks_client = mock.Mock(version=keystone_version, **attrs)
         self.keystone.get_version.return_value = keystone_version
@@ -133,34 +139,3 @@ class TestOpenstack_Driver(base.TestCase):
         mock_ks_client.regions.list.assert_called_once_with()
         self.keystone.initialize_client.assert_called_once_with(
             version=keystone_version, **self.auth_obj)
-
-    def test_auth_vim_missing_project_domain_name(self):
-        keystone_version = 'v3'
-        self.keystone.get_version.return_value = keystone_version
-        auth_cred = {'username': sentinel.usrname1,
-                     'password': sentinel.password1,
-                     'user_domain_name': sentinel.user_domain.name,
-                     'user_id': sentinel.usrid1}
-        vim_obj = {'auth_url': "http://xxx",
-                   'auth_cred': auth_cred,
-                   'vim_project': {'id': sentinel.prj_id1,
-                                   'name': sentinel.prj_name1}}
-        self.assertRaises(nfvo.VimProjectDomainNameMissingException,
-                          self.openstack_driver.authenticate_vim,
-                          vim_obj)
-
-    def test_auth_vim_missing_user_domain_name(self):
-        keystone_version = 'v3'
-        self.keystone.get_version.return_value = keystone_version
-        auth_cred = {'username': sentinel.usrname1,
-                     'password': sentinel.password1,
-                     'user_id': sentinel.usrid1}
-        vim_obj = {'auth_url': "http://xxx",
-                   'auth_cred': auth_cred,
-                   'vim_project': {'id': sentinel.prj_id1,
-                                   'project_domain_name':
-                                       sentinel.prj_domain_name1,
-                                   'name': sentinel.prj_name1}}
-        self.assertRaises(nfvo.VimUserDomainNameMissingException,
-                          self.openstack_driver.authenticate_vim,
-                          vim_obj)

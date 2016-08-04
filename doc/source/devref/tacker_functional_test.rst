@@ -97,7 +97,7 @@ Execution of testcase:
 .. code-block:: console
 
   ./tools/prepare_functional_test.sh
-  
+
 * From tacker directory, all function testcases can be executed using
   following commands:
 
