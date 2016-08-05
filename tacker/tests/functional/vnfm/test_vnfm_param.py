@@ -44,9 +44,9 @@ class VnfmTestParam(base.BaseTackerTest):
         except Exception:
             assert False, "vnfd Delete failed"
         try:
-            vfnd_d = self.client.show_vnfd(vnfd_id)
+            vnfd_d = self.client.show_vnfd(vnfd_id)
         except Exception:
-            assert True, "Vnfd Delete success" + str(vfnd_d) + str(Exception)
+            assert True, "Vnfd Delete success" + str(vnfd_d) + str(Exception)
 
     def _test_vnf_create(self, vnfd_instance, vnf_name, vnf_value_file):
         # Create the vnf with values
@@ -85,9 +85,9 @@ class VnfmTestParam(base.BaseTackerTest):
             assert False, "vnf Delete failed"
 
         try:
-            vfn_d = self.client.show_vnf(vnf_id)
+            vnf_d = self.client.show_vnf(vnf_id)
         except Exception:
-            assert True, "Vnf Delete success" + str(vfn_d) + str(Exception)
+            assert True, "Vnf Delete success" + str(vnf_d) + str(Exception)
 
     def test_vnf_param(self):
         vnfd_instance = self._test_vnfd_create('sample_cirros_vnf_param.yaml')
