@@ -14,6 +14,7 @@
 #    under the License.
 
 import codecs
+import json
 import mock
 import os
 import yaml
@@ -214,24 +215,21 @@ class TestDeviceHeat(base.TestCase):
                 '-5ff7-4332-b032-50a14d6c1123',
                 'template': _get_template(template)}
 
-    def _get_expected_tosca_device(self, tosca_tpl_name, hot_tpl_name,
-                                   param_values=''):
+    def _get_expected_tosca_device(self,
+                                   tosca_tpl_name,
+                                   hot_tpl_name,
+                                   param_values='',
+                                   is_monitor=True):
         tosca_tpl = _get_template(tosca_tpl_name)
         exp_tmpl = self._get_expected_device_template(tosca_tpl)
         tosca_hw_dict = yaml.safe_load(_get_template(hot_tpl_name))
-        return {
+        dvc = {
             'device_template': exp_tmpl['device_template'],
             'description': u'OpenWRT with services',
             'attributes': {
                 'heat_template': tosca_hw_dict,
-                'monitoring_policy': '{"vdus": {"VDU1":'
-                                     ' {"ping": {"name": "ping",'
-                                     ' "actions": {"failure": "respawn"},'
-                                     ' "parameters": {"count": 3,'
-                                     ' "interval": 10'
-                                     '}, "monitoring_params": {"count": 3, '
-                                     '"interval": 10}}}}}',
-                'param_values': param_values},
+                'param_values': param_values
+            },
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
             'instance_id': None,
             'mgmt_url': None,
@@ -239,9 +237,21 @@ class TestDeviceHeat(base.TestCase):
             'service_context': [],
             'status': 'PENDING_CREATE',
             'template_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-            'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437'}
+            'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437'
+        }
+        # Add montitoring attributes for those yaml, which are having it
+        if is_monitor:
+            dvc['attributes'].update(
+                {'monitoring_policy': '{"vdus": {"VDU1": {"ping": {"name": '
+                                      '"ping", "actions": {"failure": '
+                                      '"respawn"}, "parameters": {"count": 3, '
+                                      '"interval": 10}, "monitoring_params": '
+                                      '{"count": 3, "interval": 10}}}}}'})
+
+        return dvc
 
     def _get_dummy_tosca_device(self, template, input_params=''):
+
         tosca_template = _get_template(template)
         device = utils.get_dummy_device_obj()
         dtemplate = self._get_expected_device_template(tosca_template)
@@ -253,14 +263,19 @@ class TestDeviceHeat(base.TestCase):
         device['attributes']['param_values'] = input_params
         return device
 
-    def _test_assert_equal_for_tosca_templates(self, tosca_tpl_name,
-                                               hot_tpl_name, input_params=''):
+    def _test_assert_equal_for_tosca_templates(self,
+                                               tosca_tpl_name,
+                                               hot_tpl_name,
+                                               input_params='',
+                                               files=None,
+                                               is_monitor=True):
         device = self._get_dummy_tosca_device(tosca_tpl_name, input_params)
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields_tosca(hot_tpl_name)
         expected_device = self._get_expected_tosca_device(tosca_tpl_name,
                                                           hot_tpl_name,
-                                                          input_params)
+                                                          input_params,
+                                                          is_monitor)
         result = self.heat_driver.create(plugin=None, context=self.context,
                                          device=device,
                                          auth_attr=utils.get_vim_auth_obj())
@@ -268,11 +283,33 @@ class TestDeviceHeat(base.TestCase):
         actual_fields["template"] = yaml.safe_load(actual_fields["template"])
         expected_fields["template"] = \
             yaml.safe_load(expected_fields["template"])
+
+        if files:
+            for k, v in actual_fields["files"].items():
+                actual_fields["files"][k] = yaml.safe_load(v)
+
+            expected_fields["files"] = {}
+            for k, v in files.items():
+                expected_fields["files"][k] = yaml.safe_load(_get_template(v))
+
         self.assertEqual(expected_fields, actual_fields)
         device["attributes"]["heat_template"] = yaml.safe_load(
             device["attributes"]["heat_template"])
         self.heat_client.create.assert_called_once_with(expected_fields)
         self.assertEqual(expected_result, result)
+
+        if files:
+            expected_fields["files"] = {}
+            for k, v in files.items():
+                expected_device["attributes"][k] = yaml.safe_load(
+                    _get_template(v))
+                device["attributes"][k] = yaml.safe_load(
+                    device["attributes"][k])
+            expected_device["attributes"]['scaling_group_names'] = {
+                'SP1': 'G1'}
+            device["attributes"]['scaling_group_names'] = json.loads(
+                device["attributes"]['scaling_group_names']
+            )
         self.assertEqual(expected_device, device)
 
     def test_create_tosca(self):
@@ -362,4 +399,12 @@ class TestDeviceHeat(base.TestCase):
             'tosca_generic_vnfd_params.yaml',
             'hot_tosca_generic_vnfd_params.yaml',
             input_params
+        )
+
+    def test_create_tosca_scale(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_scale.yaml',
+            'hot_scale_main.yaml',
+            files={'scaling.yaml': 'hot_scale_custom.yaml'},
+            is_monitor=False
         )
