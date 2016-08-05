@@ -17,6 +17,7 @@
 import copy
 import inspect
 import six
+import yaml
 
 import eventlet
 from oslo_config import cfg
@@ -27,7 +28,7 @@ from oslo_utils import excutils
 from tacker._i18n import _LE
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
-from tacker.common.exceptions import MgmtDriverException
+from tacker.common import exceptions
 from tacker.db.vm import vm_db
 from tacker.extensions import vnfm
 from tacker.plugins.common import constants
@@ -243,7 +244,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         new_status = constants.ACTIVE
         try:
             self.mgmt_call(context, device_dict, kwargs)
-        except MgmtDriverException:
+        except exceptions.MgmtDriverException:
             LOG.error(_('VNF configuration failed'))
             new_status = constants.ERROR
             self.set_device_error_status_reason(context, device_id,
@@ -319,7 +320,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                 context=context, device_id=instance_id, auth_attr=vim_auth,
                 region_name=region_name)
             self.mgmt_call(context, device_dict, kwargs)
-        except MgmtDriverException as e:
+        except exceptions.MgmtDriverException as e:
             LOG.error(_('VNF configuration failed'))
             new_status = constants.ERROR
             self.set_device_error_status_reason(context, device_dict['id'],
@@ -415,6 +416,127 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
         self.spawn_n(self._delete_device_wait, context, device_dict, vim_auth)
 
+    def _handle_vnf_scaling(self, context, policy):
+        # validate
+        def _validate_scaling_policy():
+            type = policy['type']
+
+            if type not in constants.POLICY_ACTIONS.keys():
+                raise exceptions.VnfPolicyTypeInvalid(
+                    type=type,
+                    valid_types=constants.POLICY_ACTIONS.keys(),
+                    policy=policy['id']
+                )
+            action = policy['action']
+
+            if action not in constants.POLICY_ACTIONS[type]:
+                raise exceptions.VnfPolicyActionInvalid(
+                    action=action,
+                    valid_actions=constants.POLICY_ACTIONS[type],
+                    policy=policy['id']
+                )
+
+            LOG.debug(_("Policy %s is validated successfully") % policy)
+
+        def _get_status():
+            if policy['action'] == constants.ACTION_SCALE_IN:
+                status = constants.PENDING_SCALE_IN
+            else:
+                status = constants.PENDING_SCALE_OUT
+
+            return status
+
+        # pre
+        def _handle_vnf_scaling_pre():
+            status = _get_status()
+            result = self._update_vnf_scaling_status(context,
+                                                     policy,
+                                                     [constants.ACTIVE],
+                                                     status)
+            LOG.debug(_("Policy %(policy)s vnf is at %(status)s"),
+                      {'policy': policy,
+                       'status': status})
+            return result
+
+        # post
+        def _handle_vnf_scaling_post(new_status, mgmt_url=None):
+            status = _get_status()
+            result = self._update_vnf_scaling_status(context,
+                                                     policy,
+                                                     [status],
+                                                     new_status,
+                                                     mgmt_url)
+            LOG.debug(_("Policy %(policy)s vnf is at %(status)s"),
+                      {'policy': policy,
+                       'status': new_status})
+            return result
+
+        # action
+        def _vnf_policy_action():
+            try:
+                self._device_manager.invoke(
+                    infra_driver,
+                    'scale',
+                    plugin=self,
+                    context=context,
+                    auth_attr=vim_auth,
+                    policy=policy,
+                    region_name=region_name
+                )
+                LOG.debug(_("Policy %s action is started successfully") %
+                          policy)
+            except Exception as e:
+                LOG.error(_("Policy %s action is failed to start") %
+                          policy)
+                with excutils.save_and_reraise_exception():
+                    vnf['status'] = constants.ERROR
+                    self.set_device_error_status_reason(
+                        context,
+                        policy['vnf_id'],
+                        six.text_type(e))
+                    _handle_vnf_scaling_post(constants.ERROR)
+
+        # wait
+        def _vnf_policy_action_wait():
+            try:
+                LOG.debug(_("Policy %s action is in progress") %
+                          policy)
+                mgmt_url = self._device_manager.invoke(
+                    infra_driver,
+                    'scale_wait',
+                    plugin=self,
+                    context=context,
+                    auth_attr=vim_auth,
+                    policy=policy,
+                    region_name=region_name
+                )
+                LOG.debug(_("Policy %s action is completed successfully") %
+                          policy)
+                _handle_vnf_scaling_post(constants.ACTIVE, mgmt_url)
+                # TODO(kanagaraj-manickam): Add support for config and mgmt
+            except Exception as e:
+                LOG.error(_("Policy %s action is failed to complete") %
+                          policy)
+                with excutils.save_and_reraise_exception():
+                    self.set_device_error_status_reason(
+                        context,
+                        policy['vnf_id'],
+                        six.text_type(e))
+                    _handle_vnf_scaling_post(constants.ERROR)
+
+        _validate_scaling_policy()
+
+        vnf = _handle_vnf_scaling_pre()
+        policy['instance_id'] = vnf['instance_id']
+
+        infra_driver = self._infra_driver_name(vnf)
+        vim_auth = self.get_vim(context, vnf)
+        region_name = vnf.get('placement_attr', {}).get('region_name', None)
+        _vnf_policy_action()
+        self.spawn_n(_vnf_policy_action_wait)
+
+        return policy
+
     def create_vnf(self, context, vnf):
         vnf['device'] = vnf.pop('vnf')
         vnf_attributes = vnf['device']
@@ -436,3 +558,59 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         vnfd['device_template'] = vnfd.pop('vnfd')
         new_dict = self.create_device_template(context, vnfd)
         return new_dict
+
+    def _make_policy_dict(self, vnf, name, policy):
+        p = {}
+        p['type'] = policy['type']
+        p['properties'] = policy['properties']
+        p['vnf'] = vnf
+        p['name'] = name
+        p['id'] = p['name']
+        return p
+
+    def get_vnf_policies(
+            self, context, vnf_id, filters=None, fields=None):
+        vnf = self.get_device(context, vnf_id)
+        vnfd_tmpl = yaml.load(vnf['device_template']['attributes']['vnfd'])
+        policy_list = []
+
+        if vnfd_tmpl.get('tosca_definitions_version'):
+            polices = vnfd_tmpl['topology_template'].get('policies', [])
+            for policy_dict in polices:
+                for name, policy in policy_dict.items():
+                    def _add(policy):
+                        p = self._make_policy_dict(vnf, name, policy)
+                        p['name'] = name
+                        policy_list.append(p)
+
+                    # Check for filters
+                    if filters.get('name'):
+                        if name == filters.get('name'):
+                            _add(policy)
+                            break
+                        else:
+                            continue
+
+                    _add(policy)
+
+        return policy_list
+
+    def get_vnf_policy(
+            self, context, policy_id, vnf_id, fields=None):
+        policies = self.get_vnf_policies(context,
+                                         vnf_id,
+                                         filters={'name': policy_id})
+        if policies:
+            return policies[0]
+
+        raise exceptions.VnfPolicyNotFound(policy=policy_id,
+                                           vnf_id=vnf_id)
+
+    def create_vnf_scale(self, context, vnf_id, scale):
+        policy_ = self.get_vnf_policy(context,
+                                      scale['scale']['policy'],
+                                      vnf_id)
+        policy_.update({'action': scale['scale']['type']})
+        self._handle_vnf_scaling(context, policy_)
+
+        return scale['scale']

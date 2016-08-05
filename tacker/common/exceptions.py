@@ -243,3 +243,17 @@ class InvalidCIDR(BadRequest):
 
 class MgmtDriverException(TackerException):
     message = _("VNF configuration failed")
+
+
+class VnfPolicyNotFound(NotFound):
+    message = _("Policy %(policy)s does not exist for VNF %(vnf_id)s")
+
+
+class VnfPolicyActionInvalid(BadRequest):
+    message = _("Invalid action %(action)s for policy %(policy)s, "
+                "should be one of %(valid_acions)s")
+
+
+class VnfPolicyTypeInvalid(BadRequest):
+    message = _("Invalid type %(type)s for policy %(policy)s, "
+                "should be one of %(valid_types)s")
