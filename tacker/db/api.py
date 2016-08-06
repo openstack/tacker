@@ -15,10 +15,7 @@
 
 from oslo_config import cfg
 from oslo_db.sqlalchemy import enginefacade
-from oslo_log import log as logging
 
-
-LOG = logging.getLogger(__name__)
 
 context_manager = enginefacade.transaction_context()
 
