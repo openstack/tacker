@@ -30,9 +30,9 @@ import yaml
 from tacker.common import clients
 from tacker.common import log
 from tacker.extensions import vnfm
-from tacker.vm.infra_drivers import abstract_driver
-from tacker.vm.infra_drivers import scale_driver
-from tacker.vm.tosca import utils as toscautils
+from tacker.vnfm.infra_drivers import abstract_driver
+from tacker.vnfm.infra_drivers import scale_driver
+from tacker.vnfm.tosca import utils as toscautils
 
 
 LOG = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ def get_scaling_policy_name(action, policy_name):
 
 class DeviceHeat(abstract_driver.DeviceAbstractDriver,
                  scale_driver.VnfScaleAbstractDriver):
-    """Heat driver of hosting device."""
+    """Heat driver of hosting vnf."""
 
     def __init__(self):
         super(DeviceHeat, self).__init__()
@@ -100,61 +100,63 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
         return 'Heat infra driver'
 
     @log.log
-    def create_device_template_pre(self, plugin, context, device_template):
-        device_template_dict = device_template['device_template']
-        vnfd_yaml = device_template_dict['attributes'].get('vnfd')
+    def create_vnfd_pre(self, plugin, context, vnfd):
+        vnfd_dict = vnfd['vnfd']
+        vnfd_yaml = vnfd_dict['attributes'].get('vnfd')
         if vnfd_yaml is None:
             return
 
-        vnfd_dict = yaml.load(vnfd_yaml)
-        LOG.debug(_('vnfd_dict: %s'), vnfd_dict)
+        inner_vnfd_dict = yaml.load(vnfd_yaml)
+        LOG.debug(_('vnfd_dict: %s'), inner_vnfd_dict)
 
-        if 'tosca_definitions_version' in vnfd_dict:
+        if 'tosca_definitions_version' in inner_vnfd_dict:
             # Prepend the tacker_defs.yaml import file with the full
             # path to the file
-            toscautils.updateimports(vnfd_dict)
+            toscautils.updateimports(inner_vnfd_dict)
 
             try:
-                tosca = ToscaTemplate(a_file=False, yaml_dict_tpl=vnfd_dict)
+                tosca = ToscaTemplate(a_file=False,
+                                      yaml_dict_tpl=inner_vnfd_dict)
             except Exception as e:
                 LOG.exception(_("tosca-parser error: %s"), str(e))
                 raise vnfm.ToscaParserFailed(error_msg_details=str(e))
 
-            if ('description' not in device_template_dict or
-                    device_template_dict['description'] == ''):
-                device_template_dict['description'] = vnfd_dict.get(
+            if ('description' not in vnfd_dict or
+                    vnfd_dict['description'] == ''):
+                vnfd_dict['description'] = inner_vnfd_dict.get(
                     'description', '')
-            if (('name' not in device_template_dict or
-                    not len(device_template_dict['name'])) and
-                    'metadata' in vnfd_dict):
-                device_template_dict['name'] = vnfd_dict['metadata'].get(
+            if (('name' not in vnfd_dict or
+                    not len(vnfd_dict['name'])) and
+                    'metadata' in inner_vnfd_dict):
+                vnfd_dict['name'] = inner_vnfd_dict['metadata'].get(
                     'template_name', '')
 
-            device_template_dict['mgmt_driver'] = toscautils.get_mgmt_driver(
+            vnfd_dict['mgmt_driver'] = toscautils.get_mgmt_driver(
                 tosca)
         else:
             KEY_LIST = (('name', 'template_name'),
                         ('description', 'description'))
 
-            device_template_dict.update(
-                dict((key, vnfd_dict[vnfd_key]) for (key, vnfd_key) in KEY_LIST
-                     if ((key not in device_template_dict or
-                          device_template_dict[key] == '') and
-                         vnfd_key in vnfd_dict and
-                         vnfd_dict[vnfd_key] != '')))
+            vnfd_dict.update(
+                dict((key, inner_vnfd_dict[vnfd_key]) for (key, vnfd_key)
+                     in KEY_LIST
+                     if ((key not in vnfd_dict or
+                          vnfd_dict[key] == '') and
+                         vnfd_key in inner_vnfd_dict and
+                         inner_vnfd_dict[vnfd_key] != '')))
 
-            service_types = vnfd_dict.get('service_properties', {}).get('type',
-                                                                        [])
+            service_types = inner_vnfd_dict.get(
+                'service_properties', {}).get('type', [])
             if service_types:
-                device_template_dict.setdefault('service_types', []).extend(
+                vnfd_dict.setdefault('service_types', []).extend(
                     [{'service_type': service_type}
                     for service_type in service_types])
             # TODO(anyone)  - this code assumes one mgmt_driver per VNFD???
-            for vdu in vnfd_dict.get('vdus', {}).values():
+            for vdu in inner_vnfd_dict.get('vdus', {}).values():
                 mgmt_driver = vdu.get('mgmt_driver')
                 if mgmt_driver:
-                    device_template_dict['mgmt_driver'] = mgmt_driver
-        LOG.debug(_('device_template %s'), device_template)
+                    vnfd_dict['mgmt_driver'] = mgmt_driver
+        LOG.debug(_('vnfd %s'), vnfd)
 
     @log.log
     def _update_params(self, original, paramvalues, match=False):
@@ -265,15 +267,15 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
         return unsupported_resource_prop
 
     @log.log
-    def create(self, plugin, context, device, auth_attr):
-        LOG.debug(_('device %s'), device)
+    def create(self, plugin, context, vnf, auth_attr):
+        LOG.debug(_('vnf %s'), vnf)
 
-        attributes = device['device_template']['attributes'].copy()
+        attributes = vnf['vnfd']['attributes'].copy()
 
         vnfd_yaml = attributes.pop('vnfd', None)
         if vnfd_yaml is None:
             # TODO(kangaraj-manickam) raise user level exception
-            LOG.info(_("VNFD is not provided, so no device is created !!"))
+            LOG.info(_("VNFD is not provided, so no vnf is created !!"))
             return
 
         LOG.debug('vnfd_yaml %s', vnfd_yaml)
@@ -286,8 +288,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
                 if key in attributes:
                     fields[key] = jsonutils.loads(attributes.pop(key))
 
-            # overwrite parameters with given dev_attrs for device creation
-            dev_attrs = device['attributes'].copy()
+            # overwrite parameters with given dev_attrs for vnf creation
+            dev_attrs = vnf['attributes'].copy()
             fields.update(dict((key, dev_attrs.pop(key)) for key
                           in ('stack_name', 'template_url', 'template')
                           if key in dev_attrs))
@@ -300,7 +302,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
 
         fields, dev_attrs = update_fields()
 
-        region_name = device.get('placement_attr', {}).get('region_name', None)
+        region_name = vnf.get('placement_attr', {}).get('region_name', None)
         heatclient_ = HeatClient(auth_attr, region_name)
         unsupported_res_prop = self.fetch_unsupported_resource_prop(
             heatclient_)
@@ -524,7 +526,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
                 # to pass necessary parameters to plugin upwards.
                 for key in ('service_type',):
                     if key in vdu_dict:
-                        device.setdefault(
+                        vnf.setdefault(
                             'attributes', {})[vdu_id] = jsonutils.dumps(
                                 {key: vdu_dict[key]})
 
@@ -559,23 +561,23 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
                     main_yaml = yaml.dump(main_dict)
                     fields['template'] = main_yaml
                     fields['files'] = {'scaling.yaml': heat_template_yaml}
-                    device['attributes']['heat_template'] = main_yaml
+                    vnf['attributes']['heat_template'] = main_yaml
                     # TODO(kanagaraj-manickam) when multiple groups are
                     # supported, make this scaling atribute as
                     # scaling name vs scaling template map and remove
                     # scaling_group_names
-                    device['attributes']['scaling.yaml'] = heat_template_yaml
-                    device['attributes'][
+                    vnf['attributes']['scaling.yaml'] = heat_template_yaml
+                    vnf['attributes'][
                         'scaling_group_names'] = jsonutils.dumps(
                         scaling_group_names
                     )
                 else:
-                    if not device['attributes'].get('heat_template'):
-                        device['attributes'][
+                    if not vnf['attributes'].get('heat_template'):
+                        vnf['attributes'][
                             'heat_template'] = fields['template']
 
             if monitoring_dict:
-                    device['attributes']['monitoring_policy'] = \
+                    vnf['attributes']['monitoring_policy'] = \
                         jsonutils.dumps(monitoring_dict)
 
         generate_hot()
@@ -583,15 +585,15 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
         def create_stack():
             if 'stack_name' not in fields:
                 name = (__name__ + '_' + self.__class__.__name__ + '-' +
-                        device['id'])
-                if device['attributes'].get('failure_count'):
-                    name += ('-RESPAWN-%s') % str(device['attributes'][
+                        vnf['id'])
+                if vnf['attributes'].get('failure_count'):
+                    name += ('-RESPAWN-%s') % str(vnf['attributes'][
                         'failure_count'])
                 fields['stack_name'] = name
 
             # service context is ignored
             LOG.debug(_('service_context: %s'),
-                      device.get('service_context', []))
+                      vnf.get('service_context', []))
             LOG.debug(_('fields: %s'), fields)
             LOG.debug(_('template: %s'), fields['template'])
             stack = heatclient_.create(fields)
@@ -601,24 +603,24 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
         stack = create_stack()
         return stack['stack']['id']
 
-    def create_wait(self, plugin, context, device_dict, device_id, auth_attr):
-        region_name = device_dict.get('placement_attr', {}).get(
+    def create_wait(self, plugin, context, vnf_dict, vnf_id, auth_attr):
+        region_name = vnf_dict.get('placement_attr', {}).get(
             'region_name', None)
         heatclient_ = HeatClient(auth_attr, region_name)
 
-        stack = heatclient_.get(device_id)
+        stack = heatclient_.get(vnf_id)
         status = stack.stack_status
         stack_retries = STACK_RETRIES
         error_reason = None
         while status == 'CREATE_IN_PROGRESS' and stack_retries > 0:
             time.sleep(STACK_RETRY_WAIT)
             try:
-                stack = heatclient_.get(device_id)
+                stack = heatclient_.get(vnf_id)
             except Exception:
-                LOG.exception(_("Device Instance cleanup may not have "
+                LOG.exception(_("VNF Instance cleanup may not have "
                                 "happened because Heat API request failed "
                                 "while waiting for the stack %(stack)s to be "
-                                "deleted"), {'stack': device_id})
+                                "deleted"), {'stack': vnf_id})
                 break
             status = stack.stack_status
             LOG.debug(_('status: %s'), status)
@@ -631,16 +633,16 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
                            " {wait} seconds as creation of stack {stack}"
                            " is not completed").format(
                                wait=(STACK_RETRIES * STACK_RETRY_WAIT),
-                               stack=device_id)
+                               stack=vnf_id)
             LOG.warning(_("VNF Creation failed: %(reason)s"),
                     {'reason': error_reason})
-            raise vnfm.DeviceCreateWaitFailed(device_id=device_id,
-                                              reason=error_reason)
+            raise vnfm.VNFCreateWaitFailed(vnf_id=vnf_id,
+                                           reason=error_reason)
 
         elif stack_retries != 0 and status != 'CREATE_COMPLETE':
             error_reason = stack.stack_status_reason
-            raise vnfm.DeviceCreateWaitFailed(device_id=device_id,
-                                              reason=error_reason)
+            raise vnfm.VNFCreateWaitFailed(vnf_id=vnf_id,
+                                           reason=error_reason)
 
         def _find_mgmt_ips(outputs):
             LOG.debug(_('outputs %s'), outputs)
@@ -652,29 +654,29 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
             return mgmt_ips
 
         # scaling enabled
-        if device_dict['attributes'].get('scaling_group_names'):
+        if vnf_dict['attributes'].get('scaling_group_names'):
             group_names = jsonutils.loads(
-                device_dict['attributes'].get('scaling_group_names')).values()
+                vnf_dict['attributes'].get('scaling_group_names')).values()
             mgmt_ips = self._find_mgmt_ips_from_groups(heatclient_,
-                                                       device_id,
+                                                       vnf_id,
                                                        group_names)
         else:
             mgmt_ips = _find_mgmt_ips(stack.outputs)
 
         if mgmt_ips:
-            device_dict['mgmt_url'] = jsonutils.dumps(mgmt_ips)
+            vnf_dict['mgmt_url'] = jsonutils.dumps(mgmt_ips)
 
     @log.log
-    def update(self, plugin, context, device_id, device_dict, device,
+    def update(self, plugin, context, vnf_id, vnf_dict, vnf,
                auth_attr):
-        region_name = device_dict.get('placement_attr', {}).get(
+        region_name = vnf_dict.get('placement_attr', {}).get(
             'region_name', None)
         heatclient_ = HeatClient(auth_attr, region_name)
-        heatclient_.get(device_id)
+        heatclient_.get(vnf_id)
 
         # update config attribute
-        config_yaml = device_dict.get('attributes', {}).get('config', '')
-        update_yaml = device['device'].get('attributes', {}).get('config', '')
+        config_yaml = vnf_dict.get('attributes', {}).get('config', '')
+        update_yaml = vnf['vnf'].get('attributes', {}).get('config', '')
         LOG.debug('yaml orig %(orig)s update %(update)s',
                   {'orig': config_yaml, 'update': update_yaml})
 
@@ -704,59 +706,59 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
         LOG.debug('dict new %(new)s update %(update)s',
                   {'new': config_dict, 'update': update_dict})
         new_yaml = yaml.dump(config_dict)
-        device_dict.setdefault('attributes', {})['config'] = new_yaml
+        vnf_dict.setdefault('attributes', {})['config'] = new_yaml
 
-    def update_wait(self, plugin, context, device_id, auth_attr,
+    def update_wait(self, plugin, context, vnf_id, auth_attr,
                     region_name=None):
         # do nothing but checking if the stack exists at the moment
         heatclient_ = HeatClient(auth_attr, region_name)
-        heatclient_.get(device_id)
+        heatclient_.get(vnf_id)
 
-    def delete(self, plugin, context, device_id, auth_attr, region_name=None):
+    def delete(self, plugin, context, vnf_id, auth_attr, region_name=None):
         heatclient_ = HeatClient(auth_attr, region_name)
-        heatclient_.delete(device_id)
+        heatclient_.delete(vnf_id)
 
     @log.log
-    def delete_wait(self, plugin, context, device_id, auth_attr,
+    def delete_wait(self, plugin, context, vnf_id, auth_attr,
                     region_name=None):
         heatclient_ = HeatClient(auth_attr, region_name)
 
-        stack = heatclient_.get(device_id)
+        stack = heatclient_.get(vnf_id)
         status = stack.stack_status
         error_reason = None
         stack_retries = STACK_RETRIES
         while (status == 'DELETE_IN_PROGRESS' and stack_retries > 0):
             time.sleep(STACK_RETRY_WAIT)
             try:
-                stack = heatclient_.get(device_id)
+                stack = heatclient_.get(vnf_id)
             except heatException.HTTPNotFound:
                 return
             except Exception:
-                LOG.exception(_("Device Instance cleanup may not have "
+                LOG.exception(_("VNF Instance cleanup may not have "
                                 "happened because Heat API request failed "
                                 "while waiting for the stack %(stack)s to be "
-                                "deleted"), {'stack': device_id})
+                                "deleted"), {'stack': vnf_id})
                 break
             status = stack.stack_status
             stack_retries = stack_retries - 1
 
         if stack_retries == 0 and status != 'DELETE_COMPLETE':
-            error_reason = _("Resource cleanup for device is"
+            error_reason = _("Resource cleanup for vnf is"
                              " not completed within {wait} seconds as "
                              "deletion of Stack {stack} is "
-                             "not completed").format(stack=device_id,
+                             "not completed").format(stack=vnf_id,
                              wait=(STACK_RETRIES * STACK_RETRY_WAIT))
             LOG.warning(error_reason)
-            raise vnfm.DeviceCreateWaitFailed(device_id=device_id,
-                                              reason=error_reason)
+            raise vnfm.VNFCreateWaitFailed(vnf_id=vnf_id,
+                                           reason=error_reason)
 
         if stack_retries != 0 and status != 'DELETE_COMPLETE':
-            error_reason = _("device {device_id} deletion is not completed. "
-                            "{stack_status}").format(device_id=device_id,
+            error_reason = _("vnf {vnf_id} deletion is not completed. "
+                            "{stack_status}").format(vnf_id=vnf_id,
                             stack_status=status)
             LOG.warning(error_reason)
-            raise vnfm.DeviceCreateWaitFailed(device_id=device_id,
-                                              reason=error_reason)
+            raise vnfm.VNFCreateWaitFailed(vnf_id=vnf_id,
+                                           eason=error_reason)
 
     @classmethod
     def _find_mgmt_ips_from_groups(cls,
@@ -826,7 +828,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
                     get_scaling_policy_name(policy_name=policy['id'],
                                             action=policy['action']))
             except Exception:
-                LOG.exception(_("Device scaling may not have "
+                LOG.exception(_("VNF scaling may not have "
                                 "happened because Heat API request failed "
                                 "while waiting for the stack %(stack)s to be "
                                 "scaled"), {'stack': policy['instance_id']})

@@ -15,7 +15,7 @@
 import mock
 import testtools
 
-from tacker.vm.monitor_drivers.ping import ping
+from tacker.vnfm.monitor_drivers.ping import ping
 
 
 class TestVNFMonitorPing(testtools.TestCase):

@@ -11,7 +11,7 @@
 # under the License.
 
 from heatclient import client as heatclient
-from tacker.vm import keystone
+from tacker.vnfm import keystone
 
 
 class OpenstackClients(object):

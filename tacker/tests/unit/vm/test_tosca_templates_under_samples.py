@@ -18,7 +18,7 @@ import testtools
 from toscaparser import tosca_template
 from toscaparser.utils import yamlparser
 
-from tacker.vm.tosca import utils
+from tacker.vnfm.tosca import utils
 from translator.hot import tosca_translator
 
 

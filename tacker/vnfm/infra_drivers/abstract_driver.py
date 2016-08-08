@@ -26,7 +26,7 @@ class DeviceAbstractDriver(extensions.PluginInterface):
 
     @abc.abstractmethod
     def get_type(self):
-        """Return one of predefined type of the hosting device drivers."""
+        """Return one of predefined type of the hosting vnf drivers."""
         pass
 
     @abc.abstractmethod
@@ -39,32 +39,32 @@ class DeviceAbstractDriver(extensions.PluginInterface):
         pass
 
     # @abc.abstractmethod
-    def create_device_template_pre(self, plugin, context, device_template):
-        """Called before creating device template."""
+    def create_vnfd_pre(self, plugin, context, vnfd):
+        """Called before creating vnf template."""
         pass
 
     @abc.abstractmethod
-    def create(self, plugin, context, device):
-        """Create device and return its id."""
+    def create(self, plugin, context, vnf):
+        """Create vnf and return its id."""
 
     @abc.abstractmethod
-    def create_wait(self, plugin, context, device_dict, device_id):
-        """wait for device creation to complete."""
+    def create_wait(self, plugin, context, vnf_dict, vnf_id):
+        """wait for vnf creation to complete."""
 
     @abc.abstractmethod
-    def update(self, plugin, context, device_id, device_dict, device):
-        # device_dict: old device_dict to be updated
-        # device: update with device dict
+    def update(self, plugin, context, vnf_id, vnf_dict, vnf):
+        # vnf_dict: old vnf_dict to be updated
+        # vnf: update with vnf dict
         pass
 
     @abc.abstractmethod
-    def update_wait(self, plugin, context, device_id):
+    def update_wait(self, plugin, context, vnf_id):
         pass
 
     @abc.abstractmethod
-    def delete(self, plugin, context, device_id):
+    def delete(self, plugin, context, vnf_id):
         pass
 
     @abc.abstractmethod
-    def delete_wait(self, plugin, context, device_id):
+    def delete_wait(self, plugin, context, vnf_id):
         pass

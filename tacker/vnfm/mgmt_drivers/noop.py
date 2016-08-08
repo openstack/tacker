@@ -16,7 +16,7 @@
 
 from oslo_log import log as logging
 
-from tacker.vm.mgmt_drivers import abstract_driver
+from tacker.vnfm.mgmt_drivers import abstract_driver
 
 
 LOG = logging.getLogger(__name__)
@@ -30,12 +30,12 @@ class DeviceMgmtNoop(abstract_driver.DeviceMGMTAbstractDriver):
         return 'noop'
 
     def get_description(self):
-        return 'Tacker DeviceMgmt Noop Driver'
+        return 'Tacker VNFMgmt Noop Driver'
 
-    def mgmt_url(self, plugin, context, device):
-        LOG.debug(_('mgmt_url %s'), device)
+    def mgmt_url(self, plugin, context, vnf):
+        LOG.debug(_('mgmt_url %s'), vnf)
         return 'noop-mgmt-url'
 
-    def mgmt_call(self, plugin, context, device, kwargs):
-        LOG.debug(_('mgmt_device_call %(device)s %(kwargs)s'),
-                  {'device': device, 'kwargs': kwargs})
+    def mgmt_call(self, plugin, context, vnf, kwargs):
+        LOG.debug(_('mgmt_call %(vnf)s %(kwargs)s'),
+                  {'vnf': vnf, 'kwargs': kwargs})

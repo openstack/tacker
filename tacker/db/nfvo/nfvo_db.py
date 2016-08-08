@@ -167,11 +167,11 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
 
     def is_vim_still_in_use(self, context, vim_id):
         with context.session.begin(subtransactions=True):
-            devices_db = self._model_query(context, vm_db.VNF).filter_by(
+            vnfs_db = self._model_query(context, vm_db.VNF).filter_by(
                 vim_id=vim_id).first()
-            if devices_db is not None:
+            if vnfs_db is not None:
                 raise nfvo.VimInUseException(vim_id=vim_id)
-        return devices_db
+        return vnfs_db
 
     def get_vim(self, context, vim_id, fields=None, mask_password=True):
         vim_db = self._get_resource(context, Vim, vim_id)

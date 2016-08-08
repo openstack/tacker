@@ -25,7 +25,7 @@ from tacker.agent.linux import utils as linux_utils
 from tacker.common import log
 from tacker.extensions import nfvo
 from tacker.nfvo.drivers.vim import abstract_vim_driver
-from tacker.vm import keystone
+from tacker.vnfm import keystone
 
 
 LOG = logging.getLogger(__name__)

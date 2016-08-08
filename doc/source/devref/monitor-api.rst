@@ -39,19 +39,19 @@ Following methods need to be overridden in the new driver:
     This method must return the type of driver. ex: ping
 
 ``def get_name(self)``
-    This method must return the symbolic name of the device monitor plugin.
+    This method must return the symbolic name of the vnf monitor plugin.
 
 ``def get_description(self)``
     This method must return the description for the monitor driver.
 
-``def monitor_get_config(self, plugin, context, device)``
+``def monitor_get_config(self, plugin, context, vnf)``
     This method must return dictionary of configuration data for the monitor
     driver.
 
-``def monitor_url(self, plugin, context, device)``
-    This method must return the url of device to monitor.
+``def monitor_url(self, plugin, context, vnf)``
+    This method must return the url of vnf to monitor.
 
-``def monitor_call(self, device, kwargs)``
+``def monitor_call(self, vnf, kwargs)``
     This method must either return boolean value 'True', if VNF is healthy.
     Otherwise it should return an event string like 'failure' or
     'calls-capacity-reached' based on specific VNF health condition. More

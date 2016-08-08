@@ -16,7 +16,7 @@ import mock
 import six.moves.urllib.error as urlerr
 import testtools
 
-from tacker.vm.monitor_drivers.http_ping import http_ping
+from tacker.vnfm.monitor_drivers.http_ping import http_ping
 
 
 class TestVNFMonitorHTTPPing(testtools.TestCase):

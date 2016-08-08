@@ -40,19 +40,19 @@ class MGMTDriverNotSpecified(exceptions.InvalidInput):
 
 
 class MultipleMGMTDriversSpecified(exceptions.InvalidInput):
-    message = _('More than one MGMT Driver per template is not supported')
+    message = _('More than one MGMT Driver per vnfd is not supported')
 
 
 class ServiceTypesNotSpecified(exceptions.InvalidInput):
     message = _('service types are not specified')
 
 
-class DeviceTemplateInUse(exceptions.InUse):
-    message = _('VNFD %(device_template_id)s is still in use')
+class VNFDInUse(exceptions.InUse):
+    message = _('VNFD %(vnfd_id)s is still in use')
 
 
-class DeviceInUse(exceptions.InUse):
-    message = _('VNF %(device_id)s is still in use')
+class VNFInUse(exceptions.InUse):
+    message = _('VNF %(vnf_id)s is still in use')
 
 
 class InvalidInfraDriver(exceptions.InvalidInput):
@@ -63,28 +63,28 @@ class InvalidServiceType(exceptions.InvalidInput):
     message = _('invalid service type %(service_type)s')
 
 
-class DeviceCreateFailed(exceptions.TackerException):
-    message = _('creating VNF based on %(device_template_id)s failed')
+class VNFCreateFailed(exceptions.TackerException):
+    message = _('creating VNF based on %(vnfd_id)s failed')
 
 
-class DeviceCreateWaitFailed(exceptions.TackerException):
+class VNFCreateWaitFailed(exceptions.TackerException):
     message = _('%(reason)s')
 
 
-class DeviceDeleteFailed(exceptions.TackerException):
-    message = _('deleting VNF %(device_id)s failed')
+class VNFDeleteFailed(exceptions.TackerException):
+    message = _('deleting VNF %(vnf_id)s failed')
 
 
-class DeviceTemplateNotFound(exceptions.NotFound):
-    message = _('VNFD template %(device_template_id)s could not be found')
+class VNFDNotFound(exceptions.NotFound):
+    message = _('VNFD %(vnfd_id)s could not be found')
 
 
 class ServiceTypeNotFound(exceptions.NotFound):
     message = _('service type %(service_type_id)s could not be found')
 
 
-class DeviceNotFound(exceptions.NotFound):
-    message = _('VNF %(device_id)s could not be found')
+class VNFNotFound(exceptions.NotFound):
+    message = _('VNF %(vnf_id)s could not be found')
 
 
 class ParamYAMLNotWellFormed(exceptions.InvalidInput):

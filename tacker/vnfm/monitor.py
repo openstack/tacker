@@ -28,7 +28,7 @@ import six
 from tacker.common import clients
 from tacker.common import driver_manager
 from tacker import context as t_context
-from tacker.vm.infra_drivers.heat import heat
+from tacker.vnfm.infra_drivers.heat import heat
 
 
 LOG = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class VNFMonitor(object):
     """VNF Monitor."""
 
     _instance = None
-    _hosting_vnfs = dict()   # device_id => dict of parameters
+    _hosting_vnfs = dict()   # vnf_id => dict of parameters
     _status_check_intvl = 0
     _lock = threading.RLock()
 
@@ -91,32 +91,32 @@ class VNFMonitor(object):
                     self.run_monitor(hosting_vnf)
 
     @staticmethod
-    def to_hosting_vnf(device_dict, action_cb):
+    def to_hosting_vnf(vnf_dict, action_cb):
         return {
-            'id': device_dict['id'],
+            'id': vnf_dict['id'],
             'management_ip_addresses': jsonutils.loads(
-                device_dict['mgmt_url']),
+                vnf_dict['mgmt_url']),
             'action_cb': action_cb,
-            'device': device_dict,
+            'vnf': vnf_dict,
             'monitoring_policy': jsonutils.loads(
-                device_dict['attributes']['monitoring_policy'])
+                vnf_dict['attributes']['monitoring_policy'])
         }
 
-    def add_hosting_vnf(self, new_device):
+    def add_hosting_vnf(self, new_vnf):
         LOG.debug('Adding host %(id)s, Mgmt IP %(ips)s',
-                  {'id': new_device['id'],
-                   'ips': new_device['management_ip_addresses']})
-        new_device['boot_at'] = timeutils.utcnow()
+                  {'id': new_vnf['id'],
+                   'ips': new_vnf['management_ip_addresses']})
+        new_vnf['boot_at'] = timeutils.utcnow()
         with self._lock:
-            self._hosting_vnfs[new_device['id']] = new_device
+            self._hosting_vnfs[new_vnf['id']] = new_vnf
 
-    def delete_hosting_vnf(self, device_id):
-        LOG.debug('deleting device_id %(device_id)s', {'device_id': device_id})
+    def delete_hosting_vnf(self, vnf_id):
+        LOG.debug('deleting vnf_id %(vnf_id)s', {'vnf_id': vnf_id})
         with self._lock:
-            hosting_vnf = self._hosting_vnfs.pop(device_id, None)
+            hosting_vnf = self._hosting_vnfs.pop(vnf_id, None)
             if hosting_vnf:
-                LOG.debug('deleting device_id %(device_id)s, Mgmt IP %(ips)s',
-                          {'device_id': device_id,
+                LOG.debug('deleting vnf_id %(vnf_id)s, Mgmt IP %(ips)s',
+                          {'vnf_id': vnf_id,
                            'ips': hosting_vnf['management_ip_addresses']})
 
     def run_monitor(self, hosting_vnf):
@@ -146,7 +146,7 @@ class VNFMonitor(object):
                     params['mgmt_ip'] = mgmt_ips[vdu]
 
                 driver_return = self.monitor_call(driver,
-                                                  hosting_vnf['device'],
+                                                  hosting_vnf['vnf'],
                                                   params)
 
                 LOG.debug('driver_return %s', driver_return)
@@ -155,32 +155,32 @@ class VNFMonitor(object):
                     action = actions[driver_return]
                     hosting_vnf['action_cb'](hosting_vnf, action)
 
-    def mark_dead(self, device_id):
-        self._hosting_vnfs[device_id]['dead'] = True
+    def mark_dead(self, vnf_id):
+        self._hosting_vnfs[vnf_id]['dead'] = True
 
     def _invoke(self, driver, **kwargs):
         method = inspect.stack()[1][3]
         return self._monitor_manager.invoke(
             driver, method, **kwargs)
 
-    def monitor_get_config(self, device_dict):
+    def monitor_get_config(self, vnf_dict):
         return self._invoke(
-            device_dict, monitor=self, device=device_dict)
+            vnf_dict, monitor=self, vnf=vnf_dict)
 
-    def monitor_url(self, device_dict):
+    def monitor_url(self, vnf_dict):
         return self._invoke(
-            device_dict, monitor=self, device=device_dict)
+            vnf_dict, monitor=self, vnf=vnf_dict)
 
-    def monitor_call(self, driver, device_dict, kwargs):
+    def monitor_call(self, driver, vnf_dict, kwargs):
         return self._invoke(driver,
-                            device=device_dict, kwargs=kwargs)
+                            vnf=vnf_dict, kwargs=kwargs)
 
 
 @six.add_metaclass(abc.ABCMeta)
 class ActionPolicy(object):
     @classmethod
     @abc.abstractmethod
-    def execute_action(cls, plugin, device_dict):
+    def execute_action(cls, plugin, vnf_dict):
         pass
 
     _POLICIES = {}
@@ -193,11 +193,11 @@ class ActionPolicy(object):
         return _register
 
     @classmethod
-    def get_policy(cls, policy, device):
+    def get_policy(cls, policy, vnf):
         action_clses = cls._POLICIES.get(policy)
         if not action_clses:
             return None
-        infra_driver = device['device_template'].get('infra_driver')
+        infra_driver = vnf['vnfd'].get('infra_driver')
         cls = action_clses.get(infra_driver)
         if cls:
             return cls
@@ -211,17 +211,17 @@ class ActionPolicy(object):
 @ActionPolicy.register('respawn')
 class ActionRespawn(ActionPolicy):
     @classmethod
-    def execute_action(cls, plugin, device_dict):
-        LOG.error(_('device %s dead'), device_dict['id'])
-        if plugin._mark_device_dead(device_dict['id']):
-            plugin._vnf_monitor.mark_dead(device_dict['id'])
+    def execute_action(cls, plugin, vnf_dict):
+        LOG.error(_('vnf %s dead'), vnf_dict['id'])
+        if plugin._mark_vnf_dead(vnf_dict['id']):
+            plugin._vnf_monitor.mark_dead(vnf_dict['id'])
 
-            attributes = device_dict['attributes'].copy()
-            attributes['dead_device_id'] = device_dict['id']
-            new_device = {'attributes': attributes}
-            for key in ('tenant_id', 'template_id', 'name'):
-                new_device[key] = device_dict[key]
-            LOG.debug(_('new_device %s'), new_device)
+            attributes = vnf_dict['attributes'].copy()
+            attributes['dead_vnf_id'] = vnf_dict['id']
+            new_vnf = {'attributes': attributes}
+            for key in ('tenant_id', 'vnfd_id', 'name'):
+                new_vnf[key] = vnf_dict[key]
+            LOG.debug(_('new_vnf %s'), new_vnf)
 
             # keystone v2.0 specific
             authtoken = CONF.keystone_authtoken
@@ -233,54 +233,54 @@ class ActionRespawn(ActionPolicy):
             context.auth_token = token['id']
             context.tenant_id = token['tenant_id']
             context.user_id = token['user_id']
-            new_device_dict = plugin.create_device(context,
-                                                   {'device': new_device})
-            LOG.info(_('respawned new device %s'), new_device_dict['id'])
+            new_vnf_dict = plugin.create_vnf(context,
+                                             {'vnf': new_vnf})
+            LOG.info(_('respawned new vnf %s'), new_vnf_dict['id'])
 
 
 @ActionPolicy.register('respawn', 'heat')
 class ActionRespawnHeat(ActionPolicy):
     @classmethod
-    def execute_action(cls, plugin, device_dict, auth_attr):
-        device_id = device_dict['id']
-        LOG.error(_('device %s dead'), device_id)
-        if plugin._mark_device_dead(device_dict['id']):
-            plugin._vnf_monitor.mark_dead(device_dict['id'])
-            attributes = device_dict['attributes']
+    def execute_action(cls, plugin, vnf_dict, auth_attr):
+        vnf_id = vnf_dict['id']
+        LOG.error(_('vnf %s dead'), vnf_id)
+        if plugin._mark_vnf_dead(vnf_dict['id']):
+            plugin._vnf_monitor.mark_dead(vnf_dict['id'])
+            attributes = vnf_dict['attributes']
             failure_count = int(attributes.get('failure_count', '0')) + 1
             failure_count_str = str(failure_count)
             attributes['failure_count'] = failure_count_str
-            attributes['dead_instance_id_' + failure_count_str] = device_dict[
+            attributes['dead_instance_id_' + failure_count_str] = vnf_dict[
                 'instance_id']
-            placement_attr = device_dict.get('placement_attr', {})
+            placement_attr = vnf_dict.get('placement_attr', {})
             region_name = placement_attr.get('region_name')
             # kill heat stack
             heatclient = heat.HeatClient(auth_attr=auth_attr,
                                          region_name=region_name)
-            heatclient.delete(device_dict['instance_id'])
+            heatclient.delete(vnf_dict['instance_id'])
 
             # TODO(anyone) set the current request ctxt instead of admin ctxt
             context = t_context.get_admin_context()
-            update_device_dict = plugin.create_device_sync(context,
-                                                           device_dict)
-            plugin.config_device(context, update_device_dict)
-            plugin.add_device_to_monitor(update_device_dict, auth_attr)
+            update_vnf_dict = plugin.create_vnf_sync(context,
+                                                     vnf_dict)
+            plugin.config_vnf(context, update_vnf_dict)
+            plugin.add_vnf_to_monitor(update_vnf_dict, auth_attr)
 
 
 @ActionPolicy.register('log')
 class ActionLogOnly(ActionPolicy):
     @classmethod
-    def execute_action(cls, plugin, device_dict):
-        device_id = device_dict['id']
-        LOG.error(_('device %s dead'), device_id)
+    def execute_action(cls, plugin, vnf_dict):
+        vnf_id = vnf_dict['id']
+        LOG.error(_('vnf %s dead'), vnf_id)
 
 
 @ActionPolicy.register('log_and_kill')
 class ActionLogAndKill(ActionPolicy):
     @classmethod
-    def execute_action(cls, plugin, device_dict):
-        device_id = device_dict['id']
-        if plugin._mark_device_dead(device_dict['id']):
-            plugin._vnf_monitor.mark_dead(device_dict['id'])
-            plugin.delete_device(t_context.get_admin_context(), device_id)
-        LOG.error(_('device %s dead'), device_id)
+    def execute_action(cls, plugin, vnf_dict):
+        vnf_id = vnf_dict['id']
+        if plugin._mark_vnf_dead(vnf_dict['id']):
+            plugin._vnf_monitor.mark_dead(vnf_dict['id'])
+            plugin.delete_vnf(t_context.get_admin_context(), vnf_id)
+        LOG.error(_('vnf %s dead'), vnf_id)
