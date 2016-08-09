@@ -4,7 +4,7 @@
 
 # Despite above warning added by global sync process, please use
 # ascii betical order.
-http://tarballs.openstack.org/python-tackerclient/python-tackerclient-master.tar.gz#egg=python-tackerclient
+http://tarballs.openstack.org/python-tackerclient/python-tackerclient-stable-mitaka.tar.gz#egg=python-tackerclient
 cliff!=1.16.0,!=1.17.0,>=1.15.0 # Apache-2.0
 coverage>=3.6 # Apache-2.0
 discover # BSD

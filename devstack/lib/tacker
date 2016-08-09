@@ -41,11 +41,11 @@ fi
 
 # Set up default directories
 GITREPO["python-tackerclient"]=${TACKERCLIENT_REPO:-${GIT_BASE}/openstack/python-tackerclient.git}
-GITBRANCH["python-tackerclient"]=${TACKERCLIENT_BRANCH:-master}
+GITBRANCH["python-tackerclient"]=${TACKERCLIENT_BRANCH:-stable/mitaka}
 GITDIR["python-tackerclient"]=$DEST/python-tackerclient
 
 GITREPO["tacker-horizon"]=${TACKERHORIZON_REPO:-${GIT_BASE}/openstack/tacker-horizon.git}
-GITBRANCH["tacker-horizon"]=${TACKERHORIZON_BRANCH:-master}
+GITBRANCH["tacker-horizon"]=${TACKERHORIZON_BRANCH:-stable/mitaka}
 GITDIR["tacker-horizon"]=$DEST/tacker-horizon
 
 TACKER_DIR=$DEST/tacker
