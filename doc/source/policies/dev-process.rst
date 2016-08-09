@@ -17,12 +17,12 @@ Tacker launchpad [#]_ bug.
   launchpad bug.
 * Once the discussion is over a tacker-core team member will acknowledge the
   validity of this feature enhancement by moving it to the "Confirmed" state.
-* Developer will submit patchsets to implement the enhancement using the bug-id.
+* Developers submit patchsets to implement the enhancement using the bug-id.
   Note, if there are multiple patchsets Partial-Bug header should be used
   instead of Closes-Bug in the commit message.
 * Once all the patchsets are merged the bug will be moved to the "Completed"
   state.
-* The developer is expected to add a devref describing the usage of the feature
+* Developer(s) are expected to add a devref describing the usage of the feature
   and other related topics in tacker/doc/source/devref directory.
 
 This process is recommended for smaller enhancements that can be described
