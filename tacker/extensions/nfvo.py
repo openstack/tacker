@@ -73,7 +73,7 @@ class VimDuplicateUrlException(exceptions.TackerException):
                 "duplicate VIM")
 
 
-class VimPorjectDomainNameMissingException(exceptions.TackerException):
+class VimProjectDomainNameMissingException(exceptions.TackerException):
     message = _("'project_domain_name' is missing")
 
 

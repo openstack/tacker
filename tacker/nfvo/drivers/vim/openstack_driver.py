@@ -90,7 +90,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
             auth_cred['project_name'] = vim_project.get('name')
             if not vim_project.get('project_domain_name'):
                 LOG.error(_("'project_domain_name' is missing."))
-                raise nfvo.VimPorjectDomainNameMissingException()
+                raise nfvo.VimProjectDomainNameMissingException()
             auth_cred['project_domain_name'] = vim_project.get(
                 'project_domain_name')
             if not auth_cred.get('user_domain_name'):
