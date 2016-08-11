@@ -399,7 +399,7 @@ function tacker_register_default_vim {
     get_or_add_user_project_role "admin" $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
     get_or_add_user_project_role "advsvc" $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
     VIM_CONFIG_FILE="$TACKER_DIR/devstack/vim_config.yaml"
-    default_vim_id=$(tacker vim-register --is-default --name $DEFAULT_VIM_NAME --config-file $VIM_CONFIG_FILE -f value -c id)
+    default_vim_id=$(tacker vim-register --is-default --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME -f value -c id)
     echo $default_vim_id
 }
 

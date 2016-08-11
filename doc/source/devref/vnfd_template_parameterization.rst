@@ -217,7 +217,7 @@ Key Summary
 - An example of a vnf-create python-tackerclient command specifying a
   parameterized template and parameter values file would like below:
   "tacker vnf-create --vnfd-name <vnfd_name> --param-file <param_yaml_file>
-  --name <vnf_name>"
+  <vnf_name>"
 - Specifying a parameter values file during VNF creation is also supported in
   Horizon UI.
 - Sample VNFD parameterized templates and parameter values files can be found
