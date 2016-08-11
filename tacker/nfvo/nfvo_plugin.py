@@ -21,6 +21,7 @@ import uuid
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
+from oslo_utils import strutils
 
 from tacker.common import driver_manager
 from tacker.common import log
@@ -77,7 +78,8 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb):
 
     @log.log
     def create_vim(self, context, vim):
-        LOG.debug(_('Create vim called with parameters %s'), vim)
+        LOG.debug(_('Create vim called with parameters %s'),
+             strutils.mask_password(vim))
         vim_obj = vim['vim']
         vim_type = vim_obj['type']
         vim_obj['id'] = str(uuid.uuid4())

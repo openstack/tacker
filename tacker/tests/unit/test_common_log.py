@@ -68,3 +68,12 @@ class TestCallLog(base.BaseTestCase):
             self.klass.test_method(10, arg2=20, arg3=30, arg4=40)
             log_debug.assert_called_once_with(self.expected_format,
                                               self.expected_data)
+
+    def test_call_log_password_mask_args_kwargs(self):
+        auth_cred = {'userame': 'demo', 'password': 'changeit'}
+        self.expected_data['kwargs'] = {'password': '***'}
+        self.expected_data['args'] = ({'userame': 'demo', 'password': '***'})
+        with mock.patch.object(call_log.LOG, 'debug') as log_debug:
+            self.klass.test_method(auth_cred, password='guessme')
+            log_debug.assert_called_once_with(self.expected_format,
+                                              self.expected_data)
