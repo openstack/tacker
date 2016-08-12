@@ -20,14 +20,14 @@ netaddr!=0.7.16,>=0.7.12 # BSD
 SQLAlchemy<1.1.0,>=1.0.10 # MIT
 WebOb>=1.2.3 # MIT
 python-heatclient>=1.1.0 # Apache-2.0
-python-keystoneclient!=1.8.0,!=2.1.0,>=1.7.0 # Apache-2.0
+python-keystoneclient!=2.1.0,>=2.0.0 # Apache-2.0
 alembic>=0.8.4 # MIT
 six>=1.9.0 # MIT
 stevedore>=1.16.0 # Apache-2.0
 oslo.concurrency>=3.8.0 # Apache-2.0
 oslo.config>=3.14.0 # Apache-2.0
-oslo.context>=2.4.0 # Apache-2.0
-oslo.db>=4.1.0 # Apache-2.0
+oslo.context>=2.6.0 # Apache-2.0
+oslo.db>=4.10.0 # Apache-2.0
 oslo.log>=1.14.0 # Apache-2.0
 oslo.messaging>=5.2.0 # Apache-2.0
 oslo.middleware>=3.0.0 # Apache-2.0
