@@ -9,9 +9,14 @@ topology_template:
   node_templates:
     VDU1:
       type: tosca.nodes.nfv.VDU.Tacker
+      capabilities:
+        nfv_compute:
+          properties:
+            num_cpus: 1
+            mem_size: 2 GB
+            disk_size: 20 GB
       properties:
         image: ubuntu
-        flavor: m1.small
         availability_zone: nova
         mgmt_driver: noop
         config: |
