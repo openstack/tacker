@@ -20,13 +20,9 @@ import datetime
 
 from oslo_context import context as oslo_context
 from oslo_db.sqlalchemy import enginefacade
-from oslo_log import log as logging
 
 from tacker.db import api as db_api
 from tacker import policy
-
-
-LOG = logging.getLogger(__name__)
 
 
 class ContextBase(oslo_context.RequestContext):
