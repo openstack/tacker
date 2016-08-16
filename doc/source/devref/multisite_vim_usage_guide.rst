@@ -68,10 +68,9 @@ remote OpenStack site.
 Default VIM configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The default vim needs to be registered and added to tacker.conf under
-'nfvo_vim' section.  This is required when the optional argument -vim-id
-is not provided during vnf-create. Refer to steps described in
-`manual installation`_ to add it into tacker.conf.
+The default vim needs to be registered. This is required when the optional
+argument -vim-id is not provided during vnf-create. Refer to steps described in
+`manual installation`_ to register default vim.
 
 .. _manual installation: http://docs.openstack.org/developer/tacker/install/manual_installation.html#registering-default-vim
 
@@ -98,8 +97,9 @@ Deploying a new VNF on registered VIM
  +----------------+--------------------------------------+
 
 The --vim-id/--vim-name argument is optional during vnf-create. If
---vim-id/--vim-name is not specified, the 'default_vim' key in tacker.conf will
-be used to deploy VNF on the default site.
+--vim-id/--vim-name is not specified, the default vim will
+be used to deploy VNF on the default site. We can create default vim
+by specifying --is-default option with vim-register command.
 
 User can optionally provide --vim-region-name during vnf-create to deploy the
 VNF in a specify region  within that VIM.
