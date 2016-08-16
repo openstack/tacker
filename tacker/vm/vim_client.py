@@ -115,7 +115,7 @@ class VimClient(object):
         vim_key = self._find_vim_key(vim_id)
         f = Fernet(vim_key)
         if not f:
-            LOG.warn(_('Unable to decode VIM auth'))
+            LOG.warning(_('Unable to decode VIM auth'))
             raise nfvo.VimNotFoundException('Unable to decode VIM auth key')
         return f.decrypt(cred)
 
@@ -125,4 +125,4 @@ class VimClient(object):
         LOG.debug(_('Attempting to open key file for vim id %s'), vim_id)
         with open(key_file, 'r') as f:
                 return f.read()
-        LOG.warn(_('VIM id invalid or key not found for  %s'), vim_id)
+        LOG.warning(_('VIM id invalid or key not found for  %s'), vim_id)

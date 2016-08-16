@@ -141,7 +141,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
         try:
             regions_list = self._find_regions(ks_client)
         except exceptions.Unauthorized as e:
-            LOG.warn(_("Authorization failed for user"))
+            LOG.warning(_("Authorization failed for user"))
             raise nfvo.VimUnauthorizedException(message=e.message)
         vim_obj['placement_attr'] = {'regions': regions_list}
         return vim_obj
@@ -178,7 +178,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
             os.remove(key_file)
             LOG.debug(_('VIM key deleted successfully for vim %s'), vim_id)
         except OSError:
-            LOG.warn(_('VIM key deletion unsuccessful for vim %s'), vim_id)
+            LOG.warning(_('VIM key deletion unsuccessful for vim %s'), vim_id)
 
     @log.log
     def encode_vim_auth(self, vim_id, auth):
