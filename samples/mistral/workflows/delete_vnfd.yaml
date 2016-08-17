@@ -1,0 +1,16 @@
+---
+version: '2.0'
+
+std.delete_vnfd:
+  type: direct
+
+  description: |
+    Delete a VNFD.
+
+  input:
+    - vnfd_id
+
+  tasks:
+    delete_vnfd:
+      description: Request to delete a VNFD.
+      action: tacker.delete_vnfd vnfd=<% $.vnfd_id %>

@@ -1,0 +1,22 @@
+---
+version: '2.0'
+
+std.create_vnfd:
+  type: direct
+
+  description: |
+    Create a VNFD.
+
+  input:
+    - body
+  output:
+    vnfd_id: <% $.vnfd_id %>
+
+  tasks:
+    create_vnfd:
+      description: Request to create a VNFD.
+      action: tacker.create_vnfd body=<% $.body %>
+      input:
+        body: <% $.body %>
+      publish:
+        vnfd_id: <% task(create_vnfd).result.vnfd.id %>

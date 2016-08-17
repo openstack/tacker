@@ -1,0 +1,10 @@
+{
+   "body":{
+      "vnfd":{
+         "attributes":{
+            "vnfd":"tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0\n\ndescription: Demo example\n\nmetadata:\n  template_name: sample-tosca-vnfd\n\ntopology_template:\n  node_templates:\n    VDU1:\n      type: tosca.nodes.nfv.VDU.Tacker\n      properties:\n        image: cirros-0.3.4-x86_64-uec\n        flavor: m1.tiny\n        availability_zone: nova\n        mgmt_driver: noop\n        config: |\n          param0: key1\n          param1: key2\n\n    CP1:\n      type: tosca.nodes.nfv.CP.Tacker\n      properties:\n        management: true\n        anti_spoofing_protection: false\n      requirements:\n        - virtualLink:\n            node: VL1\n        - virtualBinding:\n            node: VDU1\n\n    CP2:\n      type: tosca.nodes.nfv.CP.Tacker\n      properties:\n        anti_spoofing_protection: false\n      requirements:\n        - virtualLink:\n            node: VL2\n        - virtualBinding:\n            node: VDU1\n\n    CP3:\n      type: tosca.nodes.nfv.CP.Tacker\n      properties:\n        anti_spoofing_protection: false\n      requirements:\n        - virtualLink:\n            node: VL3\n        - virtualBinding:\n            node: VDU1\n\n    VL1:\n      type: tosca.nodes.nfv.VL\n      properties:\n        network_name: net_mgmt\n        vendor: Tacker\n\n    VL2:\n      type: tosca.nodes.nfv.VL\n      properties:\n        network_name: net0\n        vendor: Tacker\n\n    VL3:\n      type: tosca.nodes.nfv.VL\n      properties:\n        network_name: net1\n        vendor: Tacker\n"
+         },
+         "name":"tacker-create-vnfd"
+      }
+   }
+}
