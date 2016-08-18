@@ -97,7 +97,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
     def _insert_dummy_device_template(self):
         session = self.context.session
-        device_template = vm_db.DeviceTemplate(
+        device_template = vm_db.VNFD(
             id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_template',
@@ -110,13 +110,13 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
     def _insert_dummy_device(self):
         session = self.context.session
-        device_db = vm_db.Device(
+        device_db = vm_db.VNF(
             id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_device',
             description='fake_device_description',
             instance_id='da85ea1a-4ec4-4201-bbb2-8d9249eca7ec',
-            template_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            vnfd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             placement_attr={'region': 'RegionOne'},
             status='ACTIVE')

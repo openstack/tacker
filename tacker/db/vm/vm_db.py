@@ -42,9 +42,10 @@ CREATE_STATES = (constants.PENDING_CREATE, constants.DEAD)
 ###########################################################################
 # db tables
 
-class DeviceTemplate(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
-    """Represents template to create hosting device."""
+class VNFD(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
+    """Represents VNFD to create VNF."""
 
+    __tablename__ = 'vnfd'
     # Descriptive name
     name = sa.Column(sa.String(255), nullable=False)
     description = sa.Column(sa.Text)
@@ -61,7 +62,7 @@ class DeviceTemplate(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     mgmt_driver = sa.Column(sa.String(255))
 
     # (key, value) pair to spin up
-    attributes = orm.relationship('DeviceTemplateAttribute',
+    attributes = orm.relationship('VNFDAttribute',
                                   backref='template')
 
 
@@ -71,32 +72,36 @@ class ServiceType(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     Since a device may provide many services, This is one-to-many
     relationship.
     """
-    template_id = sa.Column(types.Uuid, sa.ForeignKey('devicetemplates.id'),
-                            nullable=False)
+    vnfd_id = sa.Column(types.Uuid, sa.ForeignKey('vnfd.id'),
+                        nullable=False)
     service_type = sa.Column(sa.String(64), nullable=False)
 
 
-class DeviceTemplateAttribute(model_base.BASE, models_v1.HasId):
+class VNFDAttribute(model_base.BASE, models_v1.HasId):
     """Represents attributes necessary for spinning up VM in (key, value) pair
 
     key value pair is adopted for being agnostic to actuall manager of VMs
     like nova, heat or others. e.g. image-id, flavor-id for Nova.
     The interpretation is up to actual driver of hosting device.
     """
-    template_id = sa.Column(types.Uuid, sa.ForeignKey('devicetemplates.id'),
-                            nullable=False)
+
+    __tablename__ = 'vnfd_attribute'
+    vnfd_id = sa.Column(types.Uuid, sa.ForeignKey('vnfd.id'),
+                        nullable=False)
     key = sa.Column(sa.String(255), nullable=False)
     value = sa.Column(sa.TEXT(65535), nullable=True)
 
 
-class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
+class VNF(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     """Represents devices that hosts services.
 
     Here the term, 'VM', is intentionally avoided because it can be
     VM or other container.
     """
-    template_id = sa.Column(types.Uuid, sa.ForeignKey('devicetemplates.id'))
-    template = orm.relationship('DeviceTemplate')
+
+    __tablename__ = 'vnf'
+    vnfd_id = sa.Column(types.Uuid, sa.ForeignKey('vnfd.id'))
+    vnfd = orm.relationship('VNFD')
 
     name = sa.Column(sa.String(255), nullable=False)
     description = sa.Column(sa.Text, nullable=True)
@@ -109,7 +114,7 @@ class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     # opaque string.
     # e.g. (driver, mgmt_url) = (ssh, ip address), ...
     mgmt_url = sa.Column(sa.String(255), nullable=True)
-    attributes = orm.relationship("DeviceAttribute", backref="device")
+    attributes = orm.relationship("VNFAttribute", backref="device")
 
     status = sa.Column(sa.String(64), nullable=False)
     vim_id = sa.Column(types.Uuid, sa.ForeignKey('vims.id'), nullable=False)
@@ -118,15 +123,17 @@ class Device(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     error_reason = sa.Column(sa.Text, nullable=True)
 
 
-class DeviceAttribute(model_base.BASE, models_v1.HasId):
+class VNFAttribute(model_base.BASE, models_v1.HasId):
     """Represents kwargs necessary for spinning up VM in (key, value) pair.
 
     key value pair is adopted for being agnostic to actuall manager of VMs
     like nova, heat or others. e.g. image-id, flavor-id for Nova.
     The interpretation is up to actual driver of hosting device.
     """
-    device_id = sa.Column(types.Uuid, sa.ForeignKey('devices.id'),
-                          nullable=False)
+
+    __tablename__ = 'vnf_attribute'
+    vnf_id = sa.Column(types.Uuid, sa.ForeignKey('vnf.id'),
+                       nullable=False)
     key = sa.Column(sa.String(255), nullable=False)
     # json encoded value. example
     # "nic": [{"net-id": <net-uuid>}, {"port-id": <port-uuid>}]
@@ -150,11 +157,11 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         try:
             return self._get_by_id(context, model, id)
         except orm_exc.NoResultFound:
-            if issubclass(model, DeviceTemplate):
+            if issubclass(model, VNFD):
                 raise vnfm.DeviceTemplateNotFound(device_template_id=id)
             elif issubclass(model, ServiceType):
                 raise vnfm.ServiceTypeNotFound(service_type_id=id)
-            if issubclass(model, Device):
+            if issubclass(model, VNF):
                 raise vnfm.DeviceNotFound(device_id=id)
             else:
                 raise
@@ -186,11 +193,11 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         LOG.debug(_('device_db attributes %s'), device_db.attributes)
         res = {
             'device_template':
-            self._make_template_dict(device_db.template),
+            self._make_template_dict(device_db.vnfd),
             'attributes': self._make_dev_attrs_dict(device_db.attributes),
         }
         key_list = ('id', 'tenant_id', 'name', 'description', 'instance_id',
-                    'vim_id', 'placement_attr', 'template_id', 'status',
+                    'vim_id', 'placement_attr', 'vnfd_id', 'status',
                     'mgmt_url', 'error_reason')
         res.update((key, device_db[key]) for key in key_list)
         return self._fields(res, fields)
@@ -227,7 +234,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
         with context.session.begin(subtransactions=True):
             template_id = str(uuid.uuid4())
-            template_db = DeviceTemplate(
+            template_db = VNFD(
                 id=template_id,
                 tenant_id=tenant_id,
                 name=template.get('name'),
@@ -236,9 +243,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 mgmt_driver=mgmt_driver)
             context.session.add(template_db)
             for (key, value) in template.get('attributes', {}).items():
-                attribute_db = DeviceTemplateAttribute(
+                attribute_db = VNFDAttribute(
                     id=str(uuid.uuid4()),
-                    template_id=template_id,
+                    vnfd_id=template_id,
                     key=key,
                     value=value)
                 context.session.add(attribute_db)
@@ -247,7 +254,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 service_type_db = ServiceType(
                     id=str(uuid.uuid4()),
                     tenant_id=tenant_id,
-                    template_id=template_id,
+                    vnfd_id=template_id,
                     service_type=service_type)
                 context.session.add(service_type_db)
 
@@ -259,7 +266,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
     def update_device_template(self, context, device_template_id,
                                device_template):
         with context.session.begin(subtransactions=True):
-            template_db = self._get_resource(context, DeviceTemplate,
+            template_db = self._get_resource(context, VNFD,
                                              device_template_id)
             template_db.update(device_template['device_template'])
         return self._make_template_dict(template_db)
@@ -268,27 +275,27 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         with context.session.begin(subtransactions=True):
             # TODO(yamahata): race. prevent from newly inserting hosting device
             #                 that refers to this template
-            devices_db = context.session.query(Device).filter_by(
-                template_id=device_template_id).first()
+            devices_db = context.session.query(VNF).filter_by(
+                vnfd_id=device_template_id).first()
             if devices_db is not None:
                 raise vnfm.DeviceTemplateInUse(
                     device_template_id=device_template_id)
 
             context.session.query(ServiceType).filter_by(
-                template_id=device_template_id).delete()
-            context.session.query(DeviceTemplateAttribute).filter_by(
-                template_id=device_template_id).delete()
-            template_db = self._get_resource(context, DeviceTemplate,
+                vnfd_id=device_template_id).delete()
+            context.session.query(VNFDAttribute).filter_by(
+                vnfd_id=device_template_id).delete()
+            template_db = self._get_resource(context, VNFD,
                                              device_template_id)
             context.session.delete(template_db)
 
     def get_device_template(self, context, device_template_id, fields=None):
-        template_db = self._get_resource(context, DeviceTemplate,
+        template_db = self._get_resource(context, VNFD,
                                          device_template_id)
         return self._make_template_dict(template_db)
 
     def get_device_templates(self, context, filters, fields=None):
-        return self._get_collection(context, DeviceTemplate,
+        return self._get_collection(context, VNFD,
                                     self._make_template_dict,
                                     filters=filters, fields=fields)
 
@@ -298,19 +305,19 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         LOG.debug(_('required_attributes %s'), required_attributes)
         with context.session.begin(subtransactions=True):
             query = (
-                context.session.query(DeviceTemplate).
+                context.session.query(VNFD).
                 filter(
                     sa.exists().
                     where(sa.and_(
-                        DeviceTemplate.id == ServiceType.template_id,
+                        VNFD.id == ServiceType.vnfd_id,
                         ServiceType.service_type == service_type))))
             for key in required_attributes:
                 query = query.filter(
                     sa.exists().
                     where(sa.and_(
-                        DeviceTemplate.id ==
-                        DeviceTemplateAttribute.template_id,
-                        DeviceTemplateAttribute.key == key)))
+                        VNFD.id ==
+                        VNFDAttribute.vnfd_id,
+                        VNFDAttribute.key == key)))
             LOG.debug(_('statements %s'), query)
             template_db = query.first()
             if template_db:
@@ -318,14 +325,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def _device_attribute_update_or_create(
             self, context, device_id, key, value):
-        arg = (self._model_query(context, DeviceAttribute).
-               filter(DeviceAttribute.device_id == device_id).
-               filter(DeviceAttribute.key == key).first())
+        arg = (self._model_query(context, VNFAttribute).
+               filter(VNFAttribute.vnf_id == device_id).
+               filter(VNFAttribute.key == key).first())
         if arg:
             arg.value = value
         else:
-            arg = DeviceAttribute(
-                id=str(uuid.uuid4()), device_id=device_id,
+            arg = VNFAttribute(
+                id=str(uuid.uuid4()), vnf_id=device_id,
                 key=key, value=value)
             context.session.add(arg)
 
@@ -340,22 +347,22 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         vim_id = device.get('vim_id')
         placement_attr = device.get('placement_attr', {})
         with context.session.begin(subtransactions=True):
-            template_db = self._get_resource(context, DeviceTemplate,
+            template_db = self._get_resource(context, VNFD,
                                              template_id)
-            device_db = Device(id=device_id,
-                               tenant_id=tenant_id,
-                               name=name,
-                               description=template_db.description,
-                               instance_id=None,
-                               template_id=template_id,
-                               vim_id=vim_id,
-                               placement_attr=placement_attr,
-                               status=constants.PENDING_CREATE,
-                               error_reason=None)
+            device_db = VNF(id=device_id,
+                            tenant_id=tenant_id,
+                            name=name,
+                            description=template_db.description,
+                            instance_id=None,
+                            vnfd_id=template_id,
+                            vim_id=vim_id,
+                            placement_attr=placement_attr,
+                            status=constants.PENDING_CREATE,
+                            error_reason=None)
             context.session.add(device_db)
             for key, value in attributes.items():
-                    arg = DeviceAttribute(
-                        id=str(uuid.uuid4()), device_id=device_id,
+                    arg = VNFAttribute(
+                        id=str(uuid.uuid4()), vnf_id=device_id,
                         key=key, value=value)
                     context.session.add(arg)
 
@@ -367,9 +374,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                             mgmt_url, device_dict):
         LOG.debug(_('device_dict %s'), device_dict)
         with context.session.begin(subtransactions=True):
-            query = (self._model_query(context, Device).
-                     filter(Device.id == device_id).
-                     filter(Device.status.in_(CREATE_STATES)).
+            query = (self._model_query(context, VNF).
+                     filter(VNF.id == device_id).
+                     filter(VNF.status.in_(CREATE_STATES)).
                      one())
             query.update({'instance_id': instance_id, 'mgmt_url': mgmt_url})
             if instance_id is None or device_dict['status'] == constants.ERROR:
@@ -383,17 +390,17 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def _create_device_status(self, context, device_id, new_status):
         with context.session.begin(subtransactions=True):
-            query = (self._model_query(context, Device).
-                     filter(Device.id == device_id).
-                     filter(Device.status.in_(CREATE_STATES)).one())
+            query = (self._model_query(context, VNF).
+                     filter(VNF.id == device_id).
+                     filter(VNF.status.in_(CREATE_STATES)).one())
             query.update({'status': new_status})
 
     def _get_device_db(self, context, device_id, current_statuses, new_status):
         try:
             device_db = (
-                self._model_query(context, Device).
-                filter(Device.id == device_id).
-                filter(Device.status.in_(current_statuses)).
+                self._model_query(context, VNF).
+                filter(VNF.id == device_id).
+                filter(VNF.status.in_(current_statuses)).
                 with_lockmode('update').one())
         except orm_exc.NoResultFound:
             raise vnfm.DeviceNotFound(device_id=device_id)
@@ -424,15 +431,15 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
     def _update_device_post(self, context, device_id, new_status,
                             new_device_dict=None):
         with context.session.begin(subtransactions=True):
-            (self._model_query(context, Device).
-             filter(Device.id == device_id).
-             filter(Device.status == constants.PENDING_UPDATE).
+            (self._model_query(context, VNF).
+             filter(VNF.id == device_id).
+             filter(VNF.status == constants.PENDING_UPDATE).
              update({'status': new_status}))
 
             dev_attrs = new_device_dict.get('attributes', {})
-            (context.session.query(DeviceAttribute).
-             filter(DeviceAttribute.device_id == device_id).
-             filter(~DeviceAttribute.key.in_(dev_attrs.keys())).
+            (context.session.query(VNFAttribute).
+             filter(VNFAttribute.vnf_id == device_id).
+             filter(~VNFAttribute.key.in_(dev_attrs.keys())).
              delete(synchronize_session='fetch'))
 
             for (key, value) in dev_attrs.items():
@@ -451,14 +458,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
     def _delete_device_post(self, context, device_id, error):
         with context.session.begin(subtransactions=True):
             query = (
-                self._model_query(context, Device).
-                filter(Device.id == device_id).
-                filter(Device.status == constants.PENDING_DELETE))
+                self._model_query(context, VNF).
+                filter(VNF.id == device_id).
+                filter(VNF.status == constants.PENDING_DELETE))
             if error:
                 query.update({'status': constants.ERROR})
             else:
-                (self._model_query(context, DeviceAttribute).
-                 filter(DeviceAttribute.device_id == device_id).delete())
+                (self._model_query(context, VNFAttribute).
+                 filter(VNFAttribute.vnf_id == device_id).delete())
                 query.delete()
 
     # reference implementation. needs to be overrided by subclass
@@ -493,17 +500,17 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         self._delete_device_post(context, device_id, False)
 
     def get_device(self, context, device_id, fields=None):
-        device_db = self._get_resource(context, Device, device_id)
+        device_db = self._get_resource(context, VNF, device_id)
         return self._make_device_dict(device_db, fields)
 
     def get_devices(self, context, filters=None, fields=None):
-        return self._get_collection(context, Device, self._make_device_dict,
+        return self._get_collection(context, VNF, self._make_device_dict,
                                     filters=filters, fields=fields)
 
     def set_device_error_status_reason(self, context, device_id, new_reason):
         with context.session.begin(subtransactions=True):
-            (self._model_query(context, Device).
-                filter(Device.id == device_id).
+            (self._model_query(context, VNF).
+                filter(VNF.id == device_id).
                 update({'error_reason': new_reason}))
 
     def _mark_device_status(self, device_id, exclude_status, new_status):
@@ -511,9 +518,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         with context.session.begin(subtransactions=True):
             try:
                 device_db = (
-                    self._model_query(context, Device).
-                    filter(Device.id == device_id).
-                    filter(~Device.status.in_(exclude_status)).
+                    self._model_query(context, VNF).
+                    filter(VNF.id == device_id).
+                    filter(~VNF.status.in_(exclude_status)).
                     with_lockmode('update').one())
             except orm_exc.NoResultFound:
                 LOG.warning(_('no device found %s'), device_id)
