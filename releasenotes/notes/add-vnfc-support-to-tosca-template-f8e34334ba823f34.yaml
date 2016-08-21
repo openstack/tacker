@@ -1,0 +1,8 @@
+---
+features:
+  - Add support to pass shell script to install VNF
+    components in the tosca template
+other:
+  - Only one VNFC is supported for one VDU. Multiple VNFC per VDU will
+    be introduced in future.
+  - The shell script for vnfc has to be placed in the machine where tacker server is running

@@ -35,6 +35,7 @@ TACKERVDU = 'tosca.nodes.nfv.VDU.Tacker'
 TOSCA_BINDS_TO = 'tosca.relationships.network.BindsTo'
 VDU = 'tosca.nodes.nfv.VDU'
 IMAGE = 'tosca.artifacts.Deployment.Image.VM'
+HEAT_SOFTWARE_CONFIG = 'OS::Heat::SoftwareConfig'
 OS_RESOURCES = {
     'flavor': 'get_flavor_dict',
     'image': 'get_image_dict'
@@ -254,6 +255,13 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
                 metadata_dict
 
     add_resources_tpl(heat_dict, res_tpl)
+    for res in heat_dict["resources"].values():
+        if not res['type'] == HEAT_SOFTWARE_CONFIG:
+            continue
+        config = res["properties"]["config"]
+        if 'get_file' in config:
+            res["properties"]["config"] = open(config["get_file"]).read()
+
     if unsupported_res_prop:
         convert_unsupported_res_prop(heat_dict, unsupported_res_prop)
     return yaml.dump(heat_dict)

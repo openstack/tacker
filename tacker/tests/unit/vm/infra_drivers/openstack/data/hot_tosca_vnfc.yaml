@@ -1,0 +1,36 @@
+heat_template_version: 2013-05-23
+parameters: {}
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      config_drive: false
+      flavor: m1.small
+      image: Fedora
+      networks:
+      - port:
+          get_resource: CP1
+      user_data_format: SOFTWARE_CONFIG
+  CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: existing_network_1
+      port_security_enabled: false
+  firewall_vnfc_create_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: 'echo "Test case for Tacker";'
+      group: script
+  firewall_vnfc_create_deploy:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      config: {get_resource: firewall_vnfc_create_config}
+      server: {get_resource: VDU1}
+    depends_on:
+      - VDU1
+
+outputs:
+  mgmt_ip-VDU1:
+    value:
+      get_attr: [CP1, fixed_ips, 0, ip_address]
+

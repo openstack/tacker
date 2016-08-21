@@ -257,3 +257,9 @@ node_types:
         required: true
         entry_schema:
           type: tosca.nfv.datatypes.pathType
+  tosca.nodes.nfv.VNFC.Tacker:
+    derived_from: tosca.nodes.SoftwareComponent
+    requirements:
+      - host:
+         node: tosca.nodes.nfv.VDU.Tacker
+         relationship: tosca.relationships.HostedOn
