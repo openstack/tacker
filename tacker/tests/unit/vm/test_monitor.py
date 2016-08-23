@@ -20,7 +20,7 @@ import testtools
 
 from tacker.db.common_services import common_services_db
 from tacker.plugins.common import constants
-from tacker.vnfm.monitor import VNFMonitor
+from tacker.vnfm import monitor
 
 MOCK_DEVICE_ID = 'a737497c-761c-11e5-89c3-9cb6541d805d'
 MOCK_VNF_DEVICE = {
@@ -81,7 +81,7 @@ class TestVNFMonitor(testtools.TestCase):
             'vnf': test_device_dict,
             'monitoring_policy': MOCK_VNF_DEVICE['monitoring_policy']
         }
-        output_dict = VNFMonitor.to_hosting_vnf(test_device_dict,
+        output_dict = monitor.VNFMonitor.to_hosting_vnf(test_device_dict,
                                                 action_cb)
         self.assertEqual(expected_output, output_dict)
 
@@ -98,7 +98,7 @@ class TestVNFMonitor(testtools.TestCase):
         }
         action_cb = mock.MagicMock()
         test_boot_wait = 30
-        test_vnfmonitor = VNFMonitor(test_boot_wait)
+        test_vnfmonitor = monitor.VNFMonitor(test_boot_wait)
         new_dict = test_vnfmonitor.to_hosting_vnf(test_device_dict, action_cb)
         test_vnfmonitor.add_hosting_vnf(new_dict)
         test_device_id = list(test_vnfmonitor._hosting_vnfs.keys())[0]
@@ -120,7 +120,7 @@ class TestVNFMonitor(testtools.TestCase):
             'mgmt_ip': 'a.b.c.d',
             'timeout': 2
         }
-        test_vnfmonitor = VNFMonitor(test_boot_wait)
+        test_vnfmonitor = monitor.VNFMonitor(test_boot_wait)
         self.mock_monitor_manager.invoke = mock.MagicMock()
         test_vnfmonitor._monitor_manager = self.mock_monitor_manager
         test_vnfmonitor.run_monitor(test_hosting_vnf)

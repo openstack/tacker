@@ -12,7 +12,7 @@
 #    under the License.
 
 from oslo_config import cfg
-from toscaparser.tosca_template import ToscaTemplate
+from toscaparser import tosca_template
 import yaml
 
 from tacker.common import utils
@@ -58,7 +58,7 @@ class VnfTestToscaMultipleVDU(base.BaseTackerTest):
         input_dict = yaml.load(input_yaml)
         toscautils.updateimports(input_dict)
 
-        tosca = ToscaTemplate(parsed_params={}, a_file=False,
+        tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
                           yaml_dict_tpl=input_dict)
 
         vdus = toscautils.findvdus(tosca)

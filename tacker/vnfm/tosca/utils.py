@@ -18,7 +18,7 @@ import yaml
 
 from oslo_log import log as logging
 from six import iteritems
-from toscaparser.properties import Property
+from toscaparser import properties
 from toscaparser.utils import yamlparser
 
 from tacker.common import log
@@ -227,8 +227,8 @@ def post_process_template(template):
                     if prop == p.name:
                         schema_dict = {'type': p.type}
                         v = nt.get_property_value(p.name)
-                        newprop = Property(convert_prop[nt.type][prop], v,
-                                           schema_dict)
+                        newprop = properties.Property(
+                            convert_prop[nt.type][prop], v, schema_dict)
                         nt.get_properties_objects().append(newprop)
                         nt.get_properties_objects().remove(p)
 

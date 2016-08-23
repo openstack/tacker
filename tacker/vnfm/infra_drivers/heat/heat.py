@@ -22,9 +22,9 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from six import iteritems
-from toscaparser.tosca_template import ToscaTemplate
+from toscaparser import tosca_template
 from toscaparser.utils import yamlparser
-from translator.hot.tosca_translator import TOSCATranslator
+from translator.hot import tosca_translator
 import yaml
 
 from tacker.common import clients
@@ -115,8 +115,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
             toscautils.updateimports(inner_vnfd_dict)
 
             try:
-                tosca = ToscaTemplate(a_file=False,
-                                      yaml_dict_tpl=inner_vnfd_dict)
+                tosca = tosca_template.ToscaTemplate(
+                    a_file=False, yaml_dict_tpl=inner_vnfd_dict)
             except Exception as e:
                 LOG.exception(_("tosca-parser error: %s"), str(e))
                 raise vnfm.ToscaParserFailed(error_msg_details=str(e))
@@ -321,9 +321,9 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
             toscautils.updateimports(vnfd_dict)
 
             try:
-                tosca = ToscaTemplate(parsed_params=parsed_params,
-                                      a_file=False,
-                                      yaml_dict_tpl=vnfd_dict)
+                tosca = tosca_template.ToscaTemplate(
+                    parsed_params=parsed_params, a_file=False,
+                    yaml_dict_tpl=vnfd_dict)
 
             except Exception as e:
                 LOG.debug("tosca-parser error: %s", str(e))
@@ -335,7 +335,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
                                                     STACK_FLAVOR_EXTRA)
             toscautils.post_process_template(tosca)
             try:
-                translator = TOSCATranslator(tosca, parsed_params)
+                translator = tosca_translator.TOSCATranslator(tosca,
+                                                              parsed_params)
                 heat_template_yaml = translator.translate()
             except Exception as e:
                 LOG.debug("heat-translator error: %s", str(e))

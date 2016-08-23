@@ -20,7 +20,7 @@ from oslo_serialization import jsonutils
 import yaml
 
 from tacker.common import cmd_executer
-from tacker.common.exceptions import MgmtDriverException
+from tacker.common import exceptions
 from tacker.common import log
 from tacker.vnfm.mgmt_drivers import abstract_driver
 from tacker.vnfm.mgmt_drivers import constants as mgmt_constants
@@ -65,7 +65,7 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
             commander.execute_command(cmd, input_data=config)
         except Exception as ex:
             LOG.error(_("While executing command on remote: %s"), ex)
-            raise MgmtDriverException()
+            raise exceptions.MgmtDriverException()
 
     @log.log
     def mgmt_call(self, plugin, context, vnf, kwargs):

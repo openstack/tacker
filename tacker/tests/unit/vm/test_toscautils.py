@@ -17,8 +17,8 @@ import testtools
 import yaml
 
 from tacker.vnfm.tosca import utils as toscautils
-from toscaparser.tosca_template import ToscaTemplate
-from translator.hot.tosca_translator import TOSCATranslator
+from toscaparser import tosca_template
+from translator.hot import tosca_translator
 
 
 def _get_template(name):
@@ -33,7 +33,7 @@ class TestToscaUtils(testtools.TestCase):
     tosca_openwrt = _get_template('test_tosca_openwrt.yaml')
     vnfd_dict = yaml.load(tosca_openwrt)
     toscautils.updateimports(vnfd_dict)
-    tosca = ToscaTemplate(parsed_params={}, a_file=False,
+    tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
                           yaml_dict_tpl=vnfd_dict)
     tosca_flavor = _get_template('test_tosca_flavor.yaml')
 
@@ -70,7 +70,7 @@ class TestToscaUtils(testtools.TestCase):
         self.assertEqual(expected_mgmt_ports, mgmt_ports)
 
     def test_post_process_template(self):
-        tosca2 = ToscaTemplate(parsed_params={}, a_file=False,
+        tosca2 = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
                           yaml_dict_tpl=self.vnfd_dict)
         toscautils.post_process_template(tosca2)
         invalidNodes = 0
@@ -101,10 +101,10 @@ class TestToscaUtils(testtools.TestCase):
         self.assertEqual(0, convertedProperties)
 
     def test_post_process_heat_template(self):
-        tosca1 = ToscaTemplate(parsed_params={}, a_file=False,
+        tosca1 = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
                           yaml_dict_tpl=self.vnfd_dict)
         toscautils.post_process_template(tosca1)
-        translator = TOSCATranslator(tosca1, {})
+        translator = tosca_translator.TOSCATranslator(tosca1, {})
         heat_template_yaml = translator.translate()
         expected_heat_tpl = _get_template('hot_tosca_openwrt.yaml')
         mgmt_ports = toscautils.get_mgmt_ports(self.tosca)
@@ -127,7 +127,8 @@ class TestToscaUtils(testtools.TestCase):
     def test_get_flavor_dict(self):
         vnfd_dict = yaml.load(self.tosca_flavor)
         toscautils.updateimports(vnfd_dict)
-        tosca = ToscaTemplate(a_file=False, yaml_dict_tpl=vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(a_file=False,
+                                             yaml_dict_tpl=vnfd_dict)
         expected_flavor_dict = {
             "VDU1": {
                 "vcpus": 2,
@@ -159,7 +160,8 @@ class TestToscaUtils(testtools.TestCase):
             'tosca_flavor_all_numa_count.yaml')
         vnfd_dict = yaml.load(tosca_fes_all_numa_count)
         toscautils.updateimports(vnfd_dict)
-        tosca = ToscaTemplate(a_file=False, yaml_dict_tpl=vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(a_file=False,
+                                             yaml_dict_tpl=vnfd_dict)
         expected_flavor_dict = {
             "VDU1": {
                 "vcpus": 8,
@@ -181,7 +183,8 @@ class TestToscaUtils(testtools.TestCase):
             'tosca_flavor_all_numa_count.yaml')
         vnfd_dict = yaml.load(tosca_fes_all_numa_count)
         toscautils.updateimports(vnfd_dict)
-        tosca = ToscaTemplate(a_file=False, yaml_dict_tpl=vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(a_file=False,
+                                             yaml_dict_tpl=vnfd_dict)
         expected_flavor_dict = {
             "VDU1": {
                 "vcpus": 8,
