@@ -37,7 +37,7 @@ To register a new OpenStack VIM inside Tacker
 
 ::
 
- $ tacker vim-register --name Site1 --description 'OpenStack Liberty' --config-file vim_config.yaml
+ $ tacker vim-register --description 'OpenStack Liberty' --config-file vim_config.yaml Site1
  Created a new vim:
  +----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
  | Field          | Value                                                                                                                                                    |
@@ -79,7 +79,7 @@ Deploying a new VNF on registered VIM
 
 ::
 
- $ tacker vnf-create --name openwrt_VNF --description 'Openwrt VNF on Site1' --vnfd-id c3cbf0c0-a492-49e3-9541-945e49e7ed7e --vim-name Site1
+ $ tacker vnf-create --description 'Openwrt VNF on Site1' --vnfd-id c3cbf0c0-a492-49e3-9541-945e49e7ed7e --vim-name Site1 openwrt_VNF
  Created a new vnf:
  +----------------+--------------------------------------+
  | Field          | Value                                |

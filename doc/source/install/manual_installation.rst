@@ -312,8 +312,7 @@ the user during vnf-create.
 .. code-block:: console
 
     tacker vim-register --is-default --config-file config.yaml \
-        --name <Default VIM name> --description <Default VIM description>
-..
+    --description <Default VIM description> <Default VIM Name>
 
 config.yaml will contain VIM specific parameters as below:
 

@@ -58,14 +58,14 @@ ii). Create a sample vnfd.
 
 .. code-block:: console
 
-    tacker vnfd-create --name <NAME> --vnfd-file sample-vnfd.yml
+    tacker vnfd-create --vnfd-file sample-vnfd.yml <NAME>
 ..
 
 iii). Create a VNF.
 
 .. code-block:: console
 
-    tacker vnf-create --name <NAME> --vnfd-id <VNFD_ID>
+    tacker vnf-create --vnfd-id <VNFD_ID> <NAME>
 ..
 
 iv). Check the status.
