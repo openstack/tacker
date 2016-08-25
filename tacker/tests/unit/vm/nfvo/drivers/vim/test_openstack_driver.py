@@ -145,7 +145,7 @@ class TestOpenstack_Driver(base.TestCase):
                    'auth_cred': auth_cred,
                    'vim_project': {'id': sentinel.prj_id1,
                                    'name': sentinel.prj_name1}}
-        self.assertRaises(nfvo.VimPorjectDomainNameMissingException,
+        self.assertRaises(nfvo.VimProjectDomainNameMissingException,
                           self.openstack_driver.authenticate_vim,
                           vim_obj)
 
