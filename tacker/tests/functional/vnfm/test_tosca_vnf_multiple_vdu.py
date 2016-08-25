@@ -26,13 +26,11 @@ CONF = cfg.CONF
 
 class VnfTestToscaMultipleVDU(base.BaseTackerTest):
     def test_create_delete_tosca_vnf_with_multiple_vdus(self):
-        data = dict()
         input_yaml = read_file('sample-tosca-vnfd-multi-vdu.yaml')
-        data['tosca'] = input_yaml
-        toscal = data['tosca']
+        tosca_dict = yaml.safe_load(input_yaml)
         vnfd_name = 'sample-tosca-vnfd-multi-vdu'
         tosca_arg = {'vnfd': {'name': vnfd_name,
-                              'attributes': {'vnfd': toscal}}}
+                              'attributes': {'vnfd': tosca_dict}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)

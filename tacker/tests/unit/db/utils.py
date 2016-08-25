@@ -15,6 +15,7 @@
 
 import codecs
 import os
+import yaml
 
 
 def _get_template(name):
@@ -38,7 +39,7 @@ def get_dummy_vnfd_obj():
                       'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                       u'mgmt_driver': u'noop',
                       u'infra_driver': u'fake_driver',
-                      u'attributes': {u'vnfd': vnfd_openwrt},
+                      u'attributes': {u'vnfd': yaml.safe_load(vnfd_openwrt)},
                       'description': 'dummy_vnfd_description'},
             u'auth': {u'tenantName': u'admin', u'passwordCredentials': {
                 u'username': u'admin', u'password': u'devstack'}}}

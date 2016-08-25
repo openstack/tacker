@@ -28,6 +28,7 @@ from tacker._i18n import _LE
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
 from tacker.common import exceptions
+from tacker.common import utils
 from tacker.db.vm import vm_db
 from tacker.extensions import vnfm
 from tacker.plugins.common import constants
@@ -132,7 +133,16 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     def create_vnfd(self, context, vnfd):
         vnfd_data = vnfd['vnfd']
-        if "tosca_definitions_version" not in vnfd_data['attributes']['vnfd']:
+        template = vnfd_data['attributes'].get('vnfd')
+        if isinstance(template, dict):
+            # TODO(sripriya) remove this yaml dump once db supports storing
+            # json format of yaml files in a separate column instead of
+            # key value string pairs in vnf attributes table
+            vnfd_data['attributes']['vnfd'] = yaml.safe_dump(
+                template)
+        elif isinstance(template, str):
+            self._report_deprecated_yaml_str()
+        if "tosca_definitions_version" not in template:
             versionutils.report_deprecated_feature(LOG, 'VNFD legacy vnfds'
                 ' are deprecated since Mitaka release and will be removed in'
                 ' Ocata release. Please use NFV TOSCA vnfds.')
@@ -279,6 +289,25 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     def create_vnf(self, context, vnf):
         vnf_info = vnf['vnf']
+        vnf_attributes = vnf_info['attributes']
+        if vnf_attributes.get('param_values'):
+            param = vnf_attributes['param_values']
+            if isinstance(param, dict):
+                # TODO(sripriya) remove this yaml dump once db supports storing
+                # json format of yaml files in a separate column instead of
+                #  key value string pairs in vnf attributes table
+                vnf_attributes['param_values'] = yaml.safe_dump(param)
+            else:
+                self._report_deprecated_yaml_str()
+        if vnf_attributes.get('config'):
+            config = vnf_attributes['config']
+            if isinstance(config, dict):
+                # TODO(sripriya) remove this yaml dump once db supports storing
+                # json format of yaml files in a separate column instead of
+                #  key value string pairs in vnf attributes table
+                vnf_attributes['config'] = yaml.safe_dump(config)
+            else:
+                self._report_deprecated_yaml_str()
         vim_auth = self.get_vim(context, vnf_info)
         vnf_dict = self._create_vnf(context, vnf_info, vim_auth)
 
@@ -326,6 +355,16 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                               new_status, vnf_dict)
 
     def update_vnf(self, context, vnf_id, vnf):
+        vnf_attributes = vnf['vnf']['attributes']
+        if vnf_attributes.get('config'):
+            config = vnf_attributes['config']
+            if isinstance(config, dict):
+                # TODO(sripriya) remove this yaml dump once db supports storing
+                # json format of yaml files in a separate column instead of
+                #  key value string pairs in vnf attributes table
+                vnf_attributes['config'] = yaml.safe_dump(config)
+            else:
+                self._report_deprecated_yaml_str()
         vnf_dict = self._update_vnf_pre(context, vnf_id)
         vim_auth = self.get_vim(context, vnf_dict)
         driver_name = self._infra_driver_name(vnf_dict)
@@ -530,6 +569,10 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         self.spawn_n(_vnf_policy_action_wait)
 
         return policy
+
+    def _report_deprecated_yaml_str(self):
+        utils.deprecate_warning(what='yaml as string',
+                                as_of='N', in_favor_of='yaml as dictionary')
 
     def _make_policy_dict(self, vnf, name, policy):
         p = {}
