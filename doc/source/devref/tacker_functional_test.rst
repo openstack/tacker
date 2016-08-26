@@ -88,17 +88,29 @@ Important guidelines to follow:
 Execution of testcase:
 ======================
 
-* From tacker directory, testcases can be executed using following commands:
+* Install tacker server via devstack installation, which registers
+  tacker service and endpoint, creates "nfv_user" and "nfv" project,
+  and registers default VIM with the created user and project.
 
-  (Note: Make sure tacker server is installed and running)
+* Under tacker project dir, to prepare function test env via:
 
-  * To execute all testcases or one testcase use below commands:
+.. code-block:: console
+
+  ./tools/prepare_functional_test.sh
+  
+* From tacker directory, all function testcases can be executed using
+  following commands:
 
 .. code-block:: console
 
   tox -e functional
-  tox -e functional tacker.tests.functional.vnfd.<testcase>
 
+* Or from tacker directory, specific testcases can be executed using
+  following commands:
+
+.. code-block:: console
+
+  tox -e functional tacker.tests.functional.xxx.yyy.<testcase>
 
 
 Committing testcase and opening a review:
