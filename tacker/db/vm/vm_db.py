@@ -399,13 +399,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                         id=str(uuid.uuid4()), vnf_id=vnf_id,
                         key=key, value=value)
                     context.session.add(arg)
+        evt_details = "VNF UUID assigned."
         self._cos_db_plg.create_event(
             context, res_id=vnf_id,
             res_type=constants.RES_TYPE_VNF,
             res_state=constants.PENDING_CREATE,
             evt_type=constants.RES_EVT_CREATE,
-            tstamp=timeutils.utcnow(),
-            details="VNF UUID assigned")
+            tstamp=vnf_db[constants.RES_EVT_CREATED_FLD],
+            details=evt_details)
         return self._make_vnf_dict(vnf_db)
 
     # called internally, not by REST API
@@ -622,6 +623,12 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 return False
 
             vnf_db.update({'status': new_status})
+            self._cos_db_plg.create_event(
+                context, res_id=vnf_id,
+                res_type=constants.RES_TYPE_VNF,
+                res_state=new_status,
+                evt_type=constants.RES_EVT_MONITOR,
+                tstamp=timeutils.utcnow())
         return True
 
     def _mark_vnf_error(self, vnf_id):

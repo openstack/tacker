@@ -28,6 +28,8 @@ import six
 from tacker.common import clients
 from tacker.common import driver_manager
 from tacker import context as t_context
+from tacker.db.common_services import common_services_db
+from tacker.plugins.common import constants
 from tacker.vnfm.infra_drivers.heat import heat
 
 
@@ -43,6 +45,16 @@ CONF.register_opts(OPTS, group='monitor')
 
 def config_opts():
     return [('monitor', OPTS), ('tacker', VNFMonitor.OPTS)]
+
+
+def _log_monitor_events(context, vnf_dict, evt_details):
+    _cos_db_plg = common_services_db.CommonServicesPluginDb()
+    _cos_db_plg.create_event(context, res_id=vnf_dict['id'],
+                             res_type=constants.RES_TYPE_VNF,
+                             res_state=vnf_dict['status'],
+                             evt_type=constants.RES_EVT_MONITOR,
+                             tstamp=timeutils.utcnow(),
+                             details=evt_details)
 
 
 class VNFMonitor(object):
@@ -109,6 +121,13 @@ class VNFMonitor(object):
         new_vnf['boot_at'] = timeutils.utcnow()
         with self._lock:
             self._hosting_vnfs[new_vnf['id']] = new_vnf
+
+        attrib_dict = new_vnf['vnf']['attributes']
+        mon_policy_dict = attrib_dict['monitoring_policy']
+        evt_details = (("VNF added for monitoring. "
+                        "mon_policy_dict = %s,") % (mon_policy_dict))
+        _log_monitor_events(t_context.get_admin_context(), new_vnf['vnf'],
+                            evt_details)
 
     def delete_hosting_vnf(self, vnf_id):
         LOG.debug('deleting vnf_id %(vnf_id)s', {'vnf_id': vnf_id})
@@ -211,7 +230,7 @@ class ActionPolicy(object):
 @ActionPolicy.register('respawn')
 class ActionRespawn(ActionPolicy):
     @classmethod
-    def execute_action(cls, plugin, vnf_dict):
+    def execute_action(cls, plugin, vnf_dict, auth_attr):
         LOG.error(_('vnf %s dead'), vnf_dict['id'])
         if plugin._mark_vnf_dead(vnf_dict['id']):
             plugin._vnf_monitor.mark_dead(vnf_dict['id'])
@@ -233,8 +252,12 @@ class ActionRespawn(ActionPolicy):
             context.auth_token = token['id']
             context.tenant_id = token['tenant_id']
             context.user_id = token['user_id']
+            _log_monitor_events(context, vnf_dict,
+                                "ActionRespawnPolicy invoked")
             new_vnf_dict = plugin.create_vnf(context,
                                              {'vnf': new_vnf})
+            _log_monitor_events(context, new_vnf_dict,
+                                "ActionRespawnPolicy complete")
             LOG.info(_('respawned new vnf %s'), new_vnf_dict['id'])
 
 
@@ -261,6 +284,8 @@ class ActionRespawnHeat(ActionPolicy):
 
             # TODO(anyone) set the current request ctxt instead of admin ctxt
             context = t_context.get_admin_context()
+            _log_monitor_events(context, vnf_dict,
+                                "ActionRespawnHeat invoked")
             update_vnf_dict = plugin.create_vnf_sync(context,
                                                      vnf_dict)
             plugin.config_vnf(context, update_vnf_dict)
@@ -270,15 +295,21 @@ class ActionRespawnHeat(ActionPolicy):
 @ActionPolicy.register('log')
 class ActionLogOnly(ActionPolicy):
     @classmethod
-    def execute_action(cls, plugin, vnf_dict):
+    def execute_action(cls, plugin, vnf_dict, auth_attr):
         vnf_id = vnf_dict['id']
         LOG.error(_('vnf %s dead'), vnf_id)
+        _log_monitor_events(t_context.get_admin_context(),
+                            vnf_dict,
+                            "ActionLogOnly invoked")
 
 
 @ActionPolicy.register('log_and_kill')
 class ActionLogAndKill(ActionPolicy):
     @classmethod
-    def execute_action(cls, plugin, vnf_dict):
+    def execute_action(cls, plugin, vnf_dict, auth_attr):
+        _log_monitor_events(t_context.get_admin_context(),
+                            vnf_dict,
+                            "ActionLogAndKill invoked")
         vnf_id = vnf_dict['id']
         if plugin._mark_vnf_dead(vnf_dict['id']):
             plugin._vnf_monitor.mark_dead(vnf_dict['id'])

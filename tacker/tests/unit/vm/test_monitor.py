@@ -18,6 +18,8 @@ import mock
 from oslo_utils import timeutils
 import testtools
 
+from tacker.db.common_services import common_services_db
+from tacker.plugins.common import constants
 from tacker.vnfm.monitor import VNFMonitor
 
 MOCK_DEVICE_ID = 'a737497c-761c-11e5-89c3-9cb6541d805d'
@@ -54,6 +56,10 @@ class TestVNFMonitor(testtools.TestCase):
         super(TestVNFMonitor, self).setUp()
         p = mock.patch('tacker.common.driver_manager.DriverManager')
         self.mock_monitor_manager = p.start()
+        mock.patch('tacker.db.common_services.common_services_db.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin = common_services_db.CommonServicesPluginDb()
         self.addCleanup(p.stop)
 
     def test_to_hosting_vnf(self):
@@ -81,12 +87,26 @@ class TestVNFMonitor(testtools.TestCase):
 
     @mock.patch('tacker.vnfm.monitor.VNFMonitor.__run__')
     def test_add_hosting_vnf(self, mock_monitor_run):
-        test_device_dict = MOCK_VNF_DEVICE
+        test_device_dict = {
+            'id': MOCK_DEVICE_ID,
+            'mgmt_url': '{"vdu1": "a.b.c.d"}',
+            'attributes': {
+                'monitoring_policy': json.dumps(
+                        MOCK_VNF_DEVICE['monitoring_policy'])
+            },
+            'status': 'ACTIVE'
+        }
+        action_cb = mock.MagicMock()
         test_boot_wait = 30
         test_vnfmonitor = VNFMonitor(test_boot_wait)
-        test_vnfmonitor.add_hosting_vnf(test_device_dict)
+        new_dict = test_vnfmonitor.to_hosting_vnf(test_device_dict, action_cb)
+        test_vnfmonitor.add_hosting_vnf(new_dict)
         test_device_id = list(test_vnfmonitor._hosting_vnfs.keys())[0]
         self.assertEqual(MOCK_DEVICE_ID, test_device_id)
+        self._cos_db_plugin.create_event.assert_called_with(
+            mock.ANY, res_id=mock.ANY, res_type=constants.RES_TYPE_VNF,
+            res_state=mock.ANY, evt_type=constants.RES_EVT_MONITOR,
+            tstamp=mock.ANY, details=mock.ANY)
 
     @mock.patch('tacker.vnfm.monitor.VNFMonitor.__run__')
     def test_run_monitor(self, mock_monitor_run):
