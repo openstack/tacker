@@ -1,0 +1,50 @@
+
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: sample-tosca-vnfd-scaling
+
+metadata:
+  template_name: sample-tosca-vnfd-scaling
+
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      capabilities:
+        nfv_compute:
+          properties:
+            num_cpus: 1
+            mem_size: 512 MB
+            disk_size: 1 GB
+      properties:
+        image: cirros-0.3.4-x86_64-uec
+        mgmt_driver: noop
+        availability_zone: nova
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net_mgmt
+        vendor: Tacker
+
+  policies:
+    - SP1:
+        type: tosca.policy.tacker.Scaling
+        properties:
+          increment: 1
+          cooldown: 60
+          min_instances: 1
+          max_instances: 3
+          default_instances: 2
+          targets: [VDU1]
