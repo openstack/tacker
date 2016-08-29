@@ -14,12 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_log import log as logging
-
 from tacker.common import log
 from tacker.db.common_services import common_services_db
-
-LOG = logging.getLogger(__name__)
 
 
 class CommonServicesPlugin(common_services_db.CommonServicesPluginDb):
