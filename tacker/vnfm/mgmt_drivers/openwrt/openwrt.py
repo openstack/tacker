@@ -22,8 +22,8 @@ import yaml
 from tacker.common import cmd_executer
 from tacker.common.exceptions import MgmtDriverException
 from tacker.common import log
-from tacker.vm.mgmt_drivers import abstract_driver
-from tacker.vm.mgmt_drivers import constants as mgmt_constants
+from tacker.vnfm.mgmt_drivers import abstract_driver
+from tacker.vnfm.mgmt_drivers import constants as mgmt_constants
 
 
 LOG = logging.getLogger(__name__)
@@ -46,11 +46,11 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
         return 'openwrt'
 
     def get_description(self):
-        return 'Tacker DeviceMgmt OpenWRT Driver'
+        return 'Tacker VNFMgmt OpenWRT Driver'
 
-    def mgmt_url(self, plugin, context, device):
-        LOG.debug(_('mgmt_url %s'), device)
-        return device.get('mgmt_url', '')
+    def mgmt_url(self, plugin, context, vnf):
+        LOG.debug(_('mgmt_url %s'), vnf)
+        return vnf.get('mgmt_url', '')
 
     @log.log
     def _config_service(self, mgmt_ip_address, service, config):
@@ -68,13 +68,13 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
             raise MgmtDriverException()
 
     @log.log
-    def mgmt_call(self, plugin, context, device, kwargs):
+    def mgmt_call(self, plugin, context, vnf, kwargs):
         if (kwargs[mgmt_constants.KEY_ACTION] !=
-                mgmt_constants.ACTION_UPDATE_DEVICE):
+                mgmt_constants.ACTION_UPDATE_VNF):
             return
-        dev_attrs = device.get('attributes', {})
+        dev_attrs = vnf.get('attributes', {})
 
-        mgmt_url = jsonutils.loads(device.get('mgmt_url', '{}'))
+        mgmt_url = jsonutils.loads(vnf.get('mgmt_url', '{}'))
         if not mgmt_url:
             return
 

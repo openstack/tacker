@@ -20,7 +20,7 @@ import uuid
 from oslo_log import log as logging
 
 from tacker.common import log
-from tacker.vm.infra_drivers import abstract_driver
+from tacker.vnfm.infra_drivers import abstract_driver
 
 
 LOG = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
 
 class DeviceNoop(abstract_driver.DeviceAbstractDriver):
 
-    """Noop driver of hosting device for tests."""
+    """Noop driver of hosting vnf for tests."""
 
     def __init__(self):
         super(DeviceNoop, self).__init__()
@@ -50,23 +50,23 @@ class DeviceNoop(abstract_driver.DeviceAbstractDriver):
         return instance_id
 
     @log.log
-    def create_wait(self, plugin, context, device_dict, device_id):
+    def create_wait(self, plugin, context, vnf_dict, vnf_id):
         pass
 
     @log.log
-    def update(self, plugin, context, device_id, device_dict, device):
-        if device_id not in self._instances:
+    def update(self, plugin, context, vnf_id, vnf_dict, vnf):
+        if vnf_id not in self._instances:
             LOG.debug(_('not found'))
-            raise ValueError('No instance %s' % device_id)
+            raise ValueError('No instance %s' % vnf_id)
 
     @log.log
-    def update_wait(self, plugin, context, device_id):
+    def update_wait(self, plugin, context, vnf_id):
         pass
 
     @log.log
-    def delete(self, plugin, context, device_id):
-        self._instances.remove(device_id)
+    def delete(self, plugin, context, vnf_id):
+        self._instances.remove(vnf_id)
 
     @log.log
-    def delete_wait(self, plugin, context, device_id):
+    def delete_wait(self, plugin, context, vnf_id):
         pass

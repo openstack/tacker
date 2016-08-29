@@ -27,7 +27,7 @@ from six import iteritems
 
 from tacker.api.v1 import attributes
 from tacker._i18n import _LE, _LW
-from tacker.vm.infra_drivers import abstract_driver
+from tacker.vnfm.infra_drivers import abstract_driver
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -70,7 +70,7 @@ class DefaultAuthPlugin(v2_auth.Password):
 
 class DeviceNova(abstract_driver.DeviceAbstractDriver):
 
-    """Nova driver of hosting device."""
+    """Nova driver of hosting vnf."""
 
     @versionutils.deprecated(
         versionutils.deprecated.NEWTON,
@@ -118,7 +118,7 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
         return 'nova'
 
     def get_description(self):
-        return 'Nuetron Device Nova driver'
+        return 'VNF Nova driver'
 
     @staticmethod
     def _safe_pop(d, name_list):
@@ -160,7 +160,7 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
         LOG.debug(_('port %s'), port)
         return port['id']
 
-    def create(self, plugin, context, device):
+    def create(self, plugin, context, vnf):
         # typical required arguments are
         # 'name': name string
         # 'image': uuid
@@ -169,27 +169,27 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
         # for details, see the signature of
         # novaclient.v<version>.servers.SeverManager.create()
 
-        LOG.debug(_('device %s'), device)
+        LOG.debug(_('vnf %s'), vnf)
         # flavor and image are specially treated by novaclient
-        attributes = device['device_template']['attributes'].copy()
-        attributes.update(device['kwargs'])
+        attributes = vnf['vnfd']['attributes'].copy()
+        attributes.update(vnf['kwargs'])
 
         name = self._safe_pop(attributes, ('name', ))
         if name is None:
             # TODO(yamahata): appropreate way to generate instance name
             name = (__name__ + ':' + self.__class__.__name__ + '-' +
-                    device['id'])
+                    vnf['id'])
         image = self._safe_pop(attributes, ('image', 'imageRef'))
         flavor = self._safe_pop(attributes, ('flavor', 'flavorRef'))
 
-        files = plugin.mgmt_get_config(context, device)
+        files = plugin.mgmt_get_config(context, vnf)
         if files:
             attributes[_FILES] = files
 
-        LOG.debug(_('service_context: %s'), device.get('service_context', []))
-        tenant_id = device['tenant_id']
+        LOG.debug(_('service_context: %s'), vnf.get('service_context', []))
+        tenant_id = vnf['tenant_id']
         nics = []
-        for sc_entry in device.get('service_context', []):
+        for sc_entry in vnf.get('service_context', []):
             LOG.debug(_('sc_entry: %s'), sc_entry)
 
             # nova API doesn't return tacker port_id.
@@ -227,9 +227,9 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
         instance = nova.servers.create(name, image, flavor, **attributes)
         return instance.id
 
-    def create_wait(self, plugin, context, device_dict, device_id):
+    def create_wait(self, plugin, context, vnf_dict, vnf_id):
         nova = self._nova_client()
-        instance = nova.servers.get(device_id)
+        instance = nova.servers.get(vnf_id)
         status = instance.status
         # TODO(yamahata): timeout and error
         while status == 'BUILD':
@@ -240,38 +240,38 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
 
         LOG.debug(_('status: %s'), status)
         if status == 'ERROR':
-            raise RuntimeError(_("creation of server %s faild") % device_id)
+            raise RuntimeError(_("creation of server %s faild") % vnf_id)
 
-    def update(self, plugin, context, device_id, device_dict, device):
+    def update(self, plugin, context, vnf_id, vnf_dict, vnf):
         # do nothing but checking if the instance exists at the moment
         nova = self._nova_client()
-        nova.servers.get(device_id)
+        nova.servers.get(vnf_id)
 
-    def update_wait(self, plugin, context, device_id):
+    def update_wait(self, plugin, context, vnf_id):
         # do nothing but checking if the instance exists at the moment
         nova = self._nova_client()
-        nova.servers.get(device_id)
+        nova.servers.get(vnf_id)
 
-    def delete(self, plugin, context, device_id):
+    def delete(self, plugin, context, vnf_id):
         nova = self._nova_client()
         try:
-            instance = nova.servers.get(device_id)
+            instance = nova.servers.get(vnf_id)
         except self._novaclient.exceptions.NotFound:
             LOG.error(_LE("server %s is not found") %
-                      device_id)
+                      vnf_id)
             return
         instance.delete()
 
-    def delete_wait(self, plugin, context, device_id):
+    def delete_wait(self, plugin, context, vnf_id):
         nova = self._nova_client()
         # TODO(yamahata): timeout and error
         while True:
             try:
-                instance = nova.servers.get(device_id)
+                instance = nova.servers.get(vnf_id)
                 LOG.debug(_('instance status %s'), instance.status)
             except self._novaclient.exceptions.NotFound:
                 break
             if instance.status == 'ERROR':
                 raise RuntimeError(_("deletion of server %s faild") %
-                                   device_id)
+                                   vnf_id)
             time.sleep(5)

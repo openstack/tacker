@@ -25,7 +25,7 @@ class VNFMonitorAbstractDriver(extensions.PluginInterface):
 
     @abc.abstractmethod
     def get_type(self):
-        """Return one of predefined type of the hosting device drivers."""
+        """Return one of predefined type of the hosting vnf drivers."""
         pass
 
     @abc.abstractmethod
@@ -38,45 +38,45 @@ class VNFMonitorAbstractDriver(extensions.PluginInterface):
         """Return description of VNF Monitor plugin."""
         pass
 
-    def monitor_get_config(self, plugin, context, device):
+    def monitor_get_config(self, plugin, context, vnf):
         """Return dict of monitor configuration data.
 
         :param plugin:
         :param context:
-        :param device:
+        :param vnf:
         :returns: dict
         :returns: dict of monitor configuration data
         """
         return {}
 
     @abc.abstractmethod
-    def monitor_url(self, plugin, context, device):
-        """Return the url of device to monitor.
+    def monitor_url(self, plugin, context, vnf):
+        """Return the url of vnf to monitor.
 
         :param plugin:
         :param context:
-        :param device:
+        :param vnf:
         :returns: string
-        :returns: url of device to monitor
+        :returns: url of vnf to monitor
         """
         pass
 
     @abc.abstractmethod
-    def monitor_call(self, device, kwargs):
+    def monitor_call(self, vnf, kwargs):
         """Monitor.
 
         Return boolean value True if VNF is healthy
         or return a event string like 'failure' or 'calls-capacity-reached'
         for specific VNF health condition.
 
-        :param device:
+        :param vnf:
         :param kwargs:
         :returns: boolean
         :returns: True if VNF is healthy
         """
         pass
 
-    def monitor_service_driver(self, plugin, context, device,
+    def monitor_service_driver(self, plugin, context, vnf,
                                service_instance):
         # use same monitor driver to communicate with service
         return self.get_name()

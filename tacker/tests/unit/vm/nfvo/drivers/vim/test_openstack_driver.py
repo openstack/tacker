@@ -58,7 +58,7 @@ class TestOpenstack_Driver(base.TestCase):
         fake_keystone = mock.Mock()
         fake_keystone.return_value = self.keystone
         self._mock(
-            'tacker.vm.keystone.Keystone', fake_keystone)
+            'tacker.vnfm.keystone.Keystone', fake_keystone)
 
     def get_vim_obj(self):
         return {'id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff', 'type':

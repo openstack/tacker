@@ -20,7 +20,7 @@ from oslo_serialization import jsonutils
 import six
 
 from tacker.api import extensions
-from tacker.vm import constants
+from tacker.vnfm import constants
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -28,7 +28,7 @@ class DeviceMGMTAbstractDriver(extensions.PluginInterface):
 
     @abc.abstractmethod
     def get_type(self):
-        """Return one of predefined type of the hosting device drivers."""
+        """Return one of predefined type of the hosting vnf drivers."""
         pass
 
     @abc.abstractmethod
@@ -40,29 +40,29 @@ class DeviceMGMTAbstractDriver(extensions.PluginInterface):
     def get_description(self):
         pass
 
-    def mgmt_create_pre(self, plugin, context, device):
+    def mgmt_create_pre(self, plugin, context, vnf):
         pass
 
-    def mgmt_create_post(self, plugin, context, device):
+    def mgmt_create_post(self, plugin, context, vnf):
         pass
 
-    def mgmt_update_pre(self, plugin, context, device):
+    def mgmt_update_pre(self, plugin, context, vnf):
         pass
 
-    def mgmt_update_post(self, plugin, context, device):
+    def mgmt_update_post(self, plugin, context, vnf):
         pass
 
-    def mgmt_delete_pre(self, plugin, context, device):
+    def mgmt_delete_pre(self, plugin, context, vnf):
         pass
 
-    def mgmt_delete_post(self, plugin, context, device):
+    def mgmt_delete_post(self, plugin, context, vnf):
         pass
 
-    def mgmt_get_config(self, plugin, context, device):
+    def mgmt_get_config(self, plugin, context, vnf):
         """Get a dict of objects.
 
         Returns dict of file-like objects which will be passed to hosting
-        device.
+        vnf.
         It depends on drivers how to use it.
         for nova case, it can be used for meta data, file injection or
         config drive
@@ -75,17 +75,17 @@ class DeviceMGMTAbstractDriver(extensions.PluginInterface):
         return {}
 
     @abc.abstractmethod
-    def mgmt_url(self, plugin, context, device):
+    def mgmt_url(self, plugin, context, vnf):
         pass
 
     @abc.abstractmethod
-    def mgmt_call(self, plugin, context, device, kwargs):
+    def mgmt_call(self, plugin, context, vnf, kwargs):
         pass
 
 
 class DeviceMGMTByNetwork(DeviceMGMTAbstractDriver):
-    def mgmt_url(self, plugin, context, device):
-        mgmt_entries = [sc_entry for sc_entry in device.service_context
+    def mgmt_url(self, plugin, context, vnf):
+        mgmt_entries = [sc_entry for sc_entry in vnf.service_context
                         if (sc_entry.role == constants.ROLE_MGMT and
                             sc_entry.port_id)]
         if not mgmt_entries:

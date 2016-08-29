@@ -18,7 +18,7 @@ from sqlalchemy.orm import exc as orm_exc
 from tacker.extensions import nfvo
 from tacker import manager
 from tacker.tests.unit import base
-from tacker.vm import vim_client
+from tacker.vnfm import vim_client
 
 
 class TestVIMClient(base.TestCase):

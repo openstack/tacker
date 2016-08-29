@@ -19,7 +19,7 @@ import six.moves.urllib.request as urlreq
 
 from tacker._i18n import _LW
 from tacker.common import log
-from tacker.vm.monitor_drivers import abstract_driver
+from tacker.vnfm.monitor_drivers import abstract_driver
 
 
 LOG = logging.getLogger(__name__)
@@ -48,9 +48,9 @@ class VNFMonitorHTTPPing(abstract_driver.VNFMonitorAbstractDriver):
     def get_description(self):
         return 'Tacker HTTP Ping Driver for VNF'
 
-    def monitor_url(self, plugin, context, device):
-        LOG.debug(_('monitor_url %s'), device)
-        return device.get('monitor_url', '')
+    def monitor_url(self, plugin, context, vnf):
+        LOG.debug(_('monitor_url %s'), vnf)
+        return vnf.get('monitor_url', '')
 
     def _is_pingable(self, mgmt_ip='', retry=5, timeout=5, port=80, **kwargs):
         """Checks whether the server is reachable by using urllib.
@@ -74,7 +74,7 @@ class VNFMonitorHTTPPing(abstract_driver.VNFMonitorAbstractDriver):
         return 'failure'
 
     @log.log
-    def monitor_call(self, device, kwargs):
+    def monitor_call(self, vnf, kwargs):
         if not kwargs['mgmt_ip']:
             return
 

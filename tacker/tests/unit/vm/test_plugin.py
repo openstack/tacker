@@ -77,7 +77,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         fake_vim_client = mock.Mock()
         fake_vim_client.return_value = self.vim_client
         self._mock(
-            'tacker.vm.vim_client.VimClient', fake_vim_client)
+            'tacker.vnfm.vim_client.VimClient', fake_vim_client)
 
     def _stub_get_vim(self):
         vim_obj = {'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
@@ -99,7 +99,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         fake_vnf_monitor = mock.Mock()
         fake_vnf_monitor.return_value = self._vnf_monitor
         self._mock(
-            'tacker.vm.monitor.VNFMonitor', fake_vnf_monitor)
+            'tacker.vnfm.monitor.VNFMonitor', fake_vnf_monitor)
 
     def _insert_dummy_device_template(self):
         session = self.context.session
@@ -165,7 +165,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             mock.ANY,
             plugin=mock.ANY,
             context=mock.ANY,
-            device_template=mock.ANY)
+            vnfd=mock.ANY)
         self._cos_db_plugin.create_event.assert_called_once_with(
             self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
             res_state=constants.RES_EVT_VNFD_NA_STATE,
@@ -200,7 +200,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._device_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
                                                        plugin=mock.ANY,
                                                        context=mock.ANY,
-                                                       device=mock.ANY,
+                                                       vnf=mock.ANY,
                                                        auth_attr=mock.ANY)
         self._pool.spawn_n.assert_called_once_with(mock.ANY)
         self._cos_db_plugin.create_event.assert_called_with(
@@ -216,7 +216,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._device_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
                                                        plugin=mock.ANY,
                                                        context=mock.ANY,
-                                                       device_id=mock.ANY,
+                                                       vnf_id=mock.ANY,
                                                        auth_attr=mock.ANY,
                                                        region_name=mock.ANY)
         self._vnf_monitor.delete_hosting_vnf.assert_called_with(mock.ANY)

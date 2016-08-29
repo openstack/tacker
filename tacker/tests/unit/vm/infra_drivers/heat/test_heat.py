@@ -22,7 +22,7 @@ import yaml
 from tacker import context
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
-from tacker.vm.infra_drivers.heat import heat
+from tacker.vnfm.infra_drivers.heat import heat
 
 
 class FakeHeatClient(mock.Mock):
@@ -65,45 +65,45 @@ class TestDeviceHeat(base.TestCase):
         fake_heat_client = mock.Mock()
         fake_heat_client.return_value = self.heat_client
         self._mock(
-            'tacker.vm.infra_drivers.heat.heat.HeatClient', fake_heat_client)
+            'tacker.vnfm.infra_drivers.heat.heat.HeatClient', fake_heat_client)
 
     def _mock(self, target, new=mock.DEFAULT):
         patcher = mock.patch(target, new)
         return patcher.start()
 
-    def _get_device_template(self, template):
-        return {'device_template': {'attributes': {'vnfd': template}}}
+    def _get_vnfd(self, template):
+        return {'vnfd': {'attributes': {'vnfd': template}}}
 
-    def _get_expected_device_template(self, template):
-        return {'device_template': {'attributes': {'vnfd': template},
-                                    'description': 'OpenWRT with services',
-                                    'mgmt_driver': 'openwrt',
-                                    'name': 'OpenWRT'}}
+    def _get_expected_vnfd(self, template):
+        return {'vnfd': {'attributes': {'vnfd': template},
+                         'description': 'OpenWRT with services',
+                         'mgmt_driver': 'openwrt',
+                         'name': 'OpenWRT'}}
 
     def _get_expected_fields(self):
         return {'stack_name':
-                'tacker.vm.infra_drivers.heat.heat_DeviceHeat-eb84260e'
+                'tacker.vnfm.infra_drivers.heat.heat_DeviceHeat-eb84260e'
                 '-5ff7-4332-b032-50a14d6c1123', 'template': self.hot_template}
 
     def _get_expected_fields_user_data(self):
         return {'stack_name':
-                'tacker.vm.infra_drivers.heat.heat_DeviceHeat-18685f68'
+                'tacker.vnfm.infra_drivers.heat.heat_DeviceHeat-18685f68'
                 '-2b2a-4185-8566-74f54e548811',
                 'template': self.hot_param_template}
 
     def _get_expected_fields_ipaddr_data(self):
         return {'stack_name':
-                'tacker.vm.infra_drivers.heat.heat_DeviceHeat-d1337add'
+                'tacker.vnfm.infra_drivers.heat.heat_DeviceHeat-d1337add'
                 '-d5a1-4fd4-9447-bb9243c8460b',
                 'template': self.hot_ipparam_template}
 
-    def _get_expected_device_wait_obj(self, param_values=''):
+    def _get_expected_vnf_wait_obj(self, param_values=''):
         return {'status': 'PENDING_CREATE',
                 'instance_id': None,
                 'name': u'test_openwrt',
                 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                'template_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                'device_template': {
+                'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                'vnfd': {
                     'service_types': [{
                         'service_type': u'vnfd',
                         'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
@@ -120,11 +120,11 @@ class TestDeviceHeat(base.TestCase):
                 'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
                 'description': u'OpenWRT with services'}
 
-    def _get_expected_device_update_obj(self):
+    def _get_expected_vnf_update_obj(self):
         return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
             u'test_openwrt', 'tenant_id':
-        u'ad7ebc56538745a08ef7c5e97f8bd437', 'template_id':
-        u'eb094833-995e-49f0-a047-dfb56aaf7c4e', 'device_template': {
+        u'ad7ebc56538745a08ef7c5e97f8bd437', 'vnfd_id':
+        u'eb094833-995e-49f0-a047-dfb56aaf7c4e', 'vnfd': {
             'service_types': [{'service_type': u'vnfd', 'id':
             u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}], 'description':
             u'OpenWRT with services', 'tenant_id':
@@ -144,87 +144,87 @@ class TestDeviceHeat(base.TestCase):
                 u'OpenWRT with services'}
 
     def test_create(self):
-        device_obj = utils.get_dummy_device_obj()
+        vnf_obj = utils.get_dummy_device_obj()
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields()
         result = self.heat_driver.create(plugin=None, context=self.context,
-                                         device=device_obj,
+                                         vnf=vnf_obj,
                                          auth_attr=utils.get_vim_auth_obj())
         self.heat_client.create.assert_called_once_with(expected_fields)
         self.assertEqual(expected_result, result)
 
     def test_create_user_data_param_attr(self):
-        device_obj = utils.get_dummy_device_obj_userdata_attr()
+        vnf_obj = utils.get_dummy_device_obj_userdata_attr()
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields_user_data()
         result = self.heat_driver.create(plugin=None, context=self.context,
-                                         device=device_obj,
+                                         vnf=vnf_obj,
                                          auth_attr=utils.get_vim_auth_obj())
         self.heat_client.create.assert_called_once_with(expected_fields)
         self.assertEqual(expected_result, result)
 
     def test_create_ip_addr_param_attr(self):
-        device_obj = utils.get_dummy_device_obj_ipaddr_attr()
+        vnf_obj = utils.get_dummy_device_obj_ipaddr_attr()
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields_ipaddr_data()
         result = self.heat_driver.create(plugin=None, context=self.context,
-                                         device=device_obj,
+                                         vnf=vnf_obj,
                                          auth_attr=utils.get_vim_auth_obj())
         self.heat_client.create.assert_called_once_with(expected_fields)
         self.assertEqual(expected_result, result)
 
     def test_create_wait(self):
-        device_obj = utils.get_dummy_device_obj()
-        expected_result = self._get_expected_device_wait_obj()
-        device_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
+        vnf_obj = utils.get_dummy_device_obj()
+        expected_result = self._get_expected_vnf_wait_obj()
+        vnf_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         self.heat_driver.create_wait(plugin=None,
                                      context=self.context,
-                                     device_dict=device_obj,
-                                     device_id=device_id,
+                                     vnf_dict=vnf_obj,
+                                     vnf_id=vnf_id,
                                      auth_attr=utils.get_vim_auth_obj())
-        self.assertEqual(expected_result, device_obj)
+        self.assertEqual(expected_result, vnf_obj)
 
     def test_delete(self):
-        device_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
+        vnf_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         self.heat_driver.delete(plugin=None, context=self.context,
-                                device_id=device_id,
+                                vnf_id=vnf_id,
                                 auth_attr=utils.get_vim_auth_obj())
-        self.heat_client.delete.assert_called_once_with(device_id)
+        self.heat_client.delete.assert_called_once_with(vnf_id)
 
     def test_update(self):
-        device_obj = utils.get_dummy_device_obj_config_attr()
-        device_config_obj = utils.get_dummy_device_update_config_attr()
-        expected_device_update = self._get_expected_device_update_obj()
-        device_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
+        vnf_obj = utils.get_dummy_device_obj_config_attr()
+        vnf_config_obj = utils.get_dummy_device_update_config_attr()
+        expected_vnf_update = self._get_expected_vnf_update_obj()
+        vnf_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         self.heat_driver.update(plugin=None, context=self.context,
-                                device_id=device_id, device_dict=device_obj,
-                                device=device_config_obj,
+                                vnf_id=vnf_id, vnf_dict=vnf_obj,
+                                vnf=vnf_config_obj,
                                 auth_attr=utils.get_vim_auth_obj())
-        self.assertEqual(expected_device_update, device_obj)
+        self.assertEqual(expected_vnf_update, vnf_obj)
 
-    def test_create_device_template_pre_tosca(self):
+    def test_create_vnfd_pre_tosca(self):
         tosca_tpl = _get_template('test_tosca_openwrt.yaml')
-        dtemplate = self._get_device_template(tosca_tpl)
-        exp_tmpl = self._get_expected_device_template(tosca_tpl)
-        self.heat_driver.create_device_template_pre(None, None, dtemplate)
+        dtemplate = self._get_vnfd(tosca_tpl)
+        exp_tmpl = self._get_expected_vnfd(tosca_tpl)
+        self.heat_driver.create_vnfd_pre(None, None, dtemplate)
         self.assertEqual(exp_tmpl, dtemplate)
 
     def _get_expected_fields_tosca(self, template):
         return {'stack_name':
-                'tacker.vm.infra_drivers.heat.heat_DeviceHeat-eb84260e'
+                'tacker.vnfm.infra_drivers.heat.heat_DeviceHeat-eb84260e'
                 '-5ff7-4332-b032-50a14d6c1123',
                 'template': _get_template(template)}
 
-    def _get_expected_tosca_device(self,
-                                   tosca_tpl_name,
-                                   hot_tpl_name,
-                                   param_values='',
-                                   is_monitor=True):
+    def _get_expected_tosca_vnf(self,
+                                tosca_tpl_name,
+                                hot_tpl_name,
+                                param_values='',
+                                is_monitor=True):
         tosca_tpl = _get_template(tosca_tpl_name)
-        exp_tmpl = self._get_expected_device_template(tosca_tpl)
+        exp_tmpl = self._get_expected_vnfd(tosca_tpl)
         tosca_hw_dict = yaml.safe_load(_get_template(hot_tpl_name))
         dvc = {
-            'device_template': exp_tmpl['device_template'],
+            'vnfd': exp_tmpl['vnfd'],
             'description': u'OpenWRT with services',
             'attributes': {
                 'heat_template': tosca_hw_dict,
@@ -236,7 +236,7 @@ class TestDeviceHeat(base.TestCase):
             'name': u'test_openwrt',
             'service_context': [],
             'status': 'PENDING_CREATE',
-            'template_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
             'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437'
         }
         # Add montitoring attributes for those yaml, which are having it
@@ -250,18 +250,18 @@ class TestDeviceHeat(base.TestCase):
 
         return dvc
 
-    def _get_dummy_tosca_device(self, template, input_params=''):
+    def _get_dummy_tosca_vnf(self, template, input_params=''):
 
         tosca_template = _get_template(template)
-        device = utils.get_dummy_device_obj()
-        dtemplate = self._get_expected_device_template(tosca_template)
+        vnf = utils.get_dummy_device_obj()
+        dtemplate = self._get_expected_vnfd(tosca_template)
         dtemplate['service_types'] = [{'service_type': 'vnfd', 'id':
             '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}]
         dtemplate['tenant_id'] = 'ad7ebc56538745a08ef7c5e97f8bd437'
-        device['device_template'] = dtemplate['device_template']
-        device['attributes'] = {}
-        device['attributes']['param_values'] = input_params
-        return device
+        vnf['vnfd'] = dtemplate['vnfd']
+        vnf['attributes'] = {}
+        vnf['attributes']['param_values'] = input_params
+        return vnf
 
     def _test_assert_equal_for_tosca_templates(self,
                                                tosca_tpl_name,
@@ -269,15 +269,15 @@ class TestDeviceHeat(base.TestCase):
                                                input_params='',
                                                files=None,
                                                is_monitor=True):
-        device = self._get_dummy_tosca_device(tosca_tpl_name, input_params)
+        vnf = self._get_dummy_tosca_vnf(tosca_tpl_name, input_params)
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields_tosca(hot_tpl_name)
-        expected_device = self._get_expected_tosca_device(tosca_tpl_name,
-                                                          hot_tpl_name,
-                                                          input_params,
-                                                          is_monitor)
+        expected_vnf = self._get_expected_tosca_vnf(tosca_tpl_name,
+                                                    hot_tpl_name,
+                                                    input_params,
+                                                    is_monitor)
         result = self.heat_driver.create(plugin=None, context=self.context,
-                                         device=device,
+                                         vnf=vnf,
                                          auth_attr=utils.get_vim_auth_obj())
         actual_fields = self.heat_client.create.call_args[0][0]
         actual_fields["template"] = yaml.safe_load(actual_fields["template"])
@@ -293,24 +293,24 @@ class TestDeviceHeat(base.TestCase):
                 expected_fields["files"][k] = yaml.safe_load(_get_template(v))
 
         self.assertEqual(expected_fields, actual_fields)
-        device["attributes"]["heat_template"] = yaml.safe_load(
-            device["attributes"]["heat_template"])
+        vnf["attributes"]["heat_template"] = yaml.safe_load(
+            vnf["attributes"]["heat_template"])
         self.heat_client.create.assert_called_once_with(expected_fields)
         self.assertEqual(expected_result, result)
 
         if files:
             expected_fields["files"] = {}
             for k, v in files.items():
-                expected_device["attributes"][k] = yaml.safe_load(
+                expected_vnf["attributes"][k] = yaml.safe_load(
                     _get_template(v))
-                device["attributes"][k] = yaml.safe_load(
-                    device["attributes"][k])
-            expected_device["attributes"]['scaling_group_names'] = {
+                vnf["attributes"][k] = yaml.safe_load(
+                    vnf["attributes"][k])
+            expected_vnf["attributes"]['scaling_group_names'] = {
                 'SP1': 'G1'}
-            device["attributes"]['scaling_group_names'] = json.loads(
-                device["attributes"]['scaling_group_names']
+            vnf["attributes"]['scaling_group_names'] = json.loads(
+                vnf["attributes"]['scaling_group_names']
             )
-        self.assertEqual(expected_device, device)
+        self.assertEqual(expected_vnf, vnf)
 
     def test_create_tosca(self):
         # self.skipTest("Not ready yet")

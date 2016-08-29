@@ -18,7 +18,7 @@ import mock
 from oslo_utils import timeutils
 import testtools
 
-from tacker.vm.monitor import VNFMonitor
+from tacker.vnfm.monitor import VNFMonitor
 
 MOCK_DEVICE_ID = 'a737497c-761c-11e5-89c3-9cb6541d805d'
 MOCK_VNF_DEVICE = {
@@ -72,14 +72,14 @@ class TestVNFMonitor(testtools.TestCase):
             'management_ip_addresses': {
                 'vdu1': 'a.b.c.d'
             },
-            'device': test_device_dict,
+            'vnf': test_device_dict,
             'monitoring_policy': MOCK_VNF_DEVICE['monitoring_policy']
         }
         output_dict = VNFMonitor.to_hosting_vnf(test_device_dict,
                                                 action_cb)
         self.assertEqual(expected_output, output_dict)
 
-    @mock.patch('tacker.vm.monitor.VNFMonitor.__run__')
+    @mock.patch('tacker.vnfm.monitor.VNFMonitor.__run__')
     def test_add_hosting_vnf(self, mock_monitor_run):
         test_device_dict = MOCK_VNF_DEVICE
         test_boot_wait = 30
@@ -88,10 +88,10 @@ class TestVNFMonitor(testtools.TestCase):
         test_device_id = list(test_vnfmonitor._hosting_vnfs.keys())[0]
         self.assertEqual(MOCK_DEVICE_ID, test_device_id)
 
-    @mock.patch('tacker.vm.monitor.VNFMonitor.__run__')
+    @mock.patch('tacker.vnfm.monitor.VNFMonitor.__run__')
     def test_run_monitor(self, mock_monitor_run):
         test_hosting_vnf = MOCK_VNF_DEVICE
-        test_hosting_vnf['device'] = {}
+        test_hosting_vnf['vnf'] = {}
         test_boot_wait = 30
         mock_kwargs = {
             'count': 1,
@@ -105,5 +105,5 @@ class TestVNFMonitor(testtools.TestCase):
         test_vnfmonitor._monitor_manager = self.mock_monitor_manager
         test_vnfmonitor.run_monitor(test_hosting_vnf)
         self.mock_monitor_manager\
-            .invoke.assert_called_once_with('ping', 'monitor_call', device={},
+            .invoke.assert_called_once_with('ping', 'monitor_call', vnf={},
                                             kwargs=mock_kwargs)

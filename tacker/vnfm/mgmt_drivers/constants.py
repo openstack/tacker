@@ -19,9 +19,9 @@ KEY_ACTION = 'action'
 KEY_KWARGS = 'kwargs'
 
 # ACTION type
-ACTION_CREATE_DEVICE = 'create_device'
-ACTION_UPDATE_DEVICE = 'update_device'
-ACTION_DELETE_DEVICE = 'delete_device'
+ACTION_CREATE_VNF = 'create_vnf'
+ACTION_UPDATE_VNF = 'update_vnf'
+ACTION_DELETE_VNF = 'delete_vnf'
 ACTION_CREATE_SERVICE = 'create_service'
 ACTION_UPDATE_SERVICE = 'update_service'
 ACTION_DELETE_SERVICE = 'delete_service'
