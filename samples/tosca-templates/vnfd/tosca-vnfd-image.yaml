@@ -30,6 +30,7 @@ topology_template:
       type: tosca.nodes.nfv.CP.Tacker
       properties:
         management: true
+        order: 0
         anti_spoofing_protection: false
       requirements:
         - virtualLink:
@@ -40,6 +41,7 @@ topology_template:
     CP2:
       type: tosca.nodes.nfv.CP.Tacker
       properties:
+        order: 1
         anti_spoofing_protection: false
       requirements:
         - virtualLink:
@@ -50,6 +52,7 @@ topology_template:
     CP3:
       type: tosca.nodes.nfv.CP.Tacker
       properties:
+        order: 2
         anti_spoofing_protection: false
       requirements:
         - virtualLink:
