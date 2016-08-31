@@ -21,57 +21,78 @@ Getting Started
 Once tacker is installed successfully, follow the steps given below to get
 started with tacker and validate the installation.
 
-i). Create a sample-vnfd.yml file with the following content:
+i). Create a sample-vnfd.yaml file with the following content:
 
 .. code-block:: ini
 
-    template_name: sample-vnfd
-    description: demo-example
+   tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
-    service_properties:
-      Id: sample-vnfd
-      vendor: tacker
-      version: 1
+   description: Demo example
 
-    vdus:
-      vdu1:
-        id: vdu1
-        vm_image: <IMAGE>
-        instance_type: <FLAVOR>
+   metadata:
+     template_name: sample-tosca-vnfd
 
-        network_interfaces:
-          management:
-            network: <NETWORK_ID>
-            management: true
+   topology_template:
+     node_templates:
+       VDU1:
+         type: tosca.nodes.nfv.VDU.Tacker
+         capabilities:
+           nfv_compute:
+             properties:
+               num_cpus: 1
+               mem_size: 512 MB
+               disk_size: 1 GB
+         properties:
+           image: cirros-0.3.4-x86_64-uec
+           availability_zone: nova
+           mgmt_driver: noop
+           config: |
+             param0: key1
+             param1: key2
 
-        placement_policy:
-          availability_zone: nova
+       CP1:
+         type: tosca.nodes.nfv.CP.Tacker
+         properties:
+           management: true
+           anti_spoofing_protection: false
+         requirements:
+           - virtualLink:
+               node: VL1
+           - virtualBinding:
+               node: VDU1
 
-        auto-scaling: noop
+       VL1:
+         type: tosca.nodes.nfv.VL
+         properties:
+           network_name: net_mgmt
+           vendor: Tacker
 
-        config:
-          param0: key0
-          param1: key1
 ..
+
+.. note::
+
+   You can find more sample tosca templates at https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd
 
 ii). Create a sample vnfd.
 
 .. code-block:: console
 
-    tacker vnfd-create --vnfd-file sample-vnfd.yml <NAME>
+   tacker vnfd-create --vnfd-file sample-vnfd.yaml <NAME>
 ..
 
 iii). Create a VNF.
 
 .. code-block:: console
 
-    tacker vnf-create --vnfd-id <VNFD_ID> <NAME>
+   tacker vnf-create --vnfd-id <VNFD_ID> <NAME>
 ..
 
 iv). Check the status.
 
 .. code-block:: console
 
-    tacker vnf-list
-    tacker vnf-show <VNF_ID>
+   tacker vim-list
+   tacker vnfd-list
+   tacker vnf-list
+   tacker vnf-show <VNF_ID>
 ..
