@@ -22,16 +22,16 @@ How to write a new monitor driver
 
 A monitor driver for tacker is a python module which contains a class that
 inherits from
-"tacker.vm.monitor_drivers.abstract_driver.VNFMonitorAbstractDriver". If the
+"tacker.vnfm.monitor_drivers.abstract_driver.VNFMonitorAbstractDriver". If the
 driver depends/imports more than one module, then create a new python package
-under tacker/vm/monitor_drivers folder. After this we have to mention our
+under tacker/vnfm/monitor_drivers folder. After this we have to mention our
 driver path in setup.cfg file in root directory.
 
 For example:
 ::
 
   tacker.tacker.monitor_drivers =
-      ping = tacker.vm.monitor_drivers.ping.ping:VNFMonitorPing
+      ping = tacker.vnfm.monitor_drivers.ping.ping:VNFMonitorPing
 
 Following methods need to be overridden in the new driver:
 

@@ -21,12 +21,12 @@ import yaml
 from tacker import context
 from tacker.db.common_services import common_services_db
 from tacker.db.nfvo import nfvo_db
-from tacker.db.vm import vm_db
+from tacker.db.vnfm import vnfm_db
 from tacker.extensions import vnfm
 from tacker.plugins.common import constants
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.db import utils
-from tacker.vm import plugin
+from tacker.vnfm import plugin
 
 
 class FakeDriverManager(mock.Mock):
@@ -108,7 +108,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
     def _insert_dummy_device_template(self):
         session = self.context.session
-        device_template = vm_db.VNFD(
+        device_template = vnfm_db.VNFD(
             id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_template',
@@ -121,7 +121,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
     def _insert_dummy_device(self):
         session = self.context.session
-        device_db = vm_db.VNF(
+        device_db = vnfm_db.VNF(
             id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_device',
@@ -156,9 +156,9 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         session.add(vim_auth_db)
         session.flush()
 
-    @mock.patch('tacker.vm.plugin.toscautils.updateimports')
-    @mock.patch('tacker.vm.plugin.ToscaTemplate')
-    @mock.patch('tacker.vm.plugin.toscautils.get_mgmt_driver')
+    @mock.patch('tacker.vnfm.plugin.toscautils.updateimports')
+    @mock.patch('tacker.vnfm.plugin.ToscaTemplate')
+    @mock.patch('tacker.vnfm.plugin.toscautils.get_mgmt_driver')
     def test_create_vnfd(self, mock_get_mgmt_driver, mock_tosca_template,
                         mock_update_imports):
         mock_get_mgmt_driver.return_value = 'dummy_mgmt_driver'
