@@ -159,6 +159,9 @@ node_types:
       nfv_compute:
         type: tosca.datatypes.compute_properties
     properties:
+      name:
+        type: string
+        required: false
       image:
 #        type: tosca.artifacts.Deployment.Image.VM
         type: string
@@ -218,6 +221,9 @@ node_types:
   tosca.nodes.nfv.CP.Tacker:
     derived_from: tosca.nodes.nfv.CP
     properties:
+      name:
+        type: string
+        required: false
       management:
         type: boolean
         required: false
