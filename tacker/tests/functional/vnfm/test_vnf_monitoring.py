@@ -11,9 +11,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-from tempest.lib import decorators
-
 from tacker.tests import constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
@@ -73,9 +70,6 @@ class VnfTestPingMonitor(base.BaseTackerTest):
             'sample-vnfd-single-vdu-monitoring-new-template.yaml',
             'ping monitor vnf new template')
 
-    # TODO(sridhar_ram): Temporarily disable ping monitor test using tosca
-    #     to avoid unwanted rechecks. Reenable after this test is fixed.
-    @decorators.skip_because(bug="1617923")
     def test_create_delete_vnf_monitoring_tosca_template(self):
         self._test_vnf_with_monitoring(
             'sample-tosca-vnfd-monitor.yaml',

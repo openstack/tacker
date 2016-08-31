@@ -75,6 +75,7 @@ vdus:
     id: vdu3
     vm_image: cirros-0.3.4-x86_64-uec
     instance_type: m1.tiny
+    config_drive: true
     user_data_format: RAW
     user_data: |
        #!/bin/sh

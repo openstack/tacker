@@ -98,6 +98,7 @@ class VNFMonitor(object):
             with self._lock:
                 for hosting_vnf in self._hosting_vnfs.values():
                     if hosting_vnf.get('dead', False):
+                        LOG.debug('monitor skips dead vnf %s', hosting_vnf)
                         continue
 
                     self.run_monitor(hosting_vnf)
@@ -266,7 +267,7 @@ class ActionRespawnHeat(ActionPolicy):
     @classmethod
     def execute_action(cls, plugin, vnf_dict, auth_attr):
         vnf_id = vnf_dict['id']
-        LOG.error(_('vnf %s dead'), vnf_id)
+        LOG.info(_('vnf %s dead and to be respawned'), vnf_id)
         if plugin._mark_vnf_dead(vnf_dict['id']):
             plugin._vnf_monitor.mark_dead(vnf_dict['id'])
             attributes = vnf_dict['attributes']
@@ -288,6 +289,7 @@ class ActionRespawnHeat(ActionPolicy):
                                 "ActionRespawnHeat invoked")
             update_vnf_dict = plugin.create_vnf_sync(context,
                                                      vnf_dict)
+            LOG.info(_('respawned new vnf %s'), update_vnf_dict['id'])
             plugin.config_vnf(context, update_vnf_dict)
             plugin.add_vnf_to_monitor(update_vnf_dict, auth_attr)
 
