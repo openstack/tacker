@@ -14,6 +14,7 @@
 
 from novaclient import exceptions
 from oslo_config import cfg
+import yaml
 
 from tacker.tests import constants
 from tacker.tests.functional import base
@@ -26,12 +27,11 @@ VNF_CIRROS_CREATE_TIMEOUT = 120
 
 class VnfTestToscaCreate(base.BaseTackerTest):
     def test_create_delete_vnf_tosca_no_monitoring(self):
-        data = dict()
-        data['tosca'] = read_file('sample-tosca-vnfd.yaml')
+        input_yaml = read_file('sample-tosca-vnfd.yaml')
         vnfd_name = 'test_tosca_vnf_with_cirros_no_monitoring'
-        toscal = data['tosca']
+        tosca_dict = yaml.safe_load(input_yaml)
         tosca_arg = {'vnfd': {'name': vnfd_name,
-                              'attributes': {'vnfd': toscal}}}
+                              'attributes': {'vnfd': tosca_dict}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
@@ -67,12 +67,11 @@ class VnfTestToscaCreate(base.BaseTackerTest):
 
 class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
     def test_create_delete_vnf_tosca_no_monitoring(self):
-        data = dict()
         vnfd_name = 'tosca_vnfd_with_auto_flavor'
-        data['tosca'] = read_file('sample-tosca-vnfd-flavor.yaml')
-        toscal = data['tosca']
+        input_yaml = read_file('sample-tosca-vnfd-flavor.yaml')
+        tosca_dict = yaml.safe_load(input_yaml)
         tosca_arg = {'vnfd': {'name': vnfd_name, 'attributes': {'vnfd':
-                                                                toscal}}}
+                                                                tosca_dict}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
@@ -122,12 +121,11 @@ class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
 
 class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
     def test_create_delete_vnf_tosca_no_monitoring(self):
-        data = dict()
         vnfd_name = 'tosca_vnfd_with_auto_image'
-        data['tosca'] = read_file('sample-tosca-vnfd-image.yaml')
-        toscal = data['tosca']
+        input_yaml = read_file('sample-tosca-vnfd-image.yaml')
+        tosca_dict = yaml.safe_load(input_yaml)
         tosca_arg = {'vnfd': {'name': vnfd_name, 'attributes': {'vnfd':
-                                                                toscal}}}
+                                                                tosca_dict}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)

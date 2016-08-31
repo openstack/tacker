@@ -13,6 +13,7 @@
 #    under the License.
 
 from oslo_config import cfg
+import yaml
 
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
@@ -22,12 +23,11 @@ CONF = cfg.CONF
 
 class VnfdTestCreate(base.BaseTackerTest):
     def _test_create_list_delete_tosca_vnfd(self, tosca_vnfd_file):
-        data = dict()
-        data['tosca'] = read_file(tosca_vnfd_file)
-        toscal = data['tosca']
+        input_yaml = read_file(tosca_vnfd_file)
+        tosca_dict = yaml.safe_load(input_yaml)
         vnfd_name = 'sample-tosca-vnfd'
         tosca_arg = {'vnfd': {'name': vnfd_name,
-                              'attributes': {'vnfd': toscal}}}
+                              'attributes': {'vnfd': tosca_dict}}}
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)
         self.assertIsNotNone(vnfd_instance)
 

@@ -35,6 +35,7 @@ import netaddr
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_log import versionutils
 from oslo_utils import importutils
 from six import iteritems
 from stevedore import driver
@@ -391,3 +392,9 @@ def deep_update(orig_dict, new_dict):
                 continue
 
         orig_dict[key] = value
+
+
+def deprecate_warning(what, as_of, in_favor_of=None, remove_in=1):
+    versionutils.deprecation_warning(as_of=as_of, what=what,
+                                     in_favor_of=in_favor_of,
+                                     remove_in=remove_in)
