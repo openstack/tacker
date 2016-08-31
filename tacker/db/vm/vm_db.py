@@ -475,7 +475,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 context, policy['vnf']['id'], previous_statuses, status)
             if mgmt_url:
                 vnf_db.update({'mgmt_url': mgmt_url})
-        return self._make_vnf_dict(vnf_db)
+        updated_vnf_dict = self._make_vnf_dict(vnf_db)
+        self._cos_db_plg.create_event(
+            context, res_id=updated_vnf_dict['id'],
+            res_type=constants.RES_TYPE_VNF,
+            res_state=updated_vnf_dict['status'],
+            evt_type=constants.RES_EVT_SCALE,
+            tstamp=timeutils.utcnow())
+        return updated_vnf_dict
 
     def _update_vnf_pre(self, context, vnf_id):
         with context.session.begin(subtransactions=True):
