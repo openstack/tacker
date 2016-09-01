@@ -16,7 +16,7 @@ import time
 
 from novaclient import client as nova_client
 from oslo_config import cfg
-from tempest_lib.tests import base
+from tempest.lib import base
 import yaml
 
 from tacker.common.exceptions import TackerException
@@ -29,11 +29,12 @@ from tackerclient.v1_0 import client as tacker_client
 CONF = cfg.CONF
 
 
-class BaseTackerTest(base.TestCase):
+class BaseTackerTest(base.BaseTestCase):
     """Base test case class for all Tacker API tests."""
 
     @classmethod
     def setUpClass(cls):
+        super(BaseTackerTest, cls).setUpClass()
         kwargs = {}
 
         cfg.CONF(args=['--config-file', '/etc/tacker/tacker.conf'],
