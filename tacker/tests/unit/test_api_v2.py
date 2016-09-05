@@ -118,6 +118,9 @@ class _ArgMatcher(object):
     def __eq__(self, other):
         return self.cmp(self.obj, other)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 def _list_cmp(l1, l2):
     return set(l1) == set(l2)
