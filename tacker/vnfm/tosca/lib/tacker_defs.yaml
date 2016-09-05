@@ -125,6 +125,29 @@ policy_types:
     properties:
       name: http-ping
 
+  tosca.policies.tacker.Alarming:
+    derived_from: tosca.policies.Monitoring
+    triggers:
+      resize_compute:
+        event_type:
+          type: map
+          entry_schema:
+            type: string
+          required: true
+        metrics:
+          type: string
+          required: true
+        condition:
+          type: map
+          entry_schema:
+            type: string
+          required: false
+        action:
+          type: map
+          entry_schema:
+            type: string
+          required: true
+
   tosca.policies.tacker.Scaling:
     derived_from: tosca.policies.Scaling
     description: Defines policy for scaling the given targets.

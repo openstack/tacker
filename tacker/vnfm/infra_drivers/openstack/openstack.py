@@ -323,7 +323,16 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                 # scale_resource_type is custome type mapped the HOT template
                 # generated for all VDUs in the tosca template
                 properties['resource']['type'] = scale_resource_type
-
+                # support monitoring
+                if 'policies' in vnfd_dict:
+                    for policies in vnfd_dict['policies']:
+                        policy_name, policy_dt = list(policies.items())[0]
+                        if policy_dt['type'] ==\
+                                'tosca.polices.tacker.Alarming':
+                            metadata_dict = dict()
+                            metadata_dict['metering.vnf_id'] = vnf['id']
+                            properties['resource']['metadata'] = metadata_dict
+                            break
                 # TODO(kanagraj-manickam) add custom type params here, to
                 # support parameterized template
                 group_hot['properties'] = properties
@@ -393,6 +402,66 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
             return ((len(template_dict['resources']) > 0),
                     scaling_group_names,
                     template_dict)
+
+        def generate_hot_alarm_resource(topology_tpl_dict, heat_tpl):
+            alarm_resource = dict()
+            heat_dict = yamlparser.simple_ordered_parse(heat_tpl)
+            is_enabled_alarm = False
+
+            def _convert_to_heat_monitoring_prop(mon_policy):
+                name, mon_policy_dict = list(mon_policy.items())[0]
+                tpl_trigger_name = \
+                    mon_policy_dict['triggers']['resize_compute']
+                tpl_condition = tpl_trigger_name['condition']
+                properties = {}
+                properties['meter_name'] = tpl_trigger_name['metrics']
+                properties['comparison_operator'] = \
+                    tpl_condition['comparison_operator']
+                properties['period'] = tpl_condition['period']
+                properties['evaluation_periods'] = tpl_condition['evaluations']
+                properties['statistic'] = tpl_condition['method']
+                properties['description'] = tpl_condition['constraint']
+                properties['threshold'] = tpl_condition['threshold']
+                # alarm url process here
+                alarm_url = str(vnf['attributes'].get('alarm_url'))
+                if alarm_url:
+                    LOG.debug('Alarm url in heat %s', alarm_url)
+                    properties['alarm_actions'] = [alarm_url]
+                return properties
+
+            def _convert_to_heat_monitoring_resource(mon_policy):
+                mon_policy_hot = {'type': 'OS::Aodh::Alarm'}
+                mon_policy_hot['properties'] = \
+                    _convert_to_heat_monitoring_prop(mon_policy)
+
+                if 'policies' in topology_tpl_dict:
+                    for policies in topology_tpl_dict['policies']:
+                        policy_name, policy_dt = list(policies.items())[0]
+                        if policy_dt['type'] == \
+                                'tosca.policy.tacker.Scaling':
+                            metadata_dict = dict()
+                            metadata_dict['metadata.user_metadata.vnf_id'] =\
+                                vnf['id']
+                            mon_policy_hot['properties']['matching_metadata'] =\
+                                metadata_dict
+                            break
+                return mon_policy_hot
+
+            if 'policies' in topology_tpl_dict:
+                for policy_dict in topology_tpl_dict['policies']:
+                    name, policy_tpl_dict = list(policy_dict.items())[0]
+                    if policy_tpl_dict['type'] == \
+                            'tosca.policies.tacker.Alarming':
+                        is_enabled_alarm = True
+                        alarm_resource[name] =\
+                            _convert_to_heat_monitoring_resource(policy_dict)
+                        heat_dict['resources'].update(alarm_resource)
+                        break
+
+            heat_tpl_yaml = yaml.dump(heat_dict)
+            return (is_enabled_alarm,
+                    alarm_resource,
+                    heat_tpl_yaml)
 
         def generate_hot_from_legacy(vnfd_dict):
             assert 'template' not in fields
@@ -490,16 +559,22 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                  monitoring_dict) = generate_hot_from_legacy(vnfd_dict)
 
             fields['template'] = heat_template_yaml
-
-            # Handle scaling here
             if is_tosca_format:
-                (is_scaling_needed,
-                 scaling_group_names,
+                (is_scaling_needed, scaling_group_names,
                  main_dict) = generate_hot_scaling(
                     vnfd_dict['topology_template'],
                     'scaling.yaml')
+                (is_enabled_alarm, alarm_resource,
+                 heat_tpl_yaml) = generate_hot_alarm_resource(
+                    vnfd_dict['topology_template'],
+                    heat_template_yaml)
+                if is_enabled_alarm and not is_scaling_needed:
+                    heat_template_yaml = heat_tpl_yaml
+                    fields['template'] = heat_template_yaml
 
                 if is_scaling_needed:
+                    if is_enabled_alarm:
+                        main_dict['resources'].update(alarm_resource)
                     main_yaml = yaml.dump(main_dict)
                     fields['template'] = main_yaml
                     fields['files'] = {'scaling.yaml': heat_template_yaml}
@@ -513,7 +588,8 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                         'scaling_group_names'] = jsonutils.dumps(
                         scaling_group_names
                     )
-                else:
+
+                elif not is_scaling_needed:
                     if not vnf['attributes'].get('heat_template'):
                         vnf['attributes'][
                             'heat_template'] = fields['template']

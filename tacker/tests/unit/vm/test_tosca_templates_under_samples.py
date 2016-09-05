@@ -22,13 +22,6 @@ from tacker.vnfm.tosca import utils
 from translator.hot import tosca_translator
 
 
-# TODO(kanagaraj-manickam) Update it for including other samples also
-def get_list_of_samples():
-    base_path = (os.path.dirname(os.path.abspath(__file__)) +
-                '/../../../../samples/tosca-templates/vnfd/')
-    return [base_path + 'tosca-vnfd-scale.yaml']
-
-
 class TestSamples(testtools.TestCase):
     """Sample tosca validation.
 
@@ -37,40 +30,62 @@ class TestSamples(testtools.TestCase):
     possible to translate into HOT template.
     """
 
-    def test_samples(self):
-        for f in get_list_of_samples():
-            with open(f, 'r') as _f:
-                yaml_dict = None
-                try:
-                    yaml_dict = yamlparser.simple_ordered_parse(_f.read())
-                except:  # noqa
-                    pass
+    def _get_list_of_sample(self, tosca_files):
+        if tosca_files:
+            base_path = (os.path.dirname(os.path.abspath(__file__)) +
+                         '/../../../../samples/tosca-templates/vnfd/')
+            if isinstance(tosca_files, list):
+                list_of_samples = []
+                for tosca_file in tosca_files:
+                    sample = base_path + tosca_file
+                    list_of_samples.append(sample)
+                return list_of_samples
 
-                self.assertIsNotNone(
-                    yaml_dict,
-                    "Yaml parser failed to parse %s" % f)
+    def _test_samples(self, files):
+        if files:
+            for f in self._get_list_of_sample(files):
+                with open(f, 'r') as _f:
+                    yaml_dict = None
+                    try:
+                        yaml_dict = yamlparser.simple_ordered_parse(_f.read())
+                    except:  # noqa
+                        pass
+                    self.assertIsNotNone(
+                        yaml_dict,
+                        "Yaml parser failed to parse %s" % f)
 
-                utils.updateimports(yaml_dict)
+                    utils.updateimports(yaml_dict)
 
-                tosca = None
-                try:
-                    tosca = tosca_template.ToscaTemplate(
-                        a_file=False,
-                        yaml_dict_tpl=yaml_dict)
-                except:  # noqa
-                    pass
+                    tosca = None
+                    try:
+                        tosca = tosca_template.ToscaTemplate(
+                            a_file=False,
+                            yaml_dict_tpl=yaml_dict)
+                    except:  # noqa
+                        pass
 
-                self.assertIsNotNone(
-                    tosca,
-                    "Tosca parser failed to parse %s" % f)
+                    self.assertIsNotNone(
+                        tosca,
+                        "Tosca parser failed to parse %s" % f)
 
-                hot = None
-                try:
-                    hot = tosca_translator.TOSCATranslator(tosca,
-                                                           {}).translate()
-                except:  # noqa
-                    pass
+                    hot = None
+                    try:
+                        hot = tosca_translator.TOSCATranslator(tosca,
+                                                               {}).translate()
+                    except:  # noqa
+                        pass
 
-                self.assertIsNotNone(
-                    hot,
-                    "Heat-translator failed to translate %s" % f)
+                    self.assertIsNotNone(
+                        hot,
+                        "Heat-translator failed to translate %s" % f)
+
+    def test_scale_sample(self, tosca_file=['tosca-vnfd-scale.yaml']):
+        self._test_samples(tosca_file)
+
+    def test_alarm_sample(self, tosca_file=['tosca-vnfd-alarm.yaml']):
+        self._test_samples(tosca_file)
+
+    def test_list_samples(self,
+                          files=['tosca-vnfd-scale.yaml',
+                                 'tosca-vnfd-alarm.yaml']):
+        self._test_samples(files)

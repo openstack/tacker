@@ -244,6 +244,13 @@ function configure_tacker {
     iniset $TACKER_CONF DEFAULT auth_strategy $TACKER_AUTH_STRATEGY
     _tacker_setup_keystone $TACKER_CONF keystone_authtoken
 
+    # Experimental settings for monitor alarm auth settings,
+    # Will be changed according to new implementation.
+    iniset $TACKER_CONF alarm_auth uername tacker
+    iniset $TACKER_CONF alarm_auth password "$SERVICE_PASSWORD"
+    iniset $TACKER_CONF alarm_auth project_name "$SERVICE_PROJECT_NAME"
+    iniset $TACKER_CONF alarm_auth url http://$SERVICE_HOST:35357/v3
+
     # Configuration for tacker requests to nova.
     iniset $TACKER_CONF DEFAULT nova_url $TACKER_NOVA_URL
     iniset $TACKER_CONF DEFAULT nova_admin_user_name nova

@@ -236,7 +236,8 @@ class TestDeviceHeat(base.TestCase):
                                 tosca_tpl_name,
                                 hot_tpl_name,
                                 param_values='',
-                                is_monitor=True):
+                                is_monitor=True,
+                                is_alarm=False):
         tosca_tpl = _get_template(tosca_tpl_name)
         exp_tmpl = self._get_expected_vnfd(tosca_tpl)
         tosca_hw_dict = yaml.safe_load(_get_template(hot_tpl_name))
@@ -264,10 +265,11 @@ class TestDeviceHeat(base.TestCase):
                                       '"respawn"}, "parameters": {"count": 3, '
                                       '"interval": 10}, "monitoring_params": '
                                       '{"count": 3, "interval": 10}}}}}'})
-
+        if is_alarm:
+            dvc['attributes'].update({'alarm_url': ''})
         return dvc
 
-    def _get_dummy_tosca_vnf(self, template, input_params=''):
+    def _get_dummy_tosca_vnf(self, template, input_params='', is_alarm=False):
 
         tosca_template = _get_template(template)
         vnf = utils.get_dummy_device_obj()
@@ -278,21 +280,24 @@ class TestDeviceHeat(base.TestCase):
         vnf['vnfd'] = dtemplate['vnfd']
         vnf['attributes'] = {}
         vnf['attributes']['param_values'] = input_params
+        if is_alarm:
+            vnf['attributes']['alarm_url'] = ''
         return vnf
 
-    def _test_assert_equal_for_tosca_templates(self,
-                                               tosca_tpl_name,
+    def _test_assert_equal_for_tosca_templates(self, tosca_tpl_name,
                                                hot_tpl_name,
                                                input_params='',
                                                files=None,
-                                               is_monitor=True):
-        vnf = self._get_dummy_tosca_vnf(tosca_tpl_name, input_params)
+                                               is_monitor=True,
+                                               is_alarm=False):
+        vnf = self._get_dummy_tosca_vnf(tosca_tpl_name, input_params, is_alarm)
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields_tosca(hot_tpl_name)
         expected_vnf = self._get_expected_tosca_vnf(tosca_tpl_name,
                                                     hot_tpl_name,
                                                     input_params,
-                                                    is_monitor)
+                                                    is_monitor,
+                                                    is_alarm)
         result = self.heat_driver.create(plugin=None, context=self.context,
                                          vnf=vnf,
                                          auth_attr=utils.get_vim_auth_obj())
@@ -438,4 +443,12 @@ class TestDeviceHeat(base.TestCase):
         self._test_assert_equal_for_tosca_templates(
             'test_tosca_security_groups.yaml',
             'hot_tosca_security_groups.yaml'
+        )
+
+    def test_create_tosca_with_alarm_monitoring(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_alarm.yaml',
+            'hot_tosca_alarm.yaml',
+            is_monitor=False,
+            is_alarm=True
         )
