@@ -26,7 +26,6 @@ import six
 import webob.dec
 import webob.exc
 
-from tacker.api.v1 import attributes
 from tacker.common import exceptions
 from tacker import wsgi
 
@@ -44,14 +43,9 @@ def Resource(controller, faults=None, deserializers=None, serializers=None):
     Represents an API entity resource and the associated serialization and
     deserialization logic
     """
-    xml_deserializer = wsgi.XMLDeserializer(attributes.get_attr_metadata())
-    default_deserializers = {'application/xml': xml_deserializer,
-                             'application/json': wsgi.JSONDeserializer()}
-    xml_serializer = wsgi.XMLDictSerializer(attributes.get_attr_metadata())
-    default_serializers = {'application/xml': xml_serializer,
-                           'application/json': wsgi.JSONDictSerializer()}
-    format_types = {'xml': 'application/xml',
-                    'json': 'application/json'}
+    default_deserializers = {'application/json': wsgi.JSONDeserializer()}
+    default_serializers = {'application/json': wsgi.JSONDictSerializer()}
+    format_types = {'json': 'application/json'}
     action_status = dict(create=201, delete=204)
 
     default_deserializers.update(deserializers or {})

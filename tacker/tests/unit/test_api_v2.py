@@ -1205,12 +1205,6 @@ class SubresourceTest(base.BaseTestCase):
                                                               network_id='id1')
 
 
-# Note: since all resources use the same controller and validation
-# logic, we actually get really good coverage from testing just networks.
-class XMLV2TestCase(JSONV2TestCase):
-    fmt = 'xml'
-
-
 class V2Views(base.BaseTestCase):
     def _view(self, keys, collection, resource):
         data = dict((key, 'value') for key in keys)

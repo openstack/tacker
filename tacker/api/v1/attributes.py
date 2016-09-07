@@ -20,7 +20,6 @@ from oslo_log import log as logging
 from oslo_utils import uuidutils
 from six import iteritems
 
-from tacker.common import constants
 from tacker.common import exceptions as n_exc
 
 
@@ -612,16 +611,3 @@ RESOURCE_ATTRIBUTE_MAP = {}
 RESOURCE_FOREIGN_KEYS = {}
 
 PLURALS = {'extensions': 'extension'}
-EXT_NSES = {}
-
-# Namespaces to be added for backward compatibility
-# when existing extended resource attributes are
-# provided by other extension than original one.
-EXT_NSES_BC = {}
-
-
-def get_attr_metadata():
-    return {'plurals': PLURALS,
-            'xmlns': constants.XML_NS_V10,
-            constants.EXT_NS: EXT_NSES,
-            constants.EXT_NS_COMP: EXT_NSES_BC}
