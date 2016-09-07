@@ -27,6 +27,7 @@ topology_template:
              timeout: 10
              retry: 5
              port: 8000
+        config_drive: true
         user_data_format: RAW
         user_data: |
           #!/bin/sh

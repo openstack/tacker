@@ -19,7 +19,6 @@ from oslo_config import cfg
 from tempest.lib import base
 import yaml
 
-from tacker.common import exceptions
 from tacker.tests import constants
 from tacker.tests.utils import read_file
 from tacker import version
@@ -66,45 +65,43 @@ class BaseTackerTest(base.BaseTestCase):
                                   vim_params['project_name'],
                                   vim_params['auth_url'])
 
-    @classmethod
-    def wait_until_vnf_status(cls, vnf_id, target_status, timeout,
+    def wait_until_vnf_status(self, vnf_id, target_status, timeout,
                               sleep_interval):
         start_time = int(time.time())
         while True:
-                vnf_result = cls.client.show_vnf(vnf_id)
+                vnf_result = self.client.show_vnf(vnf_id)
                 status = vnf_result['vnf']['status']
                 if (status == target_status) or (
                         (int(time.time()) - start_time) > timeout):
                     break
                 time.sleep(sleep_interval)
 
-        if (status == target_status):
-            return target_status
+        self.assertEqual(status, target_status,
+                         "vnf %(vnf_id)s with status %(status)s is"
+                         " expected to be %(target)s" %
+                         {"vnf_id": vnf_id, "status": status,
+                          "target": target_status})
 
-    @classmethod
-    def wait_until_vnf_active(cls, vnf_id, timeout, sleep_interval):
-        return cls.wait_until_vnf_status(vnf_id, 'ACTIVE', timeout,
-                                         sleep_interval)
+    def wait_until_vnf_active(self, vnf_id, timeout, sleep_interval):
+        self.wait_until_vnf_status(vnf_id, 'ACTIVE', timeout,
+                                   sleep_interval)
 
-    @classmethod
-    def wait_until_vnf_delete(cls, vnf_id, timeout):
+    def wait_until_vnf_delete(self, vnf_id, timeout):
         start_time = int(time.time())
         while True:
             try:
-                vnf_result = cls.client.show_vnf(vnf_id)
+                vnf_result = self.client.show_vnf(vnf_id)
                 time.sleep(1)
             except Exception:
                 return
             status = vnf_result['vnf']['status']
             if (status != 'PENDING_DELETE') or ((
                     int(time.time()) - start_time) > timeout):
-                raise exceptions.TackerException(_("Failed with status: %s"),
-                                                 status)
+                raise Exception("Failed with status: %s" % status)
 
-    @classmethod
-    def wait_until_vnf_dead(cls, vnf_id, timeout, sleep_interval):
-        return cls.wait_until_vnf_status(vnf_id, 'DEAD', timeout,
-                                         sleep_interval)
+    def wait_until_vnf_dead(self, vnf_id, timeout, sleep_interval):
+        self.wait_until_vnf_status(vnf_id, 'DEAD', timeout,
+                                   sleep_interval)
 
     def validate_vnf_instance(self, vnfd_instance, vnf_instance):
         self.assertIsNotNone(vnf_instance)
@@ -115,24 +112,21 @@ class BaseTackerTest(base.BaseTestCase):
 
     def verify_vnf_restart(self, vnfd_instance, vnf_instance):
         vnf_id = vnf_instance['vnf']['id']
-        vnf_current_status = self.wait_until_vnf_active(
+        self.wait_until_vnf_active(
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual('ACTIVE', vnf_current_status)
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
-        vnf_current_status = self.wait_until_vnf_dead(
+        self.wait_until_vnf_dead(
             vnf_id,
             constants.VNF_CIRROS_DEAD_TIMEOUT,
             constants.DEAD_SLEEP_TIME)
-        self.assertEqual('DEAD', vnf_current_status)
-        vnf_current_status = self.wait_until_vnf_active(
+        self.wait_until_vnf_active(
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual('ACTIVE', vnf_current_status)
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
     def get_vim(self, vim_list, vim_name):

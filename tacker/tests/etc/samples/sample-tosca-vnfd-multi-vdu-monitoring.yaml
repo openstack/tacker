@@ -103,11 +103,12 @@ topology_template:
             interval: 10
             monitoring_delay: 45
             timeout: 2
+        config_drive: true
         user_data_format: RAW
         user_data: |
           #!/bin/sh
           echo "my hostname is `hostname`" > /tmp/hostname
-          df -h > /home/openwrt/diskinfo
+          df -h > /home/cirros/diskinfo
           sleep 90
           sudo ifdown eth0
 

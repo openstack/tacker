@@ -16,7 +16,6 @@ topology_template:
         config: |
           param0: key1
           param1: key2
-        mgmt_driver: openwrt
         monitoring_policy:
           name: ping
           actions:
@@ -26,11 +25,12 @@ topology_template:
             interval: 10
             monitoring_delay: 45
             timeout: 2
+        config_drive: true
         user_data_format: RAW
         user_data: |
           #!/bin/sh
           echo "my hostname is `hostname`" > /tmp/hostname
-          df -h > /home/openwrt/diskinfo
+          df -h > /tmp/test.txt
           sleep 90
           sudo ifdown eth0
 
@@ -45,40 +45,8 @@ topology_template:
         - virtualBinding:
             node: VDU1
 
-    CP2:
-      type: tosca.nodes.nfv.CP.Tacker
-      properties:
-        anti_spoofing_protection: false
-      requirements:
-        - virtualLink:
-            node: VL2
-        - virtualBinding:
-            node: VDU1
-
-    CP3:
-      type: tosca.nodes.nfv.CP.Tacker
-      properties:
-        anti_spoofing_protection: false
-      requirements:
-        - virtualLink:
-            node: VL3
-        - virtualBinding:
-            node: VDU1
-
     VL1:
       type: tosca.nodes.nfv.VL
       properties:
         network_name: net_mgmt
         vendor: ACME
-
-    VL2:
-      type: tosca.nodes.nfv.VL
-      properties:
-        network_name: net0
-        vendor: Tacker
-
-    VL3:
-      type: tosca.nodes.nfv.VL
-      properties:
-        network_name: net1
-        vendor: Tacker

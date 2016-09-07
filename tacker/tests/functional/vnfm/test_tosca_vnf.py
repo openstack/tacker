@@ -46,11 +46,10 @@ class VnfTestToscaCreate(base.BaseTackerTest):
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
         vnf_id = vnf_instance['vnf']['id']
-        vnf_current_status = self.wait_until_vnf_active(
+        self.wait_until_vnf_active(
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual('ACTIVE', vnf_current_status)
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
         # Delete vnf_instance with vnf_id
@@ -86,11 +85,10 @@ class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
         vnf_id = vnf_instance['vnf']['id']
-        vnf_current_status = self.wait_until_vnf_active(
+        self.wait_until_vnf_active(
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual('ACTIVE', vnf_current_status)
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
         servers = self.novaclient().servers.list()
@@ -140,11 +138,10 @@ class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
         vnf_id = vnf_instance['vnf']['id']
-        vnf_current_status = self.wait_until_vnf_active(
+        self.wait_until_vnf_active(
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertEqual('ACTIVE', vnf_current_status)
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
         servers = self.novaclient().servers.list()
