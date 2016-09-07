@@ -15,7 +15,6 @@
 
 import testtools
 
-from tacker.api.v1 import attributes
 from tacker.tests import base
 from tacker import wsgi
 
@@ -55,11 +54,8 @@ class WebTestCase(base.BaseTestCase):
     def setUp(self):
         super(WebTestCase, self).setUp()
         json_deserializer = wsgi.JSONDeserializer()
-        xml_deserializer = wsgi.XMLDeserializer(
-            attributes.get_attr_metadata())
         self._deserializers = {
             'application/json': json_deserializer,
-            'application/xml': xml_deserializer,
         }
 
     def deserialize(self, response):
@@ -69,8 +65,7 @@ class WebTestCase(base.BaseTestCase):
 
     def serialize(self, data):
         ctype = 'application/%s' % self.fmt
-        result = wsgi.Serializer(
-            attributes.get_attr_metadata()).serialize(data, ctype)
+        result = wsgi.Serializer().serialize(data, ctype)
         return result
 
 

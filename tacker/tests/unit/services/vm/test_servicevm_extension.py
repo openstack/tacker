@@ -261,7 +261,3 @@ class TackerExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
 
     def test_device_delete(self):
         self._test_entity_delete(self._DEVICE)
-
-
-class TackerExtensionTestCaseXML(TackerExtensionTestCase):
-    fmt = 'xml'

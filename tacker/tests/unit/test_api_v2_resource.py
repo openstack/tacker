@@ -42,29 +42,27 @@ class RequestTestCase(base.BaseTestCase):
         self.assertEqual("application/json", result)
 
     def test_content_type_from_accept(self):
-        for content_type in ('application/xml',
-                             'application/json'):
-            request = wsgi.Request.blank('/tests/123')
-            request.headers["Accept"] = content_type
-            result = request.best_match_content_type()
-            self.assertEqual(content_type, result)
+        content_type = 'application/json'
+        request = wsgi.Request.blank('/tests/123')
+        request.headers["Accept"] = content_type
+        result = request.best_match_content_type()
+        self.assertEqual(result, content_type)
 
     def test_content_type_from_accept_best(self):
         request = wsgi.Request.blank('/tests/123')
-        request.headers["Accept"] = "application/xml, application/json"
+        request.headers["Accept"] = "application/json"
         result = request.best_match_content_type()
         self.assertEqual("application/json", result)
 
         request = wsgi.Request.blank('/tests/123')
-        request.headers["Accept"] = ("application/json; q=0.3, "
-                                     "application/xml; q=0.9")
+        request.headers["Accept"] = ("application/json; q=0.3, ")
         result = request.best_match_content_type()
-        self.assertEqual("application/xml", result)
+        self.assertEqual("application/json", result)
 
     def test_content_type_from_query_extension(self):
-        request = wsgi.Request.blank('/tests/123.xml')
+        request = wsgi.Request.blank('/tests/123.json')
         result = request.best_match_content_type()
-        self.assertEqual("application/xml", result)
+        self.assertEqual("application/json", result)
 
         request = wsgi.Request.blank('/tests/123.json')
         result = request.best_match_content_type()
@@ -75,10 +73,10 @@ class RequestTestCase(base.BaseTestCase):
         self.assertEqual("application/json", result)
 
     def test_content_type_accept_and_query_extension(self):
-        request = wsgi.Request.blank('/tests/123.xml')
+        request = wsgi.Request.blank('/tests/123.json')
         request.headers["Accept"] = "application/json"
         result = request.best_match_content_type()
-        self.assertEqual("application/xml", result)
+        self.assertEqual("application/json", result)
 
     def test_content_type_accept_default(self):
         request = wsgi.Request.blank('/tests/123.unsupported')
@@ -141,28 +139,6 @@ class ResourceTestCase(base.BaseTestCase):
         self.assertEqual(expected_res,
                          wsgi.JSONDeserializer().deserialize(res.body))
 
-    def test_unmapped_tacker_error_with_xml(self):
-        msg = u'\u7f51\u7edc'
-
-        class TestException(n_exc.TackerException):
-            message = msg
-        expected_res = {'body': {
-            'TackerError': {
-                'type': 'TestException',
-                'message': msg,
-                'detail': ''}}}
-        controller = mock.MagicMock()
-        controller.test.side_effect = TestException()
-
-        resource = webtest.TestApp(wsgi_resource.Resource(controller))
-
-        environ = {'wsgiorg.routing_args': (None, {'action': 'test',
-                                                   'format': 'xml'})}
-        res = resource.get('', extra_environ=environ, expect_errors=True)
-        self.assertEqual(exc.HTTPInternalServerError.code, res.status_int)
-        self.assertEqual(expected_res,
-                         wsgi.XMLDeserializer().deserialize(res.body))
-
     @mock.patch('oslo_i18n.translate')
     def test_unmapped_tacker_error_localized(self, mock_translation):
         oslo_i18n.install('blaa')
@@ -208,30 +184,6 @@ class ResourceTestCase(base.BaseTestCase):
         self.assertEqual(exc.HTTPGatewayTimeout.code, res.status_int)
         self.assertEqual(expected_res,
                          wsgi.JSONDeserializer().deserialize(res.body))
-
-    def test_mapped_tacker_error_with_xml(self):
-        msg = u'\u7f51\u7edc'
-
-        class TestException(n_exc.TackerException):
-            message = msg
-        expected_res = {'body': {
-            'TackerError': {
-                'type': 'TestException',
-                'message': msg,
-                'detail': ''}}}
-        controller = mock.MagicMock()
-        controller.test.side_effect = TestException()
-
-        faults = {TestException: exc.HTTPGatewayTimeout}
-        resource = webtest.TestApp(wsgi_resource.Resource(controller,
-                                                          faults=faults))
-
-        environ = {'wsgiorg.routing_args': (None, {'action': 'test',
-                                                   'format': 'xml'})}
-        res = resource.get('', extra_environ=environ, expect_errors=True)
-        self.assertEqual(exc.HTTPGatewayTimeout.code, res.status_int)
-        self.assertEqual(expected_res,
-                         wsgi.XMLDeserializer().deserialize(res.body))
 
     @mock.patch('oslo_i18n.translate')
     def test_mapped_tacker_error_localized(self, mock_translation):
@@ -282,22 +234,6 @@ class ResourceTestCase(base.BaseTestCase):
         self.assertEqual(exc.HTTPInternalServerError.code, res.status_int)
         self.assertEqual(expected_res,
                          wsgi.JSONDeserializer().deserialize(res.body))
-
-    def test_unhandled_error_with_xml(self):
-        expected_res = {'body': {'TackerError':
-                                 _('Request Failed: internal server error '
-                                   'while processing your request.')}}
-        controller = mock.MagicMock()
-        controller.test.side_effect = Exception()
-
-        resource = webtest.TestApp(wsgi_resource.Resource(controller))
-
-        environ = {'wsgiorg.routing_args': (None, {'action': 'test',
-                                                   'format': 'xml'})}
-        res = resource.get('', extra_environ=environ, expect_errors=True)
-        self.assertEqual(exc.HTTPInternalServerError.code, res.status_int)
-        self.assertEqual(expected_res,
-                         wsgi.XMLDeserializer().deserialize(res.body))
 
     def test_status_200(self):
         controller = mock.MagicMock()

@@ -31,9 +31,7 @@ class Index(wsgi.Application):
 
     @webob.dec.wsgify(RequestClass=wsgi.Request)
     def __call__(self, req):
-        metadata = {'application/xml': {'attributes': {
-                    'resource': ['name', 'collection'],
-                    'link': ['href', 'rel']}}}
+        metadata = {}
 
         layout = []
         for name, collection in iteritems(self.resources):
