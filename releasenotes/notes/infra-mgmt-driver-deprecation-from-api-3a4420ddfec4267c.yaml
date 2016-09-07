@@ -1,0 +1,4 @@
+---
+deprecations:
+  - Deriving infra_driver and mgmt_drvier from VNFD API is deprecated and will
+    be removed in Ocata.
