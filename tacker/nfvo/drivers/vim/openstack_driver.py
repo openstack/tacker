@@ -15,6 +15,7 @@
 #    under the License.
 
 import os
+import six
 
 from keystoneclient.auth.identity import v2
 from keystoneclient.auth.identity import v3
@@ -208,7 +209,10 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
         key_file = os.path.join(CONF.vim_keys.openstack, vim_id)
         try:
             with open(key_file, 'w') as f:
-                f.write(fernet_key.decode('utf-8'))
+                if six.PY2:
+                    f.write(fernet_key.decode('utf-8'))
+                else:
+                    f.write(fernet_key)
                 LOG.debug(_('VIM auth successfully stored for vim %s'), vim_id)
         except IOError:
             raise nfvo.VimKeyNotFoundException(vim_id=vim_id)

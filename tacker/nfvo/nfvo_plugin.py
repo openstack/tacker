@@ -174,7 +174,7 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
         else:
             self.validate_tosca(template['template']['vnffgd'])
             temp = template['template']['vnffgd']['topology_template']
-            vnffg_name = temp['groups'].keys()[0]
+            vnffg_name = list(temp['groups'].keys())[0]
             nfp_name = temp['groups'][vnffg_name]['members'][0]
             path = self._get_nfp_attribute(template['template'], nfp_name,
                                            'path')
@@ -209,7 +209,8 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
         # grab the first VNF to check it's VIM type
         # we have already checked that all VNFs are in the same VIM
         vim_auth = self._get_vim_from_vnf(context,
-                                          vnffg_dict['vnf_mapping'].values()[0]
+                                          list(vnffg_dict[
+                                              'vnf_mapping'].values())[0]
                                           )
         # TODO(trozet): figure out what auth info we actually need to pass
         # to the driver.  Is it a session, or is full vim obj good enough?
@@ -265,7 +266,8 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
         sfc['chain'] = chain
         sfc['symmetrical'] = new_vnffg['symmetrical']
         vim_auth = self._get_vim_from_vnf(context,
-                                          vnffg_dict['vnf_mapping'].values()[0]
+                                          list(vnffg_dict[
+                                              'vnf_mapping'].values())[0]
                                           )
         driver_type = vim_auth['type']
         try:
@@ -309,7 +311,8 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
         fc = super(NfvoPlugin, self).get_classifier(context,
                                                     nfp['classifier_id'])
         vim_auth = self._get_vim_from_vnf(context,
-                                          vnffg_dict['vnf_mapping'].values()[0]
+                                          list(vnffg_dict[
+                                              'vnf_mapping'].values())[0]
                                           )
         driver_type = vim_auth['type']
         try:
