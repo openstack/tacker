@@ -855,6 +855,21 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
 
         return jsonutils.dumps(mgmt_ips)
 
+    def get_resource_info(self, plugin, context, vnf_info, auth_attr,
+                          region_name=None):
+        stack_id = vnf_info['instance_id']
+        heatclient_ = HeatClient(auth_attr, region_name)
+        try:
+            resources_ids = heatclient_.resource_get_list(stack_id)
+            details_dict = {resource.resource_name:
+                           {"id": resource.physical_resource_id,
+                           "type": resource.resource_type}
+                           for resource in resources_ids}
+            return details_dict
+        # Raise exception when Heat API service is not available
+        except Exception:
+            raise vnfm.InfraDriverUnreachable(service="Heat API service")
+
 
 class HeatClient(object):
     def __init__(self, auth_attr, region_name=None):
@@ -862,6 +877,7 @@ class HeatClient(object):
         self.heat = clients.OpenstackClients(auth_attr, region_name).heat
         self.stacks = self.heat.stacks
         self.resource_types = self.heat.resource_types
+        self.resources = self.heat.resources
 
     def create(self, fields):
         fields = fields.copy()

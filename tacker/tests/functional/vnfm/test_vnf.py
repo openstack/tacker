@@ -53,6 +53,12 @@ class VnfTestCreate(base.BaseTackerTest):
         if vim_id:
             self.assertEqual(vim_id, vnf_instance['vnf']['vim_id'])
 
+        # Get vnf details when vnf is in active state
+        vnf_details = self.client.list_vnf_resources(vnf_id)['resources'][0]
+        self.assertIn('name', vnf_details)
+        self.assertIn('id', vnf_details)
+        self.assertIn('type', vnf_details)
+
         # Delete vnf_instance with vnf_id
         try:
             self.client.delete_vnf(vnf_id)

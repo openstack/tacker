@@ -68,3 +68,9 @@ class DeviceAbstractDriver(extensions.PluginInterface):
     @abc.abstractmethod
     def delete_wait(self, plugin, context, vnf_id):
         pass
+
+    @abc.abstractmethod
+    def get_resource_info(self, plugin, context, vnf_info, auth_attr,
+                          region_name=None):
+        '''Fetches optional details of a VNF'''
+        pass

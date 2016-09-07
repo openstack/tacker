@@ -20,6 +20,7 @@ import os
 import yaml
 
 from tacker import context
+from tacker.extensions import vnfm
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
 from tacker.vnfm.infra_drivers.heat import heat
@@ -142,6 +143,28 @@ class TestDeviceHeat(base.TestCase):
                                       'option forward \'REJECT\'\\n"}\n'},
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123', 'description':
                 u'OpenWRT with services'}
+
+    def _get_expected_active_vnf(self):
+        return {'status': 'ACTIVE',
+                'instance_id': None,
+                'name': u'test_openwrt',
+                'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                'vnfd': {
+                    'service_types': [{
+                        'service_type': u'vnfd',
+                        'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
+                    'description': u'OpenWRT with services',
+                    'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                    'mgmt_driver': u'openwrt',
+                    'infra_driver': u'heat',
+                    'attributes': {u'vnfd': self.vnfd_openwrt},
+                    'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
+                    'name': u'openwrt_services'},
+                'mgmt_url': '{"vdu1": "192.168.120.31"}',
+                'service_context': [],
+                'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
+                'description': u'OpenWRT with services'}
 
     def test_create(self):
         vnf_obj = utils.get_dummy_device_obj()
@@ -408,3 +431,12 @@ class TestDeviceHeat(base.TestCase):
             files={'scaling.yaml': 'hot_scale_custom.yaml'},
             is_monitor=False
         )
+
+    def test_get_resource_info(self):
+        vnf_obj = self._get_expected_active_vnf()
+        print(vnf_obj)
+        self.assertRaises(vnfm.InfraDriverUnreachable,
+                          self.heat_driver.get_resource_info,
+                          plugin=None, context=self.context, vnf_info=vnf_obj,
+                          auth_attr=utils.get_vim_auth_obj(),
+                          region_name=None)
