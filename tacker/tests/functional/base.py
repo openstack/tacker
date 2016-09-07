@@ -19,7 +19,7 @@ from oslo_config import cfg
 from tempest.lib import base
 import yaml
 
-from tacker.common.exceptions import TackerException
+from tacker.common import exceptions
 from tacker.tests import constants
 from tacker.tests.utils import read_file
 from tacker import version
@@ -98,7 +98,8 @@ class BaseTackerTest(base.BaseTestCase):
             status = vnf_result['vnf']['status']
             if (status != 'PENDING_DELETE') or ((
                     int(time.time()) - start_time) > timeout):
-                raise TackerException(_("Failed with status: %s"), status)
+                raise exceptions.TackerException(_("Failed with status: %s"),
+                                                 status)
 
     @classmethod
     def wait_until_vnf_dead(cls, vnf_id, timeout, sleep_interval):

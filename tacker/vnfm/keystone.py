@@ -16,7 +16,7 @@
 
 import os
 
-from cryptography.fernet import Fernet
+from cryptography import fernet
 from keystoneclient.auth import identity
 from keystoneclient import client
 from keystoneclient import exceptions
@@ -76,6 +76,6 @@ class Keystone(object):
                     'permissions to create it'))
 
     def create_fernet_key(self):
-        fernet_key = Fernet.generate_key()
-        fernet_obj = Fernet(fernet_key)
+        fernet_key = fernet.Fernet.generate_key()
+        fernet_obj = fernet.Fernet(fernet_key)
         return fernet_key, fernet_obj
