@@ -23,7 +23,7 @@ from tacker import context
 from tacker.extensions import vnfm
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
-from tacker.vnfm.infra_drivers.heat import heat
+from tacker.vnfm.infra_drivers.openstack import openstack
 
 
 class FakeHeatClient(mock.Mock):
@@ -42,12 +42,12 @@ class FakeHeatClient(mock.Mock):
 
 def _get_template(name):
     filename = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "../openstack/data/", name)
+        os.path.dirname(os.path.abspath(__file__)), "data/", name)
     f = codecs.open(filename, encoding='utf-8', errors='strict')
     return f.read()
 
 
-class TestDeviceHeat(base.TestCase):
+class TestOpenStack(base.TestCase):
     hot_template = _get_template('hot_tosca_openwrt.yaml')
     hot_param_template = _get_template('hot_openwrt_params.yaml')
     hot_ipparam_template = _get_template('hot_openwrt_ipparams.yaml')
@@ -55,9 +55,9 @@ class TestDeviceHeat(base.TestCase):
     config_data = _get_template('config_data.yaml')
 
     def setUp(self):
-        super(TestDeviceHeat, self).setUp()
+        super(TestOpenStack, self).setUp()
         self.context = context.get_admin_context()
-        self.heat_driver = heat.DeviceHeat()
+        self.infra_driver = openstack.OpenStack()
         self._mock_heat_client()
         self.addCleanup(mock.patch.stopall)
 
@@ -84,19 +84,19 @@ class TestDeviceHeat(base.TestCase):
 
     def _get_expected_fields(self):
         return {'stack_name':
-                'tacker.vnfm.infra_drivers.openstack.openstack_DeviceHeat'
-                '-eb84260e-5ff7-4332-b032-50a14d6c1123',
-                'template': self.hot_template}
+                'tacker.vnfm.infra_drivers.openstack.openstack_OpenStack'
+                '-eb84260e-5ff7-4332-b032-50a14d6c1123', 'template':
+                self.hot_template}
 
     def _get_expected_fields_user_data(self):
         return {'stack_name':
-                'tacker.vnfm.infra_drivers.openstack.openstack_DeviceHeat'
+                'tacker.vnfm.infra_drivers.openstack.openstack_OpenStack'
                 '-18685f68-2b2a-4185-8566-74f54e548811',
                 'template': self.hot_param_template}
 
     def _get_expected_fields_ipaddr_data(self):
         return {'stack_name':
-                'tacker.vnfm.infra_drivers.openstack.openstack_DeviceHeat'
+                'tacker.vnfm.infra_drivers.openstack.openstack_OpenStack'
                 '-d1337add-d5a1-4fd4-9447-bb9243c8460b',
                 'template': self.hot_ipparam_template}
 
@@ -170,7 +170,7 @@ class TestDeviceHeat(base.TestCase):
         vnf_obj = utils.get_dummy_device_obj()
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields()
-        result = self.heat_driver.create(plugin=None, context=self.context,
+        result = self.infra_driver.create(plugin=None, context=self.context,
                                          vnf=vnf_obj,
                                          auth_attr=utils.get_vim_auth_obj())
         self.heat_client.create.assert_called_once_with(expected_fields)
@@ -180,7 +180,7 @@ class TestDeviceHeat(base.TestCase):
         vnf_obj = utils.get_dummy_device_obj_userdata_attr()
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields_user_data()
-        result = self.heat_driver.create(plugin=None, context=self.context,
+        result = self.infra_driver.create(plugin=None, context=self.context,
                                          vnf=vnf_obj,
                                          auth_attr=utils.get_vim_auth_obj())
         self.heat_client.create.assert_called_once_with(expected_fields)
@@ -190,7 +190,7 @@ class TestDeviceHeat(base.TestCase):
         vnf_obj = utils.get_dummy_device_obj_ipaddr_attr()
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields_ipaddr_data()
-        result = self.heat_driver.create(plugin=None, context=self.context,
+        result = self.infra_driver.create(plugin=None, context=self.context,
                                          vnf=vnf_obj,
                                          auth_attr=utils.get_vim_auth_obj())
         self.heat_client.create.assert_called_once_with(expected_fields)
@@ -200,7 +200,7 @@ class TestDeviceHeat(base.TestCase):
         vnf_obj = utils.get_dummy_device_obj()
         expected_result = self._get_expected_vnf_wait_obj()
         vnf_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
-        self.heat_driver.create_wait(plugin=None,
+        self.infra_driver.create_wait(plugin=None,
                                      context=self.context,
                                      vnf_dict=vnf_obj,
                                      vnf_id=vnf_id,
@@ -209,7 +209,7 @@ class TestDeviceHeat(base.TestCase):
 
     def test_delete(self):
         vnf_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
-        self.heat_driver.delete(plugin=None, context=self.context,
+        self.infra_driver.delete(plugin=None, context=self.context,
                                 vnf_id=vnf_id,
                                 auth_attr=utils.get_vim_auth_obj())
         self.heat_client.delete.assert_called_once_with(vnf_id)
@@ -219,7 +219,7 @@ class TestDeviceHeat(base.TestCase):
         vnf_config_obj = utils.get_dummy_device_update_config_attr()
         expected_vnf_update = self._get_expected_vnf_update_obj()
         vnf_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
-        self.heat_driver.update(plugin=None, context=self.context,
+        self.infra_driver.update(plugin=None, context=self.context,
                                 vnf_id=vnf_id, vnf_dict=vnf_obj,
                                 vnf=vnf_config_obj,
                                 auth_attr=utils.get_vim_auth_obj())
@@ -227,7 +227,7 @@ class TestDeviceHeat(base.TestCase):
 
     def _get_expected_fields_tosca(self, template):
         return {'stack_name':
-                'tacker.vnfm.infra_drivers.openstack.openstack_DeviceHeat'
+                'tacker.vnfm.infra_drivers.openstack.openstack_OpenStack'
                 '-eb84260e'
                 '-5ff7-4332-b032-50a14d6c1123',
                 'template': _get_template(template)}
@@ -293,7 +293,7 @@ class TestDeviceHeat(base.TestCase):
                                                     hot_tpl_name,
                                                     input_params,
                                                     is_monitor)
-        result = self.heat_driver.create(plugin=None, context=self.context,
+        result = self.infra_driver.create(plugin=None, context=self.context,
                                          vnf=vnf,
                                          auth_attr=utils.get_vim_auth_obj())
         actual_fields = self.heat_client.create.call_args[0][0]
@@ -429,7 +429,7 @@ class TestDeviceHeat(base.TestCase):
     def test_get_resource_info(self):
         vnf_obj = self._get_expected_active_vnf()
         self.assertRaises(vnfm.InfraDriverUnreachable,
-                          self.heat_driver.get_resource_info,
+                          self.infra_driver.get_resource_info,
                           plugin=None, context=self.context, vnf_info=vnf_obj,
                           auth_attr=utils.get_vim_auth_obj(),
                           region_name=None)

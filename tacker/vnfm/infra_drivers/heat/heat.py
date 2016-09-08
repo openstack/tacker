@@ -45,7 +45,7 @@ def config_opts():
     return [('tacker_heat', OPTS)]
 
 
-class VimHeat(openstack.OpenStack):
+class DeviceHeat(openstack.OpenStack):
     """Heat driver of hosting vnf."""
 
     @versionutils.deprecated(
@@ -54,7 +54,7 @@ class VimHeat(openstack.OpenStack):
         in_favor_of='infra_driver openstack',
         remove_in=+1)
     def __init__(self):
-        super(VimHeat, self).__init__()
+        super(DeviceHeat, self).__init__()
         self.STACK_RETRIES = cfg.CONF.tacker_heat.stack_retries
         self.STACK_RETRY_WAIT = cfg.CONF.tacker_heat.stack_retry_wait
         self.STACK_FLAVOR_EXTRA = cfg.CONF.tacker_heat.flavor_extra_specs
