@@ -19,6 +19,7 @@ from oslo_config import cfg
 from tempest.lib import base
 import yaml
 
+from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.utils import read_file
 from tacker import version
@@ -128,6 +129,14 @@ class BaseTackerTest(base.BaseTestCase):
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
+
+    def verify_vnf_monitor_events(self, vnf_id, vnf_state_list):
+        for state in vnf_state_list:
+            params = {'resource_id': vnf_id, 'resource_state': state,
+                      'event_type': evt_constants.RES_EVT_MONITOR}
+            vnf_evt_list = self.client.list_vnf_events(params)
+            mesg = ("%s - state transition expected." % state)
+            self.assertIsNotNone(vnf_evt_list, mesg)
 
     def get_vim(self, vim_list, vim_name):
         if len(vim_list.values()) == 0:
