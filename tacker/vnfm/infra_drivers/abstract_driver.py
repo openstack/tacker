@@ -38,11 +38,6 @@ class DeviceAbstractDriver(extensions.PluginInterface):
     def get_description(self):
         pass
 
-    # @abc.abstractmethod
-    def create_vnfd_pre(self, plugin, context, vnfd):
-        """Called before creating vnf template."""
-        pass
-
     @abc.abstractmethod
     def create(self, plugin, context, vnf):
         """Create vnf and return its id."""

@@ -26,7 +26,7 @@ class TestVIMClient(base.TestCase):
     def setUp(self):
         super(TestVIMClient, self).setUp()
         self.vim_info = {'id': 'aaaa', 'name': 'VIM0',
-                         'auth_cred': {'password': '****'}}
+                         'auth_cred': {'password': '****'}, 'type': 'test_vim'}
 
     def test_get_vim_without_defined_default_vim(self):
         cfg.CONF.set_override(

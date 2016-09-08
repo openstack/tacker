@@ -58,7 +58,7 @@ List vnfds - List vnfds stored in the VNF catalog.
                 "description": "OpenWRT with services",
                 "tenant_id": "4dd6c1d7b6c94af980ca886495bcfed0",
                 "mgmt_driver": "openwrt",
-                "infra_driver": "heat",
+                "infra_driver": "",
                 "attributes": {
                     "vnfd": "template_name: OpenWRT\r\ndescription:
                     template_description <sample_vnfd_template>"
@@ -87,7 +87,7 @@ Show vnfd - Show information for a specified vnfd id.
             "description": "OpenWRT with services",
             "tenant_id": "4dd6c1d7b6c94af980ca886495bcfed0",
             "mgmt_driver": "openwrt",
-            "infra_driver": "heat",
+            "infra_driver": "",
             "attributes": {
                 "vnfd": "template_name: OpenWRT\r\ndescription:
                 template_description <sample_vnfd_template>"
@@ -116,8 +116,6 @@ Create vnfd - Create a vnfd entry based on the vnfd template.
             "service_types": [{"service_type": "vnfd"}],
             "tenant_id": "bb6a3be1021a4746ab727a6c9296e797",
             "description": "OpenWRT router",
-            "mgmt_driver": "noop",
-            "infra_driver": "heat",
             "attributes": {
                 "vnfd": "template_name: sample-vnfd\ndescription: demo-example\n\nservice_properties:\n  Id: sample-vnfd\n  vendor: tacker\n  version: 1\n\nvdus:\n  vdu1:\n    id: vdu1\n    vm_image: cirros-0.3.4-x86_64-uec\n    instance_type: m1.tiny\n\n    network_interfaces:\n      management:\n        network: net_mgmt\n        management: true\n      pkt_in:\n        network: net0\n      pkt_out:\n        network: net1\n\n    placement_policy:\n      availability_zone: nova\n\n    auto-scaling: noop\n\n    config:\n      param0: key0\n      param1: key1\n"
             },
@@ -139,7 +137,7 @@ Create vnfd - Create a vnfd entry based on the vnfd template.
            "description": "OpenWRT router",
            "tenant_id": "4dd6c1d7b6c94af980ca886495bcfed0",
            "mgmt_driver": "noop",
-           "infra_driver": "heat",
+           "infra_driver": "",
            "attributes": {
                "vnfd": "template_name: OpenWRT \r\ndescription:
                template_description <sample_vnfd_template>"
