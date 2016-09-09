@@ -138,6 +138,32 @@ class BaseTackerTest(base.BaseTestCase):
             mesg = ("%s - state transition expected." % state)
             self.assertIsNotNone(vnf_evt_list, mesg)
 
+    def verify_vnf_crud_events(self, vnf_id, evt_type, tstamp=None, cnt=1):
+        params = {'resource_id': vnf_id,
+                  'resource_type': evt_constants.RES_TYPE_VNF,
+                  'event_type': evt_type}
+        if tstamp:
+            params['timestamp'] = tstamp
+
+        vnf_evt_list = self.client.list_vnf_events(params)
+
+        self.assertIsNotNone(vnf_evt_list,
+                             "List of VNF events are Empty")
+        self.assertEqual(cnt, len(vnf_evt_list))
+
+    def verify_vnfd_events(self, vnfd_id, evt_type, tstamp=None, cnt=1):
+        params = {'resource_id': vnfd_id,
+                  'resource_type': evt_constants.RES_TYPE_VNFD,
+                  'event_type': evt_type}
+        if tstamp:
+            params['timestamp'] = tstamp
+
+        vnfd_evt_list = self.client.list_vnfd_events(params)
+
+        self.assertIsNotNone(vnfd_evt_list,
+                             "List of VNFD events are Empty")
+        self.assertEqual(cnt, len(vnfd_evt_list))
+
     def get_vim(self, vim_list, vim_name):
         if len(vim_list.values()) == 0:
             assert False, "vim_list is Empty: Default VIM is missing"

@@ -14,6 +14,7 @@
 
 from oslo_config import cfg
 
+from tacker.plugins.common import constants as evt_constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
 
@@ -35,10 +36,15 @@ class VnfdTestCreate(base.BaseTackerTest):
         self.assertIsNotNone(vnfds, "List of vnfds are Empty after Creation")
 
         vnfd_id = vnfd_instance['vnfd']['id']
+
+        self.verify_vnfd_events(
+            vnfd_id, evt_constants.RES_EVT_CREATE,
+            vnfd_instance['vnfd'][evt_constants.RES_EVT_CREATED_FLD])
         try:
             self.client.delete_vnfd(vnfd_id)
         except Exception:
             assert False, "vnfd Delete failed"
+        self.verify_vnfd_events(vnfd_id, evt_constants.RES_EVT_DELETE)
 
     def test_vnfd(self):
         self._test_create_list_delete_vnfd('sample_cirros_vnf.yaml')
