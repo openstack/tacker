@@ -16,11 +16,15 @@
 
 import os
 
+from keystoneclient.auth.identity import v2
+from keystoneclient.auth.identity import v3
 from keystoneclient import exceptions
+from keystoneclient import session
+from neutronclient.v2_0 import client as neutron_client
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from tacker._i18n import _LW
+from tacker._i18n import _LW, _
 from tacker.agent.linux import utils as linux_utils
 from tacker.common import log
 from tacker.extensions import nfvo
@@ -45,6 +49,11 @@ OPENSTACK_OPTS = [
 ]
 cfg.CONF.register_opts(OPTS, 'vim_keys')
 cfg.CONF.register_opts(OPENSTACK_OPTS, 'vim_monitor')
+
+_VALID_RESOURCE_TYPES = {'network': {'client': neutron_client.Client,
+                                     'cmd': 'list_'
+                                     }
+                         }
 
 
 def config_opts():
@@ -79,9 +88,14 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
         Initialize keystoneclient with provided authentication attributes.
         """
         auth_url = vim_obj['auth_url']
+        keystone_version = self._validate_auth_url(auth_url)
+        auth_cred = self._get_auth_creds(keystone_version, vim_obj)
+        return self._initialize_keystone(keystone_version, auth_cred)
+
+    def _get_auth_creds(self, keystone_version, vim_obj):
+        auth_url = vim_obj['auth_url']
         auth_cred = vim_obj['auth_cred']
         vim_project = vim_obj['vim_project']
-        keystone_version = self._validate_auth_url(auth_url)
 
         if keystone_version not in auth_url:
             vim_obj['auth_url'] = auth_url + '/' + keystone_version
@@ -97,7 +111,15 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
             auth_cred.pop('user_domain_name', None)
             auth_cred.pop('user_id', None)
         auth_cred['auth_url'] = vim_obj['auth_url']
-        return self._initialize_keystone(keystone_version, auth_cred)
+        return auth_cred
+
+    def _get_auth_plugin(self, version, **kwargs):
+        if version == 'v2.0':
+            auth_plugin = v2.Password(**kwargs)
+        else:
+            auth_plugin = v3.Password(**kwargs)
+
+        return auth_plugin
 
     def _validate_auth_url(self, auth_url):
         try:
@@ -207,3 +229,44 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
         except RuntimeError:
             LOG.warning(_LW("Cannot ping ip address: %s"), vim_ip)
             return False
+
+    @log.log
+    def get_vim_resource_id(self, vim_obj, resource_type, resource_name):
+        """Locates openstack resource by type/name and returns ID
+
+        :param vim_obj: VIM info used to access openstack instance
+        :param resource_type: type of resource to find
+        :param resource_name: name of resource to locate
+        :return: ID of resource
+        """
+        if resource_type in _VALID_RESOURCE_TYPES.keys():
+            client_type = _VALID_RESOURCE_TYPES[resource_type]['client']
+            cmd_prefix = _VALID_RESOURCE_TYPES[resource_type]['cmd']
+        else:
+            raise nfvo.VimUnsupportedResourceTypeException(type=resource_type)
+
+        client = self._get_client(vim_obj, client_type)
+        cmd = str(cmd_prefix) + str(resource_name)
+        try:
+            resources = getattr(client, "%s" % cmd)()
+            LOG.debug(_('resources output %s'), resources)
+            for resource in resources[resource_type]:
+                if resource['name'] == resource_name:
+                    return resource['id']
+        except Exception:
+            raise nfvo.VimGetResourceException(cmd=cmd, type=resource_type)
+
+    @log.log
+    def _get_client(self, vim_obj, client_type):
+        """Initializes and returns an openstack client
+
+        :param vim_obj: VIM Information
+        :param client_type: openstack client to initialize
+        :return: initialized client
+        """
+        auth_url = vim_obj['auth_url']
+        keystone_version = self._validate_auth_url(auth_url)
+        auth_cred = self._get_auth_creds(keystone_version, vim_obj)
+        auth_plugin = self._get_auth_plugin(keystone_version, **auth_cred)
+        sess = session.Session(auth=auth_plugin)
+        return client_type(session=sess)

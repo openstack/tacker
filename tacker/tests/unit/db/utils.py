@@ -31,6 +31,10 @@ ipparams = _get_template('vnf_cirros_param_values_ipaddr.yaml')
 vnfd_userdata_template = _get_template('vnf_cirros_template_user_data.yaml')
 userdata_params = _get_template('vnf_cirros_param_values_user_data.yaml')
 config_data = _get_template('config_data.yaml')
+vnffgd_template = yaml.load(_get_template('vnffgd_template.yaml'))
+vnffgd_tosca_template = yaml.load(_get_template('tosca_vnffgd_template.yaml'))
+vnffgd_invalid_tosca_template = yaml.load(_get_template(
+    'tosca_invalid_vnffgd_template.yaml'))
 
 
 def get_dummy_vnfd_obj():
@@ -165,3 +169,31 @@ def get_vim_auth_obj():
             'auth_url': 'http://localhost:5000/v3',
             'user_domain_name': 'default',
             'project_domain_name': 'default'}
+
+
+def get_dummy_vnffgd_obj():
+    return {u'vnffgd': {'name': 'dummy_vnfd',
+                        'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                        u'template': {u'vnffgd': vnffgd_tosca_template},
+                        'description': 'dummy_vnfd_description'}}
+
+
+def get_dummy_vnffg_obj():
+    return {'vnffg': {'description': 'dummy_vnf_description',
+                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'name': 'dummy_vnffg',
+                      'vnf_mapping': {},
+                      'symmetrical': False}}
+
+
+def get_dummy_vnffg_obj_vnf_mapping():
+    return {'vnffg': {'description': 'dummy_vnf_description',
+                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'name': 'dummy_vnffg',
+                      'vnf_mapping': {
+                          'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effe07',
+                          'VNF3': '7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'
+                      },
+                      'symmetrical': False}}
