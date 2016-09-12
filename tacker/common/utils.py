@@ -18,17 +18,12 @@
 
 """Utilities and helper functions."""
 
-import datetime
 import functools
-import hashlib
 import logging as std_logging
-import multiprocessing
 import os
-import random
 import signal
 import socket
 import sys
-import uuid
 
 from eventlet.green import subprocess
 import netaddr
@@ -131,27 +126,6 @@ class cache_method_results(object):
         return functools.partial(self.__call__, obj)
 
 
-def read_cached_file(filename, cache_info, reload_func=None):
-    """Read from a file if it has been modified.
-
-    :param cache_info: dictionary to hold opaque cache.
-    :param reload_func: optional function to be called with data when
-                        file is reloaded due to a modification.
-
-    :returns: data from file
-
-    """
-    mtime = os.path.getmtime(filename)
-    if not cache_info or mtime != cache_info.get('mtime'):
-        LOG.debug(_("Reloading cached file %s"), filename)
-        with open(filename) as fap:
-            cache_info['data'] = fap.read()
-        cache_info['mtime'] = mtime
-        if reload_func:
-            reload_func(cache_info['data'])
-    return cache_info['data']
-
-
 def find_config_file(options, config_file):
     """Return the first config file found.
 
@@ -248,46 +222,10 @@ def get_hostname():
     return socket.gethostname()
 
 
-def compare_elements(a, b):
-    """Compare elements if a and b have same elements.
-
-    This method doesn't consider ordering
-    """
-    a = a or []
-    b = b or []
-    return set(a) == set(b)
-
-
-def dict2str(dic):
-    return ','.join("%s=%s" % (key, val)
-                    for key, val in sorted(iteritems(dic)))
-
-
-def str2dict(string):
-    res_dict = {}
-    for keyvalue in string.split(','):
-        (key, value) = keyvalue.split('=', 1)
-        res_dict[key] = value
-    return res_dict
-
-
 def dict2tuple(d):
     items = d.items()
     items.sort()
     return tuple(items)
-
-
-def diff_list_of_dict(old_list, new_list):
-    new_set = set([dict2str(l) for l in new_list])
-    old_set = set([dict2str(l) for l in old_list])
-    added = new_set - old_set
-    removed = old_set - new_set
-    return [str2dict(a) for a in added], [str2dict(r) for r in removed]
-
-
-def is_extension_supported(plugin, ext_alias):
-    return ext_alias in getattr(
-        plugin, "supported_extension_aliases", [])
 
 
 def log_opt_values(log):
@@ -296,36 +234,6 @@ def log_opt_values(log):
 
 def is_valid_vlan_tag(vlan):
     return q_const.MIN_VLAN_TAG <= vlan <= q_const.MAX_VLAN_TAG
-
-
-def get_random_string(length):
-    """Get a random hex string of the specified length.
-
-    based on Cinder library
-      cinder/transfer/api.py
-    """
-    rndstr = ""
-    random.seed(datetime.datetime.now().microsecond)
-    while len(rndstr) < length:
-        rndstr += hashlib.sha224(str(random.random())).hexdigest()
-
-    return rndstr[0:length]
-
-
-def get_dhcp_agent_device_id(network_id, host):
-    # Split host so as to always use only the hostname and
-    # not the domain name. This will guarantee consistentcy
-    # whether a local hostname or an fqdn is passed in.
-    local_hostname = host.split('.')[0]
-    host_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, str(local_hostname))
-    return 'dhcp%s-%s' % (host_uuid, network_id)
-
-
-def cpu_count():
-    try:
-        return multiprocessing.cpu_count()
-    except NotImplementedError:
-        return 1
 
 
 def is_valid_ipv4(address):
