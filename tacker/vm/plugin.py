@@ -469,7 +469,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                     policy=policy['id']
                 )
 
-            LOG.debug(_("Policy %s is validated successfully") % policy)
+            LOG.debug(_("Policy %s is validated successfully"), policy['id'])
 
         def _get_status():
             if policy['action'] == constants.ACTION_SCALE_IN:
@@ -487,7 +487,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                                                      [constants.ACTIVE],
                                                      status)
             LOG.debug(_("Policy %(policy)s vnf is at %(status)s"),
-                      {'policy': policy,
+                      {'policy': policy['id'],
                        'status': status})
             return result
 
@@ -500,14 +500,14 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                                                      new_status,
                                                      mgmt_url)
             LOG.debug(_("Policy %(policy)s vnf is at %(status)s"),
-                      {'policy': policy,
+                      {'policy': policy['id'],
                        'status': new_status})
             return result
 
         # action
         def _vnf_policy_action():
             try:
-                self._vnf_manager.invoke(
+                last_event_id = self._vnf_manager.invoke(
                     infra_driver,
                     'scale',
                     plugin=self,
@@ -516,24 +516,25 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                     policy=policy,
                     region_name=region_name
                 )
-                LOG.debug(_("Policy %s action is started successfully") %
-                          policy)
+                LOG.debug(_("Policy %s action is started successfully"),
+                          policy['id'])
+                return last_event_id
             except Exception as e:
-                LOG.error(_("Policy %s action is failed to start") %
+                LOG.error(_("Policy %s action is failed to start"),
                           policy)
                 with excutils.save_and_reraise_exception():
                     vnf['status'] = constants.ERROR
                     self.set_vnf_error_status_reason(
                         context,
-                        policy['vnf_id'],
+                        policy['vnf']['id'],
                         six.text_type(e))
                     _handle_vnf_scaling_post(constants.ERROR)
 
         # wait
         def _vnf_policy_action_wait():
             try:
-                LOG.debug(_("Policy %s action is in progress") %
-                          policy)
+                LOG.debug(_("Policy %s action is in progress"),
+                          policy['id'])
                 mgmt_url = self._vnf_manager.invoke(
                     infra_driver,
                     'scale_wait',
@@ -541,19 +542,20 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
                     context=context,
                     auth_attr=vim_auth,
                     policy=policy,
-                    region_name=region_name
+                    region_name=region_name,
+                    last_event_id=last_event_id
                 )
-                LOG.debug(_("Policy %s action is completed successfully") %
-                          policy)
+                LOG.debug(_("Policy %s action is completed successfully"),
+                          policy['id'])
                 _handle_vnf_scaling_post(constants.ACTIVE, mgmt_url)
                 # TODO(kanagaraj-manickam): Add support for config and mgmt
             except Exception as e:
                 LOG.error(_("Policy %s action is failed to complete") %
-                          policy)
+                          policy['id'])
                 with excutils.save_and_reraise_exception():
                     self.set_vnf_error_status_reason(
                         context,
-                        policy['vnf_id'],
+                        policy['vnf']['id'],
                         six.text_type(e))
                     _handle_vnf_scaling_post(constants.ERROR)
 
@@ -565,7 +567,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         infra_driver = self._infra_driver_name(vnf)
         vim_auth = self.get_vim(context, vnf)
         region_name = vnf.get('placement_attr', {}).get('region_name', None)
-        _vnf_policy_action()
+        last_event_id = _vnf_policy_action()
         self.spawn_n(_vnf_policy_action_wait)
 
         return policy

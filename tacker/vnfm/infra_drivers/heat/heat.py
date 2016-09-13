@@ -777,12 +777,12 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
 
         mgmt_ips = {}
         for group_name in group_names:
+            # Get scale group
             grp = heat_client.resource_get(instance_id,
                                            group_name)
-            # Get scale group
             for rsc in heat_client.resource_get_list(
                     grp.physical_resource_id):
-                # Get list of resoruces in scale group
+                # Get list of resources in scale group
                 scale_rsc = heat_client.resource_get(
                     grp.physical_resource_id,
                     rsc.resource_name)
@@ -804,11 +804,21 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
               policy,
               region_name):
         heatclient_ = HeatClient(auth_attr, region_name)
-        return heatclient_.resource_signal(policy['instance_id'],
-                                           get_scaling_policy_name(
+        policy_rsc = get_scaling_policy_name(
             policy_name=policy['id'],
             action=policy['action']
-        ))
+        )
+        events = heatclient_.resource_event_list(
+            policy['instance_id'],
+            policy_rsc,
+            limit=1,
+            sort_dir='desc',
+            sort_keys='event_time'
+        )
+
+        heatclient_.resource_signal(policy['instance_id'],
+                                    policy_rsc)
+        return events[0].id
 
     @log.log
     def scale_wait(self,
@@ -816,29 +826,59 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
                    plugin,
                    auth_attr,
                    policy,
-                   region_name):
+                   region_name,
+                   last_event_id):
         heatclient_ = HeatClient(auth_attr, region_name)
 
         # TODO(kanagaraj-manickam) make wait logic into separate utility method
         # and make use of it here and other actions like create and delete
+        stack_retries = STACK_RETRIES
         while (True):
-            time.sleep(STACK_RETRY_WAIT)
             try:
-                rsc = heatclient_.resource_get(
-                    policy['instance_id'],
-                    get_scaling_policy_name(policy_name=policy['id'],
-                                            action=policy['action']))
-            except Exception:
-                LOG.exception(_("VNF scaling may not have "
-                                "happened because Heat API request failed "
-                                "while waiting for the stack %(stack)s to be "
-                                "scaled"), {'stack': policy['instance_id']})
-                break
+                time.sleep(STACK_RETRY_WAIT)
+                stack_id = policy['instance_id']
+                policy_name = get_scaling_policy_name(
+                    policy_name=policy['id'],
+                    action=policy['action'])
+                events = heatclient_.resource_event_list(
+                    stack_id,
+                    policy_name,
+                    limit=1,
+                    sort_dir='desc',
+                    sort_keys='event_time')
 
-            if rsc.resource_status == 'SIGNAL_IN_PROGRESS':
-                continue
+                if events[0].id != last_event_id:
+                    if events[0].resource_status == 'SIGNAL_COMPLETE':
+                        break
+            except Exception as e:
+                error_reason = _("VNF scaling failed for stack %(stack)s with "
+                                 "error %(error)s") % {
+                    'stack': policy['instance_id'],
+                    'error': e.message
+                }
+                LOG.warning(error_reason)
+                raise vnfm.VNFScaleWaitFailed(
+                    vnf_id=policy['vnf']['id'],
+                    reason=error_reason)
 
-            break
+            if stack_retries == 0:
+                metadata = heatclient_.resource_metadata(stack_id, policy_name)
+                if not metadata['scaling_in_progress']:
+                    error_reason = _('when signal occurred within cool down '
+                                     'window, no events generated from heat, '
+                                     'so ignore it')
+                    LOG.warning(error_reason)
+                    break
+                error_reason = _(
+                    "VNF scaling failed to complete within %{wait}s seconds "
+                    "while waiting for the stack %(stack)s to be "
+                    "scaled.") % {'stack': stack_id,
+                                  'wait': STACK_RETRIES * STACK_RETRY_WAIT}
+                LOG.warning(error_reason)
+                raise vnfm.VNFScaleWaitFailed(
+                    vnf_id=policy['vnf']['id'],
+                    reason=error_reason)
+            stack_retries -= 1
 
         def _fill_scaling_group_name():
             vnf = policy['vnf']
@@ -916,3 +956,9 @@ class HeatClient(object):
 
     def resource_get(self, stack_id, rsc_name):
         return self.heat.resources.get(stack_id, rsc_name)
+
+    def resource_event_list(self, stack_id, rsc_name, **kwargs):
+        return self.heat.events.list(stack_id, rsc_name, **kwargs)
+
+    def resource_metadata(self, stack_id, rsc_name):
+        return self.heat.resources.metadata(stack_id, rsc_name)
