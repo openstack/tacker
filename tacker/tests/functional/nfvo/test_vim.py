@@ -15,6 +15,7 @@
 
 import yaml
 
+from tacker.plugins.common import constants as evt_constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
 
@@ -47,6 +48,8 @@ class VimTestCreate(base.BaseTackerTest):
         vim_obj = vim_res['vim']
         vim_id = vim_obj['id']
         self.verify_vim(vim_obj, data, name, description, version)
+        self.verify_vim_events(vim_id, evt_constants.RES_EVT_CREATE,
+                               vim_obj[evt_constants.RES_EVT_CREATED_FLD])
 
         # Read vim
         vim_show_res = self.client.show_vim(vim_id)
@@ -57,6 +60,7 @@ class VimTestCreate(base.BaseTackerTest):
             self.client.delete_vim(vim_id)
         except Exception:
             self.assertFalse(True, "Failed to delete vim %s" % vim_id)
+        self.verify_vim_events(vim_id, evt_constants.RES_EVT_DELETE)
 
     def verify_vim(self, vim_instance, config_data, name, description,
                    version):
@@ -75,6 +79,19 @@ class VimTestCreate(base.BaseTackerTest):
         if version:
             method_name = 'verify_vim_' + version
             getattr(self, method_name)(vim_instance, config_data)
+
+    def verify_vim_events(self, vim_id, evt_type, tstamp=None, cnt=1):
+        params = {'resource_id': vim_id,
+                  'resource_type': evt_constants.RES_TYPE_VIM,
+                  'event_type': evt_type}
+        if tstamp:
+            params['timestamp'] = tstamp
+
+        vim_evt_list = self.client.list_vim_events(params)
+
+        self.assertIsNotNone(vim_evt_list,
+                             "List of VIM events are Empty")
+        self.assertEqual(cnt, len(vim_evt_list))
 
     def verify_vim_v2(self, vim_instance, config_data):
         self.assertEqual(config_data['project_name'],

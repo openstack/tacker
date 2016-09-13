@@ -14,6 +14,7 @@
 
 from oslo_config import cfg
 
+from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
@@ -58,11 +59,17 @@ class VnfTestCreate(base.BaseTackerTest):
         self.assertIn('id', vnf_details)
         self.assertIn('type', vnf_details)
 
+        self.verify_vnf_crud_events(
+            vnf_id, evt_constants.RES_EVT_CREATE,
+            vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+
         # Delete vnf_instance with vnf_id
         try:
             self.client.delete_vnf(vnf_id)
         except Exception:
             assert False, "vnf Delete failed"
+
+        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE)
 
         # Delete vnfd_instance
         self.addCleanup(self.client.delete_vnfd, vnfd_id)

@@ -14,6 +14,7 @@
 
 import yaml
 
+from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
@@ -35,6 +36,9 @@ class VnfmTestParam(base.BaseTackerTest):
         self.assertIsNotNone(vnfd_instance)
         vnfd_id = vnfd_instance['vnfd']['id']
         self.assertIsNotNone(vnfd_id)
+        self.verify_vnfd_events(
+            vnfd_id, evt_constants.RES_EVT_CREATE,
+            vnfd_instance['vnfd'][evt_constants.RES_EVT_CREATED_FLD])
         return vnfd_instance
 
     def _test_vnfd_delete(self, vnfd_instance):
@@ -45,6 +49,7 @@ class VnfmTestParam(base.BaseTackerTest):
             self.client.delete_vnfd(vnfd_id)
         except Exception:
             assert False, "vnfd Delete failed"
+        self.verify_vnfd_events(vnfd_id, evt_constants.RES_EVT_DELETE)
         try:
             vfnd_d = self.client.show_vnfd(vnfd_id)
         except Exception:
@@ -68,6 +73,10 @@ class VnfmTestParam(base.BaseTackerTest):
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
         vnf_instance = self.client.show_vnf(vnf_id)
 
+        self.verify_vnf_crud_events(
+            vnf_id, evt_constants.RES_EVT_CREATE,
+            vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+
         # Verify values dictionary is same as param values from vnf_show
 
         param_values = vnf_instance['vnf']['attributes']['param_values']
@@ -82,6 +91,7 @@ class VnfmTestParam(base.BaseTackerTest):
             self.client.delete_vnf(vnf_id)
         except Exception:
             assert False, "vnf Delete failed"
+        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE)
 
         try:
             vfn_d = self.client.show_vnf(vnf_id)
@@ -100,6 +110,10 @@ class VnfmTestParam(base.BaseTackerTest):
         self.assertEqual(input_dict, param_values_dict)
         self._test_vnf_delete(vnf_instance)
         vnf_id = vnf_instance['vnf']['id']
+        self.verify_vnf_crud_events(
+            vnf_id, evt_constants.RES_EVT_CREATE,
+            vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE)
         self.addCleanup(self.client.delete_vnfd, vnfd_instance['vnfd']['id'])
         self.addCleanup(self.wait_until_vnf_delete, vnf_id,
             constants.VNF_CIRROS_DELETE_TIMEOUT)
@@ -120,6 +134,10 @@ class VnfmTestParam(base.BaseTackerTest):
         self.assertEqual(values_dict, param_values_dict)
         self._test_vnf_delete(vnf_instance)
         vnf_id = vnf_instance['vnf']['id']
+        self.verify_vnf_crud_events(
+            vnf_id, evt_constants.RES_EVT_CREATE,
+            vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE)
         self.addCleanup(self.client.delete_vnfd, vnfd_instance['vnfd']['id'])
         self.addCleanup(self.wait_until_vnf_delete, vnf_id,
             constants.VNF_CIRROS_DELETE_TIMEOUT)
