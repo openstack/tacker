@@ -129,6 +129,8 @@ class TackerManager(object):
         advanced services then loads classes provided in configuration.
         """
         plugin_providers = cfg.CONF.service_plugins
+        if 'commonservices' not in plugin_providers:
+            plugin_providers.append('commonservices')
         LOG.debug(_("Loading service plugins: %s"), plugin_providers)
         for provider in plugin_providers:
             if provider == '':
