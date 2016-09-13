@@ -14,6 +14,7 @@
 
 import time
 
+from neutronclient.v2_0 import client as neutron_client
 from novaclient import client as nova_client
 from oslo_config import cfg
 from tempest.lib import base
@@ -65,6 +66,11 @@ class BaseTackerTest(base.BaseTestCase):
                                   vim_params['password'],
                                   vim_params['project_name'],
                                   vim_params['auth_url'])
+
+    @classmethod
+    def neutronclient(cls):
+        vim_params = cls.get_credentials()
+        return neutron_client.Client(**vim_params)
 
     def wait_until_vnf_status(self, vnf_id, target_status, timeout,
                               sleep_interval):

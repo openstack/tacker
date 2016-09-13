@@ -57,6 +57,18 @@ class VnfTestToscaCreate(base.BaseTackerTest):
             vnf_id, evt_constants.RES_EVT_CREATE,
             vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
 
+        servers = self.novaclient().servers.list()
+        vdus = []
+        for server in servers:
+            vdus.append(server.name)
+        self.assertIn('test-vdu', vdus)
+
+        port_list = self.neutronclient().list_ports()['ports']
+        vdu_ports = []
+        for port in port_list:
+            vdu_ports.append(port['name'])
+        self.assertIn('test-cp', vdu_ports)
+
         # Delete vnf_instance with vnf_id
         try:
             self.client.delete_vnf(vnf_id)
