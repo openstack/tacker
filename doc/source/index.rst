@@ -82,6 +82,7 @@ Developer Info
    devref/api_layer.rst
    devref/api_extensions.rst
    devref/tacker_functional_test.rst
+   devref/dashboards.rst
 
 Project Info
 ============
