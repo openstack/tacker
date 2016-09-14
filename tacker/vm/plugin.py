@@ -313,7 +313,8 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
 
         def create_vnf_wait():
             self._create_vnf_wait(context, vnf_dict, vim_auth)
-            self.add_vnf_to_monitor(vnf_dict, vim_auth)
+            if vnf_dict['status'] is not constants.ERROR:
+                self.add_vnf_to_monitor(vnf_dict, vim_auth)
             self.config_vnf(context, vnf_dict)
         self.spawn_n(create_vnf_wait)
         return vnf_dict
@@ -346,6 +347,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         except exceptions.MgmtDriverException as e:
             LOG.error(_('VNF configuration failed'))
             new_status = constants.ERROR
+            self._vnf_monitor.delete_hosting_vnf(vnf_dict['id'])
             self.set_vnf_error_status_reason(context, vnf_dict['id'],
                                              six.text_type(e))
         vnf_dict['status'] = new_status
@@ -379,6 +381,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         except Exception as e:
             with excutils.save_and_reraise_exception():
                 vnf_dict['status'] = constants.ERROR
+                self._vnf_monitor.delete_hosting_vnf(vnf_id)
                 self.set_vnf_error_status_reason(context,
                                                  vnf_dict['id'],
                                                  six.text_type(e))
