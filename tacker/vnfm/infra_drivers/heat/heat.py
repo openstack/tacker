@@ -437,7 +437,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
             #         type: tosca.policy.tacker.Scaling
             if 'policies' in vnfd_dict:
                 for policy_dict in vnfd_dict['policies']:
-                    name, policy = policy_dict.items()[0]
+                    name, policy = list(policy_dict.items())[0]
                     if policy['type'] == 'tosca.policy.tacker.Scaling':
                         _convert_to_heat_scaling_policy(policy['properties'],
                                                         name)

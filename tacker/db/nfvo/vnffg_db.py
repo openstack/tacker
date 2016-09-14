@@ -363,7 +363,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
     def _create_nfp_pre(template_db):
         template = template_db.template['vnffgd']['topology_template']
         nfp_dict = dict()
-        vnffg_name = template['groups'].keys()[0]
+        vnffg_name = list(template['groups'].keys())[0]
         # we assume only one NFP for initial implementation
         nfp_dict['name'] = template['groups'][vnffg_name]['members'][0]
         nfp_dict['path_id'] = template['node_templates'][nfp_dict['name']][
@@ -431,7 +431,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
     @staticmethod
     def _get_vnffg_property(template_db, vnffg_property):
         template = template_db.template['vnffgd']['topology_template']
-        vnffg_name = template['groups'].keys()[0]
+        vnffg_name = list(template['groups'].keys())[0]
         try:
             return template['groups'][vnffg_name]['properties'][vnffg_property]
         except KeyError:
@@ -461,7 +461,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
 
     @staticmethod
     def _search_value(search_dict, search_key):
-        for k, v in search_dict.iteritems():
+        for k, v in search_dict.items():
             if k == search_key:
                 return v
             elif isinstance(v, dict):
@@ -557,7 +557,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                                               "policy")
         match = dict()
         for criteria in policy['criteria']:
-            for key, val in criteria.iteritems():
+            for key, val in criteria.items():
                 if key in MATCH_CRITERIA:
                     match.update(self._convert_criteria(context, key, val,
                                                         vnf_mapping))
@@ -591,7 +591,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
 
         elif criteria.endswith('_name'):
             prefix = criteria[:-5]
-            vnf_id = vnf_mapping.values()[0]
+            vnf_id = list(vnf_mapping.values())[0]
             new_value = self._vim_resource_name_to_id(context, prefix, value,
                                                       vnf_id)
             new_name = prefix + "_id"
