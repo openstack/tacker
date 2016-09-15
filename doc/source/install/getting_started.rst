@@ -54,6 +54,7 @@ i). Create a sample-vnfd.yaml file with the following content:
          type: tosca.nodes.nfv.CP.Tacker
          properties:
            management: true
+           order: 0
            anti_spoofing_protection: false
          requirements:
            - virtualLink:
