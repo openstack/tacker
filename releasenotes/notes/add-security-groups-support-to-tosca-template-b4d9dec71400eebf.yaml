@@ -1,0 +1,4 @@
+---
+features:
+  - Added support for security groups in TOSCA template for
+    type tosca.nodes.nfv.CP.Tacker.

@@ -16,3 +16,4 @@ source ${TACKER_DIR}/tacker/tests/contrib/post_test_hook_lib.sh
 
 fixup_quota
 add_key_if_not_exist
+add_secgrp_if_not_exist

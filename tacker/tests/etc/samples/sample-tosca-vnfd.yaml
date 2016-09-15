@@ -34,7 +34,9 @@ topology_template:
       properties:
         name: {get_input : cp-name}
         management: true
-        anti_spoofing_protection: false
+        anti_spoofing_protection: true
+        security_groups:
+            - test_secgrp
       requirements:
         - virtualLink:
             node: VL1

@@ -230,6 +230,9 @@ node_types:
       anti_spoofing_protection:
         type: boolean
         required: false
+      security_groups:
+        type: list
+        required: false
       type:
         type: string
         required: false

@@ -440,3 +440,9 @@ class TestDeviceHeat(base.TestCase):
                           plugin=None, context=self.context, vnf_info=vnf_obj,
                           auth_attr=utils.get_vim_auth_obj(),
                           region_name=None)
+
+    def test_create_port_with_security_groups(self):
+        self._test_assert_equal_for_tosca_templates(
+            'test_tosca_security_groups.yaml',
+            'hot_tosca_security_groups.yaml'
+        )
