@@ -20,7 +20,7 @@ Manual Installation
 ===================
 
 This document describes how to install and run Tacker manually on the
-controller node
+controller node.
 
 Pre-requisites
 ==============
@@ -76,7 +76,7 @@ Installing Tacker server
     exit;
 ..
 
-2). Create users, roles and endpoints
+2). Create users, roles and endpoints.
 
 a). Source the admin credentials to gain access to admin-only CLI commands:
 
@@ -156,7 +156,7 @@ d). Provide an endpoint to tacker service.
 
 ..
 
-6). Create 'tacker' directory in '/var/log'
+6). Create 'tacker' directory in '/var/log'.
 
 .. note::
 
@@ -218,7 +218,7 @@ d). Provide an endpoint to tacker service.
 
 .. note::
 
-       The below command is for Ubuntu Operating System
+       The below command is for Ubuntu Operating System.
 
 .. code-block:: console
 
@@ -279,7 +279,7 @@ Install Tacker horizon
         /usr/share/openstack-dashboard/openstack_dashboard/enabled/
 ..
 
-4). Restart Apache server
+4). Restart Apache server.
 
 .. code-block:: console
 
@@ -333,3 +333,4 @@ Add following parameters to config.yaml if VIM is using keystone v3:
 .. note::
    Here username must point to the user having 'admin' and 'advsvc' role on the
    project that will be used for deploying VNFs.
+3). Restart tacker server.

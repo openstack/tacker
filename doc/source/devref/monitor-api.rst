@@ -80,7 +80,7 @@ returns 'failure' tacker will respawn the VNF.
 Actions
 --------
 The available actions that a monitor driver can call when a particular event
-occurs
+occurs.
 
 #. respawn
 #. log
