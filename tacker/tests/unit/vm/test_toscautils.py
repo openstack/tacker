@@ -24,7 +24,7 @@ from translator.hot import tosca_translator
 def _get_template(name):
     filename = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "infra_drivers/heat/data/", name)
+        "infra_drivers/openstack/data/", name)
     f = codecs.open(filename, encoding='utf-8', errors='strict')
     return f.read()
 
