@@ -16,6 +16,7 @@ import time
 
 from oslo_config import cfg
 
+from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
@@ -74,6 +75,15 @@ class VnfTestToscaScale(base.BaseTackerTest):
         time.sleep(constants.SCALE_WINDOW_SLEEP_TIME)
         _scale('in', 2)
 
+        # Verifying that as part of SCALE OUT, VNF states  PENDING_SCALE_OUT
+        # and ACTIVE occurs and as part of SCALE IN, VNF states
+        # PENDING_SCALE_IN and ACTIVE occur.
+        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_SCALE,
+                                    evt_constants.ACTIVE, cnt=2)
+        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_SCALE,
+                                    evt_constants.PENDING_SCALE_OUT, cnt=1)
+        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_SCALE,
+                                    evt_constants.PENDING_SCALE_IN, cnt=1)
         # Delete vnf_instance with vnf_id
         try:
             self.client.delete_vnf(vnf_id)
