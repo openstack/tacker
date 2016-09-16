@@ -87,11 +87,11 @@ class VimTestCreate(base.BaseTackerTest):
         if tstamp:
             params['timestamp'] = tstamp
 
-        vim_evt_list = self.client.list_vim_events(params)
+        vim_evt_list = self.client.list_vim_events(**params)
 
-        self.assertIsNotNone(vim_evt_list,
+        self.assertIsNotNone(vim_evt_list['vim_events'],
                              "List of VIM events are Empty")
-        self.assertEqual(cnt, len(vim_evt_list))
+        self.assertEqual(cnt, len(vim_evt_list['vim_events']))
 
     def verify_vim_v2(self, vim_instance, config_data):
         self.assertEqual(config_data['project_name'],

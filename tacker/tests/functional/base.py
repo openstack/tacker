@@ -152,22 +152,24 @@ class BaseTackerTest(base.BaseTestCase):
         for state in vnf_state_list:
             params = {'resource_id': vnf_id, 'resource_state': state,
                       'event_type': evt_constants.RES_EVT_MONITOR}
-            vnf_evt_list = self.client.list_vnf_events(params)
+            vnf_evt_list = self.client.list_vnf_events(**params)
             mesg = ("%s - state transition expected." % state)
-            self.assertIsNotNone(vnf_evt_list, mesg)
+            self.assertIsNotNone(vnf_evt_list['vnf_events'], mesg)
 
-    def verify_vnf_crud_events(self, vnf_id, evt_type, tstamp=None, cnt=1):
+    def verify_vnf_crud_events(self, vnf_id, evt_type, res_state,
+                               tstamp=None, cnt=1):
         params = {'resource_id': vnf_id,
+                  'resource_state': res_state,
                   'resource_type': evt_constants.RES_TYPE_VNF,
                   'event_type': evt_type}
         if tstamp:
             params['timestamp'] = tstamp
 
-        vnf_evt_list = self.client.list_vnf_events(params)
+        vnf_evt_list = self.client.list_vnf_events(**params)
 
-        self.assertIsNotNone(vnf_evt_list,
+        self.assertIsNotNone(vnf_evt_list['vnf_events'],
                              "List of VNF events are Empty")
-        self.assertEqual(cnt, len(vnf_evt_list))
+        self.assertEqual(cnt, len(vnf_evt_list['vnf_events']))
 
     def verify_vnfd_events(self, vnfd_id, evt_type, tstamp=None, cnt=1):
         params = {'resource_id': vnfd_id,
@@ -176,11 +178,11 @@ class BaseTackerTest(base.BaseTestCase):
         if tstamp:
             params['timestamp'] = tstamp
 
-        vnfd_evt_list = self.client.list_vnfd_events(params)
+        vnfd_evt_list = self.client.list_vnfd_events(**params)
 
-        self.assertIsNotNone(vnfd_evt_list,
+        self.assertIsNotNone(vnfd_evt_list['vnfd_events'],
                              "List of VNFD events are Empty")
-        self.assertEqual(cnt, len(vnfd_evt_list))
+        self.assertEqual(cnt, len(vnfd_evt_list['vnfd_events']))
 
     def get_vim(self, vim_list, vim_name):
         if len(vim_list.values()) == 0:

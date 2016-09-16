@@ -76,8 +76,10 @@ class VnfTestToscaCreate(base.BaseTackerTest):
                                                   resource_name=field)
 
         self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE,
+            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.PENDING_CREATE,
             vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+        self.verify_vnf_crud_events(
+            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
         return vnfd_id, vnf_id
 
     def _test_delete_vnf(self, vnf_id):
@@ -87,7 +89,10 @@ class VnfTestToscaCreate(base.BaseTackerTest):
         except Exception:
             assert False, "vnf Delete failed"
 
-        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE)
+        self.wait_until_vnf_delete(vnf_id,
+                                   constants.VNF_CIRROS_DELETE_TIMEOUT)
+        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE,
+                                    evt_constants.PENDING_DELETE, cnt=2)
 
     def _test_cleanup_vnfd(self, vnfd_id, vnf_id):
         # Delete vnfd_instance
@@ -149,8 +154,10 @@ class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
         self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE,
+            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.PENDING_CREATE,
             vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+        self.verify_vnf_crud_events(
+            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
 
         servers = self.novaclient().servers.list()
         vdu_server = None
@@ -170,12 +177,13 @@ class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
         except Exception:
             assert False, "vnf Delete failed"
 
-        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE)
+        self.wait_until_vnf_delete(vnf_id,
+                                   constants.VNF_CIRROS_DELETE_TIMEOUT)
+        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE,
+                                    evt_constants.PENDING_DELETE, cnt=2)
 
         # Delete vnfd_instance
         self.addCleanup(self.client.delete_vnfd, vnfd_id)
-        self.addCleanup(self.wait_until_vnf_delete, vnf_id,
-            constants.VNF_CIRROS_DELETE_TIMEOUT)
         self.assertRaises(exceptions.NotFound, nova_flavors.delete,
                           [flavor_id])
 
@@ -208,8 +216,10 @@ class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
         self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE,
+            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.PENDING_CREATE,
             vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+        self.verify_vnf_crud_events(
+            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
 
         servers = self.novaclient().servers.list()
         vdu_server = None
@@ -229,11 +239,12 @@ class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
         except Exception:
             assert False, "vnf Delete failed"
 
-        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE)
+        self.wait_until_vnf_delete(vnf_id,
+                                   constants.VNF_CIRROS_DELETE_TIMEOUT)
+        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE,
+                                    evt_constants.PENDING_DELETE, cnt=2)
 
         # Delete vnfd_instance
         self.addCleanup(self.client.delete_vnfd, vnfd_id)
-        self.addCleanup(self.wait_until_vnf_delete, vnf_id,
-            constants.VNF_CIRROS_DELETE_TIMEOUT)
         self.assertRaises(exceptions.NotFound, nova_images.delete,
                           [image_id])

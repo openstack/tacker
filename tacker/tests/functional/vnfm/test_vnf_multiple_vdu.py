@@ -52,8 +52,10 @@ class VnfTestMultipleVDU(base.BaseTackerTest):
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
         self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE,
+            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.PENDING_CREATE,
             vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+        self.verify_vnf_crud_events(
+            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
 
         # Validate mgmt_url with input yaml file
         mgmt_url = self.client.show_vnf(vnf_id)['vnf']['mgmt_url']
@@ -72,9 +74,10 @@ class VnfTestMultipleVDU(base.BaseTackerTest):
         except Exception:
             assert False, "vnf Delete of test_vnf_with_multiple_vdus failed"
 
-        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE)
+        self.wait_until_vnf_delete(vnf_id,
+                                   constants.VNF_CIRROS_DELETE_TIMEOUT)
+        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE,
+                                    evt_constants.PENDING_DELETE, cnt=2)
 
         # Delete vnfd_instance
         self.addCleanup(self.client.delete_vnfd, vnfd_id)
-        self.addCleanup(self.wait_until_vnf_delete, vnf_id,
-            constants.VNF_CIRROS_DELETE_TIMEOUT)
