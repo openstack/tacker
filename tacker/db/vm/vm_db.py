@@ -17,7 +17,6 @@
 import uuid
 
 from oslo_log import log as logging
-from oslo_log import versionutils
 from oslo_utils import timeutils
 
 import sqlalchemy as sa
@@ -230,19 +229,6 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         mgmt_driver = vnfd.get('mgmt_driver')
         service_types = vnfd.get('service_types')
 
-        if 'infra_driver' in vnfd or 'mgmt_driver' in vnfd:
-            versionutils.report_deprecated_feature(LOG, "Deriving "
-                "infra_driver and mgmt_driver from VNFD API is deprecated and"
-                " will be removed in Ocata. infra_driver will be automatically"
-                " derived from target vim type. mgmt_driver will be derived "
-                "from TOSCA template values.")
-
-        if (not attributes.is_attr_set(infra_driver)):
-            LOG.debug(_('hosting vnf driver unspecified'))
-            raise vnfm.InfraDriverNotSpecified()
-        if (not attributes.is_attr_set(mgmt_driver)):
-            LOG.debug(_('mgmt driver unspecified'))
-            raise vnfm.MGMTDriverNotSpecified()
         if (not attributes.is_attr_set(service_types)):
             LOG.debug(_('service types unspecified'))
             raise vnfm.ServiceTypesNotSpecified()

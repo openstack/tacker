@@ -16,6 +16,7 @@
 import uuid
 
 import mock
+import yaml
 
 from tacker import context
 from tacker.db.common_services import common_services_db
@@ -88,7 +89,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                    'vim_name': 'fake_vim', 'vim_auth':
                    {'auth_url': 'http://localhost:5000', 'password':
                        'test_pw', 'username': 'test_user', 'project_name':
-                       'test_project'}}
+                       'test_project'}, 'vim_type': 'test_vim'}
         self.vim_client.get_vim.return_value = vim_obj
 
     def _mock_green_pool(self):
@@ -141,7 +142,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_vim',
             description='fake_vim_description',
-            type='openstack',
+            type='test_vim',
             status='Active',
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
@@ -155,21 +156,30 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         session.add(vim_auth_db)
         session.flush()
 
-    def test_create_vnfd(self):
+    @mock.patch('tacker.vm.plugin.toscautils.updateimports')
+    @mock.patch('tacker.vm.plugin.ToscaTemplate')
+    @mock.patch('tacker.vm.plugin.toscautils.get_mgmt_driver')
+    def test_create_vnfd(self, mock_get_mgmt_driver, mock_tosca_template,
+                        mock_update_imports):
+        mock_get_mgmt_driver.return_value = 'dummy_mgmt_driver'
+        mock_tosca_template.return_value = mock.ANY
+
         vnfd_obj = utils.get_dummy_vnfd_obj()
         result = self.vnfm_plugin.create_vnfd(self.context, vnfd_obj)
         self.assertIsNotNone(result)
         self.assertIn('id', result)
+        self.assertEqual('dummy_vnfd', result['name'])
+        self.assertEqual('dummy_vnfd_description', result['description'])
+        self.assertEqual('dummy_mgmt_driver', result['mgmt_driver'])
         self.assertIn('service_types', result)
         self.assertIn('attributes', result)
         self.assertIn('created_at', result)
         self.assertIn('updated_at', result)
-        self._device_manager.invoke.assert_called_once_with(
-            mock.ANY,
-            mock.ANY,
-            plugin=mock.ANY,
-            context=mock.ANY,
-            vnfd=mock.ANY)
+        yaml_dict = yaml.safe_load(utils.vnfd_openwrt)
+        mock_tosca_template.assert_called_once_with(
+            a_file=False, yaml_dict_tpl=yaml_dict)
+        mock_get_mgmt_driver.assert_called_once_with(mock.ANY)
+        mock_update_imports.assert_called_once_with(yaml_dict)
         self._cos_db_plugin.create_event.assert_called_once_with(
             self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
             res_state=constants.RES_EVT_VNFD_NA_STATE,
@@ -179,13 +189,6 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         vnfd_obj = utils.get_dummy_vnfd_obj()
         vnfd_obj['vnfd'].pop('service_types')
         self.assertRaises(vnfm.ServiceTypesNotSpecified,
-                          self.vnfm_plugin.create_vnfd,
-                          self.context, vnfd_obj)
-
-    def test_create_vnfd_no_mgmt_driver(self):
-        vnfd_obj = utils.get_dummy_vnfd_obj()
-        vnfd_obj['vnfd'].pop('mgmt_driver')
-        self.assertRaises(vnfm.MGMTDriverNotSpecified,
                           self.vnfm_plugin.create_vnfd,
                           self.context, vnfd_obj)
 
@@ -201,7 +204,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('mgmt_url', result)
         self.assertIn('created_at', result)
         self.assertIn('updated_at', result)
-        self._device_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
+        self._device_manager.invoke.assert_called_with('test_vim',
+                                                       'create',
                                                        plugin=mock.ANY,
                                                        context=mock.ANY,
                                                        vnf=mock.ANY,
@@ -233,7 +237,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         dummy_device_obj = self._insert_dummy_device()
         self.vnfm_plugin.delete_vnf(self.context, dummy_device_obj[
             'id'])
-        self._device_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
+        self._device_manager.invoke.assert_called_with('test_vim', 'delete',
                                                        plugin=mock.ANY,
                                                        context=mock.ANY,
                                                        vnf_id=mock.ANY,
@@ -241,7 +245,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                                                        region_name=mock.ANY)
         self._vnf_monitor.delete_hosting_vnf.assert_called_with(mock.ANY)
         self._pool.spawn_n.assert_called_once_with(mock.ANY, mock.ANY,
-                                                   mock.ANY, mock.ANY)
+                                                   mock.ANY, mock.ANY,
+                                                   mock.ANY)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_DELETE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
@@ -261,7 +266,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('mgmt_url', result)
         self.assertIn('updated_at', result)
         self._pool.spawn_n.assert_called_once_with(mock.ANY, mock.ANY,
-                                                   mock.ANY, mock.ANY)
+                                                   mock.ANY, mock.ANY,
+                                                   mock.ANY)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,

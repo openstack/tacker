@@ -30,7 +30,7 @@ from tacker.common import driver_manager
 from tacker import context as t_context
 from tacker.db.common_services import common_services_db
 from tacker.plugins.common import constants
-from tacker.vnfm.infra_drivers.heat import heat
+from tacker.vnfm.infra_drivers.openstack import openstack
 
 
 LOG = logging.getLogger(__name__)
@@ -279,7 +279,7 @@ class ActionRespawnHeat(ActionPolicy):
             placement_attr = vnf_dict.get('placement_attr', {})
             region_name = placement_attr.get('region_name')
             # kill heat stack
-            heatclient = heat.HeatClient(auth_attr=auth_attr,
+            heatclient = openstack.HeatClient(auth_attr=auth_attr,
                                          region_name=region_name)
             heatclient.delete(vnf_dict['instance_id'])
 

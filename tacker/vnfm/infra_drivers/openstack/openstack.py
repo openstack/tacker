@@ -52,15 +52,12 @@ OPTS = [
                help=_("Flavor Extra Specs")),
 ]
 
-CONF.register_opts(OPTS, group='tacker_heat')
+CONF.register_opts(OPTS, group='openstack_vim')
 
 
 def config_opts():
-    return [('tacker_heat', OPTS)]
+    return [('openstack_vim', OPTS)]
 
-STACK_RETRIES = cfg.CONF.tacker_heat.stack_retries
-STACK_RETRY_WAIT = cfg.CONF.tacker_heat.stack_retry_wait
-STACK_FLAVOR_EXTRA = cfg.CONF.tacker_heat.flavor_extra_specs
 
 # Global map of individual resource type and
 # incompatible properties, alternate properties pair for
@@ -83,80 +80,24 @@ def get_scaling_policy_name(action, policy_name):
     return '%s_scale_%s' % (policy_name, action)
 
 
-class DeviceHeat(abstract_driver.DeviceAbstractDriver,
-                 scale_driver.VnfScaleAbstractDriver):
-    """Heat driver of hosting vnf."""
+class OpenStack(abstract_driver.DeviceAbstractDriver,
+                scale_driver.VnfScaleAbstractDriver):
+    """Openstack infra driver for hosting vnfs"""
 
     def __init__(self):
-        super(DeviceHeat, self).__init__()
+        super(OpenStack, self).__init__()
+        self.STACK_RETRIES = cfg.CONF.openstack_vim.stack_retries
+        self.STACK_RETRY_WAIT = cfg.CONF.openstack_vim.stack_retry_wait
+        self.STACK_FLAVOR_EXTRA = cfg.CONF.openstack_vim.flavor_extra_specs
 
     def get_type(self):
-        return 'heat'
+        return 'openstack'
 
     def get_name(self):
-        return 'heat'
+        return 'openstack'
 
     def get_description(self):
-        return 'Heat infra driver'
-
-    @log.log
-    def create_vnfd_pre(self, plugin, context, vnfd):
-        vnfd_dict = vnfd['vnfd']
-        vnfd_yaml = vnfd_dict['attributes'].get('vnfd')
-        if vnfd_yaml is None:
-            return
-
-        inner_vnfd_dict = yaml.load(vnfd_yaml)
-        LOG.debug(_('vnfd_dict: %s'), inner_vnfd_dict)
-
-        if 'tosca_definitions_version' in inner_vnfd_dict:
-            # Prepend the tacker_defs.yaml import file with the full
-            # path to the file
-            toscautils.updateimports(inner_vnfd_dict)
-
-            try:
-                tosca = tosca_template.ToscaTemplate(
-                    a_file=False, yaml_dict_tpl=inner_vnfd_dict)
-            except Exception as e:
-                LOG.exception(_("tosca-parser error: %s"), str(e))
-                raise vnfm.ToscaParserFailed(error_msg_details=str(e))
-
-            if ('description' not in vnfd_dict or
-                    vnfd_dict['description'] == ''):
-                vnfd_dict['description'] = inner_vnfd_dict.get(
-                    'description', '')
-            if (('name' not in vnfd_dict or
-                    not len(vnfd_dict['name'])) and
-                    'metadata' in inner_vnfd_dict):
-                vnfd_dict['name'] = inner_vnfd_dict['metadata'].get(
-                    'template_name', '')
-
-            vnfd_dict['mgmt_driver'] = toscautils.get_mgmt_driver(
-                tosca)
-        else:
-            KEY_LIST = (('name', 'template_name'),
-                        ('description', 'description'))
-
-            vnfd_dict.update(
-                dict((key, inner_vnfd_dict[vnfd_key]) for (key, vnfd_key)
-                     in KEY_LIST
-                     if ((key not in vnfd_dict or
-                          vnfd_dict[key] == '') and
-                         vnfd_key in inner_vnfd_dict and
-                         inner_vnfd_dict[vnfd_key] != '')))
-
-            service_types = inner_vnfd_dict.get(
-                'service_properties', {}).get('type', [])
-            if service_types:
-                vnfd_dict.setdefault('service_types', []).extend(
-                    [{'service_type': service_type}
-                    for service_type in service_types])
-            # TODO(anyone)  - this code assumes one mgmt_driver per VNFD???
-            for vdu in inner_vnfd_dict.get('vdus', {}).values():
-                mgmt_driver = vdu.get('mgmt_driver')
-                if mgmt_driver:
-                    vnfd_dict['mgmt_driver'] = mgmt_driver
-        LOG.debug(_('vnfd %s'), vnfd)
+        return 'Openstack infra driver'
 
     @log.log
     def _update_params(self, original, paramvalues, match=False):
@@ -332,7 +273,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
             monitoring_dict = toscautils.get_vdu_monitoring(tosca)
             mgmt_ports = toscautils.get_mgmt_ports(tosca)
             res_tpl = toscautils.get_resources_dict(tosca,
-                                                    STACK_FLAVOR_EXTRA)
+                                                    self.STACK_FLAVOR_EXTRA)
             toscautils.post_process_template(tosca)
             try:
                 translator = tosca_translator.TOSCATranslator(tosca,
@@ -611,10 +552,10 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
 
         stack = heatclient_.get(vnf_id)
         status = stack.stack_status
-        stack_retries = STACK_RETRIES
+        stack_retries = self.STACK_RETRIES
         error_reason = None
         while status == 'CREATE_IN_PROGRESS' and stack_retries > 0:
-            time.sleep(STACK_RETRY_WAIT)
+            time.sleep(self.STACK_RETRY_WAIT)
             try:
                 stack = heatclient_.get(vnf_id)
             except Exception:
@@ -633,7 +574,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
             error_reason = _("Resource creation is not completed within"
                            " {wait} seconds as creation of stack {stack}"
                            " is not completed").format(
-                               wait=(STACK_RETRIES * STACK_RETRY_WAIT),
+                               wait=(self.STACK_RETRIES *
+                                     self.STACK_RETRY_WAIT),
                                stack=vnf_id)
             LOG.warning(_("VNF Creation failed: %(reason)s"),
                     {'reason': error_reason})
@@ -727,9 +669,9 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
         stack = heatclient_.get(vnf_id)
         status = stack.stack_status
         error_reason = None
-        stack_retries = STACK_RETRIES
+        stack_retries = self.STACK_RETRIES
         while (status == 'DELETE_IN_PROGRESS' and stack_retries > 0):
-            time.sleep(STACK_RETRY_WAIT)
+            time.sleep(self.STACK_RETRY_WAIT)
             try:
                 stack = heatclient_.get(vnf_id)
             except heatException.HTTPNotFound:
@@ -748,7 +690,7 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
                              " not completed within {wait} seconds as "
                              "deletion of Stack {stack} is "
                              "not completed").format(stack=vnf_id,
-                             wait=(STACK_RETRIES * STACK_RETRY_WAIT))
+                             wait=(self.STACK_RETRIES * self.STACK_RETRY_WAIT))
             LOG.warning(error_reason)
             raise vnfm.VNFCreateWaitFailed(vnf_id=vnf_id,
                                            reason=error_reason)
@@ -832,10 +774,10 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
 
         # TODO(kanagaraj-manickam) make wait logic into separate utility method
         # and make use of it here and other actions like create and delete
-        stack_retries = STACK_RETRIES
+        stack_retries = self.STACK_RETRIES
         while (True):
             try:
-                time.sleep(STACK_RETRY_WAIT)
+                time.sleep(self.STACK_RETRY_WAIT)
                 stack_id = policy['instance_id']
                 policy_name = get_scaling_policy_name(
                     policy_name=policy['id'],
@@ -873,7 +815,8 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver,
                     "VNF scaling failed to complete within %{wait}s seconds "
                     "while waiting for the stack %(stack)s to be "
                     "scaled.") % {'stack': stack_id,
-                                  'wait': STACK_RETRIES * STACK_RETRY_WAIT}
+                                  'wait': self.STACK_RETRIES *
+                                  self.STACK_RETRY_WAIT}
                 LOG.warning(error_reason)
                 raise vnfm.VNFScaleWaitFailed(
                     vnf_id=policy['vnf']['id'],
