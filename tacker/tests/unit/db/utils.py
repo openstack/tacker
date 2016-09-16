@@ -35,6 +35,7 @@ vnffgd_template = yaml.load(_get_template('vnffgd_template.yaml'))
 vnffgd_tosca_template = yaml.load(_get_template('tosca_vnffgd_template.yaml'))
 vnffgd_invalid_tosca_template = yaml.load(_get_template(
     'tosca_invalid_vnffgd_template.yaml'))
+vnfd_scale_tosca_template = _get_template('tosca_scale.yaml')
 
 
 def get_dummy_vnfd_obj():

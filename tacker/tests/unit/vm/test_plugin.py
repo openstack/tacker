@@ -33,6 +33,7 @@ class FakeDriverManager(mock.Mock):
     def invoke(self, *args, **kwargs):
         if 'create' in args:
             return str(uuid.uuid4())
+
         if 'get_resource_info' in args:
             return {'resources': {'name': 'dummy_vnf',
                                   'type': 'dummy',
@@ -122,7 +123,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
     def _insert_dummy_device(self):
         session = self.context.session
         device_db = vnfm_db.VNF(
-            id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            id='6261579e-d6f3-49ad-8bc3-a9cb974778fe',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_device',
             description='fake_device_description',
@@ -134,6 +135,30 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         session.add(device_db)
         session.flush()
         return device_db
+
+    def _insert_scaling_attributes_vnf(self):
+        session = self.context.session
+        vnf_attributes = vnfm_db.VNFAttribute(
+            id='7800cb81-7ed1-4cf6-8387-746468522651',
+            vnf_id='6261579e-d6f3-49ad-8bc3-a9cb974778fe',
+            key='scaling_group_names',
+            value='{"SP1": "G1"}'
+        )
+        session.add(vnf_attributes)
+        session.flush()
+        return vnf_attributes
+
+    def _insert_scaling_attributes_vnfd(self):
+        session = self.context.session
+        vnfd_attributes = vnfm_db.VNFDAttribute(
+            id='7800cb81-7ed1-4cf6-8387-746468522650',
+            vnfd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            key='vnfd',
+            value=utils.vnfd_scale_tosca_template
+        )
+        session.add(vnfd_attributes)
+        session.flush()
+        return vnfd_attributes
 
     def _insert_dummy_vim(self):
         session = self.context.session
@@ -272,3 +297,53 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
             tstamp=mock.ANY)
+
+    def _get_dummy_scaling_policy(self, type):
+        vnf_scale = {}
+        vnf_scale['scale'] = {}
+        vnf_scale['scale']['type'] = type
+        vnf_scale['scale']['policy'] = 'SP1'
+        return vnf_scale
+
+    def _test_scale_vnf(self, type, scale_state):
+        # create vnfd
+        self._insert_dummy_device_template()
+        self._insert_scaling_attributes_vnfd()
+
+        # create vnf
+        dummy_device_obj = self._insert_dummy_device()
+        self._insert_scaling_attributes_vnf()
+
+        # scale vnf
+        vnf_scale = self._get_dummy_scaling_policy(type)
+        self.vnfm_plugin.create_vnf_scale(
+            self.context,
+            dummy_device_obj['id'],
+            vnf_scale)
+
+        # validate
+        self._device_manager.invoke.assert_called_once_with(
+            mock.ANY,
+            'scale',
+            plugin=mock.ANY,
+            context=mock.ANY,
+            auth_attr=mock.ANY,
+            policy=mock.ANY,
+            region_name=mock.ANY
+        )
+
+        self._pool.spawn_n.assert_called_once_with(mock.ANY)
+
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context,
+            evt_type=constants.RES_EVT_SCALE,
+            res_id='6261579e-d6f3-49ad-8bc3-a9cb974778fe',
+            res_state=scale_state,
+            res_type=constants.RES_TYPE_VNF,
+            tstamp=mock.ANY)
+
+    def test_scale_vnf_out(self):
+        self._test_scale_vnf('out', constants.PENDING_SCALE_OUT)
+
+    def test_scale_vnf_in(self):
+        self._test_scale_vnf('in', constants.PENDING_SCALE_IN)
