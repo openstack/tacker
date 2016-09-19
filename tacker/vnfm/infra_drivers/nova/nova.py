@@ -275,3 +275,7 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
                 raise RuntimeError(_("deletion of server %s faild") %
                                    vnf_id)
             time.sleep(5)
+
+    def get_resource_info(self, plugin, context, vnf_info, auth_attr,
+                          region_name=None):
+        pass
