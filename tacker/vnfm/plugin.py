@@ -234,16 +234,15 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                     vnfd_dict['mgmt_driver'] = mgmt_driver
         LOG.debug(_('vnfd %s'), vnfd)
 
-    def add_vnf_to_monitor(self, vnf_dict, vim_auth):
+    def add_vnf_to_monitor(self, vnf_dict, infra_driver):
         dev_attrs = vnf_dict['attributes']
         mgmt_url = vnf_dict['mgmt_url']
         if 'monitoring_policy' in dev_attrs and mgmt_url:
-            def action_cb(hosting_vnf_, action):
+            def action_cb(action):
                 action_cls = monitor.ActionPolicy.get_policy(action,
-                                                             vnf_dict)
+                                                             infra_driver)
                 if action_cls:
-                    action_cls.execute_action(self, hosting_vnf['vnf'],
-                                              vim_auth)
+                    action_cls.execute_action(self, hosting_vnf['vnf'])
 
             hosting_vnf = self._vnf_monitor.to_hosting_vnf(
                 vnf_dict, action_cb)
@@ -397,7 +396,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         def create_vnf_wait():
             self._create_vnf_wait(context, vnf_dict, vim_auth, infra_driver)
             if vnf_dict['status'] is not constants.ERROR:
-                self.add_vnf_to_monitor(vnf_dict, vim_auth)
+                self.add_vnf_to_monitor(vnf_dict, infra_driver)
             self.config_vnf(context, vnf_dict)
         self.spawn_n(create_vnf_wait)
         return vnf_dict
@@ -746,14 +745,11 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         if policy['action_name'] in constants.DEFAULT_ALARM_ACTIONS:
             action = policy['action_name']
             LOG.debug(_('vnf for monitoring: %s'), vnf_dict)
-            vim_auth = self.get_vim(context, vnf_dict)
+            infra_driver, vim_auth = self._get_infra_driver(context, vnf_dict)
             action_cls = monitor.ActionPolicy.get_policy(action,
-                                                         vnf_dict)
+                                                         infra_driver)
             if action_cls:
-                if action == 'notify':
-                    action_cls.execute_action(self, policy, vim_auth)
-                else:
-                    action_cls.execute_action(self, vnf_dict, vim_auth)
+                action_cls.execute_action(self, vnf_dict)
 
         if policy['bckend_policy']:
             bckend_policy = policy['bckend_policy']

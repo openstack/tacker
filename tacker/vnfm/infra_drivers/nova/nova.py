@@ -75,7 +75,7 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
     @versionutils.deprecated(
         versionutils.deprecated.NEWTON,
         what='infra_driver nova',
-        in_favor_of='infra_driver heat',
+        in_favor_of='infra_driver openstack',
         remove_in=+1)
     def __init__(self):
         super(DeviceNova, self).__init__()

@@ -82,10 +82,10 @@ class TestSamples(testtools.TestCase):
     def test_scale_sample(self, tosca_file=['tosca-vnfd-scale.yaml']):
         self._test_samples(tosca_file)
 
-    def test_alarm_sample(self, tosca_file=['tosca-vnfd-alarm.yaml']):
+    def test_alarm_sample(self, tosca_file=['tosca-vnfd-alarm-scale.yaml']):
         self._test_samples(tosca_file)
 
     def test_list_samples(self,
                           files=['tosca-vnfd-scale.yaml',
-                                 'tosca-vnfd-alarm.yaml']):
+                                 'tosca-vnfd-alarm-scale.yaml']):
         self._test_samples(files)
