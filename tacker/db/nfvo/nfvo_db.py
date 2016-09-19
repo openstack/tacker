@@ -215,13 +215,8 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                     Vim.id == vim_id).with_lockmode('update').one())
             except orm_exc.NoResultFound:
                     raise nfvo.VimNotFoundException(vim_id=vim_id)
-            vim_db.update({'status': status})
-            self._cos_db_plg.create_event(
-                context, res_id=vim_db['id'],
-                res_type=constants.RES_TYPE_VIM,
-                res_state=vim_db['status'],
-                evt_type=constants.RES_EVT_UPDATE,
-                tstamp=timeutils.utcnow())
+            vim_db.update({'status': status,
+                           'updated_at': timeutils.utcnow()})
         return self._make_vim_dict(vim_db)
 
     # Deprecated. Will be removed in Ocata release

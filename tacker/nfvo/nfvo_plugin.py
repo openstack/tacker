@@ -141,10 +141,16 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
         if current_status != vim_obj["status"]:
             status = current_status
             with self._lock:
-                super(NfvoPlugin, self).update_vim_status(
-                    t_context.get_admin_context(),
+                context = t_context.get_admin_context()
+                res = super(NfvoPlugin, self).update_vim_status(context,
                     vim_id, status)
                 self._created_vims[vim_id]["status"] = status
+                self._cos_db_plg.create_event(
+                    context, res_id=res['id'],
+                    res_type=constants.RES_TYPE_VIM,
+                    res_state=res['status'],
+                    evt_type=constants.RES_EVT_MONITOR,
+                    tstamp=res[constants.RES_EVT_UPDATED_FLD])
 
     @log.log
     def validate_tosca(self, template):
