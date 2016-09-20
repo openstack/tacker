@@ -334,9 +334,9 @@ For asymmetric NUMA architecture:
 Connection Points
 -----------------
 Connection point is used to connect the internal virtual link or outside
-virtual link. It may be a virtual port, a virtual NIC address, a physical port
-or a physical NIC address. Each connection point has to bind to a VDU. A CP
-always requires a virtual link and a virtual binding associated with it.
+virtual link. It may be a virtual NIC or a SR-IOV NIC. Each connection
+point has to bind to a VDU. A CP always requires a virtual link and a
+virtual binding associated with it.
 
 A code snippet for virtual NIC (Connection Point) without anti-spoof
 protection and are accessible by the user. CP1 and CP2 are connected to
@@ -353,9 +353,12 @@ VDU1 in this order. Also CP1/CP2 are connected to VL1/VL2 respectively.
         type: tosca.nodes.nfv.CP.Tacker
         properties:
           type: vnic
-          anti_spoof_protection: false
+          anti_spoofing_protection: false
           management: true
           order: 0
+          security_groups:
+            - secgroup1
+            - secgroup2
         requirements:
           - virtualLink:
               node: VL1
@@ -365,7 +368,7 @@ VDU1 in this order. Also CP1/CP2 are connected to VL1/VL2 respectively.
         type: tosca.nodes.nfv.CP.Tacker
         properties:
           type: vnic
-          anti_spoof_protection: false
+          anti_spoofing_protection: false
           management: true
           order: 1
         requirements:
@@ -386,11 +389,11 @@ VDU1 in this order. Also CP1/CP2 are connected to VL1/VL2 respectively.
 +-------------------------+--------+-------+-----------+----------------------+
 | Name                    |Required|Type   |Constraints| Description          |
 +-------------------------+--------+-------+-----------+----------------------+
-| type                    | Yes    |String | None      | Could be anything    |
-|                         |        |       |           | like virtual port,   |
-|                         |        |       |           | virtual NIC address, |
-|                         |        |       |           | physical port,       |
-|                         |        |       |           | physical NIC address |
+| type                    | No     |String |One of     | Specifies the type   |
+|                         |        |       |           | of CP                |
+|                         |        |       |- vnic     |                      |
+|                         |        |       |  (default)|                      |
+|                         |        |       |- sriov    |                      |
 +-------------------------+--------+-------+-----------+----------------------+
 | anti_spoofing_protection| No     |Boolean| None      | Indicates whether    |
 |                         |        |       |           | anti_spoof rule is   |
@@ -410,6 +413,11 @@ VDU1 in this order. Also CP1/CP2 are connected to VL1/VL2 respectively.
 |                         |        |       |           | than one CP to a VDU |
 |                         |        |       |           | and ordering is      |
 |                         |        |       |           | required.            |
++-------------------------+--------+-------+-----------+----------------------+
+| security_groups         | No     |List   | None      | List of security     |
+|                         |        |       |           | groups to be         |
+|                         |        |       |           | associated with      |
+|                         |        |       |           | the CP               |
 +-------------------------+--------+-------+-----------+----------------------+
 
 :requirements:
@@ -550,6 +558,7 @@ a template which mentions all node types with all available options.
             anti_spoofing_protection: [true, false]
             type: [ sriov, vnic ]
             order: order of CP within a VDU
+            security_groups: list of security groups
           requirements:
             - virtualLink:
                node: VL to link to
