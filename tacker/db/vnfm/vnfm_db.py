@@ -265,7 +265,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         self._cos_db_plg.create_event(
             context, res_id=vnfd_dict['id'],
             res_type=constants.RES_TYPE_VNFD,
-            res_state=constants.RES_EVT_VNFD_NA_STATE,
+            res_state=constants.RES_EVT_VNFD_ONBOARDED,
             evt_type=constants.RES_EVT_CREATE,
             tstamp=vnfd_dict[constants.RES_EVT_CREATED_FLD])
         return vnfd_dict
