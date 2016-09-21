@@ -70,3 +70,7 @@ class DeviceNoop(abstract_driver.DeviceAbstractDriver):
     @log.log
     def delete_wait(self, plugin, context, vnf_id):
         pass
+
+    def get_resource_info(self, plugin, context, vnf_info, auth_attr,
+                          region_name=None):
+        return {'noop': {'id': str(uuid.uuid4()), 'type': 'noop'}}
