@@ -30,7 +30,7 @@ from tacker.api.v1 import attributes
 from tacker.common import driver_manager
 from tacker.common import exceptions
 from tacker.common import utils
-from tacker.db.vm import vm_db
+from tacker.db.vnfm import vnfm_db
 from tacker.extensions import vnfm
 from tacker.plugins.common import constants
 from tacker.vnfm.mgmt_drivers import constants as mgmt_constants
@@ -107,7 +107,7 @@ class VNFMMgmtMixin(object):
             kwargs=kwargs)
 
 
-class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
+class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     """VNFMPlugin which supports VNFM framework.
 
     Plugin which supports Tacker framework
@@ -126,7 +126,7 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         self.boot_wait = cfg.CONF.tacker.boot_wait
         self.vim_client = vim_client.VimClient()
         self._vnf_manager = driver_manager.DriverManager(
-            'tacker.tacker.device.drivers',
+            'tacker.tacker.vnfm.drivers',
             cfg.CONF.tacker.infra_driver)
         self._vnf_monitor = monitor.VNFMonitor(self.boot_wait)
 

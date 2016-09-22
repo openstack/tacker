@@ -28,7 +28,7 @@ from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
 from tacker.db import types
-from tacker.db.vm import vm_db
+from tacker.db.vnfm import vnfm_db
 from tacker.extensions import nfvo
 from tacker import manager
 from tacker.plugins.common import constants
@@ -167,7 +167,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
 
     def is_vim_still_in_use(self, context, vim_id):
         with context.session.begin(subtransactions=True):
-            vnfs_db = self._model_query(context, vm_db.VNF).filter_by(
+            vnfs_db = self._model_query(context, vnfm_db.VNF).filter_by(
                 vim_id=vim_id).first()
             if vnfs_db is not None:
                 raise nfvo.VimInUseException(vim_id=vim_id)
