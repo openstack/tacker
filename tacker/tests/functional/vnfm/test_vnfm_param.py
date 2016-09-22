@@ -21,9 +21,8 @@ from tacker.tests.utils import read_file
 
 
 class VnfmTestParam(base.BaseTackerTest):
-    def _test_vnfd_create(self, vnfd_file):
+    def _test_vnfd_create(self, vnfd_file, vnfd_name):
         yaml_input = read_file(vnfd_file)
-        vnfd_name = 'sample_cirros_vnf'
         # TODO(anyone) remove this condition check once old templates
         # are deprecated
         if "tosca_definitions_version" in yaml_input:
@@ -104,8 +103,9 @@ class VnfmTestParam(base.BaseTackerTest):
             assert True, "Vnf Delete success" + str(vfn_d) + str(Exception)
 
     def test_vnf_param(self):
+        vnfd_name = 'sample_cirros_vnfd_old_template'
         vnfd_instance = self._test_vnfd_create(
-            'sample_cirros_vnf_param.yaml')
+            'sample_cirros_vnf_param.yaml', vnfd_name)
         values_str = read_file('sample_cirros_vnf_values.yaml')
         vnf_instance, param_values_dict = self._test_vnf_create(vnfd_instance,
                                              'test_vnf_with_parameters',
@@ -127,13 +127,15 @@ class VnfmTestParam(base.BaseTackerTest):
         self.addCleanup(self.client.delete_vnfd, vnfd_instance['vnfd']['id'])
 
     def test_vnfd_param_tosca_template(self):
+        vnfd_name = 'sample_cirros_vnfd_tosca'
         vnfd_instance = self._test_vnfd_create(
-            'sample-tosca-vnfd-param.yaml')
+            'sample-tosca-vnfd-param.yaml', vnfd_name)
         self._test_vnfd_delete(vnfd_instance)
 
     def test_vnf_param_tosca_template(self):
+        vnfd_name = 'cirros_vnfd_tosca_param'
         vnfd_instance = self._test_vnfd_create(
-            'sample-tosca-vnfd-param.yaml')
+            'sample-tosca-vnfd-param.yaml', vnfd_name)
         values_str = read_file('sample-tosca-vnf-values.yaml')
         values_dict = yaml.safe_load(values_str)
         vnf_instance, param_values_dict = self._test_vnf_create(vnfd_instance,

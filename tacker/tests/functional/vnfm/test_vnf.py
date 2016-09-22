@@ -24,10 +24,9 @@ VNF_CIRROS_CREATE_TIMEOUT = 120
 
 
 class VnfTestCreate(base.BaseTackerTest):
-    def _test_create_delete_vnf(self, vnf_name, vim_id=None):
+    def _test_create_delete_vnf(self, vnf_name, vnfd_name, vim_id=None):
         data = dict()
         data['tosca'] = read_file('sample_cirros_vnf_no_monitoring.yaml')
-        vnfd_name = 'sample_cirros_vnf_no_monitoring'
         toscal = data['tosca']
         tosca_arg = {'vnfd': {'name': vnfd_name,
                      'attributes': {'vnfd': toscal}}}
@@ -81,10 +80,13 @@ class VnfTestCreate(base.BaseTackerTest):
 
     def test_create_delete_vnf_with_default_vim(self):
         self._test_create_delete_vnf(
-            vnf_name='test_vnf_with_cirros_no_monitoring')
+            vnf_name='test_vnf_with_cirros_no_monitoring_default_vim',
+            vnfd_name='sample_cirros_vnf_no_monitoring_default_vim')
 
     def test_create_delete_vnf_with_vim_id(self):
         vim_list = self.client.list_vims()
         vim0_id = self.get_vim(vim_list, 'VIM0')['id']
-        self._test_create_delete_vnf(vim_id=vim0_id,
-                           vnf_name='test_vnf_with_cirros_with_default_vim_id')
+        self._test_create_delete_vnf(
+            vim_id=vim0_id,
+            vnf_name='test_vnf_with_cirros_vim_id',
+            vnfd_name='sample_cirros_vnf_no_monitoring_vim_id')

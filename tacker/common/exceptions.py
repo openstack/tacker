@@ -261,3 +261,7 @@ class VnfPolicyActionInvalid(BadRequest):
 class VnfPolicyTypeInvalid(BadRequest):
     message = _("Invalid type %(type)s for policy %(policy)s, "
                 "should be one of %(valid_types)s")
+
+
+class DuplicateResourceName(TackerException):
+    message = _("%(resource)s with name %(name)s already exists")

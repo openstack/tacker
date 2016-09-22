@@ -1,0 +1,4 @@
+---
+features:
+  - Introduce uniqueness constraint on the name of Tacker resources such as
+    VNFD, VNF, VIM, etc.

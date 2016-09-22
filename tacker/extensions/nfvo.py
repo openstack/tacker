@@ -45,11 +45,9 @@ class VimDefaultNameNotDefined(exceptions.TackerException):
                 " in tacker.conf")
 
 
-# Deprecated. Will be removed in Ocata release
-class VimDefaultIdException(exceptions.TackerException):
-    message = _("Default VIM name %(vim_name)s is invalid or there are "
-                "multiple VIM matches found. Please specify a valid default "
-                "VIM in tacker.conf")
+class VimDefaultNameNotFound(exceptions.TackerException):
+    message = _("Default VIM name %(vim_name)s is invalid. Please specify a "
+                "valid default VIM name in tacker.conf")
 
 
 class VimDefaultDuplicateException(exceptions.TackerException):

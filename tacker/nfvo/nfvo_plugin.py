@@ -25,6 +25,7 @@ from oslo_utils import strutils
 
 from tacker._i18n import _
 from tacker.common import driver_manager
+from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import utils
 from tacker import context as t_context
@@ -35,6 +36,7 @@ from tacker import manager
 from tacker.plugins.common import constants
 from tacker.vnfm.tosca import utils as toscautils
 from toscaparser import tosca_template
+
 
 LOG = logging.getLogger(__name__)
 
@@ -88,6 +90,9 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
         LOG.debug(_('Create vim called with parameters %s'),
              strutils.mask_password(vim))
         vim_obj = vim['vim']
+        name = vim_obj['name']
+        if self._get_by_name(context, nfvo_db.Vim, name):
+            raise exceptions.DuplicateResourceName(resource='VIM', name=name)
         vim_type = vim_obj['type']
         vim_obj['id'] = str(uuid.uuid4())
         vim_obj['status'] = 'PENDING'
