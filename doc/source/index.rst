@@ -56,6 +56,7 @@ Feature Documentation
    devref/mistral_workflows_usage_guide.rst
    devref/scale_usage_guide.rst
    devref/alarm_monitoring_usage_guide.rst
+   devref/event_logging.rst
 
 API Documentation
 =================
