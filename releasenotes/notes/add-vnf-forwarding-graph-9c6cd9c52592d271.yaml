@@ -1,0 +1,13 @@
+---
+features:
+  - VNF Forwarding Graph support is available as an EXPERIMENTAL feature.
+    TOSCA NFV Profile based Forwarding Graph Descriptor can be uploaded
+    to VNF-FGD Catalog. VNF-FFGD template describes both Classifier and
+    Forwarding Path across a collection of Connection Points described in
+    VNFDs. Using the template VNF FFG can be instantiated using the default
+    Neutron networking-sfc driver.
+issues:
+  - Logical source port need to be specified VNF-FFGD flow classifier
+    section. This is due to the current restriction in Neutron 
+    networking-sfc flow-classifier API restriction. This behavior will
+    be resolved once the underlying neutron issue is fixed.
