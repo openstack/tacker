@@ -323,16 +323,6 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                 # scale_resource_type is custome type mapped the HOT template
                 # generated for all VDUs in the tosca template
                 properties['resource']['type'] = scale_resource_type
-                # support monitoring
-                if 'policies' in vnfd_dict:
-                    for policies in vnfd_dict['policies']:
-                        policy_name, policy_dt = list(policies.items())[0]
-                        if policy_dt['type'] ==\
-                                'tosca.polices.tacker.Alarming':
-                            metadata_dict = dict()
-                            metadata_dict['metering.vnf_id'] = vnf['id']
-                            properties['resource']['metadata'] = metadata_dict
-                            break
                 # TODO(kanagraj-manickam) add custom type params here, to
                 # support parameterized template
                 group_hot['properties'] = properties
@@ -406,6 +396,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
         def generate_hot_alarm_resource(topology_tpl_dict, heat_tpl):
             alarm_resource = dict()
             heat_dict = yamlparser.simple_ordered_parse(heat_tpl)
+            sub_heat_dict = copy.deepcopy(heat_dict)
             is_enabled_alarm = False
 
             def _convert_to_heat_monitoring_prop(mon_policy):
@@ -439,11 +430,17 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                         policy_name, policy_dt = list(policies.items())[0]
                         if policy_dt['type'] == \
                                 'tosca.policy.tacker.Scaling':
+                            # Fixed metadata. it will be fixed
+                            # once targets are supported
                             metadata_dict = dict()
-                            metadata_dict['metadata.user_metadata.vnf_id'] =\
+                            metadata_dict['metering.vnf_id'] = vnf['id']
+                            sub_heat_dict['resources']['VDU1']['properties']['metadata'] =\
+                                metadata_dict
+                            matching_metadata_dict = dict()
+                            matching_metadata_dict['metadata.user_metadata.vnf_id'] =\
                                 vnf['id']
                             mon_policy_hot['properties']['matching_metadata'] =\
-                                metadata_dict
+                                matching_metadata_dict
                             break
                 return mon_policy_hot
 
@@ -459,9 +456,11 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                         break
 
             heat_tpl_yaml = yaml.dump(heat_dict)
+            sub_heat_tpl_yaml = yaml.dump(sub_heat_dict)
             return (is_enabled_alarm,
                     alarm_resource,
-                    heat_tpl_yaml)
+                    heat_tpl_yaml,
+                    sub_heat_tpl_yaml)
 
         def generate_hot_from_legacy(vnfd_dict):
             assert 'template' not in fields
@@ -565,9 +564,9 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                     vnfd_dict['topology_template'],
                     'scaling.yaml')
                 (is_enabled_alarm, alarm_resource,
-                 heat_tpl_yaml) = generate_hot_alarm_resource(
-                    vnfd_dict['topology_template'],
-                    heat_template_yaml)
+                 heat_tpl_yaml, sub_heat_tpl_yaml) =\
+                    generate_hot_alarm_resource(vnfd_dict['topology_template'],
+                                                heat_template_yaml)
                 if is_enabled_alarm and not is_scaling_needed:
                     heat_template_yaml = heat_tpl_yaml
                     fields['template'] = heat_template_yaml
@@ -577,7 +576,9 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                         main_dict['resources'].update(alarm_resource)
                     main_yaml = yaml.dump(main_dict)
                     fields['template'] = main_yaml
-                    fields['files'] = {'scaling.yaml': heat_template_yaml}
+                    fields['files'] = {'scaling.yaml': sub_heat_tpl_yaml}\
+                        if is_enabled_alarm else {
+                        'scaling.yaml': heat_template_yaml}
                     vnf['attributes']['heat_template'] = main_yaml
                     # TODO(kanagaraj-manickam) when multiple groups are
                     # supported, make this scaling atribute as
