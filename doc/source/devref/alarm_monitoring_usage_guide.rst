@@ -49,7 +49,7 @@ described firstly like other TOSCA templates in Tacker.
                     action_name: respawn
 
 Alarm framework already supported the some default backend actions like
-**repsawn, log, and log_and_kill**.
+**respawn, log, and log_and_kill**.
 
 Tacker users could change the desired action as described in the above example.
 Until now, the backend actions could be pointed to the specific policy which
