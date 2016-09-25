@@ -1,0 +1,7 @@
+---
+features:
+  - An alarm-based monitoring driver using Ceilometer is added.
+    Alarm-based monitoring driver in Tacker is designed to
+    collect alarms/events triggered by the Ceilometer.
+    For details please refer
+    http://docs.openstack.org/developer/tacker/devref/alarm_monitoring_usage_guide.html
