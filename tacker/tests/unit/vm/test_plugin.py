@@ -201,7 +201,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('attributes', result)
         self.assertIn('created_at', result)
         self.assertIn('updated_at', result)
-        yaml_dict = yaml.safe_load(utils.vnfd_openwrt)
+        yaml_dict = yaml.safe_load(utils.tosca_vnfd_openwrt)
         mock_tosca_template.assert_called_once_with(
             a_file=False, yaml_dict_tpl=yaml_dict)
         mock_get_mgmt_driver.assert_called_once_with(mock.ANY)
