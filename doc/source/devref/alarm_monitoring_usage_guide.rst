@@ -96,12 +96,9 @@ and Aodh plugins will need to be enabled in local.conf:
 
 .. code-block::ini
 
-**enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer**
+**enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer master**
 
-**enable_plugin aodh https://git.openstack.org/openstack/aodh**
-
-Further, once OpenStack Monasca is leveraged in Tacker, it will need to be enabled
-plugin in local.conf as well.
+**enable_plugin aodh https://git.openstack.org/openstack/aodh master**
 
 How to monitor VNFs via alarm triggers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -113,46 +110,47 @@ Firstly, vnfd and vnf need to be created successfully using pre-defined TOSCA te
 for alarm monitoring. Then, in order to know whether alarm configuration defined in Tacker
 is successfully passed to Ceilometer, Tacker users could use CLI:
 
-.. code-block::ini
+.. code-block:: console
 
-$ ceilometer alarm-list
+    $ceilometer alarm-list
 
-+--------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------+-------------------+----------+---------+------------+------------------------------------+------------------+
-| Alarm ID                             | Name                                                                                                                              | State             | Severity | Enabled | Continuous | Alarm condition                    | Time constraints |
-+--------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------+-------------------+----------+---------+------------+------------------------------------+------------------+
-| 35a80852-e24f-46ed-bd34-e2f831d00172 | tacker.vnfm.infra_drivers.heat.heat_DeviceHeat-6f3e523d-9e12-4973-a2e8-ea04b9601253-vdu1_cpu_usage_monitoring_policy-qer2ipsi2mk4 | insufficient data | low      | True    | True       | avg(cpu_util) > 50  during 1 x 65s | None             |
-+--------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------+-------------------+----------+---------+------------+------------------------------------+------------------+
+    +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+-------------------+----------+---------+------------+-------------------------------------+------------------+
+    | Alarm ID                             | Name                                                                                                                                       | State             | Severity | Enabled | Continuous | Alarm condition                     | Time constraints |
+    +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+-------------------+----------+---------+------------+-------------------------------------+------------------+
+    | f6a89242-d849-4a1a-9eb5-de4c0730252f | tacker.vnfm.infra_drivers.openstack.openstack_OpenStack-d4900104-6257-4084-8506-9fa6895d1294-vdu1_cpu_usage_monitoring_policy-7rt36gqbmuqo | insufficient data | low      | True    | True       | avg(cpu_util) > 15.0 during 1 x 65s | None             |
+    +--------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+-------------------+----------+---------+------------+-------------------------------------+------------------
 
-$ ceilometer alarm-show 35a80852-e24f-46ed-bd34-e2f831d00172
+.. code-block:: console
 
-+---------------------------+--------------------------------------------------------------------------+
-| Property                  | Value                                                                    |
-+---------------------------+--------------------------------------------------------------------------+
-| alarm_actions             | ["http://ubuntu:9890/v1.0/vnfs/6f3e523d-9e12-4973-a2e8-ea04b9601253/vdu1 |
-|                           | _cpu_usage_monitoring_policy/respawn/g0jtsxu9"]                          |
-| alarm_id                  | 35a80852-e24f-46ed-bd34-e2f831d00172                                     |
-| comparison_operator       | gt                                                                       |
-| description               | utilization greater_than 50%                                             |
-| enabled                   | True                                                                     |
-| evaluation_periods        | 1                                                                        |
-| exclude_outliers          | False                                                                    |
-| insufficient_data_actions | None                                                                     |
-| meter_name                | cpu_util                                                                 |
-| name                      | tacker.vnfm.infra_drivers.heat.heat_DeviceHeat-6f3e523d-                 |
-|                           | 9e12-4973-a2e8-ea04b9601253-vdu1_cpu_usage_monitoring_policy-            |
-|                           | qer2ipsi2mk4                                                             |
-| ok_actions                | None                                                                     |
-| period                    | 65                                                                       |
-| project_id                | 8361286345c4482cb777da6657c38238                                         |
-| query                     |                                                                          |
-| repeat_actions            | True                                                                     |
-| severity                  | low                                                                      |
-| state                     | insufficient data                                                        |
-| statistic                 | avg                                                                      |
-| threshold                 | 50                                                                       |
-| type                      | threshold                                                                |
-| user_id                   | b5f7fefac7874e45ae93443e95447fb9                                         |
-+---------------------------+--------------------------------------------------------------------------+
+    $ ceilometer alarm-show 35a80852-e24f-46ed-bd34-e2f831d00172
+
+    +---------------------------+--------------------------------------------------------------------------+
+    | Property                  | Value                                                                    |
+    +---------------------------+--------------------------------------------------------------------------+
+    | alarm_actions             | ["http://pinedcn:9890/v1.0/vnfs/d4900104-6257-4084-8506-9fa6895d1294/vdu |
+    |                           | 1_cpu_usage_monitoring_policy/SP1/i42kd018"]                             |
+    | alarm_id                  | f6a89242-d849-4a1a-9eb5-de4c0730252f                                     |
+    | comparison_operator       | gt                                                                       |
+    | description               | utilization greater_than 50%                                             |
+    | enabled                   | True                                                                     |
+    | evaluation_periods        | 1                                                                        |
+    | exclude_outliers          | False                                                                    |
+    | insufficient_data_actions | None                                                                     |
+    | meter_name                | cpu_util                                                                 |
+    | name                      | tacker.vnfm.infra_drivers.openstack.openstack_OpenStack-d4900104-6257-40 |
+    |                           | 84-8506-9fa6895d1294-vdu1_cpu_usage_monitoring_policy-7rt36gqbmuqo       |
+    | ok_actions                | None                                                                     |
+    | period                    | 65                                                                       |
+    | project_id                | abdc74442be44b9486ca5e32a980bca1                                         |
+    | query                     | metadata.user_metadata.vnf_id == d4900104-6257-4084-8506-9fa6895d1294    |
+    | repeat_actions            | True                                                                     |
+    | severity                  | low                                                                      |
+    | state                     | insufficient data                                                        |
+    | statistic                 | avg                                                                      |
+    | threshold                 | 15.0                                                                     |
+    | type                      | threshold                                                                |
+    | user_id                   | 25a691398e534893b8627f3762712515                                         |
+    +---------------------------+--------------------------------------------------------------------------+
 
 
 How to trigger alarms:
