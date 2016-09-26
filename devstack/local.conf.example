@@ -51,6 +51,7 @@ FIXED_RANGE=${FIXED_RANGE:-15.0.0.0/24}
 
 
 enable_plugin tacker https://git.openstack.org/openstack/tacker master
+enable_plugin networking-sfc git://git.openstack.org/openstack/networking-sfc master
 
 enable_service n-novnc
 enable_service n-cauth

@@ -35,9 +35,10 @@ SECRET_PASSWORD = '***'
 
 
 def dummy_get_vim(*args, **kwargs):
-    vim_auth = utils.get_vim_auth_obj()
-    vim_auth['type'] = 'openstack'
-    return vim_auth
+    vim_obj = dict()
+    vim_obj['auth_cred'] = utils.get_vim_auth_obj()
+    vim_obj['type'] = 'openstack'
+    return vim_obj
 
 
 class FakeDriverManager(mock.Mock):
@@ -355,6 +356,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIn('status', result)
             self.assertEqual('PENDING_CREATE', result['status'])
             self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
+                                                           name=mock.ANY,
                                                            vnfs=mock.ANY,
                                                            fc_id=mock.ANY,
                                                            auth_attr=mock.ANY,
@@ -375,6 +377,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIn('status', result)
             self.assertEqual('PENDING_CREATE', result['status'])
             self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
+                                                           name=mock.ANY,
                                                            vnfs=mock.ANY,
                                                            fc_id=mock.ANY,
                                                            auth_attr=mock.ANY,

@@ -40,7 +40,7 @@ class VNFFGNoop(abstract_driver.SfcAbstractDriver):
         return 'VNFFG Noop driver'
 
     @log.log
-    def create_chain(self, fc_id, vnfs, auth_attr=None):
+    def create_chain(self, name, fc_id, vnfs, auth_attr=None):
         instance_id = str(uuid.uuid4())
         self._instances.add(instance_id)
         return instance_id
@@ -56,7 +56,7 @@ class VNFFGNoop(abstract_driver.SfcAbstractDriver):
         self._instances.remove(chain_id)
 
     @log.log
-    def create_flow_classifier(self, fc, auth_attr=None):
+    def create_flow_classifier(self, name, fc, auth_attr=None):
         instance_id = str(uuid.uuid4())
         self._instances.add(instance_id)
         return instance_id

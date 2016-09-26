@@ -14,10 +14,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
 import threading
 import time
 import uuid
 
+from cryptography import fernet
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
@@ -39,6 +41,7 @@ from toscaparser import tosca_template
 
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 
 
 def config_opts():
@@ -216,25 +219,28 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
         sfc = super(NfvoPlugin, self).get_sfc(context, nfp['chain_id'])
         match = super(NfvoPlugin, self).get_classifier(context,
                                                        nfp['classifier_id'],
-                                                       fields='match')
+                                                       fields='match')['match']
         # grab the first VNF to check it's VIM type
         # we have already checked that all VNFs are in the same VIM
-        vim_auth = self._get_vim_from_vnf(context,
-                                          list(vnffg_dict[
-                                              'vnf_mapping'].values())[0]
-                                          )
+        vim_obj = self._get_vim_from_vnf(context,
+                                         list(vnffg_dict[
+                                              'vnf_mapping'].values())[0])
         # TODO(trozet): figure out what auth info we actually need to pass
         # to the driver.  Is it a session, or is full vim obj good enough?
-        driver_type = vim_auth['type']
+        driver_type = vim_obj['type']
         try:
             fc_id = self._vim_drivers.invoke(driver_type,
                                              'create_flow_classifier',
-                                             fc=match, auth_attr=vim_auth,
+                                             name=vnffg_dict['name'],
+                                             fc=match,
+                                             auth_attr=vim_obj['auth_cred'],
                                              symmetrical=sfc['symmetrical'])
-            sfc_id = self._vim_drivers.invoke(driver_type, 'create_chain',
+            sfc_id = self._vim_drivers.invoke(driver_type,
+                                              'create_chain',
+                                              name=vnffg_dict['name'],
                                               vnfs=sfc['chain'], fc_id=fc_id,
                                               symmetrical=sfc['symmetrical'],
-                                              auth_attr=vim_auth)
+                                              auth_attr=vim_obj['auth_cred'])
         except Exception:
             with excutils.save_and_reraise_exception():
                 self.delete_vnffg(context, vnffg_id=vnffg_dict['id'])
@@ -276,24 +282,23 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
         LOG.debug(_('chain update: %s'), chain)
         sfc['chain'] = chain
         sfc['symmetrical'] = new_vnffg['symmetrical']
-        vim_auth = self._get_vim_from_vnf(context,
-                                          list(vnffg_dict[
-                                              'vnf_mapping'].values())[0]
-                                          )
-        driver_type = vim_auth['type']
+        vim_obj = self._get_vim_from_vnf(context,
+                                         list(vnffg_dict[
+                                              'vnf_mapping'].values())[0])
+        driver_type = vim_obj['type']
         try:
             # we don't support updating the match criteria in first iteration
             # so this is essentially a noop.  Good to keep for future use
             # though.
             self._vim_drivers.invoke(driver_type, 'update_flow_classifier',
                                      fc_id=fc['instance_id'], fc=fc['match'],
-                                     auth_attr=vim_auth,
+                                     auth_attr=vim_obj['auth_cred'],
                                      symmetrical=new_vnffg['symmetrical'])
             self._vim_drivers.invoke(driver_type, 'update_chain',
                                      vnfs=sfc['chain'],
                                      fc_ids=[fc['instance_id']],
                                      chain_id=sfc['instance_id'],
-                                     auth_attr=vim_auth,
+                                     auth_attr=vim_obj['auth_cred'],
                                      symmetrical=new_vnffg['symmetrical'])
         except Exception:
             with excutils.save_and_reraise_exception():
@@ -321,21 +326,20 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
 
         fc = super(NfvoPlugin, self).get_classifier(context,
                                                     nfp['classifier_id'])
-        vim_auth = self._get_vim_from_vnf(context,
-                                          list(vnffg_dict[
-                                              'vnf_mapping'].values())[0]
-                                          )
-        driver_type = vim_auth['type']
+        vim_obj = self._get_vim_from_vnf(context,
+                                         list(vnffg_dict[
+                                              'vnf_mapping'].values())[0])
+        driver_type = vim_obj['type']
         try:
             if sfc['instance_id'] is not None:
                 self._vim_drivers.invoke(driver_type, 'delete_chain',
                                          chain_id=sfc['instance_id'],
-                                         auth_attr=vim_auth)
+                                         auth_attr=vim_obj['auth_cred'])
             if fc['instance_id'] is not None:
                 self._vim_drivers.invoke(driver_type,
                                          'delete_flow_classifier',
                                          fc_id=fc['instance_id'],
-                                         auth_attr=vim_auth)
+                                         auth_attr=vim_obj['auth_cred'])
         except Exception:
             with excutils.save_and_reraise_exception():
                 vnffg_dict['status'] = constants.ERROR
@@ -353,10 +357,36 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
         """
         vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
         vim_id = vnfm_plugin.get_vnf(context, vnf_id, fields=['vim_id'])
-        vim_obj = self.get_vim(context, vim_id['vim_id'])
+        vim_obj = self.get_vim(context, vim_id['vim_id'], mask_password=False)
+        vim_auth = vim_obj['auth_cred']
+        vim_auth['password'] = self._decode_vim_auth(vim_obj['id'],
+                                                     vim_auth['password'].
+                                                     encode('utf-8'))
+        vim_auth['auth_url'] = vim_obj['auth_url']
         if vim_obj is None:
             raise nfvo.VimFromVnfNotFoundException(vnf_id=vnf_id)
+
         return vim_obj
+
+    def _decode_vim_auth(self, vim_id, cred):
+        """Decode Vim credentials
+
+        Decrypt VIM cred. using Fernet Key
+        """
+        vim_key = self._find_vim_key(vim_id)
+        f = fernet.Fernet(vim_key)
+        if not f:
+            LOG.warning(_('Unable to decode VIM auth'))
+            raise nfvo.VimNotFoundException('Unable to decode VIM auth key')
+        return f.decrypt(cred)
+
+    @staticmethod
+    def _find_vim_key(vim_id):
+        key_file = os.path.join(CONF.vim_keys.openstack, vim_id)
+        LOG.debug(_('Attempting to open key file for vim id %s'), vim_id)
+        with open(key_file, 'r') as f:
+                return f.read()
+        LOG.warning(_('VIM id invalid or key not found for  %s'), vim_id)
 
     def _vim_resource_name_to_id(self, context, resource, name, vnf_id):
         """Converts a VIM resource name to its ID
@@ -367,10 +397,10 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
                the classifier will apply to
         :return: ID of the resource name
         """
-        vim_auth = self._get_vim_from_vnf(context, vnf_id)
-        driver_type = vim_auth['type']
+        vim_obj = self._get_vim_from_vnf(context, vnf_id)
+        driver_type = vim_obj['type']
         return self._vim_drivers.invoke(driver_type,
                                         'get_vim_resource_id',
-                                        vim_auth=vim_auth,
+                                        vim_auth=vim_obj['auth_cred'],
                                         resource_type=resource,
                                         resource_name=name)
