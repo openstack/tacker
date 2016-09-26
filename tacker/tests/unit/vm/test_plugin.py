@@ -16,6 +16,7 @@
 import uuid
 
 import mock
+from mock import patch
 import yaml
 
 from tacker.common import exceptions
@@ -62,6 +63,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._stub_get_vim()
         self._mock_device_manager()
         self._mock_vnf_monitor()
+        self._mock_vnf_alarm_monitor()
         self._mock_green_pool()
         self._insert_dummy_vim()
         self.vnfm_plugin = plugin.VNFMPlugin()
@@ -108,6 +110,13 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._mock(
             'tacker.vnfm.monitor.VNFMonitor', fake_vnf_monitor)
 
+    def _mock_vnf_alarm_monitor(self):
+        self._vnf_alarm_monitor = mock.Mock(wraps=FakeVNFMonitor())
+        fake_vnf_alarm_monitor = mock.Mock()
+        fake_vnf_alarm_monitor.return_value = self._vnf_alarm_monitor
+        self._mock(
+            'tacker.vnfm.monitor.VNFAlarmMonitor', fake_vnf_alarm_monitor)
+
     def _insert_dummy_device_template(self):
         session = self.context.session
         device_template = vnfm_db.VNFD(
@@ -120,6 +129,17 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         session.add(device_template)
         session.flush()
         return device_template
+
+    def _insert_dummy_vnfd_attributes(self, template):
+        session = self.context.session
+        vnfd_attr = vnfm_db.VNFDAttribute(
+            id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            vnfd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            key='vnfd',
+            value=template)
+        session.add(vnfd_attr)
+        session.flush()
+        return vnfd_attr
 
     def _insert_dummy_device(self):
         session = self.context.session
@@ -365,3 +385,26 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
     def test_scale_vnf_in(self):
         self._test_scale_vnf('in', constants.PENDING_SCALE_IN)
+
+    @patch('tacker.vnfm.monitor.ActionPolicy')
+    def test_create_vnf_trigger_respawn(self, mock_action_policy):
+        action_policy_cls = mock_action_policy.return_value
+        action_policy_cls.get_policy.return_value = mock.Mock()
+        vnf_id = "6261579e-d6f3-49ad-8bc3-a9cb974778fe"
+        trigger_request = {"trigger": {"action_name": "respawn", "params": {
+            "credential": "026kll6n", "data": {"current": "alarm",
+                                               'alarm_id':
+                                    "b7fa9ffd-0a4f-4165-954b-5a8d0672a35f"}},
+            "policy_name": "vdu1_cpu_usage_monitoring_policy"}}
+        self._insert_dummy_device_template()
+        self._insert_dummy_vnfd_attributes(utils.vnfd_alarm_tosca_template)
+        self._insert_dummy_device()
+        expected_result = {"action_name": "respawn", "params": {
+            "credential": "026kll6n", "data": {"current": "alarm",
+            "alarm_id": "b7fa9ffd-0a4f-4165-954b-5a8d0672a35f"}},
+            "policy_name": "vdu1_cpu_usage_monitoring_policy"}
+        self._vnf_alarm_monitor.process_alarm_for_vnf.return_value = True
+
+        trigger_result = self.vnfm_plugin.create_vnf_trigger(
+            self.context, vnf_id, trigger_request)
+        self.assertEqual(expected_result, trigger_result)
