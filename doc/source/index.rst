@@ -57,6 +57,8 @@ Feature Documentation
    devref/scale_usage_guide.rst
    devref/alarm_monitoring_usage_guide.rst
    devref/event_logging.rst
+   devref/vnffgd_template_description.rst
+   devref/vnffg_usage_guide.rst
 
 API Documentation
 =================
