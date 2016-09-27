@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-""" Alter devices
+"""Alter devices
 
 Revision ID: 12a57080b278
 Revises: 12a57080b277
