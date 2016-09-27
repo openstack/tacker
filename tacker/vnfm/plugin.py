@@ -764,8 +764,10 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 scale.setdefault('scale', {})
                 scale['scale']['type'] = 'out' if cp == 'gt' else 'in'
                 scale['scale']['policy'] = bckend_policy['name']
+                infra_driver, vim_auth = self._get_infra_driver(context,
+                                                                vnf_dict)
                 action_cls = monitor.ActionPolicy.get_policy(action,
-                                                             vnf_dict)
+                                                             infra_driver)
                 if action_cls:
                     action_cls.execute_action(self, vnf_dict, scale)
 
