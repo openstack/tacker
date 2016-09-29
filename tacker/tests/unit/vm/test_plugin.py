@@ -386,25 +386,53 @@ class TestVNFMPlugin(db_base.SqlTestCase):
     def test_scale_vnf_in(self):
         self._test_scale_vnf('in', constants.PENDING_SCALE_IN)
 
-    @patch('tacker.vnfm.monitor.ActionPolicy')
-    def test_create_vnf_trigger_respawn(self, mock_action_policy):
-        action_policy_cls = mock_action_policy.return_value
-        action_policy_cls.get_policy.return_value = mock.Mock()
+    def _get_dummy_active_vnf(self, vnfd_template):
+        dummy_vnf = utils.get_dummy_device_obj()
+        dummy_vnf['vnfd']['attributes']['vnfd'] = vnfd_template
+        dummy_vnf['status'] = 'ACTIVE'
+        dummy_vnf['instance_id'] = '4c00108e-c69d-4624-842d-389c77311c1d'
+        dummy_vnf['vim_id'] = '437ac8ef-a8fb-4b6e-8d8a-a5e86a376e8b'
+        return dummy_vnf
+
+    def _test_create_vnf_trigger(self, action_value):
         vnf_id = "6261579e-d6f3-49ad-8bc3-a9cb974778fe"
-        trigger_request = {"trigger": {"action_name": "respawn", "params": {
+        trigger_request = {"trigger": {"action_name": action_value, "params": {
             "credential": "026kll6n", "data": {"current": "alarm",
                                                'alarm_id':
                                     "b7fa9ffd-0a4f-4165-954b-5a8d0672a35f"}},
             "policy_name": "vdu1_cpu_usage_monitoring_policy"}}
-        self._insert_dummy_device_template()
-        self._insert_dummy_vnfd_attributes(utils.vnfd_alarm_tosca_template)
-        self._insert_dummy_device()
-        expected_result = {"action_name": "respawn", "params": {
+        expected_result = {"action_name": action_value, "params": {
             "credential": "026kll6n", "data": {"current": "alarm",
             "alarm_id": "b7fa9ffd-0a4f-4165-954b-5a8d0672a35f"}},
             "policy_name": "vdu1_cpu_usage_monitoring_policy"}
         self._vnf_alarm_monitor.process_alarm_for_vnf.return_value = True
-
         trigger_result = self.vnfm_plugin.create_vnf_trigger(
             self.context, vnf_id, trigger_request)
         self.assertEqual(expected_result, trigger_result)
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
+    @patch('tacker.vnfm.monitor.ActionPolicy.get_policy')
+    def test_create_vnf_trigger_respawn(self, mock_get_policy, mock_get_vnf):
+        dummy_vnf = self._get_dummy_active_vnf(
+            utils.vnfd_alarm_respawn_tosca_template)
+        mock_get_vnf.return_value = dummy_vnf
+        mock_action_class = mock.Mock()
+        mock_get_policy.return_value = mock_action_class
+        self._test_create_vnf_trigger(action_value="respawn")
+        mock_get_policy.assert_called_once_with('respawn', 'test_vim')
+        mock_action_class.execute_action.assert_called_once_with(
+            self.vnfm_plugin, dummy_vnf)
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
+    @patch('tacker.vnfm.monitor.ActionPolicy.get_policy')
+    def test_create_vnf_trigger_scale(self, mock_get_policy, mock_get_vnf):
+        dummy_vnf = self._get_dummy_active_vnf(
+            utils.vnfd_alarm_scale_tosca_template)
+        mock_get_vnf.return_value = dummy_vnf
+        mock_action_class = mock.Mock()
+        mock_get_policy.return_value = mock_action_class
+        scale_body = {'scale': {'policy': 'SP1', 'type': 'out'}}
+        self._test_create_vnf_trigger(action_value="SP1")
+        mock_get_policy.assert_called_once_with('scaling', 'test_vim')
+        mock_action_class.execute_action.assert_called_once_with(
+            self.vnfm_plugin, dummy_vnf, scale_body)
