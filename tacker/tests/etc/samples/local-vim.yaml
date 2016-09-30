@@ -3,3 +3,5 @@ username: nfv_user
 password: devstack
 project_name: nfv
 domain_name: Default
+user_domain_name: Default
+project_domain_name: Default

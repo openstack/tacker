@@ -15,6 +15,8 @@
 import time
 import yaml
 
+from keystoneauth1.identity import v3
+from keystoneauth1 import session
 from neutronclient.v2_0 import client as neutron_client
 from novaclient import client as nova_client
 from oslo_config import cfg
@@ -51,29 +53,45 @@ class BaseTackerTest(base.BaseTestCase):
     @classmethod
     def get_credentials(cls):
         vim_params = yaml.load(read_file('local-vim.yaml'))
-        vim_params['auth_url'] += '/v2.0'
+        vim_params['auth_url'] += '/v3'
         return vim_params
 
     @classmethod
     def tackerclient(cls):
         vim_params = cls.get_credentials()
-        return tacker_client.Client(username=vim_params['username'],
-                                    password=vim_params['password'],
-                                    tenant_name=vim_params['project_name'],
-                                    auth_url=vim_params['auth_url'])
+        auth = v3.Password(auth_url=vim_params['auth_url'],
+            username=vim_params['username'],
+            password=vim_params['password'],
+            project_name=vim_params['project_name'],
+            user_domain_name=vim_params['user_domain_name'],
+            project_domain_name=vim_params['project_domain_name'])
+        auth_ses = session.Session(auth=auth)
+        return tacker_client.Client(session=auth_ses)
 
     @classmethod
     def novaclient(cls):
         vim_params = cls.get_credentials()
-        return nova_client.Client('2', username=vim_params['username'],
-                                  password=vim_params['password'],
-                                  project_name=vim_params['project_name'],
-                                  auth_url=vim_params['auth_url'])
+        auth = v3.Password(auth_url=vim_params['auth_url'],
+            username=vim_params['username'],
+            password=vim_params['password'],
+            project_name=vim_params['project_name'],
+            user_domain_name=vim_params['user_domain_name'],
+            project_domain_name=vim_params['project_domain_name'])
+        auth_ses = session.Session(auth=auth)
+        return nova_client.Client(constants.NOVA_CLIENT_VERSION,
+                                  session=auth_ses)
 
     @classmethod
     def neutronclient(cls):
         vim_params = cls.get_credentials()
-        return neutron_client.Client(**vim_params)
+        auth = v3.Password(auth_url=vim_params['auth_url'],
+            username=vim_params['username'],
+            password=vim_params['password'],
+            project_name=vim_params['project_name'],
+            user_domain_name=vim_params['user_domain_name'],
+            project_domain_name=vim_params['project_domain_name'])
+        auth_ses = session.Session(auth=auth)
+        return neutron_client.Client(session=auth_ses)
 
     @classmethod
     def heatclient(cls):
