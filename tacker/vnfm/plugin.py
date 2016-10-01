@@ -759,6 +759,10 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             cp = policy['properties']['resize_compute']['condition'].\
                 get('comparison_operator')
             if bckend_policy_type == constants.POLICY_SCALING:
+                if vnf_dict['status'] != constants.ACTIVE:
+                    LOG.info(context, vnf_dict,
+                             "Scaling Policy action skipped")
+                    return
                 action = 'scaling'
                 scale = {}
                 scale.setdefault('scale', {})
