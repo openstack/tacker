@@ -219,22 +219,26 @@ class VNFAlarmMonitor(object):
         params = dict()
         params['vnf_id'] = vnf['id']
         params['mon_policy_name'] = policy_name
-        _log_monitor_events(t_context.get_admin_context(),
-                            vnf,
-                            "update vnf with alarm")
         driver = policy_dict['triggers']['resize_compute'][
             'event_type']['implementation']
         policy_action = policy_dict['triggers']['resize_compute'].get('action')
         if not policy_action:
+            _log_monitor_events(t_context.get_admin_context(),
+                                vnf,
+                                "Alarm not set: policy action missing")
             return
         alarm_action_name = policy_action['resize_compute'].get('action_name')
         if not alarm_action_name:
+            _log_monitor_events(t_context.get_admin_context(),
+                                vnf,
+                                "Alarm not set: alarm action name missing")
             return
         params['mon_policy_action'] = alarm_action_name
         alarm_url = self.call_alarm_url(driver, vnf, params)
+        details = "Alarm URL set successfully: %s" % alarm_url
         _log_monitor_events(t_context.get_admin_context(),
                             vnf,
-                            "Alarm url invoked")
+                            details)
         return alarm_url
         # vnf['attribute']['alarm_url'] = alarm_url ---> create
         # by plugin or vm_db
@@ -389,10 +393,10 @@ class ActionAutoscalingHeat(ActionPolicy):
     @classmethod
     def execute_action(cls, plugin, vnf_dict, scale):
         vnf_id = vnf_dict['id']
-        plugin.create_vnf_scale(t_context.get_admin_context(), vnf_id, scale)
         _log_monitor_events(t_context.get_admin_context(),
                             vnf_dict,
                             "ActionAutoscalingHeat invoked")
+        plugin.create_vnf_scale(t_context.get_admin_context(), vnf_id, scale)
 
 
 @ActionPolicy.register('log')
