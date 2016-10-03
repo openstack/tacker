@@ -82,9 +82,9 @@ class RemoteCommandExecutor(object):
             stdin, stdout, stderr = self.__ssh.exec_command(cmd)
             if input_data:
                 stdin.write(input_data)
-                LOG.debug(_("Input data written successfuly"))
+                LOG.debug(_("Input data written successfully"))
                 stdin.flush()
-                LOG.debug(_("Indput data flushed"))
+                LOG.debug(_("Input data flushed"))
                 stdin.channel.shutdown_write()
 
             # NOTE (dkushwaha): There might be a case, when server can take

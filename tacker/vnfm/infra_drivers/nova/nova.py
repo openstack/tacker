@@ -240,7 +240,7 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
 
         LOG.debug(_('status: %s'), status)
         if status == 'ERROR':
-            raise RuntimeError(_("creation of server %s faild") % vnf_id)
+            raise RuntimeError(_("creation of server %s failed") % vnf_id)
 
     def update(self, plugin, context, vnf_id, vnf_dict, vnf):
         # do nothing but checking if the instance exists at the moment
@@ -272,7 +272,7 @@ class DeviceNova(abstract_driver.DeviceAbstractDriver):
             except self._novaclient.exceptions.NotFound:
                 break
             if instance.status == 'ERROR':
-                raise RuntimeError(_("deletion of server %s faild") %
+                raise RuntimeError(_("deletion of server %s failed") %
                                    vnf_id)
             time.sleep(5)
 
