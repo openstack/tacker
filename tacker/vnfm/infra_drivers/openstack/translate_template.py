@@ -84,7 +84,7 @@ class TOSCAToHOT(object):
 
         self.fields['template'] = self.heat_template_yaml
         if is_tosca_format:
-            self._handle_scaling(vnfd_dict)
+            self._handle_policies(vnfd_dict)
         if self.monitoring_dict:
             self.vnf['attributes']['monitoring_policy'] = jsonutils.dumps(
                 self.monitoring_dict)
@@ -124,30 +124,23 @@ class TOSCAToHOT(object):
         return dev_attrs
 
     @log.log
-    def _handle_scaling(self, vnfd_dict):
+    def _handle_policies(self, vnfd_dict):
 
         vnf = self.vnf
         (is_scaling_needed, scaling_group_names,
          main_dict) = self._generate_hot_scaling(
              vnfd_dict['topology_template'], 'scaling.yaml')
-        (is_enabled_alarm, alarm_resource, sub_heat_tpl_yaml) =\
+        (is_enabled_alarm, alarm_resource, heat_tpl_yaml) =\
             self._generate_hot_alarm_resource(vnfd_dict['topology_template'])
         if is_enabled_alarm and not is_scaling_needed:
-            self.fields['template'] = self.heat_template_yaml
+            self.fields['template'] = heat_tpl_yaml
 
         if is_scaling_needed:
             if is_enabled_alarm:
                 main_dict['resources'].update(alarm_resource)
             main_yaml = yaml.dump(main_dict)
             self.fields['template'] = main_yaml
-            if is_enabled_alarm:
-                self.fields['files'] = {
-                    'scaling.yaml': sub_heat_tpl_yaml
-                }
-            else:
-                self.fields['files'] = {
-                    'scaling.yaml': self.heat_template_yaml
-                }
+            self.fields['files'] = {'scaling.yaml': self.heat_template_yaml}
             vnf['attributes']['heat_template'] = main_yaml
             # TODO(kanagaraj-manickam) when multiple groups are
             # supported, make this scaling atribute as
@@ -309,6 +302,7 @@ class TOSCAToHOT(object):
             LOG.debug("tosca-parser error: %s", str(e))
             raise vnfm.ToscaParserFailed(error_msg_details=str(e))
 
+        metadata = toscautils.get_vdu_metadata(tosca)
         monitoring_dict = toscautils.get_vdu_monitoring(tosca)
         mgmt_ports = toscautils.get_mgmt_ports(tosca)
         res_tpl = toscautils.get_resources_dict(tosca,
@@ -322,10 +316,12 @@ class TOSCAToHOT(object):
             LOG.debug("heat-translator error: %s", str(e))
             raise vnfm.HeatTranslatorFailed(error_msg_details=str(e))
         heat_template_yaml = toscautils.post_process_heat_template(
-            heat_template_yaml, mgmt_ports, res_tpl, self.unsupported_props)
+            heat_template_yaml, mgmt_ports, metadata,
+            res_tpl, self.unsupported_props)
 
         self.heat_template_yaml = heat_template_yaml
         self.monitoring_dict = monitoring_dict
+        self.metadata = metadata
 
     @log.log
     def _generate_hot_from_legacy(self, vnfd_dict, dev_attrs):
@@ -514,57 +510,55 @@ class TOSCAToHOT(object):
         alarm_resource = dict()
         heat_tpl = self.heat_template_yaml
         heat_dict = yamlparser.simple_ordered_parse(heat_tpl)
-        sub_heat_dict = copy.deepcopy(heat_dict)
         is_enabled_alarm = False
 
         if 'policies' in topology_tpl_dict:
             for policy_dict in topology_tpl_dict['policies']:
                 name, policy_tpl_dict = list(policy_dict.items())[0]
-                if policy_tpl_dict['type'] == ALARMING_POLICY:
+                # need to parse triggers here: scaling in/out, respawn,...
+                if policy_tpl_dict['type'] == \
+                        'tosca.policies.tacker.Alarming':
                     is_enabled_alarm = True
-                    alarm_resource[name], sub_heat_dict =\
-                        self._convert_to_heat_monitoring_resource(policy_dict,
-                                self.vnf, sub_heat_dict, topology_tpl_dict)
-                    heat_dict['resources'].update(alarm_resource)
-                    break
+                    triggers = policy_tpl_dict['triggers']
+                    for trigger_name, trigger_dict in triggers.items():
+                        alarm_resource[trigger_name] =\
+                            self._convert_to_heat_monitoring_resource({
+                                trigger_name: trigger_dict}, self.vnf)
+            heat_dict['resources'].update(alarm_resource)
 
-        self.heat_template_yaml = yaml.dump(heat_dict)
-        sub_heat_tpl_yaml = yaml.dump(sub_heat_dict)
-        return (is_enabled_alarm, alarm_resource, sub_heat_tpl_yaml)
+        heat_tpl_yaml = yaml.dump(heat_dict)
+        return (is_enabled_alarm,
+                alarm_resource,
+                heat_tpl_yaml
+                )
 
-    @log.log
-    def _convert_to_heat_monitoring_resource(self, mon_policy, vnf,
-                                             sub_heat_dict, topology_tpl_dict):
+    def _convert_to_heat_monitoring_resource(self, mon_policy, vnf):
         mon_policy_hot = {'type': 'OS::Aodh::Alarm'}
-        mon_policy_hot['properties'] = self._convert_to_heat_monitoring_prop(
-            mon_policy, vnf)
+        mon_policy_hot['properties'] = \
+            self._convert_to_heat_monitoring_prop(mon_policy, vnf)
+        return mon_policy_hot
 
-        if 'policies' in topology_tpl_dict:
-            for policies in topology_tpl_dict['policies']:
-                policy_name, policy_dt = list(policies.items())[0]
-                if policy_dt['type'] == SCALING_POLICY:
-                    # Fixed metadata. it will be fixed
-                    # once targets are supported
-                    metadata_dict = dict()
-                    metadata_dict['metering.vnf_id'] = vnf['id']
-                    sub_heat_dict['resources']['VDU1']['properties']['metadata'] =\
-                        metadata_dict
-                    matching_metadata_dict = dict()
-                    matching_metadata_dict['metadata.user_metadata.vnf_id'] =\
-                        vnf['id']
-                    mon_policy_hot['properties']['matching_metadata'] =\
-                        matching_metadata_dict
-                    break
-        return mon_policy_hot, sub_heat_dict
-
-    @log.log
     def _convert_to_heat_monitoring_prop(self, mon_policy, vnf):
-        name, mon_policy_dict = list(mon_policy.items())[0]
-        tpl_trigger_name = mon_policy_dict['triggers']['resize_compute']
-        tpl_condition = tpl_trigger_name['condition']
-        properties = {}
-        properties['meter_name'] = tpl_trigger_name['metrics']
-        properties['comparison_operator'] =\
+        metadata = self.metadata
+        trigger_name, trigger_dict = list(mon_policy.items())[0]
+        tpl_condition = trigger_dict['condition']
+        properties = dict()
+        if not (trigger_dict.get('metadata') and metadata):
+            raise vnfm.MetadataNotMatched()
+        matching_metadata_dict = dict()
+        properties['meter_name'] = trigger_dict['metrics']
+        is_matched = False
+        for vdu_name, metadata_dict in metadata['vdus'].items():
+            if trigger_dict['metadata'] ==\
+                    metadata_dict['metering.vnf']:
+                is_matched = True
+        if not is_matched:
+            raise vnfm.MetadataNotMatched()
+        matching_metadata_dict['metadata.user_metadata.vnf'] =\
+            trigger_dict['metadata']
+        properties['matching_metadata'] = \
+            matching_metadata_dict
+        properties['comparison_operator'] = \
             tpl_condition['comparison_operator']
         properties['period'] = tpl_condition['period']
         properties['evaluation_periods'] = tpl_condition['evaluations']
@@ -572,8 +566,9 @@ class TOSCAToHOT(object):
         properties['description'] = tpl_condition['constraint']
         properties['threshold'] = tpl_condition['threshold']
         # alarm url process here
-        alarm_url = str(vnf['attributes'].get('alarm_url'))
+        alarm_url = vnf['attributes'].get(trigger_name)
         if alarm_url:
+            alarm_url = str(alarm_url)
             LOG.debug('Alarm url in heat %s', alarm_url)
             properties['alarm_actions'] = [alarm_url]
         return properties

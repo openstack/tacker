@@ -394,17 +394,17 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         dummy_vnf['vim_id'] = '437ac8ef-a8fb-4b6e-8d8a-a5e86a376e8b'
         return dummy_vnf
 
-    def _test_create_vnf_trigger(self, action_value):
+    def _test_create_vnf_trigger(self, policy_name, action_value):
         vnf_id = "6261579e-d6f3-49ad-8bc3-a9cb974778fe"
         trigger_request = {"trigger": {"action_name": action_value, "params": {
             "credential": "026kll6n", "data": {"current": "alarm",
                                                'alarm_id':
                                     "b7fa9ffd-0a4f-4165-954b-5a8d0672a35f"}},
-            "policy_name": "vdu1_cpu_usage_monitoring_policy"}}
+            "policy_name": policy_name}}
         expected_result = {"action_name": action_value, "params": {
             "credential": "026kll6n", "data": {"current": "alarm",
             "alarm_id": "b7fa9ffd-0a4f-4165-954b-5a8d0672a35f"}},
-            "policy_name": "vdu1_cpu_usage_monitoring_policy"}
+            "policy_name": policy_name}
         self._vnf_alarm_monitor.process_alarm_for_vnf.return_value = True
         trigger_result = self.vnfm_plugin.create_vnf_trigger(
             self.context, vnf_id, trigger_request)
@@ -418,7 +418,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         mock_get_vnf.return_value = dummy_vnf
         mock_action_class = mock.Mock()
         mock_get_policy.return_value = mock_action_class
-        self._test_create_vnf_trigger(action_value="respawn")
+        self._test_create_vnf_trigger(policy_name="vdu_hcpu_usage_respawning",
+                                      action_value="respawn")
         mock_get_policy.assert_called_once_with('respawn', 'test_vim')
         mock_action_class.execute_action.assert_called_once_with(
             self.vnfm_plugin, dummy_vnf)
@@ -432,7 +433,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         mock_action_class = mock.Mock()
         mock_get_policy.return_value = mock_action_class
         scale_body = {'scale': {'policy': 'SP1', 'type': 'out'}}
-        self._test_create_vnf_trigger(action_value="SP1")
+        self._test_create_vnf_trigger(policy_name="vdu_hcpu_usage_scaling_out",
+                                      action_value="SP1-out")
         mock_get_policy.assert_called_once_with('scaling', 'test_vim')
         mock_action_class.execute_action.assert_called_once_with(
             self.vnfm_plugin, dummy_vnf, scale_body)

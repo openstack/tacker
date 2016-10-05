@@ -1,0 +1,49 @@
+heat_template_version: 2013-05-23
+description: Tacker scaling template
+parameters: {}
+resources:
+  G1:
+    properties:
+      cooldown: 60
+      desired_capacity: 2
+      max_size: 3
+      min_size: 1
+      resource: {type: scaling.yaml}
+    type: OS::Heat::AutoScalingGroup
+  SP1_scale_in:
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: G1}
+      cooldown: 60
+      scaling_adjustment: '-1'
+    type: OS::Heat::ScalingPolicy
+  SP1_scale_out:
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: G1}
+      cooldown: 60
+      scaling_adjustment: 1
+    type: OS::Heat::ScalingPolicy
+
+  vdu_hcpu_usage_scaling_out:
+    type: OS::Aodh::Alarm
+    properties:
+      description: utilization greater_than 50%
+      meter_name: cpu_util
+      statistic: avg
+      period: 600
+      evaluation_periods: 1
+      threshold: 50
+      matching_metadata: {'metadata.user_metadata.vnf': SG1}
+      comparison_operator: gt
+  vdu_lcpu_usage_scaling_in:
+    type: OS::Aodh::Alarm
+    properties:
+      description: utilization less_than 10%
+      meter_name: cpu_util
+      statistic: avg
+      period: 600
+      evaluation_periods: 1
+      threshold: 10
+      matching_metadata: {'metadata.user_metadata.vnf': SG1}
+      comparison_operator: lt

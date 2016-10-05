@@ -457,3 +457,26 @@ class TestOpenStack(base.TestCase):
             'test_tosca_mac_ip.yaml',
             'hot_tosca_mac_ip.yaml'
         )
+
+    def test_create_tosca_alarm_respawn(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_alarm_respawn.yaml',
+            'hot_tosca_alarm_respawn.yaml',
+            is_monitor=False
+        )
+
+    def test_create_tosca_alarm_scale(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_alarm_scale.yaml',
+            'hot_tosca_alarm_scale.yaml',
+            files={'scaling.yaml': 'hot_alarm_scale_custom.yaml'},
+            is_monitor=False
+        )
+
+    def test_create_tosca_with_alarm_monitoring_not_matched(self):
+        self.assertRaises(vnfm.MetadataNotMatched,
+                          self._test_assert_equal_for_tosca_templates,
+                          'tosca_alarm_metadata.yaml',
+                          'hot_tosca_alarm_metadata.yaml',
+                          is_monitor=False
+                          )

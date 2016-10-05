@@ -1,6 +1,6 @@
 heat_template_version: 2013-05-23
-description: 'Demo example
-
+description: 'An exception will be raised when having the mismatched metadata
+(metadata is described in monitoring policy but unavailable in VDU properties).
 '
 
 outputs:
@@ -28,7 +28,7 @@ resources:
       disk: 1
       ram: 512
       vcpus: 2
-  vdu1_cpu_usage_monitoring_policy:
+  vdu_hcpu_usage_respawning:
     type: OS::Aodh::Alarm
     properties:
       description: utilization greater_than 50%
@@ -38,4 +38,4 @@ resources:
       statistic: average
       evaluation_periods: 1
       comparison_operator: gt
-
+      'matching_metadata': {'metadata.user_metadata.vnf': 'VDU1'}
