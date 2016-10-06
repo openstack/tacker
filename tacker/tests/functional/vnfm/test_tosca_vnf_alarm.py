@@ -67,18 +67,17 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
             self.client.post(vnf_trigger_path % vnf, body)
 
         def _inject_monitoring_policy(vnfd_dict):
-            if vnfd_dict.get('tosca_definitions_version'):
-                polices = vnfd_dict['topology_template'].get('policies', [])
-                mon_policy = dict()
-                for policy_dict in polices:
-                    for name, policy in policy_dict.items():
-                        if policy['type'] == constants.POLICY_ALARMING:
-                            triggers = policy['triggers']
-                            for trigger_name, trigger_dict in triggers.items():
-                                policy_action_list = trigger_dict['actions']
-                                for policy_action in policy_action_list:
-                                    mon_policy[trigger_name] = policy_action
-                return mon_policy
+            polices = vnfd_dict['topology_template'].get('policies', [])
+            mon_policy = dict()
+            for policy_dict in polices:
+                for name, policy in policy_dict.items():
+                    if policy['type'] == constants.POLICY_ALARMING:
+                        triggers = policy['triggers']
+                        for trigger_name, trigger_dict in triggers.items():
+                            policy_action_list = trigger_dict['actions']
+                            for policy_action in policy_action_list:
+                                mon_policy[trigger_name] = policy_action
+            return mon_policy
 
         def verify_policy(policy_dict, kw_policy):
             for name, action in policy_dict.items():

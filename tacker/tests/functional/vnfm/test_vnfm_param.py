@@ -23,10 +23,6 @@ from tacker.tests.utils import read_file
 class VnfmTestParam(base.BaseTackerTest):
     def _test_vnfd_create(self, vnfd_file, vnfd_name):
         yaml_input = read_file(vnfd_file)
-        # TODO(anyone) remove this condition check once old templates
-        # are deprecated
-        if "tosca_definitions_version" in yaml_input:
-            yaml_input = yaml.safe_load(yaml_input)
         req_dict = {'vnfd': {'name': vnfd_name,
                     'attributes': {'vnfd': yaml_input}}}
 
@@ -102,30 +98,6 @@ class VnfmTestParam(base.BaseTackerTest):
             vnf_d = self.client.show_vnf(vnf_id)
         except Exception:
             assert True, "Vnf Delete success" + str(vnf_d) + str(Exception)
-
-    def test_vnf_param(self):
-        vnfd_name = 'sample_cirros_vnfd_old_template'
-        vnfd_instance = self._test_vnfd_create(
-            'sample_cirros_vnf_param.yaml', vnfd_name)
-        values_str = read_file('sample_cirros_vnf_values.yaml')
-        vnf_instance, param_values_dict = self._test_vnf_create(vnfd_instance,
-                                             'test_vnf_with_parameters',
-                                             values_str)
-        # Verify values dictionary is same as param values from vnf_show
-        input_dict = yaml.safe_load(values_str)
-        self.assertEqual(input_dict, param_values_dict)
-        self._test_vnf_delete(vnf_instance)
-        vnf_id = vnf_instance['vnf']['id']
-        self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE,
-            evt_constants.PENDING_CREATE, cnt=2)
-        self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
-        self.wait_until_vnf_delete(vnf_id,
-                                   constants.VNF_CIRROS_DELETE_TIMEOUT)
-        self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE,
-                                    evt_constants.PENDING_DELETE, cnt=2)
-        self.addCleanup(self.client.delete_vnfd, vnfd_instance['vnfd']['id'])
 
     def test_vnfd_param_tosca_template(self):
         vnfd_name = 'sample_cirros_vnfd_tosca'

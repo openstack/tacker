@@ -146,9 +146,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         elif isinstance(template, str):
             self._report_deprecated_yaml_str()
         if "tosca_definitions_version" not in template:
-            versionutils.report_deprecated_feature(LOG, 'VNFD legacy vnfds'
-                ' are deprecated since Mitaka release and will be removed in'
-                ' Ocata release. Please use NFV TOSCA vnfds.')
+            raise exceptions.Invalid('Not a valid template: '
+                                     'tosca_definitions_version is missing.')
 
         LOG.debug(_('vnfd %s'), vnfd_data)
 
@@ -185,53 +184,29 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         inner_vnfd_dict = yaml.load(vnfd_yaml)
         LOG.debug(_('vnfd_dict: %s'), inner_vnfd_dict)
 
-        if 'tosca_definitions_version' in inner_vnfd_dict:
-            # Prepend the tacker_defs.yaml import file with the full
-            # path to the file
-            toscautils.updateimports(inner_vnfd_dict)
+        # Prepend the tacker_defs.yaml import file with the full
+        # path to the file
+        toscautils.updateimports(inner_vnfd_dict)
 
-            try:
-                tosca = ToscaTemplate(a_file=False,
-                                      yaml_dict_tpl=inner_vnfd_dict)
-            except Exception as e:
-                LOG.exception(_("tosca-parser error: %s"), str(e))
-                raise vnfm.ToscaParserFailed(error_msg_details=str(e))
+        try:
+            tosca = ToscaTemplate(a_file=False,
+                                  yaml_dict_tpl=inner_vnfd_dict)
+        except Exception as e:
+            LOG.exception(_("tosca-parser error: %s"), str(e))
+            raise vnfm.ToscaParserFailed(error_msg_details=str(e))
 
-            if ('description' not in vnfd_dict or
-                    vnfd_dict['description'] == ''):
-                vnfd_dict['description'] = inner_vnfd_dict.get(
-                    'description', '')
-            if (('name' not in vnfd_dict or
-                    not len(vnfd_dict['name'])) and
-                    'metadata' in inner_vnfd_dict):
-                vnfd_dict['name'] = inner_vnfd_dict['metadata'].get(
-                    'template_name', '')
+        if ('description' not in vnfd_dict or
+                vnfd_dict['description'] == ''):
+            vnfd_dict['description'] = inner_vnfd_dict.get(
+                'description', '')
+        if (('name' not in vnfd_dict or
+                not len(vnfd_dict['name'])) and
+                'metadata' in inner_vnfd_dict):
+            vnfd_dict['name'] = inner_vnfd_dict['metadata'].get(
+                'template_name', '')
 
-            vnfd_dict['mgmt_driver'] = toscautils.get_mgmt_driver(
-                tosca)
-        else:
-            KEY_LIST = (('name', 'template_name'),
-                        ('description', 'description'))
-
-            vnfd_dict.update(
-                dict((key, inner_vnfd_dict[vnfd_key]) for (key, vnfd_key)
-                     in KEY_LIST
-                     if ((key not in vnfd_dict or
-                          vnfd_dict[key] == '') and
-                         vnfd_key in inner_vnfd_dict and
-                         inner_vnfd_dict[vnfd_key] != '')))
-
-            service_types = inner_vnfd_dict.get(
-                'service_properties', {}).get('type', [])
-            if service_types:
-                vnfd_dict.setdefault('service_types', []).extend(
-                    [{'service_type': service_type}
-                    for service_type in service_types])
-            # TODO(anyone)  - this code assumes one mgmt_driver per VNFD???
-            for vdu in inner_vnfd_dict.get('vdus', {}).values():
-                mgmt_driver = vdu.get('mgmt_driver')
-                if mgmt_driver:
-                    vnfd_dict['mgmt_driver'] = mgmt_driver
+        vnfd_dict['mgmt_driver'] = toscautils.get_mgmt_driver(
+            tosca)
         LOG.debug(_('vnfd %s'), vnfd)
 
     def add_vnf_to_monitor(self, vnf_dict, infra_driver):
@@ -675,26 +650,25 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         vnfd_tmpl = yaml.load(vnf['vnfd']['attributes']['vnfd'])
         policy_list = []
 
-        if vnfd_tmpl.get('tosca_definitions_version'):
-            polices = vnfd_tmpl['topology_template'].get('policies', [])
-            for policy_dict in polices:
-                for name, policy in policy_dict.items():
-                    def _add(policy):
-                        p = self._make_policy_dict(vnf, name, policy)
-                        p['name'] = name
-                        policy_list.append(p)
+        polices = vnfd_tmpl['topology_template'].get('policies', [])
+        for policy_dict in polices:
+            for name, policy in policy_dict.items():
+                def _add(policy):
+                    p = self._make_policy_dict(vnf, name, policy)
+                    p['name'] = name
+                    policy_list.append(p)
 
-                    # Check for filters
-                    if filters.get('name') or filters.get('type'):
-                        if name == filters.get('name'):
-                            _add(policy)
-                        if policy['type'] == filters.get('type'):
-                            _add(policy)
-                            break
-                        else:
-                            continue
+                # Check for filters
+                if filters.get('name') or filters.get('type'):
+                    if name == filters.get('name'):
+                        _add(policy)
+                    if policy['type'] == filters.get('type'):
+                        _add(policy)
+                        break
+                    else:
+                        continue
 
-                    _add(policy)
+                _add(policy)
 
         return policy_list
 

@@ -1,0 +1,5 @@
+---
+upgrade:
+  - From Mitaka version, Tacker supports TOSCA based VNFD templates.
+    Legacy templates described under tacker/samples/legacy-templates
+    are deprecated in newton and removed in Ocata.

@@ -29,7 +29,6 @@ vnfd_openwrt = _get_template('openwrt.yaml')
 tosca_vnfd_openwrt = _get_template('test_tosca_openwrt.yaml')
 vnfd_ipparams_template = _get_template('vnf_cirros_template_ipaddr.yaml')
 ipparams = _get_template('vnf_cirros_param_values_ipaddr.yaml')
-vnfd_userdata_template = _get_template('vnf_cirros_template_user_data.yaml')
 userdata_params = _get_template('vnf_cirros_param_values_user_data.yaml')
 config_data = _get_template('config_data.yaml')
 update_config_data = _get_template('update_config_data.yaml')
@@ -131,27 +130,6 @@ def get_dummy_device_obj_ipaddr_attr():
         'attributes': {u'param_values': ipparams},
         'vnfd_id': u'24c31ea1-2e28-4de2-a6cb-8d389a502c75',
         'description': u'Parameterized VNF descriptor for IP addresses'}
-
-
-def get_dummy_device_obj_userdata_attr():
-    return {'status': 'PENDING_CREATE', 'instance_id': None,
-        'name': u'test_userdata',
-        'tenant_id': u'8273659b56fc46b68bd05856d1f08d14',
-        'vnfd_id': u'206e343f-c580-4494-a739-525849edab7f',
-        'vnfd': {'service_types': [{'service_type': u'firewall',
-            'id': u'1fcc2d7c-a6b6-4263-8cac-9590f059a555'}, {'service_type':
-            u'router', 'id': u'8c99106d-826f-46eb-91a1-08dfdc78c04b'},
-            {'service_type': u'vnfd', 'id':
-                u'9bf289ec-c0e1-41fc-91d7-110735a70221'}],
-            'description': u"Parameterized VNF descriptor",
-            'tenant_id': u'8273659b56fc46b68bd05856d1f08d14',
-            'mgmt_driver': u'noop',
-            'attributes': {u'vnfd': vnfd_userdata_template},
-            'id': u'206e343f-c580-4494-a739-525849edab7f', 'name':
-            u'cirros_user_data'}, 'mgmt_url': None, 'service_context': [],
-            'services': [], 'attributes': {u'param_values': userdata_params},
-            'id': '18685f68-2b2a-4185-8566-74f54e548811',
-            'description': u"Parameterized VNF descriptor"}
 
 
 def get_vim_obj():

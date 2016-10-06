@@ -1,6 +1,0 @@
-Legacy Template Deprecate Warning
-=================================
-
-From Mitaka version, Tacker supports TOSCA based VNFD templates. Legacy
-templates described under tacker/samples/legacy-templates are deprecated. Use
-TOSCA based templates described at tacker/samples/tosca-templates

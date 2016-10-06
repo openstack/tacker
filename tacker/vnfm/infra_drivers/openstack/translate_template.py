@@ -76,11 +76,8 @@ class TOSCAToHOT(object):
         self._get_unsupported_resource_props(self.heatclient)
 
         is_tosca_format = False
-        if 'tosca_definitions_version' in vnfd_dict:
-            self._generate_hot_from_tosca(vnfd_dict, dev_attrs)
-            is_tosca_format = True
-        else:
-            self._generate_hot_from_legacy(vnfd_dict, dev_attrs)
+        self._generate_hot_from_tosca(vnfd_dict, dev_attrs)
+        is_tosca_format = True
 
         self.fields['template'] = self.heat_template_yaml
         if is_tosca_format:
@@ -322,83 +319,6 @@ class TOSCAToHOT(object):
         self.heat_template_yaml = heat_template_yaml
         self.monitoring_dict = monitoring_dict
         self.metadata = metadata
-
-    @log.log
-    def _generate_hot_from_legacy(self, vnfd_dict, dev_attrs):
-        assert 'template' not in self.fields
-        assert 'template_url' not in self.fields
-
-        monitoring_dict = {}
-
-        template_dict = yaml.load(HEAT_TEMPLATE_BASE)
-        outputs_dict = {}
-        template_dict['outputs'] = outputs_dict
-
-        if 'get_input' in self.vnfd_yaml:
-            self._process_parameterized_input(dev_attrs, vnfd_dict)
-
-        KEY_LIST = (('description', 'description'), )
-        for (key, vnfd_key) in KEY_LIST:
-            if vnfd_key in vnfd_dict:
-                template_dict[key] = vnfd_dict[vnfd_key]
-
-        for vdu_id, vdu_dict in vnfd_dict.get('vdus', {}).items():
-            template_dict.setdefault('resources', {})[vdu_id] = {
-                "type": "OS::Nova::Server"
-            }
-            resource_dict = template_dict['resources'][vdu_id]
-            KEY_LIST = (('image', 'vm_image'),
-                        ('flavor', 'instance_type'))
-            resource_dict['properties'] = {}
-            properties = resource_dict['properties']
-            for (key, vdu_key) in KEY_LIST:
-                properties[key] = vdu_dict[vdu_key]
-            if 'network_interfaces' in vdu_dict:
-                vdu_dict, template_dict =\
-                    self._process_vdu_network_interfaces(vdu_id, vdu_dict,
-                        properties, template_dict)
-            if 'user_data' in vdu_dict and 'user_data_format' in vdu_dict:
-                properties['user_data_format'] = vdu_dict['user_data_format']
-                properties['user_data'] = vdu_dict['user_data']
-            elif 'user_data' in vdu_dict or 'user_data_format' in vdu_dict:
-                raise vnfm.UserDataFormatNotFound()
-            if 'placement_policy' in vdu_dict:
-                if 'availability_zone' in vdu_dict['placement_policy']:
-                    properties['availability_zone'] = vdu_dict[
-                        'placement_policy']['availability_zone']
-            if 'config' in vdu_dict:
-                properties['config_drive'] = True
-                metadata = properties.setdefault('metadata', {})
-                metadata.update(vdu_dict['config'])
-                for key, value in metadata.items():
-                    metadata[key] = value[:255]
-            if 'key_name' in vdu_dict:
-                properties['key_name'] = vdu_dict['key_name']
-
-            monitoring_policy = vdu_dict.get('monitoring_policy', 'noop')
-            failure_policy = vdu_dict.get('failure_policy', 'noop')
-
-            # Convert the old monitoring specification to the new
-            # network.  This should be removed after Mitaka
-            if monitoring_policy == 'ping' and failure_policy == 'respawn':
-                vdu_dict['monitoring_policy'] = {
-                    'ping': {'actions': {'failure': 'respawn'}}}
-                vdu_dict.pop('failure_policy')
-
-            if monitoring_policy != 'noop':
-                monitoring_dict['vdus'] = {}
-                monitoring_dict['vdus'][vdu_id] = vdu_dict['monitoring_policy']
-
-            # to pass necessary parameters to plugin upwards.
-            for key in ('service_type',):
-                if key in vdu_dict:
-                    self.vnf.setdefault('attributes', {})[vdu_id] =\
-                        jsonutils.dumps({key: vdu_dict[key]})
-
-            heat_template_yaml = yaml.dump(template_dict)
-
-        self.heat_template_yaml = heat_template_yaml
-        self.monitoring_dict = monitoring_dict
 
     @log.log
     def _generate_hot_scaling(self, vnfd_dict,
