@@ -29,14 +29,16 @@ if is_service_enabled tacker; then
         start_tacker_api
         echo_summary "Installing tacker horizon"
         tacker_horizon_install
-        echo_summary "Modifying Heat policy.json file"
-        modify_heat_flavor_policy_rule
-        echo_summary "Setup initial tacker network"
-        tacker_create_initial_network
-        echo_summary "Upload OpenWrt image"
-        tacker_create_openwrt_image
-        echo_summary "Registering default VIM"
-        tacker_register_default_vim
+        if [[ "${TACKER_MODE}" == "all" ]]; then
+            echo_summary "Modifying Heat policy.json file"
+            modify_heat_flavor_policy_rule
+            echo_summary "Setup initial tacker network"
+            tacker_create_initial_network
+            echo_summary "Upload OpenWrt image"
+            tacker_create_openwrt_image
+            echo_summary "Registering default VIM"
+            tacker_register_default_vim
+        fi
     fi
 
     if [[ "$1" == "unstack" ]]; then

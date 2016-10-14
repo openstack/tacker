@@ -60,14 +60,10 @@ place of branch-name as given below:
 
     $ ./stack.sh
 
-Multi Node Environment
-~~~~~~~~~~~~~~~~~~~~~~
+Standalone mode installation
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In a multi-node devstack environment where controller, network and compute
-nodes are separate, some neutron agents should not be installed in the
-controller node. In such cases, use the following local.conf setting to disable
-neutron agents in the controller node::
-
-    [[local|localrc]]
-    TACKER_NEUTRON_AGENTS=''
-
+By default, the tacker devstack plugin will install the tacker and other OpenStack
+services together. By setting TACKER_MODE=standalone in local.conf, we will install
+a standalone tacker environment with some mandatory OpenStack services, such as
+KeyStone. After this installation, a default VIM must be registered manually.

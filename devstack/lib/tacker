@@ -189,10 +189,6 @@ function _create_tacker_conf_dir {
 # configure_tacker()
 # Set common config for all tacker server and agents.
 function configure_tacker {
-    iniset "/$Q_PLUGIN_CONF_FILE" ml2 extension_drivers port_security
-    iniset "/$Q_PLUGIN_CONF_FILE" ml2_type_flat flat_networks $PUBLIC_PHYSICAL_NETWORK,$MGMT_PHYS_NET
-    iniset "/$Q_PLUGIN_CONF_FILE" ovs bridge_mappings $PUBLIC_PHYSICAL_NETWORK:$PUBLIC_BRIDGE,$MGMT_PHYS_NET:$BR_MGMT
-
     _create_tacker_conf_dir
 
     cd $TACKER_DIR
@@ -244,20 +240,26 @@ function configure_tacker {
     iniset $TACKER_CONF DEFAULT auth_strategy $TACKER_AUTH_STRATEGY
     _tacker_setup_keystone $TACKER_CONF keystone_authtoken
 
-    # Experimental settings for monitor alarm auth settings,
-    # Will be changed according to new implementation.
-    iniset $TACKER_CONF alarm_auth uername tacker
-    iniset $TACKER_CONF alarm_auth password "$SERVICE_PASSWORD"
-    iniset $TACKER_CONF alarm_auth project_name "$SERVICE_PROJECT_NAME"
-    iniset $TACKER_CONF alarm_auth url http://$SERVICE_HOST:35357/v3
+    if [[ "${TACKER_MODE}" == "all" ]]; then
+        iniset "/$Q_PLUGIN_CONF_FILE" ml2 extension_drivers port_security
+        iniset "/$Q_PLUGIN_CONF_FILE" ml2_type_flat flat_networks $PUBLIC_PHYSICAL_NETWORK,$MGMT_PHYS_NET
+        iniset "/$Q_PLUGIN_CONF_FILE" ovs bridge_mappings $PUBLIC_PHYSICAL_NETWORK:$PUBLIC_BRIDGE,$MGMT_PHYS_NET:$BR_MGMT
 
-    iniset $TACKER_CONF tacker_heat heat_uri http://$SERVICE_HOST:8004/v1
-    iniset $TACKER_CONF tacker_heat stack_retries 60
-    iniset $TACKER_CONF tacker_heat stack_retry_wait 5
+        # Experimental settings for monitor alarm auth settings,
+        # Will be changed according to new implementation.
+        iniset $TACKER_CONF alarm_auth uername tacker
+        iniset $TACKER_CONF alarm_auth password "$SERVICE_PASSWORD"
+        iniset $TACKER_CONF alarm_auth project_name "$SERVICE_PROJECT_NAME"
+        iniset $TACKER_CONF alarm_auth url http://$SERVICE_HOST:35357/v3
 
+        iniset $TACKER_CONF tacker_heat heat_uri http://$SERVICE_HOST:8004/v1
+        iniset $TACKER_CONF tacker_heat stack_retries 60
+        iniset $TACKER_CONF tacker_heat stack_retry_wait 5
+
+        echo "Creating bridge"
+        sudo ovs-vsctl --may-exist add-br ${BR_MGMT}
+    fi
     _tacker_setup_rootwrap
-    echo "Creating bridge"
-    sudo ovs-vsctl --may-exist add-br ${BR_MGMT}
 }
 
 # Utility Functions
