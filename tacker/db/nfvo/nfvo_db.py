@@ -219,13 +219,6 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                            'updated_at': timeutils.utcnow()})
         return self._make_vim_dict(vim_db)
 
-    # Deprecated. Will be removed in Ocata release
-    def get_vim_by_name(self, context, vim_name, fields=None,
-                        mask_password=True):
-        vim_db = self._get_by_name(context, Vim, vim_name)
-        return self._make_vim_dict(vim_db, mask_password=mask_password
-                                   )if vim_db else None
-
     def _validate_default_vim(self, context, vim, vim_id=None):
         if not vim.get('is_default'):
             return True

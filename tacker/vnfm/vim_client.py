@@ -18,7 +18,6 @@ import os
 from cryptography import fernet
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_log import versionutils
 
 from tacker.extensions import nfvo
 from tacker import manager
@@ -26,19 +25,6 @@ from tacker.plugins.common import constants
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
-
-
-OPTS = [
-    cfg.StrOpt(
-        'default_vim', help=_('Default VIM for launching VNFs. '
-        'This option is deprecated and will be removed in Ocata release.'),
-        deprecated_for_removal=True)
-]
-cfg.CONF.register_opts(OPTS, 'nfvo_vim')
-
-
-def config_opts():
-    return [('nfvo_vim', OPTS)]
 
 
 class VimClient(object):
@@ -57,16 +43,7 @@ class VimClient(object):
             try:
                 vim_info = nfvo_plugin.get_default_vim(context)
             except Exception:
-                LOG.debug(_('Default vim not set in db.'
-                    'Attempting to find default vim from tacker.conf'))
-                vim_name = cfg.CONF.nfvo_vim.default_vim
-                if not vim_name:
-                    raise nfvo.VimDefaultNameNotDefined()
-                versionutils.report_deprecated_feature(LOG, 'Configuration of '
-                    'default-vim in tacker.conf is deprecated and will be '
-                    'removed in Newton cycle')
-                vim_info = self._get_default_vim_by_name(context,
-                                                         nfvo_plugin, vim_name)
+                raise nfvo.VimDefaultNotDefined()
         else:
             try:
                 vim_info = nfvo_plugin.get_vim(context, vim_id,
@@ -87,14 +64,6 @@ class VimClient(object):
     @staticmethod
     def region_valid(vim_regions, region_name):
         return region_name in vim_regions
-
-    # Deprecated. Will be removed in Ocata release
-    def _get_default_vim_by_name(self, context, plugin, vim_name):
-        vim_info = plugin.get_vim_by_name(context, vim_name,
-                                          mask_password=False)
-        if not vim_info:
-            raise nfvo.VimDefaultNameNotFound(vim_name=vim_name)
-        return vim_info
 
     def _build_vim_auth(self, vim_info):
         LOG.debug('VIM id is %s', vim_info['id'])
