@@ -45,7 +45,7 @@ CONF = cfg.CONF
 
 
 def config_opts():
-    return [('nfvo', NfvoPlugin.OPTS)]
+    return [('nfvo_vim', NfvoPlugin.OPTS)]
 
 
 class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
