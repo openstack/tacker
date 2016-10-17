@@ -442,7 +442,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 res_type=constants.RES_TYPE_VNF,
                 res_state=new_status,
                 evt_type=constants.RES_EVT_CREATE,
-                tstamp=timeutils.utcnow(), details="VNF status updated")
+                tstamp=timeutils.utcnow(), details="VNF creation completed")
 
     def _get_vnf_db(self, context, vnf_id, current_statuses, new_status):
         try:
