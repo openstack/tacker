@@ -41,6 +41,7 @@ Getting Started
    :maxdepth: 1
 
    install/getting_started.rst
+   install/deploy_openwrt.rst
 
 Feature Documentation
 =====================
