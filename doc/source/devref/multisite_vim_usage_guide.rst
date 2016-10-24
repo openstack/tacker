@@ -57,6 +57,7 @@ To register a new OpenStack VIM inside Tacker.
 In the above command, config.yaml contains VIM specific parameters as below:
 
 ::
+
  auth_url: 'http://localhost:5000'
  username: 'nfv_user'
  password: 'devstack'
@@ -118,6 +119,7 @@ Tacker allows for updating VIM authorization parameters such as 'username',
 update.yaml in above command will contain:
 
 ::
+
  username: 'new_user'
  password: 'new_pw'
 
