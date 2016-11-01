@@ -40,7 +40,7 @@ fi
 
 # Set up default directories
 GITREPO["tacker-horizon"]=${TACKERHORIZON_REPO:-${GIT_BASE}/openstack/tacker-horizon.git}
-GITBRANCH["tacker-horizon"]=${TACKERHORIZON_BRANCH:-master}
+GITBRANCH["tacker-horizon"]=${TACKERHORIZON_BRANCH:-stable/newton}
 GITDIR["tacker-horizon"]=$DEST/tacker-horizon
 
 TACKER_DIR=$DEST/tacker
