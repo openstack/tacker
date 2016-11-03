@@ -17,11 +17,11 @@
 import os
 import six
 
+from keystoneauth1 import exceptions
 from keystoneauth1 import identity
+from keystoneauth1.identity import v2
+from keystoneauth1.identity import v3
 from keystoneauth1 import session
-from keystoneclient.auth.identity import v2
-from keystoneclient.auth.identity import v3
-from keystoneclient import exceptions
 from neutronclient.common import exceptions as nc_exceptions
 from neutronclient.v2_0 import client as neutron_client
 from oslo_config import cfg

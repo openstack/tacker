@@ -17,10 +17,10 @@
 import os
 
 from cryptography import fernet
-from keystoneclient.auth import identity
+from keystoneauth1 import exceptions
+from keystoneauth1 import identity
+from keystoneauth1 import session
 from keystoneclient import client
-from keystoneclient import exceptions
-from keystoneclient import session
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -39,7 +39,7 @@ class Keystone(object):
     def get_version(self, base_url=None):
         try:
             keystone_client = client.Client(auth_url=base_url)
-        except exceptions.ConnectionRefused:
+        except exceptions.ConnectionError:
             raise
         return keystone_client.version
 
