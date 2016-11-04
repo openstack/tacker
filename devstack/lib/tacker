@@ -274,8 +274,6 @@ function configure_tacker {
     iniset $TACKER_CONF tacker_heat stack_retries 60
     iniset $TACKER_CONF tacker_heat stack_retry_wait 5
 
-    iniset $TACKER_CONF nfvo_vim default_vim VIM0
-
     _tacker_setup_rootwrap
     echo "Creating bridge"
     sudo ovs-vsctl --may-exist add-br ${BR_MGMT}

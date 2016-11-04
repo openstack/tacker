@@ -38,16 +38,8 @@ class VimInUseException(exceptions.TackerException):
     message = _("VIM %(vim_id)s is still in use by VNF")
 
 
-# Deprecated. Will be removed in Ocata release
-class VimDefaultNameNotDefined(exceptions.TackerException):
-    message = _("Default VIM is not set. Either specify a"
-                " valid VIM during the VNF creation or set default VIM"
-                " in tacker.conf")
-
-
-class VimDefaultNameNotFound(exceptions.TackerException):
-    message = _("Default VIM name %(vim_name)s is invalid. Please specify a "
-                "valid default VIM name in tacker.conf")
+class VimDefaultNotDefined(exceptions.TackerException):
+    message = _("Default VIM is not defined.")
 
 
 class VimDefaultDuplicateException(exceptions.TackerException):
