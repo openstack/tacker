@@ -20,7 +20,7 @@ resources:
       user_data_format: SOFTWARE_CONFIG
     type: OS::Nova::Server
   CP1:
-    properties: {network: private, port_security_enabled: false}
+    properties: {network: net_mgmt, port_security_enabled: false}
     type: OS::Neutron::Port
   VDU1_flavor:
     type: OS::Nova::Flavor

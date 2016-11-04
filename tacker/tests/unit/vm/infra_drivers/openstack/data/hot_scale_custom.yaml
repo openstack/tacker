@@ -9,7 +9,7 @@ outputs:
 parameters: {}
 resources:
   CP1:
-    properties: {network: private, port_security_enabled: false}
+    properties: {network: net_mgmt, port_security_enabled: false}
     type: OS::Neutron::Port
   VDU1:
     properties:
