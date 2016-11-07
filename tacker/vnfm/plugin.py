@@ -114,7 +114,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     """
     OPTS = [
         cfg.ListOpt(
-            'infra_driver', default=['nova', 'heat', 'noop', 'openstack'],
+            'infra_driver', default=['heat', 'noop', 'openstack'],
             help=_('Hosting vnf drivers tacker plugin will use')),
     ]
     cfg.CONF.register_opts(OPTS, 'tacker')

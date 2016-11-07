@@ -59,7 +59,7 @@ class VNFD(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
     # In future, single service VM may accomodate multiple services.
     service_types = orm.relationship('ServiceType', backref='vnfd')
 
-    # driver to create hosting vnf. e.g. noop, nova, heat, etc...
+    # driver to create hosting vnf. e.g. noop, heat, etc...
     infra_driver = sa.Column(sa.String(255))
 
     # driver to communicate with service managment
@@ -84,8 +84,7 @@ class ServiceType(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
 class VNFDAttribute(model_base.BASE, models_v1.HasId):
     """Represents attributes necessary for spinning up VM in (key, value) pair
 
-    key value pair is adopted for being agnostic to actuall manager of VMs
-    like nova, heat or others. e.g. image-id, flavor-id for Nova.
+    key value pair is adopted for being agnostic to actuall manager of VMs.
     The interpretation is up to actual driver of hosting vnf.
     """
 
@@ -112,7 +111,7 @@ class VNF(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
     description = sa.Column(sa.Text, nullable=True)
 
     # sufficient information to uniquely identify hosting vnf.
-    # In case of service VM, it's UUID of nova VM.
+    # In case of openstack manager, it's UUID of heat stack.
     instance_id = sa.Column(sa.String(64), nullable=True)
 
     # For a management tool to talk to manage this hosting vnf.
@@ -131,8 +130,7 @@ class VNF(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
 class VNFAttribute(model_base.BASE, models_v1.HasId):
     """Represents kwargs necessary for spinning up VM in (key, value) pair.
 
-    key value pair is adopted for being agnostic to actuall manager of VMs
-    like nova, heat or others. e.g. image-id, flavor-id for Nova.
+    key value pair is adopted for being agnostic to actuall manager of VMs.
     The interpretation is up to actual driver of hosting vnf.
     """
 

@@ -206,10 +206,6 @@ d). Provide an endpoint to tacker service.
     [DATABASE]
     connection = mysql://tacker:<TACKERDB_PASSWORD>@<MYSQL_IP>:3306/tacker?charset=utf8
     ...
-    [tacker_nova]
-    password = <NOVA_SERVICE_USER_PASSWORD>
-    auth_url = http://<NOVA_IP>:35357
-    ...
     [tacker_heat]
     heat_uri = http://<HEAT_IP>:8004/v1
 ..
