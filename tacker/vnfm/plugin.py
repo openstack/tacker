@@ -293,6 +293,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         except vnfm.VNFCreateWaitFailed as e:
             LOG.error(_LE("VNF Create failed for vnf_id %s"), vnf_id)
             create_failed = True
+            evt_details= "VNF create wait failed"
             vnf_dict['status'] = constants.ERROR
             self.set_vnf_error_status_reason(context, vnf_id,
                                              six.text_type(e))
@@ -327,6 +328,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             'Unable to configure VDU')
         vnf_dict['status'] = new_status
         self._create_vnf_status(context, vnf_id, new_status)
+        evt_details = "VNF Configuration Failed, unable to configure VDU"
+
 
     def get_vim(self, context, vnf):
         region_name = vnf.setdefault('placement_attr', {}).get(
@@ -433,6 +436,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                                              six.text_type(e))
         vnf_dict['status'] = new_status
         self.mgmt_update_post(context, vnf_dict)
+        evt_details = "VNF Configuration Failed"
 
         self._update_vnf_post(context, vnf_dict['id'],
                               new_status, vnf_dict)
@@ -489,6 +493,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                     region_name=region_name)
             except Exception as e_:
                 e = e_
+                evt_details = "Delete VNF wait error"
                 vnf_dict['status'] = constants.ERROR
                 vnf_dict['error_reason'] = six.text_type(e)
                 LOG.exception(_('_delete_vnf_wait'))
@@ -525,6 +530,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             # Other case mark error
             with excutils.save_and_reraise_exception():
                 vnf_dict['status'] = constants.ERROR
+                evt_details = "device already deleted"
                 vnf_dict['error_reason'] = six.text_type(e)
                 self.mgmt_delete_post(context, vnf_dict)
                 self._delete_vnf_post(context, vnf_id, e)
@@ -612,6 +618,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                         policy['vnf']['id'],
                         six.text_type(e))
                     _handle_vnf_scaling_post(constants.ERROR)
+                    evt_details = "Policy action failed to start"
 
         # wait
         def _vnf_policy_action_wait():
