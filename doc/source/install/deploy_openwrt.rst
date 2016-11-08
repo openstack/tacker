@@ -27,15 +27,28 @@ to add OpenWRT image to Glance while installing via devstack. By running
 the image from
 `OpenWRT official site
 <https://downloads.openwrt.org/chaos_calmer/15.05.1/x86/generic/>`_.
-And upload this image into Glance by using the command below:
+And upload this image into Glance by using either of the commands below:
+
+Using glance cli:
 
 .. code-block:: console
 
-    glance image-create --name OpenWRT \
-                        --disk-format qcow2 \
-                        --container-format bare \
-                        --progress < openwrt-x86-kvm_guest-combined-ext4.img
+   glance image-create --name OpenWRT \
+                       --disk-format qcow2 \
+                       --container-format bare \
+                       --progress \
+                       --file /path_to_image/openwrt-x86-kvm_guest-combined-ext4.img \
+                       --visibility public
+..
 
+OR, using OpenStack cli:
+
+.. code-block:: console
+
+   openstack image create OpenWRT --disk-format qcow2 \
+                                  --container-format bare \
+                                  --file /path_to_image/openwrt-x86-kvm_guest-combined-ext4.img \
+                                  --visibility public
 ..
 
 2. Create a yaml template named tosca-vnfd-openwrt-with-firewall-rules.yaml
