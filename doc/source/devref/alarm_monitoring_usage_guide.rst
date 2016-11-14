@@ -60,7 +60,7 @@ alarming monitoring and auto-scaling was also supported by Alarm monitor in Tack
 
     policies:
     - SP1:
-        type: tosca.policy.tacker.Scaling
+        type: tosca.policies.tacker.Scaling
         properties:
           increment: 1
           cooldown: 120

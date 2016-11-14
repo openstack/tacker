@@ -40,7 +40,7 @@ topology_template:
 
   policies:
     - SP1:
-        type: tosca.policy.tacker.Scaling
+        type: tosca.policies.tacker.Scaling
         properties:
           increment: 1
           cooldown: 60

@@ -374,11 +374,11 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
 
             #   policies:
             #     - SP1:
-            #         type: tosca.policy.tacker.Scaling
+            #         type: tosca.policies.tacker.Scaling
             if 'policies' in vnfd_dict:
                 for policy_dict in vnfd_dict['policies']:
                     name, policy = list(policy_dict.items())[0]
-                    if policy['type'] == 'tosca.policy.tacker.Scaling':
+                    if policy['type'] == 'tosca.policies.tacker.Scaling':
                         _convert_to_heat_scaling_policy(policy['properties'],
                                                         name)
                         # TODO(kanagaraj-manickam) only one policy is supported
@@ -429,7 +429,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                     for policies in topology_tpl_dict['policies']:
                         policy_name, policy_dt = list(policies.items())[0]
                         if policy_dt['type'] == \
-                                'tosca.policy.tacker.Scaling':
+                                'tosca.policies.tacker.Scaling':
                             # Fixed metadata. it will be fixed
                             # once targets are supported
                             metadata_dict = dict()
