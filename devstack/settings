@@ -1,47 +1,54 @@
-# Nova
-disable_service n-net
-VIRT_DRIVER=libvirt
-
-#enable_service q-lbaas
-#enable_service q-fwaas
-
-# TACKER_NEUTRON_AGENTS can be disabled by adding
-# TACKER_NEUTRON_AGENTS='' in local.conf if neutron agents are running on a separate node
-TACKER_NEUTRON_AGENTS=${TACKER_NEUTRON_AGENTS:-q-agt,q-dhcp,q-meta,q-l3}
-for i in $(echo $TACKER_NEUTRON_AGENTS | sed 's/,/ /g')
-do
-    enable_service $i
-done
-
-enable_service q-svc
-enable_service neutron
-
-# Heat
-enable_service heat
-enable_service h-eng
-enable_service h-api
-enable_service h-api-cfn
-enable_service h-api-cw
-
-enable_service tacker
-
-# tacker-horizon isn't installable from pip
-LIBS_FROM_GIT=tacker-horizon
-
-MGMT_PHYS_NET=${MGMT_PHYS_NET:-mgmtphysnet0}
-BR_MGMT=${BR_MGMT:-br-mgmt0}
-NET_MGMT=${NET_MGMT:-net_mgmt}
-SUBNET_MGMT=${SUBNET_MGMT:-subnet_mgmt}
-FIXED_RANGE_MGMT=${FIXED_RANGE_MGMT:-192.168.120.0/24}
-NETWORK_GATEWAY_MGMT=${NETWORK_GATEWAY_MGMT:-192.168.120.1}
-NETWORK_GATEWAY_MGMT_IP=${NETWORK_GATEWAY_MGMT_IP:-192.168.120.1/24}
-
-NET0=${NET0:-net0}
-SUBNET0=${SUBNET0:-subnet0}
-FIXED_RANGE0=${FIXED_RANGE0:-10.10.0.0/24}
-NETWORK_GATEWAY0=${NETWORK_GATEWAY0:-10.10.0.1}
-
-NET1=${NET1:-net1}
-SUBNET1=${SUBNET1:-subnet1}
-FIXED_RANGE1=${FIXED_RANGE1:-10.10.1.0/24}
-NETWORK_GATEWAY1=${NETWORK_GATEWAY1:-10.10.1.1}
+TACKER_MODE=${TACKER_MODE:-all}
+if [ "${TACKER_MODE}" == "all" ]; then
+    # Nova
+    disable_service n-net
+    VIRT_DRIVER=libvirt
+    
+    #enable_service q-lbaas
+    #enable_service q-fwaas
+    
+    # TACKER_NEUTRON_AGENTS can be disabled by adding
+    # TACKER_NEUTRON_AGENTS='' in local.conf if neutron agents are running on a separate node
+    TACKER_NEUTRON_AGENTS=${TACKER_NEUTRON_AGENTS:-q-agt,q-dhcp,q-meta,q-l3}
+    for i in $(echo $TACKER_NEUTRON_AGENTS | sed 's/,/ /g')
+    do
+        enable_service $i
+    done
+    
+    enable_service q-svc
+    enable_service neutron
+    
+    # Heat
+    enable_service heat
+    enable_service h-eng
+    enable_service h-api
+    enable_service h-api-cfn
+    enable_service h-api-cw
+    
+    enable_service tacker
+    
+    # tacker-horizon isn't installable from pip
+    LIBS_FROM_GIT=tacker-horizon
+    
+    MGMT_PHYS_NET=${MGMT_PHYS_NET:-mgmtphysnet0}
+    BR_MGMT=${BR_MGMT:-br-mgmt0}
+    NET_MGMT=${NET_MGMT:-net_mgmt}
+    SUBNET_MGMT=${SUBNET_MGMT:-subnet_mgmt}
+    FIXED_RANGE_MGMT=${FIXED_RANGE_MGMT:-192.168.120.0/24}
+    NETWORK_GATEWAY_MGMT=${NETWORK_GATEWAY_MGMT:-192.168.120.1}
+    NETWORK_GATEWAY_MGMT_IP=${NETWORK_GATEWAY_MGMT_IP:-192.168.120.1/24}
+    
+    NET0=${NET0:-net0}
+    SUBNET0=${SUBNET0:-subnet0}
+    FIXED_RANGE0=${FIXED_RANGE0:-10.10.0.0/24}
+    NETWORK_GATEWAY0=${NETWORK_GATEWAY0:-10.10.0.1}
+    
+    NET1=${NET1:-net1}
+    SUBNET1=${SUBNET1:-subnet1}
+    FIXED_RANGE1=${FIXED_RANGE1:-10.10.1.0/24}
+    NETWORK_GATEWAY1=${NETWORK_GATEWAY1:-10.10.1.1}
+elif [ "${TACKER_MODE}" == "standalone" ]; then
+    ENABLED_SERVICES=key,horizon,tacker,mysql,dstat
+else
+    die $LINENO "invalid value: $TACKER_MODE for TACKER_MODE"
+fi

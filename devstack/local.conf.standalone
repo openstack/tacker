@@ -1,0 +1,23 @@
+[[local|localrc]]
+############################################################
+# Customize the following HOST_IP based on your installation
+############################################################
+HOST_IP=127.0.0.1
+SERVICE_HOST=127.0.0.1
+SERVICE_PASSWORD=devstack
+ADMIN_PASSWORD=devstack
+SERVICE_TOKEN=devstack
+DATABASE_PASSWORD=root
+RABBIT_PASSWORD=password
+ENABLE_HTTPD_MOD_WSGI_SERVICES=True
+KEYSTONE_USE_MOD_WSGI=True
+
+# Logging
+LOGFILE=$DEST/logs/stack.sh.log
+SCREEN_LOGDIR=$DEST/logs/screen
+VERBOSE=True
+ENABLE_DEBUG_LOG_LEVEL=True
+ENABLE_VERBOSE_LOG_LEVEL=True
+
+TACKER_MODE=standalone
+enable_plugin tacker https://github.com/openstack/tacker master
