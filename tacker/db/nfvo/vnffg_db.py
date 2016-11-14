@@ -880,7 +880,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         res = {'chain_id': nfp_db.chain['id'],
                'classifier_id': nfp_db.classifier['id']}
         key_list = ('name', 'id', 'tenant_id', 'symmetrical', 'status',
-                    'path_id')
+                    'path_id', 'vnffg_id')
         res.update((key, nfp_db[key]) for key in key_list)
         return self._fields(res, fields)
 
