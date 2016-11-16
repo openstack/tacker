@@ -77,3 +77,6 @@ class SubDictMatch(object):
     def __eq__(self, super_dict):
         return all(item in super_dict.items()
                    for item in self.sub_dict.items())
+
+    def __ne__(self, super_dict):
+        return not self.__eq__(super_dict)
