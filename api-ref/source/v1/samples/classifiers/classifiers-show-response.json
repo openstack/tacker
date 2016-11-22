@@ -1,0 +1,17 @@
+{
+    "classifier": {
+        "status": "ACTIVE",
+        "nfp_id": "ac4a4a7e-ccb5-4014-8125-966ba42cc015",
+        "tenant_id": "e8935dc5484345a1aff7a1043e88c8b1",
+        "chain_id": "b9370af2-0e5f-49b1-a980-0f9a08f216b2",
+        "instance_id": "5a5e2cd6-c0d9-4768-8361-99ac9e2c8fae",
+        "id": "b742746d-b09e-4da7-8535-9fc066a71cf1",
+        "match": {
+            "ip_proto": 6,
+            "network_src_port_id": "5fad003e-95c0-46b3-a137-4d423b6ab958",
+            "ip_dst_prefix": "10.10.0.10/24",
+            "destination_port_min": 80,
+            "destination_port_max": 1024
+        }
+    }
+}

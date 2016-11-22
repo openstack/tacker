@@ -1,0 +1,28 @@
+{
+    "extensions": [
+        {
+            "updated": "2013-11-19T10:00:00-00:00",
+            "name": "VNF Manager",
+            "links": [],
+            "namespace": "http://wiki.openstack.org/Tacker",
+            "alias": "VNFM",
+            "description": "Extension for VNF Manager"
+        },
+        {
+            "updated": "2016-06-06T13:00:00-00:00",
+            "name": "COMMONSERVICES",
+            "links": [],
+            "namespace": "http://wiki.openstack.org/Tacker",
+            "alias": "Commonservices",
+            "description": "Extension for CommonServices"
+        },
+        {
+            "updated": "2015-12-21T10:00:00-00:00",
+            "name": "NFV Orchestrator",
+            "links": [],
+            "namespace": "http://wiki.openstack.org/Tacker",
+            "alias": "NFVO",
+            "description": "Extension for NFV Orchestrator"
+        }
+    ]
+}
