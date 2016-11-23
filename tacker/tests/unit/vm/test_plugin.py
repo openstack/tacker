@@ -197,7 +197,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             auth_url='http://localhost:5000',
             vim_project={'name': 'test_project'},
             auth_cred={'username': 'test_user', 'user_domain_id': 'default',
-                       'project_domain_d': 'default'})
+                       'project_domain_id': 'default'})
         session.add(vim_db)
         session.add(vim_auth_db)
         session.flush()
