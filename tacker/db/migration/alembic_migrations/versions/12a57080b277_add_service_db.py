@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-""" Add Service related dbs
+"""Add Service related dbs
 
 Revision ID: 12a57080b277
 Revises: 5958429bcb3c
