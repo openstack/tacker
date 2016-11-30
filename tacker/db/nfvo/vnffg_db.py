@@ -91,6 +91,8 @@ class Vnffg(model_base.BASE, models_v1.HasTenant, models_v1.HasId):
     # Mapping of VNFD to VNF instance names
     vnf_mapping = sa.Column(types.Json)
 
+    attributes = sa.Column(types.Json)
+
 
 class VnffgNfp(model_base.BASE, models_v1.HasTenant, models_v1.HasId):
     """Network Forwarding Path Data Model"""
@@ -310,6 +312,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                              description=template_db.description,
                              vnf_mapping=vnf_mapping,
                              vnffgd_id=template_id,
+                             attributes=template_db.get('template'),
                              status=constants.PENDING_CREATE)
             context.session.add(vnffg_db)
 
@@ -677,7 +680,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             'forwarding_paths': vnffg_db.forwarding_paths[0]['id']
         }
         key_list = ('id', 'tenant_id', 'name', 'description',
-                    'vnf_mapping', 'status', 'vnffgd_id')
+                    'vnf_mapping', 'status', 'vnffgd_id', 'attributes')
         res.update((key, vnffg_db[key]) for key in key_list)
         return self._fields(res, fields)
 
