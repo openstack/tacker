@@ -37,7 +37,7 @@ class VnfmTestParam(base.BaseTackerTest):
         self.assertIsNotNone(vnfd_id)
         self.verify_vnfd_events(
             vnfd_id, evt_constants.RES_EVT_CREATE,
-            vnfd_instance['vnfd'][evt_constants.RES_EVT_CREATED_FLD])
+            evt_constants.RES_EVT_VNFD_ONBOARDED)
         return vnfd_instance
 
     def _test_vnfd_delete(self, vnfd_instance):
@@ -48,7 +48,8 @@ class VnfmTestParam(base.BaseTackerTest):
             self.client.delete_vnfd(vnfd_id)
         except Exception:
             assert False, "vnfd Delete failed"
-        self.verify_vnfd_events(vnfd_id, evt_constants.RES_EVT_DELETE)
+        self.verify_vnfd_events(vnfd_id, evt_constants.RES_EVT_DELETE,
+                                evt_constants.RES_EVT_VNFD_NA_STATE)
         try:
             vfnd_d = self.client.show_vnfd(vnfd_id)
         except Exception:
@@ -73,8 +74,8 @@ class VnfmTestParam(base.BaseTackerTest):
         vnf_instance = self.client.show_vnf(vnf_id)
 
         self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.PENDING_CREATE,
-            vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+            vnf_id, evt_constants.RES_EVT_CREATE,
+            evt_constants.PENDING_CREATE, cnt=2)
         self.verify_vnf_crud_events(
             vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
 
@@ -116,8 +117,8 @@ class VnfmTestParam(base.BaseTackerTest):
         self._test_vnf_delete(vnf_instance)
         vnf_id = vnf_instance['vnf']['id']
         self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.PENDING_CREATE,
-            vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+            vnf_id, evt_constants.RES_EVT_CREATE,
+            evt_constants.PENDING_CREATE, cnt=2)
         self.verify_vnf_crud_events(
             vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
         self.wait_until_vnf_delete(vnf_id,
@@ -145,8 +146,8 @@ class VnfmTestParam(base.BaseTackerTest):
         self._test_vnf_delete(vnf_instance)
         vnf_id = vnf_instance['vnf']['id']
         self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.PENDING_CREATE,
-            vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+            vnf_id, evt_constants.RES_EVT_CREATE,
+            evt_constants.PENDING_CREATE, cnt=2)
         self.verify_vnf_crud_events(
             vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
         self.wait_until_vnf_delete(vnf_id,
