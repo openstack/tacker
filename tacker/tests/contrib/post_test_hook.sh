@@ -60,7 +60,7 @@ then
     owner=stack
     sudo_env=
     log_dir="/tmp/${venv}-logs"
-
+    source $DEVSTACK_DIR/openrc admin admin
     fixup_quota
     add_key
     add_secgrp

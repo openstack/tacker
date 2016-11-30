@@ -48,8 +48,7 @@ class VimTestCreate(base.BaseTackerTest):
         vim_obj = vim_res['vim']
         vim_id = vim_obj['id']
         self.verify_vim(vim_obj, data, name, description, version)
-        self.verify_vim_events(vim_id, evt_constants.RES_EVT_CREATE,
-                               vim_obj[evt_constants.RES_EVT_CREATED_FLD])
+        self.verify_vim_events(vim_id, evt_constants.RES_EVT_CREATE)
 
         # Read vim
         vim_show_res = self.client.show_vim(vim_id)
