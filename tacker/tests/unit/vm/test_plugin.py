@@ -123,9 +123,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_template',
-            description='fake_template_description',
-            infra_driver='fake_driver',
-            mgmt_driver='fake_mgmt_driver')
+            description='fake_template_description')
         session.add(device_template)
         session.flush()
         return device_template
