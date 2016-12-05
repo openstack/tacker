@@ -221,6 +221,9 @@ node_types:
   tosca.nodes.nfv.CP.Tacker:
     derived_from: tosca.nodes.nfv.CP
     properties:
+      mac_address:
+        type: string
+        required: false
       name:
         type: string
         required: false
