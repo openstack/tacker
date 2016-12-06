@@ -22,71 +22,80 @@ parameters that get applied to the VDU when this template is deployed.
 The next section will illustrate how the below non-parameterized template
 can be parameterized and re-used for deploying multiple VNFs.
 
+Here is the sample template:
 
-template_name: cirros_user_data
+.. code-block:: yaml
 
-description: Cirros image
+   tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
-service_properties:
-  Id: cirros
+   description: VNF TOSCA template with input parameters
 
-  vendor: ACME
+   metadata:
+     template_name: sample-tosca-vnfd
 
-  version: 1
+   topology_template:
 
-  type:
+     node_templates:
+       VDU1:
+         type: tosca.nodes.nfv.VDU.Tacker
+         properties:
+           image: cirros-0.3.4-x86_64-uec
+           flavor: m1.tiny
+           availability_zone: nova
+           mgmt_driver: noop
+           config: |
+             param0: key1
+             param1: key2
 
-    \- router
+       CP1:
+         type: tosca.nodes.nfv.CP.Tacker
+         properties:
+           management: True
+           anti_spoofing_protection: false
+         requirements:
+           - virtualLink:
+               node: VL1
+           - virtualBinding:
+               node: VDU1
 
-    \- firewall
+       CP2:
+         type: tosca.nodes.nfv.CP.Tacker
+         properties:
+           anti_spoofing_protection: false
+         requirements:
+           - virtualLink:
+               node: VL2
+           - virtualBinding:
+               node: VDU1
 
-vdus:
-  vdu1:
-    id: vdu1
+       CP3:
+         type: tosca.nodes.nfv.CP.Tacker
+         properties:
+           anti_spoofing_protection: false
+         requirements:
+           - virtualLink:
+               node: VL3
+           - virtualBinding:
+               node: VDU1
 
-    *vm_image*: **cirros-0.3.4-x86_64-uec**
+       VL1:
+         type: tosca.nodes.nfv.VL
+         properties:
+           network_name: net_mgmt
+           vendor: Tacker
 
-    *instance_type*: **m1.tiny**
+       VL2:
+         type: tosca.nodes.nfv.VL
+         properties:
+           network_name: net0
+           vendor: Tacker
 
-    *service_type*: **firewall**
+       VL3:
+         type: tosca.nodes.nfv.VL
+         properties:
+           network_name: net1
+           vendor: Tacker
 
-    *mgmt_driver*: **noop**
-
-    *user_data*: |
-        **#!/bin/sh**
-
-        **echo "my hostname is `hostname`" > /tmp/hostname**
-
-        **df -h > /home/cirros/diskinfo**
-
-    *user_data_format*: **RAW**
-
-    network_interfaces:
-      management:
-        *network*: **net_mgmt**
-
-        *management*: **True**
-
-        *addresses*:
-          \- 192.168.120.11
-      pkt_in:
-        *network*: **net0**
-      pkt_out:
-        *network*: **net1**
-
-    placement_policy:
-      *availability_zone*: **nova**
-
-    *auto-scaling*: **noop**
-
-    *monitoring_policy*: **noop**
-
-    *failure_policy*: **noop**
-
-    config:
-      *param0*: **key0**
-
-      *param1*: **key1**
 
 Parameterized VNFD template
 ---------------------------
@@ -96,131 +105,173 @@ for re-use and allow for deploying multiple VNFs with the same template.
 parameterized to accept values at deploy time).
 For the current illustration purpose, we will assume that an end user would
 want to be able to supply different values for the parameters
-**instance_type**, **user_data**, **user_data_format** and management
-interface IP **addresses** during each deploy of the VNF.
+**image_name**, **flavor**, **network**, **management**, **pkt_in_network**,
+**pkt_out_network**, **vendor**, during each deploy of the VNF.
 
 The next step is to substitute the identified parameter values that will be
 provided at deploy time with { get_input: <param_name>}. For example, the
-instance_type: **m1.tiny** would now be replaced as:
-**instance_type: {get_input: flavor}**. The **get_input** is a reserved
+instance_type: **cirros-0.3.4-x86_64-uec** would now be replaced as:
+**image: {get_input: image_name}**. The **get_input** is a reserved
 keyword in the template that indicates value will be supplied at deploy time
-for the parameter instance_type. The **flavor** is the variable that will
-hold the value for the parameter **instance_type** in a parameters value file
+for the parameter instance_type. The **image_name** is the variable that will
+hold the value for the parameter **image** in a parameters value file
 that will be supplied at VNF deploy time.
 
 The template in above section will look like below when parameterized for
-**instance_type**, **user_data**, **user_data_format** and management
-interface IP **addresses**.
+**image_name**, **flavor**, **network**, **management** and remaining
+parameters.
 
+Here is the sample template:
 
-template_name: cirros_user_data
+.. code-block:: yaml
 
-description: Cirros image
+   tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
-service_properties:
-  Id: cirros
+   description: VNF TOSCA template with input parameters
 
-  vendor: ACME
+   metadata:
+     template_name: sample-tosca-vnfd
 
-  version: 1
+   topology_template:
+     inputs:
+       image_name:
+         type: string
+         description: Image Name
 
-  type:
+       flavor:
+         type: string
+         description: Flavor Information
 
-    \- router
+       zone:
+         type: string
+         description: Zone Information
 
-    \- firewall
+       network:
+         type: string
+         description: management network
 
-vdus:
-  vdu1:
-    id: vdu1
+       management:
+         type: string
+         description: management network
 
-    *vm_image*: **cirros-0.3.4-x86_64-uec**
+       pkt_in_network:
+         type: string
+         description: In network
 
-    *instance_type*: **{get_input: flavor }**
+       pkt_out_network:
+         type: string
+         description: Out network
 
-    *service_type*: **firewall**
+       vendor:
+         type: string
+         description: Vendor information
 
-    *mgmt_driver*: **noop**
+     node_templates:
+       VDU1:
+         type: tosca.nodes.nfv.VDU.Tacker
+         properties:
+           image: { get_input: image_name}
+           flavor: {get_input: flavor}
+           availability_zone: { get_input: zone }
+           mgmt_driver: noop
+           config: |
+             param0: key1
+             param1: key2
 
-    *user_data*: **{get_input: user_data_value}**
+       CP1:
+         type: tosca.nodes.nfv.CP.Tacker
+         properties:
+           management: { get_input: management }
+           anti_spoofing_protection: false
+         requirements:
+           - virtualLink:
+               node: VL1
+           - virtualBinding:
+               node: VDU1
 
-    *user_data_format*: **{get_input: user_data_format_value}**
+       CP2:
+         type: tosca.nodes.nfv.CP.Tacker
+         properties:
+           anti_spoofing_protection: false
+         requirements:
+           - virtualLink:
+               node: VL2
+           - virtualBinding:
+               node: VDU1
 
-    network_interfaces:
-      management:
-        *network*: **net_mgmt**
+       CP3:
+         type: tosca.nodes.nfv.CP.Tacker
+         properties:
+           anti_spoofing_protection: false
+         requirements:
+           - virtualLink:
+               node: VL3
+           - virtualBinding:
+               node: VDU1
 
-        *management*: **True**
+       VL1:
+         type: tosca.nodes.nfv.VL
+         properties:
+           network_name: { get_input: network }
+           vendor: {get_input: vendor}
 
-        *addresses*: **{ get_input: mgmt_ip}**
-      pkt_in:
-        *network*: **net0**
-      pkt_out:
-        *network*: **net1**
+       VL2:
+         type: tosca.nodes.nfv.VL
+         properties:
+           network_name: { get_input: pkt_in_network }
+           vendor: {get_input: vendor}
 
-    placement_policy:
-      *availability_zone*: **nova**
-
-    *auto-scaling*: **noop**
-
-    *monitoring_policy*: **noop**
-
-    *failure_policy*: **noop**
-
-    config:
-      *param0*: **key0**
-
-      *param1*: **key1**
+       VL3:
+         type: tosca.nodes.nfv.VL
+         properties:
+           network_name: { get_input: pkt_out_network }
+           vendor: {get_input: vendor}
 
 
 Parameter values file at VNF deploy
 -----------------------------------
 The below illustrates the parameters value file to be supplied containing the
 values to be substituted for the above parameterized template above during
-VNF deploy. Note that the structure of the parameters file follows closely
-the structure of the VNFD template. The section below the keyword 'param'
-contains the variables and their values that will be substituted in the VNFD
-template. Not specifying the keyword 'param' as illustrated below would
-result in VNF failing to deploy.
+VNF deploy.
+
+.. code-block:: yaml
+
+    image_name: cirros-0.3.4-x86_64-uec
+    flavor: m1.tiny
+    zone: nova
+    network: net_mgmt
+    management: True
+    pkt_in_network: net0
+    pkt_out_network: net1
+    vendor: Tacker
 
 
-vdus:
-  vdu1:
-    param:
+.. note::
 
-      flavor: m1.tiny
+   IP address values for network interfaces should be in the below format
+   in the parameters values file:
 
-      mgmt_ip:
-        \- 192.168.120.11
+   param_name_value:
+     \- xxx.xxx.xxx.xxx
 
-      user_data_format_value: RAW
-
-      user_data_value: |
-        #!/bin/sh
-        echo "my hostname is `hostname`" > /tmp/hostname
-        df -h > /home/cirros/diskinfo
 
 Key Summary
 -----------
-- Parameterize your VNFD if you want to re-use for multiple VNF deployments.
-- Identify parameters that would need to be provided values at deploy time
-  and substitute value in VNFD template with {get_input: <param_value_name>},
-  where 'param_value_name' is the name of the variable that holds the value
-  in the parameters value file.
-- Supply a parameters value file in yaml format each time during VNF
-  deployment with different values for the parameters.
-- NOTE:IP address values for network interfaces should be in the below format
-  in the parameters values file:
+#. Parameterize your VNFD if you want to re-use for multiple VNF deployments.
+#. Identify parameters that would need to be provided values at deploy time
+   and substitute value in VNFD template with {get_input: <param_value_name>},
+   where 'param_value_name' is the name of the variable that holds the value
+   in the parameters value file.
+#. Supply a parameters value file in yaml format each time during VNF
+   deployment with different values for the parameters.
+#. An example of a vnf-create python-tackerclient command specifying a
+   parameterized template and parameter values file would like below:
 
-  param_name_value:
-    \- xxx.xxx.xxx.xxx
-- An example of a vnf-create python-tackerclient command specifying a
-  parameterized template and parameter values file would like below:
+   .. code-block:: console
 
-  "tacker vnf-create --vnfd-name <vnfd_name> --param-file <param_yaml_file>
-  <vnf_name>"
-- Specifying a parameter values file during VNF creation is also supported in
-  Horizon UI.
-- Sample VNFD parameterized templates and parameter values files can be found
-  at https://github.com/openstack/tacker/tree/master/samples.
+      tacker vnf-create --vnfd-name <vnfd_name> --param-file <param_yaml_file> <vnf_name>
 
+#. Specifying a parameter values file during VNF creation is also supported in
+   Horizon UI.
+#. Sample VNFD parameterized templates and parameter values files can be found
+   at https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd.
