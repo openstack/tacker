@@ -174,8 +174,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return dict((attr.key, attr.value) for attr in attributes_db)
 
     def _make_service_types_list(self, service_types):
-        return [{'id': service_type.id,
-                 'service_type': service_type.service_type}
+        return [service_type.service_type
                 for service_type in service_types]
 
     def _make_vnfd_dict(self, vnfd, fields=None):
