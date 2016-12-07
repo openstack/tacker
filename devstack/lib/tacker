@@ -321,7 +321,7 @@ function tacker_check_and_download_cirros {
     local image_url image_fname
     image_url=http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img
     cirros_fname=`basename "$image_url"`
-    image_name=`glance image-list | grep "${cirros_fname%.*}" | awk '{print $4}'`
+    image_name=`openstack image list  | grep "${cirros_fname%.*}" | awk '{print $4}'`
     if [[ $image_name == "" ]]; then
         if [[ ! -f $FILES/$image_fname || "$(stat -c "%s" $FILES/$image_fname)" = "0" ]]; then
             {
@@ -338,7 +338,7 @@ function openstack_image_create {
     container_format=bare
     image_name=$2
     openstack --os-cloud=devstack-admin image create $image_name --public --container-format=$container_format --disk-format $disk_format < <(zcat --force "${image}")
-    glance image-list | grep OpenWRT | awk {print$2}
+    openstack image show OpenWRT -f value -c id
 }
 
 function tacker_create_openwrt_image {
@@ -365,19 +365,19 @@ function tacker_create_initial_network {
     echo "Deleting networks"
     for net in ${NET_MGMT} ${NET0} ${NET1}
     do
-        for i in $(neutron net-list | awk "/${net}/{print \$2}")
+        for i in $(openstack network list | awk "/${net}/{print \$2}")
         do
-            neutron net-delete $i
+            openstack network delete $i
         done
     done
 
     echo "Creating networks"
-    NET_MGMT_ID=$(neutron net-create --provider:network_type flat --provider:physical_network ${MGMT_PHYS_NET} --shared ${NET_MGMT} | awk '/ id /{print $4}')
-    SUBNET_MGMT_ID=$(neutron subnet-create --name ${SUBNET_MGMT} --ip-version 4 --gateway ${NETWORK_GATEWAY_MGMT} ${NET_MGMT_ID} ${FIXED_RANGE_MGMT} | awk '/ id /{print $4}')
-    NET0_ID=$(neutron net-create --shared ${NET0} | awk '/ id /{print $4}')
-    SUBNET0_ID=$(neutron subnet-create --name ${SUBNET0} --ip-version 4 --gateway ${NETWORK_GATEWAY0} ${NET0_ID} ${FIXED_RANGE0} | awk '/ id /{print $4}')
-    NET1_ID=$(neutron net-create --shared ${NET1} | awk '/ id /{print $4}')
-    SUBNET1_ID=$(neutron subnet-create --name ${SUBNET1} --ip-version 4 --gateway ${NETWORK_GATEWAY1} ${NET1_ID} ${FIXED_RANGE1} | awk '/ id /{print $4}')
+    NET_MGMT_ID=$(openstack network create --provider-network-type flat --provider-physical-network ${MGMT_PHYS_NET} --share ${NET_MGMT} | awk '/ id /{print $4}')
+    SUBNET_MGMT_ID=$(openstack subnet create ${SUBNET_MGMT} --ip-version 4 --gateway ${NETWORK_GATEWAY_MGMT} --network ${NET_MGMT_ID} --subnet-range ${FIXED_RANGE_MGMT} | awk '/ id /{print $4}')
+    NET0_ID=$(openstack network create --share ${NET0} | awk '/ id /{print $4}')
+    SUBNET0_ID=$(openstack subnet create ${SUBNET0} --ip-version 4 --gateway ${NETWORK_GATEWAY0} --network ${NET0_ID} --subnet-range ${FIXED_RANGE0} | awk '/ id /{print $4}')
+    NET1_ID=$(openstack network create --share ${NET1} | awk '/ id /{print $4}')
+    SUBNET1_ID=$(openstack subnet create ${SUBNET1} --ip-version 4 --gateway ${NETWORK_GATEWAY1} --network ${NET1_ID} --subnet-range ${FIXED_RANGE1} | awk '/ id /{print $4}')
 
     echo "Assign ip address to BR_MGMT"
     sudo ifconfig ${BR_MGMT} inet 0.0.0.0
@@ -385,20 +385,28 @@ function tacker_create_initial_network {
 }
 
 function tacker_register_default_vim {
-    local default_vim_id
+    # Note: These must be the same as in tacker/tests/etc/samples/local-vim.yaml
+    # and devstack/lib/tacker/vim_config.yaml
     DEFAULT_VIM_PROJECT_NAME="nfv"
     DEFAULT_VIM_USER="nfv_user"
     DEFAULT_VIM_PASSWORD="devstack"
-    DEFAULT_VIM_NAME="VIM0"
+
+    echo "Create NFV VIM project $DEFAULT_VIM_PROJECT_NAME ..."
     get_or_create_project $DEFAULT_VIM_PROJECT_NAME
+    echo "Create NFV VIM user $DEFAULT_VIM_USER ..."
     get_or_create_user $DEFAULT_VIM_USER $DEFAULT_VIM_PASSWORD
     get_or_add_user_project_role "admin" $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
     get_or_add_user_project_role "advsvc" $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
+
     echo "Register default VIM ..."
     mkdir -p $DATA_DIR/tacker
     cp $TACKER_DIR/devstack/vim_config.yaml $DATA_DIR/tacker
     VIM_CONFIG_FILE="$DATA_DIR/tacker/vim_config.yaml"
     sed -e "s|^auth_url:.*$|auth_url: \'${KEYSTONE_SERVICE_URI}\'|" -i $VIM_CONFIG_FILE
+    echo "The content of VIM config file $VIM_CONFIG_FILE :"
+    cat $VIM_CONFIG_FILE
+    local default_vim_id
+    DEFAULT_VIM_NAME="VIM0"
     default_vim_id=$(tacker vim-register --is-default --description "Default VIM" --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME -c id | grep id | awk '{print $4}')
     echo "Default VIM registration done as $default_vim_id at $KEYSTONE_SERVICE_URI."
 }
