@@ -1,0 +1,15 @@
+{
+    "vnf": {
+        "attributes": {
+            "config": {
+                "vdus": {
+                    "VDU1": {
+                        "config": {
+                            "firewall": "package firewall\n\nconfig defaults\n    option syn_flood 1\n    option input ACCEPT\n    option output ACCEPT\n    option forward REJECT\n"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

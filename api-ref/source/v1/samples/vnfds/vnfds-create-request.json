@@ -1,0 +1,69 @@
+{
+  "vnfd": {
+    "tenant_id": "689708956a2d4ae0a27120d3aca6a560",
+    "name": "vnfd-sample",
+    "description": "Sample",
+    "service_types": [
+      {
+        "service_type": "vnfd"
+      }
+    ],
+    "infra_driver": "heat",
+    "mgmt_driver": "noop",
+    "attributes": {
+      "vnfd": {
+        "tosca_definitions_version": "tosca_simple_profile_for_nfv_1_0_0",
+        "description": "Demo example",
+        "metadata": {
+          "template_name": "sample-tosca-vnfd"
+        },
+        "topology_template": {
+          "node_templates": {
+            "VDU1": {
+              "type": "tosca.nodes.nfv.VDU.Tacker",
+              "capabilities": {
+                "nfv_compute": {
+                  "properties": {
+                    "num_cpus": 1,
+                    "mem_size": "512 MB",
+                    "disk_size": "1 GB"
+                  }
+                }
+              },
+              "properties": {
+                "image": "cirros-0.3.4-x86_64-uec"
+              }
+            },
+            "CP1": {
+              "type": "tosca.nodes.nfv.CP.Tacker",
+              "properties": {
+                "order": 0,
+                "management": true,
+                "anti_spoofing_protection": false
+              },
+              "requirements": [
+                {
+                  "virtualLink": {
+                    "node": "VL1"
+                  }
+                },
+                {
+                  "virtualBinding": {
+                    "node": "VDU1"
+                  }
+                }
+              ]
+            },
+            "VL1": {
+              "type": "tosca.nodes.nfv.VL",
+              "properties": {
+                "vendor": "Tacker",
+                "network_name": "net_mgmt"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+    "resources": [
+        {
+            "type": "OS::Nova::Server",
+            "name": "VDU1",
+            "id": "94c19bcf-6c89-4129-98fe-759e37e2f8c7"
+        },
+        {
+            "type": "OS::Neutron::Port",
+            "name": "CP1",
+            "id": "20602131-03f9-4cb2-b9fe-24bf56f1bb4f"
+        },
+        {
+            "type": "OS::Neutron::Port",
+            "name": "CP2",
+            "id": "ff641e7d-35f9-4095-a1f7-c3f6fb2fa294"
+        },
+        {
+            "type": "OS::Neutron::Port",
+            "name": "CP3",
+            "id": "ebe816df-3bc0-48a8-9278-140809d1d953"
+        },
+        {
+            "type": "OS::Nova::Flavor",
+            "name": "VDU1_flavor",
+            "id": "0f5e0bf2-f1a9-4474-aff9-cfffad22c5f8"
+        }
+    ]
+}

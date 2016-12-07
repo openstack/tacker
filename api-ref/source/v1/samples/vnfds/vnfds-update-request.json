@@ -1,0 +1,6 @@
+{
+  "vnfd": {
+    "name": "vnfd-sample-updated",
+    "description": "Updated sample"
+  }
+}

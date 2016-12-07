@@ -1,0 +1,25 @@
+{
+    "sfc": {
+        "status": "ACTIVE",
+        "path_id": "51",
+        "nfp_id": "ac4a4a7e-ccb5-4014-8125-966ba42cc015",
+        "chain": [
+            {
+                "connection_points": [
+                    "e48cd49d-3bf7-4c8d-b6a7-3e2846b01c7c"
+                ],
+                "name": "my-vnf1"
+            },
+            {
+                "connection_points": [
+                    "4b0b3a8f-07ca-46c3-b8fa-90caeaada031"
+                ],
+                "name": "my-vnf2"
+            }
+        ],
+        "tenant_id": "e8935dc5484345a1aff7a1043e88c8b1",
+        "instance_id": "2645eea6-3744-40f6-aacc-09a784db5d89",
+        "symmetrical": false,
+        "id": "b9370af2-0e5f-49b1-a980-0f9a08f216b2"
+    }
+}

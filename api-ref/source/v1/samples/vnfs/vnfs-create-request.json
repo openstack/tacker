@@ -1,0 +1,32 @@
+{
+    "vnf": {
+        "tenant_id": "6673e4d4e13340acb0b847f9ecde613b",
+        "vnfd_id": "a04b47d1-e8ad-4ef9-8341-eafec398ce02",
+        "vim_id": "f6bd6f24-7a0e-4111-8994-e108c5ee2ff2",
+        "name": "OpenWRT",
+        "description": "OpenWRT VNF",
+        "attributes": {
+            "config": {
+                "vdus": {
+                    "vdu1": {
+                        "config": {
+                            "firewall": "package firewall\n"
+                        }
+                    }
+                }
+            },
+            "param_values": {
+                "vdus": {
+                    "vdu1": {
+                        "param": {
+                            "vdu-name": "openwrt_vdu1"
+                        }
+                    }
+                }
+            }
+        },
+        "placement_attr": {
+            "region_name": "RegionOne"
+        }
+    }
+}

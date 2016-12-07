@@ -1,0 +1,11 @@
+{
+    "event": {
+        "event_type": "MONITOR",
+        "resource_id": "f6bd6f24-7a0e-4111-8994-e108c5ee2ff2",
+        "timestamp": "2016-09-23 09:57:35",
+        "event_details": "",
+        "resource_state": "REACHABLE",
+        "id": 2,
+        "resource_type": "vim"
+    }
+}

@@ -1,0 +1,18 @@
+{
+    "vim": {
+        "auth_cred": {
+            "username": "new_nfv_user",
+            "user_domain_name": "NewDomain",
+            "password": "newpassword",
+            "user_id": "11d7655309d849208ea1f39d44507e2e"
+        },
+        "vim_project": {
+            "id": "4391756708414b1380235cd047f0ee55",
+            "name": "new_nfv",
+            "project_domain_name": "NewDomain"
+        },
+        "name": "new_VIM1",
+        "description": "New Description",
+        "is_default": false
+    }
+}

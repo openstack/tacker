@@ -1,0 +1,12 @@
+{
+    "nfp": {
+        "status": "ACTIVE",
+        "name": "Forwarding_path1",
+        "tenant_id": "e8935dc5484345a1aff7a1043e88c8b1",
+        "chain_id": "b9370af2-0e5f-49b1-a980-0f9a08f216b2",
+        "path_id": "51",
+        "symmetrical": false,
+        "classifier_id": "b742746d-b09e-4da7-8535-9fc066a71cf1",
+        "id": "ac4a4a7e-ccb5-4014-8125-966ba42cc015"
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "vnffg": {
+        "forwarding_paths": "476e2882-45d1-45cb-9856-45cf603f7d9a",
+        "status": "ACTIVE",
+        "description": "sample vnffgd",
+        "tenant_id": "e8935dc5484345a1aff7a1043e88c8b1",
+        "vnffgd_id": "ec81d6b9-da96-4eed-80f8-0dadcebda926",
+        "vnf_mapping": {
+            "VNFD2": "0918d77d-f353-4e52-be42-9e078ca8c443",
+            "VNFD1": "86f3f4c5-ffb9-43a0-b5b8-7767f75100ac"
+        },
+        "id": "8cc66ad5-8513-4afe-a2f2-1e13543348fe",
+        "name": "vnffg1"
+    }
+}

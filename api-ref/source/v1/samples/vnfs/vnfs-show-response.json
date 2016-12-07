@@ -1,0 +1,26 @@
+{
+    "vnf": {
+        "status": "ACTIVE",
+        "description": "OpenWRT VNFD with parameterized VDU name",
+        "vnfd_id": "a04b47d1-e8ad-4ef9-8341-eafec398ce02",
+        "tenant_id": "6673e4d4e13340acb0b847f9ecde613b",
+        "created_at": "2016-10-25 10:15:06",
+        "updated_at": "2016-10-25 10:16:43",
+        "instance_id": "178d3186-5b5f-483c-b2f5-75b484ec793e",
+        "mgmt_url": "{\"VDU1\": \"192.168.120.3\"}",
+        "vim_id": "f6bd6f24-7a0e-4111-8994-e108c5ee2ff2",
+        "placement_attr": {
+            "region_name": "RegionOne",
+            "vim_name": "VIM0"
+        },
+        "error_reason": null,
+        "attributes": {
+            "config": "vdus:\n  vdu1:\n    config: {firewall: 'package firewall\n\n        '}\n",
+            "monitoring_policy": "{\"vdus\": {\"VDU1\": {\"ping\": {\"actions\": {\"failure\": \"respawn\"}, \"name\": \"ping\", \"parameters\": {\"count\": 3, \"interval\": 10}, \"monitoring_params\": {\"count\": 3, \"interval\": 10}}}}}",
+            "param_values": "vdus:\n  vdu1:\n    param: {vdu-name: openwrt_vdu1}\n",
+            "heat_template": "heat_template_version: 2013-05-23\ndescription: 'OpenWRT with services\n\n  '\nparameters:\n  vdu-name:\n    type: string\n    description: Vdu name\n    default: test-vdu\nresources:\n  CP1:\n    type: OS::Neutron::Port\n    properties:\n      network: net_mgmt\n      port_security_enabled: false\n  CP2:\n    type: OS::Neutron::Port\n    properties:\n      network: net0\n      port_security_enabled: false\n  CP3:\n    type: OS::Neutron::Port\n    properties:\n      network: net1\n      port_security_enabled: false\n  VDU1:\n    type: OS::Nova::Server\n    properties:\n      config_drive: false\n      flavor: {get_resource: VDU1_flavor}\n      image: OpenWRT\n      name:\n        get_param: vdu-name\n      networks:\n      - port:\n          get_resource: CP1\n      - port:\n          get_resource: CP2\n      - port:\n          get_resource: CP3\n      user_data_format: SOFTWARE_CONFIG\n  VDU1_flavor:\n    properties: {disk: 1, ram: 512, vcpus: 1}\n    type: OS::Nova::Flavor\noutputs:\n  mgmt_ip-VDU1:\n    value:\n      get_attr: [CP1, fixed_ips, 0, ip_address]\n"
+        },
+        "id": "2b85ac49-e59e-4f22-89b8-42c3e27115ef",
+        "name": "OpenWRT"
+    }
+}

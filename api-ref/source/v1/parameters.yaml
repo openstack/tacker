@@ -1,0 +1,807 @@
+# variables in header
+
+# variables in path
+alias_path:
+  description: |
+    The alias of the extension.
+  in: path
+  required: true
+  type: string
+classifier_id_path:
+  description: |
+    The UUID of the classifier.
+  in: path
+  required: true
+  type: string
+event_id_path:
+  description: |
+    The ID of the event.
+  in: path
+  required: true
+  type: string
+nfp_id_path:
+  description: |
+    The UUID of the NFP.
+  in: path
+  required: true
+  type: string
+sfc_id_path:
+  description: |
+    The UUID of the SFC.
+  in: path
+  required: true
+  type: string
+vim_id_path:
+  description: |
+    The UUID of the VIM.
+  in: path
+  required: true
+  type: string
+vnf_id_path:
+  description: |
+    The UUID of the VNF.
+  in: path
+  required: true
+  type: string
+vnfd_id_path:
+  description: |
+    The UUID of the VNFD.
+  in: path
+  required: true
+  type: string
+vnffg_id_path:
+  description: |
+    The UUID of the VNFFG.
+  in: path
+  required: true
+  type: string
+vnffgd_id_path:
+  description: |
+    The UUID of the VNFFGD.
+  in: path
+  required: true
+  type: string
+
+# variables in query
+
+# variables in body
+alias:
+  description: |
+    The alias for the extension. For example,
+    "Commonservices", "NFVO" or "VNFM".
+  in: body
+  required: true
+  type: string
+classifier:
+  description: |
+    A ``classifier`` object.
+  in: body
+  required: true
+  type: object
+classifier_chain_id:
+  description: |
+    The UUID of the SFC which the classifier is related to.
+  in: body
+  required: true
+  type: string
+classifier_id:
+  description: |
+    The UUID of the Classifier.
+  in: body
+  required: true
+  type: string
+classifier_instance_id:
+  description: |
+    The UUID information to uniquely identify the classifier instance.
+    A classifier is instantiated as a Neutron Flow Classifier when
+    using OpenStack VIM Driver.
+  in: body
+  required: true
+  type: string
+classifier_match:
+  description: |
+    A match policy object that will be used to distinguish which
+    traffic should enter the related SFC.
+  in: body
+  required: true
+  type: object
+classifier_nfp_id:
+  description: |
+    The UUID of the NFP which the classifier belongs to.
+  in: body
+  required: true
+  type: string
+classifier_status:
+  description: |
+    Status of the classifier.
+  in: body
+  required: true
+  type: string
+classifiers:
+  description: |
+    A list of ``classifier`` objects.
+  in: body
+  required: true
+  type: array
+created_at:
+  description: |
+    The date and time when the resource was created. The format is
+    ``YYYY-MM-DD hh:mm:ss``. For example, ``2016-09-23 09:57:35``.
+  in: body
+  required: true
+  type: string
+description:
+  description: |
+    Human-readable description for the resource.
+  in: body
+  required: true
+  type: string
+description_opt:
+  description: |
+    Human-readable description for the resource.
+  in: body
+  required: false
+  type: string
+event:
+  description: |
+    An ``event`` object.
+  in: body
+  required: true
+  type: object
+event_details:
+  description: |
+    The detailed information for the event, if any.
+  in: body
+  required: true
+  type: string
+event_id:
+  description: |
+    The ID of the event.
+  in: body
+  required: true
+  type: integer
+event_resource_id:
+  description: |
+    The UUID of the resource that is related to the event.
+  in: body
+  required: true
+  type: string
+event_resource_state:
+  description: |
+    The state of the resource that is related to the event.
+  in: body
+  required: true
+  type: string
+event_resource_type:
+  description: |
+    The type of the resource that is related to the event.
+  in: body
+  required: true
+  type: string
+event_timestamp:
+  description: |
+    The date and time when the event was created. The format is
+    ``YYYY-MM-DD hh:mm:ss``. For example, ``2016-09-23 09:57:35``.
+  in: body
+  required: true
+  type: string
+events:
+  description: |
+    A list of ``event`` objects.
+  in: body
+  required: true
+  type: array
+extension:
+  description: |
+    An ``extension`` object.
+  in: body
+  required: true
+  type: object
+extension_updated_at:
+  description: |
+    The date and time when the resource was updated. The format is
+    `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_:
+    ``YYYY-MM-DDThh:mm:ss±hh:mm``. For example, ``2016-09-23 09:59:27-05:00``.
+    The ``±hh:mm`` value, if included, is the time zone as an offset from UTC.
+  in: body
+  required: true
+  type: string
+extensions:
+  description: |
+    A list of ``extension`` objects.
+  in: body
+  required: true
+  type: array
+infra_driver:
+  description: |
+    Driver used for communication with VIMs.
+  in: body
+  required: true
+  type: string
+infra_driver_opt:
+  description: |
+    Driver used for communication with VIMs.
+  in: body
+  required: false
+  type: string
+links:
+  description: |
+    A list of links related to the extension.
+  in: body
+  required: true
+  type: array
+mgmt_driver:
+  description: |
+    Driver used for communication with VNF instances for management purpose.
+  in: body
+  required: true
+  type: string
+mgmt_driver_opt:
+  description: |
+    Driver used for communication with VNF instances for management purpose.
+  in: body
+  required: false
+  type: string
+name:
+  description: |
+    Human-readable name for the resource.
+  in: body
+  required: true
+  type: string
+name_opt:
+  description: |
+    Human-readable name for the resource.
+  in: body
+  required: false
+  type: string
+nfp:
+  description: |
+    A ``nfp`` object.
+  in: body
+  required: true
+  type: object
+nfp_id:
+  description: |
+    The UUID of the Network Forwarding Path (NFP).
+  in: body
+  required: true
+  type: string
+nfp_status:
+  description: |
+    Status of the NFP.
+  in: body
+  required: true
+  type: string
+nfps:
+  description: |
+    A list of ``nfp`` objects.
+  in: body
+  required: true
+  type: array
+service_types:
+  description: |
+    A list of service type.
+  in: body
+  required: true
+  type: array
+sfc:
+  description: |
+    A ``sfc`` object.
+  in: body
+  required: true
+  type: object
+sfc_chain:
+  description: |
+    A ordered list of node objects to traverse. Each node includes
+    a list of CPs and correspondent VNF name. Up to 2 CPs may be
+    listed per node. If 2 CPs are listed, the first will be
+    considered the ingress port for traffic and the second will be
+    the egress. If there's only one CP, then it will be considered
+    both the ingress and egress port for traffic.
+  in: body
+  required: true
+  type: array
+sfc_id:
+  description: |
+    The UUID of the Service Function Chain (SFC).
+  in: body
+  required: true
+  type: string
+sfc_instance_id:
+  description: |
+    The UUID information to uniquely identify the SFC instance.
+    A SFC is instantiated as a Neutron Port Chain when using
+    OpenStack VIM Driver.
+  in: body
+  required: true
+  type: string
+sfc_nfp_id:
+  description: |
+    The UUID of the NFP which the SFC belongs to.
+  in: body
+  required: true
+  type: string
+sfc_path_id:
+  description: |
+    The ID of the path. It will be used in future implementations of
+    Network Service Header (NSH) to identify paths via the Service
+    Path Identifier (SPI) attribute.
+  in: body
+  required: true
+  type: string
+sfc_status:
+  description: |
+    Status of the SFC.
+  in: body
+  required: true
+  type: string
+sfcs:
+  description: |
+    A list of ``sfc`` objects.
+  in: body
+  required: true
+  type: array
+symmetrical:
+  description: |
+    Indicate whether reverse traffic should also flow through the path.
+    Enabling ``symmetrical`` is not currently supported by the OpenStack
+    VIM driver.
+  in: body
+  required: true
+  type: boolean
+symmetrical_opt:
+  description: |
+    Indicate whether reverse traffic should also flow through the path.
+    Enabling ``symmetrical`` is not currently supported by the OpenStack
+    VIM driver.
+  in: body
+  required: false
+  type: boolean
+tenant_id:
+  description: |
+    The UUID of the tenant. A tenant is also known as a project.
+  in: body
+  required: true
+  type: string
+tenant_id_opt:
+  description: |
+    The UUID of the tenant. A tenant is also known as a project.
+  in: body
+  required: false
+  type: string
+updated_at:
+  description: |
+    The date and time when the resource was updated.
+    The format is ``YYYY-MM-DD hh:mm:ss.ssssss``.
+    For example, ``2016-09-23 09:59:27.392759``.
+  in: body
+  required: true
+  type: string
+version_href:
+  description: |
+    Link to the API.
+  in: body
+  required: true
+  type: string
+version_id:
+  description: |
+    Version of the API.
+  in: body
+  required: true
+  type: string
+version_links:
+  description: |
+    List of version links. Each link contains ``href`` and ``rel``.
+  in: body
+  required: true
+  type: array
+version_rel:
+  description: |
+    Relationship of link with the version.
+  in: body
+  required: true
+  type: string
+version_status:
+  description: |
+    Status of the API, which can be ``CURRENT``, ``STABLE`` or ``DEPRECATED``.
+  in: body
+  required: true
+  type: string
+versions:
+  description: |
+    A list of ``version`` objects.
+  in: body
+  required: true
+  type: array
+vim:
+  description: |
+    A ``vim`` object.
+  in: body
+  required: true
+  type: object
+vim_auth_cred:
+  description: |
+    An authentication credential object for the remote OpenStack site.
+    Credential can contain ``user_id`` (and/or ``username``) and ``password``.
+    It also contains ``user_domain_name`` when using identity v3.
+  in: body
+  required: true
+  type: object
+vim_auth_cred_output:
+  description: |
+    An authentication credential object for the remote OpenStack site.
+    Credential contains ``user_id`` (and/or ``username``), ``password``,
+    ``project_id``, ``project_name``, and ``auth_url``.
+    It also contains ``user_domain_name`` and ``project_domain_name``
+    when using identity v3.
+  in: body
+  required: true
+  type: object
+vim_auth_url:
+  description: |
+    The authentication URL for the Keystone service of the remote OpenStack site.
+  in: body
+  required: true
+  type: string
+vim_created_at:
+  description: |
+    The date and time when the VIM was registered.
+    The format is ``YYYY-MM-DD hh:mm:ss.ssssss``.
+    For example, ``2016-09-23 09:59:27.392759``.
+  in: body
+  required: true
+  type: string
+vim_id:
+  description: |
+    The UUID of the VIM.
+  in: body
+  required: true
+  type: string
+vim_id_opt:
+  description: |
+    The UUID of the VIM.
+  in: body
+  required: false
+  type: string
+vim_is_default:
+  description: |
+    Indicate whether the VIM is used as default.
+  in: body
+  required: true
+  type: boolean
+vim_is_default_opt:
+  description: |
+    Indicate whether the VIM is used as default.
+  in: body
+  required: false
+  type: boolean
+vim_placement_attr:
+  description: |
+    VIM placement information object that includes ``regions``, which is
+    a list of Region IDs. ``regions`` are automatically derived from VIM.
+  in: body
+  required: true
+  type: object
+vim_project:
+  description: |
+    A VIM's project information object for the remote OpenStack site.
+    Project information can contain ``id`` or ``name``.
+    It also contains ``project_domain_name`` when using identity v3.
+  in: body
+  required: true
+  type: object
+vim_project_opt:
+  description: |
+    A VIM's project information object for the remote OpenStack site.
+    Project information can contain ``id`` or ``name``.
+    It also contains ``project_domain_name`` when using identity v3.
+  in: body
+  required: false
+  type: object
+vim_status:
+  description: |
+    Status of the VIM.
+  in: body
+  required: true
+  type: string
+vim_type:
+  description: |
+    The type of VIM. Currently there is only one built-in VIM driver,
+    which is for "openstack" type.
+  in: body
+  required: true
+  type: string
+vim_updated_at:
+  description: |
+    The date and time when the VIM was updated.
+    The format is ``YYYY-MM-DD hh:mm:ss.ssssss``.
+    For example, ``2016-09-23 09:59:27.392759``.
+  in: body
+  required: true
+  type: string
+vims:
+  description: |
+    A list of ``vim`` objects.
+  in: body
+  required: true
+  type: array
+vnf:
+  description: |
+    A ``vnf`` object.
+  in: body
+  required: true
+  type: object
+vnf_attributes:
+  description: |
+    VNF attributes object. This object can contain ``config``,
+    ``param_values``, ``monitoring_policy``, and ``heat_template``.
+  in: body
+  required: true
+  type: object
+vnf_attributes_opt:
+  description: |
+    VNF attributes object. This object can contain ``config`` and
+    ``param_values``.
+  in: body
+  required: false
+  type: object
+vnf_attributes_put:
+  description: |
+    VNF attributes object. This object can contain ``config`` object.
+  in: body
+  required: false
+  type: object
+vnf_config:
+  description: |
+    VNF configuration object.
+  in: body
+  required: true
+  type: string
+vnf_config_opt:
+  description: |
+    VNF configuration object.
+  in: body
+  required: false
+  type: object
+vnf_created_at:
+  description: |
+    The date and time when the VNF was created.
+    The format is ``YYYY-MM-DD hh:mm:ss.ssssss``.
+    For example, ``2016-09-23 09:59:27.392759``.
+  in: body
+  required: true
+  type: string
+vnf_error_reason:
+  description: |
+    Reason for VNF error, if any.
+  in: body
+  required: true
+  type: string
+vnf_heat_template:
+  description: |
+    Heat template which is translated from the VNFD template.
+  in: body
+  required: true
+  type: string
+vnf_id:
+  description: |
+    The UUID of the VNF.
+  in: body
+  required: true
+  type: string
+vnf_instance_id:
+  description: |
+    A UUID information to uniquely identify the instance of VNF.
+    This instance is equivalent to a Heat stack when using
+    "openstack" type VIM.
+  in: body
+  required: true
+  type: string
+vnf_mapping:
+  description: |
+    A ``vnf_mapping`` object which contains mappings from VNFD name
+    to VNF instance ID.
+  in: body
+  required: true
+  type: object
+vnf_mapping_opt:
+  description: |
+    A ``vnf_mapping`` object which contains mappings from VNFD name
+    to VNF instance ID. This is used to declare which exact VNF
+    instance to be used for each VNFD in the Forwarding Path definition.
+    If no vnf mappings are provided, then Tacker attempts to search
+    for VNF instance derived from each VNFDs.
+  in: body
+  required: false
+  type: object
+vnf_mgmt_url:
+  description: |
+    Management URL information for the VNF.
+  in: body
+  required: true
+  type: string
+vnf_monitoring_policy:
+  description: |
+    Monitoring policy which is derived from the VNFD template.
+  in: body
+  required: true
+  type: string
+vnf_param_values:
+  description: |
+    VNF parameter object. These parameters will be substituted for VNF
+    if the VNFD template is appropriately parameterized.
+    See `VNFD Template Parameterization
+    <http://docs.openstack.org/developer/tacker/devref/vnfd_template_parameterization.html>`_
+    for more information.
+  in: body
+  required: true
+  type: string
+vnf_param_values_opt:
+  description: |
+    VNF parameter object. These parameters will be substituted for VNF
+    if the VNFD template is appropriately parameterized.
+    See `VNFD Template Parameterization
+    <http://docs.openstack.org/developer/tacker/devref/vnfd_template_parameterization.html>`_
+    for more information.
+  in: body
+  required: false
+  type: object
+vnf_placement_attr:
+  description: |
+    VNF placement information object. This object includes ``region_name``
+    and ``vim_name``.
+  in: body
+  required: true
+  type: object
+vnf_placement_attr_opt:
+  description: |
+    VNF placement information object. This object includes ``region_name``.
+  in: body
+  required: false
+  type: object
+vnf_resource_id:
+  description: |
+    The UUID of the VNF resource. This is equivalent to Heat stack resource ID.
+  in: body
+  required: true
+  type: string
+vnf_resource_name:
+  description: |
+    The name of the VNF resource. This is equivalent to Heat stack resource name.
+  in: body
+  required: true
+  type: string
+vnf_resource_type:
+  description: |
+    The type of the VNF resource. This is equivalent to Heat stack resource type.
+  in: body
+  required: true
+  type: string
+vnf_resources:
+  description: |
+    A list of VNF ``resource`` objects.
+  in: body
+  required: true
+  type: array
+vnf_scale:
+  description: |
+    A VNF ``scale`` object, which contains ``policy`` and ``type``.
+  in: body
+  required: true
+  type: object
+vnf_scale_policy:
+  description: |
+    Scaling policy defined in VNFD template. For more information, see
+    `VNFD scaling
+    <http://docs.openstack.org/developer/tacker/devref/vnfd_template_parameterization.html>`_.
+  in: body
+  required: true
+  type: string
+vnf_scale_type:
+  description: |
+    Scaling type, which is either ``in`` or ``out``.
+  in: body
+  required: true
+  type: string
+vnf_status:
+  description: |
+    Status of the VNF.
+  in: body
+  required: true
+  type: string
+vnf_updated_at:
+  description: |
+    The date and time when the VNF was updated.
+    The format is ``YYYY-MM-DD hh:mm:ss.ssssss``.
+    For example, ``2016-09-23 09:59:27.392759``.
+  in: body
+  required: true
+  type: string
+vnfd:
+  description: |
+    A ``vnfd`` object.
+  in: body
+  required: true
+  type: object
+vnfd_attributes:
+  description: |
+    Attributes necessary for spinning up VNF.
+  in: body
+  required: true
+  type: object
+vnfd_id:
+  description: |
+    The UUID of the VNFD.
+  in: body
+  required: true
+  type: string
+vnfds:
+  description: |
+    A list of ``vnfd`` objects.
+  in: body
+  required: true
+  type: array
+vnffg:
+  description: |
+    A ``vnffg`` object.
+  in: body
+  required: true
+  type: object
+vnffg_forwarding_paths:
+  description: |
+    The UUID of the Network Forwarding Path (NFP) on which
+    the VNFFG relies.
+  in: body
+  required: true
+  type: string
+vnffg_id:
+  description: |
+    The UUID of the VNFFG.
+  in: body
+  required: true
+  type: string
+vnffg_status:
+  description: |
+    Status of the VNFFG.
+  in: body
+  required: true
+  type: string
+vnffgd:
+  description: |
+    A ``vnffgd`` object.
+  in: body
+  required: true
+  type: object
+vnffgd_id:
+  description: |
+    The UUID of the VNFFGD.
+  in: body
+  required: true
+  type: string
+vnffgd_template:
+  description: |
+    A template object which includes behavioral and deployment
+    information of VNFFGs. For more information, see
+    `VNFFG Descriptor Template Guide
+    <http://docs.openstack.org/developer/tacker/devref/vnffgd_template_description.html>`_.
+  in: body
+  required: true
+  type: object
+vnffgds:
+  description: |
+    A list of ``vnffgd`` objects.
+  in: body
+  required: true
+  type: array
+vnffgs:
+  description: |
+    A list of ``vnffg`` objects.
+  in: body
+  required: true
+  type: array
+vnfs:
+  description: |
+    A list of ``vnf`` objects.
+  in: body
+  required: true
+  type: array
