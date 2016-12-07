@@ -28,6 +28,7 @@ topology_template:
     CP1:
       type: tosca.nodes.nfv.CP.Tacker
       properties:
+        name: sriov
         management: true
       requirements:
         - virtualLink:

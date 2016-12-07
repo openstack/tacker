@@ -70,8 +70,8 @@ convert_prop = {TACKERCP: {'anti_spoofing_protection':
                            'type':
                            'binding:vnic_type'}}
 
-convert_prop_values = {TACKERCP: {'sriov': 'direct',
-                                  'vnic': 'normal'}}
+convert_prop_values = {TACKERCP: {'type': {'sriov': 'direct',
+                                           'vnic': 'normal'}}}
 
 deletenodes = (MONITORING, FAILURE, PLACEMENT)
 
@@ -221,6 +221,16 @@ def post_process_template(template):
                     if prop == p.name:
                         nt.get_properties_objects().remove(p)
 
+        # change the property value first before the property key
+        if nt.type in convert_prop_values:
+            for prop in convert_prop_values[nt.type].keys():
+                for p in nt.get_properties_objects():
+                    if (prop == p.name and
+                            p.value in
+                            convert_prop_values[nt.type][prop].keys()):
+                        v = convert_prop_values[nt.type][prop][p.value]
+                        p.value = v
+
         if nt.type in convert_prop:
             for prop in convert_prop[nt.type].keys():
                 for p in nt.get_properties_objects():
@@ -231,13 +241,6 @@ def post_process_template(template):
                             convert_prop[nt.type][prop], v, schema_dict)
                         nt.get_properties_objects().append(newprop)
                         nt.get_properties_objects().remove(p)
-
-        if nt.type in convert_prop_values:
-            for key in convert_prop_values[nt.type].keys():
-                for p in nt.get_properties_objects():
-                    if key == p.value:
-                        v = convert_prop_values[nt.type][p.value]
-                        p.value = v
 
 
 @log.log
