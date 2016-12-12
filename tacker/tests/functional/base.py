@@ -171,8 +171,10 @@ class BaseTackerTest(base.BaseTestCase):
                              "List of VNF events are Empty")
         self.assertEqual(cnt, len(vnf_evt_list['vnf_events']))
 
-    def verify_vnfd_events(self, vnfd_id, evt_type, tstamp=None, cnt=1):
+    def verify_vnfd_events(self, vnfd_id, evt_type, res_state,
+                           tstamp=None, cnt=1):
         params = {'resource_id': vnfd_id,
+                  'resource_state': res_state,
                   'resource_type': evt_constants.RES_TYPE_VNFD,
                   'event_type': evt_type}
         if tstamp:

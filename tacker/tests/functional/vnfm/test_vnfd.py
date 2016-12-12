@@ -39,12 +39,13 @@ class VnfdTestCreate(base.BaseTackerTest):
 
         self.verify_vnfd_events(
             vnfd_id, evt_constants.RES_EVT_CREATE,
-            vnfd_instance['vnfd'][evt_constants.RES_EVT_CREATED_FLD])
+            evt_constants.RES_EVT_VNFD_ONBOARDED)
         try:
             self.client.delete_vnfd(vnfd_id)
         except Exception:
             assert False, "vnfd Delete failed"
-        self.verify_vnfd_events(vnfd_id, evt_constants.RES_EVT_DELETE)
+        self.verify_vnfd_events(vnfd_id, evt_constants.RES_EVT_DELETE,
+                                evt_constants.RES_EVT_VNFD_NA_STATE)
 
     def test_vnfd(self):
         self._test_create_list_delete_vnfd('sample_cirros_vnf.yaml')

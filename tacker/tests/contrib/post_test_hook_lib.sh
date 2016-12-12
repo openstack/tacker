@@ -15,7 +15,6 @@
 PRIVATE_KEY_FILE=${PRIVATE_KEY_FILE:-"keypair.priv"}
 
 function fixup_quota {
-    source $DEVSTACK_DIR/openrc admin admin
     echo "Disable nova compute instance & core quota"
     nova quota-class-update --instances -1 --cores -1 default
     projectId=$(openstack project list | awk '/\ nfv\ / {print $2}')
@@ -26,7 +25,6 @@ function fixup_quota {
 # Adding nova keypair if not exist to support key_name (#1578785).
 function add_key_if_not_exist {
     echo "Adding nova key if not exist"
-    source $DEVSTACK_DIR/openrc admin admin
     userId=$(openstack user list | awk '/\ nfv_user\ / {print $2}')
     nova keypair-show userKey --user $userId >/dev/null
     if [[ "$?" != "0" ]]; then
@@ -40,7 +38,6 @@ function add_key_if_not_exist {
 # used by OpenStack CI since it will fail if $? is not 0
 function add_key {
     echo "Adding nova key"
-    source $DEVSTACK_DIR/openrc admin admin
     userId=$(openstack user list | awk '/\ nfv_user\ / {print $2}')
     nova keypair-add userKey --user $userId > ${PRIVATE_KEY_FILE}
 }
@@ -61,7 +58,6 @@ function _check_secgrps {
 
 function add_secgrp_if_not_exist {
     echo "Adding nova security group"
-    source $DEVSTACK_DIR/openrc admin admin
     openstack security group show test_secgrp
     if [[ "$?" != "0" ]]; then
         _create_secgrps
@@ -74,7 +70,6 @@ function add_secgrp_if_not_exist {
 # Adding nova security groups (#1591372).
 function add_secgrp {
     echo "Adding nova security group"
-    source $DEVSTACK_DIR/openrc admin admin
     _create_secgrps
     _check_secgrps
 }

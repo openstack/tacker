@@ -76,8 +76,8 @@ class VnfTestToscaCreate(base.BaseTackerTest):
                                                   resource_name=field)
 
         self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.PENDING_CREATE,
-            vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+            vnf_id, evt_constants.RES_EVT_CREATE,
+            evt_constants.PENDING_CREATE, cnt=2)
         self.verify_vnf_crud_events(
             vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
         return vnfd_id, vnf_id
@@ -154,8 +154,8 @@ class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
         self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.PENDING_CREATE,
-            vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+            vnf_id, evt_constants.RES_EVT_CREATE,
+            evt_constants.PENDING_CREATE, cnt=2)
         self.verify_vnf_crud_events(
             vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
 
@@ -216,8 +216,8 @@ class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
         self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
 
         self.verify_vnf_crud_events(
-            vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.PENDING_CREATE,
-            vnf_instance['vnf'][evt_constants.RES_EVT_CREATED_FLD])
+            vnf_id, evt_constants.RES_EVT_CREATE,
+            evt_constants.PENDING_CREATE, cnt=2)
         self.verify_vnf_crud_events(
             vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
 
