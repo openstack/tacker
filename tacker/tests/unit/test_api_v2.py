@@ -541,7 +541,7 @@ class JSONV2TestCase(APIv2TestBase, testlib_api.WebTestCase):
             output_dict = res['networks'][0]
             input_dict['shared'] = False
             self.assertEqual(len(input_dict), len(output_dict))
-            for k, v in six.iteritems(input_dict):
+            for k, v in input_dict.items():
                 self.assertEqual(v, output_dict[k])
         else:
             # expect no results
@@ -1125,8 +1125,7 @@ class SubresourceTest(base.BaseTestCase):
 
         # Save the global RESOURCE_ATTRIBUTE_MAP
         self.saved_attr_map = {}
-        for resource, attrs in six.iteritems(
-                attributes.RESOURCE_ATTRIBUTE_MAP):
+        for resource, attrs in (attributes.RESOURCE_ATTRIBUTE_MAP).items():
             self.saved_attr_map[resource] = attrs.copy()
 
         self.config_parse()
@@ -1294,8 +1293,7 @@ class ExtensionTestCase(base.BaseTestCase):
 
         # Save the global RESOURCE_ATTRIBUTE_MAP
         self.saved_attr_map = {}
-        for resource, attrs in six.iteritems(
-                attributes.RESOURCE_ATTRIBUTE_MAP):
+        for resource, attrs in (attributes.RESOURCE_ATTRIBUTE_MAP).items():
             self.saved_attr_map[resource] = attrs.copy()
 
         # Create the default configurations
