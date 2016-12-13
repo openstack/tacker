@@ -451,3 +451,9 @@ class TestOpenStack(base.TestCase):
             'test_tosca_security_groups.yaml',
             'hot_tosca_security_groups.yaml'
         )
+
+    def test_create_port_with_mac_and_ip(self):
+        self._test_assert_equal_for_tosca_templates(
+            'test_tosca_mac_ip.yaml',
+            'hot_tosca_mac_ip.yaml'
+        )

@@ -352,6 +352,8 @@ VDU1 in this order. Also CP1/CP2 are connected to VL1/VL2 respectively.
       CP1:
         type: tosca.nodes.nfv.CP.Tacker
         properties:
+          mac_address: fa:40:08:a0:de:0a
+          ip_address: 10.10.1.12
           type: vnic
           anti_spoofing_protection: false
           management: true
@@ -418,6 +420,10 @@ VDU1 in this order. Also CP1/CP2 are connected to VL1/VL2 respectively.
 |                         |        |       |           | groups to be         |
 |                         |        |       |           | associated with      |
 |                         |        |       |           | the CP               |
++-------------------------+--------+-------+-----------+----------------------+
+| mac_address             | No     |String | None      | The MAC address      |
++-------------------------+--------+-------+-----------+----------------------+
+| ip _address             | No     |String | None      | The IP address       |
 +-------------------------+--------+-------+-----------+----------------------+
 
 :requirements:

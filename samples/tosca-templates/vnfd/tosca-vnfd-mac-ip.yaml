@@ -1,0 +1,45 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Demo example with key_name
+
+metadata:
+  template_name: sample-tosca-vnfd-keyname
+
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      capabilities:
+        nfv_compute:
+          properties:
+            num_cpus: 1
+            mem_size: 512 MB
+            disk_size: 1 GB
+      properties:
+        image: cirros-0.3.4-x86_64-uec
+        availability_zone: nova
+        mgmt_driver: noop
+        key_name: userKey
+        config: |
+          param0: key1
+          param1: key2
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        mac_address: 6c:40:08:a0:de:0a
+        ip_address: 10.10.1.12
+        order: 0
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net1
+        vendor: Tacker

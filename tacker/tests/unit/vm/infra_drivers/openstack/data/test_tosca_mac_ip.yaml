@@ -1,0 +1,45 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: SecurityGroup Template
+
+metadata:
+  template_name: SecurityGroup
+
+topology_template:
+  node_templates:
+
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      artifacts:
+        vm_image:
+          type: tosca.artifacts.Deployment.Image.VM
+          file: http://URL/vRouterVNF.qcow2
+      properties:
+        flavor: m1.nano
+        mgmt_driver: noop
+        monitoring_policy:
+          name: ping
+          actions:
+            failure: respawn
+          parameters:
+            count: 3
+            interval: 10
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        anti_spoofing_protection: true
+        mac_address: fe:1a:29:d9:36:43
+        ip_address: 10.10.1.12
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: existing_network_1
+        vendor: ACME
