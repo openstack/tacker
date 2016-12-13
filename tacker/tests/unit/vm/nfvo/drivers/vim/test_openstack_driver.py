@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from keystoneclient import exceptions
+from keystoneauth1 import exceptions
 import mock
 from oslo_config import cfg
 

@@ -14,10 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from keystoneclient.auth import identity
+from keystoneauth1 import exceptions
+from keystoneauth1.identity import v3
+from keystoneauth1 import session
 from keystoneclient import client
-from keystoneclient import exceptions
-from keystoneclient import session
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -36,7 +36,7 @@ class Keystone(object):
     def get_version(self, base_url=None):
         try:
             keystone_client = client.Client(auth_url=base_url)
-        except exceptions.ConnectionRefused:
+        except exceptions.ConnectionError:
             raise
         return keystone_client.version
 
@@ -49,7 +49,7 @@ class Keystone(object):
 
     def initialize_client(self, version, **kwargs):
         from keystoneclient.v3 import client
-        auth_plugin = identity.v3.Password(**kwargs)
+        auth_plugin = v3.Password(**kwargs)
         ses = self.get_session(auth_plugin=auth_plugin)
         cli = client.Client(session=ses)
         return cli
