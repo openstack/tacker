@@ -56,6 +56,7 @@ POLICY_ALARMING = 'tosca.policies.tacker.Alarming'
 DEFAULT_ALARM_ACTIONS = ['respawn', 'log', 'log_and_kill', 'notify']
 
 RES_TYPE_VNFD = "vnfd"
+RES_TYPE_NSD = "nsd"
 RES_TYPE_VNF = "vnf"
 RES_TYPE_VIM = "vim"
 
@@ -64,8 +65,8 @@ RES_EVT_DELETE = "DELETE"
 RES_EVT_UPDATE = "UPDATE"
 RES_EVT_MONITOR = "MONITOR"
 RES_EVT_SCALE = "SCALE"
-RES_EVT_VNFD_NA_STATE = "Not Applicable"
-RES_EVT_VNFD_ONBOARDED = "OnBoarded"
+RES_EVT_NA_STATE = "Not Applicable"
+RES_EVT_ONBOARDED = "OnBoarded"
 
 RES_EVT_CREATED_FLD = "created_at"
 RES_EVT_DELETED_FLD = "deleted_at"

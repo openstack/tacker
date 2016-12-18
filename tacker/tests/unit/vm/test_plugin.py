@@ -226,7 +226,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         mock_update_imports.assert_called_once_with(yaml_dict)
         self._cos_db_plugin.create_event.assert_called_once_with(
             self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
-            res_state=constants.RES_EVT_VNFD_ONBOARDED,
+            res_state=constants.RES_EVT_ONBOARDED,
             res_type=constants.RES_TYPE_VNFD, tstamp=mock.ANY)
 
     def test_create_vnfd_no_service_types(self):

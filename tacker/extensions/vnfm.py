@@ -149,6 +149,21 @@ class MetadataNotMatched(exceptions.InvalidInput):
     message = _("Metadata for alarm policy is not matched")
 
 
+class InvalidSubstitutionMapping(exceptions.InvalidInput):
+    message = _("Input for substitution mapping requirements are not"
+                " valid for %(requirement)s. They must be in the form"
+                " of list with two entries")
+
+
+class SMRequirementMissing(exceptions.InvalidInput):
+    message = _("All the requirements for substitution_mappings are not"
+                " provided. Missing requirement for %(requirement)s")
+
+
+class InvalidParamsForSM(exceptions.InvalidInput):
+    message = _("Please provide parameters for substitution mappings")
+
+
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("invalid data format for service list: '%s'") % data

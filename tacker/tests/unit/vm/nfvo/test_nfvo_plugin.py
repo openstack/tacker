@@ -69,7 +69,7 @@ class FakeVNFMPlugin(mock.Mock):
         elif {'name': ['VNF3']} in args:
             return [{'id': self.vnf3_vnfd_id}]
         else:
-            return None
+            return []
 
     def get_vnfs(self, *args, **kwargs):
         if {'vnfd_id': [self.vnf1_vnfd_id]} in args:
@@ -432,3 +432,13 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
                                                        fc_id=mock.ANY,
                                                        auth_attr=mock.ANY)
+
+#    def test_create_nsd(self):
+#        nsd_obj = utils.get_dummy_nsd_obj()
+#        with patch.object(TackerManager, 'get_service_plugins') as \
+#                mock_plugins:
+#            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+#            mock.patch('tacker.common.driver_manager.DriverManager',
+#                       side_effect=FakeDriverManager()).start()
+#            result = self.nfvo_plugin.create_nsd(self.context, nsd_obj)
+#            self.assertIsNotNone(result)

@@ -23,6 +23,7 @@ Based on this comparison database can be healed with healing migration.
 
 from tacker.db import model_base
 from tacker.db.nfvo import nfvo_db  # noqa
+from tacker.db.nfvo import ns_db  # noqa
 from tacker.db.nfvo import vnffg_db  # noqa
 from tacker.db.vnfm import vnfm_db  # noqa
 

@@ -33,7 +33,7 @@ class VnfmTestParam(base.BaseTackerTest):
         self.assertIsNotNone(vnfd_id)
         self.verify_vnfd_events(
             vnfd_id, evt_constants.RES_EVT_CREATE,
-            evt_constants.RES_EVT_VNFD_ONBOARDED)
+            evt_constants.RES_EVT_ONBOARDED)
         return vnfd_instance
 
     def _test_vnfd_delete(self, vnfd_instance):
@@ -45,7 +45,7 @@ class VnfmTestParam(base.BaseTackerTest):
         except Exception:
             assert False, "vnfd Delete failed"
         self.verify_vnfd_events(vnfd_id, evt_constants.RES_EVT_DELETE,
-                                evt_constants.RES_EVT_VNFD_NA_STATE)
+                                evt_constants.RES_EVT_NA_STATE)
         try:
             vnfd_d = self.client.show_vnfd(vnfd_id)
         except Exception:

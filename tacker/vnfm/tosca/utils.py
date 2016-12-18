@@ -100,6 +100,38 @@ def updateimports(template):
 
 
 @log.log
+def check_for_substitution_mappings(template, params):
+    sm_dict = params.get('substitution_mappings')
+    if not sm_dict:
+        raise vnfm.InvalidParamsForSM()
+    del params['substitution_mappings']
+    requirements = sm_dict.get('requirements')
+    if not requirements:
+        pass
+    node_tpl = template['topology_template']['node_templates']
+    req_dict_tpl = template['topology_template']['substitution_mappings'][
+        'requirements']
+    for req_name, req_val in iteritems(req_dict_tpl):
+        if req_name not in requirements:
+            raise vnfm.SMRequirementMissing(requirement=req_name)
+        if not isinstance(req_val, list):
+            raise vnfm.InvalidSubstitutionMapping(requirement=req_name)
+        try:
+            node_name = req_val[0]
+            node_req = req_val[1]
+
+            node_tpl[node_name]['requirements'].append({
+                node_req: {
+                    'node': requirements[req_name]
+                }
+            })
+            node_tpl[requirements[req_name]] = \
+                sm_dict[requirements[req_name]]
+        except Exception:
+            raise vnfm.InvalidSubstitutionMapping(requirement=req_name)
+
+
+@log.log
 def get_vdu_monitoring(template):
     monitoring_dict = {}
     for nt in template.nodetemplates:

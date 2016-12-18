@@ -41,3 +41,4 @@ tosca-parser>=0.7.0 # Apache-2.0
 heat-translator>=0.4.0 # Apache-2.0
 cryptography!=1.3.0,>=1.0 # BSD/Apache-2.0
 paramiko>=2.0 # LGPLv2.1+
+python-mistralclient>=2.0.0 # Apache-2.0

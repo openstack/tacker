@@ -18,12 +18,15 @@ import os
 import threading
 import time
 import uuid
+import yaml
 
 from cryptography import fernet
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import strutils
+from tempfile import mkstemp
+from toscaparser.tosca_template import ToscaTemplate
 
 from tacker._i18n import _
 from tacker.common import driver_manager
@@ -32,6 +35,7 @@ from tacker.common import log
 from tacker.common import utils
 from tacker import context as t_context
 from tacker.db.nfvo import nfvo_db
+from tacker.db.nfvo import ns_db
 from tacker.db.nfvo import vnffg_db
 from tacker.extensions import nfvo
 from tacker import manager
@@ -48,7 +52,8 @@ def config_opts():
     return [('nfvo_vim', NfvoPlugin.OPTS)]
 
 
-class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
+class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
+        ns_db.NSPluginDb):
     """NFVO reference plugin for NFVO extension
 
     Implements the NFVO extension and defines public facing APIs for VIM
@@ -404,3 +409,74 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin):
                                         vim_auth=vim_obj['auth_cred'],
                                         resource_type=resource,
                                         resource_name=name)
+
+    @log.log
+    def create_nsd(self, context, nsd):
+        nsd_data = nsd['nsd']
+        template = nsd_data['attributes'].get('nsd')
+        if isinstance(template, dict):
+            nsd_data['attributes']['nsd'] = yaml.safe_dump(
+                template)
+        LOG.debug(_('nsd %s'), nsd_data)
+
+        name = nsd_data['name']
+        if self._get_by_name(context, ns_db.NSD, name):
+            raise exceptions.DuplicateResourceName(resource='NSD', name=name)
+
+        self._parse_template_input(context, nsd)
+        return super(NfvoPlugin, self).create_nsd(
+            context, nsd)
+
+    def _parse_template_input(self, context, nsd):
+        nsd_dict = nsd['nsd']
+        nsd_yaml = nsd_dict['attributes'].get('nsd')
+        inner_nsd_dict = yaml.load(nsd_yaml)
+        nsd['vnfds'] = dict()
+        LOG.debug(_('nsd_dict: %s'), inner_nsd_dict)
+
+        vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
+        vnfd_imports = inner_nsd_dict['imports']
+        inner_nsd_dict['imports'] = []
+        new_files = []
+        for vnfd_name in vnfd_imports:
+            vnfd = vnfm_plugin.get_vnfd(context, vnfd_name)
+            # Copy VNF types and VNF names
+            sm_dict = yaml.load(vnfd['attributes']['vnfd'])[
+                'topology_template'][
+                'substitution_mappings']
+            nsd['vnfds'][sm_dict['node_type']] = vnfd['name']
+            # Ugly Hack to validate the child templates
+            # TODO(tbh): add support in tosca-parser to pass child
+            # templates as dict
+            fd, temp_path = mkstemp()
+            with open(temp_path, 'w') as fp:
+                fp.write(vnfd['attributes']['vnfd'])
+            os.close(fd)
+            new_files.append(temp_path)
+            inner_nsd_dict['imports'].append(temp_path)
+        # Prepend the tacker_defs.yaml import file with the full
+        # path to the file
+        toscautils.updateimports(inner_nsd_dict)
+
+        try:
+            ToscaTemplate(a_file=False,
+                    yaml_dict_tpl=inner_nsd_dict)
+        except Exception as e:
+            LOG.exception(_("tosca-parser error: %s"), str(e))
+            raise nfvo.ToscaParserFailed(error_msg_details=str(e))
+        finally:
+            for file_path in new_files:
+                os.remove(file_path)
+            inner_nsd_dict['imports'] = vnfd_imports
+
+        if ('description' not in nsd_dict or
+                nsd_dict['description'] == ''):
+            nsd_dict['description'] = inner_nsd_dict.get(
+                'description', '')
+        if (('name' not in nsd_dict or
+                not len(nsd_dict['name'])) and
+                'metadata' in inner_nsd_dict):
+            nsd_dict['name'] = inner_nsd_dict['metadata'].get(
+                'template_name', '')
+
+        LOG.debug(_('nsd %s'), nsd)

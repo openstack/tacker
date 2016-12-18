@@ -289,6 +289,9 @@ class TOSCAToHOT(object):
                 raise vnfm.ParamYAMLNotWellFormed(error_msg_details=str(e))
 
         toscautils.updateimports(vnfd_dict)
+        if 'substitution_mappings' in str(vnfd_dict):
+            toscautils.check_for_substitution_mappings(vnfd_dict,
+                parsed_params)
 
         try:
             tosca = tosca_template.ToscaTemplate(parsed_params=parsed_params,

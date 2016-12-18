@@ -18,6 +18,7 @@ import uuid
 
 from oslo_log import log as logging
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
 
 import sqlalchemy as sa
 from sqlalchemy import orm
@@ -156,7 +157,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def _get_resource(self, context, model, id):
         try:
-            return self._get_by_id(context, model, id)
+            if uuidutils.is_uuid_like(id):
+                return self._get_by_id(context, model, id)
+            return self._get_by_name(context, model, id)
         except orm_exc.NoResultFound:
             if issubclass(model, VNFD):
                 raise vnfm.VNFDNotFound(vnfd_id=id)
@@ -254,7 +257,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         self._cos_db_plg.create_event(
             context, res_id=vnfd_dict['id'],
             res_type=constants.RES_TYPE_VNFD,
-            res_state=constants.RES_EVT_VNFD_ONBOARDED,
+            res_state=constants.RES_EVT_ONBOARDED,
             evt_type=constants.RES_EVT_CREATE,
             tstamp=vnfd_dict[constants.RES_EVT_CREATED_FLD])
         return vnfd_dict
@@ -270,7 +273,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             self._cos_db_plg.create_event(
                 context, res_id=vnfd_dict['id'],
                 res_type=constants.RES_TYPE_VNFD,
-                res_state=constants.RES_EVT_VNFD_NA_STATE,
+                res_state=constants.RES_EVT_NA_STATE,
                 evt_type=constants.RES_EVT_UPDATE,
                 tstamp=vnfd_dict[constants.RES_EVT_UPDATED_FLD])
         return vnfd_dict
@@ -295,7 +298,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 self._cos_db_plg.create_event(
                     context, res_id=vnfd_db['id'],
                     res_type=constants.RES_TYPE_VNFD,
-                    res_state=constants.RES_EVT_VNFD_NA_STATE,
+                    res_state=constants.RES_EVT_NA_STATE,
                     evt_type=constants.RES_EVT_DELETE,
                     tstamp=vnfd_db[constants.RES_EVT_DELETED_FLD])
             else:

@@ -41,6 +41,7 @@ vnfd_alarm_respawn_tosca_template = _get_template(
     'test_tosca_vnfd_alarm_respawn.yaml')
 vnfd_alarm_scale_tosca_template = _get_template(
     'test_tosca_vnfd_alarm_scale.yaml')
+nsd_tosca_template = yaml.load(_get_template('tosca_nsd_template.yaml'))
 
 
 def get_dummy_vnfd_obj():
@@ -177,3 +178,11 @@ def get_dummy_vnffg_obj_vnf_mapping():
                           'VNF3': '7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'
                       },
                       'symmetrical': False}}
+
+
+def get_dummy_nsd_obj():
+    return {'nsd': {'description': 'dummy nsd description',
+                    'name': 'dummy_NSD',
+                    'tenant_id': u'8819a1542a5948b68f94d4be0fd50496',
+                    'template': {},
+                    'attributes': {u'nsd': nsd_tosca_template}}}

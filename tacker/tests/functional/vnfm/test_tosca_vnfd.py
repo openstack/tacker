@@ -37,14 +37,14 @@ class VnfdTestCreate(base.BaseTackerTest):
         vnfd_id = vnfd_instance['vnfd']['id']
         self.verify_vnfd_events(
             vnfd_id, evt_constants.RES_EVT_CREATE,
-            evt_constants.RES_EVT_VNFD_ONBOARDED)
+            evt_constants.RES_EVT_ONBOARDED)
 
         try:
             self.client.delete_vnfd(vnfd_id)
         except Exception:
             assert False, "vnfd Delete failed"
         self.verify_vnfd_events(vnfd_id, evt_constants.RES_EVT_DELETE,
-                                evt_constants.RES_EVT_VNFD_NA_STATE)
+                                evt_constants.RES_EVT_NA_STATE)
 
     def test_tosca_vnfd(self):
         self._test_create_list_delete_tosca_vnfd('sample-tosca-vnfd.yaml',
