@@ -30,7 +30,7 @@ from tacker.common import driver_manager
 from tacker import context as t_context
 from tacker.db.common_services import common_services_db
 from tacker.plugins.common import constants
-from tacker.vnfm.infra_drivers.openstack import openstack
+from tacker.vnfm.infra_drivers.openstack import heat_client as hc
 from tacker.vnfm import vim_client
 
 LOG = logging.getLogger(__name__)
@@ -359,8 +359,8 @@ class ActionRespawnHeat(ActionPolicy):
         def _delete_heat_stack(vim_auth):
             placement_attr = vnf_dict.get('placement_attr', {})
             region_name = placement_attr.get('region_name')
-            heatclient = openstack.HeatClient(auth_attr=vim_auth,
-                                              region_name=region_name)
+            heatclient = hc.HeatClient(auth_attr=vim_auth,
+                                       region_name=region_name)
             heatclient.delete(vnf_dict['instance_id'])
             LOG.debug(_("Heat stack %s delete initiated"), vnf_dict[
                 'instance_id'])

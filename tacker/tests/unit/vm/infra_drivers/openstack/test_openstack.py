@@ -66,7 +66,7 @@ class TestOpenStack(base.TestCase):
         fake_heat_client = mock.Mock()
         fake_heat_client.return_value = self.heat_client
         self._mock(
-            'tacker.vnfm.infra_drivers.openstack.openstack.HeatClient',
+            'tacker.vnfm.infra_drivers.openstack.heat_client.HeatClient',
             fake_heat_client)
 
     def _mock(self, target, new=mock.DEFAULT):
