@@ -212,36 +212,12 @@ extensions:
   in: body
   required: true
   type: array
-infra_driver:
-  description: |
-    Driver used for communication with VIMs.
-  in: body
-  required: true
-  type: string
-infra_driver_opt:
-  description: |
-    Driver used for communication with VIMs.
-  in: body
-  required: false
-  type: string
 links:
   description: |
     A list of links related to the extension.
   in: body
   required: true
   type: array
-mgmt_driver:
-  description: |
-    Driver used for communication with VNF instances for management purpose.
-  in: body
-  required: true
-  type: string
-mgmt_driver_opt:
-  description: |
-    Driver used for communication with VNF instances for management purpose.
-  in: body
-  required: false
-  type: string
 name:
   description: |
     Human-readable name for the resource.
