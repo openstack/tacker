@@ -10,19 +10,23 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import ast
 import uuid
 
 from oslo_log import log as logging
 from oslo_utils import timeutils
+from six import iteritems
 
 import sqlalchemy as sa
 from sqlalchemy import orm
+from sqlalchemy.orm import exc as orm_exc
 
 from tacker.db.common_services import common_services_db
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
 from tacker.db import types
+from tacker.extensions import nfvo
 from tacker.extensions.nfvo_plugins import network_service
 from tacker.plugins.common import constants
 
@@ -94,6 +98,29 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         super(NSPluginDb, self).__init__()
         self._cos_db_plg = common_services_db.CommonServicesPluginDb()
 
+    def _get_resource(self, context, model, id):
+        try:
+            return self._get_by_id(context, model, id)
+        except orm_exc.NoResultFound:
+            if issubclass(model, NSD):
+                raise network_service.NSDNotFound(nsd_id=id)
+            if issubclass(model, NS):
+                raise network_service.NSNotFound(ns_id=id)
+            else:
+                raise
+
+    def _get_ns_db(self, context, ns_id, current_statuses, new_status):
+        try:
+            ns_db = (
+                self._model_query(context, NS).
+                filter(NS.id == ns_id).
+                filter(NS.status.in_(current_statuses)).
+                with_lockmode('update').one())
+        except orm_exc.NoResultFound:
+            raise network_service.NSNotFound(ns_id=ns_id)
+        ns_db.update({'status': new_status})
+        return ns_db
+
     def _make_attributes_dict(self, attributes_db):
         return dict((attr.key, attr.value) for attr in attributes_db)
 
@@ -104,6 +131,18 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         key_list = ('id', 'tenant_id', 'name', 'description',
                     'created_at', 'updated_at', 'vnfds')
         res.update((key, nsd[key]) for key in key_list)
+        return self._fields(res, fields)
+
+    def _make_dev_attrs_dict(self, dev_attrs_db):
+        return dict((arg.key, arg.value) for arg in dev_attrs_db)
+
+    def _make_ns_dict(self, ns_db, fields=None):
+        LOG.debug(_('ns_db %s'), ns_db)
+        res = {}
+        key_list = ('id', 'tenant_id', 'nsd_id', 'name', 'description',
+                    'vnf_ids', 'status', 'mgmt_urls', 'error_reason',
+                    'vim_id', 'created_at', 'updated_at')
+        res.update((key, ns_db[key]) for key in key_list)
         return self._fields(res, fields)
 
     def create_nsd(self, context, nsd):
@@ -150,8 +189,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
             nss_db = context.session.query(NS).filter_by(
                 nsd_id=nsd_id).first()
             if nss_db is not None and nss_db.deleted_at is None:
-                raise network_service.NSDInUse(
-                    nsd_id=nsd_id)
+                raise nfvo.NSDInUse(nsd_id=nsd_id)
 
             nsd_db = self._get_resource(context, NSD,
                                         nsd_id)
@@ -179,14 +217,125 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
 
     # reference implementation. needs to be overrided by subclass
     def create_ns(self, context, ns):
-        return {'nsd': {}}
+        LOG.debug(_('ns %s'), ns)
+        ns = ns['ns']
+        tenant_id = self._get_tenant_id_for_create(context, ns)
+        nsd_id = ns['nsd_id']
+        vim_id = ns['vim_id']
+        name = ns.get('name')
+        ns_id = str(uuid.uuid4())
+        with context.session.begin(subtransactions=True):
+            nsd_db = self._get_resource(context, NSD,
+                                        nsd_id)
+            ns_db = NS(id=ns_id,
+                       tenant_id=tenant_id,
+                       name=name,
+                       description=nsd_db.description,
+                       vnf_ids=None,
+                       status=constants.PENDING_CREATE,
+                       mgmt_urls=None,
+                       nsd_id=nsd_id,
+                       vim_id=vim_id,
+                       error_reason=None)
+            context.session.add(ns_db)
+        evt_details = "NS UUID assigned."
+        self._cos_db_plg.create_event(
+            context, res_id=ns_id,
+            res_type=constants.RES_TYPE_NS,
+            res_state=constants.PENDING_CREATE,
+            evt_type=constants.RES_EVT_CREATE,
+            tstamp=ns_db[constants.RES_EVT_CREATED_FLD],
+            details=evt_details)
+        return self._make_ns_dict(ns_db)
+
+    def create_ns_post(self, context, ns_id, mistral_obj,
+            vnfd_dict, error_reason):
+        LOG.debug(_('ns ID %s'), ns_id)
+        output = ast.literal_eval(mistral_obj.output)
+        mgmt_urls = dict()
+        vnf_ids = dict()
+        if len(output) > 0:
+            for vnfd_name, vnfd_val in iteritems(vnfd_dict):
+                for instance in vnfd_val['instances']:
+                    mgmt_urls[instance] = ast.literal_eval(
+                        output['mgmt_url_' + instance].strip())
+                    vnf_ids[instance] = output['vnf_id_' + instance]
+            vnf_ids = str(vnf_ids)
+            mgmt_urls = str(mgmt_urls)
+
+        if not vnf_ids:
+            vnf_ids = None
+        if not mgmt_urls:
+            mgmt_urls = None
+        status = constants.ACTIVE if mistral_obj.state == 'SUCCESS' \
+            else constants.ERROR
+        with context.session.begin(subtransactions=True):
+            ns_db = self._get_resource(context, NS,
+                                       ns_id)
+            ns_db.update({'vnf_ids': vnf_ids})
+            ns_db.update({'mgmt_urls': mgmt_urls})
+            ns_db.update({'status': status})
+            ns_db.update({'error_reason': error_reason})
+            ns_db.update({'updated_at': timeutils.utcnow()})
+            ns_dict = self._make_ns_dict(ns_db)
+            self._cos_db_plg.create_event(
+                context, res_id=ns_dict['id'],
+                res_type=constants.RES_TYPE_NS,
+                res_state=constants.RES_EVT_NA_STATE,
+                evt_type=constants.RES_EVT_UPDATE,
+                tstamp=ns_dict[constants.RES_EVT_UPDATED_FLD])
+        return ns_dict
 
     # reference implementation. needs to be overrided by subclass
-    def delete_ns(self, context, ns_id, soft_delete=True):
-        pass
+    def delete_ns(self, context, ns_id):
+        with context.session.begin(subtransactions=True):
+            ns_db = self._get_ns_db(
+                context, ns_id, _ACTIVE_UPDATE_ERROR_DEAD,
+                constants.PENDING_DELETE)
+        deleted_ns_db = self._make_ns_dict(ns_db)
+        self._cos_db_plg.create_event(
+            context, res_id=ns_id,
+            res_type=constants.RES_TYPE_NS,
+            res_state=deleted_ns_db['status'],
+            evt_type=constants.RES_EVT_DELETE,
+            tstamp=timeutils.utcnow(), details="NS delete initiated")
+        return deleted_ns_db
+
+    def delete_ns_post(self, context, ns_id, mistral_obj,
+                       error_reason, soft_delete=True):
+        with context.session.begin(subtransactions=True):
+            query = (
+                self._model_query(context, NS).
+                filter(NS.id == ns_id).
+                filter(NS.status == constants.PENDING_DELETE))
+            if mistral_obj.state == 'ERROR':
+                query.update({'status': constants.ERROR})
+                self._cos_db_plg.create_event(
+                    context, res_id=ns_id,
+                    res_type=constants.RES_TYPE_NS,
+                    res_state=constants.ERROR,
+                    evt_type=constants.RES_EVT_DELETE,
+                    tstamp=timeutils.utcnow(),
+                    details="NS Delete ERROR")
+            else:
+                if soft_delete:
+                    deleted_time_stamp = timeutils.utcnow()
+                    query.update({'deleted_at': deleted_time_stamp})
+                    self._cos_db_plg.create_event(
+                        context, res_id=ns_id,
+                        res_type=constants.RES_TYPE_NS,
+                        res_state=constants.PENDING_DELETE,
+                        evt_type=constants.RES_EVT_DELETE,
+                        tstamp=deleted_time_stamp,
+                        details="ns Delete Complete")
+                else:
+                    query.delete()
 
     def get_ns(self, context, ns_id, fields=None):
-        pass
+        ns_db = self._get_resource(context, NS, ns_id)
+        return self._make_ns_dict(ns_db)
 
     def get_nss(self, context, filters=None, fields=None):
-        pass
+        return self._get_collection(context, NS,
+                                    self._make_ns_dict,
+                                    filters=filters, fields=fields)

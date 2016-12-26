@@ -38,6 +38,14 @@ class InvalidModelException(exceptions.TackerException):
     message = _("Specified model is invalid, only Event model supported")
 
 
+class InputValuesMissing(exceptions.InvalidInput):
+    message = _("Parameter input values missing for the key '%(key)s'")
+
+
+class ParamYAMLInputMissing(exceptions.InvalidInput):
+    message = _("Parameter YAML input missing")
+
+
 RESOURCE_ATTRIBUTE_MAP = {
 
     'events': {

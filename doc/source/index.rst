@@ -60,6 +60,7 @@ Feature Documentation
    devref/event_logging.rst
    devref/vnffgd_template_description.rst
    devref/vnffg_usage_guide.rst
+   devref/nsd_usage_guide.rst
 
 API Documentation
 =================

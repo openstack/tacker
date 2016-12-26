@@ -212,6 +212,10 @@ class ClassifierNotFoundException(exceptions.NotFound):
 class NSDInUse(exceptions.InUse):
     message = _('NSD %(nsd_id)s is still in use')
 
+
+class NSInUse(exceptions.InUse):
+    message = _('NS %(ns_id)s is still in use')
+
 RESOURCE_ATTRIBUTE_MAP = {
 
     'vims': {

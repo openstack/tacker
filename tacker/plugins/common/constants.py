@@ -57,6 +57,7 @@ DEFAULT_ALARM_ACTIONS = ['respawn', 'log', 'log_and_kill', 'notify']
 
 RES_TYPE_VNFD = "vnfd"
 RES_TYPE_NSD = "nsd"
+RES_TYPE_NS = "ns"
 RES_TYPE_VNF = "vnf"
 RES_TYPE_VIM = "vim"
 

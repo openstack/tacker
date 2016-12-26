@@ -20,6 +20,7 @@ class OpenstackClients(object):
         super(OpenstackClients, self).__init__()
         self.keystone_plugin = keystone.Keystone()
         self.heat_client = None
+        self.mistral_client = None
         self.keystone_client = None
         self.region_name = region_name
         self.auth_attr = auth_attr

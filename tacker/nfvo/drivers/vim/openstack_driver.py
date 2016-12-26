@@ -16,12 +16,14 @@
 
 import os
 import six
+import yaml
 
 from keystoneauth1 import exceptions
 from keystoneauth1 import identity
 from keystoneauth1.identity import v2
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
+from mistralclient.api import client as mistral_client
 from neutronclient.common import exceptions as nc_exceptions
 from neutronclient.v2_0 import client as neutron_client
 from oslo_config import cfg
@@ -33,6 +35,7 @@ from tacker.common import log
 from tacker.extensions import nfvo
 from tacker.nfvo.drivers.vim import abstract_vim_driver
 from tacker.nfvo.drivers.vnffg import abstract_vnffg_driver
+from tacker.nfvo.drivers.workflow import workflow_generator
 from tacker.vnfm import keystone
 
 
@@ -452,6 +455,77 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         neutronclient_ = NeutronClient(auth_attr)
         neutronclient_.flow_classifier_delete(fc_id)
+
+    def prepare_and_create_workflow(self, resource, action, vim_auth,
+                                    kwargs, auth_token=None):
+        if not auth_token:
+            LOG.warning(_("auth token required to create mistral workflows"))
+            raise EnvironmentError('auth token required for'
+                                   ' mistral workflow driver')
+        mistral_client = MistralClient(
+            self.keystone.initialize_client('2', **vim_auth),
+            auth_token).get_client()
+        wg = workflow_generator.WorkflowGenerator(resource, action)
+        wg.task(**kwargs)
+        definition_yaml = yaml.dump(wg.definition)
+        workflow = mistral_client.workflows.create(definition_yaml)
+        return {'id': workflow[0].id, 'input': wg.get_input_dict()}
+
+    def execute_workflow(self, workflow, vim_auth, auth_token=None):
+        if not auth_token:
+            LOG.warning(_("auth token required to create mistral workflows"))
+            raise EnvironmentError('auth token required for'
+                                   ' mistral workflow driver')
+        mistral_client = MistralClient(
+            self.keystone.initialize_client('2', **vim_auth),
+            auth_token).get_client()
+        return mistral_client.executions.create(
+            workflow_identifier=workflow['id'],
+            workflow_input=workflow['input'],
+            wf_params={})
+
+    def get_execution(self, execution_id, vim_auth, auth_token=None):
+        if not auth_token:
+            LOG.warning(_("auth token required to create mistral workflows"))
+            raise EnvironmentError('auth token required for'
+                                   ' mistral workflow driver')
+        mistral_client = MistralClient(
+            self.keystone.initialize_client('2', **vim_auth),
+            auth_token).get_client()
+        return mistral_client.executions.get(execution_id)
+
+    def delete_execution(self, execution_id, vim_auth, auth_token=None):
+        if not auth_token:
+            LOG.warning(_("auth token required to create mistral workflows"))
+            raise EnvironmentError('auth token required for'
+                                   ' mistral workflow driver')
+        mistral_client = MistralClient(
+            self.keystone.initialize_client('2', **vim_auth),
+            auth_token).get_client()
+        return mistral_client.executions.delete(execution_id)
+
+    def delete_workflow(self, workflow_id, vim_auth, auth_token=None):
+        if not auth_token:
+            LOG.warning(_("auth token required to create mistral workflows"))
+            raise EnvironmentError('auth token required for'
+                                   ' mistral workflow driver')
+        mistral_client = MistralClient(
+            self.keystone.initialize_client('2', **vim_auth),
+            auth_token).get_client()
+        return mistral_client.workflows.delete(workflow_id)
+
+
+class MistralClient(object):
+    """Mistral Client class for NSD"""
+
+    def __init__(self, keystone, auth_token):
+        endpoint = keystone.session.get_endpoint(
+            service_type='workflowv2', region_name=None)
+        self.client = mistral_client.client(auth_token=auth_token,
+                                     mistral_url=endpoint)
+
+    def get_client(self):
+        return self.client
 
 
 class NeutronClient(object):

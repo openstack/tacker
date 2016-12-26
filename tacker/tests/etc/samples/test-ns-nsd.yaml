@@ -1,0 +1,37 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+imports:
+    - test-ns-vnfd1
+    - test-ns-vnfd2
+
+topology_template:
+  inputs:
+    vl1_name:
+      type: string
+      description: name of VL1 virtuallink
+      default: net_mgmt
+    vl2_name:
+      type: string
+      description: name of VL2 virtuallink
+      default: net0
+  node_templates:
+      VNF1:
+        type: tosca.nodes.nfv.VNF1
+        requirements:
+          - virtualLink1: VL1
+          - virtualLink2: VL2
+
+      VNF2:
+        type: tosca.nodes.nfv.VNF2
+
+      VL1:
+        type: tosca.nodes.nfv.VL
+        properties:
+          network_name: {get_input: vl1_name}
+          vendor: tacker
+
+      VL2:
+        type: tosca.nodes.nfv.VL
+        properties:
+          network_name: {get_input: vl2_name}
+          vendor: tacker
+

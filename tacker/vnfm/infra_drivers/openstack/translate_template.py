@@ -21,6 +21,7 @@ from translator.hot import tosca_translator
 import yaml
 
 from tacker.common import log
+from tacker.extensions import common_services as cs
 from tacker.extensions import vnfm
 from tacker.vnfm.tosca import utils as toscautils
 
@@ -165,13 +166,13 @@ class TOSCAToHOT(object):
                         self._update_params(value, paramvalues[key], False)
                     else:
                         LOG.debug('Key missing Value: %s', key)
-                        raise vnfm.InputValuesMissing(key=key)
+                        raise cs.InputValuesMissing(key=key)
                 elif 'get_input' in value:
                     if value['get_input'] in paramvalues:
                         original[key] = paramvalues[value['get_input']]
                     else:
                         LOG.debug('Key missing Value: %s', key)
-                        raise vnfm.InputValuesMissing(key=key)
+                        raise cs.InputValuesMissing(key=key)
                 else:
                     self._update_params(value, paramvalues, True)
 
@@ -189,7 +190,7 @@ class TOSCAToHOT(object):
             else:
                 self._update_params(vnfd_dict, param_vattrs_dict)
         else:
-            raise vnfm.ParamYAMLInputMissing()
+            raise cs.ParamYAMLInputMissing()
 
     @log.log
     def _process_vdu_network_interfaces(self, vdu_id, vdu_dict, properties,

@@ -13,7 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import codecs
+import datetime
 import mock
+import os
 import uuid
 
 
@@ -23,6 +26,7 @@ from tacker.common import exceptions
 from tacker import context
 from tacker.db.common_services import common_services_db
 from tacker.db.nfvo import nfvo_db
+from tacker.db.nfvo import ns_db
 from tacker.db.nfvo import vnffg_db
 from tacker.extensions import nfvo
 from tacker.manager import TackerManager
@@ -30,6 +34,7 @@ from tacker.nfvo import nfvo_plugin
 from tacker.plugins.common import constants
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.db import utils
+from tacker.vnfm import vim_client
 
 SECRET_PASSWORD = '***'
 
@@ -41,11 +46,66 @@ def dummy_get_vim(*args, **kwargs):
     return vim_obj
 
 
+def _get_template(name):
+    filename = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                '../../../etc/samples/' + str(name)))
+    f = codecs.open(filename, encoding='utf-8', errors='strict')
+    return f.read()
+
+
 class FakeDriverManager(mock.Mock):
     def invoke(self, *args, **kwargs):
         if any(x in ['create', 'create_chain', 'create_flow_classifier'] for
                x in args):
             return str(uuid.uuid4())
+        elif 'execute_workflow' in args:
+            mock_execution = mock.Mock()
+            mock_execution.id.return_value = \
+                "ba6bf017-f6f7-45f1-a280-57b073bf78ea"
+            return mock_execution
+
+
+def get_fake_nsd():
+    create_time = datetime.datetime(2017, 1, 19, 9, 2, 11)
+    return {'description': u'',
+            'tenant_id': u'a81900a92bda40588c52699e1873a92f',
+            'created_at': create_time, 'updated_at': None,
+            'vnfds': {u'tosca.nodes.nfv.VNF1': u'vnf1',
+                      u'tosca.nodes.nfv.VNF2': u'vnf2'},
+            'attributes': {u'nsd': u'imports: [tinku1, tinku2]\ntopology_'
+            'template:\n  inputs:\n    vl1_name: {default: net_mgmt, '
+            'description: name of VL1 virtuallink, type: string}\n    '
+            'vl2_name: {default: net0, description: name of VL2 virtuallink, '
+            'type: string}\n  node_templates:\n    VL1:\n      properties:\n'
+            '        network_name: {get_input: vl1_name}\n        vendor: '
+            'tacker\n      type: tosca.nodes.nfv.VL\n    VL2:\n      '
+            'properties:\n        network_name: {get_input: vl2_name}\n    '
+            '    vendor: tacker\n      type: tosca.nodes.nfv.VL\n    VNF1:\n'
+            '      requirements:\n      - {virtualLink1: VL1}\n      - {'
+            'virtualLink2: VL2}\n      type: tosca.nodes.nfv.VNF1\n    VNF2: '
+            '{type: tosca.nodes.nfv.VNF2}\ntosca_definitions_version: tosca_'
+            'simple_profile_for_nfv_1_0_0\n'},
+            'id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e', 'name': u'nsd'}
+
+
+def get_by_name():
+    return False
+
+
+def dummy_get_vim_auth(*args, **kwargs):
+    return {'vim_auth': {u'username': u'admin', 'password': 'devstack',
+                         u'project_name': u'nfv', u'user_id': u'',
+                         u'user_domain_name': u'Default',
+                         u'auth_url': u'http://10.0.4.207/identity/v3',
+                         u'project_id': u'',
+                         u'project_domain_name': u'Default'},
+            'vim_id': u'96025dd5-ca16-49f3-9823-958eb04260c4',
+            'vim_type': u'openstack', 'vim_name': u'VIM0'}
+
+
+class FakeClient(mock.Mock):
+    def __init__(self, auth):
+        pass
 
 
 class FakeVNFMPlugin(mock.Mock):
@@ -55,6 +115,7 @@ class FakeVNFMPlugin(mock.Mock):
         self.vnf1_vnfd_id = 'eb094833-995e-49f0-a047-dfb56aaf7c4e'
         self.vnf1_vnf_id = '91e32c20-6d1f-47a4-9ba7-08f5e5effe07'
         self.vnf3_vnfd_id = 'e4015e9f-1ef2-49fb-adb6-070791ad3c45'
+        self.vnf2_vnfd_id = 'e4015e9f-1ef2-49fb-adb6-070791ad3c45'
         self.vnf3_vnf_id = '7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'
         self.vnf3_update_vnf_id = '10f66bc5-b2f1-45b7-a7cd-6dd6ad0017f5'
 
@@ -62,6 +123,18 @@ class FakeVNFMPlugin(mock.Mock):
         self.cp12_id = 'c8906342-3e30-4b2a-9401-a251a7a9b5dd'
         self.cp32_id = '3d1bd2a2-bf0e-44d1-87af-a2c6b2cad3ed'
         self.cp32_update_id = '064c0d99-5a61-4711-9597-2a44dc5da14b'
+
+    def get_vnfd(self, *args, **kwargs):
+        if 'VNF1' in args:
+            return {'id': self.vnf1_vnfd_id,
+                    'name': 'VNF1',
+                    'attributes': {'vnfd': _get_template(
+                                   'test-nsd-vnfd1.yaml')}}
+        elif 'VNF2' in args:
+            return {'id': self.vnf3_vnfd_id,
+                    'name': 'VNF2',
+                    'attributes': {'vnfd': _get_template(
+                                   'test-nsd-vnfd2.yaml')}}
 
     def get_vnfds(self, *args, **kwargs):
         if {'name': ['VNF1']} in args:
@@ -433,12 +506,99 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                                                        fc_id=mock.ANY,
                                                        auth_attr=mock.ANY)
 
-#    def test_create_nsd(self):
-#        nsd_obj = utils.get_dummy_nsd_obj()
-#        with patch.object(TackerManager, 'get_service_plugins') as \
-#                mock_plugins:
-#            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
-#            mock.patch('tacker.common.driver_manager.DriverManager',
-#                       side_effect=FakeDriverManager()).start()
-#            result = self.nfvo_plugin.create_nsd(self.context, nsd_obj)
-#            self.assertIsNotNone(result)
+    def _insert_dummy_ns_template(self):
+        session = self.context.session
+        attributes = {
+            u'nsd': 'imports: [VNF1, VNF2]\ntopology_template:\n  inputs:\n  '
+                    '  vl1_name: {default: net_mgmt, description: name of VL1'
+                    ' virtuallink, type: string}\n    vl2_name: {default: '
+                    'net0, description: name of VL2 virtuallink, type: string'
+                    '}\n  node_templates:\n    VL1:\n      properties:\n     '
+                    '   network_name: {get_input: vl1_name}\n        vendor: '
+                    'tacker\n      type: tosca.nodes.nfv.VL\n    VL2:\n      '
+                    'properties:\n        network_name: {get_input: vl2_name}'
+                    '\n        vendor: tacker\n      type: tosca.nodes.nfv.VL'
+                    '\n    VNF1:\n      requirements:\n      - {virtualLink1: '
+                    'VL1}\n      - {virtualLink2: VL2}\n      type: tosca.node'
+                    's.nfv.VNF1\n    VNF2: {type: tosca.nodes.nfv.VNF2}\ntosca'
+                    '_definitions_version: tosca_simple_profile_for_nfv_1_0_0'
+                    '\n'}
+        nsd_template = ns_db.NSD(
+            id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='fake_template',
+            vnfds={'tosca.nodes.nfv.VNF1': 'vnf1',
+                   'tosca.nodes.nfv.VNF2': 'vnf2'},
+            description='fake_nsd_template_description')
+        session.add(nsd_template)
+        for (key, value) in attributes.items():
+            attribute_db = ns_db.NSDAttribute(
+                id=str(uuid.uuid4()),
+                nsd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                key=key,
+                value=value)
+            session.add(attribute_db)
+        session.flush()
+        return nsd_template
+
+    def _insert_dummy_ns(self):
+        session = self.context.session
+        ns = ns_db.NS(
+            id='ba6bf017-f6f7-45f1-a280-57b073bf78ea',
+            name='fake_ns',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            status='ACTIVE',
+            nsd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            description='fake_ns_description')
+        session.add(ns)
+        session.flush()
+        return ns
+
+    def test_create_nsd(self):
+        nsd_obj = utils.get_dummy_nsd_obj()
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock.patch('tacker.common.driver_manager.DriverManager',
+                       side_effect=FakeDriverManager()).start()
+            result = self.nfvo_plugin.create_nsd(self.context, nsd_obj)
+            self.assertIsNotNone(result)
+            self.assertEqual(result['name'], 'dummy_NSD')
+
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
+    def test_create_ns(self, mock_get_by_name, mock_get_vim):
+        self._insert_dummy_ns_template()
+        self._insert_dummy_vim()
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock.patch('tacker.common.driver_manager.DriverManager',
+                       side_effect=FakeDriverManager()).start()
+            mock_get_by_name.return_value = get_by_name()
+
+            ns_obj = utils.get_dummy_ns_obj()
+            result = self.nfvo_plugin.create_ns(self.context, ns_obj)
+            self.assertIsNotNone(result)
+            self.assertIn('id', result)
+            self.assertEqual(ns_obj['ns']['nsd_id'], result['nsd_id'])
+            self.assertEqual(ns_obj['ns']['name'], result['name'])
+            self.assertIn('status', result)
+            self.assertIn('tenant_id', result)
+
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
+    def test_delete_ns(self, mock_get_by_name, mock_get_vim):
+        self._insert_dummy_vim()
+        self._insert_dummy_ns_template()
+        self._insert_dummy_ns()
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock.patch('tacker.common.driver_manager.DriverManager',
+                       side_effect=FakeDriverManager()).start()
+            mock_get_by_name.return_value = get_by_name()
+            result = self.nfvo_plugin.delete_ns(self.context,
+                'ba6bf017-f6f7-45f1-a280-57b073bf78ea')
+            self.assertIsNotNone(result)
