@@ -424,7 +424,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                     raise nfvo.NfpRequirementsException(vnfd=element[
                         'forwarder'])
                 else:
-                    chain_list[-1]['connection_points'].append(vnf_cp)
+                    chain_list[-1][CP].append(vnf_cp)
 
         return chain_list
 
