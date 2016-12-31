@@ -391,14 +391,17 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
     @log.log
     def get_resource_info(self, plugin, context, vnf_info, auth_attr,
                           region_name=None):
-        stack_id = vnf_info['instance_id']
+        instance_id = vnf_info['instance_id']
         heatclient = hc.HeatClient(auth_attr, region_name)
         try:
-            resources_ids = heatclient.resource_get_list(stack_id)
+            # nested_depth=2 is used to get VDU resources
+            # in case of nested template
+            resources_ids =\
+                heatclient.resource_get_list(instance_id, nested_depth=2)
             details_dict = {resource.resource_name:
-                           {"id": resource.physical_resource_id,
-                           "type": resource.resource_type}
-                           for resource in resources_ids}
+                            {"id": resource.physical_resource_id,
+                             "type": resource.resource_type}
+                            for resource in resources_ids}
             return details_dict
         # Raise exception when Heat API service is not available
         except Exception:
