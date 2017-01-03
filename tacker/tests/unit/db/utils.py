@@ -46,9 +46,31 @@ def get_dummy_vnfd_obj():
                       'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                       u'attributes': {u'vnfd': yaml.safe_load(
                           tosca_vnfd_openwrt)},
-                      'description': 'dummy_vnfd_description'},
+                      'description': 'dummy_vnfd_description',
+                      'template_source': 'onboarded',
             u'auth': {u'tenantName': u'admin', u'passwordCredentials': {
-                u'username': u'admin', u'password': u'devstack'}}}
+                u'username': u'admin', u'password': u'devstack'}}}}
+
+
+def get_dummy_vnfd_obj_inline():
+    return {u'vnfd': {u'service_types': [{u'service_type': u'vnfd'}],
+                      'name': 'tmpl-koeak4tqgoqo8cr4-dummy_inline_vnf',
+                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      u'attributes': {u'vnfd': yaml.safe_load(
+                          tosca_vnfd_openwrt)},
+                      'template_source': 'inline',
+            u'auth': {u'tenantName': u'admin', u'passwordCredentials': {
+                u'username': u'admin', u'password': u'devstack'}}}}
+
+
+def get_dummy_inline_vnf_obj():
+    return {'vnf': {'description': 'dummy_inline_vnf_description',
+                    'vnfd_template': yaml.safe_load(tosca_vnfd_openwrt),
+                    'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                    'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                    'name': 'dummy_inline_vnf',
+                    'attributes': {},
+                    'vnfd_id': None}}
 
 
 def get_dummy_vnf_obj():
@@ -57,7 +79,8 @@ def get_dummy_vnf_obj():
                     'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
                     'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                     'name': 'dummy_vnf',
-                    'attributes': {}}}
+                    'attributes': {},
+                    'vnfd_template': None}}
 
 
 def get_dummy_vnf_config_obj():

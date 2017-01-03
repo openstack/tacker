@@ -102,6 +102,7 @@ Response Parameters
   - attributes: vnfd_attributes
   - id: vnfd_id
   - name: name
+  - template_source: vnfd_template_source
 
 
 Response Example
@@ -151,6 +152,7 @@ Response Parameters
   - attributes: vnfd_attributes
   - id: vnfd_id
   - name: name
+  - template_source: vnfd_template_source
 
 Response Example
 ----------------

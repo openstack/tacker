@@ -163,6 +163,11 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             # framework doesn't know what services are valid for now.
             # so doesn't check it here yet.
             pass
+        if 'template_source' in vnfd_data:
+            template_source = vnfd_data.get('template_source')
+        else:
+            template_source = 'onboarded'
+        vnfd['vnfd']['template_source'] = template_source
 
         self._parse_template_input(vnfd)
         return super(VNFMPlugin, self).create_vnfd(
@@ -334,6 +339,17 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         name = vnf_info['name']
         if self._get_by_name(context, vnfm_db.VNF, name):
             raise exceptions.DuplicateResourceName(resource='VNF', name=name)
+
+        # if vnfd_template specified, create vnfd from template
+        # create template dictionary structure same as needed in create_vnfd()
+        if vnf_info.get('vnfd_template'):
+            vnfd_name = utils.generate_resource_name(name, 'inline')
+            vnfd = {'vnfd': {'attributes': {'vnfd': vnf_info['vnfd_template']},
+                             'name': vnfd_name,
+                             'template_source': 'inline',
+                             'service_types': [{'service_type': 'vnfd'}]}}
+            vnf_info['vnfd_id'] = self.create_vnfd(context, vnfd).get('id')
+
         vnf_attributes = vnf_info['attributes']
         if vnf_attributes.get('param_values'):
             param = vnf_attributes['param_values']
@@ -464,8 +480,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 LOG.exception(_('_delete_vnf_wait'))
 
         self.mgmt_delete_post(context, vnf_dict)
-        vnf_id = vnf_dict['id']
-        self._delete_vnf_post(context, vnf_id, e)
+        self._delete_vnf_post(context, vnf_dict, e)
 
     def delete_vnf(self, context, vnf_id):
         vnf_dict = self._delete_vnf_pre(context, vnf_id)
@@ -497,7 +512,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 vnf_dict['status'] = constants.ERROR
                 vnf_dict['error_reason'] = six.text_type(e)
                 self.mgmt_delete_post(context, vnf_dict)
-                self._delete_vnf_post(context, vnf_id, e)
+                self._delete_vnf_post(context, vnf_dict, e)
 
         self.spawn_n(self._delete_vnf_wait, context, vnf_dict, vim_auth,
                      driver_name)

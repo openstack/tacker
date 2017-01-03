@@ -21,8 +21,10 @@
 import functools
 import logging as std_logging
 import os
+import random
 import signal
 import socket
+import string
 import sys
 
 from eventlet.green import subprocess
@@ -306,3 +308,11 @@ def deprecate_warning(what, as_of, in_favor_of=None, remove_in=1):
     versionutils.deprecation_warning(as_of=as_of, what=what,
                                      in_favor_of=in_favor_of,
                                      remove_in=remove_in)
+
+
+def generate_resource_name(resource, prefix='tmpl'):
+    return prefix + '-' \
+        + ''.join(random.SystemRandom().choice(
+                  string.ascii_lowercase + string.digits)
+          for _ in range(16)) \
+        + '-' + resource

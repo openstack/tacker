@@ -236,6 +236,12 @@ RESOURCE_ATTRIBUTE_MAP = {
             'allow_put': False,
             'is_visible': True,
         },
+        'template_source': {
+            'allow_post': False,
+            'allow_put': False,
+            'is_visible': True,
+            'default': 'onboarded'
+        },
     },
 
     'vnfs': {
@@ -258,6 +264,7 @@ RESOURCE_ATTRIBUTE_MAP = {
             'allow_put': False,
             'validate': {'type:uuid': None},
             'is_visible': True,
+            'default': None
         },
         'vim_id': {
             'allow_post': True,
@@ -324,6 +331,13 @@ RESOURCE_ATTRIBUTE_MAP = {
             'allow_post': False,
             'allow_put': False,
             'is_visible': True,
+        },
+        'vnfd_template': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:dict_or_none': None},
+            'is_visible': True,
+            'default': None,
         },
     },
 }
