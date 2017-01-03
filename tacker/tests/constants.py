@@ -10,6 +10,8 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
+POLICY_ALARMING = 'tosca.policies.tacker.Alarming'
+DEFAULT_ALARM_ACTIONS = ['respawn', 'log', 'log_and_kill', 'notify']
 VNF_CIRROS_CREATE_TIMEOUT = 300
 VNF_CIRROS_DELETE_TIMEOUT = 300
 VNF_CIRROS_DEAD_TIMEOUT = 250

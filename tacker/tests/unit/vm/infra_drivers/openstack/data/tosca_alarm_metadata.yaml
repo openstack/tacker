@@ -1,5 +1,8 @@
 tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
-description: Demo example
+description: >
+  An exception will be raised when having the mismatched metadata
+  (metadata is described in monitoring policy but unavailable in
+  VDU properties).
 
 metadata:
  template_name: sample-tosca-vnfd
@@ -18,7 +21,7 @@ topology_template:
         image: cirros-0.3.4-x86_64-uec
         mgmt_driver: noop
         availability_zone: nova
-        metadata: {metering.vnf: SG1}
+
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker
@@ -38,30 +41,20 @@ topology_template:
         vendor: Tacker
 
   policies:
-    - SP1:
-        type: tosca.policies.tacker.Scaling
-        properties:
-          increment: 1
-          cooldown: 120
-          min_instances: 1
-          max_instances: 3
-          default_instances: 2
-          targets: [VDU1]
-
     - vdu1_cpu_usage_monitoring_policy:
         type: tosca.policies.tacker.Alarming
         triggers:
-            vdu_hcpu_usage_scaling_out:
+           vdu_hcpu_usage_respawning:
                 event_type:
                     type: tosca.events.resource.utilization
-                    implementation: ceilometer
+                    implementation: Ceilometer
                 metrics: cpu_util
                 condition:
                     threshold: 50
                     constraint: utilization greater_than 50%
-                    period: 600
+                    period: 60
                     evaluations: 1
-                    method: avg
+                    method: average
                     comparison_operator: gt
-                metadata: SG1
-                actions: [SP1]
+                metadata: VDU1
+                actions: ''

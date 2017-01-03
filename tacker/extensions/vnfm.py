@@ -153,6 +153,10 @@ class VNFInactive(exceptions.InvalidInput):
     message = _("VNF %(vnf_id)s is not in Active state %(message)s")
 
 
+class MetadataNotMatched(exceptions.InvalidInput):
+    message = _("Metadata for alarm policy is not matched")
+
+
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("invalid data format for service list: '%s'") % data

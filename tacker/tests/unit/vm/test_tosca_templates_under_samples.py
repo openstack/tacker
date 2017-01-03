@@ -67,7 +67,7 @@ class TestSamples(testtools.TestCase):
                     self.assertIsNotNone(
                         tosca,
                         "Tosca parser failed to parse %s" % f)
-
+                    utils.post_process_template(tosca)
                     hot = None
                     try:
                         hot = tosca_translator.TOSCATranslator(tosca,

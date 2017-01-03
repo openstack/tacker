@@ -1,0 +1,42 @@
+heat_template_version: 2013-05-23
+description: 'Demo example
+
+'
+
+outputs:
+  mgmt_ip-VDU1:
+    value:
+      get_attr: [CP1, fixed_ips, 0, ip_address]
+parameters: {}
+resources:
+  VDU1:
+    properties:
+      availability_zone: nova
+      config_drive: false
+      flavor: {get_resource: VDU1_flavor}
+      image: cirros-0.3.4-x86_64-uec
+      networks:
+      - port: {get_resource: CP1}
+      user_data_format: SOFTWARE_CONFIG
+      metadata: {'metering.vnf': 'VDU1'}
+    type: OS::Nova::Server
+  CP1:
+    properties: {network: net_mgmt, port_security_enabled: false}
+    type: OS::Neutron::Port
+  VDU1_flavor:
+    type: OS::Nova::Flavor
+    properties:
+      disk: 1
+      ram: 512
+      vcpus: 2
+  vdu_hcpu_usage_respawning:
+    type: OS::Aodh::Alarm
+    properties:
+      description: utilization greater_than 50%
+      meter_name: cpu_util
+      threshold: 50
+      period: 60
+      statistic: average
+      evaluation_periods: 1
+      comparison_operator: gt
+      'matching_metadata': {'metadata.user_metadata.vnf': 'VDU1'}

@@ -30,30 +30,6 @@ topology_template:
             node: VL1
         - virtualBinding:
             node: VDU1
-    VDU2:
-      type: tosca.nodes.nfv.VDU.Tacker
-      capabilities:
-        nfv_compute:
-          properties:
-            disk_size: 1 GB
-            mem_size: 512 MB
-            num_cpus: 2
-      properties:
-        image: cirros-0.3.4-x86_64-uec
-        mgmt_driver: noop
-        availability_zone: nova
-        metadata: {metering.vnf: SG1}
-
-    CP2:
-      type: tosca.nodes.nfv.CP.Tacker
-      properties:
-        management: true
-        anti_spoofing_protection: false
-      requirements:
-        - virtualLink:
-            node: VL1
-        - virtualBinding:
-            node: VDU2
 
     VL1:
       type: tosca.nodes.nfv.VL
@@ -66,11 +42,11 @@ topology_template:
         type: tosca.policies.tacker.Scaling
         properties:
           increment: 1
-          cooldown: 120
+          cooldown: 60
           min_instances: 1
           max_instances: 3
           default_instances: 2
-          targets: [VDU1,VDU2]
+          targets: [VDU1]
 
     - vdu_cpu_usage_monitoring_policy:
         type: tosca.policies.tacker.Alarming
@@ -90,8 +66,7 @@ topology_template:
                 metadata: SG1
                 actions: [SP1]
 
-            vdu_lcpu_usage_scaling_in:
-                targets: [VDU1, VDU2]
+            vdu_hcpu_usage_scaling_in:
                 event_type:
                     type: tosca.events.resource.utilization
                     implementation: ceilometer

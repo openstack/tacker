@@ -215,43 +215,59 @@ class VNFAlarmMonitor(object):
             'tacker.tacker.alarm_monitor.drivers',
             cfg.CONF.tacker.alarm_monitor_driver)
 
-    def update_vnf_with_alarm(self, vnf, policy_name, policy_dict):
-        params = dict()
-        params['vnf_id'] = vnf['id']
-        params['mon_policy_name'] = policy_name
-        driver = policy_dict['triggers']['resize_compute'][
-            'event_type']['implementation']
-        policy_action = policy_dict['triggers']['resize_compute'].get('action')
-        if not policy_action:
-            _log_monitor_events(t_context.get_admin_context(),
-                                vnf,
-                                "Alarm not set: policy action missing")
-            return
-        alarm_action_name = policy_action['resize_compute'].get('action_name')
-        if not alarm_action_name:
-            _log_monitor_events(t_context.get_admin_context(),
-                                vnf,
-                                "Alarm not set: alarm action name missing")
-            return
-        params['mon_policy_action'] = alarm_action_name
-        alarm_url = self.call_alarm_url(driver, vnf, params)
-        details = "Alarm URL set successfully: %s" % alarm_url
-        _log_monitor_events(t_context.get_admin_context(),
-                            vnf,
-                            details)
-        return alarm_url
-        # vnf['attribute']['alarm_url'] = alarm_url ---> create
-        # by plugin or vm_db
+    def update_vnf_with_alarm(self, plugin, context, vnf, policy_dict):
+        triggers = policy_dict['triggers']
+        alarm_url = dict()
+        for trigger_name, trigger_dict in triggers.items():
+            params = dict()
+            params['vnf_id'] = vnf['id']
+            params['mon_policy_name'] = trigger_name
+            driver = trigger_dict['event_type']['implementation']
+            policy_action_list = trigger_dict.get('actions')
+            if len(policy_action_list) == 0:
+                _log_monitor_events(t_context.get_admin_context(),
+                                    vnf,
+                                    "Alarm not set: policy action missing")
+                return
+            # Other backend policies with the construct (policy, action)
+            # ex: (SP1, in), (SP1, out)
 
-    def process_alarm_for_vnf(self, policy):
+            def _refactor_backend_policy(bk_policy_name, bk_action_name):
+                policy = '%(policy_name)s-%(action_name)s' % {
+                    'policy_name': bk_policy_name,
+                    'action_name': bk_action_name}
+                return policy
+            for policy_action in policy_action_list:
+                filters = {'name': policy_action}
+                bkend_policies =\
+                    plugin.get_vnf_policies(context, vnf['id'], filters)
+                if bkend_policies:
+                    bkend_policy = bkend_policies[0]
+                    if bkend_policy['type'] == constants.POLICY_SCALING:
+                        cp = trigger_dict['condition'].\
+                            get('comparison_operator')
+                        scaling_type = 'out' if cp == 'gt' else 'in'
+                        policy_action = _refactor_backend_policy(policy_action,
+                                                                 scaling_type)
+
+                params['mon_policy_action'] = policy_action
+                alarm_url[trigger_name] =\
+                    self.call_alarm_url(driver, vnf, params)
+                details = "Alarm URL set successfully: %s" % alarm_url
+                _log_monitor_events(t_context.get_admin_context(),
+                                    vnf,
+                                    details)
+        return alarm_url
+
+    def process_alarm_for_vnf(self, vnf, trigger):
         '''call in plugin'''
-        vnf = policy['vnf']
-        params = policy['params']
-        mon_prop = policy['properties']
+        params = trigger['params']
+        mon_prop = trigger['trigger']
         alarm_dict = dict()
         alarm_dict['alarm_id'] = params['data'].get('alarm_id')
         alarm_dict['status'] = params['data'].get('current')
-        driver = mon_prop['resize_compute']['event_type']['implementation']
+        trigger_name, trigger_dict = list(mon_prop.items())[0]
+        driver = trigger_dict['event_type']['implementation']
         return self.process_alarm(driver, vnf, alarm_dict)
 
     def _invoke(self, driver, **kwargs):
@@ -382,9 +398,9 @@ class ActionRespawnHeat(ActionPolicy):
                 plugin.add_vnf_to_monitor(updated_vnf, vim_res['vim_type'])
                 LOG.debug(_("VNF %s added to monitor thread"), updated_vnf[
                     'id'])
-            if vnf_dict['attributes'].get('alarm_url'):
+            if vnf_dict['attributes'].get('alarming_policy'):
                 _delete_heat_stack(vim_res['vim_auth'])
-                vnf_dict['attributes'].pop('alarm_url')
+                vnf_dict['attributes'].pop('alarming_policy')
                 _respin_vnf()
 
 
