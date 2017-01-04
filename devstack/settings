@@ -18,13 +18,6 @@ if [ "${TACKER_MODE}" == "all" ]; then
     enable_service q-svc
     enable_service neutron
 
-    # Heat
-    enable_service heat
-    enable_service h-eng
-    enable_service h-api
-    enable_service h-api-cfn
-    enable_service h-api-cw
-
     enable_service tacker
 
     # tacker-horizon isn't installable from pip
