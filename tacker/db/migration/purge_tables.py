@@ -109,7 +109,8 @@ def purge_deleted(tacker_config, table_name, age, granularity='days'):
     if table_name == 'events':
         _purge_events_table(meta, engine, time_line)
     elif table_name == 'all':
-        for t in assoc_map.keys():
+        _purge_events_table(meta, engine, time_line)
+        for t in ['vnf', 'vnfd', 'vims']:
             _purge_resource_tables(t, meta, engine, time_line, assoc_map)
     else:
         _purge_resource_tables(table_name, meta, engine, time_line, assoc_map)
