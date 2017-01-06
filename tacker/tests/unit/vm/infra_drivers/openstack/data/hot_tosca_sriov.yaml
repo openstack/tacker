@@ -10,7 +10,7 @@ outputs:
 parameters: {}
 resources:
   CP1:
-    properties: {network: net-mgmt}
+    properties: {name: sriov, network: net-mgmt}
     type: OS::Neutron::Port
   CP2:
     properties: {'binding:vnic_type': direct, network: sr3010}
