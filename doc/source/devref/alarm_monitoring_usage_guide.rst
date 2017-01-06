@@ -171,8 +171,8 @@ metadata defined in VDU properties must be matched with metadata in monitoring p
 How to setup environment
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-If OpenStack Devstack is used to test alarm monitoring in Tacker, OpenStack Ceilometer
-and Aodh plugins will need to be enabled in local.conf:
+If OpenStack Devstack is used to test alarm monitoring in Tacker, OpenStack
+Ceilometer and Aodh plugins will need to be enabled in local.conf:
 
 .. code-block::ini
 
@@ -186,9 +186,10 @@ How to monitor VNFs via alarm triggers
 How to setup alarm configuration
 ================================
 
-Firstly, vnfd and vnf need to be created successfully using pre-defined TOSCA template
-for alarm monitoring. Then, in order to know whether alarm configuration defined in Tacker
-is successfully passed to Ceilometer, Tacker users could use CLI:
+Firstly, vnfd and vnf need to be created successfully using pre-defined TOSCA
+template for alarm monitoring. Then, in order to know whether alarm
+configuration defined in Tacker is successfully passed to Ceilometer,
+Tacker users could use CLI:
 
 .. code-block:: console
 
@@ -237,9 +238,11 @@ is successfully passed to Ceilometer, Tacker users could use CLI:
 
 How to trigger alarms:
 ======================
-As shown in the above Ceilometer command, alarm state is shown as "insufficient data". Alarm is
-triggered by Ceilometer once alarm state changes to "alarm".
-To make VNF instance reach to the pre-defined threshold, some simple scripts could be used.
+As shown in the above Ceilometer command, alarm state is shown as
+"insufficient data". Alarm is triggered by Ceilometer once alarm
+state changes to "alarm".
+To make VNF instance reach to the pre-defined threshold, some
+simple scripts could be used.
 
 Note: Because Ceilometer pipeline set the default interval to 600s (10 mins),
 in order to reduce this interval, users could edit "interval" value
@@ -251,7 +254,7 @@ Another way could be used to check if backend action is handled well in Tacker:
 
 curl -H "Content-Type: application/json" -X POST -d '{"alarm_id": "35a80852-e24f-46ed-bd34-e2f831d00172", "current": "alarm"}' http://pinedcn:9890/v1.0/vnfs/a0f60b00-ad3d-4769-92ef-e8d9518da2c8/vdu_lcpu_scaling_in/SP1-in/yl7kh5qd
 
-Then, users can check Horizon to know if vnf is respawned. Please note that the url used
-in the above command could be captured from "**ceilometer alarm-show** command as shown before.
+Then, users can check Horizon to know if vnf is respawned. Please note that
+the url used in the above command could be captured from "**ceilometer alarm-show** command as shown before.
 "key" attribute in body request need to be captured from the url. The reason is that key will be authenticated
 so that the url is requested only one time.

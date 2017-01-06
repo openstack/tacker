@@ -62,9 +62,10 @@ place of branch-name as given below:
     $ ./stack.sh
 
 Standalone mode installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, the tacker devstack plugin will install the tacker and other OpenStack
-services together. By setting TACKER_MODE=standalone in local.conf, we will install
-a standalone tacker environment with some mandatory OpenStack services, such as
-KeyStone. After this installation, a default VIM must be registered manually.
+By default, the tacker devstack plugin will install the tacker and
+other OpenStack services together. By setting TACKER_MODE=standalone
+in local.conf, we will install a standalone tacker environment with
+some mandatory OpenStack services, such as KeyStone.
+After this installation, a default VIM must be registered manually.
