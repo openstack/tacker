@@ -25,11 +25,7 @@ def _get_template(name):
     f = codecs.open(filename, encoding='utf-8', errors='strict')
     return f.read()
 
-vnfd_openwrt = _get_template('openwrt.yaml')
 tosca_vnfd_openwrt = _get_template('test_tosca_openwrt.yaml')
-vnfd_ipparams_template = _get_template('vnf_cirros_template_ipaddr.yaml')
-ipparams = _get_template('vnf_cirros_param_values_ipaddr.yaml')
-userdata_params = _get_template('vnf_cirros_param_values_user_data.yaml')
 config_data = _get_template('config_data.yaml')
 update_config_data = _get_template('update_config_data.yaml')
 vnffgd_template = yaml.load(_get_template('vnffgd_template.yaml'))
@@ -79,7 +75,7 @@ def get_dummy_device_obj():
             'description': u'OpenWRT with services',
             'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
             'mgmt_driver': u'openwrt',
-            'attributes': {u'vnfd': vnfd_openwrt},
+            'attributes': {u'vnfd': tosca_vnfd_openwrt},
             'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
             'name': u'openwrt_services'},
         'mgmt_url': None, 'service_context': [],
@@ -107,29 +103,6 @@ def get_dummy_vnf_config_attr():
 
 def get_dummy_vnf_update_config():
     return {'vnf': {'attributes': {'config': update_config_data}}}
-
-
-def get_dummy_device_obj_ipaddr_attr():
-    return {'status': 'PENDING_CREATE',
-        'vnfd': {'service_types':
-            [{'service_type': u'vnfd', 'id':
-                u'16f8b3f7-a9ff-4338-bbe5-eee48692c468'}, {'service_type':
-                u'router', 'id': u'58878cb7-689f-47a5-9c2d-654e49e2357f'},
-             {'service_type': u'firewall', 'id':
-                 u'd016144f-42a6-44f4-93f6-52d201998916'}],
-            'description': u'Parameterized VNF descriptor for IP addresses',
-            'tenant_id': u'4dd6c1d7b6c94af980ca886495bcfed0',
-            'mgmt_driver': u'noop',
-            'attributes': {u'vnfd': vnfd_ipparams_template},
-            'id': u'24c31ea1-2e28-4de2-a6cb-8d389a502c75', 'name': u'ip_vnfd'},
-        'name': u'test_ip',
-        'tenant_id': u'8273659b56fc46b68bd05856d1f08d14',
-        'id': 'd1337add-d5a1-4fd4-9447-bb9243c8460b',
-        'instance_id': None, 'mgmt_url': None, 'service_context': [],
-        'services': [],
-        'attributes': {u'param_values': ipparams},
-        'vnfd_id': u'24c31ea1-2e28-4de2-a6cb-8d389a502c75',
-        'description': u'Parameterized VNF descriptor for IP addresses'}
 
 
 def get_vim_obj():
