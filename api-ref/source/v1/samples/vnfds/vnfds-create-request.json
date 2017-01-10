@@ -8,8 +8,6 @@
         "service_type": "vnfd"
       }
     ],
-    "infra_driver": "heat",
-    "mgmt_driver": "noop",
     "attributes": {
       "vnfd": {
         "tosca_definitions_version": "tosca_simple_profile_for_nfv_1_0_0",
