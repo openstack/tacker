@@ -314,7 +314,7 @@ function _tacker_setup_keystone {
 function tacker_horizon_install {
     git_clone_by_name "tacker-horizon"
     setup_dev_lib "tacker-horizon"
-    sudo cp $DEST/tacker-horizon/openstack_dashboard_extensions/* $DEST/horizon/openstack_dashboard/enabled/
+    sudo cp $DEST/tacker-horizon/tacker_horizon/enabled/* $DEST/horizon/openstack_dashboard/enabled/
     restart_apache_server
 }
 
