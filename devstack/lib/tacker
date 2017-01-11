@@ -250,10 +250,6 @@ function configure_tacker {
         iniset $TACKER_CONF alarm_auth project_name "$SERVICE_PROJECT_NAME"
         iniset $TACKER_CONF alarm_auth url http://$SERVICE_HOST:35357/v3
 
-        iniset $TACKER_CONF tacker_heat heat_uri http://$SERVICE_HOST:8004/v1
-        iniset $TACKER_CONF tacker_heat stack_retries 60
-        iniset $TACKER_CONF tacker_heat stack_retry_wait 5
-
         echo "Creating bridge"
         sudo ovs-vsctl --may-exist add-br ${BR_MGMT}
     fi

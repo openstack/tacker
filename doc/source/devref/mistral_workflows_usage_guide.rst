@@ -212,7 +212,7 @@ Verify VNFD details using tacker CLI
   |               | properties:\n        network_name: net1\n        vendor: Tacker\n"}                                                                                                       |
   | description   | Demo example                                                                                                                                                              |
   | id            | fb164b77-5e24-402d-b5f4-c6596352cabe                                                                                                                                      |
-  | infra_driver  | heat                                                                                                                                                                      |
+  | infra_driver  | openstack                                                                                                                                                                      |
   | mgmt_driver   | noop                                                                                                                                                                      |
   | name          | tacker-create-vnfd                                                                                                                                                        |
   | service_types | {"service_type": "vnfd", "id": "db7c5077-7bbf-4bd3-87d5-e3c52daba255"}                                                                                                    |
