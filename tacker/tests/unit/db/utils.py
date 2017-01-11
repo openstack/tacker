@@ -47,7 +47,6 @@ def get_dummy_vnfd_obj():
     return {u'vnfd': {u'service_types': [{u'service_type': u'vnfd'}],
                       'name': 'dummy_vnfd',
                       'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                      u'mgmt_driver': u'noop',
                       u'attributes': {u'vnfd': yaml.safe_load(
                           tosca_vnfd_openwrt)},
                       'description': 'dummy_vnfd_description'},

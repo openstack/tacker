@@ -21,7 +21,6 @@ import yaml
 import eventlet
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_log import versionutils
 from oslo_utils import excutils
 from toscaparser.tosca_template import ToscaTemplate
 
@@ -151,12 +150,6 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
 
         LOG.debug(_('vnfd %s'), vnfd_data)
 
-        if 'infra_driver' in vnfd_data or 'mgmt_driver' in vnfd_data:
-            versionutils.report_deprecated_feature(LOG, "Deriving "
-                "infra_driver and mgmt_driver from VNFD API is deprecated and"
-                " will be removed in Ocata. infra_driver will be automatically"
-                " derived from target vim type. mgmt_driver will be derived "
-                "from TOSCA template values.")
         name = vnfd_data['name']
         if self._get_by_name(context, vnfm_db.VNFD, name):
             raise exceptions.DuplicateResourceName(resource='VNFD', name=name)

@@ -60,8 +60,6 @@ class TackerExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
                 'description': 'mytemplate0',
                 'service_types': [{'service_type': 'SERVICE0'},
                                   {'service_type': 'SERVICE1'}],
-                'infra_driver': 'noop',
-                'mgmt_driver': 'noop',
                 'attributes': {'key0': 'value0', 'key1': 'value1'},
             }
         }
@@ -89,8 +87,6 @@ class TackerExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
             'description': 'description0',
             'service_types': [{'service_type': 'SERVICE0'},
                               {'service_type': 'SERVICE1'}],
-            'infra_driver': 'noop',
-            'mgmt_driver': 'noop',
             'attributes': {'key0': 'value0', 'key1': 'value1'},
         }]
         instance = self.plugin.return_value
@@ -111,8 +107,6 @@ class TackerExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
             'description': 'description0',
             'service_types': [{'service_type': 'SERVICE0'},
                               {'service_type': 'SERVICE1'}],
-            'infra_driver': 'noop',
-            'mgmt_driver': 'noop',
             'attributes': {'key0': 'value0', 'key1': 'value1'},
         }
         instance = self.plugin.return_value
@@ -138,7 +132,6 @@ class TackerExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
             'name': 'instance0',
             'service_type_id': _uuid(),
             'service_table_id': _uuid(),
-            'mgmt_driver': 'noop',
             'mgmt_address': 'no-address',
             'service_contexts': [
                 {'network_id': _uuid(), },
@@ -163,7 +156,6 @@ class TackerExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
             'name': 'instance0',
             'service_type_id': _uuid(),
             'service_table_id': _uuid(),
-            'mgmt_driver': 'noop',
             'mgmt_address': 'no-address',
             'service_contexts': [
                 {'network_id': _uuid(), },

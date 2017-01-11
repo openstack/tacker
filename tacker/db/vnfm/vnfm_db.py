@@ -59,9 +59,6 @@ class VNFD(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
     # In future, single service VM may accomodate multiple services.
     service_types = orm.relationship('ServiceType', backref='vnfd')
 
-    # driver to create hosting vnf. e.g. noop, heat, etc...
-    infra_driver = sa.Column(sa.String(255))
-
     # driver to communicate with service managment
     mgmt_driver = sa.Column(sa.String(255))
 
@@ -184,8 +181,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 vnfd.service_types)
         }
         key_list = ('id', 'tenant_id', 'name', 'description',
-                    'infra_driver', 'mgmt_driver',
-                    'created_at', 'updated_at')
+                    'mgmt_driver', 'created_at', 'updated_at')
         res.update((key, vnfd[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -207,10 +203,6 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return self._fields(res, fields)
 
     @staticmethod
-    def _infra_driver_name(vnf_dict):
-        return vnf_dict['vnfd']['infra_driver']
-
-    @staticmethod
     def _mgmt_driver_name(vnf_dict):
         return vnf_dict['vnfd']['mgmt_driver']
 
@@ -222,9 +214,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         vnfd = vnfd['vnfd']
         LOG.debug(_('vnfd %s'), vnfd)
         tenant_id = self._get_tenant_id_for_create(context, vnfd)
-        infra_driver = vnfd.get('infra_driver')
-        mgmt_driver = vnfd.get('mgmt_driver')
         service_types = vnfd.get('service_types')
+        mgmt_driver = vnfd.get('mgmt_driver')
 
         if (not attributes.is_attr_set(service_types)):
             LOG.debug(_('service types unspecified'))
@@ -237,7 +228,6 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 tenant_id=tenant_id,
                 name=vnfd.get('name'),
                 description=vnfd.get('description'),
-                infra_driver=infra_driver,
                 mgmt_driver=mgmt_driver)
             context.session.add(vnfd_db)
             for (key, value) in vnfd.get('attributes', {}).items():
