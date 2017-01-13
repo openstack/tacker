@@ -380,9 +380,13 @@ function tacker_register_default_vim {
     get_or_create_user $DEFAULT_VIM_USER $DEFAULT_VIM_PASSWORD
     get_or_add_user_project_role "admin" $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
     get_or_add_user_project_role "advsvc" $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
-    VIM_CONFIG_FILE="$TACKER_DIR/devstack/vim_config.yaml"
-    default_vim_id=$(tacker vim-register --is-default --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME -f value -c id)
-    echo $default_vim_id
+    echo "Register default VIM ..."
+    mkdir -p $DATA_DIR/tacker
+    cp $TACKER_DIR/devstack/vim_config.yaml $DATA_DIR/tacker
+    VIM_CONFIG_FILE="$DATA_DIR/tacker/vim_config.yaml"
+    sed -e "s|^auth_url:.*$|auth_url: \'${KEYSTONE_SERVICE_URI}\'|" -i $VIM_CONFIG_FILE
+    default_vim_id=$(tacker vim-register --is-default --description "Default VIM" --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME -c id | grep id | awk '{print $4}')
+    echo "Default VIM registration done as $default_vim_id at $KEYSTONE_SERVICE_URI."
 }
 
 function modify_heat_flavor_policy_rule {
