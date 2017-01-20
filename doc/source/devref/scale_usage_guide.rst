@@ -181,6 +181,6 @@ Following features are not supported with scaling:
 * Auto-scaling feature is supported only with alarm monitors and it does
   not work with other monitors such as ping, http_ping.
 * When VNF is modelled with scaling requirement in VNFD, any config
-  managment requirement in VNFD is not supported.
+  management requirement in VNFD is not supported.
 * Scaling feature does not support to selectively choose the VDU as part
   of scaling.
