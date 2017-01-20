@@ -292,7 +292,7 @@ Install Tacker horizon
 
 .. code-block:: console
 
-   sudo cp openstack_dashboard_extensions/* \
+   sudo cp tacker_horizon/enabled/* \
        /usr/share/openstack-dashboard/openstack_dashboard/enabled/
 ..
 
