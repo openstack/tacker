@@ -221,7 +221,7 @@ Verify VNFD details using tacker CLI
 
 VNF resource creation with std.create_vnf workflow
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Update the vnfd_id from the output of above exection in create_vnf.json
+Update the vnfd_id from the output of above execution in create_vnf.json
 
 Create new execution for VNF creation.
 
@@ -307,7 +307,7 @@ Verify VNF details using tacker CLI
 
 VNF resource deletion with std.delete_vnf workflow
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Update the vnf_id from the output of above exection in delete_vnf.json
+Update the vnf_id from the output of above execution in delete_vnf.json
 
 Create new execution for VNF deletion.
 
@@ -406,7 +406,7 @@ Gather execution output data from execution id.
 
 VNFD resource deletion with std.delete_vnfd workflow
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Update the vnfd_id from the output of above exection in delete_vnfd.json
+Update the vnfd_id from the output of above execution in delete_vnfd.json
 
 Create new execution for VNF deletion.
 

@@ -99,7 +99,7 @@ compute nodes. It requires an entry similar to below:
   virt_type = kvm
 
 **NOTE**: Please refer OpenStack release documentation for configuring the
-above mentioned features.
+above-mentioned features.
 
 Creating availability zone using compute nodes
 ----------------------------------------------

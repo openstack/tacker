@@ -48,7 +48,7 @@ class VNFInUse(exceptions.InUse):
 
 
 class InvalidInfraDriver(exceptions.InvalidInput):
-    message = _('VIM type %(vim_name)s is not supported as a infra driver ')
+    message = _('VIM type %(vim_name)s is not supported as an infra driver ')
 
 
 class InvalidServiceType(exceptions.InvalidInput):

@@ -98,6 +98,6 @@ class VimAbstractDriver(extensions.PluginInterface):
         :param vim_obj: VIM information
         :param resource_type: type of resource, such as network, compute
         :param resource_name: name of resource, such at "test-network"
-        :return: ID of of resource
+        :return: ID of resource
         """
         pass

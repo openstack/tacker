@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-# sevice type
+# service type
 SVC_TYPE_ROUTER = 'router'
 SVC_TYPE_LOADBALANCER = 'loadbalancer'
 

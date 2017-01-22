@@ -102,7 +102,7 @@ class WorkerService(common_service.ServiceBase):
 
     def start(self):
         # We may have just forked from parent process.  A quick disposal of the
-        # existing sql connections avoids producting 500 errors later when they
+        # existing sql connections avoids producing 500 errors later when they
         # are discovered to be broken.
         api.get_engine().pool.dispose()
         self._server = self._service.pool.spawn(self._service._run,
@@ -624,7 +624,7 @@ class Application(object):
           res = exc.HTTPForbidden(explanation='Nice try')
 
           # Option 3: a webob Response object (in case you need to play with
-          # headers, or you want to be treated like an iterable, or or or)
+          # headers, or you want to be treated like an iterable, or or)
           res = Response();
           res.app_iter = open('somefile')
 

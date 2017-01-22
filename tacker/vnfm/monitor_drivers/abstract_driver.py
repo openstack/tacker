@@ -66,7 +66,7 @@ class VNFMonitorAbstractDriver(extensions.PluginInterface):
         """Monitor.
 
         Return boolean value True if VNF is healthy
-        or return a event string like 'failure' or 'calls-capacity-reached'
+        or return an event string like 'failure' or 'calls-capacity-reached'
         for specific VNF health condition.
 
         :param vnf:

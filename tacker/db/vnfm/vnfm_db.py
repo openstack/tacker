@@ -57,10 +57,10 @@ class VNFD(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
 
     # service type that this service vm provides.
     # At first phase, this includes only single service
-    # In future, single service VM may accomodate multiple services.
+    # In future, single service VM may accommodate multiple services.
     service_types = orm.relationship('ServiceType', backref='vnfd')
 
-    # driver to communicate with service managment
+    # driver to communicate with service management
     mgmt_driver = sa.Column(sa.String(255))
 
     # (key, value) pair to spin up

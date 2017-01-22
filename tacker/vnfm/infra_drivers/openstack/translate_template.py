@@ -141,7 +141,7 @@ class TOSCAToHOT(object):
             self.fields['files'] = {'scaling.yaml': self.heat_template_yaml}
             vnf['attributes']['heat_template'] = main_yaml
             # TODO(kanagaraj-manickam) when multiple groups are
-            # supported, make this scaling atribute as
+            # supported, make this scaling attribute as
             # scaling name vs scaling template map and remove
             # scaling_group_names
             vnf['attributes']['scaling.yaml'] = self.heat_template_yaml
@@ -368,7 +368,7 @@ class TOSCAToHOT(object):
         properties['desired_capacity'] = policy_prp['default_instances']
         properties['cooldown'] = policy_prp['cooldown']
         properties['resource'] = {}
-        # TODO(kanagaraj-manickam) all VDU memebers are considered as 1
+        # TODO(kanagaraj-manickam) all VDU members are considered as 1
         # group now and make it to form the groups based on the VDU
         # list mentioned in the policy's targets
         # scale_resource_type is custome type mapped the HOT template
