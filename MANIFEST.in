@@ -1,0 +1,13 @@
+include AUTHORS
+include ChangeLog
+include LICENSE
+include README.rst
+exclude .gitignore
+exclude .gitreview
+
+include tacker/db/migration/README
+include tacker/db/migration/alembic.ini
+include tacker/db/migration/alembic_migrations/script.py.mako
+recursive-include tacker/db/migration/alembic_migrations/versions *
+
+global-exclude *.pyc
