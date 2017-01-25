@@ -65,10 +65,10 @@ class BaseTackerTest(base.BaseTestCase):
     @classmethod
     def novaclient(cls):
         vim_params = cls.get_credentials()
-        return nova_client.Client('2', username=vim_params['username'],
-                                  password=vim_params['password'],
-                                  project_name=vim_params['project_name'],
-                                  auth_url=vim_params['auth_url'])
+        return nova_client.Client('2', vim_params['username'],
+                                  vim_params['password'],
+                                  vim_params['project_name'],
+                                  vim_params['auth_url'])
 
     @classmethod
     def neutronclient(cls):
