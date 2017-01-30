@@ -25,6 +25,18 @@ nfp_id_path:
   in: path
   required: true
   type: string
+ns_id_path:
+  description: |
+    The UUID of the NS.
+  in: path
+  required: true
+  type: string
+nsd_id_path:
+  description: |
+    The UUID of the VNFD.
+  in: path
+  required: true
+  type: string
 sfc_id_path:
   description: |
     The UUID of the SFC.
@@ -251,6 +263,94 @@ nfp_status:
 nfps:
   description: |
     A list of ``nfp`` objects.
+  in: body
+  required: true
+  type: array
+ns:
+  description: |
+    A ``ns`` object.
+  in: body
+  required: true
+  type: object
+ns_attributes:
+  description: |
+    NS attributes object.
+  in: body
+  required: true
+  type: object
+ns_attributes_opt:
+  description: |
+    NS attributes object. This object can contain ``param_values``.
+  in: body
+  required: false
+  type: object
+ns_created_at:
+  description: |
+    The date and time when the NS was created.
+    The format is ``YYYY-MM-DD hh:mm:ss.ssssss``.
+    For example, ``2016-09-23 09:59:27.392759``.
+  in: body
+  required: true
+  type: string
+ns_error_reason:
+  description: |
+    Reason for NS error, if any.
+  in: body
+  required: true
+  type: string
+ns_id:
+  description: |
+    The UUID of the NS.
+  in: body
+  required: true
+  type: string
+ns_mgmt_url:
+  description: |
+    Management URL information for the NS.
+  in: body
+  required: true
+  type: string
+ns_status:
+  description: |
+    Status of the NS.
+  in: body
+  required: true
+  type: string
+ns_updated_at:
+  description: |
+    The date and time when the NS was updated.
+    The format is ``YYYY-MM-DD hh:mm:ss.ssssss``.
+    For example, ``2016-09-23 09:59:27.392759``.
+  in: body
+  required: true
+  type: string
+nsd:
+  description: |
+    A ``nsd`` object.
+  in: body
+  required: true
+  type: object
+nsd_attributes:
+  description: |
+    Attributes necessary for spinning up NS.
+  in: body
+  required: true
+  type: object
+nsd_id:
+  description: |
+    The UUID of the NSD.
+  in: body
+  required: true
+  type: string
+nsds:
+  description: |
+    A list of ``nsd`` objects.
+  in: body
+  required: true
+  type: array
+nss:
+  description: |
+    A list of ``ns`` objects.
   in: body
   required: true
   type: array
@@ -565,6 +665,12 @@ vnf_id:
   in: body
   required: true
   type: string
+vnf_ids:
+  description: |
+    A list of ``vnf_id`` objects.
+  in: body
+  required: true
+  type: array
 vnf_instance_id:
   description: |
     A UUID information to uniquely identify the instance of VNF.
@@ -781,3 +887,4 @@ vnfs:
   in: body
   required: true
   type: array
+

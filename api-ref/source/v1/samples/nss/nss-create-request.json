@@ -1,0 +1,17 @@
+{
+  "ns": {
+    "name": "ns_test",
+    "nsd_id": "2e581b27-aa72-4a81-8efd-6c0e58533c9b"
+    "description:": "sample NS",
+    "tenant_id": "6673e4d4e13340acb0b847f9ecde613b",
+    "vnfd_id": "a04b47d1-e8ad-4ef9-8341-eafec398ce02",
+    "attributes": {
+      "param_values": {
+        "nsd": {
+          "vl2_name": "net0",
+          "vl1_name": "net_mgmt"
+        }
+      }
+    },
+  }
+}
