@@ -73,7 +73,7 @@ Request Parameters
 
 .. rest_parameters:: parameters.yaml
 
-  - classifier_id: classifier_id_path
+  - sfc_id: sfc_id_path
 
 Response Parameters
 -------------------

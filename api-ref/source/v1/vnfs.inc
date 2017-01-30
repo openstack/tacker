@@ -217,7 +217,7 @@ Request Parameters
 
 .. rest_parameters:: parameters.yaml
 
-  - vnf: vnf
+  - vnf_id: vnf_id_path
   - attributes: vnf_attributes_put
   - config: vnf_config_opt
 
