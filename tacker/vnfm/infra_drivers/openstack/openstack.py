@@ -280,7 +280,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                             stack_status=status)
             LOG.warning(error_reason)
             raise vnfm.VNFCreateWaitFailed(vnf_id=vnf_id,
-                                           eason=error_reason)
+                                           reason=error_reason)
 
     @classmethod
     def _find_mgmt_ips_from_groups(cls, heat_client, instance_id, group_names):

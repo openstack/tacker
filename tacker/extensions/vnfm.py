@@ -95,14 +95,6 @@ class HeatTranslatorFailed(exceptions.InvalidInput):
     message = _("heat-translator failed: - %(error_msg_details)s")
 
 
-class InputValuesMissing(exceptions.InvalidInput):
-    message = _("Parameter input values missing for the key '%(key)s'")
-
-
-class ParamYAMLInputMissing(exceptions.InvalidInput):
-    message = _("Parameter YAML input missing")
-
-
 class HeatClientException(exceptions.TackerException):
     message = _("%(msg)s")
 

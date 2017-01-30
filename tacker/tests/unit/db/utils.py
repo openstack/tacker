@@ -186,3 +186,15 @@ def get_dummy_nsd_obj():
                     'tenant_id': u'8819a1542a5948b68f94d4be0fd50496',
                     'template': {},
                     'attributes': {u'nsd': nsd_tosca_template}}}
+
+
+def get_dummy_ns_obj():
+    return {'ns': {'description': 'dummy_ns_description',
+                   'id': u'ba6bf017-f6f7-45f1-a280-57b073bf78ea',
+                   'nsd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                   'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                   'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                   'name': 'dummy_ns',
+                   'attributes': {
+                       'param_values': {'nsd': {'vl1_name': 'net_mgmt',
+                                                'vl2_name': 'net0'}}}}}

@@ -101,16 +101,19 @@ def updateimports(template):
 
 @log.log
 def check_for_substitution_mappings(template, params):
-    sm_dict = params.get('substitution_mappings')
-    if not sm_dict:
-        raise vnfm.InvalidParamsForSM()
-    del params['substitution_mappings']
+    sm_dict = params.get('substitution_mappings', {})
     requirements = sm_dict.get('requirements')
-    if not requirements:
-        pass
     node_tpl = template['topology_template']['node_templates']
-    req_dict_tpl = template['topology_template']['substitution_mappings'][
-        'requirements']
+    req_dict_tpl = template['topology_template']['substitution_mappings'].get(
+        'requirements')
+    # Check if substitution_mappings and requirements are empty in params but
+    # not in template. If True raise exception
+    if (not sm_dict or not requirements) and req_dict_tpl:
+        raise vnfm.InvalidParamsForSM()
+    # Check if requirements are present for SM in template, if True then return
+    elif (not sm_dict or not requirements) and not req_dict_tpl:
+        return
+    del params['substitution_mappings']
     for req_name, req_val in iteritems(req_dict_tpl):
         if req_name not in requirements:
             raise vnfm.SMRequirementMissing(requirement=req_name)

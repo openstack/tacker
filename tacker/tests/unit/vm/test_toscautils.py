@@ -229,3 +229,18 @@ class TestToscaUtils(testtools.TestCase):
         toscautils.convert_unsupported_res_prop(dummy_heat_dict,
                                                 unsupported_res_prop_dict)
         self.assertEqual(expected_heat_dict, dummy_heat_dict)
+
+    def test_check_for_substitution_mappings(self):
+        tosca_sb_map = _get_template('../../../../../etc/samples/test-nsd-'
+                                     'vnfd1.yaml')
+        param = {'substitution_mappings': {
+                 'VL2': {'type': 'tosca.nodes.nfv.VL', 'properties': {
+                         'network_name': 'net0', 'vendor': 'tacker'}},
+                 'VL1': {'type': 'tosca.nodes.nfv.VL', 'properties': {
+                         'network_name': 'net_mgmt', 'vendor': 'tacker'}},
+                 'requirements': {'virtualLink2': 'VL2',
+                                  'virtualLink1': 'VL1'}}}
+        template = yaml.load(tosca_sb_map)
+        toscautils.updateimports(template)
+        toscautils.check_for_substitution_mappings(template, param)
+        self.assertNotIn('substitution_mappings', param)

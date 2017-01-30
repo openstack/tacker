@@ -13,6 +13,7 @@
 import abc
 import six
 
+from tacker.common import exceptions
 from tacker.services import service_base
 
 
@@ -50,3 +51,11 @@ class NSPluginBase(service_base.NFVPluginBase):
     @abc.abstractmethod
     def delete_ns(self, context, ns_id):
         pass
+
+
+class NSDNotFound(exceptions.NotFound):
+    message = _('NSD %(nsd_id)s could not be found')
+
+
+class NSNotFound(exceptions.NotFound):
+    message = _('NS %(ns_id)s could not be found')
