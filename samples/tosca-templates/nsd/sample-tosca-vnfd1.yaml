@@ -1,0 +1,98 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: VirtualLinks of CP11 and CP22 will be provided by NS descriptor
+node_types:
+  tosca.nodes.nfv.VNF1:
+    requirements:
+      - virtualLink1:
+          type: tosca.nodes.nfv.VL
+          required: true
+      - virtualLink2:
+          type: tosca.nodes.nfv.VL
+          required: true
+    capabilities:
+      forwader1:
+          type: tosca.capabilities.nfv.Forwarder
+      forwader2:
+          type: tosca.capabilities.nfv.Forwarder
+
+topology_template:
+  substitution_mappings:
+    node_type: tosca.nodes.nfv.VNF1
+    requirements:
+      virtualLink1: [CP11, virtualLink]
+      virtualLink2: [CP14, virtualLink]
+    capabilities:
+      forwarder1: [CP11, forwarder]
+      forwarder2: [CP14, forwarder]
+
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        image: cirros-0.3.4-x86_64-uec
+        flavor: m1.tiny
+        availability_zone: nova
+        mgmt_driver: noop
+        config: |
+          param0: key1
+          param1: key2
+
+    CP11:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        anti_spoofing_protection: false
+      requirements:
+        - virtualBinding:
+            node: VDU1
+
+    CP12:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL2
+        - virtualBinding:
+            node: VDU1
+
+    VDU2:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        image: cirros-0.3.4-x86_64-uec
+        flavor: m1.medium
+        availability_zone: nova
+        mgmt_driver: noop
+        config: |
+          param0: key1
+          param1: key2
+
+    CP13:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU2
+
+    CP14:
+      type: tosca.nodes.nfv.CP.Tacker
+      requirements:
+        - virtualBinding:
+            node: VDU2
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net_mgmt
+        vendor: Tacker
+
+    VL2:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net0
+        vendor: Tacker
+
