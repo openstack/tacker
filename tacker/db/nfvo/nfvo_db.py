@@ -60,7 +60,7 @@ class Vim(model_base.BASE,
 class VimAuth(model_base.BASE, models_v1.HasId):
     vim_id = sa.Column(types.Uuid, sa.ForeignKey('vims.id'),
                        nullable=False)
-    password = sa.Column(sa.String(128), nullable=False)
+    password = sa.Column(sa.String(255), nullable=False)
     auth_url = sa.Column(sa.String(255), nullable=False)
     vim_project = sa.Column(types.Json, nullable=False)
     auth_cred = sa.Column(types.Json, nullable=False)
