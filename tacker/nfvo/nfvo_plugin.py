@@ -374,13 +374,13 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
         vim_id = vnfm_plugin.get_vnf(context, vnf_id, fields=['vim_id'])
         vim_obj = self.get_vim(context, vim_id['vim_id'], mask_password=False)
+        if vim_obj is None:
+            raise nfvo.VimFromVnfNotFoundException(vnf_id=vnf_id)
         vim_auth = vim_obj['auth_cred']
         vim_auth['password'] = self._decode_vim_auth(vim_obj['id'],
                                                      vim_auth['password'].
                                                      encode('utf-8'))
         vim_auth['auth_url'] = vim_obj['auth_url']
-        if vim_obj is None:
-            raise nfvo.VimFromVnfNotFoundException(vnf_id=vnf_id)
 
         return vim_obj
 
