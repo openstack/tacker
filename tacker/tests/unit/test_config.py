@@ -31,14 +31,11 @@ class ConfigurationTest(base.BaseTestCase):
         self.assertEqual('', cfg.CONF.api_extensions_path)
         self.assertEqual('policy.json', cfg.CONF.policy_file)
         self.assertEqual('keystone', cfg.CONF.auth_strategy)
-        self.assertIsNone(cfg.CONF.core_plugin)
-        self.assertEqual(0, len(cfg.CONF.service_plugins))
         self.assertTrue(cfg.CONF.allow_bulk)
         relative_dir = os.path.join(os.path.dirname(__file__),
                                     '..', '..', '..')
         absolute_dir = os.path.abspath(relative_dir)
         self.assertEqual(absolute_dir, cfg.CONF.state_path)
-        self.assertFalse(cfg.CONF.allow_overlapping_ips)
         self.assertEqual('tacker', cfg.CONF.control_exchange)
 
     def test_load_paste_app_not_found(self):
