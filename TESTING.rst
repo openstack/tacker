@@ -38,6 +38,8 @@ environment or create a virtual environment to run them in.
 By default after running all of the tests, any pep8 errors
 found in the tree will be reported.
 
+Note that the tests can use a database, see ``tools/tests-setup.sh``
+on how the databases are set up in the OpenStack CI environment.
 
 With `nose`
 ~~~~~~~~~~~
