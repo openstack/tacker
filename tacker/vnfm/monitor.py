@@ -363,7 +363,7 @@ class ActionRespawnHeat(ActionPolicy):
         def _update_failure_count():
             failure_count = int(attributes.get('failure_count', '0')) + 1
             failure_count_str = str(failure_count)
-            LOG.debug(_("vnf %(vnf_id)s failure count %(failure_count)s") %
+            LOG.debug(_("vnf %(vnf_id)s failure count %(failure_count)s"),
                       {'vnf_id': vnf_id, 'failure_count': failure_count_str})
             attributes['failure_count'] = failure_count_str
             attributes['dead_instance_id_' + failure_count_str] = vnf_dict[

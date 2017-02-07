@@ -552,14 +552,14 @@ class NeutronClient(object):
         try:
             self.client.delete_flow_classifier(fc_id)
         except nc_exceptions.NotFound:
-            LOG.warning(_("fc %s not found") % fc_id)
+            LOG.warning(_("fc %s not found"), fc_id)
             raise ValueError('fc %s not found' % fc_id)
 
     def port_pair_create(self, port_pair_dict):
         try:
             pp = self.client.create_port_pair({'port_pair': port_pair_dict})
         except nc_exceptions.BadRequest as e:
-            LOG.error(_("create port pair returns %s") % e)
+            LOG.error(_("create port pair returns %s"), e)
             raise ValueError(str(e))
 
         if pp and len(pp):
@@ -571,7 +571,7 @@ class NeutronClient(object):
         try:
             self.client.delete_port_pair(port_pair_id)
         except nc_exceptions.NotFound:
-            LOG.warning(_('port pair %s not found') % port_pair_id)
+            LOG.warning(_('port pair %s not found'), port_pair_id)
             raise ValueError('port pair %s not found' % port_pair_id)
 
     def port_pair_group_create(self, ppg_dict):
@@ -579,7 +579,7 @@ class NeutronClient(object):
             ppg = self.client.create_port_pair_group(
                 {'port_pair_group': ppg_dict})
         except nc_exceptions.BadRequest as e:
-            LOG.warning(_('create port pair group returns %s') % e)
+            LOG.warning(_('create port pair group returns %s'), e)
             raise ValueError(str(e))
 
         if ppg and len(ppg):
@@ -591,7 +591,7 @@ class NeutronClient(object):
         try:
             self.client.delete_port_pair_group(ppg_id)
         except nc_exceptions.NotFound:
-            LOG.warning(_('port pair group %s not found') % ppg_id)
+            LOG.warning(_('port pair group %s not found'), ppg_id)
             raise ValueError('port pair group %s not found' % ppg_id)
 
     def port_chain_create(self, port_chain_dict):
@@ -599,7 +599,7 @@ class NeutronClient(object):
             pc = self.client.create_port_chain(
                 {'port_chain': port_chain_dict})
         except nc_exceptions.BadRequest as e:
-            LOG.warning(_('create port chain returns %s') % e)
+            LOG.warning(_('create port chain returns %s'), e)
             raise ValueError(str(e))
 
         if pc and len(pc):
@@ -624,5 +624,5 @@ class NeutronClient(object):
                                     pp_id = port_pairs[j]
                                     self.client.delete_port_pair(pp_id)
         except nc_exceptions.NotFound:
-            LOG.warning(_('port chain %s not found') % port_chain_id)
+            LOG.warning(_('port chain %s not found'), port_chain_id)
             raise ValueError('port chain %s not found' % port_chain_id)

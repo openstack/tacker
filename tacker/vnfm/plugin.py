@@ -603,7 +603,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 _handle_vnf_scaling_post(constants.ACTIVE, mgmt_url)
                 # TODO(kanagaraj-manickam): Add support for config and mgmt
             except Exception as e:
-                LOG.error(_("Policy %s action is failed to complete") %
+                LOG.error(_("Policy %s action is failed to complete"),
                           policy['id'])
                 with excutils.save_and_reraise_exception():
                     self.set_vnf_error_status_reason(
@@ -718,7 +718,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         if not policy_:
             if action not in constants.DEFAULT_ALARM_ACTIONS:
                 policy_ = self.get_vnf_policy(context, action, vnf_id)
-        LOG.debug(_("Trigger %s is validated successfully") % trigger)
+        LOG.debug(_("Trigger %s is validated successfully"), trigger)
         return policy_, action_
         # validate url
 
@@ -761,8 +761,10 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             bckend_policy_type = bckend_policy['type']
             if bckend_policy_type == constants.POLICY_SCALING:
                 if vnf_dict['status'] != constants.ACTIVE:
-                    LOG.info(context, vnf_dict,
-                             "Scaling Policy action skipped")
+                    LOG.info(_("Scaling Policy action skipped due to status:"
+                             " %(status)s for vnf: %(vnfid)s"),
+                             {"status": vnf_dict['status'],
+                              "vnfid": vnf_dict['id']})
                     return
                 action = 'scaling'
                 scale = {}
