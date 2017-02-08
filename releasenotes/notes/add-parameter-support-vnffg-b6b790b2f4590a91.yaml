@@ -1,0 +1,8 @@
+---
+features:
+  - Added parameter support for deploying VNF Forwarding Graph
+    Descriptor templates. With this addition the user can deploy
+    a VNFFG using an Onboarded parameterized template with
+    different parameter values using parameter yaml
+    file at each time without onboarding new template.
+

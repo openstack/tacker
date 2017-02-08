@@ -330,6 +330,18 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         session.flush()
         return vnffg_template
 
+    def _insert_dummy_vnffg_param_template(self):
+        session = self.context.session
+        vnffg_template = vnffg_db.VnffgTemplate(
+            id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='fake_template',
+            description='fake_template_description',
+            template={u'vnffgd': utils.vnffgd_tosca_param_template})
+        session.add(vnffg_template)
+        session.flush()
+        return vnffg_template
+
     def _insert_dummy_vnffg(self):
         session = self.context.session
         vnffg = vnffg_db.Vnffg(
@@ -423,6 +435,27 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                        side_effect=FakeDriverManager()).start()
             self._insert_dummy_vnffg_template()
             vnffg_obj = utils.get_dummy_vnffg_obj()
+            result = self.nfvo_plugin.create_vnffg(self.context, vnffg_obj)
+            self.assertIsNotNone(result)
+            self.assertIn('id', result)
+            self.assertIn('status', result)
+            self.assertEqual('PENDING_CREATE', result['status'])
+            self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
+                                                           name=mock.ANY,
+                                                           vnfs=mock.ANY,
+                                                           fc_id=mock.ANY,
+                                                           auth_attr=mock.ANY,
+                                                           symmetrical=mock.ANY
+                                                           )
+
+    def test_create_vnffg_param_values(self):
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock.patch('tacker.common.driver_manager.DriverManager',
+                       side_effect=FakeDriverManager()).start()
+            self._insert_dummy_vnffg_param_template()
+            vnffg_obj = utils.get_dummy_vnffg_param_obj()
             result = self.nfvo_plugin.create_vnffg(self.context, vnffg_obj)
             self.assertIsNotNone(result)
             self.assertIn('id', result)

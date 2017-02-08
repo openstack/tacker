@@ -51,22 +51,28 @@ deploy a sample VNFFGD template such as the one `here <https://github.com/
 openstack/tacker/tree/master/samples/tosca-templates/vnffgd/
 tosca-vnffgd-sample.yaml>`_.
 
-*Note: A current constraint of the Forwarding Path policy match criteria is
-to include the network_src_port_id, such as:*
+.. note::
 
-::
+   A current constraint of the Forwarding Path policy match criteria is
+   to include the network_src_port_id, such as:
 
-        policy:
-          type: ACL
-          criteria:
-            - network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480e1
+   .. code-block:: yaml
+
+      policy:
+        type: ACL
+        criteria:
+        - network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480e1
+
 
 This is required due to a limitation of Neutron networking-sfc and only
 applies to an OpenStack VIM.
 
 Tacker provides the following CLI to create a VNFFGD:
 
-**tacker vnffgd-create --vnffgd-file <vnffgd file> <vnffgd name>**
+.. code-block:: console
+
+   tacker vnffgd-create --vnffgd-file <vnffgd file> <vnffgd name>
+
 
 Creating the VNFFG
 ~~~~~~~~~~~~~~~~~~
@@ -82,14 +88,23 @@ http://docs.openstack.org/developer/tacker/install/getting_started.html
 
 Tacker provides the following CLI to create VNFFG:
 
-  **tacker vnffg-create --vnffgd-id <vnffg-id>**
-  **--vnffgd-name <vnffgd name>**
-  **--vnf-mapping <vnf mapping>**
-  **--symmetrical <boolean>**
+.. code-block:: console
+
+   tacker vnffg-create --vnffgd-name <vnffgd name> \
+          --vnf-mapping <vnf mapping> --symmetrical <boolean>
+
+If you use a parameterized vnffg template:
+
+.. code-block:: console
+
+   tacker vnffg-create --vnffgd-name <vnffgd name> \
+     --param-file <param file> --vnf-mapping <vnf mapping> \
+     --symmetrical <boolean>
 
 Here,
 
-* vnffgd-id/name - VNFFGD to use to instantiate this VNFFG
+* vnffgd-name - VNFFGD to use to instantiate this VNFFG
+* param-file  - Parameter file in Yaml.
 * vnf-mapping - Allows a list of logical VNFD to VNF instance mapping
 * symmetrical - True/False
 
@@ -101,9 +116,11 @@ each VNF in the Forwarding Path.  For example, imagine a Forwarding Path
 map each VNFD defined in the VNFFGD Forwarding Path to the desired VNF
 instance:
 
-  **tacker vnffg-create --vnffgd-name myvnffgd**
-  **--vnf-mapping VNF1:'91e32c20-6d1f-47a4-9ba7-08f5e5effe07',**
-  **VNF2:'7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'**
+.. code-block:: console
+
+   tacker vnffg-create --vnffgd-name myvnffgd \
+   --vnf-mapping VNF1:'91e32c20-6d1f-47a4-9ba7-08f5e5effe07', \
+   VNF2:'7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'
 
 Alternatively, if no vnf-mapping is provided then Tacker VNFFG will attempt
 to search for VNF instances derived from the given VNFDs in the VNFFGD.  If
@@ -115,8 +132,10 @@ flow through the path.  This creates an extra classifier to ensure return
 traffic flows through the chain in a reverse path, otherwise this traffic
 routed normally and does not enter the VNFFG.
 
-*Note: Enabling symmetrical is not currently supported by the OpenStack VIM
-driver*
+.. note::
+
+   Enabling symmetrical is not currently supported by the OpenStack VIM
+   driver
 
 Viewing a VNFFG
 ~~~~~~~~~~~~~~~
@@ -128,12 +147,14 @@ a Classifier.  The main command to view a VNFFG is 'tacker vnffg-show,
 however there are several commands available in order to view the
 sub-components for a rendered VNFFG:
 
--   **tacker nfp-list**
--   **tacker nfp-show <nfp id>**
--   **tacker chain-list**
--   **tacker chain-show <chain id>**
--   **tacker classifier-list**
--   **tacker classifier-show <classifier id>**
+.. code-block:: console
+
+   tacker nfp-list
+   tacker nfp-show <nfp id>
+   tacker chain-list
+   tacker chain-show <chain id>
+   tacker classifier-list
+   tacker classifier-show <classifier id>
 
 Known Issues and Limitations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
