@@ -581,6 +581,12 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 vim_auth=vim_res['vim_auth'],
                 auth_token=context.auth_token)
         except Exception as ex:
+            LOG.error(_('Error while executing workflow: %s'), ex)
+            self._vim_drivers.invoke(driver_type,
+                                     'delete_workflow',
+                                     workflow_id=workflow['id'],
+                                     vim_auth=vim_res['vim_auth'],
+                                     auth_token=context.auth_token)
             raise ex
         ns_dict = super(NfvoPlugin, self).create_ns(context, ns)
 
@@ -674,6 +680,13 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 vim_auth=vim_res['vim_auth'],
                 auth_token=context.auth_token)
         except Exception as ex:
+            LOG.error(_('Error while executing workflow: %s'), ex)
+            self._vim_drivers.invoke(driver_type,
+                                     'delete_workflow',
+                                     workflow_id=workflow['id'],
+                                     vim_auth=vim_res['vim_auth'],
+                                     auth_token=context.auth_token)
+
             raise ex
         super(NfvoPlugin, self).delete_ns(context, ns_id)
 
