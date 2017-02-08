@@ -67,6 +67,9 @@ class VNFD(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
     attributes = orm.relationship('VNFDAttribute',
                                   backref='vnfd')
 
+    # vnfd template source - inline or onboarded
+    template_source = sa.Column(sa.String(255))
+
 
 class ServiceType(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     """Represents service type which hosting vnf provides.
@@ -184,7 +187,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 vnfd.service_types)
         }
         key_list = ('id', 'tenant_id', 'name', 'description',
-                    'mgmt_driver', 'created_at', 'updated_at')
+                    'mgmt_driver', 'created_at', 'updated_at',
+                    'template_source')
         res.update((key, vnfd[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -219,6 +223,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         tenant_id = self._get_tenant_id_for_create(context, vnfd)
         service_types = vnfd.get('service_types')
         mgmt_driver = vnfd.get('mgmt_driver')
+        template_source = vnfd.get("template_source")
 
         if (not attributes.is_attr_set(service_types)):
             LOG.debug(_('service types unspecified'))
@@ -231,7 +236,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 tenant_id=tenant_id,
                 name=vnfd.get('name'),
                 description=vnfd.get('description'),
-                mgmt_driver=mgmt_driver)
+                mgmt_driver=mgmt_driver,
+                template_source=template_source)
             context.session.add(vnfd_db)
             for (key, value) in vnfd.get('attributes', {}).items():
                 attribute_db = VNFDAttribute(
@@ -288,9 +294,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             vnfs_db = context.session.query(VNF).filter_by(
                 vnfd_id=vnfd_id).first()
             if vnfs_db is not None and vnfs_db.deleted_at is None:
-                raise vnfm.VNFDInUse(
-                    vnfd_id=vnfd_id)
-
+                raise vnfm.VNFDInUse(vnfd_id=vnfd_id)
             vnfd_db = self._get_resource(context, VNFD,
                                          vnfd_id)
             if soft_delete:
@@ -313,6 +317,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return self._make_vnfd_dict(vnfd_db)
 
     def get_vnfds(self, context, filters, fields=None):
+        if 'template_source' in filters and \
+           filters['template_source'][0] == 'all':
+                filters.pop('template_source')
         return self._get_collection(context, VNFD,
                                     self._make_vnfd_dict,
                                     filters=filters, fields=fields)
@@ -521,7 +528,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             tstamp=timeutils.utcnow(), details="VNF delete initiated")
         return deleted_vnf_db
 
-    def _delete_vnf_post(self, context, vnf_id, error, soft_delete=True):
+    def _delete_vnf_post(self, context, vnf_dict, error, soft_delete=True):
+        vnf_id = vnf_dict['id']
         with context.session.begin(subtransactions=True):
             query = (
                 self._model_query(context, VNF).
@@ -552,6 +560,10 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                      filter(VNFAttribute.vnf_id == vnf_id).delete())
                     query.delete()
 
+                # Delete corresponding vnfd
+                if vnf_dict['vnfd']['template_source'] == "inline":
+                    self.delete_vnfd(context, vnf_dict["vnfd_id"])
+
     # reference implementation. needs to be overrided by subclass
     def create_vnf(self, context, vnf):
         vnf_dict = self._create_vnf_pre(context, vnf)
@@ -577,12 +589,12 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     # reference implementation. needs to be overrided by subclass
     def delete_vnf(self, context, vnf_id, soft_delete=True):
-        self._delete_vnf_pre(context, vnf_id)
+        vnf_dict = self._delete_vnf_pre(context, vnf_id)
         # start actual deletion of hosting vnf.
         # Waiting for completion of deletion should be done backgroundly
         # by another thread if it takes a while.
         self._delete_vnf_post(context,
-                              vnf_id,
+                              vnf_dict,
                               False,
                               soft_delete=soft_delete)
 

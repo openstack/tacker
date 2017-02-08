@@ -709,7 +709,19 @@ vnfd_id:
   description: |
     The UUID of the VNFD.
   in: body
-  required: true
+  required: false
+  type: string
+vnfd_template:
+  description: |
+    Template to create VNF.
+  in: body
+  required: false
+  type: object
+vnfd_template_source:
+  description: |
+    Source of VNFD.
+  in: body
+  required: false
   type: string
 vnfds:
   description: |

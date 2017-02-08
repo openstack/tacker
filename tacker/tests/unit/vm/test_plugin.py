@@ -123,7 +123,20 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_template',
-            description='fake_template_description')
+            description='fake_template_description',
+            template_source='onboarded')
+        session.add(device_template)
+        session.flush()
+        return device_template
+
+    def _insert_dummy_device_template_inline(self):
+        session = self.context.session
+        device_template = vnfm_db.VNFD(
+            id='d58bcc4e-d0cf-11e6-bf26-cec0c932ce01',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='tmpl-koeak4tqgoqo8cr4-dummy_inline_vnf',
+            description='inline_fake_template_description',
+            template_source='inline')
         session.add(device_template)
         session.flush()
         return device_template
@@ -219,6 +232,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('attributes', result)
         self.assertIn('created_at', result)
         self.assertIn('updated_at', result)
+        self.assertIn('template_source', result)
         yaml_dict = yaml.safe_load(utils.tosca_vnfd_openwrt)
         mock_tosca_template.assert_called_once_with(
             a_file=False, yaml_dict_tpl=yaml_dict)
@@ -244,7 +258,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                           self.vnfm_plugin.create_vnfd,
                           self.context, vnfd_obj)
 
-    def test_create_vnf(self):
+    def test_create_vnf_with_vnfd(self):
         self._insert_dummy_device_template()
         vnf_obj = utils.get_dummy_vnf_obj()
         result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
@@ -265,6 +279,35 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._pool.spawn_n.assert_called_once_with(mock.ANY)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
+            tstamp=mock.ANY, details=mock.ANY)
+
+    @mock.patch('tacker.vnfm.plugin.VNFMPlugin.create_vnfd')
+    def test_create_vnf_from_template(self, mock_create_vnfd):
+        self._insert_dummy_device_template_inline()
+        mock_create_vnfd.return_value = {'id':
+                'd58bcc4e-d0cf-11e6-bf26-cec0c932ce01'}
+        vnf_obj = utils.get_dummy_inline_vnf_obj()
+        result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
+        self.assertIsNotNone(result)
+        self.assertIn('id', result)
+        self.assertIn('instance_id', result)
+        self.assertIn('status', result)
+        self.assertIn('attributes', result)
+        self.assertIn('mgmt_url', result)
+        self.assertIn('created_at', result)
+        self.assertIn('updated_at', result)
+        mock_create_vnfd.assert_called_once_with(mock.ANY, mock.ANY)
+        self._device_manager.invoke.assert_called_with('test_vim',
+                                                       'create',
+                                                       plugin=mock.ANY,
+                                                       context=mock.ANY,
+                                                       vnf=mock.ANY,
+                                                       auth_attr=mock.ANY)
+        self._pool.spawn_n.assert_called_once_with(mock.ANY)
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context, evt_type=constants.RES_EVT_CREATE,
+            res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
             tstamp=mock.ANY, details=mock.ANY)
 

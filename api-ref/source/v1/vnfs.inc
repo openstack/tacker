@@ -44,6 +44,7 @@ Request Parameters
   - config: vnf_config_opt
   - param_values: vnf_param_values_opt
   - placement_attr: vnf_placement_attr_opt
+  - vnfd_template: vnfd_template
 
 Request Example
 ---------------
