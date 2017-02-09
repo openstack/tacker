@@ -68,7 +68,7 @@ class VNFD(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
                                   backref='vnfd')
 
     # vnfd template source - inline or onboarded
-    template_source = sa.Column(sa.String(255))
+    template_source = sa.Column(sa.String(255), server_default='onboarded')
 
 
 class ServiceType(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
