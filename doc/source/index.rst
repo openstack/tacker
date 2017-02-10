@@ -61,6 +61,7 @@ Feature Documentation
    devref/vnffgd_template_description.rst
    devref/vnffg_usage_guide.rst
    devref/nsd_usage_guide.rst
+   devref/vnf_component_usage_guide.rst
 
 API Documentation
 =================

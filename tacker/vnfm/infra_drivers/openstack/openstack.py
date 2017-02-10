@@ -39,7 +39,7 @@ OPTS = [
                help=_("Number of attempts to retry for stack"
                       " creation/deletion")),
     cfg.IntOpt('stack_retry_wait',
-               default=5,
+               default=10,
                help=_("Wait time (in seconds) between consecutive stack"
                       " create/delete retries")),
 ]

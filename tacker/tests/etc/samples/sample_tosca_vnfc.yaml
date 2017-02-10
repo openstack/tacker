@@ -1,0 +1,42 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+metadata:
+    template_name: sample-tosca-vnfd-for-vnfc
+
+topology_template:
+  node_templates:
+    firewall_vnfc:
+      type: tosca.nodes.nfv.VNFC.Tacker
+      requirements:
+        - host: VDU1
+      interfaces:
+        Standard:
+            create: install_vnfc.sh
+
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        flavor: m1.small
+        mgmt_driver: noop
+        config: |
+          param0: key1
+          param1: key2
+      artifacts:
+        fedora:
+          type: tosca.artifacts.Deployment.Image.VM
+          file: https://github.com/bharaththiruveedula/dotfiles/raw/master/fedora-sw.qcow2
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: private
+        vendor: Tacker
