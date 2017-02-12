@@ -1,5 +1,5 @@
 To generate the sample tacker configuration files, run the following
-command from the top level of the neutron directory:
+command from the top level of the tacker directory:
 
 tox -e config-gen
 
