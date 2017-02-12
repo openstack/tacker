@@ -14,7 +14,7 @@ Introduction
 -------------
 
 Tacker monitoring framework provides the NFV operators and VNF vendors to
-write a pluggable driver that monitors the various status coditions of the
+write a pluggable driver that monitors the various status conditions of the
 VNF entities it deploys and manages.
 
 How to write a new monitor driver
