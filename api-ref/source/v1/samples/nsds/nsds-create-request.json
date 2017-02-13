@@ -1,0 +1,60 @@
+{
+  "nsd": {
+    "tenant_id": "689708956b2d4ae0a27120d3aca6a593",
+    "name": "sample-nsd",
+    "description": "Sample nsd", 
+    "attributes": {
+      "nsd": {
+        "imports": [
+          "vnf1",
+          "vnf2"
+        ],
+        "tosca_definitions_version": "tosca_simple_profile_for_nfv_1_0_0",
+        "topology_template": {
+          "inputs": {
+            "vl2_name": {
+              "default": "net0", "type": "string",
+              "description": "name of VL2 virtuallink"
+            },
+            "vl1_name": {
+              "default": "net_mgmt",
+              "type": "string",
+              "description": "name of VL1 virtuallink"
+            }
+          },
+          "node_templates": {
+            "VL1": {
+              "type": "tosca.nodes.nfv.VL",
+              "properties": {
+                "network_name": {
+                  "get_input": "vl1_name"
+                },
+                "vendor": "tacker"
+              }
+            },
+            "VNF1": {
+              "type": "tosca.nodes.nfv.VNF1",
+              "requirements": [
+                {
+                  "virtualLink1": "VL1"
+                },
+                {
+                  "virtualLink2": "VL2"
+                }
+              ]
+            },
+            "VL2": {
+              "type": "tosca.nodes.nfv.VL",
+              "properties": {
+                "network_name": {
+                  "get_input": "vl2_name"
+                },
+                "vendor": "tacker"
+              }
+            }
+          }
+        }
+      }
+    },
+  }
+}
