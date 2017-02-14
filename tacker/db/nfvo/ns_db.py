@@ -257,9 +257,10 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         if len(output) > 0:
             for vnfd_name, vnfd_val in iteritems(vnfd_dict):
                 for instance in vnfd_val['instances']:
-                    mgmt_urls[instance] = ast.literal_eval(
-                        output['mgmt_url_' + instance].strip())
-                    vnf_ids[instance] = output['vnf_id_' + instance]
+                    if 'mgmt_url_' + instance in output:
+                        mgmt_urls[instance] = ast.literal_eval(
+                            output['mgmt_url_' + instance].strip())
+                        vnf_ids[instance] = output['vnf_id_' + instance]
             vnf_ids = str(vnf_ids)
             mgmt_urls = str(mgmt_urls)
 
