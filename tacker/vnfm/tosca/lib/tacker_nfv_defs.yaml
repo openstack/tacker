@@ -233,6 +233,11 @@ node_types:
       anti_spoofing_protection:
         type: boolean
         required: false
+      allowed_address_pairs:
+        type: list
+        entry_schema:
+          type: tosca.datatypes.tacker.VirtualIP
+        required: false
       security_groups:
         type: list
         required: false

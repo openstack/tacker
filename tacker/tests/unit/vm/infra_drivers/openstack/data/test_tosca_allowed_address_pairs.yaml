@@ -1,0 +1,105 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: VIP Template
+
+metadata:
+  template_name: vipTemplate
+
+topology_template:
+  node_templates:
+
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      artifacts:
+        vm_image:
+          type: tosca.artifacts.Deployment.Image.VM
+          file: http://URL/vRouterVNF.qcow2
+      properties:
+        flavor: m1.nano
+        mgmt_driver: noop
+        monitoring_policy:
+          name: ping
+          actions:
+            failure: respawn
+          parameters:
+            count: 3
+            interval: 10
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        ip_address: 10.10.1.11
+        anti_spoofing_protection: true
+        allowed_address_pairs:
+          - ip_address: 10.10.1.12
+        security_groups:
+          - default
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+    VCP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        ip_address: 10.10.1.12
+        anti_spoofing_protection: true
+        security_groups:
+          - default
+      requirements:
+        - virtualLink:
+            node: VL1
+    CP2:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        mac_address: fe:1a:29:d9:36:45
+        ip_address: 10.10.2.21
+        anti_spoofing_protection: true
+        allowed_address_pairs:
+          - ip_address: 10.10.2.22
+          - ip_address: 10.10.2.23
+            mac_address: fe:1a:29:d9:36:45
+        security_groups:
+          - default
+      requirements:
+        - virtualLink:
+            node: VL2
+        - virtualBinding:
+            node: VDU1
+    VCP2:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        ip_address: 10.10.2.22
+        anti_spoofing_protection: true
+        security_groups:
+          - default
+      requirements:
+        - virtualLink:
+            node: VL2
+    VCP3:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        ip_address: 10.10.2.23
+        anti_spoofing_protection: true
+        security_groups:
+          - default
+      requirements:
+        - virtualLink:
+            node: VL2
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: existing_network_1
+        vendor: Tacker
+
+    VL2:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: existing_network_2
+        vendor: Tacker

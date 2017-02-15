@@ -1,0 +1,88 @@
+heat_template_version: 2013-05-23
+
+description: >
+  VIP Template
+
+outputs:
+  mgmt_ip-VDU1:
+    value:
+      get_attr: [CP2, fixed_ips, 0, ip_address]
+
+parameters: {}
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      config_drive: false
+      flavor: m1.nano
+      image: {get_resource: VDU1_image}
+      networks:
+        - port:
+            get_resource: CP1
+        - port:
+            get_resource: CP2
+      user_data_format: SOFTWARE_CONFIG
+  CP1:
+    type: OS::Neutron::Port
+    properties:
+      fixed_ips:
+        - ip_address: 10.10.1.11
+      allowed_address_pairs:
+        - ip_address: 10.10.1.12
+      network: existing_network_1
+      port_security_enabled: true
+      security_groups:
+        - default
+
+  VCP1:
+    type: OS::Neutron::Port
+    properties:
+      fixed_ips:
+        - ip_address: 10.10.1.12
+      network: existing_network_1
+      port_security_enabled: true
+      security_groups:
+        - default
+
+  CP2:
+    type: OS::Neutron::Port
+    properties:
+      fixed_ips:
+        - ip_address: 10.10.2.21
+      allowed_address_pairs:
+        - ip_address: 10.10.2.22
+        - ip_address: 10.10.2.23
+          mac_address: fe:1a:29:d9:36:45
+      mac_address: fe:1a:29:d9:36:45
+      network: existing_network_2
+      port_security_enabled: true
+      security_groups:
+        - default
+
+  VCP2:
+    type: OS::Neutron::Port
+    properties:
+      fixed_ips:
+        - ip_address: 10.10.2.22
+      network: existing_network_2
+      port_security_enabled: true
+      security_groups:
+        - default
+
+  VCP3:
+    type: OS::Neutron::Port
+    properties:
+      fixed_ips:
+        - ip_address: 10.10.2.23
+      network: existing_network_2
+      port_security_enabled: true
+      security_groups:
+        - default
+
+  VDU1_image:
+    type: OS::Glance::Image
+    properties:
+      container_format: bare
+      disk_format: raw
+      location: http://URL/vRouterVNF.qcow2
+      name: vm_image

@@ -72,6 +72,17 @@ data_types:
         type: map
         required: false
 
+  tosca.datatypes.tacker.VirtualIP:
+    properties:
+      ip_address:
+        type: string
+        required: true
+        description: The virtual IP address allowed to be paired with.
+      mac_address:
+        type: string
+        required: false
+        description: The mac address allowed to be paired with specific virtual IP.
+
 policy_types:
   tosca.policies.tacker.Placement:
     derived_from: tosca.policies.Root

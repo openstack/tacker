@@ -398,6 +398,12 @@ class TestOpenStack(base.TestCase):
             'hot_tosca_security_groups.yaml'
         )
 
+    def test_create_port_with_allowed_address_pairs(self):
+        self._test_assert_equal_for_tosca_templates(
+            'test_tosca_allowed_address_pairs.yaml',
+            'hot_tosca_allowed_address_pairs.yaml'
+        )
+
     def test_create_port_with_mac_and_ip(self):
         self._test_assert_equal_for_tosca_templates(
             'test_tosca_mac_ip.yaml',
