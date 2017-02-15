@@ -1,0 +1,6 @@
+---
+features:
+  - Network Service Descriptor support will allow Tacker to provide
+    a end-to-end TOSCA based network service.
+    For details please refer
+    https://docs.openstack.org/developer/tacker/devref/nsd_usage_guide.html
