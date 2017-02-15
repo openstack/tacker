@@ -387,6 +387,14 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
             'default': None,
         },
+        'attributes': {
+            'allow_post': True,
+            'allow_put': True,
+            'convert_to': attr.convert_none_to_empty_dict,
+            'validate': {'type:dict_or_nodata': None},
+            'is_visible': True,
+            'default': None,
+        },
         'symmetrical': {
             'allow_post': True,
             'allow_put': True,
