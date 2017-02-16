@@ -137,6 +137,33 @@ routed normally and does not enter the VNFFG.
    Enabling symmetrical is not currently supported by the OpenStack VIM
    driver
 
+Parameters for VNFFGD template
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similar to TOSCA VNFD template, any value of VNFFGD template can be
+parameterized. Once parameterized different values can be passed while
+instantiating the forwarding graph using the same VNFFGD template.
+The value of a parameterized attribute can be specified like *{get_input foo}*
+in the TOSCA VNFFGD template. The corresponding param-file in the following
+YAML format can be provided in the vnffg-create command,
+
+::
+
+  {
+    foo: bar
+  }
+
+VNFFG command with parameter file:
+
+  **tacker vnffg-create --vnffgd-name myvnffgd**
+  **--vnf-mapping VNF1:'91e32c20-6d1f-47a4-9ba7-08f5e5effe07',**
+  **VNF2:'7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'**
+  **--param-file cust-site-x-param.yaml**
+
+
+See `VNFFGD template samples with paramter support <https://github.com/
+openstack/tacker/tree/master/samples/tosca-templates/vnffgd>`_.
+
 Viewing a VNFFG
 ~~~~~~~~~~~~~~~
 
