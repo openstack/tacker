@@ -137,6 +137,16 @@ class TestDeviceHeat(base.TestCase):
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123', 'description':
                 u'OpenWRT with services'}
 
+    def _assert_create_result_old_template(self, expected_fields,
+                                           actual_fields, expected_result,
+                                           result):
+        actual_fields["template"] = yaml.safe_load(actual_fields["template"])
+        expected_fields["template"] = \
+            yaml.safe_load(expected_fields["template"])
+        self.assertEqual(expected_fields, actual_fields)
+        self.heat_client.create.assert_called_once_with(expected_fields)
+        self.assertEqual(expected_result, result)
+
     def test_create(self):
         device_obj = utils.get_dummy_device_obj()
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
@@ -144,8 +154,9 @@ class TestDeviceHeat(base.TestCase):
         result = self.heat_driver.create(plugin=None, context=self.context,
                                          device=device_obj,
                                          auth_attr=utils.get_vim_auth_obj())
-        self.heat_client.create.assert_called_once_with(expected_fields)
-        self.assertEqual(expected_result, result)
+        actual_fields = self.heat_client.create.call_args[0][0]
+        self._assert_create_result_old_template(expected_fields, actual_fields,
+                                   expected_result, result)
 
     def test_create_user_data_param_attr(self):
         device_obj = utils.get_dummy_device_obj_userdata_attr()
@@ -154,8 +165,9 @@ class TestDeviceHeat(base.TestCase):
         result = self.heat_driver.create(plugin=None, context=self.context,
                                          device=device_obj,
                                          auth_attr=utils.get_vim_auth_obj())
-        self.heat_client.create.assert_called_once_with(expected_fields)
-        self.assertEqual(expected_result, result)
+        actual_fields = self.heat_client.create.call_args[0][0]
+        self._assert_create_result_old_template(expected_fields, actual_fields,
+                                   expected_result, result)
 
     def test_create_ip_addr_param_attr(self):
         device_obj = utils.get_dummy_device_obj_ipaddr_attr()
@@ -164,8 +176,9 @@ class TestDeviceHeat(base.TestCase):
         result = self.heat_driver.create(plugin=None, context=self.context,
                                          device=device_obj,
                                          auth_attr=utils.get_vim_auth_obj())
-        self.heat_client.create.assert_called_once_with(expected_fields)
-        self.assertEqual(expected_result, result)
+        actual_fields = self.heat_client.create.call_args[0][0]
+        self._assert_create_result_old_template(expected_fields, actual_fields,
+                                   expected_result, result)
 
     def test_create_wait(self):
         device_obj = utils.get_dummy_device_obj()
@@ -194,6 +207,10 @@ class TestDeviceHeat(base.TestCase):
                                 device_id=device_id, device_dict=device_obj,
                                 device=device_config_obj,
                                 auth_attr=utils.get_vim_auth_obj())
+        expected_device_update['attributes']['config'] = yaml.load(
+            expected_device_update['attributes']['config'])
+        device_obj['attributes']['config'] = yaml.load(device_obj[
+            'attributes']['config'])
         self.assertEqual(device_obj, expected_device_update)
 
     def test_create_device_template_pre_tosca(self):
