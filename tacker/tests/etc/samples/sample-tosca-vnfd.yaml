@@ -20,7 +20,7 @@ topology_template:
       type: tosca.nodes.nfv.VDU.Tacker
       properties:
         name: {get_input : vdu-name}
-        image: cirros-0.3.4-x86_64-uec
+        image: cirros-0.3.5-x86_64-disk
         flavor: m1.tiny
         key_name: userKey
         availability_zone: nova
