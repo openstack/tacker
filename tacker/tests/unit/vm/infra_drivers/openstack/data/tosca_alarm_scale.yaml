@@ -10,7 +10,7 @@ topology_template:
     VDU1:
       type: tosca.nodes.nfv.VDU.Tacker
       properties:
-        image: cirros-0.3.4-x86_64-uec
+        image: cirros-0.3.5-x86_64-disk
         mgmt_driver: noop
         availability_zone: nova
         flavor: m1.tiny

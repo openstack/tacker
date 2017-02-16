@@ -36,6 +36,8 @@ if is_service_enabled tacker; then
             tacker_create_initial_network
             echo_summary "Upload OpenWrt image"
             tacker_create_openwrt_image
+            echo_summary "Check existence of cirros==3.5"
+            tacker_check_and_download_cirros
             echo_summary "Registering default VIM"
             tacker_register_default_vim
         fi

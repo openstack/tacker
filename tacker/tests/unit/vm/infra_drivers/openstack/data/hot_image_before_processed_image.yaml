@@ -6,4 +6,4 @@ resources:
     properties:
       config_drive: true
       flavor: m1.tiny
-      image: cirros-0.3.2-x86_64-uec
+      image: cirros-0.3.5-x86_64-disk
