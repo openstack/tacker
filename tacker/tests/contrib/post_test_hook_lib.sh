@@ -16,7 +16,7 @@ PRIVATE_KEY_FILE=${PRIVATE_KEY_FILE:-"keypair.priv"}
 
 function fixup_quota {
     echo "Disable nova compute instance & core quota"
-    nova quota-class-update --instances -1 --cores -1 default
+    nova quota-class-update --instances -1 --cores -1 --ram -1 default
     projectId=$(openstack project list | awk '/\ nfv\ / {print $2}')
     echo "Disable neutron port quota on project 'nfv' $projectId"
     neutron quota-update --tenant-id $projectId --port -1
