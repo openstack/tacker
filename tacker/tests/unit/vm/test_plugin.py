@@ -479,3 +479,13 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         mock_get_policy.assert_called_once_with('scaling', 'test_vim')
         mock_action_class.execute_action.assert_called_once_with(
             self.vnfm_plugin, dummy_vnf, scale_body)
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
+    def test_get_vnf_policies(self, mock_get_vnf):
+        vnf_id = "6261579e-d6f3-49ad-8bc3-a9cb974778fe"
+        dummy_vnf = self._get_dummy_active_vnf(
+            utils.vnfd_alarm_respawn_tosca_template)
+        mock_get_vnf.return_value = dummy_vnf
+        policies = self.vnfm_plugin.get_vnf_policies(self.context, vnf_id,
+            filters={'name': 'vdu1_cpu_usage_monitoring_policy'})
+        self.assertEqual(1, len(policies))

@@ -670,7 +670,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 if filters.get('name') or filters.get('type'):
                     if name == filters.get('name'):
                         _add(policy)
-                    if policy['type'] == filters.get('type'):
+                        break
+                    elif policy['type'] == filters.get('type'):
                         _add(policy)
                         break
                     else:
