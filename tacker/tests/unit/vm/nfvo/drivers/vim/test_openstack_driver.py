@@ -33,6 +33,10 @@ class FakeKeystone(mock.Mock):
     pass
 
 
+class FakeNeutronClient(mock.Mock):
+    pass
+
+
 class mock_dict(dict):
     def __getattr__(self, item):
         return self.get(item)
@@ -139,3 +143,47 @@ class TestOpenstack_Driver(base.TestCase):
         mock_ks_client.regions.list.assert_called_once_with()
         self.keystone.initialize_client.assert_called_once_with(
             version=keystone_version, **self.auth_obj)
+
+    def test_get_vim_resource_id(self):
+        resource_type = 'network'
+        resource_name = 'net0'
+        fake_networks = {'networks': [{'id': 'fake-uuid', 'name': 'net0'}]}
+        fake_neutron_client = FakeNeutronClient()
+        fake_neutron_client.list_networks.return_value = fake_networks
+        self.openstack_driver._get_client = mock.Mock(
+            return_value=fake_neutron_client)
+
+        self.openstack_driver.get_vim_resource_id(
+            self.vim_obj, resource_type, resource_name)
+
+        self.openstack_driver._get_client.assert_called_once_with(
+            self.vim_obj, mock.ANY)
+        fake_neutron_client.list_networks.assert_called_once_with(
+            **{'name': 'net0'})
+
+    def test_get_vim_resource_id_name_not_unique(self):
+        resource_type = 'network'
+        resource_name = 'net0'
+        fake_networks = {'networks': [{'id': 'fake-uuid-1', 'name': 'net0'},
+                                      {'id': 'fake-uuid-2', 'name': 'net0'}]}
+        fake_neutron_client = FakeNeutronClient()
+        fake_neutron_client.list_networks.return_value = fake_networks
+        self.openstack_driver._get_client = mock.Mock(
+            return_value=fake_neutron_client)
+
+        self.assertRaises(nfvo.VimGetResourceNameNotUnique,
+                          self.openstack_driver.get_vim_resource_id,
+                          self.vim_obj, resource_type, resource_name)
+
+    def test_get_vim_resource_id_name_not_exist(self):
+        resource_type = 'network'
+        resource_name = 'net0'
+        fake_networks = {'networks': []}
+        fake_neutron_client = FakeNeutronClient()
+        fake_neutron_client.list_networks.return_value = fake_networks
+        self.openstack_driver._get_client = mock.Mock(
+            return_value=fake_neutron_client)
+
+        self.assertRaises(nfvo.VimGetResourceNotFoundException,
+                          self.openstack_driver.get_vim_resource_id,
+                          self.vim_obj, resource_type, resource_name)
