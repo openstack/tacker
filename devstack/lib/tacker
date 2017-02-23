@@ -317,12 +317,26 @@ function tacker_horizon_install {
     sudo cp $DEST/tacker-horizon/tacker_horizon/enabled/* $DEST/horizon/openstack_dashboard/enabled/
     restart_apache_server
 }
+function tacker_check_and_download_cirros {
+    local image_url image_fname
+    image_url=http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img
+    cirros_fname=`basename "$image_url"`
+    image_name=`glance image-list | grep "${cirros_fname%.*}" | awk '{print $4}'`
+    if [[ $image_name == "" ]]; then
+        if [[ ! -f $FILES/$image_fname || "$(stat -c "%s" $FILES/$image_fname)" = "0" ]]; then
+            {
+               wget --progress=dot:giga -c $image_url -O $FILES/$image_fname \
+                   && openstack_image_create $FILES/$image_fname ${cirros_fname%.*}
+            }
+        fi
+    fi
+}
 
-function openstack_image_create_openwrt {
+function openstack_image_create {
     image=$1
     disk_format=raw
     container_format=bare
-    image_name="OpenWRT"
+    image_name=$2
     openstack --os-cloud=devstack-admin image create $image_name --public --container-format=$container_format --disk-format $disk_format < <(zcat --force "${image}")
     glance image-list | grep OpenWRT | awk {print$2}
 }
@@ -336,7 +350,7 @@ function tacker_create_openwrt_image {
         if [[ ! -f $FILES/$image_fname || "$(stat -c "%s" $FILES/$image_fname)" = "0" ]]; then
             {
                wget --progress=dot:giga -c $image_url -O $FILES/$image_fname \
-                   && openstack_image_create_openwrt $FILES/$image_fname
+                   && openstack_image_create $FILES/$image_fname OpenWRT
             }||{
                 rm -rf $FILES/$image_fname
                 echo "WARNING: openwrt image create for $image_fname failed"

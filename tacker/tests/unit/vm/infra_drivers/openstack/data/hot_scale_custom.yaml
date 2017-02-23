@@ -16,7 +16,7 @@ resources:
       availability_zone: nova
       config_drive: false
       flavor: m1.tiny
-      image: cirros-0.3.4-x86_64-uec
+      image: cirros-0.3.5-x86_64-disk
       networks:
       - port: {get_resource: CP1}
       user_data_format: SOFTWARE_CONFIG
