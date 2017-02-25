@@ -53,10 +53,16 @@ class Keystone(object):
     def initialize_client(self, version, **kwargs):
         if version == 'v2.0':
             from keystoneclient.v2_0 import client
-            auth_plugin = identity.v2.Password(**kwargs)
+            if 'token' in kwargs:
+                auth_plugin = identity.v2.Token(**kwargs)
+            else:
+                auth_plugin = identity.v2.Password(**kwargs)
         else:
             from keystoneclient.v3 import client
-            auth_plugin = identity.v3.Password(**kwargs)
+            if 'token' in kwargs:
+                auth_plugin = identity.v3.Token(**kwargs)
+            else:
+                auth_plugin = identity.v3.Password(**kwargs)
         ses = self.get_session(auth_plugin=auth_plugin)
         cli = client.Client(session=ses)
         return cli

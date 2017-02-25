@@ -599,11 +599,18 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIsNotNone(result)
             self.assertEqual(result['name'], 'dummy_NSD')
 
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
     @mock.patch.object(vim_client.VimClient, 'get_vim')
     @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
-    def test_create_ns(self, mock_get_by_name, mock_get_vim):
+    def test_create_ns(self, mock_get_by_name, mock_get_vimi, mock_auth_dict):
         self._insert_dummy_ns_template()
         self._insert_dummy_vim()
+        mock_auth_dict.return_value = {
+            'auth_url': 'http://127.0.0.1',
+            'token': 'DummyToken',
+            'project_domain_name': 'dummy_domain',
+            'project_name': 'dummy_project'
+        }
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
@@ -620,12 +627,20 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIn('status', result)
             self.assertIn('tenant_id', result)
 
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
     @mock.patch.object(vim_client.VimClient, 'get_vim')
     @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
-    def test_delete_ns(self, mock_get_by_name, mock_get_vim):
+    def test_delete_ns(self, mock_get_by_name, mock_get_vim, mock_auth_dict):
         self._insert_dummy_vim()
         self._insert_dummy_ns_template()
         self._insert_dummy_ns()
+        mock_auth_dict.return_value = {
+            'auth_url': 'http://127.0.0.1',
+            'token': 'DummyToken',
+            'project_domain_name': 'dummy_domain',
+            'project_name': 'dummy_project'
+        }
+
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
