@@ -25,7 +25,6 @@ from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 import six
 
-from tacker.common import clients
 from tacker.common import driver_manager
 from tacker import context as t_context
 from tacker.db.common_services import common_services_db
@@ -313,40 +312,6 @@ class ActionPolicy(object):
     @classmethod
     def get_supported_actions(cls):
         return cls._POLICIES.keys()
-
-
-@ActionPolicy.register('respawn')
-class ActionRespawn(ActionPolicy):
-    @classmethod
-    def execute_action(cls, plugin, vnf_dict):
-        LOG.error(_('vnf %s dead'), vnf_dict['id'])
-        if plugin._mark_vnf_dead(vnf_dict['id']):
-            plugin._vnf_monitor.mark_dead(vnf_dict['id'])
-
-            attributes = vnf_dict['attributes'].copy()
-            attributes['dead_vnf_id'] = vnf_dict['id']
-            new_vnf = {'attributes': attributes}
-            for key in ('tenant_id', 'vnfd_id', 'name'):
-                new_vnf[key] = vnf_dict[key]
-            LOG.debug(_('new_vnf %s'), new_vnf)
-
-            # keystone v2.0 specific
-            authtoken = CONF.keystone_authtoken
-            token = clients.OpenstackClients().auth_token
-
-            context = t_context.get_admin_context()
-            context.tenant_name = authtoken.project_name
-            context.user_name = authtoken.username
-            context.auth_token = token['id']
-            context.tenant_id = token['tenant_id']
-            context.user_id = token['user_id']
-            _log_monitor_events(context, vnf_dict,
-                                "ActionRespawnPolicy invoked")
-            new_vnf_dict = plugin.create_vnf(context,
-                                             {'vnf': new_vnf})
-            _log_monitor_events(context, new_vnf_dict,
-                                "ActionRespawnPolicy complete")
-            LOG.info(_('respawned new vnf %s'), new_vnf_dict['id'])
 
 
 @ActionPolicy.register('respawn', 'openstack')
