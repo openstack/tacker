@@ -32,7 +32,3 @@ from tacker.db.types import Json
 
 def upgrade(active_plugins=None, options=None):
     op.add_column('vnffgs', sa.Column('attributes', Json))
-
-
-def downgrade(active_plugins=None, options=None):
-    op.drop_column('vnffgs', 'attributes')

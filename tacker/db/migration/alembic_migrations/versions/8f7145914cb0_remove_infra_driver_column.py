@@ -26,14 +26,7 @@ revision = '8f7145914cb0'
 down_revision = '0ae5b1ce3024'
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import mysql
 
 
 def upgrade(active_plugins=None, options=None):
     op.drop_column('vnfd', 'infra_driver')
-
-
-def downgrade(active_plugins=None, options=None):
-    op.add_column('vnfd', sa.Column('infra_driver', mysql.VARCHAR(length=255),
-                                    nullable=True))

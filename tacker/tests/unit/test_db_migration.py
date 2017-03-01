@@ -108,21 +108,6 @@ class TestCli(base.BaseTestCase):
             {'sql': False}
         )
 
-    def test_downgrade(self):
-        self._main_test_helper(
-            ['prog', 'downgrade', '--sql', 'folsom'],
-            'downgrade',
-            ('folsom',),
-            {'sql': True}
-        )
-
-        self._main_test_helper(
-            ['prog', 'downgrade', '--delta', '2'],
-            'downgrade',
-            ('-2',),
-            {'sql': False}
-        )
-
     def _test_validate_head_file_helper(self, heads, file_content=None):
         with mock.patch('alembic.script.ScriptDirectory.from_config') as fc:
             fc.return_value.get_heads.return_value = heads
