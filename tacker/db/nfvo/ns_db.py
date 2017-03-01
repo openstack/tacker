@@ -13,6 +13,7 @@
 import ast
 import uuid
 
+from oslo_db.exception import DBDuplicateEntry
 from oslo_log import log as logging
 from oslo_utils import timeutils
 from six import iteritems
@@ -20,7 +21,9 @@ from six import iteritems
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
+from sqlalchemy import schema
 
+from tacker.common import exceptions
 from tacker.db.common_services import common_services_db
 from tacker.db import db_base
 from tacker.db import model_base
@@ -54,6 +57,13 @@ class NSD(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
     # (key, value) pair to spin up
     attributes = orm.relationship('NSDAttribute',
                                   backref='nsd')
+
+    __table_args__ = (
+        schema.UniqueConstraint(
+            "tenant_id",
+            "name",
+            name="uniq_nsd0tenant_id0name"),
+    )
 
 
 class NSDAttribute(model_base.BASE, models_v1.HasId):
@@ -90,6 +100,13 @@ class NS(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
     status = sa.Column(sa.String(64), nullable=False)
     vim_id = sa.Column(types.Uuid, sa.ForeignKey('vims.id'), nullable=False)
     error_reason = sa.Column(sa.Text, nullable=True)
+
+    __table_args__ = (
+        schema.UniqueConstraint(
+            "tenant_id",
+            "name",
+            name="uniq_ns0tenant_id0name"),
+    )
 
 
 class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
@@ -151,23 +168,27 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         LOG.debug(_('nsd %s'), nsd)
         tenant_id = self._get_tenant_id_for_create(context, nsd)
 
-        with context.session.begin(subtransactions=True):
-            nsd_id = str(uuid.uuid4())
-            nsd_db = NSD(
-                id=nsd_id,
-                tenant_id=tenant_id,
-                name=nsd.get('name'),
-                vnfds=vnfds,
-                description=nsd.get('description'))
-            context.session.add(nsd_db)
-            for (key, value) in nsd.get('attributes', {}).items():
-                attribute_db = NSDAttribute(
-                    id=str(uuid.uuid4()),
-                    nsd_id=nsd_id,
-                    key=key,
-                    value=value)
-                context.session.add(attribute_db)
-
+        try:
+            with context.session.begin(subtransactions=True):
+                nsd_id = str(uuid.uuid4())
+                nsd_db = NSD(
+                    id=nsd_id,
+                    tenant_id=tenant_id,
+                    name=nsd.get('name'),
+                    vnfds=vnfds,
+                    description=nsd.get('description'))
+                context.session.add(nsd_db)
+                for (key, value) in nsd.get('attributes', {}).items():
+                    attribute_db = NSDAttribute(
+                        id=str(uuid.uuid4()),
+                        nsd_id=nsd_id,
+                        key=key,
+                        value=value)
+                    context.session.add(attribute_db)
+        except DBDuplicateEntry as e:
+            raise exceptions.DuplicateEntity(
+                _type="nsd",
+                entry=e.columns)
         LOG.debug(_('nsd_db %(nsd_db)s %(attributes)s '),
                   {'nsd_db': nsd_db,
                    'attributes': nsd_db.attributes})
@@ -224,20 +245,25 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         vim_id = ns['vim_id']
         name = ns.get('name')
         ns_id = str(uuid.uuid4())
-        with context.session.begin(subtransactions=True):
-            nsd_db = self._get_resource(context, NSD,
-                                        nsd_id)
-            ns_db = NS(id=ns_id,
-                       tenant_id=tenant_id,
-                       name=name,
-                       description=nsd_db.description,
-                       vnf_ids=None,
-                       status=constants.PENDING_CREATE,
-                       mgmt_urls=None,
-                       nsd_id=nsd_id,
-                       vim_id=vim_id,
-                       error_reason=None)
-            context.session.add(ns_db)
+        try:
+            with context.session.begin(subtransactions=True):
+                nsd_db = self._get_resource(context, NSD,
+                                            nsd_id)
+                ns_db = NS(id=ns_id,
+                           tenant_id=tenant_id,
+                           name=name,
+                           description=nsd_db.description,
+                           vnf_ids=None,
+                           status=constants.PENDING_CREATE,
+                           mgmt_urls=None,
+                           nsd_id=nsd_id,
+                           vim_id=vim_id,
+                           error_reason=None)
+                context.session.add(ns_db)
+        except DBDuplicateEntry as e:
+            raise exceptions.DuplicateEntity(
+                _type="ns",
+                entry=e.columns)
         evt_details = "NS UUID assigned."
         self._cos_db_plg.create_event(
             context, res_id=ns_id,

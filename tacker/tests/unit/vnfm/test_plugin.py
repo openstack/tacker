@@ -19,7 +19,6 @@ import mock
 from mock import patch
 import yaml
 
-from tacker.common import exceptions
 from tacker import context
 from tacker.db.common_services import common_services_db
 from tacker.db.nfvo import nfvo_db
@@ -250,14 +249,6 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                           self.vnfm_plugin.create_vnfd,
                           self.context, vnfd_obj)
 
-    def test_create_vnfd_duplicate_name(self):
-        self._insert_dummy_device_template()
-        vnfd_obj = utils.get_dummy_vnfd_obj()
-        vnfd_obj['vnfd']['name'] = 'fake_template'
-        self.assertRaises(exceptions.DuplicateResourceName,
-                          self.vnfm_plugin.create_vnfd,
-                          self.context, vnfd_obj)
-
     def test_create_vnf_with_vnfd(self):
         self._insert_dummy_device_template()
         vnf_obj = utils.get_dummy_vnf_obj()
@@ -326,15 +317,6 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('name', resources)
         self.assertIn('type', resources)
         self.assertIn('id', resources)
-
-    def test_create_vnf_duplicate_name(self):
-        self._insert_dummy_device_template()
-        self._insert_dummy_device()
-        vnf_obj = utils.get_dummy_vnf_obj()
-        vnf_obj['vnf']['name'] = 'fake_device'
-        self.assertRaises(exceptions.DuplicateResourceName,
-                          self.vnfm_plugin.create_vnf,
-                          self.context, vnf_obj)
 
     def test_delete_vnf(self):
         self._insert_dummy_device_template()

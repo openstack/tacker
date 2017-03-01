@@ -20,6 +20,8 @@ Tacker base exception handling.
 from oslo_utils import excutils
 import six
 
+from tacker._i18n import _
+
 
 class TackerException(Exception):
     """Base Tacker Exception.
@@ -281,3 +283,7 @@ class DuplicateResourceName(TackerException):
 
 class InvalidParam(TackerException):
     message = _("Param values must be a dict type")
+
+
+class DuplicateEntity(TackerException):
+    message = _("%(_type)s already exist with given %(entry)s")
