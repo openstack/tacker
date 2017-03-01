@@ -179,3 +179,11 @@ class TackerManager(object):
     @classmethod
     def get_service_plugins(cls):
         return cls.get_instance().service_plugins
+
+    @classmethod
+    def has_instance(cls):
+        return cls._instance is not None
+
+    @classmethod
+    def clear_instance(cls):
+        cls._instance = None

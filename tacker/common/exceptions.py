@@ -41,10 +41,18 @@ class TackerException(Exception):
                     # at least get the core message out if something happened
                     super(TackerException, self).__init__(self.message)
 
-    def __unicode__(self):
-        return six.text_type(self.msg)
+    if six.PY2:
+        def __unicode__(self):
+            return unicode(self.msg)
+
+    def __str__(self):
+        return self.msg
 
     def use_fatal_exceptions(self):
+        """Is the instance using fatal exceptions.
+
+        :returns: Always returns False.
+        """
         return False
 
 

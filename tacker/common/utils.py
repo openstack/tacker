@@ -18,7 +18,6 @@
 
 """Utilities and helper functions."""
 
-import functools
 import logging as std_logging
 import os
 import random
@@ -68,64 +67,6 @@ MEM_UNITS = {
 }
 CONF = cfg.CONF
 synchronized = lockutils.synchronized_with_prefix(SYNCHRONIZED_PREFIX)
-
-
-class cache_method_results(object):
-    """This decorator is intended for object methods only."""
-
-    def __init__(self, func):
-        self.func = func
-        functools.update_wrapper(self, func)
-        self._first_call = True
-        self._not_cached = object()
-
-    def _get_from_cache(self, target_self, *args, **kwargs):
-        func_name = "%(module)s.%(class)s.%(func_name)s" % {
-            'module': target_self.__module__,
-            'class': target_self.__class__.__name__,
-            'func_name': self.func.__name__,
-        }
-        key = (func_name,) + args
-        if kwargs:
-            key += dict2tuple(kwargs)
-        try:
-            item = target_self._cache.get(key, self._not_cached)
-        except TypeError:
-            LOG.debug(_("Method %(func_name)s cannot be cached due to "
-                        "unhashable parameters: args: %(args)s, kwargs: "
-                        "%(kwargs)s"),
-                      {'func_name': func_name,
-                       'args': args,
-                       'kwargs': kwargs})
-            return self.func(target_self, *args, **kwargs)
-
-        if item is self._not_cached:
-            item = self.func(target_self, *args, **kwargs)
-            target_self._cache.set(key, item, None)
-
-        return item
-
-    def __call__(self, target_self, *args, **kwargs):
-        if not hasattr(target_self, '_cache'):
-            raise NotImplementedError(
-                "Instance of class %(module)s.%(class)s must contain _cache "
-                "attribute" % {
-                    'module': target_self.__module__,
-                    'class': target_self.__class__.__name__})
-        if not target_self._cache:
-            if self._first_call:
-                LOG.debug(_("Instance of class %(module)s.%(class)s doesn't "
-                            "contain attribute _cache therefore results "
-                            "cannot be cached for %(func_name)s."),
-                          {'module': target_self.__module__,
-                           'class': target_self.__class__.__name__,
-                           'func_name': self.func.__name__})
-                self._first_call = False
-            return self.func(target_self, *args, **kwargs)
-        return self._get_from_cache(target_self, *args, **kwargs)
-
-    def __get__(self, obj, objtype):
-        return functools.partial(self.__call__, obj)
 
 
 def find_config_file(options, config_file):
@@ -188,44 +129,12 @@ def subprocess_popen(args, stdin=None, stdout=None, stderr=None, shell=False,
                             close_fds=True, env=env)
 
 
-def parse_mappings(mapping_list, unique_values=True):
-    """Parse a list of mapping strings into a dictionary.
-
-    :param mapping_list: a list of strings of the form '<key>:<value>'
-    :param unique_values: values must be unique if True
-    :returns: a dict mapping keys to values
-    """
-    mappings = {}
-    for mapping in mapping_list:
-        mapping = mapping.strip()
-        if not mapping:
-            continue
-        split_result = mapping.split(':')
-        if len(split_result) != 2:
-            raise ValueError(_("Invalid mapping: '%s'") % mapping)
-        key = split_result[0].strip()
-        if not key:
-            raise ValueError(_("Missing key in mapping: '%s'") % mapping)
-        value = split_result[1].strip()
-        if not value:
-            raise ValueError(_("Missing value in mapping: '%s'") % mapping)
-        if key in mappings:
-            raise ValueError(_("Key %(key)s in mapping: '%(mapping)s' not "
-                               "unique") % {'key': key, 'mapping': mapping})
-        if unique_values and value in mappings.values():
-            raise ValueError(_("Value %(value)s in mapping: '%(mapping)s' "
-                               "not unique") % {'value': value,
-                                                'mapping': mapping})
-        mappings[key] = value
-    return mappings
-
-
 def get_hostname():
     return socket.gethostname()
 
 
 def dict2tuple(d):
-    items = d.items()
+    items = list(d.items())
     items.sort()
     return tuple(items)
 

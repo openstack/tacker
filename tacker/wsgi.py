@@ -33,6 +33,7 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_service import service as common_service
 from oslo_service import systemd
+from oslo_utils import encodeutils
 from oslo_utils import excutils
 import routes.middleware
 import six
@@ -81,6 +82,14 @@ def config_opts():
     return [(None, socket_opts)]
 
 LOG = logging.getLogger(__name__)
+
+
+def encode_body(body):
+    """Encode unicode body.
+
+    WebOb requires to encode unicode body used to update response body.
+    """
+    return encodeutils.to_utf8(body)
 
 
 class WorkerService(common_service.ServiceBase):
@@ -400,7 +409,7 @@ class JSONDictSerializer(DictSerializer):
     def default(self, data):
         def sanitizer(obj):
             return six.text_type(obj)
-        return jsonutils.dumps(data, default=sanitizer)
+        return encode_body(jsonutils.dumps(data, default=sanitizer))
 
 
 class ResponseHeaderSerializer(ActionDispatcher):

@@ -166,7 +166,7 @@ class BaseTestCase(testtools.TestCase):
             fake_use_fatal_exceptions))
 
         self.useFixture(fixtures.MonkeyPatch(
-            'oslo.messaging.Notifier', fake_notifier.FakeNotifier))
+            'oslo_messaging.Notifier', fake_notifier.FakeNotifier))
 
         self.messaging_conf = messaging_conffixture.ConfFixture(CONF)
         self.messaging_conf.transport_driver = 'fake'

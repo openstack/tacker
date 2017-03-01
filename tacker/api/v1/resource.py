@@ -17,16 +17,10 @@
 Utility methods for working with WSGI servers redux
 """
 
-import sys
-
-import netaddr
-import oslo_i18n
 from oslo_log import log as logging
-import six
 import webob.dec
-import webob.exc
 
-from tacker.common import exceptions
+from tacker.api import api_common
 from tacker import wsgi
 
 
@@ -81,55 +75,21 @@ def Resource(controller, faults=None, deserializers=None, serializers=None):
             method = getattr(controller, action)
 
             result = method(request=request, **args)
-        except (exceptions.TackerException,
-                netaddr.AddrFormatError) as e:
-            for fault in faults:
-                if isinstance(e, fault):
-                    mapped_exc = faults[fault]
-                    break
-            else:
-                mapped_exc = webob.exc.HTTPInternalServerError
-            if 400 <= mapped_exc.code < 500:
+        except Exception as e:
+            mapped_exc = api_common.convert_exception_to_http_exc(e, faults,
+                                                                  language)
+            if hasattr(mapped_exc, 'code') and 400 <= mapped_exc.code < 500:
                 LOG.info(_('%(action)s failed (client error): %(exc)s'),
-                         {'action': action, 'exc': e})
+                         {'action': action, 'exc': mapped_exc})
             else:
-                LOG.exception(_('%s failed'), action)
-            e = translate(e, language)
-            # following structure is expected by python-tackerclient
-            err_data = {'type': e.__class__.__name__,
-                        'message': e, 'detail': ''}
-            body = serializer.serialize({'TackerError': err_data})
-            kwargs = {'body': body, 'content_type': content_type}
-            raise mapped_exc(**kwargs)
-        except webob.exc.HTTPException as e:
-            type_, value, tb = sys.exc_info()
-            LOG.exception(_('%s failed'), action)
-            translate(e, language)
-            value.body = serializer.serialize({'TackerError': e})
-            value.content_type = content_type
-            six.reraise(type_, value, tb)
-        except NotImplementedError as e:
-            e = translate(e, language)
-            # NOTE(armando-migliaccio): from a client standpoint
-            # it makes sense to receive these errors, because
-            # extensions may or may not be implemented by
-            # the underlying plugin. So if something goes south,
-            # because a plugin does not implement a feature,
-            # returning 500 is definitely confusing.
-            body = serializer.serialize(
-                {'NotImplementedError': e.message})
-            kwargs = {'body': body, 'content_type': content_type}
-            raise webob.exc.HTTPNotImplemented(**kwargs)
-        except Exception:
-            # NOTE(jkoelker) Everything else is 500
-            LOG.exception(_('%s failed'), action)
-            # Do not expose details of 500 error to clients.
-            msg = _('Request Failed: internal server error while '
-                    'processing your request.')
-            msg = translate(msg, language)
-            body = serializer.serialize({'TackerError': msg})
-            kwargs = {'body': body, 'content_type': content_type}
-            raise webob.exc.HTTPInternalServerError(**kwargs)
+                LOG.exception(
+                    _('%(action)s failed: %(details)s'),
+                    {
+                        'action': action,
+                        'details': extract_exc_details(e),
+                    }
+                )
+            raise mapped_exc
 
         status = action_status.get(action, 200)
         body = serializer.serialize(result)
@@ -144,25 +104,15 @@ def Resource(controller, faults=None, deserializers=None, serializers=None):
     return resource
 
 
-def translate(translatable, locale):
-    """Translates the object to the given locale.
+_NO_ARGS_MARKER = object()
 
-    If the object is an exception its translatable elements are translated
-    in place, if the object is a translatable string it is translated and
-    returned. Otherwise, the object is returned as-is.
 
-    :param translatable: the object to be translated
-    :param locale: the locale to translate to
-    :returns: the translated object, or the object as-is if it
-              was not translated
-    """
-    localize = oslo_i18n.translate
-    if isinstance(translatable, exceptions.TackerException):
-        translatable.msg = localize(translatable.msg, locale)
-    elif isinstance(translatable, webob.exc.HTTPError):
-        translatable.detail = localize(translatable.detail, locale)
-    elif isinstance(translatable, Exception):
-        translatable.message = localize(translatable.message, locale)
-    else:
-        return localize(translatable, locale)
-    return translatable
+def extract_exc_details(e):
+    for attr in ('_error_context_msg', '_error_context_args'):
+        if not hasattr(e, attr):
+            return _('No details.')
+    details = e._error_context_msg
+    args = e._error_context_args
+    if args is _NO_ARGS_MARKER:
+        return details
+    return details % args
