@@ -34,10 +34,8 @@ if is_service_enabled tacker; then
             modify_heat_flavor_policy_rule
             echo_summary "Setup initial tacker network"
             tacker_create_initial_network
-            echo_summary "Upload OpenWrt image"
-            tacker_create_openwrt_image
-            echo_summary "Check existence of cirros==3.5"
-            tacker_check_and_download_cirros
+            echo_summary "Check and download images for tacker initial"
+            tacker_check_and_download_images
             echo_summary "Registering default VIM"
             tacker_register_default_vim
         fi
