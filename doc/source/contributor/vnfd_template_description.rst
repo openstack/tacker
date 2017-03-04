@@ -475,6 +475,61 @@ net-01 is as shown below.
 |            |          |        |             | VL is to be attached        |
 +------------+----------+--------+-------------+-----------------------------+
 
+Floating IP
+-----------
+Floating IP is used to access VDU from public network.
+
+An example of assign floating ip to VDU
+
+::
+
+  ..
+  topology_template:
+    node_templates:
+      VDU1:
+        ..
+      CP1:
+        type: tosca.nodes.nfv.CP.Tacker
+        properties:
+          management: true
+        requirements:
+          - virtualLink:
+              node: VL1
+          - virtualBinding:
+              node: VDU1
+      VL1:
+        ..
+      FIP1:
+        type: tosca.nodes.network.FloatingIP
+        properties:
+          floating_network: public
+        requirements:
+          - link:
+              node: CP1
+
+:type:
+    tosca.nodes.network.FloatingIP
+
+:properties:
+
++-------------------+----------+--------+-------------+-----------------------+
+|Name               | Required | Type   | Constraints | Description           |
++-------------------+----------+--------+-------------+-----------------------+
+|floating_network   | Yes      | String | None        | Name of public network|
++-------------------+----------+--------+-------------+-----------------------+
+|floating_ip_address| No       | String | None        | Floating IP Address   |
+|                   |          |        |             | from public network   |
++------------+------+----------+--------+-------------+-----------------------+
+
+:requirements:
+
++------+-------------------+--------------------+-------------------+
+|Name  |Capability         |Relationship        |Description        |
++------+-------------------+--------------------+-------------------+
+|link  |tosca.capabilities |tosca.relationships |States the CP node |
+|      |.network.Linkable  |.network.LinksTo    |to connect to      |
++------+-------------------+--------------------+-------------------+
+
 Multiple nodes
 --------------
 Multiple node types can be defined in a VNFD.
