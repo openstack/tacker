@@ -16,30 +16,28 @@ PRIVATE_KEY_FILE=${PRIVATE_KEY_FILE:-"keypair.priv"}
 
 function fixup_quota {
     echo "Disable nova compute instance & core quota"
-    nova quota-class-update --instances -1 --cores -1 --ram -1 default
+    openstack quota set --class --instances -1 --cores -1 --ram -1 default
     projectId=$(openstack project list | awk '/\ nfv\ / {print $2}')
     echo "Disable neutron port quota on project 'nfv' $projectId"
-    neutron quota-update --tenant-id $projectId --port -1
+    openstack quota set --ports -1 $projectId
 }
 
-# Adding nova keypair if not exist to support key_name (#1578785).
 function add_key_if_not_exist {
     echo "Adding nova key if not exist"
-    userId=$(openstack user list | awk '/\ nfv_user\ / {print $2}')
-    nova keypair-show userKey --user $userId >/dev/null
+    openstack keypair show userKey >/dev/null
     if [[ "$?" != "0" ]]; then
-        nova keypair-add userKey --user $userId > ${PRIVATE_KEY_FILE}
+        add_key
     else
         echo "Keypair userKey already exists"
     fi
 }
 
-# Adding nova keypair to support key_name (#1578785).
-# used by OpenStack CI since it will fail if $? is not 0
 function add_key {
     echo "Adding nova key"
     userId=$(openstack user list | awk '/\ nfv_user\ / {print $2}')
+    # TODO: openstack cli does not support to add key to a specific user
     nova keypair-add userKey --user $userId > ${PRIVATE_KEY_FILE}
+    echo "Keypair userKey is added"
 }
 
 # Adding nova security groups (#1591372).
@@ -60,8 +58,7 @@ function add_secgrp_if_not_exist {
     echo "Adding nova security group"
     openstack security group show test_secgrp
     if [[ "$?" != "0" ]]; then
-        _create_secgrps
-        _check_secgrps
+        add_secgrp
     else
         echo "Nova security group already exists"
     fi
@@ -72,4 +69,5 @@ function add_secgrp {
     echo "Adding nova security group"
     _create_secgrps
     _check_secgrps
+    echo "nova security group is added"
 }

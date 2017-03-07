@@ -112,11 +112,11 @@ availability zone and adding compute nodes.
 
 .. code-block:: console
 
-  nova aggregate-create NFV-AGG NFV-AZ
+   openstack aggregate create --zone NFV-AZ NFV-AGG
 
-  nova aggregate-add-host NFV-AGG <NFV_HOST1>
+   openstack aggregate add host NFV-AGG <NFV_HOST1>
 
-  nova aggregate-add-host NFV-AGG <NFV_HOST2>
+   openstack aggregate add host NFV-AGG <NFV_HOST2>
 
 **NOTE**: Consult http://docs.openstack.org/cli-reference/nova.html for
 latest supported commands.
