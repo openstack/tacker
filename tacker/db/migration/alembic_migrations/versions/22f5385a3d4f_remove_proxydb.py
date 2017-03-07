@@ -33,7 +33,3 @@ def upgrade(active_plugins=None, options=None):
     op.drop_table('proxymgmtports')
     op.drop_table('proxyserviceports')
     # end Alembic commands #
-
-
-def downgrade(active_plugins=None, options=None):
-    pass

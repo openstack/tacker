@@ -34,7 +34,3 @@ from tacker.db import migration
 
 def upgrade(active_plugins=None, options=None):
     ${upgrades if upgrades else "pass"}
-
-
-def downgrade(active_plugins=None, options=None):
-    ${downgrades if downgrades else "pass"}

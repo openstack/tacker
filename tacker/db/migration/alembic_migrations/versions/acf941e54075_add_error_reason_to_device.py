@@ -32,7 +32,3 @@ import sqlalchemy as sa
 def upgrade(active_plugins=None, options=None):
     op.add_column('devices', sa.Column('error_reason',
         sa.Text(), nullable=True))
-
-
-def downgrade(active_plugins=None, options=None):
-    op.drop_column('devices', 'error_reason')

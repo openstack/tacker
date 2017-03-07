@@ -58,11 +58,3 @@ def upgrade(active_plugins=None, options=None):
     op.add_column(u'devices', sa.Column('vim_id', sa.String(length=36),
                                         nullable=False))
     op.create_foreign_key(None, 'devices', 'vims', ['vim_id'], ['id'])
-
-
-def downgrade(active_plugins=None, options=None):
-    op.drop_constraint(None, 'devices', type_='foreignkey')
-    op.drop_column(u'devices', 'vim_id')
-    op.drop_column(u'devices', 'placement_attr')
-    op.drop_table('vimauths')
-    op.drop_table('vims')
