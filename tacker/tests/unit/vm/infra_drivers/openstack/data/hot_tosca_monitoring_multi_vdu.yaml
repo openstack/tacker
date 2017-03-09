@@ -1,0 +1,43 @@
+heat_template_version: 2013-05-23
+description: 'Monitoring for multiple VDUs
+
+'
+outputs:
+  mgmt_ip-VDU1:
+    value:
+      get_attr: [CP1, fixed_ips, 0, ip_address]
+  mgmt_ip-VDU2:
+    value:
+      get_attr: [CP2, fixed_ips, 0, ip_address]
+
+parameters: {}
+resources:
+  VDU1:
+    properties:
+      availability_zone: nova
+      config_drive: false
+      flavor: m1.tiny
+      image: cirros-0.3.5-x86_64-disk
+      networks:
+      - port: {get_resource: CP1}
+      user_data_format: SOFTWARE_CONFIG
+    type: OS::Nova::Server
+
+  CP1:
+    properties: {network: net_mgmt, port_security_enabled: false}
+    type: OS::Neutron::Port
+
+  VDU2:
+    properties:
+      availability_zone: nova
+      config_drive: false
+      flavor: m1.tiny
+      image: cirros-0.3.5-x86_64-disk
+      networks:
+      - port: {get_resource: CP2}
+      user_data_format: SOFTWARE_CONFIG
+    type: OS::Nova::Server
+
+  CP2:
+    properties: {network: net_mgmt, port_security_enabled: false}
+    type: OS::Neutron::Port

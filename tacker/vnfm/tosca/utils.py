@@ -11,6 +11,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import os
 import re
 import sys
@@ -138,19 +139,19 @@ def check_for_substitution_mappings(template, params):
 
 @log.log
 def get_vdu_monitoring(template):
-    monitoring_dict = {}
+    monitoring_dict = dict()
+    policy_dict = dict()
+    policy_dict['vdus'] = collections.OrderedDict()
     for nt in template.nodetemplates:
         if nt.type_definition.is_derived_from(TACKERVDU):
             mon_policy = nt.get_property_value('monitoring_policy') or 'noop'
-            # mon_data = {mon_policy['name']: {'actions': {'failure':
-            #                                              'respawn'}}}
             if mon_policy != 'noop':
                 if 'parameters' in mon_policy:
                     mon_policy['monitoring_params'] = mon_policy['parameters']
-                monitoring_dict['vdus'] = {}
-                monitoring_dict['vdus'][nt.name] = {}
-                monitoring_dict['vdus'][nt.name][mon_policy['name']] = \
-                    mon_policy
+                policy_dict['vdus'][nt.name] = {}
+                policy_dict['vdus'][nt.name][mon_policy['name']] = mon_policy
+    if policy_dict.get('vdus'):
+        monitoring_dict = policy_dict
     return monitoring_dict
 
 
