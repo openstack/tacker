@@ -380,8 +380,8 @@ function tacker_create_initial_network {
     SUBNET1_ID=$(openstack subnet create ${SUBNET1} --ip-version 4 --gateway ${NETWORK_GATEWAY1} --network ${NET1_ID} --subnet-range ${FIXED_RANGE1} | awk '/ id /{print $4}')
 
     echo "Assign ip address to BR_MGMT"
-    sudo ifconfig ${BR_MGMT} inet 0.0.0.0
-    sudo ifconfig ${BR_MGMT} inet ${NETWORK_GATEWAY_MGMT_IP}
+    sudo ip link set ${BR_MGMT} up
+    sudo ip address add ${NETWORK_GATEWAY_MGMT_IP} dev ${BR_MGMT}
 }
 
 function tacker_register_default_vim {
