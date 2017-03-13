@@ -424,7 +424,7 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         driver_type = vim_obj['type']
         return self._vim_drivers.invoke(driver_type,
                                         'get_vim_resource_id',
-                                        vim_auth=vim_obj['auth_cred'],
+                                        vim_obj=vim_obj,
                                         resource_type=resource,
                                         resource_name=name)
 

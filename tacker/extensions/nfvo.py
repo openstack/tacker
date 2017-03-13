@@ -70,7 +70,17 @@ class VimUnsupportedResourceTypeException(exceptions.TackerException):
 
 class VimGetResourceException(exceptions.TackerException):
     message = _("Error while trying to issue %(cmd)s to find resource type "
-                "%(type)s")
+                "%(type)s by resource name %(name)s")
+
+
+class VimGetResourceNameNotUnique(exceptions.TackerException):
+    message = _("Getting resource id from VIM with resource name %(name)s "
+                "by %(cmd)s returns more than one")
+
+
+class VimGetResourceNotFoundException(exceptions.TackerException):
+    message = _("Getting resource id from VIM with resource name %(name)s "
+                "by %(cmd)s returns nothing")
 
 
 class VimFromVnfNotFoundException(exceptions.NotFound):
