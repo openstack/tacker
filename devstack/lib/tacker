@@ -388,6 +388,7 @@ function tacker_create_initial_network {
 
     echo "Assign ip address to BR_MGMT"
     sudo ip link set ${BR_MGMT} up
+    sudo ip -4 address flush dev ${BR_MGMT}
     sudo ip address add ${NETWORK_GATEWAY_MGMT_IP} dev ${BR_MGMT}
 }
 
