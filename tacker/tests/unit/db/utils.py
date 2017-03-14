@@ -29,18 +29,19 @@ tosca_vnfd_openwrt = _get_template('test_tosca_openwrt.yaml')
 config_data = _get_template('config_data.yaml')
 update_config_data = _get_template('update_config_data.yaml')
 vnffg_params = _get_template('vnffg_params.yaml')
-vnffgd_template = yaml.load(_get_template('vnffgd_template.yaml'))
-vnffgd_tosca_template = yaml.load(_get_template('tosca_vnffgd_template.yaml'))
-vnffgd_tosca_param_template = yaml.load(_get_template(
+vnffgd_template = yaml.safe_load(_get_template('vnffgd_template.yaml'))
+vnffgd_tosca_template = yaml.safe_load(_get_template(
+    'tosca_vnffgd_template.yaml'))
+vnffgd_tosca_param_template = yaml.safe_load(_get_template(
     'tosca_vnffgd_param_template.yaml'))
-vnffgd_invalid_tosca_template = yaml.load(_get_template(
+vnffgd_invalid_tosca_template = yaml.safe_load(_get_template(
     'tosca_invalid_vnffgd_template.yaml'))
 vnfd_scale_tosca_template = _get_template('tosca_scale.yaml')
 vnfd_alarm_respawn_tosca_template = _get_template(
     'test_tosca_vnfd_alarm_respawn.yaml')
 vnfd_alarm_scale_tosca_template = _get_template(
     'test_tosca_vnfd_alarm_scale.yaml')
-nsd_tosca_template = yaml.load(_get_template('tosca_nsd_template.yaml'))
+nsd_tosca_template = yaml.safe_load(_get_template('tosca_nsd_template.yaml'))
 
 
 def get_dummy_vnfd_obj():

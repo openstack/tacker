@@ -25,6 +25,8 @@ from tacker.extensions import common_services as cs
 from tacker.extensions import vnfm
 from tacker.vnfm.tosca import utils as toscautils
 
+from collections import OrderedDict
+
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -136,7 +138,7 @@ class TOSCAToHOT(object):
         if is_scaling_needed:
             if is_enabled_alarm:
                 main_dict['resources'].update(alarm_resource)
-            main_yaml = yaml.dump(main_dict)
+            main_yaml = yaml.safe_dump(main_dict)
             self.fields['template'] = main_yaml
             self.fields['files'] = {'scaling.yaml': self.heat_template_yaml}
             vnf['attributes']['heat_template'] = main_yaml
@@ -181,7 +183,7 @@ class TOSCAToHOT(object):
         param_vattrs_yaml = dev_attrs.pop('param_values', None)
         if param_vattrs_yaml:
             try:
-                param_vattrs_dict = yaml.load(param_vattrs_yaml)
+                param_vattrs_dict = yaml.safe_load(param_vattrs_yaml)
                 LOG.debug('param_vattrs_yaml', param_vattrs_dict)
             except Exception as e:
                 LOG.debug("Not Well Formed: %s", str(e))
@@ -284,7 +286,7 @@ class TOSCAToHOT(object):
         parsed_params = {}
         if 'param_values' in dev_attrs and dev_attrs['param_values'] != "":
             try:
-                parsed_params = yaml.load(dev_attrs['param_values'])
+                parsed_params = yaml.safe_load(dev_attrs['param_values'])
             except Exception as e:
                 LOG.debug("Params not Well Formed: %s", str(e))
                 raise vnfm.ParamYAMLNotWellFormed(error_msg_details=str(e))
@@ -328,7 +330,7 @@ class TOSCAToHOT(object):
     def _generate_hot_scaling(self, vnfd_dict,
                               scale_resource_type="OS::Nova::Server"):
         # Initialize the template
-        template_dict = yaml.load(HEAT_TEMPLATE_BASE)
+        template_dict = yaml.safe_load(HEAT_TEMPLATE_BASE)
         template_dict['description'] = 'Tacker scaling template'
 
         parameters = {}
@@ -430,6 +432,32 @@ class TOSCAToHOT(object):
         return resources, scaling_group_names
 
     @log.log
+    def represent_odict(self, dump, tag, mapping, flow_style=None):
+        value = []
+        node = yaml.MappingNode(tag, value, flow_style=flow_style)
+        if dump.alias_key is not None:
+            dump.represented_objects[dump.alias_key] = node
+        best_style = True
+        if hasattr(mapping, 'items'):
+            mapping = mapping.items()
+        for item_key, item_value in mapping:
+            node_key = dump.represent_data(item_key)
+            node_value = dump.represent_data(item_value)
+            if not (isinstance(node_key, yaml.ScalarNode)
+                    and not node_key.style):
+                best_style = False
+            if not (isinstance(node_value, yaml.ScalarNode)
+                    and not node_value.style):
+                best_style = False
+            value.append((node_key, node_value))
+        if flow_style is None:
+            if dump.default_flow_style is not None:
+                node.flow_style = dump.default_flow_style
+            else:
+                node.flow_style = best_style
+        return node
+
+    @log.log
     def _generate_hot_alarm_resource(self, topology_tpl_dict):
         alarm_resource = dict()
         heat_tpl = self.heat_template_yaml
@@ -450,7 +478,10 @@ class TOSCAToHOT(object):
                                 trigger_name: trigger_dict}, self.vnf)
             heat_dict['resources'].update(alarm_resource)
 
-        heat_tpl_yaml = yaml.dump(heat_dict)
+        yaml.SafeDumper.add_representer(OrderedDict,
+        lambda dumper, value: self.represent_odict(dumper,
+                                              u'tag:yaml.org,2002:map', value))
+        heat_tpl_yaml = yaml.safe_dump(heat_dict)
         return (is_enabled_alarm,
                 alarm_resource,
                 heat_tpl_yaml

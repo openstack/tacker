@@ -179,7 +179,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         if vnfd_yaml is None:
             return
 
-        inner_vnfd_dict = yaml.load(vnfd_yaml)
+        inner_vnfd_dict = yaml.safe_load(vnfd_yaml)
         LOG.debug(_('vnfd_dict: %s'), inner_vnfd_dict)
 
         # Prepend the tacker_defs.yaml import file with the full
@@ -224,7 +224,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     def add_alarm_url_to_vnf(self, context, vnf_dict):
         vnfd_yaml = vnf_dict['vnfd']['attributes'].get('vnfd', '')
-        vnfd_dict = yaml.load(vnfd_yaml)
+        vnfd_dict = yaml.safe_load(vnfd_yaml)
         if vnfd_dict and vnfd_dict.get('tosca_definitions_version'):
             polices = vnfd_dict['topology_template'].get('policies', [])
             for policy_dict in polices:
@@ -655,7 +655,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     def get_vnf_policies(
             self, context, vnf_id, filters=None, fields=None):
         vnf = self.get_vnf(context, vnf_id)
-        vnfd_tmpl = yaml.load(vnf['vnfd']['attributes']['vnfd'])
+        vnfd_tmpl = yaml.safe_load(vnf['vnfd']['attributes']['vnfd'])
         policy_list = []
 
         polices = vnfd_tmpl['topology_template'].get('policies', [])

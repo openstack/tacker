@@ -179,9 +179,9 @@ class TestOpenStack(base.TestCase):
                                  vnf_id=vnf_id, vnf_dict=vnf_obj,
                                  vnf=vnf_config_obj,
                                  auth_attr=utils.get_vim_auth_obj())
-        expected_vnf_update['attributes']['config'] = yaml.load(
+        expected_vnf_update['attributes']['config'] = yaml.safe_load(
             expected_vnf_update['attributes']['config'])
-        vnf_obj['attributes']['config'] = yaml.load(vnf_obj['attributes'][
+        vnf_obj['attributes']['config'] = yaml.safe_load(vnf_obj['attributes'][
             'config'])
         self.assertEqual(expected_vnf_update, vnf_obj)
 

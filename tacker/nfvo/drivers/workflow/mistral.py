@@ -31,7 +31,7 @@ class MistralClient(object):
         self.wg.task(**kwargs)
 
     def create_workflow(self):
-        definition_yaml = yaml.dump(self.wg.definition)
+        definition_yaml = yaml.safe_dump(self.wg.definition)
         wf = self.client.workflows.create(definition_yaml)
         wf_id = wf[0].id
         return wf_id

@@ -79,7 +79,7 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
             return
 
         vdus_config = dev_attrs.get('config', '')
-        config_yaml = yaml.load(vdus_config)
+        config_yaml = yaml.safe_load(vdus_config)
         if not config_yaml:
             return
         vdus_config_dict = config_yaml.get('vdus', {})

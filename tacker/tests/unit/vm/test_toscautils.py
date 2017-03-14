@@ -31,7 +31,7 @@ def _get_template(name):
 
 class TestToscaUtils(testtools.TestCase):
     tosca_openwrt = _get_template('test_tosca_openwrt.yaml')
-    vnfd_dict = yaml.load(tosca_openwrt)
+    vnfd_dict = yaml.safe_load(tosca_openwrt)
     toscautils.updateimports(vnfd_dict)
     tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
                           yaml_dict_tpl=vnfd_dict)
@@ -111,8 +111,8 @@ class TestToscaUtils(testtools.TestCase):
         heat_tpl = toscautils.post_process_heat_template(
             heat_template_yaml, mgmt_ports, {}, {})
 
-        heatdict = yaml.load(heat_tpl)
-        expecteddict = yaml.load(expected_heat_tpl)
+        heatdict = yaml.safe_load(heat_tpl)
+        expecteddict = yaml.safe_load(expected_heat_tpl)
         self.assertEqual(expecteddict, heatdict)
 
     def test_findvdus(self):
@@ -125,7 +125,7 @@ class TestToscaUtils(testtools.TestCase):
                 toscautils.TACKERVDU))
 
     def test_get_flavor_dict(self):
-        vnfd_dict = yaml.load(self.tosca_flavor)
+        vnfd_dict = yaml.safe_load(self.tosca_flavor)
         toscautils.updateimports(vnfd_dict)
         tosca = tosca_template.ToscaTemplate(a_file=False,
                                              yaml_dict_tpl=vnfd_dict)
@@ -140,9 +140,9 @@ class TestToscaUtils(testtools.TestCase):
         self.assertEqual(expected_flavor_dict, actual_flavor_dict)
 
     def test_add_resources_tpl_for_flavor(self):
-        dummy_heat_dict = yaml.load(_get_template(
+        dummy_heat_dict = yaml.safe_load(_get_template(
             'hot_flavor_and_capabilities.yaml'))
-        expected_dict = yaml.load(_get_template('hot_flavor.yaml'))
+        expected_dict = yaml.safe_load(_get_template('hot_flavor.yaml'))
         dummy_heat_res = {
             "flavor": {
                 "VDU1": {
@@ -158,7 +158,7 @@ class TestToscaUtils(testtools.TestCase):
     def test_get_flavor_dict_extra_specs_all_numa_count(self):
         tosca_fes_all_numa_count = _get_template(
             'tosca_flavor_all_numa_count.yaml')
-        vnfd_dict = yaml.load(tosca_fes_all_numa_count)
+        vnfd_dict = yaml.safe_load(tosca_fes_all_numa_count)
         toscautils.updateimports(vnfd_dict)
         tosca = tosca_template.ToscaTemplate(a_file=False,
                                              yaml_dict_tpl=vnfd_dict)
@@ -181,7 +181,7 @@ class TestToscaUtils(testtools.TestCase):
     def test_tacker_conf_heat_extra_specs_all_numa_count(self):
         tosca_fes_all_numa_count = _get_template(
             'tosca_flavor_all_numa_count.yaml')
-        vnfd_dict = yaml.load(tosca_fes_all_numa_count)
+        vnfd_dict = yaml.safe_load(tosca_fes_all_numa_count)
         toscautils.updateimports(vnfd_dict)
         tosca = tosca_template.ToscaTemplate(a_file=False,
                                              yaml_dict_tpl=vnfd_dict)
@@ -204,9 +204,9 @@ class TestToscaUtils(testtools.TestCase):
         self.assertEqual(expected_flavor_dict, actual_flavor_dict)
 
     def test_add_resources_tpl_for_image(self):
-        dummy_heat_dict = yaml.load(_get_template(
+        dummy_heat_dict = yaml.safe_load(_get_template(
             'hot_image_before_processed_image.yaml'))
-        expected_dict = yaml.load(_get_template(
+        expected_dict = yaml.safe_load(_get_template(
             'hot_image_after_processed_image.yaml'))
         dummy_heat_res = {
             "image": {
@@ -223,8 +223,9 @@ class TestToscaUtils(testtools.TestCase):
     def test_convert_unsupported_res_prop_kilo_ver(self):
         unsupported_res_prop_dict = {'OS::Neutron::Port': {
             'port_security_enabled': 'value_specs', }, }
-        dummy_heat_dict = yaml.load(_get_template('hot_tosca_openwrt.yaml'))
-        expected_heat_dict = yaml.load(_get_template(
+        dummy_heat_dict = yaml.safe_load(_get_template(
+            'hot_tosca_openwrt.yaml'))
+        expected_heat_dict = yaml.safe_load(_get_template(
             'hot_tosca_openwrt_kilo.yaml'))
         toscautils.convert_unsupported_res_prop(dummy_heat_dict,
                                                 unsupported_res_prop_dict)
@@ -240,7 +241,7 @@ class TestToscaUtils(testtools.TestCase):
                          'network_name': 'net_mgmt', 'vendor': 'tacker'}},
                  'requirements': {'virtualLink2': 'VL2',
                                   'virtualLink1': 'VL1'}}}
-        template = yaml.load(tosca_sb_map)
+        template = yaml.safe_load(tosca_sb_map)
         toscautils.updateimports(template)
         toscautils.check_for_substitution_mappings(template, param)
         self.assertNotIn('substitution_mappings', param)

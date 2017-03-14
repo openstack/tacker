@@ -448,7 +448,7 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
     def _parse_template_input(self, context, nsd):
         nsd_dict = nsd['nsd']
         nsd_yaml = nsd_dict['attributes'].get('nsd')
-        inner_nsd_dict = yaml.load(nsd_yaml)
+        inner_nsd_dict = yaml.safe_load(nsd_yaml)
         nsd['vnfds'] = dict()
         LOG.debug(_('nsd_dict: %s'), inner_nsd_dict)
 
@@ -459,7 +459,7 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         for vnfd_name in vnfd_imports:
             vnfd = vnfm_plugin.get_vnfd(context, vnfd_name)
             # Copy VNF types and VNF names
-            sm_dict = yaml.load(vnfd['attributes']['vnfd'])[
+            sm_dict = yaml.safe_load(vnfd['attributes']['vnfd'])[
                 'topology_template'][
                 'substitution_mappings']
             nsd['vnfds'][sm_dict['node_type']] = vnfd['name']
@@ -516,7 +516,7 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         step-3: Create mistral workflow and execute the workflow
         """
         nsd = self.get_nsd(context, ns['ns']['nsd_id'])
-        nsd_dict = yaml.load(nsd['attributes']['nsd'])
+        nsd_dict = yaml.safe_load(nsd['attributes']['nsd'])
         vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
         onboarded_vnfds = vnfm_plugin.get_vnfds(context, [])
         region_name = ns.setdefault('placement_attr', {}).get(
