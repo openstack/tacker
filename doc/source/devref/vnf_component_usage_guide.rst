@@ -40,7 +40,8 @@ How to setup environment
 To make use of VNFC in Tacker, we have to upload the image to the glance in
 which heat-config and heat-config agents are installed. The installation steps
 can be referred `here <https://github.com/openstack/heat-templates/blob/master/
-hot/software-config/elements/README.rst>`_.
+hot/software-config/elements/README.rst>`_. The tool
+'tools/vnfc/build_image.sh' can be used to generate such a kind of image.
 
 Currently VNFC feature works by using `heat software config <http://docs.openstack.org/
 developer/heat/template_guide/openstack.html#OS::Heat::SoftwareConfig>`_  which
