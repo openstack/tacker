@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import unittest
 import yaml
 
 from novaclient import exceptions
@@ -208,6 +209,8 @@ class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
 
 
 class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
+
+    @unittest.skip("Until BUG 1673099")
     def test_create_delete_vnf_tosca_no_monitoring(self):
         vnfd_name = 'tosca_vnfd_with_auto_image'
         input_yaml = read_file('sample-tosca-vnfd-image.yaml')
