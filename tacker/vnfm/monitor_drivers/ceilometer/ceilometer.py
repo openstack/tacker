@@ -23,8 +23,8 @@ from tacker.vnfm.monitor_drivers import abstract_driver
 LOG = logging.getLogger(__name__)
 
 OPTS = [
-    cfg.StrOpt('host', default=utils.get_hostname(),
-               help=_('Address which drivers use to trigger')),
+    cfg.HostAddressOpt('host', default=utils.get_hostname(),
+                       help=_('Address which drivers use to trigger')),
     cfg.PortOpt('port', default=9890,
                help=_('port number which drivers use to trigger'))
 ]
