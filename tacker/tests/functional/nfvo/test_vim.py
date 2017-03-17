@@ -25,7 +25,7 @@ SECRET_PASSWORD = '***'
 class VimTestCreate(base.BaseTackerTest):
     def _test_create_delete_vim(self, vim_file, name, description, vim_type,
                                 version=None):
-        data = yaml.load(read_file(vim_file))
+        data = yaml.safe_load(read_file(vim_file))
 
         password = data['password']
         username = data['username']

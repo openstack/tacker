@@ -60,9 +60,9 @@ class VnfTestToscaMultipleVDU(base.BaseTackerTest):
         # Validate mgmt_url with input yaml file
         mgmt_url = self.client.show_vnf(vnf_id)['vnf']['mgmt_url']
         self.assertIsNotNone(mgmt_url)
-        mgmt_dict = yaml.load(str(mgmt_url))
+        mgmt_dict = yaml.safe_load(str(mgmt_url))
 
-        input_dict = yaml.load(input_yaml)
+        input_dict = yaml.safe_load(input_yaml)
         toscautils.updateimports(input_dict)
 
         tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,

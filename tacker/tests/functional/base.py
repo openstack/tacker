@@ -52,7 +52,7 @@ class BaseTackerTest(base.BaseTestCase):
 
     @classmethod
     def get_credentials(cls):
-        vim_params = yaml.load(read_file('local-vim.yaml'))
+        vim_params = yaml.safe_load(read_file('local-vim.yaml'))
         vim_params['auth_url'] += '/v3'
         return vim_params
 
@@ -95,7 +95,7 @@ class BaseTackerTest(base.BaseTestCase):
 
     @classmethod
     def heatclient(cls):
-        data = yaml.load(read_file('local-vim.yaml'))
+        data = yaml.safe_load(read_file('local-vim.yaml'))
         data['auth_url'] = data['auth_url'] + '/v3'
         domain_name = data.pop('domain_name')
         data['user_domain_name'] = domain_name
