@@ -317,46 +317,53 @@ function tacker_horizon_install {
     sudo cp $DEST/tacker-horizon/tacker_horizon/enabled/* $DEST/horizon/openstack_dashboard/enabled/
     restart_apache_server
 }
-function tacker_check_and_download_cirros {
-    local image_url image_fname
-    image_url=http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img
-    cirros_fname=`basename "$image_url"`
-    image_name=`openstack image list  | grep "${cirros_fname%.*}" | awk '{print $4}'`
-    if [[ $image_name == "" ]]; then
-        if [[ ! -f $FILES/$image_fname || "$(stat -c "%s" $FILES/$image_fname)" = "0" ]]; then
-            {
-               wget --progress=dot:giga -c $image_url -O $FILES/$image_fname \
-                   && openstack_image_create $FILES/$image_fname ${cirros_fname%.*}
-            }
-        fi
-    fi
-}
 
 function openstack_image_create {
     image=$1
     disk_format=raw
     container_format=bare
     image_name=$2
-    openstack --os-cloud=devstack-admin image create $image_name --public --container-format=$container_format --disk-format $disk_format < <(zcat --force "${image}")
-    openstack image show OpenWRT -f value -c id
+    openstack --os-cloud=devstack-admin image create $image_name --public --container-format=$container_format --disk-format $disk_format --file ${image}
+    openstack image show $image_name -f value -c id
 }
 
-function tacker_create_openwrt_image {
-    local image_url=https://downloads.openwrt.org/chaos_calmer/15.05/x86/kvm_guest/openwrt-15.05-x86-kvm_guest-combined-ext4.img.gz
-    local image image_fname image_name
-    image_fname=`basename "$image_url"`
+function tacker_check_and_download_images {
+    local image_url
+    image_url[0]='http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img'
+    image_url[1]='https://downloads.openwrt.org/chaos_calmer/15.05/x86/kvm_guest/openwrt-15.05-x86-kvm_guest-combined-ext4.img.gz'
 
-    if [[ $image_url != file* ]]; then
-        if [[ ! -f $FILES/$image_fname || "$(stat -c "%s" $FILES/$image_fname)" = "0" ]]; then
-            {
-               wget --progress=dot:giga -c $image_url -O $FILES/$image_fname \
-                   && openstack_image_create $FILES/$image_fname OpenWRT
-            }||{
-                rm -rf $FILES/$image_fname
-                echo "WARNING: openwrt image create for $image_fname failed"
-            }
+    local image_fname image_name glance_name gz_pattern
+    local length=${#image_url[@]}
+    local index=0
+    while [ $index -lt $length ]
+    do
+        image_fname=`basename "${image_url[$index]}"`
+        glance_name=${image_fname%.*}
+        if [[ $glance_name =~ 'openwrt' ]]; then
+            glance_name='OpenWRT'
         fi
-    fi
+        image_name=`openstack image list | grep "$glance_name" | awk '{print $4}'`
+        if [[ $image_name == "" ]]; then
+            if [[ ! -f $FILES/$image_fname || "$(stat -c "%s" $FILES/$image_fname)" = "0" ]]; then
+                {
+                    wget --progress=dot:giga -c ${image_url[$index]} -O $FILES/$image_fname
+                    gz_pattern="\.gz$"
+                    if [[ $image_fname =~ $gz_pattern ]]; then
+                        new_image_fname=${image_fname%.*}
+                        gunzip -c $FILES/$image_fname > $FILES/$new_image_fname
+                        image_fname=$new_image_fname
+                    fi
+                    openstack_image_create $FILES/$image_fname $glance_name
+                }||{
+                    echo "ERROR: tacker image create for $image_fname failed"
+                    image_fname=$image_fname"*"
+                    sudo rm -rf $FILES/$image_fname
+                    exit 1
+                }
+            fi
+        fi
+        index=$(($index+1))
+    done
 }
 
 function tacker_create_initial_network {
