@@ -48,7 +48,7 @@ def dummy_get_vim(*args, **kwargs):
 
 def _get_template(name):
     filename = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                '../../../etc/samples/' + str(name)))
+                                '../../etc/samples/' + str(name)))
     f = codecs.open(filename, encoding='utf-8', errors='strict')
     return f.read()
 

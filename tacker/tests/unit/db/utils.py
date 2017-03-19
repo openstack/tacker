@@ -21,7 +21,7 @@ import yaml
 def _get_template(name):
     filename = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "../vm/infra_drivers/openstack/data/", name)
+        "../vnfm/infra_drivers/openstack/data/", name)
     f = codecs.open(filename, encoding='utf-8', errors='strict')
     return f.read()
 
