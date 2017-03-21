@@ -15,7 +15,6 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from tacker._i18n import _LW
 from tacker.agent.linux import utils as linux_utils
 from tacker.common import log
 from tacker.vnfm.monitor_drivers import abstract_driver
@@ -71,7 +70,7 @@ class VNFMonitorPing(abstract_driver.VNFMonitorAbstractDriver):
             linux_utils.execute(ping_cmd, check_exit_code=True)
             return True
         except RuntimeError:
-            LOG.warning(_LW("Cannot ping ip address: %s"), mgmt_ip)
+            LOG.warning("Cannot ping ip address: %s", mgmt_ip)
             return 'failure'
 
     @log.log

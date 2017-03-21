@@ -25,7 +25,7 @@ from oslo_utils import excutils
 from oslo_utils import importutils
 import six
 
-from tacker._i18n import _, _LE, _LW
+from tacker._i18n import _
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
 
@@ -113,8 +113,7 @@ def _build_subattr_match_rule(attr_name, attr, action, target):
     validate = attr['validate']
     key = list(filter(lambda k: k.startswith('type:dict'), validate.keys()))
     if not key:
-        LOG.warning(_LW("Unable to find data type descriptor "
-                        "for attribute %s"),
+        LOG.warning("Unable to find data type descriptor for attribute %s",
                     attr_name)
         return
     data = validate[key[0]]
@@ -230,7 +229,7 @@ class OwnerCheck(policy.Check):
                               self.target_field)
             else:
                 # If we are here split failed with both separators
-                err_reason = (_("Unable to find resource name in %s") %
+                err_reason = ("Unable to find resource name in %s" %
                               self.target_field)
                 LOG.error(err_reason)
                 raise exceptions.PolicyCheckError(
@@ -239,8 +238,8 @@ class OwnerCheck(policy.Check):
             parent_foreign_key = attributes.RESOURCE_FOREIGN_KEYS.get(
                 "%ss" % parent_res, None)
             if not parent_foreign_key:
-                err_reason = (_("Unable to verify match:%(match)s as the "
-                                "parent resource: %(res)s was not found") %
+                err_reason = ("Unable to verify match:%(match)s as the "
+                              "parent resource: %(res)s was not found" %
                               {'match': self.match, 'res': parent_res})
                 LOG.error(err_reason)
                 raise exceptions.PolicyCheckError(
@@ -272,8 +271,7 @@ class OwnerCheck(policy.Check):
                 raise db_exc.RetryRequest(e)
             except Exception:
                 with excutils.save_and_reraise_exception():
-                    LOG.exception(_LE('Policy check error while calling %s!'),
-                                  f)
+                    LOG.exception('Policy check error while calling %s!', f)
         match = self.match % target
         if self.kind in creds:
             return match == six.text_type(creds[self.kind])

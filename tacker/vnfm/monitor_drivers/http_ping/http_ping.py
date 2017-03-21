@@ -17,7 +17,6 @@ from oslo_log import log as logging
 import six.moves.urllib.error as urlerr
 import six.moves.urllib.request as urlreq
 
-from tacker._i18n import _LW
 from tacker.common import log
 from tacker.vnfm.monitor_drivers import abstract_driver
 
@@ -70,7 +69,7 @@ class VNFMonitorHTTPPing(abstract_driver.VNFMonitorAbstractDriver):
                 urlreq.urlopen(url, timeout=timeout)
                 return True
             except urlerr.URLError:
-                LOG.warning(_LW('Unable to reach to the url %s'), url)
+                LOG.warning('Unable to reach to the url %s', url)
         return 'failure'
 
     @log.log
