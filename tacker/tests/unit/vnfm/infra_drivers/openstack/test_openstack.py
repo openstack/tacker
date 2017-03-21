@@ -196,7 +196,8 @@ class TestOpenStack(base.TestCase):
                                 tosca_tpl_name,
                                 hot_tpl_name,
                                 param_values='',
-                                is_monitor=True):
+                                is_monitor=True,
+                                multi_vdus=False):
         tosca_tpl = _get_template(tosca_tpl_name)
         exp_tmpl = self._get_expected_vnfd(tosca_tpl)
         tosca_hw_dict = yaml.safe_load(_get_template(hot_tpl_name))
@@ -216,14 +217,33 @@ class TestOpenStack(base.TestCase):
             'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
             'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437'
         }
-        # Add montitoring attributes for those yaml, which are having it
+        # Add monitoring attributes for those yaml, which are having it
         if is_monitor:
-            dvc['attributes'].update(
-                {'monitoring_policy': '{"vdus": {"VDU1": {"ping": {"name": '
-                                      '"ping", "actions": {"failure": '
-                                      '"respawn"}, "parameters": {"count": 3, '
-                                      '"interval": 10}, "monitoring_params": '
-                                      '{"count": 3, "interval": 10}}}}}'})
+            if multi_vdus:
+                dvc['attributes'].update(
+                    {'monitoring_policy': '{"vdus": {"VDU1": {"ping": '
+                                          '{"name": "ping", "actions": '
+                                          '{"failure": "respawn"}, '
+                                          '"parameters": {"count": 3, '
+                                          '"interval": 10}, '
+                                          '"monitoring_params": '
+                                          '{"count": 3, "interval": 10}}}, '
+                                          '"VDU2": {"ping": {"name": "ping", '
+                                          '"actions": {"failure": "respawn"}, '
+                                          '"parameters": {"count": 3, '
+                                          '"interval": 10}, '
+                                          '"monitoring_params": {"count": 3, '
+                                          '"interval": 10}}}}}'})
+            else:
+                dvc['attributes'].update(
+                    {'monitoring_policy': '{"vdus": {"VDU1": {"ping": '
+                                          '{"name": "ping", "actions": '
+                                          '{"failure": "respawn"}, '
+                                          '"parameters": {"count": 3, '
+                                          '"interval": 10}, '
+                                          '"monitoring_params": '
+                                          '{"count": 3, '
+                                          '"interval": 10}}}}}'})
 
         return dvc
 
@@ -243,14 +263,16 @@ class TestOpenStack(base.TestCase):
                                                hot_tpl_name,
                                                input_params='',
                                                files=None,
-                                               is_monitor=True):
+                                               is_monitor=True,
+                                               multi_vdus=False):
         vnf = self._get_dummy_tosca_vnf(tosca_tpl_name, input_params)
         expected_result = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         expected_fields = self._get_expected_fields_tosca(hot_tpl_name)
         expected_vnf = self._get_expected_tosca_vnf(tosca_tpl_name,
                                                     hot_tpl_name,
                                                     input_params,
-                                                    is_monitor)
+                                                    is_monitor,
+                                                    multi_vdus)
         result = self.infra_driver.create(plugin=None, context=self.context,
                                          vnf=vnf,
                                          auth_attr=utils.get_vim_auth_obj())
@@ -432,3 +454,10 @@ class TestOpenStack(base.TestCase):
                           'hot_tosca_alarm_metadata.yaml',
                           is_monitor=False
                           )
+
+    def test_create_tosca_monitoring_multi_vdus(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_monitoring_multi_vdu.yaml',
+            'hot_tosca_monitoring_multi_vdu.yaml',
+            multi_vdus=True
+        )
