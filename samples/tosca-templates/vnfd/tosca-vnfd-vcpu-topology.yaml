@@ -20,7 +20,7 @@ topology_template:
               thread_count: 2
               core_count: 2
       properties:
-        image: cirros-0.3.4-x86_64-uec
+        image: cirros-0.3.5-x86_64-disk
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker

@@ -17,7 +17,7 @@ topology_template:
             num_cpus: 2
             mem_page_size: large
       properties:
-        image: cirros-0.3.4-x86_64-uec
+        image: cirros-0.3.5-x86_64-disk
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker
