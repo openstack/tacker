@@ -101,6 +101,15 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
             for created_vim in self._created_vims.values():
                 self.monitor_vim(created_vim)
 
+    def get_auth_dict(self, context):
+        auth = CONF.keystone_authtoken
+        return {
+            'auth_url': auth.auth_url + '/v3',
+            'token': context.auth_token,
+            'project_domain_name': auth.project_domain_name or context.domain,
+            'project_name': context.tenant_name
+        }
+
     def spawn_n(self, function, *args, **kwargs):
         self._pool.spawn_n(function, *args, **kwargs)
 
@@ -577,23 +586,20 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                          'prepare_and_create_workflow',
                                          resource='vnf',
                                          action='create',
-                                         vim_auth=vim_res['vim_auth'],
-                                         auth_token=context.auth_token,
+                                         auth_dict=self.get_auth_dict(context),
                                          kwargs=kwargs)
         try:
             mistral_execution = self._vim_drivers.invoke(
                 driver_type,
                 'execute_workflow',
                 workflow=workflow,
-                vim_auth=vim_res['vim_auth'],
-                auth_token=context.auth_token)
+                auth_dict=self.get_auth_dict(context))
         except Exception as ex:
             LOG.error(_('Error while executing workflow: %s'), ex)
             self._vim_drivers.invoke(driver_type,
                                      'delete_workflow',
                                      workflow_id=workflow['id'],
-                                     vim_auth=vim_res['vim_auth'],
-                                     auth_token=context.auth_token)
+                                     auth_dict=self.get_auth_dict(context))
             raise ex
         ns_dict = super(NfvoPlugin, self).create_ns(context, ns)
 
@@ -606,8 +612,7 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                     driver_type,
                     'get_execution',
                     execution_id=execution_id,
-                    vim_auth=vim_res['vim_auth'],
-                    auth_token=context.auth_token).state
+                    auth_dict=self.get_auth_dict(context)).state
                 LOG.debug(_('status: %s'), exec_state)
                 if exec_state == 'SUCCESS' or exec_state == 'ERROR':
                     break
@@ -620,20 +625,17 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                    wait=MISTRAL_RETRIES * MISTRAL_RETRY_WAIT,
                                    mistral=execution_id)
             exec_obj = self._vim_drivers.invoke(driver_type,
-                                                'get_execution',
-                                                execution_id=execution_id,
-                                                vim_auth=vim_res['vim_auth'],
-                                                auth_token=context.auth_token)
+                'get_execution',
+                execution_id=execution_id,
+                auth_dict=self.get_auth_dict(context))
             self._vim_drivers.invoke(driver_type,
-                                     'delete_execution',
-                                     execution_id=execution_id,
-                                     vim_auth=vim_res['vim_auth'],
-                                     auth_token=context.auth_token)
+                'delete_execution',
+                execution_id=execution_id,
+                auth_dict=self.get_auth_dict(context))
             self._vim_drivers.invoke(driver_type,
-                                     'delete_workflow',
-                                     workflow_id=workflow['id'],
-                                     vim_auth=vim_res['vim_auth'],
-                                     auth_token=context.auth_token)
+                'delete_workflow',
+                workflow_id=workflow['id'],
+                auth_dict=self.get_auth_dict(context))
             super(NfvoPlugin, self).create_ns_post(context, ns_id, exec_obj,
                     vnfd_dict, error_reason)
 
@@ -673,26 +675,23 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         vim_res = self.vim_client.get_vim(context, ns['vim_id'])
         driver_type = vim_res['vim_type']
         workflow = self._vim_drivers.invoke(driver_type,
-                                            'prepare_and_create_workflow',
-                                            resource='vnf',
-                                            action='delete',
-                                            vim_auth=vim_res['vim_auth'],
-                                            auth_token=context.auth_token,
-                                            kwargs={'ns': ns})
+            'prepare_and_create_workflow',
+            resource='vnf',
+            action='delete',
+            auth_dict=self.get_auth_dict(context),
+            kwargs={'ns': ns})
         try:
             mistral_execution = self._vim_drivers.invoke(
                 driver_type,
                 'execute_workflow',
                 workflow=workflow,
-                vim_auth=vim_res['vim_auth'],
-                auth_token=context.auth_token)
+                auth_dict=self.get_auth_dict(context))
         except Exception as ex:
             LOG.error(_('Error while executing workflow: %s'), ex)
             self._vim_drivers.invoke(driver_type,
-                                     'delete_workflow',
-                                     workflow_id=workflow['id'],
-                                     vim_auth=vim_res['vim_auth'],
-                                     auth_token=context.auth_token)
+                'delete_workflow',
+                workflow_id=workflow['id'],
+                auth_dict=self.get_auth_dict(context))
 
             raise ex
         super(NfvoPlugin, self).delete_ns(context, ns_id)
@@ -706,8 +705,7 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                     driver_type,
                     'get_execution',
                     execution_id=execution_id,
-                    vim_auth=vim_res['vim_auth'],
-                    auth_token=context.auth_token).state
+                    auth_dict=self.get_auth_dict(context)).state
                 LOG.debug(_('status: %s'), exec_state)
                 if exec_state == 'SUCCESS' or exec_state == 'ERROR':
                     break
@@ -720,22 +718,18 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                    wait=MISTRAL_RETRIES * MISTRAL_RETRY_WAIT,
                                    mistral=execution_id)
             exec_obj = self._vim_drivers.invoke(driver_type,
-                                                'get_execution',
-                                                execution_id=execution_id,
-                                                vim_auth=vim_res['vim_auth'],
-                                                auth_token=context.auth_token)
+                'get_execution',
+                execution_id=execution_id,
+                auth_dict=self.get_auth_dict(context))
             self._vim_drivers.invoke(driver_type,
-                                     'delete_execution',
-                                     execution_id=execution_id,
-                                     vim_auth=vim_res['vim_auth'],
-                                     auth_token=context.auth_token)
+                'delete_execution',
+                execution_id=execution_id,
+                auth_dict=self.get_auth_dict(context))
             self._vim_drivers.invoke(driver_type,
-                                     'delete_workflow',
-                                     workflow_id=workflow['id'],
-                                     vim_auth=vim_res['vim_auth'],
-                                     auth_token=context.auth_token)
+                'delete_workflow',
+                workflow_id=workflow['id'],
+                auth_dict=self.get_auth_dict(context))
             super(NfvoPlugin, self).delete_ns_post(context, ns_id, exec_obj,
                     error_reason)
-
         self.spawn_n(_delete_ns_wait, ns['id'], mistral_execution.id)
         return ns['id']

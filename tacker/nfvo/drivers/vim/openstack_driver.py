@@ -471,63 +471,42 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         neutronclient_ = NeutronClient(auth_attr)
         neutronclient_.flow_classifier_delete(fc_id)
 
-    def prepare_and_create_workflow(self, resource, action, vim_auth,
-                                    kwargs, auth_token=None):
-        if not auth_token:
-            LOG.warning(_("auth token required to create mistral workflows"))
-            raise EnvironmentError('auth token required for'
+    def get_mistral_client(self, auth_dict):
+        if not auth_dict:
+            LOG.warning(_("auth dict required to instantiate mistral client"))
+            raise EnvironmentError('auth dict required for'
                                    ' mistral workflow driver')
-        mistral_client = MistralClient(
-            self.keystone.initialize_client('2', **vim_auth),
-            auth_token).get_client()
+        return MistralClient(
+            keystone.Keystone().initialize_client('2', **auth_dict),
+            auth_dict['token']).get_client()
+
+    def prepare_and_create_workflow(self, resource, action,
+                                    kwargs, auth_dict=None):
+        mistral_client = self.get_mistral_client(auth_dict)
         wg = workflow_generator.WorkflowGenerator(resource, action)
         wg.task(**kwargs)
         definition_yaml = yaml.safe_dump(wg.definition)
         workflow = mistral_client.workflows.create(definition_yaml)
         return {'id': workflow[0].id, 'input': wg.get_input_dict()}
 
-    def execute_workflow(self, workflow, vim_auth, auth_token=None):
-        if not auth_token:
-            LOG.warning(_("auth token required to create mistral workflows"))
-            raise EnvironmentError('auth token required for'
-                                   ' mistral workflow driver')
-        mistral_client = MistralClient(
-            self.keystone.initialize_client('2', **vim_auth),
-            auth_token).get_client()
-        return mistral_client.executions.create(
-            workflow_identifier=workflow['id'],
-            workflow_input=workflow['input'],
-            wf_params={})
+    def execute_workflow(self, workflow, auth_dict=None):
+        return self.get_mistral_client(auth_dict)\
+            .executions.create(
+                workflow_identifier=workflow['id'],
+                workflow_input=workflow['input'],
+                wf_params={})
 
-    def get_execution(self, execution_id, vim_auth, auth_token=None):
-        if not auth_token:
-            LOG.warning(_("auth token required to create mistral workflows"))
-            raise EnvironmentError('auth token required for'
-                                   ' mistral workflow driver')
-        mistral_client = MistralClient(
-            self.keystone.initialize_client('2', **vim_auth),
-            auth_token).get_client()
-        return mistral_client.executions.get(execution_id)
+    def get_execution(self, execution_id, auth_dict=None):
+        return self.get_mistral_client(auth_dict)\
+            .executions.get(execution_id)
 
-    def delete_execution(self, execution_id, vim_auth, auth_token=None):
-        if not auth_token:
-            LOG.warning(_("auth token required to create mistral workflows"))
-            raise EnvironmentError('auth token required for'
-                                   ' mistral workflow driver')
-        mistral_client = MistralClient(
-            self.keystone.initialize_client('2', **vim_auth),
-            auth_token).get_client()
-        return mistral_client.executions.delete(execution_id)
+    def delete_execution(self, execution_id, auth_dict=None):
+        return self.get_mistral_client(auth_dict).executions\
+            .delete(execution_id)
 
-    def delete_workflow(self, workflow_id, vim_auth, auth_token=None):
-        if not auth_token:
-            LOG.warning(_("auth token required to create mistral workflows"))
-            raise EnvironmentError('auth token required for'
-                                   ' mistral workflow driver')
-        mistral_client = MistralClient(
-            self.keystone.initialize_client('2', **vim_auth),
-            auth_token).get_client()
-        return mistral_client.workflows.delete(workflow_id)
+    def delete_workflow(self, workflow_id, auth_dict=None):
+        return self.get_mistral_client(auth_dict)\
+            .workflows.delete(workflow_id)
 
 
 class MistralClient(object):
@@ -536,8 +515,9 @@ class MistralClient(object):
     def __init__(self, keystone, auth_token):
         endpoint = keystone.session.get_endpoint(
             service_type='workflowv2', region_name=None)
+
         self.client = mistral_client.client(auth_token=auth_token,
-                                     mistral_url=endpoint)
+            mistral_url=endpoint)
 
     def get_client(self):
         return self.client
