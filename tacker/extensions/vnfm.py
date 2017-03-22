@@ -67,8 +67,8 @@ class VNFScaleWaitFailed(exceptions.TackerException):
     message = _('%(reason)s')
 
 
-class VNFDeleteFailed(exceptions.TackerException):
-    message = _('deleting VNF %(vnf_id)s failed')
+class VNFDeleteWaitFailed(exceptions.TackerException):
+    message = _('%(reason)s')
 
 
 class VNFDNotFound(exceptions.NotFound):
