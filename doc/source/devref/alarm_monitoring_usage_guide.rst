@@ -73,7 +73,7 @@ alarming monitoring and scaling was also supported by Alarm monitor in Tacker:
                 mem_size: 512 MB
                 num_cpus: 2
           properties:
-            image: cirros-0.3.4-x86_64-uec
+            image: cirros-0.3.5-x86_64-disk
             mgmt_driver: noop
             availability_zone: nova
             metadata: {metering.vnf: SG1}
@@ -97,7 +97,7 @@ alarming monitoring and scaling was also supported by Alarm monitor in Tacker:
                 mem_size: 512 MB
                 num_cpus: 2
           properties:
-            image: cirros-0.3.4-x86_64-uec
+            image: cirros-0.3.5-x86_64-disk
             mgmt_driver: noop
             availability_zone: nova
             metadata: {metering.vnf: SG1}

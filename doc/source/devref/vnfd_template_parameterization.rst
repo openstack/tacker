@@ -39,7 +39,7 @@ Here is the sample template:
        VDU1:
          type: tosca.nodes.nfv.VDU.Tacker
          properties:
-           image: cirros-0.3.4-x86_64-uec
+           image: cirros-0.3.5-x86_64-disk
            flavor: m1.tiny
            availability_zone: nova
            mgmt_driver: noop
@@ -110,7 +110,7 @@ want to be able to supply different values for the parameters
 
 The next step is to substitute the identified parameter values that will be
 provided at deploy time with { get_input: <param_name>}. For example, the
-instance_type: **cirros-0.3.4-x86_64-uec** would now be replaced as:
+instance_type: **cirros-0.3.5-x86_64-disk** would now be replaced as:
 **image: {get_input: image_name}**. The **get_input** is a reserved
 keyword in the template that indicates value will be supplied at deploy time
 for the parameter instance_type. The **image_name** is the variable that will
@@ -236,7 +236,7 @@ VNF deploy.
 
 .. code-block:: yaml
 
-    image_name: cirros-0.3.4-x86_64-uec
+    image_name: cirros-0.3.5-x86_64-disk
     flavor: m1.tiny
     zone: nova
     network: net_mgmt

@@ -201,7 +201,7 @@ Verify VNFD details using tacker CLI
   | Field         | Value                                                                                                                                                                     |
   +---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
   | attributes    | {"vnfd": "tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0\n\ndescription: Demo example\n\nmetadata:\n  template_name: sample-tosca-                         |
-  |               | vnfd\n\ntopology_template:\n  node_templates:\n    VDU1:\n      type: tosca.nodes.nfv.VDU.Tacker\n      properties:\n        image: cirros-0.3.4-x86_64-uec\n             |
+  |               | vnfd\n\ntopology_template:\n  node_templates:\n    VDU1:\n      type: tosca.nodes.nfv.VDU.Tacker\n      properties:\n        image: cirros-0.3.5-x86_64-disk\n             |
   |               | flavor: m1.tiny\n        availability_zone: nova\n        mgmt_driver: noop\n        config: |\n          param0: key1\n          param1: key2\n\n    CP1:\n      type:   |
   |               | tosca.nodes.nfv.CP.Tacker\n      properties:\n        management: true\n        anti_spoofing_protection: false\n      requirements:\n        - virtualLink:\n            |
   |               | node: VL1\n        - virtualBinding:\n            node: VDU1\n\n    CP2:\n      type: tosca.nodes.nfv.CP.Tacker\n      properties:\n        anti_spoofing_protection:     |
@@ -288,7 +288,7 @@ Verify VNF details using tacker CLI
   | Field          | Value                                                                                                                                                                 |
   +----------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
   | attributes     | {"heat_template": "heat_template_version: 2013-05-23\ndescription: 'Demo example\n\n  '\nparameters: {}\nresources:\n  VDU1:\n    type: OS::Nova::Server\n            |
-  |                | properties:\n      availability_zone: nova\n      config_drive: false\n      flavor: m1.tiny\n      image: cirros-0.3.4-x86_64-uec\n      networks:\n      - port:\n  |
+  |                | properties:\n      availability_zone: nova\n      config_drive: false\n      flavor: m1.tiny\n      image: cirros-0.3.5-x86_64-disk\n      networks:\n      - port:\n  |
   |                | get_resource: CP1\n      - port:\n          get_resource: CP2\n      - port:\n          get_resource: CP3\n      user_data_format: SOFTWARE_CONFIG\n  CP1:\n    type: |
   |                | OS::Neutron::Port\n    properties:\n      network: net_mgmt\n      port_security_enabled: false\n  CP2:\n    type: OS::Neutron::Port\n    properties:\n      network: |
   |                | net0\n      port_security_enabled: false\n  CP3:\n    type: OS::Neutron::Port\n    properties:\n      network: net1\n      port_security_enabled: false\noutputs:\n   |

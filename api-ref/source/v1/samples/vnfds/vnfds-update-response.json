@@ -11,7 +11,7 @@
         "created_at": "2016-10-20 07:38:54",
         "updated_at": "2016-10-20 07:41:27.392759",
         "attributes": {
-            "vnfd": "description: Demo example\nmetadata: {template_name: sample-tosca-vnfd}\ntopology_template:\n  node_templates:\n    CP1:\n      properties: {anti_spoofing_protection: false, management: true, order: 0}\n      requirements:\n      - virtualLink: {node: VL1}\n      - virtualBinding: {node: VDU1}\n      type: tosca.nodes.nfv.CP.Tacker\n    VDU1:\n      capabilities:\n        nfv_compute:\n          properties: {disk_size: 1 GB, mem_size: 512 MB, num_cpus: 1}\n      properties: {image: cirros-0.3.4-x86_64-uec}\n      type: tosca.nodes.nfv.VDU.Tacker\n    VL1:\n      properties: {network_name: net_mgmt, vendor: Tacker}\n      type: tosca.nodes.nfv.VL\ntosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0\n"
+            "vnfd": "description: Demo example\nmetadata: {template_name: sample-tosca-vnfd}\ntopology_template:\n  node_templates:\n    CP1:\n      properties: {anti_spoofing_protection: false, management: true, order: 0}\n      requirements:\n      - virtualLink: {node: VL1}\n      - virtualBinding: {node: VDU1}\n      type: tosca.nodes.nfv.CP.Tacker\n    VDU1:\n      capabilities:\n        nfv_compute:\n          properties: {disk_size: 1 GB, mem_size: 512 MB, num_cpus: 1}\n      properties: {image: cirros-0.3.5-x86_64-disk}\n      type: tosca.nodes.nfv.VDU.Tacker\n    VL1:\n      properties: {network_name: net_mgmt, vendor: Tacker}\n      type: tosca.nodes.nfv.VL\ntosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0\n"
         },
         "id": "0fb827e7-32b0-4e5b-b300-e1b1dce8a831",
         "name": "vnfd-sample-updated"
