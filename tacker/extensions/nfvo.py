@@ -59,11 +59,6 @@ class VimKeyNotFoundException(exceptions.TackerException):
     message = _("Unable to find key file for VIM %(vim_id)s")
 
 
-class VimDuplicateUrlException(exceptions.TackerException):
-    message = _("VIM with specified auth URL already exists. Cannot register "
-                "duplicate VIM")
-
-
 class VimUnsupportedResourceTypeException(exceptions.TackerException):
     message = _("Resource type %(type) is unsupported by VIM")
 
