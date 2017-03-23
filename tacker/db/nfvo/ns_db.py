@@ -309,7 +309,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                 self._model_query(context, NS).
                 filter(NS.id == ns_id).
                 filter(NS.status == constants.PENDING_DELETE))
-            if mistral_obj.state == 'ERROR':
+            if mistral_obj and mistral_obj.state == 'ERROR':
                 query.update({'status': constants.ERROR})
                 self._cos_db_plg.create_event(
                     context, res_id=ns_id,

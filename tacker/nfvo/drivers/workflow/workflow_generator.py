@@ -55,6 +55,9 @@ class WorkflowGenerator(object):
     def _get_description(self):
         pass
 
+    def get_tasks(self):
+        return self.definition[self.wf_identifier]['tasks']
+
     def _add_create_vnf_tasks(self, ns):
         vnfds = ns['vnfd_details']
         task_dict = dict()

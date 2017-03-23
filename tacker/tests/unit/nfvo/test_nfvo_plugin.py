@@ -37,6 +37,7 @@ from tacker.tests.unit.db import utils
 from tacker.vnfm import vim_client
 
 SECRET_PASSWORD = '***'
+DUMMY_NS_2 = 'ba6bf017-f6f7-45f1-a280-57b073bf78ef'
 
 
 def dummy_get_vim(*args, **kwargs):
@@ -63,6 +64,14 @@ class FakeDriverManager(mock.Mock):
             mock_execution.id.return_value = \
                 "ba6bf017-f6f7-45f1-a280-57b073bf78ea"
             return mock_execution
+        elif ('prepare_and_create_workflow' in args and
+              'delete' == kwargs['action'] and
+              DUMMY_NS_2 == kwargs['kwargs']['ns']['id']):
+            raise nfvo.NoTasksException()
+        elif ('prepare_and_create_workflow' in args and
+              'create' == kwargs['action'] and
+              utils.DUMMY_NS_2_NAME == kwargs['kwargs']['ns']['ns']['name']):
+            raise nfvo.NoTasksException()
 
 
 def get_fake_nsd():
@@ -588,13 +597,25 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         session.flush()
         return ns
 
+    def _insert_dummy_ns_2(self):
+        session = self.context.session
+        ns = ns_db.NS(
+            id=DUMMY_NS_2,
+            name='fake_ns',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            status='ACTIVE',
+            nsd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            description='fake_ns_description')
+        session.add(ns)
+        session.flush()
+        return ns
+
     def test_create_nsd(self):
         nsd_obj = utils.get_dummy_nsd_obj()
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
-            mock.patch('tacker.common.driver_manager.DriverManager',
-                       side_effect=FakeDriverManager()).start()
             result = self.nfvo_plugin.create_nsd(self.context, nsd_obj)
             self.assertIsNotNone(result)
             self.assertEqual(result['name'], 'dummy_NSD')
@@ -614,8 +635,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
-            mock.patch('tacker.common.driver_manager.DriverManager',
-                       side_effect=FakeDriverManager()).start()
             mock_get_by_name.return_value = get_by_name()
 
             ns_obj = utils.get_dummy_ns_obj()
@@ -626,6 +645,29 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertEqual(ns_obj['ns']['name'], result['name'])
             self.assertIn('status', result)
             self.assertIn('tenant_id', result)
+
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
+    def test_create_ns_workflow_no_task_exception(
+            self, mock_get_by_name, mock_get_vimi, mock_auth_dict):
+        self._insert_dummy_ns_template()
+        self._insert_dummy_vim()
+        mock_auth_dict.return_value = {
+            'auth_url': 'http://127.0.0.1',
+            'token': 'DummyToken',
+            'project_domain_name': 'dummy_domain',
+            'project_name': 'dummy_project'
+        }
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock_get_by_name.return_value = get_by_name()
+
+            ns_obj = utils.get_dummy_ns_obj_2()
+            self.assertRaises(nfvo.NoTasksException,
+                              self.nfvo_plugin.create_ns,
+                              self.context, ns_obj)
 
     @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
     @mock.patch.object(vim_client.VimClient, 'get_vim')
@@ -644,9 +686,34 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
-            mock.patch('tacker.common.driver_manager.DriverManager',
-                       side_effect=FakeDriverManager()).start()
             mock_get_by_name.return_value = get_by_name()
             result = self.nfvo_plugin.delete_ns(self.context,
                 'ba6bf017-f6f7-45f1-a280-57b073bf78ea')
             self.assertIsNotNone(result)
+
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
+    @mock.patch("tacker.db.nfvo.ns_db.NSPluginDb.delete_ns_post")
+    def test_delete_ns_no_task_exception(
+            self, mock_delete_ns_post, mock_get_by_name, mock_get_vim,
+            mock_auth_dict):
+
+        self._insert_dummy_vim()
+        self._insert_dummy_ns_template()
+        self._insert_dummy_ns_2()
+        mock_auth_dict.return_value = {
+            'auth_url': 'http://127.0.0.1',
+            'token': 'DummyToken',
+            'project_domain_name': 'dummy_domain',
+            'project_name': 'dummy_project'
+        }
+
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock_get_by_name.return_value = get_by_name()
+            self.nfvo_plugin.delete_ns(self.context,
+                DUMMY_NS_2)
+        mock_delete_ns_post.assert_called_with(
+            self.context, DUMMY_NS_2, None, None)

@@ -221,6 +221,11 @@ class NSDInUse(exceptions.InUse):
 class NSInUse(exceptions.InUse):
     message = _('NS %(ns_id)s is still in use')
 
+
+class NoTasksException(exceptions.TackerException):
+    message = _('No tasks to run for %(action)s on %(resource)s')
+
+
 RESOURCE_ATTRIBUTE_MAP = {
 
     'vims': {
