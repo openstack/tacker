@@ -517,7 +517,7 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
     def create_ns(self, context, ns):
         """Create NS and corresponding VNFs.
 
-        :param ns ns dict which contains nsd_id and attributes
+        :param ns: ns dict which contains nsd_id and attributes
         This method has 3 steps:
         step-1: substitute all get_input params to its corresponding values
         step-2: Build params dict for substitution mappings case through which
