@@ -108,8 +108,8 @@ class TackerManager(object):
         Load class using stevedore alias or the class name
         :param namespace: namespace where alias is defined
         :param plugin_provider: plugin alias or class name
-        :returns plugin that is loaded
-        :raises ImportError if fails to load plugin
+        :returns: plugin that is loaded
+        :raises ImportError: if fails to load plugin
         """
 
         try:

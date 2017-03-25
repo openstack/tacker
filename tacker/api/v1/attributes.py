@@ -493,7 +493,7 @@ def convert_to_int(data):
 def convert_kvp_str_to_list(data):
     """Convert a value of the form 'key=value' to ['key', 'value'].
 
-    :raises: n_exc.InvalidInput if any of the strings are malformed
+    :raises n_exc.InvalidInput: if any of the strings are malformed
                                 (e.g. do not contain a key).
     """
     kvp = [x.strip() for x in data.split('=', 1)]
@@ -506,7 +506,7 @@ def convert_kvp_str_to_list(data):
 def convert_kvp_list_to_dict(kvp_list):
     """Convert a list of 'key=value' strings to a dict.
 
-    :raises: n_exc.InvalidInput if any of the strings are malformed
+    :raises n_exc.InvalidInput: if any of the strings are malformed
                                 (e.g. do not contain a key) or if any
                                 of the keys appear more than once.
     """
