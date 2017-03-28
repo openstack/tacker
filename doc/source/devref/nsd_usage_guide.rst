@@ -120,7 +120,7 @@ VNF1 sample template for nsd named vnfd1.yaml:
      VDU1:
        type: tosca.nodes.nfv.VDU.Tacker
        properties:
-         image: cirros-0.3.4-x86_64-uec
+         image: cirros-0.3.5-x86_64-disk
          flavor: m1.tiny
          availability_zone: nova
          mgmt_driver: noop
@@ -139,7 +139,7 @@ VNF1 sample template for nsd named vnfd1.yaml:
      VDU2:
        type: tosca.nodes.nfv.VDU.Tacker
        properties:
-         image: cirros-0.3.4-x86_64-uec
+         image: cirros-0.3.5-x86_64-disk
          flavor: m1.medium
          availability_zone: nova
          mgmt_driver: noop
@@ -196,7 +196,7 @@ VNF2 sample template for nsd named vnfd2.yaml:
       VDU1:
         type: tosca.nodes.nfv.VDU.Tacker
         properties:
-          image: cirros-0.3.4-x86_64-uec
+          image: cirros-0.3.5-x86_64-disk
           flavor: m1.tiny
           availability_zone: nova
           mgmt_driver: noop
@@ -216,7 +216,7 @@ VNF2 sample template for nsd named vnfd2.yaml:
       VDU2:
         type: tosca.nodes.nfv.VDU.Tacker
         properties:
-          image: cirros-0.3.4-x86_64-uec
+          image: cirros-0.3.5-x86_64-disk
           flavor: m1.medium
           availability_zone: nova
           mgmt_driver: noop

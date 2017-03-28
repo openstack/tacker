@@ -43,7 +43,7 @@ i). Create a sample-vnfd.yaml file with the following content:
                mem_size: 512 MB
                disk_size: 1 GB
          properties:
-           image: cirros-0.3.4-x86_64-uec
+           image: cirros-0.3.5-x86_64-disk
            availability_zone: nova
            mgmt_driver: noop
            config: |
