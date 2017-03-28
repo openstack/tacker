@@ -25,6 +25,7 @@ subunit.log
 *.mo
 *.sw?
 *~
+.eggs/
 
 releasenotes/build
 etc/tacker/tacker.conf.sample
