@@ -43,10 +43,10 @@ from tacker.extensions import common_services as cs
 from tacker.extensions import nfvo
 from tacker import manager
 from tacker.plugins.common import constants
-from tacker.vnfm.tosca import utils as toscautils
 from tacker.vnfm import vim_client
-from toscaparser import tosca_template
 
+from tacker.tosca import utils as toscautils
+from toscaparser import tosca_template
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF

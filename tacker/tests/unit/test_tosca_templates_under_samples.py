@@ -13,13 +13,13 @@
 #    under the License.
 
 import os
-import testtools
 
+import testtools
 from toscaparser import tosca_template
 from toscaparser.utils import yamlparser
-
-from tacker.vnfm.tosca import utils
 from translator.hot import tosca_translator
+
+from tacker.tosca import utils
 
 
 class TestSamples(testtools.TestCase):

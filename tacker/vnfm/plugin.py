@@ -34,8 +34,9 @@ from tacker.extensions import vnfm
 from tacker.plugins.common import constants
 from tacker.vnfm.mgmt_drivers import constants as mgmt_constants
 from tacker.vnfm import monitor
-from tacker.vnfm.tosca import utils as toscautils
 from tacker.vnfm import vim_client
+
+from tacker.tosca import utils as toscautils
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF

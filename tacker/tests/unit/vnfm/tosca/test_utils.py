@@ -13,10 +13,11 @@
 
 import codecs
 import os
+
 import testtools
 import yaml
 
-from tacker.vnfm.tosca import utils as toscautils
+from tacker.tosca import utils as toscautils
 from toscaparser import tosca_template
 from translator.hot import tosca_translator
 
@@ -41,7 +42,7 @@ class TestToscaUtils(testtools.TestCase):
         super(TestToscaUtils, self).setUp()
 
     def test_updateimport(self):
-        importspath = os.path.abspath('./tacker/vnfm/tosca/lib/')
+        importspath = os.path.abspath('./tacker/tosca/lib/')
         file1 = importspath + '/tacker_defs.yaml'
         file2 = importspath + '/tacker_nfv_defs.yaml'
         expected_imports = [file1, file2]

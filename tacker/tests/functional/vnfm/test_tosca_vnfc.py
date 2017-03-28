@@ -11,17 +11,19 @@
 #    under the License.
 
 import os
+
 from oslo_config import cfg
 from toscaparser import tosca_template
 import unittest
 import yaml
+
 
 from tacker.common import utils
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
-from tacker.vnfm.tosca import utils as toscautils
+from tacker.tosca import utils as toscautils
 
 CONF = cfg.CONF
 SOFTWARE_DEPLOYMENT = 'OS::Heat::SoftwareDeployment'

@@ -6,8 +6,8 @@
         "template": {
             "vnffgd": {
                 "imports": [
-                    "/opt/stack/tacker/tacker/vnfm/tosca/lib/tacker_defs.yaml",
-                    "/opt/stack/tacker/tacker/vnfm/tosca/lib/tacker_nfv_defs.yaml"
+                    "/opt/stack/tacker/tacker/tosca/lib/tacker_defs.yaml",
+                    "/opt/stack/tacker/tacker/tosca/lib/tacker_nfv_defs.yaml"
                 ],
                 "description": "Sample VNFFG template",
                 "topology_template": {

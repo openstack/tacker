@@ -7,8 +7,8 @@
             "vnffgd": {
                 "tosca_definitions_version": "tosca_simple_profile_for_nfv_1_0_0",
                 "imports": [
-                    "/opt/stack/tacker/tacker/vnfm/tosca/lib/tacker_defs.yaml",
-                    "/opt/stack/tacker/tacker/vnfm/tosca/lib/tacker_nfv_defs.yaml"
+                    "/opt/stack/tacker/tacker/tosca/lib/tacker_defs.yaml",
+                    "/opt/stack/tacker/tacker/tosca/lib/tacker_nfv_defs.yaml"
                 ],
                 "description": "Sample VNFFG template",
                 "topology_template": {
