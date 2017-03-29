@@ -472,6 +472,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 vnf_dict['status'] = constants.ERROR
                 vnf_dict['error_reason'] = six.text_type(e)
                 LOG.exception(_('_delete_vnf_wait'))
+                self.set_vnf_error_status_reason(context, vnf_dict['id'],
+                                                 vnf_dict['error_reason'])
 
         self.mgmt_delete_post(context, vnf_dict)
         self._delete_vnf_post(context, vnf_dict, e)
@@ -505,6 +507,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             with excutils.save_and_reraise_exception():
                 vnf_dict['status'] = constants.ERROR
                 vnf_dict['error_reason'] = six.text_type(e)
+                self.set_vnf_error_status_reason(context, vnf_dict['id'],
+                                                 vnf_dict['error_reason'])
                 self.mgmt_delete_post(context, vnf_dict)
                 self._delete_vnf_post(context, vnf_dict, e)
 
