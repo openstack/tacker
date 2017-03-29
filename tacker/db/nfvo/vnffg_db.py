@@ -306,6 +306,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             LOG.debug(_('VNF Mapping: %s'), vnf_mapping)
             # create NFP dict
             nfp_dict = self._create_nfp_pre(template_db)
+            LOG.debug(_('NFP: %s'), nfp_dict)
             vnffg_db = Vnffg(id=vnffg_id,
                              tenant_id=tenant_id,
                              name=name,
@@ -455,7 +456,9 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             attr_val = VnffgPluginDbMixin._search_value(
                 template['node_templates'][nfp], attribute)
             if attr_val is None:
-                print(template['node_templates'][nfp])
+                LOG.debug(_('NFP %(nfp)s, attr %(attr)s'),
+                          {'nfp': template['node_templates'][nfp],
+                           'attr': attribute})
                 raise nfvo.NfpAttributeNotFoundException(attribute=attribute)
             else:
                 return attr_val
