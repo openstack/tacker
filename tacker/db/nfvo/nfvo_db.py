@@ -16,13 +16,16 @@
 
 import uuid
 
+from oslo_db.exception import DBDuplicateEntry
 from oslo_utils import strutils
 from oslo_utils import timeutils
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
+from sqlalchemy import schema
 from sqlalchemy import sql
 
+from tacker.common import exceptions
 from tacker.db.common_services import common_services_db
 from tacker.db import db_base
 from tacker.db import model_base
@@ -55,6 +58,13 @@ class Vim(model_base.BASE,
     ), nullable=False)
     vim_auth = orm.relationship('VimAuth')
     status = sa.Column(sa.String(255), nullable=False)
+
+    __table_args__ = (
+        schema.UniqueConstraint(
+            "tenant_id",
+            "name",
+            name="uniq_vim0tenant_id0name"),
+    )
 
 
 class VimAuth(model_base.BASE, models_v1.HasId):
@@ -105,25 +115,31 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
     def create_vim(self, context, vim):
         self._validate_default_vim(context, vim)
         vim_cred = vim['auth_cred']
-        with context.session.begin(subtransactions=True):
-            vim_db = Vim(
-                id=vim.get('id'),
-                type=vim.get('type'),
-                tenant_id=vim.get('tenant_id'),
-                name=vim.get('name'),
-                description=vim.get('description'),
-                placement_attr=vim.get('placement_attr'),
-                is_default=vim.get('is_default'),
-                status=vim.get('status'))
-            context.session.add(vim_db)
-            vim_auth_db = VimAuth(
-                id=str(uuid.uuid4()),
-                vim_id=vim.get('id'),
-                password=vim_cred.pop('password'),
-                vim_project=vim.get('vim_project'),
-                auth_url=vim.get('auth_url'),
-                auth_cred=vim_cred)
-            context.session.add(vim_auth_db)
+
+        try:
+            with context.session.begin(subtransactions=True):
+                vim_db = Vim(
+                    id=vim.get('id'),
+                    type=vim.get('type'),
+                    tenant_id=vim.get('tenant_id'),
+                    name=vim.get('name'),
+                    description=vim.get('description'),
+                    placement_attr=vim.get('placement_attr'),
+                    is_default=vim.get('is_default'),
+                    status=vim.get('status'))
+                context.session.add(vim_db)
+                vim_auth_db = VimAuth(
+                    id=str(uuid.uuid4()),
+                    vim_id=vim.get('id'),
+                    password=vim_cred.pop('password'),
+                    vim_project=vim.get('vim_project'),
+                    auth_url=vim.get('auth_url'),
+                    auth_cred=vim_cred)
+                context.session.add(vim_auth_db)
+        except DBDuplicateEntry as e:
+            raise exceptions.DuplicateEntity(
+                _type="vim",
+                entry=e.columns)
         vim_dict = self._make_vim_dict(vim_db)
         self._cos_db_plg.create_event(
             context, res_id=vim_dict['id'],

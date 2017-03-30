@@ -118,9 +118,6 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         LOG.debug(_('Create vim called with parameters %s'),
              strutils.mask_password(vim))
         vim_obj = vim['vim']
-        name = vim_obj['name']
-        if self._get_by_name(context, nfvo_db.Vim, name):
-            raise exceptions.DuplicateResourceName(resource='VIM', name=name)
         vim_type = vim_obj['type']
         vim_obj['id'] = str(uuid.uuid4())
         vim_obj['status'] = 'PENDING'
@@ -446,10 +443,6 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 template)
         LOG.debug(_('nsd %s'), nsd_data)
 
-        name = nsd_data['name']
-        if self._get_by_name(context, ns_db.NSD, name):
-            raise exceptions.DuplicateResourceName(resource='NSD', name=name)
-
         self._parse_template_input(context, nsd)
         return super(NfvoPlugin, self).create_nsd(
             context, nsd)
@@ -535,9 +528,6 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         driver_type = vim_res['vim_type']
         if not ns['ns']['vim_id']:
             ns['ns']['vim_id'] = vim_res['vim_id']
-        if self._get_by_name(context, ns_db.NS, ns['ns']['name']):
-            raise exceptions.DuplicateResourceName(resource='NS',
-                name=ns['ns']['name'])
 
         # Step-1
         param_values = ns['ns']['attributes'].get('param_values', {})

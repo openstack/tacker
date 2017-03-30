@@ -16,6 +16,7 @@
 
 import uuid
 
+from oslo_db.exception import DBDuplicateEntry
 from oslo_log import log as logging
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -23,8 +24,10 @@ from oslo_utils import uuidutils
 import sqlalchemy as sa
 from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
+from sqlalchemy import schema
 
 from tacker.api.v1 import attributes
+from tacker.common import exceptions
 from tacker import context as t_context
 from tacker.db.common_services import common_services_db
 from tacker.db import db_base
@@ -69,6 +72,13 @@ class VNFD(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
 
     # vnfd template source - inline or onboarded
     template_source = sa.Column(sa.String(255), server_default='onboarded')
+
+    __table_args__ = (
+        schema.UniqueConstraint(
+            "tenant_id",
+            "name",
+            name="uniq_vnfd0tenant_id0name"),
+    )
 
 
 class ServiceType(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
@@ -126,6 +136,13 @@ class VNF(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
     placement_attr = sa.Column(types.Json, nullable=True)
     vim = orm.relationship('Vim')
     error_reason = sa.Column(sa.Text, nullable=True)
+
+    __table_args__ = (
+        schema.UniqueConstraint(
+            "tenant_id",
+            "name",
+            name="uniq_vnf0tenant_id0name"),
+    )
 
 
 class VNFAttribute(model_base.BASE, models_v1.HasId):
@@ -229,32 +246,36 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             LOG.debug(_('service types unspecified'))
             raise vnfm.ServiceTypesNotSpecified()
 
-        with context.session.begin(subtransactions=True):
-            vnfd_id = str(uuid.uuid4())
-            vnfd_db = VNFD(
-                id=vnfd_id,
-                tenant_id=tenant_id,
-                name=vnfd.get('name'),
-                description=vnfd.get('description'),
-                mgmt_driver=mgmt_driver,
-                template_source=template_source)
-            context.session.add(vnfd_db)
-            for (key, value) in vnfd.get('attributes', {}).items():
-                attribute_db = VNFDAttribute(
-                    id=str(uuid.uuid4()),
-                    vnfd_id=vnfd_id,
-                    key=key,
-                    value=value)
-                context.session.add(attribute_db)
-            for service_type in (item['service_type']
-                                 for item in vnfd['service_types']):
-                service_type_db = ServiceType(
-                    id=str(uuid.uuid4()),
+        try:
+            with context.session.begin(subtransactions=True):
+                vnfd_id = str(uuid.uuid4())
+                vnfd_db = VNFD(
+                    id=vnfd_id,
                     tenant_id=tenant_id,
-                    vnfd_id=vnfd_id,
-                    service_type=service_type)
-                context.session.add(service_type_db)
-
+                    name=vnfd.get('name'),
+                    description=vnfd.get('description'),
+                    mgmt_driver=mgmt_driver,
+                    template_source=template_source)
+                context.session.add(vnfd_db)
+                for (key, value) in vnfd.get('attributes', {}).items():
+                    attribute_db = VNFDAttribute(
+                        id=str(uuid.uuid4()),
+                        vnfd_id=vnfd_id,
+                        key=key,
+                        value=value)
+                    context.session.add(attribute_db)
+                for service_type in (item['service_type']
+                                     for item in vnfd['service_types']):
+                    service_type_db = ServiceType(
+                        id=str(uuid.uuid4()),
+                        tenant_id=tenant_id,
+                        vnfd_id=vnfd_id,
+                        service_type=service_type)
+                    context.session.add(service_type_db)
+        except DBDuplicateEntry as e:
+            raise exceptions.DuplicateEntity(
+                _type="vnfd",
+                entry=e.columns)
         LOG.debug(_('vnfd_db %(vnfd_db)s %(attributes)s '),
                   {'vnfd_db': vnfd_db,
                    'attributes': vnfd_db.attributes})
@@ -371,25 +392,30 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         attributes = vnf.get('attributes', {})
         vim_id = vnf.get('vim_id')
         placement_attr = vnf.get('placement_attr', {})
-        with context.session.begin(subtransactions=True):
-            vnfd_db = self._get_resource(context, VNFD,
-                                         vnfd_id)
-            vnf_db = VNF(id=vnf_id,
-                         tenant_id=tenant_id,
-                         name=name,
-                         description=vnfd_db.description,
-                         instance_id=None,
-                         vnfd_id=vnfd_id,
-                         vim_id=vim_id,
-                         placement_attr=placement_attr,
-                         status=constants.PENDING_CREATE,
-                         error_reason=None)
-            context.session.add(vnf_db)
-            for key, value in attributes.items():
-                    arg = VNFAttribute(
-                        id=str(uuid.uuid4()), vnf_id=vnf_id,
-                        key=key, value=value)
-                    context.session.add(arg)
+        try:
+            with context.session.begin(subtransactions=True):
+                vnfd_db = self._get_resource(context, VNFD,
+                                             vnfd_id)
+                vnf_db = VNF(id=vnf_id,
+                             tenant_id=tenant_id,
+                             name=name,
+                             description=vnfd_db.description,
+                             instance_id=None,
+                             vnfd_id=vnfd_id,
+                             vim_id=vim_id,
+                             placement_attr=placement_attr,
+                             status=constants.PENDING_CREATE,
+                             error_reason=None)
+                context.session.add(vnf_db)
+                for key, value in attributes.items():
+                        arg = VNFAttribute(
+                            id=str(uuid.uuid4()), vnf_id=vnf_id,
+                            key=key, value=value)
+                        context.session.add(arg)
+        except DBDuplicateEntry as e:
+            raise exceptions.DuplicateEntity(
+                _type="vnf",
+                entry=e.columns)
         evt_details = "VNF UUID assigned."
         self._cos_db_plg.create_event(
             context, res_id=vnf_id,

@@ -150,10 +150,6 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
 
         LOG.debug(_('vnfd %s'), vnfd_data)
 
-        name = vnfd_data['name']
-        if self._get_by_name(context, vnfm_db.VNFD, name):
-            raise exceptions.DuplicateResourceName(resource='VNFD', name=name)
-
         service_types = vnfd_data.get('service_types')
         if not attributes.is_attr_set(service_types):
             LOG.debug(_('service type must be specified'))
@@ -337,8 +333,6 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     def create_vnf(self, context, vnf):
         vnf_info = vnf['vnf']
         name = vnf_info['name']
-        if self._get_by_name(context, vnfm_db.VNF, name):
-            raise exceptions.DuplicateResourceName(resource='VNF', name=name)
 
         # if vnfd_template specified, create vnfd from template
         # create template dictionary structure same as needed in create_vnfd()
