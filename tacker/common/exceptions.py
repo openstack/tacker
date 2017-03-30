@@ -281,9 +281,5 @@ class DuplicateResourceName(TackerException):
     message = _("%(resource)s with name %(name)s already exists")
 
 
-class InvalidParam(TackerException):
-    message = _("Param values must be a dict type")
-
-
 class DuplicateEntity(TackerException):
     message = _("%(_type)s already exist with given %(entry)s")

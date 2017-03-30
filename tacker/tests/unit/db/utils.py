@@ -32,11 +32,16 @@ tosca_vnfd_openwrt = _get_template('test_tosca_openwrt.yaml')
 config_data = _get_template('config_data.yaml')
 update_config_data = _get_template('update_config_data.yaml')
 vnffg_params = _get_template('vnffg_params.yaml')
+vnffg_multi_params = _get_template('vnffg_multi_params.yaml')
 vnffgd_template = yaml.safe_load(_get_template('vnffgd_template.yaml'))
 vnffgd_tosca_template = yaml.safe_load(_get_template(
     'tosca_vnffgd_template.yaml'))
 vnffgd_tosca_param_template = yaml.safe_load(_get_template(
     'tosca_vnffgd_param_template.yaml'))
+vnffgd_tosca_str_param_template = yaml.safe_load(_get_template(
+    'tosca_vnffgd_str_param_template.yaml'))
+vnffgd_tosca_multi_param_template = yaml.safe_load(_get_template(
+    'tosca_vnffgd_multi_param_template.yaml'))
 vnffgd_invalid_tosca_template = yaml.safe_load(_get_template(
     'tosca_invalid_vnffgd_template.yaml'))
 vnfd_scale_tosca_template = _get_template('tosca_scale.yaml')
@@ -182,6 +187,32 @@ def get_dummy_vnffg_param_obj():
                       'vnf_mapping': {},
                       u'attributes': {u'param_values':
                           yaml.safe_load(vnffg_params)},
+                      'symmetrical': False}}
+
+
+def get_dummy_vnffg_str_param_obj():
+    return {'vnffg': {'description': 'dummy_vnf_description',
+                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'name': 'dummy_vnffg',
+                      u'attributes': {
+                          u'template': vnffgd_tosca_param_template},
+                      'vnf_mapping': {},
+                      u'attributes': {
+                          u'param_values': 'value not dict format'},
+                      'symmetrical': False}}
+
+
+def get_dummy_vnffg_multi_param_obj():
+    return {'vnffg': {'description': 'dummy_vnf_description',
+                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'name': 'dummy_vnffg',
+                      u'attributes': {
+                          u'template': vnffgd_tosca_multi_param_template},
+                      'vnf_mapping': {},
+                      u'attributes': {u'param_values':
+                          yaml.safe_load(vnffg_multi_params)},
                       'symmetrical': False}}
 
 

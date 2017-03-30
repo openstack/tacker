@@ -100,6 +100,10 @@ def get_by_name():
     return False
 
 
+def get_by_id():
+    return False
+
+
 def dummy_get_vim_auth(*args, **kwargs):
     return {'vim_auth': {u'username': u'admin', 'password': 'devstack',
                          u'project_name': u'nfv', u'user_id': u'',
@@ -342,6 +346,30 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         session.flush()
         return vnffg_template
 
+    def _insert_dummy_vnffg_str_param_template(self):
+        session = self.context.session
+        vnffg_template = vnffg_db.VnffgTemplate(
+            id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='fake_template',
+            description='fake_template_description',
+            template={u'vnffgd': utils.vnffgd_tosca_str_param_template})
+        session.add(vnffg_template)
+        session.flush()
+        return vnffg_template
+
+    def _insert_dummy_vnffg_multi_param_template(self):
+        session = self.context.session
+        vnffg_template = vnffg_db.VnffgTemplate(
+            id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='fake_template',
+            description='fake_template_description',
+            template={u'vnffgd': utils.vnffgd_tosca_multi_param_template})
+        session.add(vnffg_template)
+        session.flush()
+        return vnffg_template
+
     def _insert_dummy_vnffg(self):
         session = self.context.session
         vnffg = vnffg_db.Vnffg(
@@ -468,6 +496,37 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                                                            auth_attr=mock.ANY,
                                                            symmetrical=mock.ANY
                                                            )
+
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_id')
+    def test_create_vnffg_param_value_format_error(self, mock_get_by_id):
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock_get_by_id.value = get_by_id()
+            vnffg_obj = utils.get_dummy_vnffg_str_param_obj()
+            self.assertRaises(nfvo.VnffgParamValueFormatError,
+                              self.nfvo_plugin.create_vnffg,
+                              self.context, vnffg_obj)
+
+    def test_create_vnffg_template_param_not_parse(self):
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            self._insert_dummy_vnffg_multi_param_template()
+            vnffg_obj = utils.get_dummy_vnffg_param_obj()
+            self.assertRaises(nfvo.VnffgTemplateParamParsingException,
+                              self.nfvo_plugin.create_vnffg,
+                              self.context, vnffg_obj)
+
+    def test_create_vnffg_param_value_not_use(self):
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            self._insert_dummy_vnffg_param_template()
+            vnffg_obj = utils.get_dummy_vnffg_multi_param_obj()
+            self.assertRaises(nfvo.VnffgParamValueNotUsed,
+                              self.nfvo_plugin.create_vnffg,
+                              self.context, vnffg_obj)
 
     def test_create_vnffg_vnf_mapping(self):
         with patch.object(TackerManager, 'get_service_plugins') as \
