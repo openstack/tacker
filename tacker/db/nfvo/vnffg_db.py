@@ -18,6 +18,7 @@ import sqlalchemy as sa
 import uuid
 
 from oslo_log import log as logging
+from six import iteritems
 from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
 from tacker._i18n import _
@@ -284,6 +285,40 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                                     self._make_chain_dict,
                                     filters=filters, fields=fields)
 
+    def _update_template_params(self, original, paramvalues, param_matched):
+        if 'get_input' not in str(original):
+            return
+        if isinstance(original, dict):
+            for key_, value in iteritems(original):
+                if isinstance(value, dict) and 'get_input' in value:
+                    if value['get_input'] in paramvalues:
+                        original[key_] = paramvalues[value['get_input']]
+                        param_matched.setdefault(value['get_input'], 0)
+                        param_matched[value['get_input']] += 1
+                    else:
+                        raise nfvo.VnffgTemplateParamParsingException(
+                            get_input=value['get_input'])
+                else:
+                    self._update_template_params(value,
+                                                 paramvalues, param_matched)
+        elif isinstance(original, list):
+            for element in original:
+                self._update_template_params(element,
+                                             paramvalues, param_matched)
+
+    def _process_parameterized_template(self, dev_attrs, vnffgd_template):
+        param_vattrs_dict = dev_attrs.pop('param_values', None)
+        param_matched = {}
+        if isinstance(param_vattrs_dict, dict):
+            self._update_template_params(vnffgd_template,
+                                param_vattrs_dict, param_matched)
+        else:
+            raise nfvo.VnffgParamValueFormatError(
+                param_value=param_vattrs_dict)
+        for param_key in param_vattrs_dict.keys():
+            if param_matched.get(param_key) is None:
+                raise nfvo.VnffgParamValueNotUsed(param_key=param_key)
+
     # called internally, not by REST API
     def _create_vnffg_pre(self, context, vnffg):
         vnffg = vnffg['vnffg']
@@ -298,6 +333,17 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             template_db = self._get_resource(context, VnffgTemplate,
                                              template_id)
             LOG.debug(_('vnffg template %s'), template_db)
+
+            if vnffg.get('attributes') and \
+                    vnffg['attributes'].get('param_values'):
+                vnffg_param = vnffg['attributes']
+                vnffgd_topology_template = \
+                    template_db.template['vnffgd']['topology_template']
+                self._process_parameterized_template(vnffg_param,
+                                                     vnffgd_topology_template)
+                template_db.template['vnffgd']['topology_template'] = \
+                    vnffgd_topology_template
+
             vnf_members = self._get_vnffg_property(template_db,
                                                    'constituent_vnfs')
             LOG.debug(_('Constituent VNFs: %s'), vnf_members)

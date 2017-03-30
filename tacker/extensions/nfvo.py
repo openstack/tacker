@@ -130,8 +130,17 @@ class VnffgInvalidMappingException(exceptions.TackerException):
                 "creating/updating VNFFG.")
 
 
-class VnffgVimMappingException(exceptions.TackerException):
-    message = _("VNF Instance VNF %(vnf_id)s does not match VIM ID %(vim_id).")
+class VnffgParamValueFormatError(exceptions.TackerException):
+    message = _("Param values %(param_value)s is not in dict format.")
+
+
+class VnffgTemplateParamParsingException(exceptions.TackerException):
+    message = _("Failed to parse VNFFG Template due to "
+                "missing input param %(get_input)s.")
+
+
+class VnffgParamValueNotUsed(exceptions.TackerException):
+    message = _("Param input %(param_key)s not used.")
 
 
 class VnffgPropertyNotFoundException(exceptions.NotFound):

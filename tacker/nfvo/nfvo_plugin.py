@@ -229,13 +229,6 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
 
     @log.log
     def create_vnffg(self, context, vnffg):
-        vnffg_attributes = vnffg['vnffg']['attributes']
-        if vnffg_attributes.get('param_values'):
-            param = vnffg_attributes['param_values']
-            if isinstance(param, dict):
-                vnffg_attributes['param_values'] = yaml.safe_dump(param)
-            else:
-                raise exceptions.InvalidParam()
         vnffg_dict = super(NfvoPlugin, self)._create_vnffg_pre(context, vnffg)
         nfp = super(NfvoPlugin, self).get_nfp(context,
                                               vnffg_dict['forwarding_paths'])
