@@ -45,7 +45,7 @@ topology_template:
       properties:
         vendor: tacker
         version: 1.0
-        number_of_endpoints: 5
+        number_of_endpoints: 2
         dependent_virtual_link: [VL12,VL22]
         connection_point: [CP12,CP22]
         constituent_vnfs: [VNFD1,VNFD2]

@@ -50,6 +50,8 @@ vnfd_alarm_respawn_tosca_template = _get_template(
 vnfd_alarm_scale_tosca_template = _get_template(
     'test_tosca_vnfd_alarm_scale.yaml')
 nsd_tosca_template = yaml.safe_load(_get_template('tosca_nsd_template.yaml'))
+vnffgd_wrong_cp_number_template = yaml.safe_load(_get_template(
+    'tosca_vnffgd_wrong_cp_number_template.yaml'))
 
 
 def get_dummy_vnfd_obj():

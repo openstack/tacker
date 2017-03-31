@@ -117,6 +117,11 @@ class VnffgdCpNoForwardingException(exceptions.TackerException):
                 "included in forwarding path")
 
 
+class VnffgdWrongEndpointNumber(exceptions.TackerException):
+    message = _("Specified number_of_endpoints %(number)s is not equal to "
+                "the number of connection_point %(cps)s")
+
+
 class VnffgdInUse(exceptions.InUse):
     message = _('VNFFGD %(vnffgd_id)s is still in use')
 

@@ -344,7 +344,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 template_db.template['vnffgd']['topology_template'] = \
                     vnffgd_topology_template
 
-            vnf_members = self._get_vnffg_property(template_db,
+            vnf_members = self._get_vnffg_property(template_db.template,
                                                    'constituent_vnfs')
             LOG.debug(_('Constituent VNFs: %s'), vnf_members)
             vnf_mapping = self._get_vnf_mapping(context, vnffg.get(
@@ -479,8 +479,8 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         return chain_list
 
     @staticmethod
-    def _get_vnffg_property(template_db, vnffg_property):
-        template = template_db.template['vnffgd']['topology_template']
+    def _get_vnffg_property(template, vnffg_property):
+        template = template['vnffgd']['topology_template']
         vnffg_name = list(template['groups'].keys())[0]
         try:
             return template['groups'][vnffg_name]['properties'][vnffg_property]

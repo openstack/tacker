@@ -448,6 +448,16 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                           self.nfvo_plugin.validate_tosca,
                           template)
 
+    def test_validate_vnffg_properties(self):
+        template = {'vnffgd': utils.vnffgd_tosca_template}
+        self.nfvo_plugin.validate_vnffg_properties(template)
+
+    def test_validate_vnffg_properties_wrong_number(self):
+        template = {'vnffgd': utils.vnffgd_wrong_cp_number_template}
+        self.assertRaises(nfvo.VnffgdWrongEndpointNumber,
+                          self.nfvo_plugin.validate_vnffg_properties,
+                          template)
+
     def test_create_vnffgd(self):
         vnffgd_obj = utils.get_dummy_vnffgd_obj()
         result = self.nfvo_plugin.create_vnffgd(self.context, vnffgd_obj)

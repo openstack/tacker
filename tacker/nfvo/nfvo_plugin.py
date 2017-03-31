@@ -212,6 +212,46 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
             raise nfvo.ToscaParserFailed(error_msg_details=str(e))
 
     @log.log
+    def validate_vnffgd_path(self, template):
+        temp = template['vnffgd']['topology_template']
+        vnffg_name = list(temp['groups'].keys())[0]
+        nfp_name = temp['groups'][vnffg_name]['members'][0]
+        path = self._get_nfp_attribute(template, nfp_name,
+                                       'path')
+
+        prev_element = None
+        known_forwarders = set()
+        for element in path:
+            if element.get('forwarder') in known_forwarders:
+                if prev_element is not None and element.get('forwarder')\
+                        != prev_element['forwarder']:
+                    raise nfvo.VnffgdDuplicateForwarderException(
+                        forwarder=element.get('forwarder')
+                    )
+                elif prev_element is not None and element.get(
+                        'capability') == prev_element['capability']:
+                    raise nfvo.VnffgdDuplicateCPException(
+                        cp=element.get('capability')
+                    )
+            else:
+                known_forwarders.add(element.get('forwarder'))
+            prev_element = element
+
+    @log.log
+    def validate_vnffg_properties(self, template):
+
+        # check whether number_of_endpoints is same with connection_point
+        connection_point = self._get_vnffg_property(
+            template, 'connection_point')
+        number_endpoint = self._get_vnffg_property(
+            template, 'number_of_endpoints')
+
+        if len(connection_point) != number_endpoint:
+            raise nfvo.VnffgdWrongEndpointNumber(
+                number=number_endpoint,
+                cps=connection_point)
+
+    @log.log
     def create_vnffgd(self, context, vnffgd):
         template = vnffgd['vnffgd']
 
@@ -219,28 +259,11 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
             raise nfvo.VnffgdInvalidTemplate(template=template.get('template'))
         else:
             self.validate_tosca(template['template']['vnffgd'])
-            temp = template['template']['vnffgd']['topology_template']
-            vnffg_name = list(temp['groups'].keys())[0]
-            nfp_name = temp['groups'][vnffg_name]['members'][0]
-            path = self._get_nfp_attribute(template['template'], nfp_name,
-                                           'path')
-            prev_element = None
-            known_forwarders = set()
-            for element in path:
-                if element.get('forwarder') in known_forwarders:
-                    if prev_element is not None and element.get('forwarder')\
-                            != prev_element['forwarder']:
-                        raise nfvo.VnffgdDuplicateForwarderException(
-                            forwarder=element.get('forwarder')
-                        )
-                    elif prev_element is not None and element.get(
-                            'capability') == prev_element['capability']:
-                        raise nfvo.VnffgdDuplicateCPException(
-                            cp=element.get('capability')
-                        )
-                else:
-                    known_forwarders.add(element.get('forwarder'))
-                prev_element = element
+
+            self.validate_vnffgd_path(template['template'])
+
+            self.validate_vnffg_properties(template['template'])
+
         return super(NfvoPlugin, self).create_vnffgd(context, vnffgd)
 
     @log.log
@@ -295,7 +318,7 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                                     nfp['classifier_id'])
         template_db = self._get_resource(context, vnffg_db.VnffgTemplate,
                                          vnffg_dict['vnffgd_id'])
-        vnf_members = self._get_vnffg_property(template_db,
+        vnf_members = self._get_vnffg_property(template_db.template,
                                                'constituent_vnfs')
         new_vnffg['vnf_mapping'] = super(NfvoPlugin, self)._get_vnf_mapping(
             context, new_vnffg.get('vnf_mapping'), vnf_members)

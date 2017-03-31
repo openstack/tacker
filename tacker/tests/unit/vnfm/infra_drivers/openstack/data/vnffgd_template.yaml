@@ -25,7 +25,7 @@
       properties:
         vendor: tacker
         version: 1.0
-        number_of_endpoints: 5
+        number_of_endpoints: 3
         dependent_virtual_link: [VL1,VL2,VL3]
         connection_point: [CP11,CP12,CP32]
         constituent_vnfs: [VNF1,VNF3]
