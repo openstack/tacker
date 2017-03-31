@@ -64,7 +64,7 @@ through a set of VNFs.
     (traffic match policy to flow through the path), and path (chain of
     VNFs/Connection Points). A complete list of VNFFG properties currently
     supported by Tacker are listed `here <https://github
-    .com/openstack/tacker/blob/master/tacker/vnfm/
+    .com/openstack/tacker/blob/master/tacker/
     tosca/lib/tacker_nfv_defs.yaml>`_ under **properties** section of
     **tosca.nodes.nfv.FP.Tacker** field.
 
@@ -106,7 +106,7 @@ Policy defines the type of match policy that will be used to distinguish
 which traffic should enter this Forwarding Path.  The only currently
 supported type is ACL (access-list).
 Please reference `tosca.nfv.datatypes.aclType
-<https://github.com/openstack/tacker/blob/master/tacker/vnfm/tosca/lib/
+<https://github.com/openstack/tacker/blob/master/tacker/tosca/lib/
 tacker_nfv_defs.yaml>`_ under **properties** section for more information on
 supported match criteria.
 

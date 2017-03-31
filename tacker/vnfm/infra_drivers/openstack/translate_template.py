@@ -9,6 +9,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
 import copy
 
 from oslo_config import cfg
@@ -23,10 +24,9 @@ import yaml
 from tacker.common import log
 from tacker.extensions import common_services as cs
 from tacker.extensions import vnfm
-from tacker.vnfm.tosca import utils as toscautils
+from tacker.tosca import utils as toscautils
 
 from collections import OrderedDict
-
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF

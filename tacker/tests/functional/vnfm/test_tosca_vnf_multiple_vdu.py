@@ -20,7 +20,7 @@ from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
-from tacker.vnfm.tosca import utils as toscautils
+from tacker.tosca import utils as toscautils
 
 CONF = cfg.CONF
 
