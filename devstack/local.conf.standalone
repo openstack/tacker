@@ -20,4 +20,4 @@ ENABLE_DEBUG_LOG_LEVEL=True
 ENABLE_VERBOSE_LOG_LEVEL=True
 
 TACKER_MODE=standalone
-enable_plugin tacker https://github.com/openstack/tacker master
+enable_plugin tacker https://github.com/openstack/tacker stable/ocata

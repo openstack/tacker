@@ -172,13 +172,24 @@ How to setup environment
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 If OpenStack Devstack is used to test alarm monitoring in Tacker, OpenStack
-Ceilometer and Aodh plugins will need to be enabled in local.conf:
+Ceilometer and Aodh plugins will need to be enabled in local.conf
 
-.. code-block::ini
+If the devstack and tacker are master branches, then:
 
-**enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer master**
+.. code-block:: ini
 
-**enable_plugin aodh https://git.openstack.org/openstack/aodh master**
+   **enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer master**
+
+   **enable_plugin aodh https://git.openstack.org/openstack/aodh master**
+
+If the devstack and tacker are from stable branches, then:
+
+.. code-block:: ini
+
+   **enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer stable/<branch_name>**
+
+   **enable_plugin aodh https://git.openstack.org/openstack/aodh master stable/<branch_name>**
+
 
 How to monitor VNFs via alarm triggers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
