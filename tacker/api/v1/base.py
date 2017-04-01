@@ -452,6 +452,8 @@ class Controller(object):
         orig_obj = self._item(request, id, field_list=field_list,
                               parent_id=parent_id)
         orig_obj.update(body[self._resource])
+        attribs = attributes.ATTRIBUTES_TO_UPDATE
+        orig_obj[attribs] = body[self._resource].keys()
         try:
             policy.enforce(request.context,
                            action,
