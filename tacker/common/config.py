@@ -32,8 +32,8 @@ from tacker import version
 LOG = logging.getLogger(__name__)
 
 core_opts = [
-    cfg.StrOpt('bind_host', default='0.0.0.0',
-               help=_("The host IP to bind to")),
+    cfg.HostAddressOpt('bind_host', default='0.0.0.0',
+                       help=_("The host IP to bind to")),
     cfg.IntOpt('bind_port', default=9890,
                help=_("The port to bind to")),
     cfg.StrOpt('api_paste_config', default="api-paste.ini",
