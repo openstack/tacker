@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import abc
+
 import inspect
 import threading
 import time
@@ -23,14 +23,12 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
-import six
+
 
 from tacker.common import driver_manager
 from tacker import context as t_context
 from tacker.db.common_services import common_services_db
 from tacker.plugins.common import constants
-from tacker.vnfm.infra_drivers.openstack import heat_client as hc
-from tacker.vnfm import vim_client
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -281,126 +279,3 @@ class VNFAlarmMonitor(object):
     def process_alarm(self, driver, vnf_dict, kwargs):
         return self._invoke(driver,
                             vnf=vnf_dict, kwargs=kwargs)
-
-
-@six.add_metaclass(abc.ABCMeta)
-class ActionPolicy(object):
-    @classmethod
-    @abc.abstractmethod
-    def execute_action(cls, plugin, vnf_dict):
-        pass
-
-    _POLICIES = {}
-
-    @staticmethod
-    def register(policy, infra_driver=None):
-        def _register(cls):
-            cls._POLICIES.setdefault(policy, {})[infra_driver] = cls
-            return cls
-        return _register
-
-    @classmethod
-    def get_policy(cls, policy, infra_driver=None):
-        action_clses = cls._POLICIES.get(policy)
-        if not action_clses:
-            return None
-        cls = action_clses.get(infra_driver)
-        if cls:
-            return cls
-        return action_clses.get(None)
-
-    @classmethod
-    def get_supported_actions(cls):
-        return cls._POLICIES.keys()
-
-
-@ActionPolicy.register('respawn', 'openstack')
-class ActionRespawnHeat(ActionPolicy):
-    @classmethod
-    def execute_action(cls, plugin, vnf_dict):
-        vnf_id = vnf_dict['id']
-        LOG.info(_('vnf %s is dead and needs to be respawned'), vnf_id)
-        attributes = vnf_dict['attributes']
-        vim_id = vnf_dict['vim_id']
-        # TODO(anyone) set the current request ctxt
-        context = t_context.get_admin_context()
-
-        def _update_failure_count():
-            failure_count = int(attributes.get('failure_count', '0')) + 1
-            failure_count_str = str(failure_count)
-            LOG.debug(_("vnf %(vnf_id)s failure count %(failure_count)s"),
-                      {'vnf_id': vnf_id, 'failure_count': failure_count_str})
-            attributes['failure_count'] = failure_count_str
-            attributes['dead_instance_id_' + failure_count_str] = vnf_dict[
-                'instance_id']
-
-        def _fetch_vim(vim_uuid):
-            return vim_client.VimClient().get_vim(context, vim_uuid)
-
-        def _delete_heat_stack(vim_auth):
-            placement_attr = vnf_dict.get('placement_attr', {})
-            region_name = placement_attr.get('region_name')
-            heatclient = hc.HeatClient(auth_attr=vim_auth,
-                                       region_name=region_name)
-            heatclient.delete(vnf_dict['instance_id'])
-            LOG.debug(_("Heat stack %s delete initiated"), vnf_dict[
-                'instance_id'])
-            _log_monitor_events(context, vnf_dict, "ActionRespawnHeat invoked")
-
-        def _respin_vnf():
-            update_vnf_dict = plugin.create_vnf_sync(context, vnf_dict)
-            LOG.info(_('respawned new vnf %s'), update_vnf_dict['id'])
-            plugin.config_vnf(context, update_vnf_dict)
-            return update_vnf_dict
-
-        if plugin._mark_vnf_dead(vnf_dict['id']):
-            _update_failure_count()
-            vim_res = _fetch_vim(vim_id)
-            if vnf_dict['attributes'].get('monitoring_policy'):
-                plugin._vnf_monitor.mark_dead(vnf_dict['id'])
-                _delete_heat_stack(vim_res['vim_auth'])
-                updated_vnf = _respin_vnf()
-                plugin.add_vnf_to_monitor(updated_vnf, vim_res['vim_type'])
-                LOG.debug(_("VNF %s added to monitor thread"), updated_vnf[
-                    'id'])
-            if vnf_dict['attributes'].get('alarming_policy'):
-                _delete_heat_stack(vim_res['vim_auth'])
-                vnf_dict['attributes'].pop('alarming_policy')
-                _respin_vnf()
-
-
-@ActionPolicy.register('scaling')
-class ActionAutoscalingHeat(ActionPolicy):
-    @classmethod
-    def execute_action(cls, plugin, vnf_dict, scale):
-        vnf_id = vnf_dict['id']
-        _log_monitor_events(t_context.get_admin_context(),
-                            vnf_dict,
-                            "ActionAutoscalingHeat invoked")
-        plugin.create_vnf_scale(t_context.get_admin_context(), vnf_id, scale)
-
-
-@ActionPolicy.register('log')
-class ActionLogOnly(ActionPolicy):
-    @classmethod
-    def execute_action(cls, plugin, vnf_dict):
-        vnf_id = vnf_dict['id']
-        LOG.error(_('vnf %s dead'), vnf_id)
-        _log_monitor_events(t_context.get_admin_context(),
-                            vnf_dict,
-                            "ActionLogOnly invoked")
-
-
-@ActionPolicy.register('log_and_kill')
-class ActionLogAndKill(ActionPolicy):
-    @classmethod
-    def execute_action(cls, plugin, vnf_dict):
-        _log_monitor_events(t_context.get_admin_context(),
-                            vnf_dict,
-                            "ActionLogAndKill invoked")
-        vnf_id = vnf_dict['id']
-        if plugin._mark_vnf_dead(vnf_dict['id']):
-            if vnf_dict['attributes'].get('monitoring_policy'):
-                plugin._vnf_monitor.mark_dead(vnf_dict['id'])
-            plugin.delete_vnf(t_context.get_admin_context(), vnf_id)
-        LOG.error(_('vnf %s dead'), vnf_id)
