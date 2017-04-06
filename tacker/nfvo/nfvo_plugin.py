@@ -572,12 +572,15 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         ns['vnfd_details'] = vnfd_dict
         # Step-3
         kwargs = {'ns': ns, 'params': param_values}
-        workflow = self._vim_drivers.invoke(driver_type,
-                                         'prepare_and_create_workflow',
-                                         resource='vnf',
-                                         action='create',
-                                         auth_dict=self.get_auth_dict(context),
-                                         kwargs=kwargs)
+
+        # NOTE NoTasksException is raised if no tasks.
+        workflow = self._vim_drivers.invoke(
+            driver_type,
+            'prepare_and_create_workflow',
+            resource='vnf',
+            action='create',
+            auth_dict=self.get_auth_dict(context),
+            kwargs=kwargs)
         try:
             mistral_execution = self._vim_drivers.invoke(
                 driver_type,
@@ -664,26 +667,32 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         ns = super(NfvoPlugin, self).get_ns(context, ns_id)
         vim_res = self.vim_client.get_vim(context, ns['vim_id'])
         driver_type = vim_res['vim_type']
-        workflow = self._vim_drivers.invoke(driver_type,
-            'prepare_and_create_workflow',
-            resource='vnf',
-            action='delete',
-            auth_dict=self.get_auth_dict(context),
-            kwargs={'ns': ns})
+        workflow = None
         try:
-            mistral_execution = self._vim_drivers.invoke(
-                driver_type,
-                'execute_workflow',
-                workflow=workflow,
-                auth_dict=self.get_auth_dict(context))
-        except Exception as ex:
-            LOG.error(_('Error while executing workflow: %s'), ex)
-            self._vim_drivers.invoke(driver_type,
-                'delete_workflow',
-                workflow_id=workflow['id'],
-                auth_dict=self.get_auth_dict(context))
+            workflow = self._vim_drivers.invoke(driver_type,
+                'prepare_and_create_workflow',
+                resource='vnf',
+                action='delete',
+                auth_dict=self.get_auth_dict(context),
+                kwargs={'ns': ns})
+        except nfvo.NoTasksException:
+            LOG.warning(_("No VNF deletion task(s)."))
+        if workflow:
+            try:
+                mistral_execution = self._vim_drivers.invoke(
+                    driver_type,
+                    'execute_workflow',
+                    workflow=workflow,
+                    auth_dict=self.get_auth_dict(context))
 
-            raise ex
+            except Exception as ex:
+                LOG.error(_('Error while executing workflow: %s'), ex)
+                self._vim_drivers.invoke(driver_type,
+                    'delete_workflow',
+                    workflow_id=workflow['id'],
+                    auth_dict=self.get_auth_dict(context))
+
+                raise ex
         super(NfvoPlugin, self).delete_ns(context, ns_id)
 
         def _delete_ns_wait(ns_id, execution_id):
@@ -721,5 +730,9 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 auth_dict=self.get_auth_dict(context))
             super(NfvoPlugin, self).delete_ns_post(context, ns_id, exec_obj,
                     error_reason)
-        self.spawn_n(_delete_ns_wait, ns['id'], mistral_execution.id)
+        if workflow:
+            self.spawn_n(_delete_ns_wait, ns['id'], mistral_execution.id)
+        else:
+            super(NfvoPlugin, self).delete_ns_post(
+                context, ns_id, None, None)
         return ns['id']
