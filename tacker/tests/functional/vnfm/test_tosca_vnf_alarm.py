@@ -13,6 +13,7 @@
 #    under the License.
 import json
 import time
+import unittest
 
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
@@ -138,11 +139,13 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
         self.addCleanup(self.wait_until_vnf_delete, vnf_id,
                         constants.VNF_CIRROS_DELETE_TIMEOUT)
 
+    @unittest.skip("Related Bug 1682098")
     def test_vnf_alarm_respawn(self):
         self._test_vnf_tosca_alarm(
             'sample-tosca-alarm-respawn.yaml',
             'alarm and respawn vnf')
 
+    @unittest.skip("Related Bug 1682098")
     def test_vnf_alarm_scale(self):
         self._test_vnf_tosca_alarm(
             'sample-tosca-alarm-scale.yaml',

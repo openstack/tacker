@@ -13,6 +13,7 @@
 #    under the License.
 
 import os
+import unittest
 
 import testtools
 from toscaparser import tosca_template
@@ -79,12 +80,15 @@ class TestSamples(testtools.TestCase):
                         hot,
                         "Heat-translator failed to translate %s" % f)
 
+    @unittest.skip("Related Bug 1682098")
     def test_scale_sample(self, tosca_file=['tosca-vnfd-scale.yaml']):
         self._test_samples(tosca_file)
 
+    @unittest.skip("Related Bug 1682098")
     def test_alarm_sample(self, tosca_file=['tosca-vnfd-alarm-scale.yaml']):
         self._test_samples(tosca_file)
 
+    @unittest.skip("Related Bug 1682098")
     def test_list_samples(self,
                           files=['tosca-vnfd-scale.yaml',
                                  'tosca-vnfd-alarm-scale.yaml']):
