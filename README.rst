@@ -2,8 +2,8 @@
 Team and repository tags
 ========================
 
-.. image:: http://governance.openstack.org/badges/tacker.svg
-    :target: http://governance.openstack.org/reference/tags/index.html
+.. image:: https://governance.openstack.org/badges/tacker.svg
+    :target: https://governance.openstack.org/reference/tags/index.html
 
 .. Change things from this point on
 
@@ -30,9 +30,9 @@ Code:
 
 Tacker code is available in following repositories:
 
-* **Tacker server:** http://git.openstack.org/cgit/openstack/tacker
-* **Tacker Python client:** http://git.openstack.org/cgit/openstack/python-tackerclient
-* **Tacker Horizon UI:** http://git.openstack.org/cgit/openstack/tacker-horizon
+* **Tacker server:** https://git.openstack.org/cgit/openstack/tacker
+* **Tacker Python client:** https://git.openstack.org/cgit/openstack/python-tackerclient
+* **Tacker Horizon UI:** https://git.openstack.org/cgit/openstack/tacker-horizon
 
 Bugs:
 =====
