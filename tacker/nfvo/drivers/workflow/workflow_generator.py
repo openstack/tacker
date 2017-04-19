@@ -11,9 +11,10 @@
 #    under the License.
 
 import ast
+from six import iteritems
 import uuid
 
-from six import iteritems
+from tacker.mistral import workflow_generator
 
 
 OUTPUT = {
@@ -21,42 +22,7 @@ OUTPUT = {
 }
 
 
-class WorkflowGenerator(object):
-    def __init__(self, resource, action):
-        self.resource = resource
-        self.action = action
-        self.wf_name = self.action + '_' + self.resource
-        self.wf_identifier = 'std.' + self.wf_name + str(uuid.uuid4())
-        self.task = getattr(self, self.wf_name)
-        self.input_dict = dict()
-        self._build_basic_workflow()
-
-    def _build_basic_workflow(self):
-        self.definition = {
-            'version': '2.0',
-            self.wf_identifier: {
-                'type': 'direct',
-                'input': [self.resource]
-            }
-        }
-
-    def _get_vim_id(self):
-        pass
-
-    def _get_vnfd_id(self):
-        pass
-
-    def _get_vnf_name(self):
-        pass
-
-    def _get_attr(self):
-        pass
-
-    def _get_description(self):
-        pass
-
-    def get_tasks(self):
-        return self.definition[self.wf_identifier]['tasks']
+class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
 
     def _add_create_vnf_tasks(self, ns):
         vnfds = ns['vnfd_details']

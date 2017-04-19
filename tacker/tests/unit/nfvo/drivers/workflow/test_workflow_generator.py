@@ -13,7 +13,7 @@
 #    under the License.
 
 from tacker import context
-from tacker.nfvo.drivers.workflow import mistral
+from tacker.nfvo.drivers.workflow import workflow_generator
 from tacker.tests.unit import base
 
 
@@ -133,27 +133,40 @@ class FakeMistral(object):
         pass
 
 
-class TestMistralClient(base.TestCase):
+class FakeNFVOPlugin(object):
+
+    def __init__(self, context, client, resource, action):
+        self.context = context
+        self.client = client
+        self.wg = workflow_generator.WorkflowGenerator(resource, action)
+
+    def prepare_workflow(self, **kwargs):
+        self.wg.task(**kwargs)
+
+
+class TestWorkflowGenerator(base.TestCase):
     def setUp(self):
-        super(TestMistralClient, self).setUp()
+        super(TestWorkflowGenerator, self).setUp()
         self.mistral_client = FakeMistral()
 
     def test_prepare_workflow_create(self):
-        mc = mistral.MistralClient(context, self.mistral_client,
-                                   resource='vnf', action='create')
-        mc.prepare_workflow(ns=get_dummy_ns(), params=get_dummy_param())
-        wf_def_values = [mc.wg.definition[k] for k in mc.wg.definition]
+        fPlugin = FakeNFVOPlugin(context, self.mistral_client,
+                                 resource='vnf', action='create')
+        fPlugin.prepare_workflow(ns=get_dummy_ns(), params=get_dummy_param())
+        wf_def_values = [fPlugin.wg.definition[k] for
+            k in fPlugin.wg.definition]
         self.assertIn(get_dummy_create_workflow()['std.create_vnf_dummy'],
                       wf_def_values)
         self.assertEqual(get_dummy_create_workflow()['version'],
-                         mc.wg.definition['version'])
+                         fPlugin.wg.definition['version'])
 
     def test_prepare_workflow_delete(self):
-        mc = mistral.MistralClient(context, self.mistral_client,
-                                   resource='vnf', action='delete')
-        mc.prepare_workflow(ns=dummy_delete_ns_obj())
-        wf_def_values = [mc.wg.definition[k] for k in mc.wg.definition]
+        fPlugin = FakeNFVOPlugin(context, self.mistral_client,
+                                 resource='vnf', action='delete')
+        fPlugin.prepare_workflow(ns=dummy_delete_ns_obj())
+        wf_def_values = [fPlugin.wg.definition[k] for
+            k in fPlugin.wg.definition]
         self.assertIn(get_dummy_delete_workflow()['std.delete_vnf_dummy'],
                       wf_def_values)
         self.assertEqual(get_dummy_delete_workflow()['version'],
-                         mc.wg.definition['version'])
+                         fPlugin.wg.definition['version'])

@@ -10,18 +10,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from mistralclient.api import client as mistral_client
 
-class Workflow(object):
-    def __init__(self, wf_name, wf_type, version='2.0'):
-        self._wf_name = wf_name
-        self._wf_type = wf_type
-        self._version = '2.0'
 
-    def get_name(self):
-        return self.wf_name
+class MistralClient(object):
+    """Mistral Client class for NSD"""
 
-    def get_type(self):
-        return self.wf_type
+    def __init__(self, keystone, auth_token):
+        endpoint = keystone.session.get_endpoint(
+            service_type='workflowv2', region_name=None)
 
-    def get_version(self):
-        self._version
+        self.client = mistral_client.client(auth_token=auth_token,
+            mistral_url=endpoint)
+
+    def get_client(self):
+        return self.client
