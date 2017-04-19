@@ -136,11 +136,12 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
             try:
                 stack = heatclient.get(vnf_id)
             except Exception:
-                LOG.exception(_("VNF Instance cleanup may not have "
-                                "happened because Heat API request failed "
-                                "while waiting for the stack %(stack)s to be "
-                                "deleted"), {'stack': vnf_id})
-                break
+                LOG.warning(_("VNF Instance setup may not have "
+                              "happened because Heat API request failed "
+                              "while waiting for the stack %(stack)s to be "
+                              "created"), {'stack': vnf_id})
+                # continue to avoid temporary connection error to target
+                # VIM
             status = stack.stack_status
             LOG.debug(_('status: %s'), status)
             stack_retries = stack_retries - 1
@@ -156,13 +157,11 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                                stack=vnf_id)
             LOG.warning(_("VNF Creation failed: %(reason)s"),
                     {'reason': error_reason})
-            raise vnfm.VNFCreateWaitFailed(vnf_id=vnf_id,
-                                           reason=error_reason)
+            raise vnfm.VNFCreateWaitFailed(reason=error_reason)
 
         elif stack_retries != 0 and status != 'CREATE_COMPLETE':
             error_reason = stack.stack_status_reason
-            raise vnfm.VNFCreateWaitFailed(vnf_id=vnf_id,
-                                           reason=error_reason)
+            raise vnfm.VNFCreateWaitFailed(reason=error_reason)
 
         def _find_mgmt_ips(outputs):
             LOG.debug(_('outputs %s'), outputs)
@@ -256,11 +255,12 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
             except heatException.HTTPNotFound:
                 return
             except Exception:
-                LOG.exception(_("VNF Instance cleanup may not have "
-                                "happened because Heat API request failed "
-                                "while waiting for the stack %(stack)s to be "
-                                "deleted"), {'stack': vnf_id})
-                break
+                LOG.warning(_("VNF Instance cleanup may not have "
+                              "happened because Heat API request failed "
+                              "while waiting for the stack %(stack)s to be "
+                              "deleted"), {'stack': vnf_id})
+                # Just like create wait, ignore the exception to
+                # avoid temporary connection error.
             status = stack.stack_status
             stack_retries = stack_retries - 1
 
@@ -271,16 +271,14 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                              "not completed").format(stack=vnf_id,
                              wait=(self.STACK_RETRIES * self.STACK_RETRY_WAIT))
             LOG.warning(error_reason)
-            raise vnfm.VNFCreateWaitFailed(vnf_id=vnf_id,
-                                           reason=error_reason)
+            raise vnfm.VNFDeleteWaitFailed(reason=error_reason)
 
         if stack_retries != 0 and status != 'DELETE_COMPLETE':
             error_reason = _("vnf {vnf_id} deletion is not completed. "
                             "{stack_status}").format(vnf_id=vnf_id,
                             stack_status=status)
             LOG.warning(error_reason)
-            raise vnfm.VNFCreateWaitFailed(vnf_id=vnf_id,
-                                           reason=error_reason)
+            raise vnfm.VNFDeleteWaitFailed(reason=error_reason)
 
     @classmethod
     def _find_mgmt_ips_from_groups(cls, heat_client, instance_id, group_names):
