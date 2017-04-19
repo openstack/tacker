@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+import time
 import yaml
 
 from tacker.plugins.common import constants as evt_constants
@@ -152,3 +152,14 @@ class VimTestCreate(base.BaseTackerTest):
                                                domain_name},
                            'is_default': False}}
         return data, vim_arg
+
+    def test_re_create_delete_local_vim(self):
+        name = 'test_vim'
+        description = 'Test vim description'
+        vim_type = 'openstack'
+        ks_version = 'v3'
+        self._test_create_delete_vim('local-vim.yaml', name, description,
+                                     vim_type, ks_version)
+        time.sleep(1)
+        self._test_create_delete_vim('local-vim.yaml', name, description,
+                                     vim_type, ks_version)

@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
 import unittest
 import yaml
 
@@ -136,6 +137,15 @@ class VnfTestToscaCreate(base.BaseTackerTest):
     def test_create_delete_vnf_from_template(self):
         self._test_create_delete_vnf_tosca('sample-tosca-vnfd.yaml',
                                            'test_tosca_vnf_with_cirros_inline',
+                                           'inline')
+
+    def test_re_create_delete_vnf(self):
+        self._test_create_delete_vnf_tosca('sample-tosca-vnfd.yaml',
+                                           'test_vnf',
+                                           'inline')
+        time.sleep(1)
+        self._test_create_delete_vnf_tosca('sample-tosca-vnfd.yaml',
+                                           'test_vnf',
                                            'inline')
 
     def test_create_delete_vnf_static_ip(self):

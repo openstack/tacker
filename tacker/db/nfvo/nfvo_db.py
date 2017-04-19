@@ -62,7 +62,8 @@ class Vim(model_base.BASE,
         schema.UniqueConstraint(
             "tenant_id",
             "name",
-            name="uniq_vim0tenant_id0name"),
+            "deleted_at",
+            name="uniq_vim0tenant_id0name0deleted_at"),
     )
 
 

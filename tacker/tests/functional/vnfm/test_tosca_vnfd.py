@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
+
 from oslo_config import cfg
 import yaml
 
@@ -54,3 +56,10 @@ class VnfdTestCreate(base.BaseTackerTest):
         self._test_create_list_delete_tosca_vnfd(
             'sample-tosca-vnfd-large-template.yaml',
             'sample-tosca-vnfd-large-template')
+
+    def test_tosca_re_create_delete_vnfd(self):
+        self._test_create_list_delete_tosca_vnfd('sample-tosca-vnfd.yaml',
+                                                 'test_vnfd')
+        time.sleep(1)
+        self._test_create_list_delete_tosca_vnfd('sample-tosca-vnfd.yaml',
+                                                 'test_vnfd')
