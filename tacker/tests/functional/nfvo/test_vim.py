@@ -31,6 +31,13 @@ class VimTestCreate(base.BaseTackerTest):
         username = data['username']
         project_name = data['project_name']
         auth_url = data['auth_url']
+        if version:
+            if ('v2' == version and (not auth_url.endswith("/v2.0") or
+                                     not auth_url.endswith("/v2.0/"))):
+                auth_url += "/v2.0"
+            elif (not auth_url.endswith("/v3") or
+                  not auth_url.endswith("/v3/")):
+                auth_url += "/v3"
         domain_name = data.get('domain_name', None)
         vim_arg = {'vim': {'name': name, 'description': description,
                            'type': vim_type,
@@ -113,5 +120,5 @@ class VimTestCreate(base.BaseTackerTest):
         description = 'OpenStack VIM with keystone v2'
         vim_type = 'openstack'
         ks_version = 'v2'
-        self._test_create_delete_vim('vim-config-ks-v2.yaml', name,
+        self._test_create_delete_vim('local-vim.yaml', name,
                                      description, vim_type, ks_version)

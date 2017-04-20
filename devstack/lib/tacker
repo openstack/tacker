@@ -417,6 +417,10 @@ function tacker_register_default_vim {
     DEFAULT_VIM_NAME="VIM0"
     default_vim_id=$(tacker vim-register --is-default --description "Default VIM" --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME -c id | grep id | awk '{print $4}')
     echo "Default VIM registration done as $default_vim_id at $KEYSTONE_SERVICE_URI."
+
+    echo "Update tacker/tests/etc/samples/local-vim.yaml for functional testing"
+    functional_vim_file="$TACKER_DIR/tacker/tests/etc/samples/local-vim.yaml"
+    sed -e "s|^auth_url:.*$|auth_url: \'${KEYSTONE_SERVICE_URI}\'|" -i $functional_vim_file
 }
 
 function modify_heat_flavor_policy_rule {
