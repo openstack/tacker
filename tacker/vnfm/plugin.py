@@ -24,7 +24,6 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from toscaparser.tosca_template import ToscaTemplate
 
-from tacker._i18n import _LE
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
 from tacker.common import exceptions
@@ -263,7 +262,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 vnf_dict=vnf_dict, vnf_id=instance_id,
                 auth_attr=auth_attr)
         except vnfm.VNFCreateWaitFailed as e:
-            LOG.error(_LE("VNF Create failed for vnf_id %s"), vnf_id)
+            LOG.error("VNF Create failed for vnf_id %s", vnf_id)
             create_failed = True
             vnf_dict['status'] = constants.ERROR
             self.set_vnf_error_status_reason(context, vnf_id,

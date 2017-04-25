@@ -29,7 +29,7 @@ from neutronclient.v2_0 import client as neutron_client
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from tacker._i18n import _LW, _
+from tacker._i18n import _
 from tacker.agent.linux import utils as linux_utils
 from tacker.common import log
 from tacker.extensions import nfvo
@@ -254,7 +254,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
             linux_utils.execute(ping_cmd, check_exit_code=True)
             return True
         except RuntimeError:
-            LOG.warning(_LW("Cannot ping ip address: %s"), vim_ip)
+            LOG.warning("Cannot ping ip address: %s", vim_ip)
             return False
 
     @log.log
