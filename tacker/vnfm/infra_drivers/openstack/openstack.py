@@ -23,6 +23,7 @@ from oslo_serialization import jsonutils
 import yaml
 
 from tacker.common import log
+from tacker.common import utils
 from tacker.extensions import vnfm
 from tacker.vnfm.infra_drivers import abstract_driver
 from tacker.vnfm.infra_drivers.openstack import heat_client as hc
@@ -209,19 +210,9 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
         if not update_dict:
             return
 
-        @log.log
-        def deep_update(orig_dict, new_dict):
-            for key, value in new_dict.items():
-                if isinstance(value, dict):
-                    if key in orig_dict and isinstance(orig_dict[key], dict):
-                        deep_update(orig_dict[key], value)
-                        continue
-
-                orig_dict[key] = value
-
         LOG.debug('dict orig %(orig)s update %(update)s',
                   {'orig': config_dict, 'update': update_dict})
-        deep_update(config_dict, update_dict)
+        utils.deep_update(config_dict, update_dict)
         LOG.debug('dict new %(new)s update %(update)s',
                   {'new': config_dict, 'update': update_dict})
         new_yaml = yaml.safe_dump(config_dict)
