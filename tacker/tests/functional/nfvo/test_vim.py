@@ -19,36 +19,23 @@ from tacker.plugins.common import constants as evt_constants
 from tacker.tests.functional import base
 from tacker.tests.utils import read_file
 
+from tackerclient.common import exceptions
+
 SECRET_PASSWORD = '***'
 
 
 class VimTestCreate(base.BaseTackerTest):
+
     def _test_create_delete_vim(self, vim_file, name, description, vim_type,
                                 version=None):
-        data = yaml.safe_load(read_file(vim_file))
 
-        password = data['password']
-        username = data['username']
-        project_name = data['project_name']
-        auth_url = data['auth_url']
-        if version:
-            if ('v2' == version and (not auth_url.endswith("/v2.0") or
-                                     not auth_url.endswith("/v2.0/"))):
-                auth_url += "/v2.0"
-            elif (not auth_url.endswith("/v3") or
-                  not auth_url.endswith("/v3/")):
-                auth_url += "/v3"
-        domain_name = data.get('domain_name', None)
-        vim_arg = {'vim': {'name': name, 'description': description,
-                           'type': vim_type,
-                           'auth_url': auth_url,
-                           'auth_cred': {'username': username,
-                                         'password': password,
-                                         'user_domain_name': domain_name},
-                           'vim_project': {'name': project_name,
-                                           'project_domain_name':
-                                               domain_name},
-                           'is_default': False}}
+        data, vim_arg = self._generate_vim_data(
+            'local-vim.yaml', name, description, vim_type, version)
+        # updated args
+        new_name = "fake %s" % name
+        new_desc = "fake %s" % description
+        update_vim_arg = {'vim': {'name': new_name,
+                                  'description': new_desc}}
 
         # Register vim
         vim_res = self.client.create_vim(vim_arg)
@@ -60,6 +47,29 @@ class VimTestCreate(base.BaseTackerTest):
         # Read vim
         vim_show_res = self.client.show_vim(vim_id)
         self.verify_vim(vim_show_res['vim'], data, name, description, version)
+
+        # Update vim
+        vim_update = self.client.update_vim(vim_id, update_vim_arg)
+        vim_obj = vim_update['vim']
+        self.verify_vim(vim_obj, data, new_name, new_desc, version)
+        self.verify_vim_events(vim_id, evt_constants.RES_EVT_UPDATE)
+
+        # With the updated name above, create another VIM with the
+        # same name and check for Duplicate name exception.
+        vim_arg['vim']['name'] = update_vim_arg['vim']['name']
+        msg = "vim already exist with given ['tenant_id', 'name']"
+        try:
+            self.client.create_vim(vim_arg)
+        except Exception as err:
+            self.assertEqual(err.message, msg)
+
+        # Since there already exists a DEFAULT VM, Verify that a update
+        # to is_default to TRUE for another VIM raises an exception.
+        update_arg = {'vim': {'is_default': True}}
+        msg = "Default VIM already exists."
+        self.assertRaisesRegexp(exceptions.InternalServerError, msg,
+                                self.client.update_vim,
+                                vim_id, update_arg)
 
         # Delete vim
         try:
@@ -115,10 +125,30 @@ class VimTestCreate(base.BaseTackerTest):
         self._test_create_delete_vim('local-vim.yaml', name, description,
                                      vim_type, ks_version)
 
-    def test_create_delete_local_vim_keystone_v2(self):
-        name = 'Openstack'
-        description = 'OpenStack VIM with keystone v2'
-        vim_type = 'openstack'
-        ks_version = 'v2'
-        self._test_create_delete_vim('local-vim.yaml', name,
-                                     description, vim_type, ks_version)
+    def _generate_vim_data(self, vim_file, name, description, vim_type,
+                           version=None):
+
+        data = yaml.safe_load(read_file(vim_file))
+        password = data['password']
+        username = data['username']
+        project_name = data['project_name']
+        auth_url = data['auth_url']
+        if version:
+            if ('v2' == version and (not auth_url.endswith("/v2.0") or
+                                     not auth_url.endswith("/v2.0/"))):
+                auth_url += "/v2.0"
+            elif (not auth_url.endswith("/v3") or
+                  not auth_url.endswith("/v3/")):
+                auth_url += "/v3"
+        domain_name = data.get('domain_name', None)
+        vim_arg = {'vim': {'name': name, 'description': description,
+                           'type': vim_type,
+                           'auth_url': auth_url,
+                           'auth_cred': {'username': username,
+                                         'password': password,
+                                         'user_domain_name': domain_name},
+                           'vim_project': {'name': project_name,
+                                           'project_domain_name':
+                                               domain_name},
+                           'is_default': False}}
+        return data, vim_arg

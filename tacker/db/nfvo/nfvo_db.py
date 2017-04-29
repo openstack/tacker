@@ -36,7 +36,6 @@ from tacker.extensions import nfvo
 from tacker import manager
 from tacker.plugins.common import constants
 
-
 VIM_ATTRIBUTES = ('id', 'type', 'tenant_id', 'name', 'description',
                   'placement_attr', 'shared', 'is_default',
                   'created_at', 'updated_at', 'status')
@@ -186,18 +185,24 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
         with context.session.begin(subtransactions=True):
             vim_cred = vim['auth_cred']
             vim_project = vim['vim_project']
-            is_default = vim.get('is_default')
             vim_db = self._get_resource(context, Vim, vim_id)
             try:
-                if is_default:
-                    vim_db.update({'is_default': is_default})
+                if 'name' in vim:
+                    vim_db.update({'name': vim.get('name')})
+                if 'description' in vim:
+                    vim_db.update({'description': vim.get('description')})
+                if 'is_default' in vim:
+                    vim_db.update({'is_default': vim.get('is_default')})
+                if 'placement_attr' in vim:
+                    vim_db.update(
+                        {'placement_attr': vim.get('placement_attr')})
                 vim_auth_db = (self._model_query(context, VimAuth).filter(
                     VimAuth.vim_id == vim_id).with_lockmode('update').one())
             except orm_exc.NoResultFound:
-                    raise nfvo.VimNotFoundException(vim_id=vim_id)
+                raise nfvo.VimNotFoundException(vim_id=vim_id)
             vim_auth_db.update({'auth_cred': vim_cred, 'password':
-                               vim_cred.pop('password'), 'vim_project':
-                               vim_project})
+                                vim_cred.pop('password'), 'vim_project':
+                                vim_project})
             vim_db.update({'updated_at': timeutils.utcnow()})
             self._cos_db_plg.create_event(
                 context, res_id=vim_db['id'],
@@ -214,7 +219,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                 vim_db = (self._model_query(context, Vim).filter(
                     Vim.id == vim_id).with_lockmode('update').one())
             except orm_exc.NoResultFound:
-                    raise nfvo.VimNotFoundException(vim_id=vim_id)
+                raise nfvo.VimNotFoundException(vim_id=vim_id)
             vim_db.update({'status': status,
                            'updated_at': timeutils.utcnow()})
         return self._make_vim_dict(vim_db)

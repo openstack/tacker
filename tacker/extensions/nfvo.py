@@ -773,6 +773,10 @@ class NFVOPluginBase(service_base.NFVPluginBase):
         pass
 
     @abc.abstractmethod
+    def update_vim(self, context, vim_id, vim):
+        pass
+
+    @abc.abstractmethod
     def delete_vim(self, context, vim_id):
         pass
 
