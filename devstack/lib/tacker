@@ -153,7 +153,7 @@ function start_tacker_api {
         service_protocol="http"
     fi
     # Start the Tacker service
-    run_process tacker "python $TACKER_BIN_DIR/tacker-server $cfg_file_options"
+    run_process tacker "$TACKER_BIN_DIR/tacker-server $cfg_file_options"
     echo "Waiting for Tacker to start..."
     if is_ssl_enabled_service "tacker"; then
         ssl_ca="--ca-certificate=${SSL_BUNDLE_FILE}"
