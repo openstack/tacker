@@ -303,7 +303,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
     @log.log
     def scale(self, context, plugin, auth_attr, policy, region_name):
         heatclient = hc.HeatClient(auth_attr, region_name)
-        policy_rsc = get_scaling_policy_name(policy_name=policy['id'],
+        policy_rsc = get_scaling_policy_name(policy_name=policy['name'],
                                              action=policy['action'])
         events = heatclient.resource_event_list(policy['instance_id'],
                                                 policy_rsc, limit=1,
@@ -325,8 +325,8 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
             try:
                 time.sleep(self.STACK_RETRY_WAIT)
                 stack_id = policy['instance_id']
-                policy_name = get_scaling_policy_name(policy_name=policy['id'],
-                                                      action=policy['action'])
+                policy_name = get_scaling_policy_name(
+                    policy_name=policy['name'], action=policy['action'])
                 events = heatclient.resource_event_list(stack_id, policy_name,
                                                         limit=1,
                                                         sort_dir='desc',

@@ -456,6 +456,14 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                                       action_value="SP1-out")
 
     @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
+    def test_create_vnf_trigger_multi_actions(self, mock_get_vnf):
+        dummy_vnf = self._get_dummy_active_vnf(
+            utils.vnfd_alarm_multi_actions_tosca_template)
+        mock_get_vnf.return_value = dummy_vnf
+        self._test_create_vnf_trigger(policy_name="mon_policy_multi_actions",
+                                      action_value="respawn&log")
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
     def test_get_vnf_policies(self, mock_get_vnf):
         vnf_id = "6261579e-d6f3-49ad-8bc3-a9cb974778fe"
         dummy_vnf = self._get_dummy_active_vnf(

@@ -35,7 +35,7 @@ resources:
       meter_name: cpu_util
       threshold: 50
       period: 60
-      statistic: average
+      statistic: avg
       evaluation_periods: 1
       comparison_operator: gt
       'matching_metadata': {'metadata.user_metadata.vnf': 'VDU1'}

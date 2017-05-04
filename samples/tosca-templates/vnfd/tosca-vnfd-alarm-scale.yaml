@@ -64,13 +64,13 @@ topology_template:
   policies:
     - SP1:
         type: tosca.policies.tacker.Scaling
+        targets: [VDU1,VDU2]
         properties:
           increment: 1
           cooldown: 120
           min_instances: 1
           max_instances: 3
           default_instances: 2
-          targets: [VDU1,VDU2]
 
     - vdu_cpu_usage_monitoring_policy:
         type: tosca.policies.tacker.Alarming
@@ -79,29 +79,28 @@ topology_template:
                 event_type:
                     type: tosca.events.resource.utilization
                     implementation: ceilometer
-                metrics: cpu_util
+                meter_name: cpu_util
                 condition:
                     threshold: 50
                     constraint: utilization greater_than 50%
                     period: 600
                     evaluations: 1
-                    method: avg
+                    method: average
                     comparison_operator: gt
                 metadata: SG1
-                actions: [SP1]
+                action: [SP1]
 
             vdu_lcpu_usage_scaling_in:
-                targets: [VDU1, VDU2]
                 event_type:
                     type: tosca.events.resource.utilization
                     implementation: ceilometer
-                metrics: cpu_util
+                meter_name: cpu_util
                 condition:
                     threshold: 10
                     constraint: utilization less_than 10%
                     period: 600
                     evaluations: 1
-                    method: avg
+                    method: average
                     comparison_operator: lt
                 metadata: SG1
-                actions: [SP1]
+                action: [SP1]

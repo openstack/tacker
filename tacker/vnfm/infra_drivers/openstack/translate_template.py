@@ -10,8 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import copy
-
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
@@ -25,7 +23,6 @@ from tacker.extensions import common_services as cs
 from tacker.extensions import vnfm
 from tacker.tosca import utils as toscautils
 
-from collections import OrderedDict
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -49,10 +46,6 @@ ALARMING_POLICY = 'tosca.policies.tacker.Alarming'
 SCALING_POLICY = 'tosca.policies.tacker.Scaling'
 
 
-def get_scaling_policy_name(action, policy_name):
-    return '%s_scale_%s' % (policy_name, action)
-
-
 class TOSCAToHOT(object):
     """Convert TOSCA template to HOT template."""
 
@@ -64,6 +57,7 @@ class TOSCAToHOT(object):
         self.unsupported_props = {}
         self.heat_template_yaml = None
         self.monitoring_dict = None
+        self.nested_resources = dict()
         self.fields = None
         self.STACK_FLAVOR_EXTRA = cfg.CONF.openstack_vim.flavor_extra_specs
 
@@ -77,13 +71,10 @@ class TOSCAToHOT(object):
         LOG.debug('vnfd_dict %s', vnfd_dict)
         self._get_unsupported_resource_props(self.heatclient)
 
-        is_tosca_format = False
         self._generate_hot_from_tosca(vnfd_dict, dev_attrs)
-        is_tosca_format = True
-
         self.fields['template'] = self.heat_template_yaml
-        if is_tosca_format:
-            self._handle_policies(vnfd_dict)
+        if not self.vnf['attributes'].get('heat_template'):
+            self.vnf['attributes']['heat_template'] = self.fields['template']
         if self.monitoring_dict:
             self.vnf['attributes']['monitoring_policy'] = jsonutils.dumps(
                 self.monitoring_dict)
@@ -121,37 +112,6 @@ class TOSCAToHOT(object):
         self.attributes = attributes
         self.fields = fields
         return dev_attrs
-
-    @log.log
-    def _handle_policies(self, vnfd_dict):
-
-        vnf = self.vnf
-        (is_scaling_needed, scaling_group_names,
-         main_dict) = self._generate_hot_scaling(
-             vnfd_dict['topology_template'], 'scaling.yaml')
-        (is_enabled_alarm, alarm_resource, heat_tpl_yaml) =\
-            self._generate_hot_alarm_resource(vnfd_dict['topology_template'])
-        if is_enabled_alarm and not is_scaling_needed:
-            self.fields['template'] = heat_tpl_yaml
-
-        if is_scaling_needed:
-            if is_enabled_alarm:
-                main_dict['resources'].update(alarm_resource)
-            main_yaml = yaml.safe_dump(main_dict)
-            self.fields['template'] = main_yaml
-            self.fields['files'] = {'scaling.yaml': self.heat_template_yaml}
-            vnf['attributes']['heat_template'] = main_yaml
-            # TODO(kanagaraj-manickam) when multiple groups are
-            # supported, make this scaling attribute as
-            # scaling name vs scaling template map and remove
-            # scaling_group_names
-            vnf['attributes']['scaling.yaml'] = self.heat_template_yaml
-            vnf['attributes']['scaling_group_names'] = jsonutils.dumps(
-                scaling_group_names)
-
-        elif not vnf['attributes'].get('heat_template'):
-            vnf['attributes']['heat_template'] = self.fields['template']
-        self.vnf = vnf
 
     @log.log
     def _update_params(self, original, paramvalues, match=False):
@@ -305,130 +265,54 @@ class TOSCAToHOT(object):
             raise vnfm.ToscaParserFailed(error_msg_details=str(e))
 
         metadata = toscautils.get_vdu_metadata(tosca)
+        alarm_resources =\
+            toscautils.pre_process_alarm_resources(self.vnf, tosca, metadata)
         monitoring_dict = toscautils.get_vdu_monitoring(tosca)
         mgmt_ports = toscautils.get_mgmt_ports(tosca)
+        nested_resource_name = toscautils.get_nested_resources_name(tosca)
         res_tpl = toscautils.get_resources_dict(tosca,
                                                 self.STACK_FLAVOR_EXTRA)
         toscautils.post_process_template(tosca)
+        scaling_policy_names = toscautils.get_scaling_policy(tosca)
         try:
             translator = tosca_translator.TOSCATranslator(tosca,
                                                           parsed_params)
             heat_template_yaml = translator.translate()
+            if nested_resource_name:
+                sub_heat_template_yaml =\
+                    translator.translate_to_yaml_files_dict(
+                        nested_resource_name, True)
+                nested_resource_yaml =\
+                    sub_heat_template_yaml[nested_resource_name]
+                self.nested_resources[nested_resource_name] =\
+                    nested_resource_yaml
+
         except Exception as e:
             LOG.debug("heat-translator error: %s", str(e))
             raise vnfm.HeatTranslatorFailed(error_msg_details=str(e))
+
+        if self.nested_resources:
+            nested_tpl = toscautils.update_nested_scaling_resources(
+                self.nested_resources, mgmt_ports, metadata,
+                res_tpl, self.unsupported_props)
+            self.fields['files'] = nested_tpl
+            self.vnf['attributes'][nested_resource_name] =\
+                nested_tpl[nested_resource_name]
+            mgmt_ports.clear()
+
+        if scaling_policy_names:
+            scaling_group_dict = toscautils.get_scaling_group_dict(
+                heat_template_yaml, scaling_policy_names)
+            self.vnf['attributes']['scaling_group_names'] =\
+                jsonutils.dumps(scaling_group_dict)
+
         heat_template_yaml = toscautils.post_process_heat_template(
-            heat_template_yaml, mgmt_ports, metadata,
+            heat_template_yaml, mgmt_ports, metadata, alarm_resources,
             res_tpl, self.unsupported_props)
 
         self.heat_template_yaml = heat_template_yaml
         self.monitoring_dict = monitoring_dict
         self.metadata = metadata
-
-    @log.log
-    def _generate_hot_scaling(self, vnfd_dict,
-                              scale_resource_type="OS::Nova::Server"):
-        # Initialize the template
-        template_dict = yaml.safe_load(HEAT_TEMPLATE_BASE)
-        template_dict['description'] = 'Tacker scaling template'
-
-        parameters = {}
-        template_dict['parameters'] = parameters
-
-        # Add scaling related resource defs
-        resources = {}
-        scaling_group_names = {}
-        #   policies:
-        #     - SP1:
-        #         type: tosca.policies.tacker.Scaling
-        if 'policies' in vnfd_dict:
-            for policy_dict in vnfd_dict['policies']:
-                name, policy = list(policy_dict.items())[0]
-                if policy['type'] == SCALING_POLICY:
-                    resources, scaling_group_names =\
-                        self._convert_to_heat_scaling_policy(
-                            policy['properties'], scale_resource_type, name)
-                    # TODO(kanagaraj-manickam) only one policy is supported
-                    # for all vdus. remove this break, once this limitation
-                    # is addressed.
-                    break
-
-        template_dict['resources'] = resources
-
-        # First return value helps to check if scaling resources exist
-        return ((len(template_dict['resources']) > 0), scaling_group_names,
-                template_dict)
-
-    @log.log
-    def _convert_to_heat_scaling_group(self, policy_prp, scale_resource_type,
-                                       name):
-        group_hot = {'type': 'OS::Heat::AutoScalingGroup'}
-        properties = {}
-        properties['min_size'] = policy_prp['min_instances']
-        properties['max_size'] = policy_prp['max_instances']
-        properties['desired_capacity'] = policy_prp['default_instances']
-        properties['cooldown'] = policy_prp['cooldown']
-        properties['resource'] = {}
-        # TODO(kanagaraj-manickam) all VDU members are considered as 1
-        # group now and make it to form the groups based on the VDU
-        # list mentioned in the policy's targets
-        # scale_resource_type is custome type mapped the HOT template
-        # generated for all VDUs in the tosca template
-        properties['resource']['type'] = scale_resource_type
-        # TODO(kanagraj-manickam) add custom type params here, to
-        # support parameterized template
-        group_hot['properties'] = properties
-
-        return group_hot
-
-    # TODO(kanagaraj-manickam) now only one group is supported, so name
-    # is hard-coded with G1
-    @log.log
-    def _get_scale_group_name(self, targets):
-        return 'G1'
-
-    # tosca policies
-    #
-    # properties:
-    #   adjust_by: 1
-    #   cooldown: 120
-    #   targets: [G1]
-    @log.log
-    def _convert_to_heat_scaling_policy(self, policy_prp, scale_resource_type,
-                                        name):
-        # Add scaling related resource defs
-        resources = {}
-        scaling_group_names = {}
-
-        # Form the group
-        scale_grp = self._get_scale_group_name(policy_prp['targets'])
-        scaling_group_names[name] = scale_grp
-        resources[scale_grp] = self._convert_to_heat_scaling_group(
-            policy_prp, scale_resource_type, scale_grp)
-
-        grp_id = {'get_resource': scale_grp}
-
-        policy_hot = {'type': 'OS::Heat::ScalingPolicy'}
-        properties = {}
-        properties['adjustment_type'] = 'change_in_capacity'
-        properties['cooldown'] = policy_prp['cooldown']
-        properties['scaling_adjustment'] = policy_prp['increment']
-        properties['auto_scaling_group_id'] = grp_id
-        policy_hot['properties'] = properties
-
-        # Add scale_out policy
-        policy_rsc_name = get_scaling_policy_name(action='out',
-                                                  policy_name=name)
-        resources[policy_rsc_name] = policy_hot
-
-        # Add scale_in policy
-        in_value = '-%d' % int(policy_prp['increment'])
-        policy_hot_in = copy.deepcopy(policy_hot)
-        policy_hot_in['properties']['scaling_adjustment'] = in_value
-        policy_rsc_name = get_scaling_policy_name(action='in',
-                                                  policy_name=name)
-        resources[policy_rsc_name] = policy_hot_in
-        return resources, scaling_group_names
 
     @log.log
     def represent_odict(self, dump, tag, mapping, flow_style=None):
@@ -455,74 +339,3 @@ class TOSCAToHOT(object):
             else:
                 node.flow_style = best_style
         return node
-
-    @log.log
-    def _generate_hot_alarm_resource(self, topology_tpl_dict):
-        alarm_resource = dict()
-        heat_tpl = self.heat_template_yaml
-        heat_dict = yamlparser.simple_ordered_parse(heat_tpl)
-        is_enabled_alarm = False
-
-        if 'policies' in topology_tpl_dict:
-            for policy_dict in topology_tpl_dict['policies']:
-                name, policy_tpl_dict = list(policy_dict.items())[0]
-                # need to parse triggers here: scaling in/out, respawn,...
-                if policy_tpl_dict['type'] == \
-                        'tosca.policies.tacker.Alarming':
-                    is_enabled_alarm = True
-                    triggers = policy_tpl_dict['triggers']
-                    for trigger_name, trigger_dict in triggers.items():
-                        alarm_resource[trigger_name] =\
-                            self._convert_to_heat_monitoring_resource({
-                                trigger_name: trigger_dict}, self.vnf)
-            heat_dict['resources'].update(alarm_resource)
-
-        yaml.SafeDumper.add_representer(OrderedDict,
-        lambda dumper, value: self.represent_odict(dumper,
-                                              u'tag:yaml.org,2002:map', value))
-        heat_tpl_yaml = yaml.safe_dump(heat_dict)
-        return (is_enabled_alarm,
-                alarm_resource,
-                heat_tpl_yaml
-                )
-
-    def _convert_to_heat_monitoring_resource(self, mon_policy, vnf):
-        mon_policy_hot = {'type': 'OS::Aodh::Alarm'}
-        mon_policy_hot['properties'] = \
-            self._convert_to_heat_monitoring_prop(mon_policy, vnf)
-        return mon_policy_hot
-
-    def _convert_to_heat_monitoring_prop(self, mon_policy, vnf):
-        metadata = self.metadata
-        trigger_name, trigger_dict = list(mon_policy.items())[0]
-        tpl_condition = trigger_dict['condition']
-        properties = dict()
-        if not (trigger_dict.get('metadata') and metadata):
-            raise vnfm.MetadataNotMatched()
-        matching_metadata_dict = dict()
-        properties['meter_name'] = trigger_dict['metrics']
-        is_matched = False
-        for vdu_name, metadata_dict in metadata['vdus'].items():
-            if trigger_dict['metadata'] ==\
-                    metadata_dict['metering.vnf']:
-                is_matched = True
-        if not is_matched:
-            raise vnfm.MetadataNotMatched()
-        matching_metadata_dict['metadata.user_metadata.vnf'] =\
-            trigger_dict['metadata']
-        properties['matching_metadata'] = \
-            matching_metadata_dict
-        properties['comparison_operator'] = \
-            tpl_condition['comparison_operator']
-        properties['period'] = tpl_condition['period']
-        properties['evaluation_periods'] = tpl_condition['evaluations']
-        properties['statistic'] = tpl_condition['method']
-        properties['description'] = tpl_condition['constraint']
-        properties['threshold'] = tpl_condition['threshold']
-        # alarm url process here
-        alarm_url = vnf['attributes'].get(trigger_name)
-        if alarm_url:
-            alarm_url = str(alarm_url)
-            LOG.debug('Alarm url in heat %s', alarm_url)
-            properties['alarm_actions'] = [alarm_url]
-        return properties
