@@ -86,7 +86,7 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
         for vdu, vdu_dict in vdus_config_dict.items():
             config = vdu_dict.get('config', {})
             for key, conf_value in config.items():
-                KNOWN_SERVICES = ('firewall', )
+                KNOWN_SERVICES = ('firewall', 'network')
                 if key not in KNOWN_SERVICES:
                     continue
                 mgmt_ip_address = mgmt_url.get(vdu, '')

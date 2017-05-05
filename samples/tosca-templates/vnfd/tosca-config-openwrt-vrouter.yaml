@@ -1,0 +1,46 @@
+vdus:
+  VDU1:
+    config:
+      network: |
+        package network
+
+        config interface 'loopback'
+            option ifname 'lo'
+            option proto 'static'
+            option ipaddr '127.0.0.1'
+            option netmask '255.0.0.0'
+
+        config interface 'mgmt_net'
+            option ifname 'eth0'
+            option proto 'dhcp'
+
+        config interface 'net1'
+            option ifname 'eth1'
+            option proto 'dhcp'
+
+        config interface 'net2'
+            option ifname 'eth2'
+            option proto 'dhcp'
+
+      firewall: |
+        package firewall
+
+        config defaults
+            option syn_flood '1'
+            option input 'ACCEPT'
+            option output 'ACCEPT'
+            option forward 'ACCEPT'
+
+        config zone
+            option name 'mgmt_net'
+            option network 'mgmt_net'
+            option input 'ACCEPT'
+            option output 'ACCEPT'
+            option forward 'REJECT'
+
+        config zone
+            option name 'lan'
+            list network 'net1 net2'
+            option input 'ACCEPT'
+            option output 'ACCEPT'
+            option forward 'ACCEPT'
