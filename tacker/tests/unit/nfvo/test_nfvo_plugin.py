@@ -14,7 +14,6 @@
 #    under the License.
 
 import codecs
-import datetime
 import mock
 import os
 import uuid
@@ -71,29 +70,6 @@ class FakeDriverManager(mock.Mock):
               'create' == kwargs['action'] and
               utils.DUMMY_NS_2_NAME == kwargs['kwargs']['ns']['ns']['name']):
             raise nfvo.NoTasksException()
-
-
-def get_fake_nsd():
-    create_time = datetime.datetime(2017, 1, 19, 9, 2, 11)
-    return {'description': u'',
-            'tenant_id': u'a81900a92bda40588c52699e1873a92f',
-            'created_at': create_time, 'updated_at': None,
-            'vnfds': {u'tosca.nodes.nfv.VNF1': u'vnf1',
-                      u'tosca.nodes.nfv.VNF2': u'vnf2'},
-            'attributes': {u'nsd': u'imports: [tinku1, tinku2]\ntopology_'
-            'template:\n  inputs:\n    vl1_name: {default: net_mgmt, '
-            'description: name of VL1 virtuallink, type: string}\n    '
-            'vl2_name: {default: net0, description: name of VL2 virtuallink, '
-            'type: string}\n  node_templates:\n    VL1:\n      properties:\n'
-            '        network_name: {get_input: vl1_name}\n        vendor: '
-            'tacker\n      type: tosca.nodes.nfv.VL\n    VL2:\n      '
-            'properties:\n        network_name: {get_input: vl2_name}\n    '
-            '    vendor: tacker\n      type: tosca.nodes.nfv.VL\n    VNF1:\n'
-            '      requirements:\n      - {virtualLink1: VL1}\n      - {'
-            'virtualLink2: VL2}\n      type: tosca.nodes.nfv.VNF1\n    VNF2: '
-            '{type: tosca.nodes.nfv.VNF2}\ntosca_definitions_version: tosca_'
-            'simple_profile_for_nfv_1_0_0\n'},
-            'id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e', 'name': u'nsd'}
 
 
 def get_by_name():
@@ -609,7 +585,14 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
             result = self.nfvo_plugin.create_nsd(self.context, nsd_obj)
             self.assertIsNotNone(result)
-            self.assertEqual(result['name'], 'dummy_NSD')
+            self.assertEqual('dummy_NSD', result['name'])
+            self.assertIn('id', result)
+            self.assertEqual('dummy nsd description', result['description'])
+            self.assertEqual('8819a1542a5948b68f94d4be0fd50496',
+                             result['tenant_id'])
+            self.assertIn('attributes', result)
+            self.assertIn('created_at', result)
+            self.assertIn('updated_at', result)
 
     @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
     @mock.patch.object(vim_client.VimClient, 'get_vim')
