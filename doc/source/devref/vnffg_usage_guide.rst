@@ -161,7 +161,7 @@ VNFFG command with parameter file:
   **--param-file cust-site-x-param.yaml**
 
 
-See `VNFFGD template samples with paramter support <https://github.com/
+See `VNFFGD template samples with parameter support <https://github.com/
 openstack/tacker/tree/master/samples/tosca-templates/vnffgd>`_.
 
 Viewing a VNFFG

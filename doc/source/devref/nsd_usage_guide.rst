@@ -102,9 +102,9 @@ VNF1 sample template for nsd named vnfd1.yaml:
            type: tosca.nodes.nfv.VL
            required: true
      capabilities:
-       forwader1:
+       forwarder1:
          type: tosca.capabilities.nfv.Forwarder
-       forwader2:
+       forwarder2:
          type: tosca.capabilities.nfv.Forwarder
 
  topology_template:
