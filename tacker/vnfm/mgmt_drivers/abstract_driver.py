@@ -16,11 +16,9 @@
 
 import abc
 
-from oslo_serialization import jsonutils
 import six
 
 from tacker.api import extensions
-from tacker.vnfm import constants
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -81,20 +79,3 @@ class DeviceMGMTAbstractDriver(extensions.PluginInterface):
     @abc.abstractmethod
     def mgmt_call(self, plugin, context, vnf, kwargs):
         pass
-
-
-class DeviceMGMTByNetwork(DeviceMGMTAbstractDriver):
-    def mgmt_url(self, plugin, context, vnf):
-        mgmt_entries = [sc_entry for sc_entry in vnf.service_context
-                        if (sc_entry.role == constants.ROLE_MGMT and
-                            sc_entry.port_id)]
-        if not mgmt_entries:
-            return
-        port = plugin._core_plugin.get_port(context, mgmt_entries[0].port_id)
-        if not port:
-            return
-        mgmt_url = port['fixed_ips'][0]     # subnet_id and ip_address
-        mgmt_url['network_id'] = port['network_id']
-        mgmt_url['port_id'] = port['id']
-        mgmt_url['mac_address'] = port['mac_address']
-        return jsonutils.dumps(mgmt_url)
