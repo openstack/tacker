@@ -1,36 +1,42 @@
 tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
-description: example template
+description: Sample VNFFG parameterized template
 
 topology_template:
-  description: Example VNFFG template
+  description: Sample VNFFG parameterized template
 
   inputs:
     net_src_port_id:
         type: string
         description: Port UUID of source VM.
 
+    dst_port_range:
+        type: string
+        description: Destination port range
+
+    ip_dst_pre:
+        type: string
+        description: Cidr format of destination ip.
+
   node_templates:
 
     Forwarding_path1:
       type: tosca.nodes.nfv.FP.Tacker
-      description: creates path (CP11->CP12->CP32)
+      description: creates path (CP12->CP22)
       properties:
         id: 51
         policy:
           type: ACL
           criteria:
             - network_src_port_id: { get_input: net_src_port_id }
-            - destination_port_range: 80-1024
+            - destination_port_range: { get_input: dst_port_range }
             - ip_proto: 6
-            - ip_dst_prefix: 192.168.1.2/24
+            - ip_dst_prefix: { get_input: ip_dst_pre }
         path:
-          - forwarder: VNF1
-            capability: CP11
-          - forwarder: VNF1
+          - forwarder: VNFD1
             capability: CP12
-          - forwarder: VNF3
-            capability: CP32
+          - forwarder: VNFD2
+            capability: CP22
 
   groups:
     VNFFG1:
@@ -40,7 +46,7 @@ topology_template:
         vendor: tacker
         version: 1.0
         number_of_endpoints: 5
-        dependent_virtual_link: [VL1,VL2,VL3]
-        connection_point: [CP11,CP12,CP32]
-        constituent_vnfs: [VNF1,VNF3]
+        dependent_virtual_link: [VL12,VL22]
+        connection_point: [CP12,CP22]
+        constituent_vnfs: [VNFD1,VNFD2]
       members: [Forwarding_path1]

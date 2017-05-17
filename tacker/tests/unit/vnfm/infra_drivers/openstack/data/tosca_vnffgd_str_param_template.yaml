@@ -6,9 +6,9 @@ topology_template:
   description: Example VNFFG template
 
   inputs:
-    net_src_port_id:
-        type: string
-        description: Port UUID of source VM.
+    net_name:
+      type: string
+      description: Name of the network
 
   node_templates:
 
@@ -20,7 +20,7 @@ topology_template:
         policy:
           type: ACL
           criteria:
-            - network_src_port_id: { get_input: net_src_port_id }
+            - network_name: { get_input: net_name }
             - destination_port_range: 80-1024
             - ip_proto: 6
             - ip_dst_prefix: 192.168.1.2/24

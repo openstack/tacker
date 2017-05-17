@@ -1,0 +1,5 @@
+{
+ 'net_src_port_id': '640dfd77-c92b-45a3-b8fc-22712de480e1',
+ dst_port_range: 80-1024,
+ ip_dst_pre: 192.168.1.2/24
+}
