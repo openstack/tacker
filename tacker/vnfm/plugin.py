@@ -446,7 +446,9 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                                                  vnf_dict['id'],
                                                  six.text_type(e))
                 self.mgmt_update_post(context, vnf_dict)
-                self._update_vnf_post(context, vnf_id, constants.ERROR)
+                self._update_vnf_post(context, vnf_id,
+                                      constants.ERROR,
+                                      vnf_dict)
 
         self.spawn_n(self._update_vnf_wait, context, vnf_dict, vim_auth,
                      driver_name)

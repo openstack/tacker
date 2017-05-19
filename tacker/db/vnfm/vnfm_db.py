@@ -518,13 +518,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return updated_vnf_dict
 
     def _update_vnf_post(self, context, vnf_id, new_status,
-                         new_vnf_dict=None):
+                         new_vnf_dict):
+        updated_time_stamp = timeutils.utcnow()
         with context.session.begin(subtransactions=True):
             (self._model_query(context, VNF).
              filter(VNF.id == vnf_id).
              filter(VNF.status == constants.PENDING_UPDATE).
              update({'status': new_status,
-                     'updated_at': timeutils.utcnow()}))
+                     'updated_at': updated_time_stamp}))
 
             dev_attrs = new_vnf_dict.get('attributes', {})
             (context.session.query(VNFAttribute).
@@ -539,9 +540,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         self._cos_db_plg.create_event(
             context, res_id=vnf_id,
             res_type=constants.RES_TYPE_VNF,
-            res_state=new_vnf_dict['status'],
+            res_state=new_status,
             evt_type=constants.RES_EVT_UPDATE,
-            tstamp=new_vnf_dict[constants.RES_EVT_UPDATED_FLD])
+            tstamp=updated_time_stamp)
 
     def _delete_vnf_pre(self, context, vnf_id):
         with context.session.begin(subtransactions=True):
@@ -613,7 +614,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         # start actual update of hosting vnf
         # waiting for completion of update should be done backgroundly
         # by another thread if it takes a while
-        self._update_vnf_post(context, vnf_id, constants.ACTIVE)
+        self._update_vnf_post(context, vnf_id,
+                              constants.ACTIVE,
+                              vnf_dict)
         return vnf_dict
 
     # reference implementation. needs to be overrided by subclass
