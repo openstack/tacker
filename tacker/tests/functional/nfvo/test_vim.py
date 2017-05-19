@@ -67,9 +67,9 @@ class VimTestCreate(base.BaseTackerTest):
         # to is_default to TRUE for another VIM raises an exception.
         update_arg = {'vim': {'is_default': True}}
         msg = "Default VIM already exists."
-        self.assertRaisesRegexp(exceptions.InternalServerError, msg,
-                                self.client.update_vim,
-                                vim_id, update_arg)
+        self.assertRaisesRegex(exceptions.InternalServerError, msg,
+                               self.client.update_vim,
+                               vim_id, update_arg)
 
         # Delete vim
         try:
