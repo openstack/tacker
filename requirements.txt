@@ -5,8 +5,7 @@ pbr!=2.1.0,>=2.0.0 # Apache-2.0
 
 Paste # MIT
 PasteDeploy>=1.5.0 # MIT
-Routes!=2.0,!=2.1,!=2.3.0,>=1.12.3;python_version=='2.7' # MIT
-Routes!=2.0,!=2.3.0,>=1.12.3;python_version!='2.7' # MIT
+Routes>=2.3.1 # MIT
 anyjson>=0.3.3 # BSD
 Babel!=2.4.0,>=2.3.4 # BSD
 eventlet!=0.18.3,<0.21.0,>=0.18.2 # MIT
