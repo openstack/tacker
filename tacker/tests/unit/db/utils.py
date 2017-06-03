@@ -235,7 +235,6 @@ def get_dummy_nsd_obj():
     return {'nsd': {'description': 'dummy nsd description',
                     'name': 'dummy_NSD',
                     'tenant_id': u'8819a1542a5948b68f94d4be0fd50496',
-                    'template': {},
                     'attributes': {u'nsd': nsd_tosca_template}}}
 
 
