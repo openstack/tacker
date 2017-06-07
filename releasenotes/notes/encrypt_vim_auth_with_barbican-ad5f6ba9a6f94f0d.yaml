@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Introduce barbican to save the fernet key of vim auth. Need to configure
+    **[vim_keys] use_barbican = True** to enable this feature.
+  - |
+    Vim's default **shared** property is changed to **False**. Vim can only be
+    invoked by user who creates it.

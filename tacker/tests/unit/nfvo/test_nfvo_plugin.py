@@ -231,7 +231,31 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             auth_url='http://localhost:5000',
             vim_project={'name': 'test_project'},
             auth_cred={'username': 'test_user', 'user_domain_id': 'default',
-                       'project_domain_id': 'default'})
+                       'project_domain_id': 'default',
+                       'key_type': 'fernet_key'})
+        session.add(vim_db)
+        session.add(vim_auth_db)
+        session.flush()
+
+    def _insert_dummy_vim_barbican(self):
+        session = self.context.session
+        vim_db = nfvo_db.Vim(
+            id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='fake_vim',
+            description='fake_vim_description',
+            type='openstack',
+            status='Active',
+            placement_attr={'regions': ['RegionOne']})
+        vim_auth_db = nfvo_db.VimAuth(
+            vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            password='encrypted_pw',
+            auth_url='http://localhost:5000',
+            vim_project={'name': 'test_project'},
+            auth_cred={'username': 'test_user', 'user_domain_id': 'default',
+                       'project_domain_id': 'default',
+                       'key_type': 'barbican_key',
+                       'secret_uuid': 'fake-secret-uuid'})
         session.add(vim_db)
         session.add(vim_auth_db)
         session.flush()
@@ -244,8 +268,9 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
             tstamp=mock.ANY)
-        self._driver_manager.invoke.assert_any_call(vim_type,
-            'register_vim', vim_obj=vim_dict['vim'])
+        self._driver_manager.invoke.assert_any_call(
+            vim_type, 'register_vim',
+            context=self.context, vim_obj=vim_dict['vim'])
         self.assertIsNotNone(res)
         self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
         self.assertIn('id', res)
@@ -255,12 +280,14 @@ class TestNfvoPlugin(db_base.SqlTestCase):
 
     def test_delete_vim(self):
         self._insert_dummy_vim()
-        vim_type = 'openstack'
+        vim_type = u'openstack'
         vim_id = '6261579e-d6f3-49ad-8bc3-a9cb974778ff'
+        vim_obj = self.nfvo_plugin._get_vim(self.context, vim_id)
         self.nfvo_plugin.delete_vim(self.context, vim_id)
-        self._driver_manager.invoke.assert_called_once_with(vim_type,
-                                                            'deregister_vim',
-                                                            vim_id=vim_id)
+        self._driver_manager.invoke.assert_called_once_with(
+            vim_type, 'deregister_vim',
+            context=self.context,
+            vim_obj=vim_obj)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_DELETE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
@@ -271,15 +298,52 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                             'vim_project': {'name': 'new_project'},
                             'auth_cred': {'username': 'new_user',
                                           'password': 'new_password'}}}
-        vim_type = 'openstack'
+        vim_type = u'openstack'
         vim_auth_username = vim_dict['vim']['auth_cred']['username']
         vim_project = vim_dict['vim']['vim_project']
         self._insert_dummy_vim()
         res = self.nfvo_plugin.update_vim(self.context, vim_dict['vim']['id'],
                                           vim_dict)
-        self._driver_manager.invoke.assert_called_once_with(vim_type,
-                                                            'register_vim',
-                                                            vim_obj=mock.ANY)
+        vim_obj = self.nfvo_plugin._get_vim(
+            self.context, vim_dict['vim']['id'])
+        vim_obj['updated_at'] = None
+        self._driver_manager.invoke.assert_called_with(
+            vim_type, 'register_vim',
+            context=self.context,
+            vim_obj=vim_obj)
+        self.assertIsNotNone(res)
+        self.assertIn('id', res)
+        self.assertIn('placement_attr', res)
+        self.assertEqual(vim_project, res['vim_project'])
+        self.assertEqual(vim_auth_username, res['auth_cred']['username'])
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
+        self.assertIn('updated_at', res)
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
+            tstamp=mock.ANY)
+
+    def test_update_vim_barbican(self):
+        vim_dict = {'vim': {'id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                            'vim_project': {'name': 'new_project'},
+                            'auth_cred': {'username': 'new_user',
+                                          'password': 'new_password'}}}
+        vim_type = u'openstack'
+        vim_auth_username = vim_dict['vim']['auth_cred']['username']
+        vim_project = vim_dict['vim']['vim_project']
+        self._insert_dummy_vim_barbican()
+        old_vim_obj = self.nfvo_plugin._get_vim(
+            self.context, vim_dict['vim']['id'])
+        res = self.nfvo_plugin.update_vim(self.context, vim_dict['vim']['id'],
+                                          vim_dict)
+        vim_obj = self.nfvo_plugin._get_vim(
+            self.context, vim_dict['vim']['id'])
+        vim_obj['updated_at'] = None
+        self._driver_manager.invoke.assert_called_with(
+            vim_type, 'delete_vim_auth',
+            context=self.context,
+            vim_id=vim_obj['id'],
+            auth=old_vim_obj['auth_cred'])
         self.assertIsNotNone(res)
         self.assertIn('id', res)
         self.assertIn('placement_attr', res)

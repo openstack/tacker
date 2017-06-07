@@ -20,6 +20,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 
 from tacker.extensions import nfvo
+from tacker.keymgr import API as KEYMGR_API
 from tacker import manager
 from tacker.plugins.common import constants
 
@@ -42,7 +43,8 @@ class VimClient(object):
                         'VIM information'))
             try:
                 vim_info = nfvo_plugin.get_default_vim(context)
-            except Exception:
+            except Exception as ex:
+                LOG.debug('Fail to get default vim due to %s', ex)
                 raise nfvo.VimDefaultNotDefined()
         else:
             try:
@@ -55,7 +57,7 @@ class VimClient(object):
                                                  ['regions'], region_name):
             raise nfvo.VimRegionNotFoundException(region_name=region_name)
 
-        vim_auth = self._build_vim_auth(vim_info)
+        vim_auth = self._build_vim_auth(context, vim_info)
         vim_res = {'vim_auth': vim_auth, 'vim_id': vim_info['id'],
                    'vim_name': vim_info.get('name', vim_info['id']),
                    'vim_type': vim_info['type']}
@@ -65,26 +67,43 @@ class VimClient(object):
     def region_valid(vim_regions, region_name):
         return region_name in vim_regions
 
-    def _build_vim_auth(self, vim_info):
+    def _build_vim_auth(self, context, vim_info):
         LOG.debug('VIM id is %s', vim_info['id'])
         vim_auth = vim_info['auth_cred']
-        vim_auth['password'] = self._decode_vim_auth(vim_info['id'],
-                                                     vim_auth[
-                                                     'password'].encode(
-                                                         'utf-8'))
+        vim_auth['password'] = self._decode_vim_auth(context,
+                                                     vim_info['id'],
+                                                     vim_auth)
         vim_auth['auth_url'] = vim_info['auth_url']
+
+        # These attributes are needless for authentication
+        # from keystone, so we remove them.
+        needless_attrs = ['key_type', 'secret_uuid']
+        for attr in needless_attrs:
+            if attr in vim_auth:
+                vim_auth.pop(attr, None)
         return vim_auth
 
-    def _decode_vim_auth(self, vim_id, cred):
+    def _decode_vim_auth(self, context, vim_id, auth):
         """Decode Vim credentials
 
-        Decrypt VIM cred. using Fernet Key
+        Decrypt VIM cred, get fernet Key from local_file_system or
+        barbican.
         """
-        vim_key = self._find_vim_key(vim_id)
+        cred = auth['password'].encode('utf-8')
+        if auth.get('key_type') == 'barbican_key':
+            keystone_conf = CONF.keystone_authtoken
+            secret_uuid = auth['secret_uuid']
+            keymgr_api = KEYMGR_API(keystone_conf.auth_url)
+            secret_obj = keymgr_api.get(context, secret_uuid)
+            vim_key = secret_obj.payload
+        else:
+            vim_key = self._find_vim_key(vim_id)
+
         f = fernet.Fernet(vim_key)
         if not f:
             LOG.warning(_('Unable to decode VIM auth'))
-            raise nfvo.VimNotFoundException('Unable to decode VIM auth key')
+            raise nfvo.VimNotFoundException(
+                'Unable to decode VIM auth key')
         return f.decrypt(cred)
 
     @staticmethod

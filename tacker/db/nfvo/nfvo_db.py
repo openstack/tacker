@@ -32,7 +32,7 @@ class Vim(model_base.BASE,
     name = sa.Column(sa.String(255), nullable=False)
     description = sa.Column(sa.Text, nullable=True)
     placement_attr = sa.Column(types.Json, nullable=True)
-    shared = sa.Column(sa.Boolean, default=True, server_default=sql.true(
+    shared = sa.Column(sa.Boolean, default=False, server_default=sql.false(
     ), nullable=False)
     is_default = sa.Column(sa.Boolean, default=False, server_default=sql.false(
     ), nullable=False)

@@ -52,7 +52,7 @@ class VimAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def deregister_vim(self, context, vim_id):
+    def deregister_vim(self, context, vim_obj):
         """Deregister VIM object from NFVO plugin
 
         Cleanup VIM data and delete VIM information
@@ -76,7 +76,7 @@ class VimAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def delete_vim_auth(self, vim_id):
+    def delete_vim_auth(self, context, vim_id, auth):
         """Delete VIM auth keys
 
         Delete VIM sensitive information such as keys from file system or DB

@@ -50,10 +50,14 @@ NETWORK_GATEWAY=${NETWORK_GATEWAY:-15.0.0.1}
 FIXED_RANGE=${FIXED_RANGE:-15.0.0.0/24}
 
 enable_plugin heat https://git.openstack.org/openstack/heat master
-enable_plugin tacker https://git.openstack.org/openstack/tacker master
 enable_plugin networking-sfc git://git.openstack.org/openstack/networking-sfc master
+enable_plugin barbican https://git.openstack.org/openstack/barbican
+enable_plugin tacker https://git.openstack.org/openstack/tacker master
 
 enable_service n-novnc
 enable_service n-cauth
 
 disable_service tempest
+
+#TACKER CONFIGURATION
+USE_BARBICAN=True

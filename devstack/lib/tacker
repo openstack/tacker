@@ -256,6 +256,9 @@ function configure_tacker {
         echo "Creating bridge"
         sudo ovs-vsctl --may-exist add-br ${BR_MGMT}
     fi
+    if [[ "${USE_BARBICAN}" == "True" ]]; then
+         iniset $TACKER_CONF vim_keys use_barbican True
+    fi
     _tacker_setup_rootwrap
 }
 
@@ -418,8 +421,19 @@ function tacker_register_default_vim {
     cat $VIM_CONFIG_FILE
     local default_vim_id
     DEFAULT_VIM_NAME="VIM0"
+
+    old_project=$OS_PROJECT_NAME
+    old_user=$OS_USERNAME
+    $TOP_DIR/tools/create_userrc.sh -P -u $DEFAULT_VIM_USER -C $DEFAULT_VIM_PROJECT_NAME -p $DEFAULT_VIM_PASSWORD
+    echo "Switch environment openrc:"
+    echo $(cat $TOP_DIR/accrc/$DEFAULT_VIM_PROJECT_NAME/$DEFAULT_VIM_USER)
+    source $TOP_DIR/accrc/$DEFAULT_VIM_PROJECT_NAME/$DEFAULT_VIM_USER
+
     default_vim_id=$(tacker vim-register --is-default --description "Default VIM" --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME -c id | grep id | awk '{print $4}')
     echo "Default VIM registration done as $default_vim_id at $KEYSTONE_SERVICE_URI."
+    echo "Switch back to old environment openrc:"
+    echo $(cat $TOP_DIR/accrc/$old_project/$old_user)
+    source $TOP_DIR/accrc/$old_project/$old_user
 
     echo "Update tacker/tests/etc/samples/local-vim.yaml for functional testing"
     functional_vim_file="$TACKER_DIR/tacker/tests/etc/samples/local-vim.yaml"
