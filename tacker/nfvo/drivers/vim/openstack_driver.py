@@ -23,7 +23,6 @@ from keystoneauth1 import identity
 from keystoneauth1.identity import v2
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
-from mistralclient.api import client as mistral_client
 from neutronclient.common import exceptions as nc_exceptions
 from neutronclient.v2_0 import client as neutron_client
 from oslo_config import cfg
@@ -33,6 +32,7 @@ from tacker._i18n import _
 from tacker.agent.linux import utils as linux_utils
 from tacker.common import log
 from tacker.extensions import nfvo
+from tacker.mistral import mistral_client
 from tacker.nfvo.drivers.vim import abstract_vim_driver
 from tacker.nfvo.drivers.vnffg import abstract_vnffg_driver
 from tacker.nfvo.drivers.workflow import workflow_generator
@@ -476,7 +476,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
             LOG.warning(_("auth dict required to instantiate mistral client"))
             raise EnvironmentError('auth dict required for'
                                    ' mistral workflow driver')
-        return MistralClient(
+        return mistral_client.MistralClient(
             keystone.Keystone().initialize_client('2', **auth_dict),
             auth_dict['token']).get_client()
 
@@ -509,20 +509,6 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
     def delete_workflow(self, workflow_id, auth_dict=None):
         return self.get_mistral_client(auth_dict)\
             .workflows.delete(workflow_id)
-
-
-class MistralClient(object):
-    """Mistral Client class for NSD"""
-
-    def __init__(self, keystone, auth_token):
-        endpoint = keystone.session.get_endpoint(
-            service_type='workflowv2', region_name=None)
-
-        self.client = mistral_client.client(auth_token=auth_token,
-            mistral_url=endpoint)
-
-    def get_client(self):
-        return self.client
 
 
 class NeutronClient(object):
