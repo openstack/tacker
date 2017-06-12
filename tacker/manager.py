@@ -15,6 +15,7 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
+import oslo_messaging
 from oslo_service import periodic_task
 
 from tacker.common import utils
@@ -26,13 +27,14 @@ LOG = logging.getLogger(__name__)
 class Manager(periodic_task.PeriodicTasks):
 
     # Set RPC API version to 1.0 by default.
-    RPC_API_VERSION = '1.0'
+    target = oslo_messaging.Target(version='1.0')
 
     def __init__(self, host=None):
         if not host:
             host = cfg.CONF.host
         self.host = host
-        super(Manager, self).__init__()
+        conf = getattr(self, "conf", cfg.CONF)
+        super(Manager, self).__init__(conf)
 
     def periodic_tasks(self, context, raise_on_error=False):
         self.run_periodic_tasks(context, raise_on_error=raise_on_error)

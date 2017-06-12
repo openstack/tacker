@@ -20,8 +20,6 @@
 
 import sys
 
-import eventlet
-eventlet.monkey_patch()
 from oslo_config import cfg
 import oslo_i18n
 from oslo_service import service as common_service
@@ -52,7 +50,3 @@ def main():
         pass
     except RuntimeError as e:
         sys.exit(_("ERROR: %s") % e)
-
-
-if __name__ == "__main__":
-    main()
