@@ -17,12 +17,12 @@ import uuid
 
 from oslo_log import log as logging
 from tacker.common import log
-from tacker.nfvo.drivers.vnffg.sfc_drivers import abstract_driver
+from tacker.nfvo.drivers.vnffg import abstract_vnffg_driver
 
 LOG = logging.getLogger(__name__)
 
 
-class VNFFGNoop(abstract_driver.SfcAbstractDriver):
+class VNFFGNoop(abstract_vnffg_driver.VnffgAbstractDriver):
 
     """Noop driver for VNFFG tests"""
 
