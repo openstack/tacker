@@ -38,7 +38,7 @@ LOG = logging.getLogger(__name__)
 _ACTIVE_UPDATE = (constants.ACTIVE, constants.PENDING_UPDATE)
 _ACTIVE_UPDATE_ERROR_DEAD = (
     constants.PENDING_CREATE, constants.ACTIVE, constants.PENDING_UPDATE,
-    constants.ERROR, constants.DEAD)
+    constants.PENDING_DELETE, constants.ERROR, constants.DEAD)
 CREATE_STATES = (constants.PENDING_CREATE, constants.DEAD)
 
 

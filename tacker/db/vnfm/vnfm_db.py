@@ -44,7 +44,7 @@ _ACTIVE_UPDATE = (constants.ACTIVE, constants.PENDING_UPDATE)
 _ACTIVE_UPDATE_ERROR_DEAD = (
     constants.PENDING_CREATE, constants.ACTIVE, constants.PENDING_UPDATE,
     constants.PENDING_SCALE_IN, constants.PENDING_SCALE_OUT, constants.ERROR,
-    constants.DEAD)
+    constants.PENDING_DELETE, constants.DEAD)
 CREATE_STATES = (constants.PENDING_CREATE, constants.DEAD)
 
 

@@ -35,7 +35,7 @@ LOG = logging.getLogger(__name__)
 _ACTIVE_UPDATE = (constants.ACTIVE, constants.PENDING_UPDATE)
 _ACTIVE_UPDATE_ERROR_DEAD = (
     constants.PENDING_CREATE, constants.ACTIVE, constants.PENDING_UPDATE,
-    constants.ERROR, constants.DEAD)
+    constants.PENDING_DELETE, constants.ERROR, constants.DEAD)
 _VALID_VNFFG_UPDATE_ATTRIBUTES = ('vnf_mapping',)
 _VALID_SFC_UPDATE_ATTRIBUTES = ('chain', 'symmetrical')
 _VALID_NFP_UPDATE_ATTRIBUTES = ('symmetrical',)
