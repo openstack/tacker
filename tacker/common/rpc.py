@@ -48,6 +48,11 @@ EXTRA_EXMODS = []
 RPC_DISABLED = False
 
 
+def init_action_rpc(conf):
+    global TRANSPORT
+    TRANSPORT = oslo_messaging.get_transport(conf)
+
+
 def init(conf):
     global TRANSPORT, NOTIFICATION_TRANSPORT, NOTIFIER
     exmods = get_allowed_exmods()
@@ -288,9 +293,11 @@ class Connection(object):
         super(Connection, self).__init__()
         self.servers = []
 
-    def create_consumer(self, topic, endpoints, fanout=False):
+    def create_consumer(self, topic, endpoints, fanout=False,
+                        exchange='tacker', host=None):
         target = oslo_messaging.Target(
-            topic=topic, server=cfg.CONF.host, fanout=fanout)
+            topic=topic, server=host or cfg.CONF.host, fanout=fanout,
+            exchange=exchange)
         server = get_server(target, endpoints)
         self.servers.append(server)
 
@@ -308,7 +315,8 @@ class Connection(object):
 
 class VoidConnection(object):
 
-    def create_consumer(self, topic, endpoints, fanout=False):
+    def create_consumer(self, topic, endpoints, fanout=False,
+                        exchange='tacker', host=None):
         pass
 
     def consume_in_threads(self):

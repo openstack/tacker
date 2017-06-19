@@ -84,14 +84,6 @@ class VimAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def vim_status(self, auth_url):
-        """Health check for VIM
-
-        Checks the health status of VIM and return a boolean value
-        """
-        pass
-
-    @abc.abstractmethod
     def get_vim_resource_id(self, vim_obj, resource_type, resource_name):
         """Parses a VIM resource ID from a given type and name
 

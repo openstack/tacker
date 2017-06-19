@@ -29,7 +29,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 
 from tacker._i18n import _
-from tacker.agent.linux import utils as linux_utils
 from tacker.common import log
 from tacker.extensions import nfvo
 from tacker.mistral import mistral_client
@@ -188,11 +187,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
     @log.log
     def register_vim(self, vim_obj):
-        """Validate and register VIM
-
-        Store VIM information in Tacker for
-        VNF placements
-        """
+        """Validate and set VIM placements."""
         ks_client = self.authenticate_vim(vim_obj)
         self.discover_placement_attr(vim_obj, ks_client)
         self.encode_vim_auth(vim_obj['id'], vim_obj['auth_cred'])
@@ -239,23 +234,6 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                 LOG.debug(_('VIM auth successfully stored for vim %s'), vim_id)
         except IOError:
             raise nfvo.VimKeyNotFoundException(vim_id=vim_id)
-
-    @log.log
-    def vim_status(self, auth_url):
-        """Checks the VIM health status"""
-        vim_ip = auth_url.split("//")[-1].split(":")[0].split("/")[0]
-        ping_cmd = ['ping',
-                    '-c', cfg.CONF.vim_monitor.count,
-                    '-W', cfg.CONF.vim_monitor.timeout,
-                    '-i', cfg.CONF.vim_monitor.interval,
-                    vim_ip]
-
-        try:
-            linux_utils.execute(ping_cmd, check_exit_code=True)
-            return True
-        except RuntimeError:
-            LOG.warning("Cannot ping ip address: %s", vim_ip)
-            return False
 
     @log.log
     def get_vim_resource_id(self, vim_obj, resource_type, resource_name):

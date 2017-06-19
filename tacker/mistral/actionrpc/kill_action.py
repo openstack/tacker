@@ -10,5 +10,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import oslo_messaging
 
-TOPIC_ACTION_KILL = 'KILL_ACTION'
+from tacker.common import topics
+
+
+class MistralActionKillRPC(object):
+
+    target = oslo_messaging.Target(
+        exchange='tacker',
+        topic=topics.TOPIC_ACTION_KILL,
+        fanout=False,
+        version='1.0')
+
+    def killAction(self, context, **kwargs):
+        pass

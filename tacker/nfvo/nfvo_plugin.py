@@ -15,7 +15,6 @@
 #    under the License.
 
 import os
-import threading
 import time
 import uuid
 import yaml
@@ -34,13 +33,13 @@ from tacker._i18n import _
 from tacker.common import driver_manager
 from tacker.common import log
 from tacker.common import utils
-from tacker import context as t_context
 from tacker.db.nfvo import nfvo_db
 from tacker.db.nfvo import ns_db
 from tacker.db.nfvo import vnffg_db
 from tacker.extensions import common_services as cs
 from tacker.extensions import nfvo
 from tacker import manager
+from tacker.nfvo.workflows.vim_monitor import vim_monitor_utils
 from tacker.plugins.common import constants
 from tacker.vnfm import vim_client
 
@@ -67,7 +66,6 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
     extension for providing the specified VIM information
     """
     supported_extension_aliases = ['nfvo']
-    _lock = threading.RLock()
 
     OPTS = [
         cfg.ListOpt(
@@ -85,20 +83,7 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         self._vim_drivers = driver_manager.DriverManager(
             'tacker.nfvo.vim.drivers',
             cfg.CONF.nfvo_vim.vim_drivers)
-        self._created_vims = dict()
         self.vim_client = vim_client.VimClient()
-        context = t_context.get_admin_context()
-        vims = self.get_vims(context)
-        for vim in vims:
-            self._created_vims[vim["id"]] = vim
-        self._monitor_interval = cfg.CONF.nfvo_vim.monitor_interval
-        threading.Thread(target=self.__run__).start()
-
-    def __run__(self):
-        while(1):
-            time.sleep(self._monitor_interval)
-            for created_vim in self._created_vims.values():
-                self.monitor_vim(created_vim)
 
     def get_auth_dict(self, context):
         auth = CONF.keystone_authtoken
@@ -123,15 +108,16 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         try:
             self._vim_drivers.invoke(vim_type, 'register_vim', vim_obj=vim_obj)
             res = super(NfvoPlugin, self).create_vim(context, vim_obj)
-            vim_obj["status"] = "REGISTERING"
-            with self._lock:
-                self._created_vims[res["id"]] = res
-            self.monitor_vim(vim_obj)
-            return res
         except Exception:
             with excutils.save_and_reraise_exception():
                 self._vim_drivers.invoke(vim_type, 'delete_vim_auth',
                                          vim_id=vim_obj['id'])
+
+        try:
+            self.monitor_vim(context, vim_obj)
+        except Exception:
+            LOG.warning("Failed to set up vim monitoring")
+        return res
 
     def _get_vim(self, context, vim_id):
         if not self.is_vim_still_in_use(context, vim_id):
@@ -166,31 +152,17 @@ class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         vim_obj = self._get_vim(context, vim_id)
         self._vim_drivers.invoke(vim_obj['type'], 'deregister_vim',
                                  vim_id=vim_id)
-        with self._lock:
-            self._created_vims.pop(vim_id, None)
+        try:
+            auth_dict = self.get_auth_dict(context)
+            vim_monitor_utils.delete_vim_monitor(context, auth_dict, vim_obj)
+        except Exception:
+            LOG.exception("Failed to remove vim monitor")
         super(NfvoPlugin, self).delete_vim(context, vim_id)
 
     @log.log
-    def monitor_vim(self, vim_obj):
-        vim_id = vim_obj["id"]
-        auth_url = vim_obj["auth_url"]
-        vim_status = self._vim_drivers.invoke(vim_obj['type'],
-                                              'vim_status',
-                                              auth_url=auth_url)
-        current_status = "REACHABLE" if vim_status else "UNREACHABLE"
-        if current_status != vim_obj["status"]:
-            status = current_status
-            with self._lock:
-                context = t_context.get_admin_context()
-                res = super(NfvoPlugin, self).update_vim_status(context,
-                                                                vim_id, status)
-                self._created_vims[vim_id]["status"] = status
-                self._cos_db_plg.create_event(
-                    context, res_id=res['id'],
-                    res_type=constants.RES_TYPE_VIM,
-                    res_state=res['status'],
-                    evt_type=constants.RES_EVT_MONITOR,
-                    tstamp=res[constants.RES_EVT_UPDATED_FLD])
+    def monitor_vim(self, context, vim_obj):
+        auth_dict = self.get_auth_dict(context)
+        vim_monitor_utils.monitor_vim(auth_dict, vim_obj)
 
     @log.log
     def validate_tosca(self, template):

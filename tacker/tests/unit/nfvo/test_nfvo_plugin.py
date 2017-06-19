@@ -197,7 +197,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.addCleanup(mock.patch.stopall)
         self.context = context.get_admin_context()
         self._mock_driver_manager()
-        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin.__run__').start()
         mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
                    side_effect=dummy_get_vim).start()
         self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
@@ -244,14 +243,8 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
             tstamp=mock.ANY)
-        self._cos_db_plugin.create_event.assert_any_call(
-            mock.ANY, evt_type=constants.RES_EVT_MONITOR, res_id=mock.ANY,
-            res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
-            tstamp=mock.ANY)
         self._driver_manager.invoke.assert_any_call(vim_type,
             'register_vim', vim_obj=vim_dict['vim'])
-        self._driver_manager.invoke.assert_any_call('openstack', 'vim_status',
-            auth_url='http://localhost:5000')
         self.assertIsNotNone(res)
         self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
         self.assertIn('id', res)
