@@ -24,7 +24,7 @@ from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import schema
 
 from tacker.common import exceptions
-from tacker.db.common_services import common_services_db
+from tacker.db.common_services import common_services_db_plugin
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
@@ -113,7 +113,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
 
     def __init__(self):
         super(NSPluginDb, self).__init__()
-        self._cos_db_plg = common_services_db.CommonServicesPluginDb()
+        self._cos_db_plg = common_services_db_plugin.CommonServicesPluginDb()
 
     def _get_resource(self, context, model, id):
         try:

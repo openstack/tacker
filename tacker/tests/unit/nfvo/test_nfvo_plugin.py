@@ -22,7 +22,7 @@ import uuid
 from mock import patch
 
 from tacker import context
-from tacker.db.common_services import common_services_db
+from tacker.db.common_services import common_services_db_plugin
 from tacker.db.nfvo import nfvo_db
 from tacker.db.nfvo import ns_db
 from tacker.db.nfvo import vnffg_db
@@ -200,10 +200,11 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
                    side_effect=dummy_get_vim).start()
         self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
-        mock.patch('tacker.db.common_services.common_services_db.'
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
                    'CommonServicesPluginDb.create_event'
                    ).start()
-        self._cos_db_plugin = common_services_db.CommonServicesPluginDb()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
 
     def _mock_driver_manager(self):
         self._driver_manager = mock.Mock(wraps=FakeDriverManager())

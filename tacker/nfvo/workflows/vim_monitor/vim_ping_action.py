@@ -10,8 +10,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import random
-
 from mistral.actions import base
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -19,7 +17,8 @@ from oslo_log import log as logging
 from tacker.agent.linux import utils as linux_utils
 from tacker.common import rpc
 from tacker.common import topics
-
+from tacker.conductor.conductorrpc import vim_monitor_rpc
+from tacker import context as t_context
 
 LOG = logging.getLogger(__name__)
 
@@ -62,14 +61,14 @@ class PingVimAction(base.Action):
             return 'UNREACHABLE'
 
     def _update(self, status):
-        # TODO(liuqing) call tacker conductor
         LOG.info("VIM %s changed to status %s", self.vim_id, status)
-        x = random.randint(1, 10)
-        if 0 == (x % 2):
-            return 'UNREACHABLE'
-        else:
-            return 'REACHABLE'
-        return status
+        target = vim_monitor_rpc.VIMUpdateRPC.target
+        rpc_client = rpc.get_client(target)
+        cctxt = rpc_client.prepare()
+        return cctxt.call(t_context.get_admin_context_without_session(),
+                          'update_vim',
+                          vim_id=self.vim_id,
+                          status=status)
 
     def run(self):
         servers = []

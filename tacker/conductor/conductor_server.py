@@ -19,10 +19,19 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import service
+from oslo_utils import timeutils
+from sqlalchemy.orm import exc as orm_exc
 
+from tacker.common import topics
+from tacker import context as t_context
+from tacker.db.common_services import common_services_db
+from tacker.db.nfvo import nfvo_db
+from tacker.extensions import nfvo
 from tacker import manager
+from tacker.plugins.common import constants
 from tacker import service as tacker_service
 from tacker import version
+
 
 LOG = logging.getLogger(__name__)
 
@@ -35,9 +44,27 @@ class Conductor(manager.Manager):
             self.conf = cfg.CONF
         super(Conductor, self).__init__(host=self.conf.host)
 
-
-def register_opts(conf):
-    pass
+    def update_vim(self, context, vim_id, status):
+        t_admin_context = t_context.get_admin_context()
+        update_time = timeutils.utcnow()
+        with t_admin_context.session.begin(subtransactions=True):
+            try:
+                query = t_admin_context.session.query(nfvo_db.Vim)
+                query.filter(
+                    nfvo_db.Vim.id == vim_id).update(
+                        {'status': status,
+                         'updated_at': update_time})
+            except orm_exc.NoResultFound:
+                raise nfvo.VimNotFoundException(vim_id=vim_id)
+            event_db = common_services_db.Event(
+                resource_id=vim_id,
+                resource_type=constants.RES_TYPE_VIM,
+                resource_state=status,
+                event_details="",
+                event_type=constants.RES_EVT_MONITOR,
+                timestamp=update_time)
+            t_admin_context.session.add(event_db)
+        return status
 
 
 def init(args, **kwargs):
@@ -52,7 +79,6 @@ def init(args, **kwargs):
 
 
 def main(manager='tacker.conductor.conductor_server.Conductor'):
-    register_opts(cfg.CONF)
     init(sys.argv[1:])
     logging.setup(cfg.CONF, "tacker")
     oslo_messaging.set_transport_defaults(control_exchange='tacker')
@@ -60,6 +86,6 @@ def main(manager='tacker.conductor.conductor_server.Conductor'):
     cfg.CONF.log_opt_values(LOG, logging.DEBUG)
     server = tacker_service.Service.create(
         binary='tacker-conductor',
-        topic='tacker_conductor',
+        topic=topics.TOPIC_CONDUCTOR,
         manager=manager)
     service.launch(cfg.CONF, server).wait()

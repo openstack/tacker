@@ -20,7 +20,7 @@ from mock import patch
 import yaml
 
 from tacker import context
-from tacker.db.common_services import common_services_db
+from tacker.db.common_services import common_services_db_plugin
 from tacker.db.nfvo import nfvo_db
 from tacker.db.vnfm import vnfm_db
 from tacker.extensions import vnfm
@@ -66,10 +66,11 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._mock_green_pool()
         self._insert_dummy_vim()
         self.vnfm_plugin = plugin.VNFMPlugin()
-        mock.patch('tacker.db.common_services.common_services_db.'
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
                    'CommonServicesPluginDb.create_event'
                    ).start()
-        self._cos_db_plugin = common_services_db.CommonServicesPluginDb()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
 
     def _mock_device_manager(self):
         self._device_manager = mock.Mock(wraps=FakeDriverManager())

@@ -18,7 +18,7 @@ import mock
 from oslo_utils import timeutils
 
 from tacker import context
-from tacker.db.common_services import common_services_db
+from tacker.db.common_services import common_services_db_plugin
 from tacker.extensions import common_services
 from tacker.plugins.common_services import common_services_plugin
 from tacker.tests.unit.db import base as db_base
@@ -29,7 +29,8 @@ class TestCommonServicesPlugin(db_base.SqlTestCase):
         super(TestCommonServicesPlugin, self).setUp()
         self.addCleanup(mock.patch.stopall)
         self.context = context.get_admin_context()
-        self.event_db_plugin = common_services_db.CommonServicesPluginDb()
+        self.event_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         self.coreutil_plugin = common_services_plugin.CommonServicesPlugin()
 
     def _get_dummy_event_obj(self):

@@ -15,7 +15,7 @@
 from oslo_log import log as logging
 from oslo_utils import timeutils
 
-from tacker.db.common_services import common_services_db
+from tacker.db.common_services import common_services_db_plugin
 from tacker.plugins.common import constants
 from tacker.vnfm.infra_drivers.openstack import heat_client as hc
 from tacker.vnfm.policy_actions import abstract_action
@@ -25,7 +25,7 @@ LOG = logging.getLogger(__name__)
 
 
 def _log_monitor_events(context, vnf_dict, evt_details):
-    _cos_db_plg = common_services_db.CommonServicesPluginDb()
+    _cos_db_plg = common_services_db_plugin.CommonServicesPluginDb()
     _cos_db_plg.create_event(context, res_id=vnf_dict['id'],
                              res_type=constants.RES_TYPE_VNF,
                              res_state=vnf_dict['status'],

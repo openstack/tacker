@@ -14,7 +14,7 @@
 # - configure_tacker
 # - create_tacker_accounts
 # - init_tacker
-# - start_tacker_api
+# - start_tacker
 # - tacker_horizon_install
 # - tacker_create_initial_network
 
@@ -144,7 +144,7 @@ function install_tacker {
     setup_develop $TACKER_DIR
 }
 
-function start_tacker_api {
+function start_tacker {
     local cfg_file_options="--config-file $TACKER_CONF"
     local service_port=$TACKER_PORT
     local service_protocol=$TACKER_PROTOCOL
@@ -165,11 +165,14 @@ function start_tacker_api {
     if is_service_enabled tls-proxy; then
         start_tls_proxy '*' $TACKER_PORT $TACKER_HOST $TACKER_PORT_INT &
     fi
+    # Start tacker conductor
+    run_process tacker-conductor "$TACKER_BIN_DIR/tacker-conductor $cfg_file_options"
 }
 
 # stop_tacker() - Stop running processes (non-screen)
 function stop_tacker {
     stop_process tacker
+    stop_process tacker-conductor
 }
 
 # cleanup_tacker() - Remove residual data files, anything left over from previous

@@ -33,7 +33,7 @@ from tacker._i18n import _
 from tacker.common import driver_manager
 from tacker.common import log
 from tacker.common import utils
-from tacker.db.nfvo import nfvo_db
+from tacker.db.nfvo import nfvo_db_plugin
 from tacker.db.nfvo import ns_db
 from tacker.db.nfvo import vnffg_db
 from tacker.extensions import common_services as cs
@@ -56,7 +56,7 @@ def config_opts():
     return [('nfvo_vim', NfvoPlugin.OPTS)]
 
 
-class NfvoPlugin(nfvo_db.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
+class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                  ns_db.NSPluginDb):
     """NFVO reference plugin for NFVO extension
 

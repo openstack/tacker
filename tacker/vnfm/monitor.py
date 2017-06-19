@@ -27,7 +27,7 @@ from oslo_utils import timeutils
 
 from tacker.common import driver_manager
 from tacker import context as t_context
-from tacker.db.common_services import common_services_db
+from tacker.db.common_services import common_services_db_plugin
 from tacker.plugins.common import constants
 
 LOG = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ def config_opts():
 
 
 def _log_monitor_events(context, vnf_dict, evt_details):
-    _cos_db_plg = common_services_db.CommonServicesPluginDb()
+    _cos_db_plg = common_services_db_plugin.CommonServicesPluginDb()
     _cos_db_plg.create_event(context, res_id=vnf_dict['id'],
                              res_type=constants.RES_TYPE_VNF,
                              res_state=vnf_dict['status'],

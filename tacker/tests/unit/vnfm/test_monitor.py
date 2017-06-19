@@ -18,7 +18,7 @@ import mock
 from oslo_utils import timeutils
 import testtools
 
-from tacker.db.common_services import common_services_db
+from tacker.db.common_services import common_services_db_plugin
 from tacker.plugins.common import constants
 from tacker.vnfm import monitor
 
@@ -56,10 +56,11 @@ class TestVNFMonitor(testtools.TestCase):
         super(TestVNFMonitor, self).setUp()
         p = mock.patch('tacker.common.driver_manager.DriverManager')
         self.mock_monitor_manager = p.start()
-        mock.patch('tacker.db.common_services.common_services_db.'
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
                    'CommonServicesPluginDb.create_event'
                    ).start()
-        self._cos_db_plugin = common_services_db.CommonServicesPluginDb()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         self.addCleanup(p.stop)
 
     def test_to_hosting_vnf(self):

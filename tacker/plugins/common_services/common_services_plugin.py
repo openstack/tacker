@@ -15,10 +15,10 @@
 #    under the License.
 
 from tacker.common import log
-from tacker.db.common_services import common_services_db
+from tacker.db.common_services import common_services_db_plugin
 
 
-class CommonServicesPlugin(common_services_db.CommonServicesPluginDb):
+class CommonServicesPlugin(common_services_db_plugin.CommonServicesPluginDb):
     """Reference plugin for COMMONSERVICES extension
 
     Implements the COMMONSERVICES extension and defines public facing APIs for

@@ -19,7 +19,8 @@ if [ "${TACKER_MODE}" == "all" ]; then
     enable_service neutron
 
     enable_service tacker
-
+    # enable tacker-conductor will make systemctl enable conductor service
+    enable_service tacker-conductor
     # tacker-horizon isn't installable from pip
     LIBS_FROM_GIT=tacker-horizon
 
@@ -42,7 +43,7 @@ if [ "${TACKER_MODE}" == "all" ]; then
     NETWORK_GATEWAY1=${NETWORK_GATEWAY1:-10.10.1.1}
 elif [ "${TACKER_MODE}" == "standalone" ]; then
     # set the enabled services here. This will need tacker devstack plugin put as the last one in local.conf
-    ENABLED_SERVICES=key,horizon,tacker,mysql,dstat,barbican,mistral,mistral-api,mistral-engine,mistral-executor,mistral-event-engine
+    ENABLED_SERVICES=key,horizon,tacker,tacker-conductor,mysql,dstat,barbican,mistral,mistral-api,mistral-engine,mistral-executor,mistral-event-engine
 else
     die $LINENO "invalid value: $TACKER_MODE for TACKER_MODE"
 fi

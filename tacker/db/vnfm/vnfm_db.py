@@ -29,7 +29,7 @@ from sqlalchemy import schema
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
 from tacker import context as t_context
-from tacker.db.common_services import common_services_db
+from tacker.db.common_services import common_services_db_plugin
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
@@ -175,7 +175,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def __init__(self):
         super(VNFMPluginDb, self).__init__()
-        self._cos_db_plg = common_services_db.CommonServicesPluginDb()
+        self._cos_db_plg = common_services_db_plugin.CommonServicesPluginDb()
 
     def _get_resource(self, context, model, id):
         try:

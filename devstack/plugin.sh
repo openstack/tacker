@@ -25,8 +25,8 @@ if is_service_enabled tacker; then
         # Initialize and start the tacker service
         echo_summary "Initializing Tacker"
         init_tacker
-        echo_summary "Starting Tacker API"
-        start_tacker_api
+        echo_summary "Starting Tacker API and conductor"
+        start_tacker
         echo_summary "Installing tacker horizon"
         tacker_horizon_install
         if [[ "${TACKER_MODE}" == "all" ]]; then
