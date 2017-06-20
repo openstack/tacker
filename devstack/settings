@@ -41,7 +41,8 @@ if [ "${TACKER_MODE}" == "all" ]; then
     FIXED_RANGE1=${FIXED_RANGE1:-10.10.1.0/24}
     NETWORK_GATEWAY1=${NETWORK_GATEWAY1:-10.10.1.1}
 elif [ "${TACKER_MODE}" == "standalone" ]; then
-    ENABLED_SERVICES=key,horizon,tacker,mysql,dstat
+    # set the enabled services here. This will need tacker devstack plugin put as the last one in local.conf
+    ENABLED_SERVICES=key,horizon,tacker,mysql,dstat,barbican,mistral,mistral-api,mistral-engine,mistral-executor,mistral-event-engine
 else
     die $LINENO "invalid value: $TACKER_MODE for TACKER_MODE"
 fi
