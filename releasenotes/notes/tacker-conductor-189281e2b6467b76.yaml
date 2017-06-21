@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The component tacker-conductor is introduced for tacker mistral actions
+    to execute policy actions on tacker side. The conductor is listening on
+    TACKER_CONDUCTOR queue ( in the rabbitmq terms). Mistral actions RPC
+    calls the conductor.
