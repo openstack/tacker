@@ -63,6 +63,8 @@ Feature Documentation
    devref/vnffg_usage_guide.rst
    devref/nsd_usage_guide.rst
    devref/vnf_component_usage_guide.rst
+   devref/tacker_conductor.rst
+   devref/tacker_vim_monitoring.rst
 
 API Documentation
 =================
