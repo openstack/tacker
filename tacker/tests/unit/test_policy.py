@@ -108,7 +108,7 @@ class PolicyTestCase(base.BaseTestCase):
     def test_check_bad_action_noraise(self):
         action = "example:denied"
         result = policy.check(self.context, action, self.target)
-        self.assertEqual(False, result)
+        self.assertFalse(result)
 
     def test_check_non_existent_action(self):
         action = "example:idonotexist"

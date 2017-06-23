@@ -65,7 +65,7 @@ class TackerKeystoneContextTestCase(base.BaseTestCase):
         self.assertEqual(['role1', 'role2',
                           'role3', 'role4', 'role5'],
                          self.context.roles)
-        self.assertEqual(False, self.context.is_admin)
+        self.assertFalse(self.context.is_admin)
 
     def test_roles_with_admin(self):
         self.request.headers['X_PROJECT_ID'] = 'testtenantid'
