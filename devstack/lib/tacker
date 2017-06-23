@@ -152,6 +152,8 @@ function start_tacker {
         service_port=$TACKER_PORT_INT
         service_protocol="http"
     fi
+    # Start tacker conductor
+    run_process tacker-conductor "$TACKER_BIN_DIR/tacker-conductor $cfg_file_options"
     # Start the Tacker service
     run_process tacker "$TACKER_BIN_DIR/tacker-server $cfg_file_options"
     echo "Waiting for Tacker to start..."
@@ -165,8 +167,6 @@ function start_tacker {
     if is_service_enabled tls-proxy; then
         start_tls_proxy '*' $TACKER_PORT $TACKER_HOST $TACKER_PORT_INT &
     fi
-    # Start tacker conductor
-    run_process tacker-conductor "$TACKER_BIN_DIR/tacker-conductor $cfg_file_options"
 }
 
 # stop_tacker() - Stop running processes (non-screen)
