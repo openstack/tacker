@@ -56,7 +56,7 @@ def create_process(cmd, root_helper=None, addl_env=None):
 
 
 def execute(cmd, root_helper=None, process_input=None, addl_env=None,
-            check_exit_code=True, return_stderr=False):
+            check_exit_code=True, return_stderr=False, debuglog=True):
     try:
         obj, cmd = create_process(cmd, root_helper=root_helper,
                                   addl_env=addl_env)
@@ -71,7 +71,7 @@ def execute(cmd, root_helper=None, process_input=None, addl_env=None,
             LOG.error(m)
             if check_exit_code:
                 raise RuntimeError(m)
-        else:
+        elif debuglog:
             LOG.debug(m)
     finally:
         # NOTE(termie): this appears to be necessary to let the subprocess
