@@ -34,6 +34,8 @@ SCALING = 'tosca.policies.Scaling'
 PLACEMENT = 'tosca.policies.tacker.Placement'
 TACKERCP = 'tosca.nodes.nfv.CP.Tacker'
 TACKERVDU = 'tosca.nodes.nfv.VDU.Tacker'
+BLOCKSTORAGE = 'tosca.nodes.BlockStorage.Tacker'
+BLOCKSTORAGE_ATTACHMENT = 'tosca.nodes.BlockStorageAttachment'
 TOSCA_BINDS_TO = 'tosca.relationships.network.BindsTo'
 VDU = 'tosca.nodes.nfv.VDU'
 IMAGE = 'tosca.artifacts.Deployment.Image.VM'
@@ -219,6 +221,62 @@ def _process_alarm_actions(vnf, policy):
     return alarm_actions
 
 
+def get_volumes(template):
+    volume_dict = dict()
+    node_tpl = template['topology_template']['node_templates']
+    for node_name in list(node_tpl.keys()):
+        node_value = node_tpl[node_name]
+        if node_value['type'] != BLOCKSTORAGE:
+            continue
+        volume_dict[node_name] = dict()
+        block_properties = node_value.get('properties', {})
+        for prop_name, prop_value in block_properties.items():
+            if prop_name == 'size':
+                prop_value = \
+                    re.compile('(\d+)\s*(\w+)').match(prop_value).groups()[0]
+            volume_dict[node_name][prop_name] = prop_value
+        del node_tpl[node_name]
+    return volume_dict
+
+
+@log.log
+def get_vol_attachments(template):
+    vol_attach_dict = dict()
+    node_tpl = template['topology_template']['node_templates']
+    valid_properties = {
+        'location': 'mountpoint'
+    }
+    for node_name in list(node_tpl.keys()):
+        node_value = node_tpl[node_name]
+        if node_value['type'] != BLOCKSTORAGE_ATTACHMENT:
+            continue
+        vol_attach_dict[node_name] = dict()
+        vol_attach_properties = node_value.get('properties', {})
+        # parse properties
+        for prop_name, prop_value in vol_attach_properties.items():
+            if prop_name in valid_properties:
+                vol_attach_dict[node_name][valid_properties[prop_name]] = \
+                    prop_value
+        # parse requirements to get mapping of cinder volume <-> Nova instance
+        for req in node_value.get('requirements', {}):
+            if 'virtualBinding' in req:
+                vol_attach_dict[node_name]['instance_uuid'] = \
+                    {'get_resource': req['virtualBinding']['node']}
+            elif 'virtualAttachment' in req:
+                vol_attach_dict[node_name]['volume_id'] = \
+                    {'get_resource': req['virtualAttachment']['node']}
+        del node_tpl[node_name]
+    return vol_attach_dict
+
+
+@log.log
+def get_block_storage_details(template):
+    block_storage_details = dict()
+    block_storage_details['volumes'] = get_volumes(template)
+    block_storage_details['volume_attachments'] = get_vol_attachments(template)
+    return block_storage_details
+
+
 @log.log
 def get_mgmt_ports(tosca):
     mgmt_ports = {}
@@ -308,7 +366,7 @@ def represent_odict(dump, tag, mapping, flow_style=None):
 @log.log
 def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
                                alarm_resources, res_tpl,
-                               unsupported_res_prop=None):
+                               vol_res={}, unsupported_res_prop=None):
     #
     # TODO(bobh) - remove when heat-translator can support literal strings.
     #
@@ -359,6 +417,8 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
         if 'get_file' in config:
             res["properties"]["config"] = open(config["get_file"]).read()
 
+    if vol_res.get('volumes'):
+        add_volume_resources(heat_dict, vol_res)
     if unsupported_res_prop:
         convert_unsupported_res_prop(heat_dict, unsupported_res_prop)
 
@@ -367,6 +427,28 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
                                           u'tag:yaml.org,2002:map', value))
 
     return yaml.safe_dump(heat_dict)
+
+
+@log.log
+def add_volume_resources(heat_dict, vol_res):
+    # Add cinder volumes
+    for res_name, cinder_vol in vol_res['volumes'].items():
+        heat_dict['resources'][res_name] = {
+            'type': 'OS::Cinder::Volume',
+            'properties': {}
+        }
+        for prop_name, prop_val in cinder_vol.items():
+            heat_dict['resources'][res_name]['properties'][prop_name] = \
+                prop_val
+    # Add cinder volume attachments
+    for res_name, cinder_vol in vol_res['volume_attachments'].items():
+        heat_dict['resources'][res_name] = {
+            'type': 'OS::Cinder::VolumeAttachment',
+            'properties': {}
+        }
+        for prop_name, prop_val in cinder_vol.items():
+            heat_dict['resources'][res_name]['properties'][prop_name] = \
+                prop_val
 
 
 @log.log

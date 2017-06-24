@@ -25,7 +25,7 @@ from translator.hot import tosca_translator
 def _get_template(name):
     filename = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "infra_drivers/openstack/data/", name)
+        "../infra_drivers/openstack/data/", name)
     f = codecs.open(filename, encoding='utf-8', errors='strict')
     return f.read()
 
@@ -110,7 +110,7 @@ class TestToscaUtils(testtools.TestCase):
         expected_heat_tpl = _get_template('hot_tosca_openwrt.yaml')
         mgmt_ports = toscautils.get_mgmt_ports(self.tosca)
         heat_tpl = toscautils.post_process_heat_template(
-            heat_template_yaml, mgmt_ports, {}, {})
+            heat_template_yaml, mgmt_ports, {}, {}, {})
 
         heatdict = yaml.safe_load(heat_tpl)
         expecteddict = yaml.safe_load(expected_heat_tpl)
@@ -246,3 +246,23 @@ class TestToscaUtils(testtools.TestCase):
         toscautils.updateimports(template)
         toscautils.check_for_substitution_mappings(template, param)
         self.assertNotIn('substitution_mappings', param)
+
+    def test_get_block_storage_details(self):
+        tosca_vol = _get_template('tosca_block_storage.yaml')
+        vnfd_dict = yaml.safe_load(tosca_vol)
+        expected_dict = {
+            'volumes': {
+                'VB1': {
+                    'image': 'cirros-0.3.5-x86_64-disk',
+                    'size': '1'
+                }
+            },
+            'volume_attachments': {
+                'CB1': {
+                    'instance_uuid': {'get_resource': 'VDU1'},
+                    'mountpoint': '/dev/vdb',
+                    'volume_id': {'get_resource': 'VB1'}}
+            }
+        }
+        volume_details = toscautils.get_block_storage_details(vnfd_dict)
+        self.assertEqual(expected_dict, volume_details)
