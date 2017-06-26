@@ -54,7 +54,10 @@ class PingVimAction(base.Action):
                     self.targetip]
 
         try:
-            linux_utils.execute(ping_cmd, check_exit_code=True)
+            # NOTE(gongysh) since it is called in a loop, the debug log
+            # should be disabled to avoid eating up mistral executor.
+            linux_utils.execute(ping_cmd, check_exit_code=True,
+                                debuglog=False)
             return 'REACHABLE'
         except RuntimeError:
             LOG.warning(("Cannot ping ip address: %s"), self.targetip)
@@ -85,6 +88,7 @@ class PingVimAction(base.Action):
                 status = self._ping()
                 if self.current_status != status:
                     self.current_status = self._update(status)
+                # TODO(gongysh) If we need to sleep a little time here?
         except Exception:
             LOG.exception('failed to run mistral action for vim %s',
                           self.vim_id)
