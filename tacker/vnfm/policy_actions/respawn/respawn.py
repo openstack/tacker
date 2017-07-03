@@ -60,7 +60,8 @@ class VNFActionRespawn(abstract_action.AbstractPolicyAction):
                 'instance_id']
 
         def _fetch_vim(vim_uuid):
-            return vim_client.VimClient().get_vim(context, vim_uuid)
+            vim_res = vim_client.VimClient().get_vim(context, vim_uuid)
+            return vim_res
 
         def _delete_heat_stack(vim_auth):
             placement_attr = vnf_dict.get('placement_attr', {})
@@ -72,7 +73,7 @@ class VNFActionRespawn(abstract_action.AbstractPolicyAction):
                 'instance_id'])
             _log_monitor_events(context, vnf_dict, "ActionRespawnHeat invoked")
 
-        def _respin_vnf():
+        def _respawn_vnf():
             update_vnf_dict = plugin.create_vnf_sync(context, vnf_dict)
             LOG.info(_('respawned new vnf %s'), update_vnf_dict['id'])
             plugin.config_vnf(context, update_vnf_dict)
@@ -84,11 +85,11 @@ class VNFActionRespawn(abstract_action.AbstractPolicyAction):
             if vnf_dict['attributes'].get('monitoring_policy'):
                 plugin._vnf_monitor.mark_dead(vnf_dict['id'])
                 _delete_heat_stack(vim_res['vim_auth'])
-                updated_vnf = _respin_vnf()
+                updated_vnf = _respawn_vnf()
                 plugin.add_vnf_to_monitor(context, updated_vnf)
                 LOG.debug(_("VNF %s added to monitor thread"), updated_vnf[
                     'id'])
             if vnf_dict['attributes'].get('alarming_policy'):
                 _delete_heat_stack(vim_res['vim_auth'])
                 vnf_dict['attributes'].pop('alarming_policy')
-                _respin_vnf()
+                _respawn_vnf()

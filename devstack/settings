@@ -1,4 +1,6 @@
 TACKER_MODE=${TACKER_MODE:-all}
+USE_BARBICAN=True
+
 if [ "${TACKER_MODE}" == "all" ]; then
     # Nova
     disable_service n-net

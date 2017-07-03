@@ -333,6 +333,9 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 driver_name, 'create', plugin=self,
                 context=context, vnf=vnf_dict, auth_attr=vim_auth)
         except Exception:
+            LOG.debug('Fail to create vnf %s in infra_driver, '
+                      'so delete this vnf',
+                      vnf_dict['id'])
             with excutils.save_and_reraise_exception():
                 self.delete_vnf(context, vnf_id)
 
