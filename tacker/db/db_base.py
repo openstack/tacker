@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from datetime import datetime
 import weakref
 
 from oslo_log import log as logging
@@ -108,7 +109,7 @@ class CommonDbMixin(object):
 
         # Don't list the deleted entries
         if hasattr(model, 'deleted_at'):
-            query = query.filter_by(deleted_at=None)
+            query = query.filter_by(deleted_at=datetime.min)
 
         return query
 

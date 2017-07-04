@@ -54,17 +54,15 @@ class VimTestCreate(base.BaseTackerTest):
         self.verify_vim(vim_obj, data, new_name, new_desc, version)
         self.verify_vim_events(vim_id, evt_constants.RES_EVT_UPDATE)
 
-        # TODO(yanxingan) Temporarily skip this case due to bug #1697818
-        '''
         # With the updated name above, create another VIM with the
         # same name and check for Duplicate name exception.
         vim_arg['vim']['name'] = update_vim_arg['vim']['name']
-        msg = "vim already exist with given ['tenant_id', 'name']"
+        msg = "vim already exist with given ['tenant_id', 'name', "\
+              "'deleted_at']"
         try:
             self.client.create_vim(vim_arg)
         except Exception as err:
             self.assertEqual(err.message, msg)
-        '''
 
         # Since there already exists a DEFAULT VM, Verify that a update
         # to is_default to TRUE for another VIM raises an exception.
@@ -166,3 +164,28 @@ class VimTestCreate(base.BaseTackerTest):
         time.sleep(1)
         self._test_create_delete_vim('local-vim.yaml', name, description,
                                      vim_type, ks_version)
+
+    def test_duplicate_vim(self):
+        name = 'test_duplicate_vim'
+        description = 'Test duplicate vim description'
+        vim_type = 'openstack'
+        version = 'v3'
+        data, vim_arg = self._generate_vim_data(
+            'local-vim.yaml', name, description, vim_type, version)
+
+        # Register vim
+        vim_res = self.client.create_vim(vim_arg)
+        vim_obj = vim_res['vim']
+        vim_id = vim_obj['id']
+
+        # Read vim
+        vim_show_res = self.client.show_vim(vim_id)
+        self.verify_vim(vim_show_res['vim'], data, name, description, version)
+        msg = "vim already exist with given ['tenant_id', 'name', "\
+              "'deleted_at']"
+        err_msg = None
+        try:
+            self.client.create_vim(vim_arg)
+        except Exception as err:
+            err_msg = err.message
+        self.assertEqual(err_msg, msg)

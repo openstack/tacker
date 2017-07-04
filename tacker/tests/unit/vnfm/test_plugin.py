@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from datetime import datetime
 import uuid
 
 import mock
@@ -124,7 +125,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_template',
             description='fake_template_description',
-            template_source='onboarded')
+            template_source='onboarded',
+            deleted_at=datetime.min)
         session.add(device_template)
         session.flush()
         return device_template
@@ -136,6 +138,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='tmpl-koeak4tqgoqo8cr4-dummy_inline_vnf',
             description='inline_fake_template_description',
+            deleted_at=datetime.min,
             template_source='inline')
         session.add(device_template)
         session.flush()
@@ -163,7 +166,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             vnfd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             placement_attr={'region': 'RegionOne'},
-            status='ACTIVE')
+            status='ACTIVE',
+            deleted_at=datetime.min)
         session.add(device_db)
         session.flush()
         return device_db
@@ -201,6 +205,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             description='fake_vim_description',
             type='test_vim',
             status='Active',
+            deleted_at=datetime.min,
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',

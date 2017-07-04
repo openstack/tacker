@@ -11,6 +11,7 @@
 # under the License.
 
 import ast
+from datetime import datetime
 import uuid
 
 from oslo_db.exception import DBDuplicateEntry
@@ -176,7 +177,8 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                     tenant_id=tenant_id,
                     name=nsd.get('name'),
                     vnfds=vnfds,
-                    description=nsd.get('description'))
+                    description=nsd.get('description'),
+                    deleted_at=datetime.min)
                 context.session.add(nsd_db)
                 for (key, value) in nsd.get('attributes', {}).items():
                     attribute_db = NSDAttribute(
@@ -258,7 +260,8 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                            mgmt_urls=None,
                            nsd_id=nsd_id,
                            vim_id=vim_id,
-                           error_reason=None)
+                           error_reason=None,
+                           deleted_at=datetime.min)
                 context.session.add(ns_db)
         except DBDuplicateEntry as e:
             raise exceptions.DuplicateEntity(

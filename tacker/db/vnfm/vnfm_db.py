@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from datetime import datetime
 import uuid
 
 from oslo_db.exception import DBDuplicateEntry
@@ -258,7 +259,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                     description=vnfd.get('description'),
                     mgmt_driver=mgmt_driver,
                     template_source=template_source,
-                    deleted_at=None)
+                    deleted_at=datetime.min)
                 context.session.add(vnfd_db)
                 for (key, value) in vnfd.get('attributes', {}).items():
                     attribute_db = VNFDAttribute(
@@ -408,7 +409,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                              vim_id=vim_id,
                              placement_attr=placement_attr,
                              status=constants.PENDING_CREATE,
-                             error_reason=None)
+                             error_reason=None,
+                             deleted_at=datetime.min)
                 context.session.add(vnf_db)
                 for key, value in attributes.items():
                         arg = VNFAttribute(
