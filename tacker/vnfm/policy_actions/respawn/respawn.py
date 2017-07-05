@@ -46,14 +46,14 @@ class VNFActionRespawn(abstract_action.AbstractPolicyAction):
 
     def execute_action(self, plugin, context, vnf_dict, args):
         vnf_id = vnf_dict['id']
-        LOG.info(_('vnf %s is dead and needs to be respawned'), vnf_id)
+        LOG.info('vnf %s is dead and needs to be respawned', vnf_id)
         attributes = vnf_dict['attributes']
         vim_id = vnf_dict['vim_id']
 
         def _update_failure_count():
             failure_count = int(attributes.get('failure_count', '0')) + 1
             failure_count_str = str(failure_count)
-            LOG.debug(_("vnf %(vnf_id)s failure count %(failure_count)s"),
+            LOG.debug("vnf %(vnf_id)s failure count %(failure_count)s",
                       {'vnf_id': vnf_id, 'failure_count': failure_count_str})
             attributes['failure_count'] = failure_count_str
             attributes['dead_instance_id_' + failure_count_str] = vnf_dict[
@@ -69,13 +69,13 @@ class VNFActionRespawn(abstract_action.AbstractPolicyAction):
             heatclient = hc.HeatClient(auth_attr=vim_auth,
                                        region_name=region_name)
             heatclient.delete(vnf_dict['instance_id'])
-            LOG.debug(_("Heat stack %s delete initiated"), vnf_dict[
-                'instance_id'])
+            LOG.debug("Heat stack %s delete initiated",
+                      vnf_dict['instance_id'])
             _log_monitor_events(context, vnf_dict, "ActionRespawnHeat invoked")
 
         def _respawn_vnf():
             update_vnf_dict = plugin.create_vnf_sync(context, vnf_dict)
-            LOG.info(_('respawned new vnf %s'), update_vnf_dict['id'])
+            LOG.info('respawned new vnf %s', update_vnf_dict['id'])
             plugin.config_vnf(context, update_vnf_dict)
             return update_vnf_dict
 
@@ -87,8 +87,8 @@ class VNFActionRespawn(abstract_action.AbstractPolicyAction):
                 _delete_heat_stack(vim_res['vim_auth'])
                 updated_vnf = _respawn_vnf()
                 plugin.add_vnf_to_monitor(context, updated_vnf)
-                LOG.debug(_("VNF %s added to monitor thread"), updated_vnf[
-                    'id'])
+                LOG.debug("VNF %s added to monitor thread",
+                          updated_vnf['id'])
             if vnf_dict['attributes'].get('alarming_policy'):
                 _delete_heat_stack(vim_res['vim_auth'])
                 vnf_dict['attributes'].pop('alarming_policy')

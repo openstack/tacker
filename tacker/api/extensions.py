@@ -277,8 +277,7 @@ class ExtensionMiddleware(wsgi.Middleware):
                                (resource.parent["collection_name"],
                                 resource.parent["member_name"]))
 
-            LOG.debug(_('Extended resource: %s'),
-                      resource.collection)
+            LOG.debug('Extended resource: %s', resource.collection)
             for action, method in (resource.collection_actions).items():
                 conditions = dict(method=[method])
                 path = "/%s/%s" % (resource.collection, action)
@@ -299,7 +298,7 @@ class ExtensionMiddleware(wsgi.Middleware):
         action_controllers = self._action_ext_controllers(application,
                                                           self.ext_mgr, mapper)
         for action in self.ext_mgr.get_actions():
-            LOG.debug(_('Extended action: %s'), action.action_name)
+            LOG.debug('Extended action: %s', action.action_name)
             controller = action_controllers[action.collection]
             controller.add_action(action.action_name, action.handler)
 
@@ -307,7 +306,7 @@ class ExtensionMiddleware(wsgi.Middleware):
         req_controllers = self._request_ext_controllers(application,
                                                         self.ext_mgr, mapper)
         for request_ext in self.ext_mgr.get_request_extensions():
-            LOG.debug(_('Extended request: %s'), request_ext.key)
+            LOG.debug('Extended request: %s', request_ext.key)
             controller = req_controllers[request_ext.key]
             controller.add_handler(request_ext.handler)
 
@@ -405,7 +404,7 @@ class ExtensionManager(object):
         return cls._instance
 
     def __init__(self, path):
-        LOG.info(_('Initializing extension manager.'))
+        LOG.info('Initializing extension manager.')
         self.path = path
         self.extensions = {}
         self._load_all_extensions()
@@ -485,8 +484,8 @@ class ExtensionManager(object):
                         else:
                             attr_map[resource] = resource_attrs
                 except AttributeError:
-                    LOG.exception(_("Error fetching extended attributes for "
-                                    "extension '%s'"), ext.get_name())
+                    LOG.exception("Error fetching extended attributes for "
+                                  "extension '%s'", ext.get_name())
                 processed_exts.add(ext_name)
                 del exts_to_process[ext_name]
             if len(processed_exts) == processed_ext_count:
@@ -494,8 +493,8 @@ class ExtensionManager(object):
                 break
         if exts_to_process:
             # NOTE(salv-orlando): Consider whether this error should be fatal
-            LOG.error(_("It was impossible to process the following "
-                        "extensions: %s because of missing requirements."),
+            LOG.error("It was impossible to process the following "
+                      "extensions: %s because of missing requirements.",
                       ','.join(exts_to_process.keys()))
 
         # Extending extensions' attributes map.
@@ -505,13 +504,13 @@ class ExtensionManager(object):
     def _check_extension(self, extension):
         """Checks for required methods in extension objects."""
         try:
-            LOG.debug(_('Ext name: %s'), extension.get_name())
-            LOG.debug(_('Ext alias: %s'), extension.get_alias())
-            LOG.debug(_('Ext description: %s'), extension.get_description())
-            LOG.debug(_('Ext namespace: %s'), extension.get_namespace())
-            LOG.debug(_('Ext updated: %s'), extension.get_updated())
+            LOG.debug('Ext name: %s', extension.get_name())
+            LOG.debug('Ext alias: %s', extension.get_alias())
+            LOG.debug('Ext description: %s', extension.get_description())
+            LOG.debug('Ext namespace: %s', extension.get_namespace())
+            LOG.debug('Ext updated: %s', extension.get_updated())
         except AttributeError as ex:
-            LOG.exception(_("Exception loading extension: %s"), ex)
+            LOG.exception("Exception loading extension: %s", ex)
             return False
         return True
 
@@ -529,7 +528,7 @@ class ExtensionManager(object):
             if os.path.exists(path):
                 self._load_all_extensions_from_path(path)
             else:
-                LOG.error(_("Extension path '%s' doesn't exist!"), path)
+                LOG.error("Extension path '%s' doesn't exist!", path)
 
     def _load_all_extensions_from_path(self, path):
         # Sorting the extension list makes the order in which they
@@ -537,7 +536,7 @@ class ExtensionManager(object):
         # Tacker Servers
         for f in sorted(os.listdir(path)):
             try:
-                LOG.debug(_('Loading extension file: %s'), f)
+                LOG.debug('Loading extension file: %s', f)
                 mod_name, file_ext = os.path.splitext(os.path.split(f)[-1])
                 ext_path = os.path.join(path, f)
                 if file_ext.lower() == '.py' and not mod_name.startswith('_'):
@@ -545,16 +544,16 @@ class ExtensionManager(object):
                     ext_name = mod_name[0].upper() + mod_name[1:]
                     new_ext_class = getattr(mod, ext_name, None)
                     if not new_ext_class:
-                        LOG.warning(_('Did not find expected name '
-                                      '"%(ext_name)s" in %(file)s'),
+                        LOG.warning('Did not find expected name '
+                                    '"%(ext_name)s" in %(file)s',
                                     {'ext_name': ext_name,
                                      'file': ext_path})
                         continue
                     new_ext = new_ext_class()
                     self.add_extension(new_ext)
             except Exception as exception:
-                LOG.warning(_("Extension file %(f)s wasn't loaded due to "
-                              "%(exception)s"),
+                LOG.warning("Extension file %(f)s wasn't loaded due to "
+                            "%(exception)s",
                             {'f': f, 'exception': exception})
 
     def add_extension(self, ext):
@@ -563,7 +562,7 @@ class ExtensionManager(object):
             return
 
         alias = ext.get_alias()
-        LOG.info(_('Loaded extension: %s'), alias)
+        LOG.info('Loaded extension: %s', alias)
 
         if alias in self.extensions:
             raise exceptions.DuplicatedExtension(alias=alias)

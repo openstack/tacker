@@ -64,27 +64,27 @@ class RemoteCommandExecutor(object):
             self.__ssh.set_missing_host_key_policy(paramiko.WarningPolicy())
             self.__ssh.connect(self.__host, username=self.__user,
                 password=self.__password, timeout=self.__timeout)
-            LOG.info(_("Connected to %s") % self.__host)
+            LOG.info("Connected to %s", self.__host)
         except paramiko.AuthenticationException:
-            LOG.error(_("Authentication failed when connecting to %s")
-                % self.__host)
+            LOG.error("Authentication failed when connecting to %s",
+                      self.__host)
             raise exceptions.NotAuthorized
         except paramiko.SSHException:
-            LOG.error(_("Could not connect to %s. Giving up") % self.__host)
+            LOG.error("Could not connect to %s. Giving up", self.__host)
             raise
 
     def close_session(self):
         self.__ssh.close()
-        LOG.debug(_("Connection close"))
+        LOG.debug("Connection close")
 
     def execute_command(self, cmd, input_data=None):
         try:
             stdin, stdout, stderr = self.__ssh.exec_command(cmd)
             if input_data:
                 stdin.write(input_data)
-                LOG.debug(_("Input data written successfully"))
+                LOG.debug("Input data written successfully")
                 stdin.flush()
-                LOG.debug(_("Input data flushed"))
+                LOG.debug("Input data flushed")
                 stdin.channel.shutdown_write()
 
             # NOTE (dkushwaha): There might be a case, when server can take
@@ -96,11 +96,10 @@ class RemoteCommandExecutor(object):
             cmd_err = stderr.readlines()
             return_code = stdout.channel.recv_exit_status()
         except paramiko.SSHException:
-            LOG.error(_("Command execution failed at %s. Giving up")
-                % self.__host)
+            LOG.error("Command execution failed at %s. Giving up", self.__host)
             raise
         result = CommandResult(cmd, cmd_out, cmd_err, return_code)
-        LOG.debug(_("Remote command execution result: %s"), result)
+        LOG.debug("Remote command execution result: %s", result)
         return result
 
     def __del__(self):

@@ -65,7 +65,7 @@ class CommonServicesPluginDb(common_services.CommonServicesPluginBase,
                     timestamp=tstamp)
                 context.session.add(event_db)
         except Exception as e:
-            LOG.exception(_("create event error: %s"), str(e))
+            LOG.exception("create event error: %s", str(e))
             raise common_services.EventCreationFailureException(
                 error_str=str(e))
         return self._make_event_dict(event_db)

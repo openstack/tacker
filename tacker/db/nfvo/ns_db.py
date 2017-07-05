@@ -155,7 +155,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         return dict((arg.key, arg.value) for arg in dev_attrs_db)
 
     def _make_ns_dict(self, ns_db, fields=None):
-        LOG.debug(_('ns_db %s'), ns_db)
+        LOG.debug('ns_db %s', ns_db)
         res = {}
         key_list = ('id', 'tenant_id', 'nsd_id', 'name', 'description',
                     'vnf_ids', 'status', 'mgmt_urls', 'error_reason',
@@ -166,7 +166,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
     def create_nsd(self, context, nsd):
         vnfds = nsd['vnfds']
         nsd = nsd['nsd']
-        LOG.debug(_('nsd %s'), nsd)
+        LOG.debug('nsd %s', nsd)
         tenant_id = self._get_tenant_id_for_create(context, nsd)
 
         try:
@@ -191,11 +191,11 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
             raise exceptions.DuplicateEntity(
                 _type="nsd",
                 entry=e.columns)
-        LOG.debug(_('nsd_db %(nsd_db)s %(attributes)s '),
+        LOG.debug('nsd_db %(nsd_db)s %(attributes)s ',
                   {'nsd_db': nsd_db,
                    'attributes': nsd_db.attributes})
         nsd_dict = self._make_nsd_dict(nsd_db)
-        LOG.debug(_('nsd_dict %s'), nsd_dict)
+        LOG.debug('nsd_dict %s', nsd_dict)
         self._cos_db_plg.create_event(
             context, res_id=nsd_dict['id'],
             res_type=constants.RES_TYPE_NSD,
@@ -240,7 +240,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
 
     # reference implementation. needs to be overrided by subclass
     def create_ns(self, context, ns):
-        LOG.debug(_('ns %s'), ns)
+        LOG.debug('ns %s', ns)
         ns = ns['ns']
         tenant_id = self._get_tenant_id_for_create(context, ns)
         nsd_id = ns['nsd_id']
@@ -279,7 +279,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
 
     def create_ns_post(self, context, ns_id, mistral_obj,
             vnfd_dict, error_reason):
-        LOG.debug(_('ns ID %s'), ns_id)
+        LOG.debug('ns ID %s', ns_id)
         output = ast.literal_eval(mistral_obj.output)
         mgmt_urls = dict()
         vnf_ids = dict()

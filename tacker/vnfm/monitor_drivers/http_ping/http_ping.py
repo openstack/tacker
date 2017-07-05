@@ -48,7 +48,7 @@ class VNFMonitorHTTPPing(abstract_driver.VNFMonitorAbstractDriver):
         return 'Tacker HTTP Ping Driver for VNF'
 
     def monitor_url(self, plugin, context, vnf):
-        LOG.debug(_('monitor_url %s'), vnf)
+        LOG.debug('monitor_url %s', vnf)
         return vnf.get('monitor_url', '')
 
     def _is_pingable(self, mgmt_ip='', retry=5, timeout=5, port=80, **kwargs):

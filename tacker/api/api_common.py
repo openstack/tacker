@@ -102,8 +102,8 @@ def _get_pagination_max_limit():
             if max_limit == 0:
                 raise ValueError()
         except ValueError:
-            LOG.warning(_("Invalid value for pagination_max_limit: %s. It "
-                          "should be an integer greater to 0"),
+            LOG.warning("Invalid value for pagination_max_limit: %s. It "
+                        "should be an integer greater to 0",
                         cfg.CONF.pagination_max_limit)
     return max_limit
 

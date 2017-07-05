@@ -44,7 +44,7 @@ class DriverManager(object):
 
         self._drivers = dict((type_, ext.obj)
                              for (type_, ext) in drivers.items())
-        LOG.info(_("Registered drivers from %(namespace)s: %(keys)s"),
+        LOG.info("Registered drivers from %(namespace)s: %(keys)s",
                  {'namespace': namespace, 'keys': self._drivers.keys()})
 
     @staticmethod

@@ -95,7 +95,7 @@ class TOSCAToHOT(object):
         self.vnfd_yaml = self.attributes.pop('vnfd', None)
         if self.vnfd_yaml is None:
             # TODO(kangaraj-manickam) raise user level exception
-            LOG.info(_("VNFD is not provided, so no vnf is created !!"))
+            LOG.info("VNFD is not provided, so no vnf is created !!")
             return
         LOG.debug('vnfd_yaml %s', self.vnfd_yaml)
 

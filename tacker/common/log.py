@@ -30,7 +30,7 @@ def log(method):
                 "method_name": method.__name__,
                 "args": strutils.mask_password(args[1:]),
                 "kwargs": strutils.mask_password(kwargs)}
-        LOG.debug(_('%(class_name)s method %(method_name)s'
-                    ' called with arguments %(args)s %(kwargs)s'), data)
+        LOG.debug('%(class_name)s method %(method_name)s'
+                  ' called with arguments %(args)s %(kwargs)s', data)
         return method(*args, **kwargs)
     return wrapper

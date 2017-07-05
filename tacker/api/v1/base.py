@@ -73,8 +73,8 @@ class Controller(object):
                     _("Native pagination depend on native sorting")
                 )
             if not self._allow_sorting:
-                LOG.info(_("Allow sorting is enabled because native "
-                           "pagination requires native sorting"))
+                LOG.info("Allow sorting is enabled because native "
+                         "pagination requires native sorting")
                 self._allow_sorting = True
 
         if parent:
@@ -331,8 +331,7 @@ class Controller(object):
                     obj_deleter(request.context, obj['id'], **kwargs)
                 except Exception:
                     # broad catch as our only purpose is to log the exception
-                    LOG.exception(_("Unable to undo add for "
-                                    "%(resource)s %(id)s"),
+                    LOG.exception("Unable to undo add for %(resource)s %(id)s",
                                   {'resource': self._resource,
                                    'id': obj['id']})
             # TODO(salvatore-orlando): The object being processed when the
@@ -508,8 +507,8 @@ class Controller(object):
         if not body:
             raise webob.exc.HTTPBadRequest(_("Resource body required"))
 
-        LOG.debug(_("Request body: %(body)s"), {'body':
-                                               strutils.mask_password(body)})
+        LOG.debug("Request body: %(body)s",
+                  {'body': strutils.mask_password(body)})
         prep_req_body = lambda x: Controller.prepare_request_body(
             context,
             x if resource in x else {resource: x},

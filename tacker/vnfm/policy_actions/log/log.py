@@ -44,7 +44,7 @@ class VNFActionLogOnly(abstract_action.AbstractPolicyAction):
 
     def execute_action(self, plugin, context, vnf_dict, args):
         vnf_id = vnf_dict['id']
-        LOG.error(_('vnf %s dead'), vnf_id)
+        LOG.error('vnf %s dead', vnf_id)
         _log_monitor_events(context,
                             vnf_dict,
                             "ActionLogOnly invoked")
@@ -69,4 +69,4 @@ class VNFActionLogAndKill(abstract_action.AbstractPolicyAction):
             if vnf_dict['attributes'].get('monitoring_policy'):
                 plugin._vnf_monitor.mark_dead(vnf_dict['id'])
             plugin.delete_vnf(context, vnf_id)
-        LOG.error(_('vnf %s dead'), vnf_id)
+        LOG.error('vnf %s dead', vnf_id)

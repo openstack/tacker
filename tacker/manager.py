@@ -133,11 +133,11 @@ class TackerManager(object):
         plugin_providers = cfg.CONF.service_plugins
         if 'commonservices' not in plugin_providers:
             plugin_providers.append('commonservices')
-        LOG.debug(_("Loading service plugins: %s"), plugin_providers)
+        LOG.debug("Loading service plugins: %s", plugin_providers)
         for provider in plugin_providers:
             if provider == '':
                 continue
-            LOG.info(_("Loading Plugin: %s"), provider)
+            LOG.info("Loading Plugin: %s", provider)
 
             plugin_inst = self._get_plugin_instance('tacker.service_plugins',
                                                     provider)
@@ -156,8 +156,8 @@ class TackerManager(object):
             #         hasattr(plugin_inst, 'agent_notifiers')):
             #     self.plugin.agent_notifiers.update(plugin_inst.agent_notifiers)
 
-            LOG.debug(_("Successfully loaded %(type)s plugin. "
-                        "Description: %(desc)s"),
+            LOG.debug("Successfully loaded %(type)s plugin. "
+                      "Description: %(desc)s",
                       {"type": plugin_inst.get_plugin_type(),
                        "desc": plugin_inst.get_plugin_description()})
 

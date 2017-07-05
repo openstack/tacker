@@ -70,16 +70,15 @@ class Keystone(object):
     @staticmethod
     def create_key_dir(path):
         if not os.access(path, os.F_OK):
-            LOG.info(_(
-                '[fernet_tokens] key_repository does not appear to exist; '
-                'attempting to create it'))
+            LOG.info('[fernet_tokens] key_repository does not appear to '
+                     'exist; attempting to create it')
             try:
                 os.makedirs(path, 0o700)
             except OSError:
-                LOG.error(_(
+                LOG.error(
                     'Failed to create [fernet_tokens] key_repository: either'
                     'it already exists or you don\'t have sufficient'
-                    'permissions to create it'))
+                    'permissions to create it')
 
     def create_fernet_key(self):
         fernet_key = fernet.Fernet.generate_key()

@@ -19,6 +19,7 @@ from tacker.vnfm.monitor_drivers.token import Token
 from tacker import wsgi
 # check alarm url with db --> move to plugin
 
+
 LOG = logging.getLogger(__name__)
 
 OPTS = [
@@ -41,7 +42,7 @@ def config_opts():
 
 class AlarmReceiver(wsgi.Middleware):
     def process_request(self, req):
-        LOG.debug(_('Process request: %s'), req)
+        LOG.debug('Process request: %s', req)
         if req.method != 'POST':
             return
         url = req.url

@@ -39,8 +39,8 @@ class VimClient(object):
             constants.NFVO)
 
         if not vim_id:
-            LOG.debug(_('VIM id not provided. Attempting to find default '
-                        'VIM information'))
+            LOG.debug('VIM id not provided. Attempting to find default '
+                      'VIM information')
             try:
                 vim_info = nfvo_plugin.get_default_vim(context)
             except Exception as ex:
@@ -52,7 +52,7 @@ class VimClient(object):
                                                mask_password=False)
             except Exception:
                 raise nfvo.VimNotFoundException(vim_id=vim_id)
-        LOG.debug(_('VIM info found for vim id %s'), vim_id)
+        LOG.debug('VIM info found for vim id %s', vim_id)
         if region_name and not self.region_valid(vim_info['placement_attr']
                                                  ['regions'], region_name):
             raise nfvo.VimRegionNotFoundException(region_name=region_name)
@@ -101,7 +101,7 @@ class VimClient(object):
 
         f = fernet.Fernet(vim_key)
         if not f:
-            LOG.warning(_('Unable to decode VIM auth'))
+            LOG.warning('Unable to decode VIM auth')
             raise nfvo.VimNotFoundException(
                 'Unable to decode VIM auth key')
         return f.decrypt(cred)
@@ -109,7 +109,7 @@ class VimClient(object):
     @staticmethod
     def _find_vim_key(vim_id):
         key_file = os.path.join(CONF.vim_keys.openstack, vim_id)
-        LOG.debug(_('Attempting to open key file for vim id %s'), vim_id)
+        LOG.debug('Attempting to open key file for vim id %s', vim_id)
         with open(key_file, 'r') as f:
                 return f.read()
-        LOG.warning(_('VIM id invalid or key not found for  %s'), vim_id)
+        LOG.warning('VIM id invalid or key not found for  %s', vim_id)
