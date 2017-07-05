@@ -43,13 +43,13 @@ class TestAttributes(base.BaseTestCase):
 
     def test_is_attr_set(self):
         data = attributes.ATTR_NOT_SPECIFIED
-        self.assertIs(attributes.is_attr_set(data), False)
+        self.assertFalse(attributes.is_attr_set(data))
 
         data = None
-        self.assertIs(attributes.is_attr_set(data), False)
+        self.assertFalse(attributes.is_attr_set(data))
 
         data = "I'm set"
-        self.assertIs(attributes.is_attr_set(data), True)
+        self.assertTrue(attributes.is_attr_set(data))
 
     def test_validate_values(self):
         msg = attributes._validate_values(4, [4, 6])
@@ -647,7 +647,7 @@ class TestAttributes(base.BaseTestCase):
         self.assertIsNone(msg)
         # Explicitly comparing with literal 'True' as assertTrue
         # succeeds also for 'true'
-        self.assertIs(True, dictionary['key_bool'])
+        self.assertTrue(dictionary['key_bool'])
 
     def test_subdictionary(self):
         dictionary, constraints = self._construct_dict_and_constraints()
@@ -693,23 +693,23 @@ class TestAttributes(base.BaseTestCase):
 class TestConvertToBoolean(base.BaseTestCase):
 
     def test_convert_to_boolean_bool(self):
-        self.assertIs(attributes.convert_to_boolean(True), True)
-        self.assertIs(attributes.convert_to_boolean(False), False)
+        self.assertTrue(attributes.convert_to_boolean(True))
+        self.assertFalse(attributes.convert_to_boolean(False))
 
     def test_convert_to_boolean_int(self):
-        self.assertIs(attributes.convert_to_boolean(0), False)
-        self.assertIs(attributes.convert_to_boolean(1), True)
+        self.assertFalse(attributes.convert_to_boolean(0))
+        self.assertTrue(attributes.convert_to_boolean(1))
         self.assertRaises(n_exc.InvalidInput,
                           attributes.convert_to_boolean,
                           7)
 
     def test_convert_to_boolean_str(self):
-        self.assertIs(attributes.convert_to_boolean('True'), True)
-        self.assertIs(attributes.convert_to_boolean('true'), True)
-        self.assertIs(attributes.convert_to_boolean('False'), False)
-        self.assertIs(attributes.convert_to_boolean('false'), False)
-        self.assertIs(attributes.convert_to_boolean('0'), False)
-        self.assertIs(attributes.convert_to_boolean('1'), True)
+        self.assertTrue(attributes.convert_to_boolean('True'))
+        self.assertTrue(attributes.convert_to_boolean('true'))
+        self.assertFalse(attributes.convert_to_boolean('False'))
+        self.assertFalse(attributes.convert_to_boolean('false'))
+        self.assertFalse(attributes.convert_to_boolean('0'))
+        self.assertTrue(attributes.convert_to_boolean('1'))
         self.assertRaises(n_exc.InvalidInput,
                           attributes.convert_to_boolean,
                           '7')
