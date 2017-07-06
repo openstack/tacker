@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from datetime import datetime
 import uuid
 
 from oslo_db.exception import DBDuplicateEntry
@@ -85,7 +86,8 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                     description=vim.get('description'),
                     placement_attr=vim.get('placement_attr'),
                     is_default=vim.get('is_default'),
-                    status=vim.get('status'))
+                    status=vim.get('status'),
+                    deleted_at=datetime.min)
                 context.session.add(vim_db)
                 vim_auth_db = nfvo_db.VimAuth(
                     id=str(uuid.uuid4()),

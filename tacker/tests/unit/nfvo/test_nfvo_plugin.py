@@ -14,6 +14,7 @@
 #    under the License.
 
 import codecs
+from datetime import datetime
 import mock
 import os
 import uuid
@@ -224,6 +225,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             description='fake_vim_description',
             type='openstack',
             status='Active',
+            deleted_at=datetime.min,
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
@@ -246,6 +248,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             description='fake_vim_description',
             type='openstack',
             status='Active',
+            deleted_at=datetime.min,
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
@@ -665,7 +668,8 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             name='fake_template',
             vnfds={'tosca.nodes.nfv.VNF1': 'vnf1',
                    'tosca.nodes.nfv.VNF2': 'vnf2'},
-            description='fake_nsd_template_description')
+            description='fake_nsd_template_description',
+            deleted_at=datetime.min)
         session.add(nsd_template)
         for (key, value) in attributes.items():
             attribute_db = ns_db.NSDAttribute(
@@ -686,7 +690,8 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             status='ACTIVE',
             nsd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-            description='fake_ns_description')
+            description='fake_ns_description',
+            deleted_at=datetime.min)
         session.add(ns)
         session.flush()
         return ns
@@ -700,7 +705,8 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             status='ACTIVE',
             nsd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-            description='fake_ns_description')
+            description='fake_ns_description',
+            deleted_at=datetime.min)
         session.add(ns)
         session.flush()
         return ns

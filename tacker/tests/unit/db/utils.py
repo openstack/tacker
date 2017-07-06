@@ -14,6 +14,7 @@
 #    under the License.
 
 import codecs
+from datetime import datetime
 import os
 import yaml
 
@@ -93,6 +94,7 @@ def get_dummy_vnf_obj():
                     'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
                     'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                     'name': 'dummy_vnf',
+                    'deleted_at': datetime.min,
                     'attributes': {},
                     'vnfd_template': None}}
 
