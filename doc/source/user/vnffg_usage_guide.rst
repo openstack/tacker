@@ -25,7 +25,7 @@ decides which traffic should go through them.
 
 Similar to how VNFs are described by VNFDs, VNFFGs are described by VNF
 Forwarding Graph Descriptors (VNFFGD). Please see the `devref guide
-<https://github.com/openstack/tacker/blob/master/doc/source/devref
+<https://github.com/openstack/tacker/blob/master/doc/source/contributor
 /vnffgd_template_description.rst>`_ on VNFFGD to learn more about
 how a VNFFGD is defined.
 

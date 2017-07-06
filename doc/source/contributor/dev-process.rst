@@ -23,7 +23,7 @@ Tacker launchpad [#]_ bug.
 * Once all the patchsets are merged the bug will be moved to the "Completed"
   state.
 * Developer(s) are expected to add a devref describing the usage of the feature
-  and other related topics in tacker/doc/source/devref directory.
+  and other related topics in tacker/doc/source/contributor directory.
 
 This process is recommended for smaller enhancements that can be described
 easily and it is relatively easy to implement in a short period of time.
@@ -49,7 +49,7 @@ submitting a patchset to the tacker-spec repository [#]_.
 * Once all the patchsets are merged the blueprint will be as "Implemented" by
   the tacker core team.
 * The developer is expected to add a devref describing the usage of the feature
-  and other related topics in tacker/doc/source/devref directory.
+  and other related topics in tacker/doc/source/contributor directory.
 
 This process is recommended for medium to large enhancements that needs
 significant code-changes (LOC), community discussions and debates.

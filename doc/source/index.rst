@@ -49,30 +49,38 @@ Feature Documentation
 .. toctree::
    :maxdepth: 1
 
-   devref/vnfm_usage_guide.rst
-   devref/vnfd_template_description.rst
-   devref/monitor-api.rst
-   devref/vnfd_template_parameterization.rst
-   devref/enhanced_placement_awareness_usage_guide.rst
-   devref/multisite_vim_usage_guide.rst
-   devref/mistral_workflows_usage_guide.rst
-   devref/scale_usage_guide.rst
-   devref/alarm_monitoring_usage_guide.rst
-   devref/event_logging.rst
-   devref/vnffgd_template_description.rst
-   devref/vnffg_usage_guide.rst
-   devref/nsd_usage_guide.rst
-   devref/vnf_component_usage_guide.rst
-   devref/tacker_conductor.rst
-   devref/tacker_vim_monitoring.rst
+   contributor/vnfd_template_description.rst
+   contributor/monitor-api.rst
+   contributor/vnfd_template_parameterization.rst
+   contributor/event_logging.rst
+   contributor/vnffgd_template_description.rst
+   contributor/tacker_conductor.rst
+   contributor/tacker_vim_monitoring.rst
+   contributor/policy_actions_framework.rst
+
+User Guide
+==========
+
+.. toctree::
+   :maxdepth: 1
+
+   user/vnfm_usage_guide.rst
+   user/multisite_vim_usage_guide.rst
+   user/scale_usage_guide.rst
+   user/alarm_monitoring_usage_guide.rst
+   user/vnffg_usage_guide.rst
+   user/nsd_usage_guide.rst
+   user/vnf_component_usage_guide.rst
+   user/enhanced_placement_awareness_usage_guide.rst
+   reference/mistral_workflows_usage_guide.rst
 
 API Documentation
 =================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   devref/mano_api.rst
+   contributor/api/mano_api.rst
 
 Contributing to Tacker
 ======================
@@ -80,7 +88,7 @@ Contributing to Tacker
 .. toctree::
    :maxdepth: 1
 
-   policies/dev-process.rst
+   contributor/dev-process.rst
 
 Developer Info
 ==============
@@ -88,11 +96,11 @@ Developer Info
 .. toctree::
    :maxdepth: 1
 
-   devref/development.environment.rst
-   devref/api_layer.rst
-   devref/api_extensions.rst
-   devref/tacker_functional_test.rst
-   devref/dashboards.rst
+   contributor/development.environment.rst
+   contributor/api/api_layer.rst
+   contributor/api/api_extensions.rst
+   contributor/tacker_functional_test.rst
+   contributor/dashboards.rst
 
 Project Info
 ============
