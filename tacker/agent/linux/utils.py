@@ -31,7 +31,8 @@ from tacker.common import utils
 LOG = logging.getLogger(__name__)
 
 
-def create_process(cmd, root_helper=None, addl_env=None):
+def create_process(cmd, root_helper=None, addl_env=None,
+                   debuglog=True):
     """Create a process object for the given command.
 
     The return value will be a tuple of the process object and the
@@ -41,7 +42,8 @@ def create_process(cmd, root_helper=None, addl_env=None):
         cmd = shlex.split(root_helper) + cmd
     cmd = map(str, cmd)
 
-    LOG.debug(_("Running command: %s"), cmd)
+    if debuglog:
+        LOG.debug(_("Running command: %s"), cmd)
     env = os.environ.copy()
     if addl_env:
         env.update(addl_env)
@@ -57,9 +59,11 @@ def create_process(cmd, root_helper=None, addl_env=None):
 
 def execute(cmd, root_helper=None, process_input=None, addl_env=None,
             check_exit_code=True, return_stderr=False, debuglog=True):
+    # Note(gongysh) not use log_levels in config file because
+    # some other codes that are not in a loop probably need the debug log
     try:
         obj, cmd = create_process(cmd, root_helper=root_helper,
-                                  addl_env=addl_env)
+                                  addl_env=addl_env, debuglog=debuglog)
         _stdout, _stderr = (process_input and
                             obj.communicate(process_input) or
                             obj.communicate())
