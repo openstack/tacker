@@ -15,9 +15,10 @@
 
 import random
 import sqlalchemy as sa
+import uuid
 
 from oslo_log import log as logging
-from oslo_utils import uuidutils
+from six import iteritems
 from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
 from tacker._i18n import _
@@ -72,6 +73,9 @@ class VnffgTemplate(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
 
     # Vnffg template
     template = sa.Column(types.Json)
+
+    # Vnffgd template source - onboarded
+    template_source = sa.Column(sa.String(255), server_default='onboarded')
 
 
 class Vnffg(model_base.BASE, models_v1.HasTenant, models_v1.HasId):
@@ -192,8 +196,8 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
 
     def create_vnffg(self, context, vnffg):
         vnffg_dict = self._create_vnffg_pre(context, vnffg)
-        sfc_instance = uuidutils.generate_uuid()
-        fc_instance = uuidutils.generate_uuid()
+        sfc_instance = str(uuid.uuid4())
+        fc_instance = str(uuid.uuid4())
         self._create_vnffg_post(context, sfc_instance,
                                 fc_instance, vnffg_dict)
         self._create_vnffg_status(context, vnffg_dict)
@@ -220,15 +224,17 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         template = vnffgd['vnffgd']
         LOG.debug(_('template %s'), template)
         tenant_id = self._get_tenant_id_for_create(context, template)
+        template_source = template.get('template_source')
 
         with context.session.begin(subtransactions=True):
-            template_id = uuidutils.generate_uuid()
+            template_id = str(uuid.uuid4())
             template_db = VnffgTemplate(
                 id=template_id,
                 tenant_id=tenant_id,
                 name=template.get('name'),
                 description=template.get('description'),
-                template=template.get('template'))
+                template=template.get('template'),
+                template_source=template_source)
             context.session.add(template_db)
 
         LOG.debug(_('template_db %(template_db)s'),
@@ -241,6 +247,9 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         return self._make_template_dict(template_db, fields)
 
     def get_vnffgds(self, context, filters=None, fields=None):
+        if ('template_source' in filters) and \
+                (filters['template_source'][0] == 'all'):
+            filters.pop('template_source')
         return self._get_collection(context, VnffgTemplate,
                                     self._make_template_dict,
                                     filters=filters, fields=fields)
@@ -288,7 +297,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         if 'get_input' not in str(original):
             return
         if isinstance(original, dict):
-            for key_, value in (original).items():
+            for key_, value in iteritems(original):
                 if isinstance(value, dict) and 'get_input' in value:
                     if value['get_input'] in paramvalues:
                         original[key_] = paramvalues[value['get_input']]
@@ -324,7 +333,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         LOG.debug(_('vnffg %s'), vnffg)
         tenant_id = self._get_tenant_id_for_create(context, vnffg)
         name = vnffg.get('name')
-        vnffg_id = vnffg.get('id') or uuidutils.generate_uuid()
+        vnffg_id = vnffg.get('id') or str(uuid.uuid4())
         template_id = vnffg['vnffgd_id']
         symmetrical = vnffg['symmetrical']
 
@@ -362,9 +371,9 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                              status=constants.PENDING_CREATE)
             context.session.add(vnffg_db)
 
-            nfp_id = uuidutils.generate_uuid()
-            sfc_id = uuidutils.generate_uuid()
-            classifier_id = uuidutils.generate_uuid()
+            nfp_id = str(uuid.uuid4())
+            sfc_id = str(uuid.uuid4())
+            classifier_id = str(uuid.uuid4())
 
             nfp_db = VnffgNfp(id=nfp_id, vnffg_id=vnffg_id,
                               tenant_id=tenant_id,
@@ -400,7 +409,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             LOG.debug(_('acl_match %s'), match)
 
             match_db_table = ACLMatchCriteria(
-                id=uuidutils.generate_uuid(),
+                id=str(uuid.uuid4()),
                 vnffgc_id=classifier_id,
                 **match)
 
@@ -663,7 +672,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         """
         # this should be overridden with driver call to find ID given name
         # for resource
-        return uuidutils.generate_uuid()
+        return str(uuid.uuid4())
 
     # called internally, not by REST API
     # instance_id = None means error on creation
@@ -904,9 +913,17 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 nfp_query.delete()
                 vnffg_query.delete()
 
+            vnffgd_id = vnffg.get('vnffgd_id')
+            template_db = self._get_resource(context, VnffgTemplate,
+                                             vnffgd_id)
+
+            if template_db.get('template_source') == 'inline':
+                self.delete_vnffgd(context, vnffgd_id)
+
     def _make_template_dict(self, template, fields=None):
         res = {}
-        key_list = ('id', 'tenant_id', 'name', 'description', 'template')
+        key_list = ('id', 'tenant_id', 'name', 'description', 'template',
+                    'template_source')
         res.update((key, template[key]) for key in key_list)
         return self._fields(res, fields)
 

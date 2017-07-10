@@ -1,0 +1,74 @@
+{
+  "vnffg": {
+    "tenant_id": "058079ca392749bfa58831e0467a5439",
+    "name": "vnffg1",
+    "vnf_mapping": {
+      "VNFD2": "e40f29eb-b3e5-4c47-ab05-567be3a63fdb",
+      "VNFD1": "e759aa4c-ae09-403a-8c04-90c77abfae56"
+    },
+    "symmetrical": false,
+    "vnffgd_template": {
+      "tosca_definitions_version": "tosca_simple_profile_for_nfv_1_0_0",
+      "description": "Sample VNFFG template",
+      "topology_template": {
+        "description": "Sample VNFFG template",
+        "node_templates": {
+          "Forwarding_path1": {
+            "type": "tosca.nodes.nfv.FP.Tacker",
+            "description": "creates path (CP12->CP22)",
+            "properties": {
+              "id": 51,
+              "policy": {
+                "type": "ACL",
+                "criteria": [
+                  {
+                    "network_src_port_id": "92011ca7-565d-408d-af67-09f21cdf9107"
+                  },
+                  {
+                    "ip_proto": 1
+                  }
+                ]
+              },
+              "path": [
+                {
+                  "forwarder": "VNFD1",
+                  "capability": "CP12"
+                },
+                {
+                  "forwarder": "VNFD2",
+                  "capability": "CP22"
+                }
+              ]
+            }
+          }
+        },
+        "groups": {
+          "VNFFG1": {
+            "type": "tosca.groups.nfv.VNFFG",
+            "description": "HTTP to Corporate Net",
+            "properties": {
+              "vendor": "tacker",
+              "version": 1.0,
+              "number_of_endpoints": 2,
+              "dependent_virtual_link": [
+                "VL12",
+                "VL22"
+              ],
+              "connection_point": [
+                "CP12",
+                "CP22"
+              ],
+              "constituent_vnfs": [
+                "VNFD1",
+                "VNFD2"
+              ]
+            },
+            "members": [
+              "Forwarding_path1"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

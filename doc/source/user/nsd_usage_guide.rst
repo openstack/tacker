@@ -36,6 +36,7 @@ deploy a sample VNFD templates using vnf1.yaml and vnf2.yaml as mentioned in
 reference section.
 
 ::
+
   tacker vnfd-create --vnfd-file vnfd1.yaml VNFD1
 
   tacker vnfd-create --vnfd-file vnfd2.yaml VNFD2
@@ -71,7 +72,9 @@ The following code represents sample NSD which instantiates the above VNFs
 In above NSD template VL1 and VL2 are substituting the virtuallinks of VNF1.
 To onboard the above  NSD:
 
-**tacker nsd-create --nsd-file <nsd file> <nsd name>**
+::
+
+   tacker nsd-create --nsd-file <nsd-file> <nsd-name>
 
 Creating the NS
 ~~~~~~~~~~~~~~~~
@@ -81,7 +84,16 @@ VNFDS(which NS is substituting)
 
 Tacker provides the following CLI to create NS:
 
-  **tacker ns-create --nsd-id <nsd-id> <ns-name>**
+::
+
+    tacker ns-create --nsd-id <nsd-id> <ns-name>
+
+Or you can create directly a NS without creating onboarded NSD before by
+following CLI command:
+
+::
+
+    tacker ns-create --nsd-template <nsd-file> <ns-name>
 
 Reference
 ~~~~~~~~~

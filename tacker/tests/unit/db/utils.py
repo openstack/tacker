@@ -165,20 +165,39 @@ def get_vim_auth_obj():
 
 
 def get_dummy_vnffgd_obj():
-    return {u'vnffgd': {'name': 'dummy_vnfd',
+    return {u'vnffgd': {'name': 'dummy_vnffgd',
                         'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                         u'template': {u'vnffgd': vnffgd_tosca_template},
-                        'description': 'dummy_vnfd_description'}}
+                        'description': 'dummy_vnffgd_description',
+                        'template_source': 'onboarded'}}
+
+
+def get_dummy_vnffgd_obj_inline():
+    return {u'vnffgd': {'name': 'dummy_vnffgd_inline',
+                        'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                        u'template': {u'vnffgd': vnffgd_tosca_template},
+                        'description': 'dummy_vnffgd_description_inline',
+                        'template_source': 'inline'}}
 
 
 def get_dummy_vnffg_obj():
-    return {'vnffg': {'description': 'dummy_vnf_description',
+    return {'vnffg': {'description': 'dummy_vnffg_description',
                       'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
                       'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
                       u'attributes': {u'template': vnffgd_tosca_template},
                       'vnf_mapping': {},
                       'symmetrical': False}}
+
+
+def get_dummy_vnffg_obj_inline():
+    return {'vnffg': {'description': 'dummy_vnffg_description_inline',
+                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'name': 'dummy_vnffg_inline',
+                      u'attributes': {u'template': vnffgd_tosca_template},
+                      'vnf_mapping': {},
+                      'symmetrical': False,
+                      'vnffgd_template': vnffgd_tosca_template}}
 
 
 def get_dummy_vnffg_param_obj():
@@ -234,10 +253,19 @@ def get_dummy_vnffg_obj_vnf_mapping():
 
 
 def get_dummy_nsd_obj():
-    return {'nsd': {'description': 'dummy nsd description',
+    return {'nsd': {'description': 'dummy_nsd_description',
                     'name': 'dummy_NSD',
                     'tenant_id': u'8819a1542a5948b68f94d4be0fd50496',
-                    'attributes': {u'nsd': nsd_tosca_template}}}
+                    'attributes': {u'nsd': nsd_tosca_template},
+                    'template_source': 'onboarded'}}
+
+
+def get_dummy_nsd_obj_inline():
+    return {'nsd': {'description': 'dummy_nsd_description_inline',
+                    'name': 'dummy_NSD_inline',
+                    'tenant_id': u'8819a1542a5948b68f94d4be0fd50496',
+                    'attributes': {u'nsd': nsd_tosca_template},
+                    'template_source': 'inline'}}
 
 
 def get_dummy_ns_obj():
@@ -250,6 +278,18 @@ def get_dummy_ns_obj():
                    'attributes': {
                        'param_values': {'nsd': {'vl1_name': 'net_mgmt',
                                                 'vl2_name': 'net0'}}}}}
+
+
+def get_dummy_ns_obj_inline():
+    return {'ns': {'description': 'dummy_ns_description_inline',
+                   'id': u'ff35e3f0-0a11-4071-bce6-279fdf1c8bf9',
+                   'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                   'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                   'name': 'dummy_ns_inline',
+                   'attributes': {
+                       'param_values': {'nsd': {'vl1_name': 'net_mgmt',
+                                                'vl2_name': 'net0'}}},
+                   'nsd_template': nsd_tosca_template}}
 
 
 def get_dummy_ns_obj_2():
