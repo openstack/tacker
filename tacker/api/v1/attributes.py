@@ -19,7 +19,6 @@ import netaddr
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 import six
-from six import iteritems
 
 from tacker.common import exceptions as n_exc
 
@@ -392,7 +391,7 @@ def _validate_dict_item(key, key_validator, data):
     # TODO(salv-orlando): Structure of dict attributes should be improved
     # to avoid iterating over items
     val_func = val_params = None
-    for (k, v) in iteritems(key_validator):
+    for (k, v) in (key_validator).items():
         if k.startswith('type:'):
             # ask forgiveness, not permission
             try:
@@ -416,7 +415,7 @@ def _validate_dict(data, key_specs=None):
         return
 
     # Check whether all required keys are present
-    required_keys = [key for key, spec in iteritems(key_specs)
+    required_keys = [key for key, spec in (key_specs).items()
                      if spec.get('required')]
 
     if required_keys:
@@ -427,7 +426,7 @@ def _validate_dict(data, key_specs=None):
 
     # Perform validation and conversion of all values
     # according to the specifications.
-    for key, key_validator in [(k, v) for k, v in iteritems(key_specs)
+    for key, key_validator in [(k, v) for k, v in (key_specs).items()
                                if k in data]:
         msg = _validate_dict_item(key, key_validator, data)
         if msg:
@@ -518,7 +517,7 @@ def convert_kvp_list_to_dict(kvp_list):
         key, value = convert_kvp_str_to_list(kvp_str)
         kvp_map.setdefault(key, set())
         kvp_map[key].add(value)
-    return dict((x, list(y)) for x, y in iteritems(kvp_map))
+    return dict((x, list(y)) for x, y in (kvp_map).items())
 
 
 def convert_none_to_empty_list(value):

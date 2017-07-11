@@ -33,7 +33,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_log import versionutils
 from oslo_utils import importutils
-from six import iteritems
 from stevedore import driver
 
 from tacker._i18n import _
@@ -163,7 +162,7 @@ def change_memory_unit(mem, to):
     """
 
     mem = str(mem) + " MB" if str(mem).isdigit() else mem.upper()
-    for unit, value in iteritems(MEM_UNITS):
+    for unit, value in (MEM_UNITS).items():
         mem_arr = mem.split(unit)
         if len(mem_arr) < 2:
             continue

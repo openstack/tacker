@@ -26,7 +26,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import strutils
-from six import iteritems
 from tempfile import mkstemp
 from toscaparser.tosca_template import ToscaTemplate
 
@@ -599,7 +598,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         # vnfd_dict is used while generating workflow
         vnfd_dict = dict()
         for node_name, node_val in \
-                iteritems(nsd_dict['topology_template']['node_templates']):
+                (nsd_dict['topology_template']['node_templates']).items():
             if node_val.get('type') not in vnfds.keys():
                 continue
             vnfd_name = vnfds[node_val.get('type')]
@@ -700,7 +699,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
 
     @log.log
     def _update_params(self, original, paramvalues):
-        for key, value in iteritems(original):
+        for key, value in (original).items():
             if not isinstance(value, dict) or 'get_input' not in str(value):
                 pass
             elif isinstance(value, dict):

@@ -17,7 +17,6 @@ import uuid
 from oslo_db.exception import DBDuplicateEntry
 from oslo_log import log as logging
 from oslo_utils import timeutils
-from six import iteritems
 
 import sqlalchemy as sa
 from sqlalchemy import orm
@@ -284,7 +283,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         mgmt_urls = dict()
         vnf_ids = dict()
         if len(output) > 0:
-            for vnfd_name, vnfd_val in iteritems(vnfd_dict):
+            for vnfd_name, vnfd_val in (vnfd_dict).items():
                 for instance in vnfd_val['instances']:
                     if 'mgmt_url_' + instance in output:
                         mgmt_urls[instance] = ast.literal_eval(

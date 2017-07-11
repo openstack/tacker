@@ -18,7 +18,6 @@ import sqlalchemy as sa
 import uuid
 
 from oslo_log import log as logging
-from six import iteritems
 from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
 from tacker._i18n import _
@@ -289,7 +288,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         if 'get_input' not in str(original):
             return
         if isinstance(original, dict):
-            for key_, value in iteritems(original):
+            for key_, value in (original).items():
                 if isinstance(value, dict) and 'get_input' in value:
                     if value['get_input'] in paramvalues:
                         original[key_] = paramvalues[value['get_input']]
