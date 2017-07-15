@@ -15,7 +15,6 @@ import copy
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
-from six import iteritems
 from toscaparser import tosca_template
 from toscaparser.utils import yamlparser
 from translator.hot import tosca_translator
@@ -156,7 +155,7 @@ class TOSCAToHOT(object):
 
     @log.log
     def _update_params(self, original, paramvalues, match=False):
-        for key, value in iteritems(original):
+        for key, value in (original).items():
             if not isinstance(value, dict) or 'get_input' not in str(value):
                 pass
             elif isinstance(value, dict):
@@ -272,9 +271,9 @@ class TOSCAToHOT(object):
     def _get_unsupported_resource_props(self, heat_client):
         unsupported_resource_props = {}
 
-        for res, prop_dict in iteritems(HEAT_VERSION_INCOMPATIBILITY_MAP):
+        for res, prop_dict in (HEAT_VERSION_INCOMPATIBILITY_MAP).items():
             unsupported_props = {}
-            for prop, val in iteritems(prop_dict):
+            for prop, val in (prop_dict).items():
                 if not heat_client.resource_attr_support(res, prop):
                     unsupported_props.update(prop_dict)
             if unsupported_props:

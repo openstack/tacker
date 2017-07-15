@@ -18,7 +18,6 @@ import sys
 import yaml
 
 from oslo_log import log as logging
-from six import iteritems
 from toscaparser import properties
 from toscaparser.utils import yamlparser
 
@@ -117,7 +116,7 @@ def check_for_substitution_mappings(template, params):
     elif (not sm_dict or not requirements) and not req_dict_tpl:
         return
     del params['substitution_mappings']
-    for req_name, req_val in iteritems(req_dict_tpl):
+    for req_name, req_val in (req_dict_tpl).items():
         if req_name not in requirements:
             raise vnfm.SMRequirementMissing(requirement=req_name)
         if not isinstance(req_val, list):
@@ -190,15 +189,15 @@ def get_mgmt_ports(tosca):
 
 @log.log
 def add_resources_tpl(heat_dict, hot_res_tpl):
-    for res, res_dict in iteritems(hot_res_tpl):
-        for vdu, vdu_dict in iteritems(res_dict):
+    for res, res_dict in (hot_res_tpl).items():
+        for vdu, vdu_dict in (res_dict).items():
             res_name = vdu + "_" + res
             heat_dict["resources"][res_name] = {
                 "type": HEAT_RESOURCE_MAP[res],
                 "properties": {}
             }
 
-            for prop, val in iteritems(vdu_dict):
+            for prop, val in (vdu_dict).items():
                 heat_dict["resources"][res_name]["properties"][prop] = val
             heat_dict["resources"][vdu]["properties"][res] = {
                 "get_resource": res_name
@@ -209,7 +208,7 @@ def add_resources_tpl(heat_dict, hot_res_tpl):
 def convert_unsupported_res_prop(heat_dict, unsupported_res_prop):
     res_dict = heat_dict['resources']
 
-    for res, attr in iteritems(res_dict):
+    for res, attr in (res_dict).items():
         res_type = attr['type']
         if res_type in unsupported_res_prop:
             prop_dict = attr['properties']
@@ -261,7 +260,7 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
     #
     def fix_user_data(user_data_string):
         user_data_string = re.sub('user_data: #', 'user_data: |\n        #',
-                                 user_data_string, re.MULTILINE)
+                                  user_data_string, re.MULTILINE)
         return re.sub('\n\n', '\n', user_data_string, re.MULTILINE)
 
     heat_tpl = fix_user_data(heat_tpl)
@@ -294,8 +293,8 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
         convert_unsupported_res_prop(heat_dict, unsupported_res_prop)
 
     yaml.SafeDumper.add_representer(OrderedDict,
-        lambda dumper, value: represent_odict(dumper,
-                                              u'tag:yaml.org,2002:map', value))
+    lambda dumper, value: represent_odict(dumper,
+                                          u'tag:yaml.org,2002:map', value))
 
     return yaml.safe_dump(heat_dict)
 
@@ -370,9 +369,9 @@ def get_flavor_dict(template, flavor_extra_input=None):
             flavor_dict[nt.name] = {}
             properties = nt.get_capabilities()["nfv_compute"].get_properties()
             for prop, (hot_prop, default, unit) in \
-                    iteritems(FLAVOR_PROPS):
+                    (FLAVOR_PROPS).items():
                 hot_prop_val = (properties[prop].value
-                    if properties.get(prop, None) else None)
+                                if properties.get(prop, None) else None)
                 if unit and hot_prop_val:
                     hot_prop_val = \
                         utils.change_memory_unit(hot_prop_val, unit)
@@ -442,9 +441,9 @@ def get_image_dict(template):
         if not vdu.entity_tpl.get("artifacts"):
             continue
         artifacts = vdu.entity_tpl["artifacts"]
-        for name, artifact in iteritems(artifacts):
+        for name, artifact in (artifacts).items():
             if ('type' in artifact.keys() and
-              artifact["type"] == IMAGE):
+               artifact["type"] == IMAGE):
                 if 'file' not in artifact.keys():
                     raise vnfm.FilePathMissing()
                 image_dict[vdu.name] = {
@@ -458,7 +457,7 @@ def get_image_dict(template):
 
 def get_resources_dict(template, flavor_extra_input=None):
     res_dict = dict()
-    for res, method in iteritems(OS_RESOURCES):
+    for res, method in (OS_RESOURCES).items():
         res_method = getattr(sys.modules[__name__], method)
         if res is 'flavor':
             res_dict[res] = res_method(template, flavor_extra_input)
