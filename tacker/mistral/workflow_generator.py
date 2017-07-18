@@ -10,7 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import uuid
+from oslo_utils import uuidutils
 
 
 class WorkflowGeneratorBase(object):
@@ -18,7 +18,7 @@ class WorkflowGeneratorBase(object):
         self.resource = resource
         self.action = action
         self.wf_name = self.action + '_' + self.resource
-        self.wf_identifier = 'std.' + self.wf_name + str(uuid.uuid4())
+        self.wf_identifier = 'std.' + self.wf_name + uuidutils.generate_uuid()
         self.task = getattr(self, self.wf_name)
         self.input_dict = dict()
         self._build_basic_workflow()

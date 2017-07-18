@@ -12,7 +12,8 @@
 #    under the License.
 
 import mock
-import uuid
+
+from oslo_utils import uuidutils
 
 from tacker import context
 from tacker.nfvo.drivers.vim import openstack_driver
@@ -29,7 +30,7 @@ class FakeNeutronClient(mock.Mock):
         self.__chain_dict = {}
 
     def flow_classifier_create(self, fc_create_dict):
-        fc_id = uuid.uuid4()
+        fc_id = uuidutils.generate_uuid()
         self.__fc_dict[fc_id] = fc_create_dict
         return fc_id
 
@@ -54,7 +55,7 @@ class FakeNeutronClient(mock.Mock):
         self.__fc_dict.pop(fc_id)
 
     def port_pair_create(self, port_pair):
-        pp_id = uuid.uuid4()
+        pp_id = uuidutils.generate_uuid()
         self.__pp_dict[pp_id] = port_pair
         return pp_id
 
@@ -68,7 +69,7 @@ class FakeNeutronClient(mock.Mock):
         return None
 
     def port_pair_group_create(self, port_pair_group):
-        ppg_id = uuid.uuid4()
+        ppg_id = uuidutils.generate_uuid()
         self.__ppg_dict[ppg_id] = port_pair_group
         return ppg_id
 
@@ -82,7 +83,7 @@ class FakeNeutronClient(mock.Mock):
         return None
 
     def port_chain_create(self, port_chain):
-        chain_id = uuid.uuid4()
+        chain_id = uuidutils.generate_uuid()
         self.__chain_dict[chain_id] = port_chain
         return chain_id
 
@@ -185,11 +186,14 @@ class TestChainSFC(base.TestCase):
         self.assertIsNotNone(fc_id)
 
         vnf_1 = {'name': 'test_create_chain_vnf_1',
-                 'connection_points': [uuid.uuid4(), uuid.uuid4()]}
+                 'connection_points': [uuidutils.generate_uuid(),
+                                       uuidutils.generate_uuid()]}
         vnf_2 = {'name': 'test_create_chain_vnf_2',
-                 'connection_points': [uuid.uuid4(), uuid.uuid4()]}
+                 'connection_points': [uuidutils.generate_uuid(),
+                                       uuidutils.generate_uuid()]}
         vnf_3 = {'name': 'test_create_chain_vnf_3',
-                 'connection_points': [uuid.uuid4(), uuid.uuid4()]}
+                 'connection_points': [uuidutils.generate_uuid(),
+                                       uuidutils.generate_uuid()]}
         vnfs = [vnf_1, vnf_2, vnf_3]
 
         result = self.sfc_driver.create_chain(name='fake_ffg',
@@ -213,11 +217,14 @@ class TestChainSFC(base.TestCase):
         self.assertIsNotNone(fc_id)
 
         vnf_1 = {'name': 'test_delete_chain_vnf_1',
-                 'connection_points': [uuid.uuid4(), uuid.uuid4()]}
+                 'connection_points': [uuidutils.generate_uuid(),
+                                       uuidutils.generate_uuid()]}
         vnf_2 = {'name': 'test_delete_chain_vnf_2',
-                 'connection_points': [uuid.uuid4(), uuid.uuid4()]}
+                 'connection_points': [uuidutils.generate_uuid(),
+                                       uuidutils.generate_uuid()]}
         vnf_3 = {'name': 'test_delete_chain_vnf_3',
-                 'connection_points': [uuid.uuid4(), uuid.uuid4()]}
+                 'connection_points': [uuidutils.generate_uuid(),
+                                       uuidutils.generate_uuid()]}
         vnfs = [vnf_1, vnf_2, vnf_3]
 
         chain_id = self.sfc_driver.create_chain(name='fake_ffg',

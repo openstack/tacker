@@ -13,9 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import uuid
-
 from oslo_log import log as logging
+from oslo_utils import uuidutils
 from tacker.common import log
 from tacker.nfvo.drivers.vnffg import abstract_vnffg_driver
 
@@ -41,7 +40,7 @@ class VNFFGNoop(abstract_vnffg_driver.VnffgAbstractDriver):
 
     @log.log
     def create_chain(self, name, fc_id, vnfs, auth_attr=None):
-        instance_id = str(uuid.uuid4())
+        instance_id = uuidutils.generate_uuid()
         self._instances.add(instance_id)
         return instance_id
 
@@ -57,7 +56,7 @@ class VNFFGNoop(abstract_vnffg_driver.VnffgAbstractDriver):
 
     @log.log
     def create_flow_classifier(self, name, fc, auth_attr=None):
-        instance_id = str(uuid.uuid4())
+        instance_id = uuidutils.generate_uuid()
         self._instances.add(instance_id)
         return instance_id
 

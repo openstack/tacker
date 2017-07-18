@@ -17,7 +17,6 @@
 import copy
 import os
 import time
-import uuid
 import yaml
 
 from cryptography import fernet
@@ -26,6 +25,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import strutils
+from oslo_utils import uuidutils
 from tempfile import mkstemp
 from toscaparser.tosca_template import ToscaTemplate
 
@@ -104,7 +104,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                   strutils.mask_password(vim))
         vim_obj = vim['vim']
         vim_type = vim_obj['type']
-        vim_obj['id'] = str(uuid.uuid4())
+        vim_obj['id'] = uuidutils.generate_uuid()
         vim_obj['status'] = 'PENDING'
         try:
             self._vim_drivers.invoke(vim_type,

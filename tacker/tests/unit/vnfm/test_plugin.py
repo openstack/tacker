@@ -14,10 +14,10 @@
 #    under the License.
 
 from datetime import datetime
-import uuid
 
 import mock
 from mock import patch
+from oslo_utils import uuidutils
 import yaml
 
 from tacker import context
@@ -34,12 +34,12 @@ from tacker.vnfm import plugin
 class FakeDriverManager(mock.Mock):
     def invoke(self, *args, **kwargs):
         if 'create' in args:
-            return str(uuid.uuid4())
+            return uuidutils.generate_uuid()
 
         if 'get_resource_info' in args:
             return {'resources': {'name': 'dummy_vnf',
                                   'type': 'dummy',
-                                  'id': str(uuid.uuid4())}}
+                                  'id': uuidutils.generate_uuid()}}
 
 
 class FakeVNFMonitor(mock.Mock):

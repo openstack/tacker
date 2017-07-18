@@ -11,11 +11,11 @@
 #    under the License.
 
 from datetime import datetime
-import uuid
 
 from oslo_db.exception import DBDuplicateEntry
 from oslo_utils import strutils
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import sql
 
@@ -90,7 +90,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                     deleted_at=datetime.min)
                 context.session.add(vim_db)
                 vim_auth_db = nfvo_db.VimAuth(
-                    id=str(uuid.uuid4()),
+                    id=uuidutils.generate_uuid(),
                     vim_id=vim.get('id'),
                     password=vim_cred.pop('password'),
                     vim_project=vim.get('vim_project'),

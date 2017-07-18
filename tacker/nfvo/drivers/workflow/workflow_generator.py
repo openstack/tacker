@@ -11,7 +11,7 @@
 #    under the License.
 
 import ast
-import uuid
+from oslo_utils import uuidutils
 
 from tacker.mistral import workflow_generator
 
@@ -110,7 +110,7 @@ class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
 
     def build_input(self, ns, params):
         vnfds = ns['vnfd_details']
-        id = str(uuid.uuid4())
+        id = uuidutils.generate_uuid()
         self.input_dict = {'vnf': {}}
         for vnfd_name, vnfd_info in (vnfds).items():
             nodes = vnfd_info['instances']

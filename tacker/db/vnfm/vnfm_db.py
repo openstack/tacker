@@ -15,7 +15,6 @@
 #    under the License.
 
 from datetime import datetime
-import uuid
 
 from oslo_db.exception import DBDuplicateEntry
 from oslo_log import log as logging
@@ -251,7 +250,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
         try:
             with context.session.begin(subtransactions=True):
-                vnfd_id = str(uuid.uuid4())
+                vnfd_id = uuidutils.generate_uuid()
                 vnfd_db = VNFD(
                     id=vnfd_id,
                     tenant_id=tenant_id,
@@ -263,7 +262,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 context.session.add(vnfd_db)
                 for (key, value) in vnfd.get('attributes', {}).items():
                     attribute_db = VNFDAttribute(
-                        id=str(uuid.uuid4()),
+                        id=uuidutils.generate_uuid(),
                         vnfd_id=vnfd_id,
                         key=key,
                         value=value)
@@ -271,7 +270,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 for service_type in (item['service_type']
                                      for item in vnfd['service_types']):
                     service_type_db = ServiceType(
-                        id=str(uuid.uuid4()),
+                        id=uuidutils.generate_uuid(),
                         tenant_id=tenant_id,
                         vnfd_id=vnfd_id,
                         service_type=service_type)
@@ -382,7 +381,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             arg.value = value
         else:
             arg = VNFAttribute(
-                id=str(uuid.uuid4()), vnf_id=vnf_id,
+                id=uuidutils.generate_uuid(), vnf_id=vnf_id,
                 key=key, value=value)
             context.session.add(arg)
 
@@ -392,7 +391,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         tenant_id = self._get_tenant_id_for_create(context, vnf)
         vnfd_id = vnf['vnfd_id']
         name = vnf.get('name')
-        vnf_id = str(uuid.uuid4())
+        vnf_id = uuidutils.generate_uuid()
         attributes = vnf.get('attributes', {})
         vim_id = vnf.get('vim_id')
         placement_attr = vnf.get('placement_attr', {})
@@ -414,7 +413,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 context.session.add(vnf_db)
                 for key, value in attributes.items():
                         arg = VNFAttribute(
-                            id=str(uuid.uuid4()), vnf_id=vnf_id,
+                            id=uuidutils.generate_uuid(), vnf_id=vnf_id,
                             key=key, value=value)
                         context.session.add(arg)
         except DBDuplicateEntry as e:
@@ -602,7 +601,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         # start actual creation of hosting vnf.
         # Waiting for completion of creation should be done backgroundly
         # by another thread if it takes a while.
-        instance_id = str(uuid.uuid4())
+        instance_id = uuidutils.generate_uuid()
         vnf_dict['instance_id'] = instance_id
         self._create_vnf_post(context, vnf_dict['id'], instance_id, None,
                               vnf_dict)
