@@ -95,7 +95,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
 
     @log.log
     def create(self, plugin, context, vnf, auth_attr):
-        LOG.debug(_('vnf %s'), vnf)
+        LOG.debug('vnf %s', vnf)
 
         region_name = vnf.get('placement_attr', {}).get('region_name', None)
         heatclient = hc.HeatClient(auth_attr, region_name)
@@ -115,9 +115,9 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
             fields['stack_name'] = name
 
         # service context is ignored
-        LOG.debug(_('service_context: %s'), vnf.get('service_context', []))
-        LOG.debug(_('fields: %s'), fields)
-        LOG.debug(_('template: %s'), fields['template'])
+        LOG.debug('service_context: %s', vnf.get('service_context', []))
+        LOG.debug('fields: %s', fields)
+        LOG.debug('template: %s', fields['template'])
         stack = heatclient.create(fields)
 
         return stack
@@ -137,17 +137,17 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
             try:
                 stack = heatclient.get(vnf_id)
             except Exception:
-                LOG.warning(_("VNF Instance setup may not have "
-                              "happened because Heat API request failed "
-                              "while waiting for the stack %(stack)s to be "
-                              "created"), {'stack': vnf_id})
+                LOG.warning("VNF Instance setup may not have "
+                            "happened because Heat API request failed "
+                            "while waiting for the stack %(stack)s to be "
+                            "created", {'stack': vnf_id})
                 # continue to avoid temporary connection error to target
                 # VIM
             status = stack.stack_status
-            LOG.debug(_('status: %s'), status)
+            LOG.debug('status: %s', status)
             stack_retries = stack_retries - 1
 
-        LOG.debug(_('stack status: %(stack)s %(status)s'),
+        LOG.debug('stack status: %(stack)s %(status)s',
                   {'stack': str(stack), 'status': status})
         if stack_retries == 0 and status != 'CREATE_COMPLETE':
             error_reason = _("Resource creation is not completed within"
@@ -156,8 +156,8 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                                wait=(self.STACK_RETRIES *
                                      self.STACK_RETRY_WAIT),
                                stack=vnf_id)
-            LOG.warning(_("VNF Creation failed: %(reason)s"),
-                    {'reason': error_reason})
+            LOG.warning("VNF Creation failed: %(reason)s",
+                        {'reason': error_reason})
             raise vnfm.VNFCreateWaitFailed(reason=error_reason)
 
         elif stack_retries != 0 and status != 'CREATE_COMPLETE':
@@ -165,7 +165,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
             raise vnfm.VNFCreateWaitFailed(reason=error_reason)
 
         def _find_mgmt_ips(outputs):
-            LOG.debug(_('outputs %s'), outputs)
+            LOG.debug('outputs %s', outputs)
             mgmt_ips = dict((output['output_key'][len(OUTPUT_PREFIX):],
                              output['output_value'])
                             for output in outputs
@@ -246,10 +246,10 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
             except heatException.HTTPNotFound:
                 return
             except Exception:
-                LOG.warning(_("VNF Instance cleanup may not have "
-                              "happened because Heat API request failed "
-                              "while waiting for the stack %(stack)s to be "
-                              "deleted"), {'stack': vnf_id})
+                LOG.warning("VNF Instance cleanup may not have "
+                            "happened because Heat API request failed "
+                            "while waiting for the stack %(stack)s to be "
+                            "deleted", {'stack': vnf_id})
                 # Just like create wait, ignore the exception to
                 # avoid temporary connection error.
             status = stack.stack_status

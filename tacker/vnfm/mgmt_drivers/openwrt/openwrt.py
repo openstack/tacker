@@ -49,7 +49,7 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
         return 'Tacker VNFMgmt OpenWRT Driver'
 
     def mgmt_url(self, plugin, context, vnf):
-        LOG.debug(_('mgmt_url %s'), vnf)
+        LOG.debug('mgmt_url %s', vnf)
         return vnf.get('mgmt_url', '')
 
     @log.log
@@ -58,16 +58,16 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
         password = cfg.CONF.openwrt.password
         try:
             cmd = "uci import %s; /etc/init.d/%s restart" % (service, service)
-            LOG.debug(_('execute command: %(cmd)s on mgmt_ip_address '
-                        '%(mgmt_ip)s'),
+            LOG.debug('execute command: %(cmd)s on mgmt_ip_address '
+                      '%(mgmt_ip)s',
                       {'cmd': cmd,
                        'mgmt_ip': mgmt_ip_address})
             commander = cmd_executer.RemoteCommandExecutor(
                 user, password, mgmt_ip_address)
             commander.execute_command(cmd, input_data=config)
         except Exception as ex:
-            LOG.error(_("While executing command on remote "
-                        "%(mgmt_ip)s: %(exception)s"),
+            LOG.error("While executing command on remote "
+                      "%(mgmt_ip)s: %(exception)s",
                       {'mgmt_ip': mgmt_ip_address,
                        'exception': ex})
             raise exceptions.MgmtDriverException()
@@ -96,8 +96,8 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
                     continue
                 mgmt_ip_address = mgmt_url.get(vdu, '')
                 if not mgmt_ip_address:
-                    LOG.warning(_('tried to configure unknown mgmt '
-                                  'address on VNF %(vnf)s VDU %(vdu)s'),
+                    LOG.warning('tried to configure unknown mgmt '
+                                'address on VNF %(vnf)s VDU %(vdu)s',
                                 {'vnf': vnf.get('name'),
                                  'vdu': vdu})
                     continue

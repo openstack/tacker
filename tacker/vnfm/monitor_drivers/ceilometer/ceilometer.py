@@ -60,7 +60,7 @@ class VNFMonitorCeilometer(
         # -name/action-name?key=8785'
         host = cfg.CONF.ceilometer.host
         port = cfg.CONF.ceilometer.port
-        LOG.info(_("Tacker in heat listening on %(host)s:%(port)s"),
+        LOG.info("Tacker in heat listening on %(host)s:%(port)s",
                  {'host': host,
                   'port': port})
         origin = "http://%(host)s:%(port)s/v1.0/vnfs" % {

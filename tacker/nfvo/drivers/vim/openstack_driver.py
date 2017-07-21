@@ -154,7 +154,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         try:
             keystone_version = self.keystone.get_version(auth_url)
         except Exception as e:
-            LOG.error(_('VIM Auth URL invalid'))
+            LOG.error('VIM Auth URL invalid')
             raise nfvo.VimConnectionException(message=e.message)
         return keystone_version
 
@@ -186,7 +186,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         try:
             regions_list = self._find_regions(ks_client)
         except (exceptions.Unauthorized, exceptions.BadRequest) as e:
-            LOG.warning(_("Authorization failed for user"))
+            LOG.warning("Authorization failed for user")
             raise nfvo.VimUnauthorizedException(message=e.message)
         vim_obj['placement_attr'] = {'regions': regions_list}
         return vim_obj
@@ -309,7 +309,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         try:
             resources = getattr(client, "%s" % cmd)(**cmd_args)[vim_res_name]
-            LOG.debug(_('resources output %s'), resources)
+            LOG.debug('resources output %s', resources)
         except Exception:
             raise nfvo.VimGetResourceException(
                 cmd=cmd, name=resource_name, type=resource_type)
@@ -351,13 +351,13 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                 return None
 
         if not auth_attr:
-            LOG.warning(_("auth information required for n-sfc driver"))
+            LOG.warning("auth information required for n-sfc driver")
             return None
 
         if symmetrical:
-            LOG.warning(_("n-sfc driver does not support symmetrical"))
+            LOG.warning("n-sfc driver does not support symmetrical")
             raise NotImplementedError('symmetrical chain not supported')
-        LOG.debug(_('fc passed is %s'), fc)
+        LOG.debug('fc passed is %s', fc)
         sfc_classifier_params = {}
         for field in fc:
             if field in FC_MAP:
@@ -368,10 +368,10 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                     raise ValueError('protocol %s not supported' % fc[field])
                 sfc_classifier_params['protocol'] = protocol
             else:
-                LOG.warning(_("flow classifier %s not supported by "
-                              "networking-sfc driver"), field)
+                LOG.warning("flow classifier %s not supported by "
+                            "networking-sfc driver", field)
 
-        LOG.debug(_('sfc_classifier_params is %s'), sfc_classifier_params)
+        LOG.debug('sfc_classifier_params is %s', sfc_classifier_params)
         if len(sfc_classifier_params) > 0:
             neutronclient_ = NeutronClient(auth_attr)
 
@@ -384,11 +384,11 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
     def create_chain(self, name, fc_id, vnfs, symmetrical=False,
                      auth_attr=None):
         if not auth_attr:
-            LOG.warning(_("auth information required for n-sfc driver"))
+            LOG.warning("auth information required for n-sfc driver")
             return None
 
         if symmetrical:
-            LOG.warning(_("n-sfc driver does not support symmetrical"))
+            LOG.warning("n-sfc driver does not support symmetrical")
             raise NotImplementedError('symmetrical chain not supported')
 
         neutronclient_ = NeutronClient(auth_attr)
@@ -404,16 +404,16 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                 'port pair group for %s' % vnf['name']
             port_pair_group['port_pairs'] = []
             if CONNECTION_POINT not in vnf:
-                LOG.warning(_("Chain creation failed due to missing "
-                              "connection point info in VNF "
-                              "%(vnfname)s"), {'vnfname': vnf['name']})
+                LOG.warning("Chain creation failed due to missing "
+                            "connection point info in VNF "
+                            "%(vnfname)s", {'vnfname': vnf['name']})
                 return None
             cp_list = vnf[CONNECTION_POINT]
             num_cps = len(cp_list)
             if num_cps != 1 and num_cps != 2:
-                LOG.warning(_("Chain creation failed due to wrong number of "
-                              "connection points: expected [1 | 2], got "
-                              "%(cps)d"), {'cps': num_cps})
+                LOG.warning("Chain creation failed due to wrong number of "
+                            "connection points: expected [1 | 2], got "
+                            "%(cps)d", {'cps': num_cps})
                 return None
             port_pair = {}
             port_pair['name'] = vnf['name'] + '-connection-points'
@@ -426,16 +426,16 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                 port_pair['egress'] = cp_list[1]
             port_pair_id = neutronclient_.port_pair_create(port_pair)
             if not port_pair_id:
-                LOG.warning(_("Chain creation failed due to port pair creation"
-                              " failed for vnf %(vnf)s"), {'vnf': vnf['name']})
+                LOG.warning("Chain creation failed due to port pair creation"
+                            " failed for vnf %(vnf)s", {'vnf': vnf['name']})
                 return None
             port_pair_group['port_pairs'].append(port_pair_id)
             port_pair_group_id = \
                 neutronclient_.port_pair_group_create(port_pair_group)
             if not port_pair_group_id:
-                LOG.warning(_("Chain creation failed due to port pair group "
-                              "creation failed for vnf "
-                              "%(vnf)s"), {'vnf': vnf['name']})
+                LOG.warning("Chain creation failed due to port pair group "
+                            "creation failed for vnf "
+                            "%(vnf)s", {'vnf': vnf['name']})
                 return None
             port_pair_group_list.append(port_pair_group_id)
 
@@ -455,12 +455,12 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         # it will look it up (or reconstruct) from
         # networking-sfc DB --- but the caveat is that
         # the VNF name MUST be unique
-        LOG.warning(_("n-sfc driver does not support sf chain update"))
+        LOG.warning("n-sfc driver does not support sf chain update")
         raise NotImplementedError('sf chain update not supported')
 
     def delete_chain(self, chain_id, auth_attr=None):
         if not auth_attr:
-            LOG.warning(_("auth information required for n-sfc driver"))
+            LOG.warning("auth information required for n-sfc driver")
             return None
 
         neutronclient_ = NeutronClient(auth_attr)
@@ -469,11 +469,11 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
     def update_flow_classifier(self, fc_id, fc,
                                symmetrical=False, auth_attr=None):
         if not auth_attr:
-            LOG.warning(_("auth information required for n-sfc driver"))
+            LOG.warning("auth information required for n-sfc driver")
             return None
 
         if symmetrical:
-            LOG.warning(_("n-sfc driver does not support symmetrical"))
+            LOG.warning("n-sfc driver does not support symmetrical")
             raise NotImplementedError('symmetrical chain not supported')
 
         # for now, the only parameters allowed for flow-classifier-update
@@ -483,7 +483,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         sfc_classifier_params['name'] = fc['name']
         sfc_classifier_params['description'] = fc['description']
 
-        LOG.debug(_('sfc_classifier_params is %s'), sfc_classifier_params)
+        LOG.debug('sfc_classifier_params is %s', sfc_classifier_params)
 
         neutronclient_ = NeutronClient(auth_attr)
         return neutronclient_.flow_classifier_update(fc_id,
@@ -491,7 +491,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
     def delete_flow_classifier(self, fc_id, auth_attr=None):
         if not auth_attr:
-            LOG.warning(_("auth information required for n-sfc driver"))
+            LOG.warning("auth information required for n-sfc driver")
             raise EnvironmentError('auth attribute required for'
                                    ' networking-sfc driver')
 
@@ -500,7 +500,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
     def get_mistral_client(self, auth_dict):
         if not auth_dict:
-            LOG.warning(_("auth dict required to instantiate mistral client"))
+            LOG.warning("auth dict required to instantiate mistral client")
             raise EnvironmentError('auth dict required for'
                                    ' mistral workflow driver')
         return mistral_client.MistralClient(
@@ -547,7 +547,7 @@ class NeutronClient(object):
         self.client = neutron_client.Client(session=sess)
 
     def flow_classifier_create(self, fc_dict):
-        LOG.debug(_("fc_dict passed is {fc_dict}").format(fc_dict=fc_dict))
+        LOG.debug("fc_dict passed is {fc_dict}".format(fc_dict=fc_dict))
         fc = self.client.create_flow_classifier({'flow_classifier': fc_dict})
         if fc:
             return fc['flow_classifier']['id']
@@ -562,14 +562,14 @@ class NeutronClient(object):
         try:
             self.client.delete_flow_classifier(fc_id)
         except nc_exceptions.NotFound:
-            LOG.warning(_("fc %s not found"), fc_id)
+            LOG.warning("fc %s not found", fc_id)
             raise ValueError('fc %s not found' % fc_id)
 
     def port_pair_create(self, port_pair_dict):
         try:
             pp = self.client.create_port_pair({'port_pair': port_pair_dict})
         except nc_exceptions.BadRequest as e:
-            LOG.error(_("create port pair returns %s"), e)
+            LOG.error("create port pair returns %s", e)
             raise ValueError(str(e))
 
         if pp and len(pp):
@@ -581,7 +581,7 @@ class NeutronClient(object):
         try:
             self.client.delete_port_pair(port_pair_id)
         except nc_exceptions.NotFound:
-            LOG.warning(_('port pair %s not found'), port_pair_id)
+            LOG.warning('port pair %s not found', port_pair_id)
             raise ValueError('port pair %s not found' % port_pair_id)
 
     def port_pair_group_create(self, ppg_dict):
@@ -589,7 +589,7 @@ class NeutronClient(object):
             ppg = self.client.create_port_pair_group(
                 {'port_pair_group': ppg_dict})
         except nc_exceptions.BadRequest as e:
-            LOG.warning(_('create port pair group returns %s'), e)
+            LOG.warning('create port pair group returns %s', e)
             raise ValueError(str(e))
 
         if ppg and len(ppg):
@@ -601,7 +601,7 @@ class NeutronClient(object):
         try:
             self.client.delete_port_pair_group(ppg_id)
         except nc_exceptions.NotFound:
-            LOG.warning(_('port pair group %s not found'), ppg_id)
+            LOG.warning('port pair group %s not found', ppg_id)
             raise ValueError('port pair group %s not found' % ppg_id)
 
     def port_chain_create(self, port_chain_dict):
@@ -609,7 +609,7 @@ class NeutronClient(object):
             pc = self.client.create_port_chain(
                 {'port_chain': port_chain_dict})
         except nc_exceptions.BadRequest as e:
-            LOG.warning(_('create port chain returns %s'), e)
+            LOG.warning('create port chain returns %s', e)
             raise ValueError(str(e))
 
         if pc and len(pc):
@@ -634,5 +634,5 @@ class NeutronClient(object):
                                     pp_id = port_pairs[j]
                                     self.client.delete_port_pair(pp_id)
         except nc_exceptions.NotFound:
-            LOG.warning(_('port chain %s not found'), port_chain_id)
+            LOG.warning('port chain %s not found', port_chain_id)
             raise ValueError('port chain %s not found' % port_chain_id)

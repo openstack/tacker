@@ -213,5 +213,5 @@ class CommonDbMixin(object):
             query = self._model_query(context, model)
             return query.filter(model.name == name).one()
         except orm_exc.NoResultFound:
-            LOG.info(_("No result found for %(name)s in %(model)s table"),
+            LOG.info("No result found for %(name)s in %(model)s table",
                      {'name': name, 'model': model})

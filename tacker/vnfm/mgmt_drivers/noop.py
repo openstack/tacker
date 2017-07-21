@@ -33,9 +33,9 @@ class DeviceMgmtNoop(abstract_driver.DeviceMGMTAbstractDriver):
         return 'Tacker VNFMgmt Noop Driver'
 
     def mgmt_url(self, plugin, context, vnf):
-        LOG.debug(_('mgmt_url %s'), vnf)
+        LOG.debug('mgmt_url %s', vnf)
         return 'noop-mgmt-url'
 
     def mgmt_call(self, plugin, context, vnf, kwargs):
-        LOG.debug(_('mgmt_call %(vnf)s %(kwargs)s'),
+        LOG.debug('mgmt_call %(vnf)s %(kwargs)s',
                   {'vnf': vnf, 'kwargs': kwargs})

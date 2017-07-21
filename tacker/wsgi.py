@@ -145,7 +145,7 @@ class Server(object):
             family = info[0]
             bind_addr = info[-1]
         except Exception:
-            LOG.exception(_("Unable to listen on %(host)s:%(port)s"),
+            LOG.exception("Unable to listen on %(host)s:%(port)s",
                           {'host': host, 'port': port})
             sys.exit(1)
 
@@ -195,7 +195,7 @@ class Server(object):
                         eventlet.sleep(0.1)
         if not sock:
             raise RuntimeError(_("Could not bind to %(host)s:%(port)s "
-                               "after trying for %(time)d seconds") %
+                                 "after trying for %(time)d seconds") %
                                {'host': host,
                                 'port': port,
                                 'time': CONF.retry_until_window})
@@ -355,7 +355,7 @@ class Request(webob.Request):
     def get_content_type(self):
         allowed_types = ("application/json")
         if "Content-Type" not in self.headers:
-            LOG.debug(_("Missing Content-Type"))
+            LOG.debug("Missing Content-Type")
             return None
         _type = self.content_type
         if _type in allowed_types:
@@ -533,23 +533,23 @@ class RequestDeserializer(object):
         try:
             content_type = request.best_match_content_type()
         except exception.InvalidContentType:
-            LOG.debug(_("Unrecognized Content-Type provided in request"))
+            LOG.debug("Unrecognized Content-Type provided in request")
             return {}
 
         if content_type is None:
-            LOG.debug(_("No Content-Type provided in request"))
+            LOG.debug("No Content-Type provided in request")
             return {}
 
         if not len(request.body) > 0:
-            LOG.debug(_("Empty body provided in request"))
+            LOG.debug("Empty body provided in request")
             return {}
 
         try:
             deserializer = self.get_body_deserializer(content_type)
         except exception.InvalidContentType:
             with excutils.save_and_reraise_exception():
-                LOG.debug(_("Unable to deserialize body as provided "
-                            "Content-Type"))
+                LOG.debug("Unable to deserialize body as provided "
+                          "Content-Type")
 
         return deserializer.deserialize(request.body, action)
 
@@ -780,28 +780,28 @@ class Resource(Application):
     def __call__(self, request):
         """WSGI method that controls (de)serialization and method dispatch."""
 
-        LOG.info(_("%(method)s %(url)s"), {"method": request.method,
-                                           "url": request.url})
+        LOG.info("%(method)s %(url)s", {"method": request.method,
+                                        "url": request.url})
 
         try:
             action, args, accept = self.deserializer.deserialize(request)
         except exception.InvalidContentType:
-            msg = _("Unsupported Content-Type")
-            LOG.exception(_("InvalidContentType: %s"), msg)
-            return Fault(webob.exc.HTTPBadRequest(explanation=msg))
+            LOG.exception("InvalidContentType: Unsupported Content-Type")
+            return Fault(webob.exc.HTTPBadRequest(
+                explanation=_("Unsupported Content-Type")))
         except exception.MalformedRequestBody:
-            msg = _("Malformed request body")
-            LOG.exception(_("MalformedRequestBody: %s"), msg)
-            return Fault(webob.exc.HTTPBadRequest(explanation=msg))
+            LOG.exception("MalformedRequestBody: Malformed request body")
+            return Fault(webob.exc.HTTPBadRequest(
+                explanation=_("Malformed request body")))
 
         try:
             action_result = self.dispatch(request, action, args)
         except webob.exc.HTTPException as ex:
-            LOG.info(_("HTTP exception thrown: %s"), ex)
+            LOG.info("HTTP exception thrown: %s", ex)
             action_result = Fault(ex,
                                   self._fault_body_function)
         except Exception:
-            LOG.exception(_("Internal error"))
+            LOG.exception("Internal error")
             # Do not include the traceback to avoid returning it to clients.
             action_result = Fault(webob.exc.HTTPServerError(),
                                   self._fault_body_function)

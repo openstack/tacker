@@ -98,7 +98,7 @@ def updateimports(template):
 
         template['imports'].append(nfvfile)
 
-    LOG.debug(_("%s"), path)
+    LOG.debug(path)
 
 
 @log.log
@@ -275,7 +275,7 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
             heat_dict['outputs'].update(output)
         else:
             heat_dict['outputs'] = output
-        LOG.debug(_('Added output for %s'), outputname)
+        LOG.debug('Added output for %s', outputname)
     if metadata:
         for vdu_name, metadata_dict in metadata['vdus'].items():
             heat_dict['resources'][vdu_name]['properties']['metadata'] =\
@@ -395,9 +395,9 @@ def populate_flavor_extra_specs(es_dict, properties, flavor_extra_input):
                 error_msg_details=(mval + ":Invalid Input"))
         es_dict['hw:mem_page_size'] = mval
     if 'numa_nodes' in properties and 'numa_node_count' in properties:
-        LOG.warning(_('Both numa_nodes and numa_node_count have been'
-                      'specified; numa_node definitions will be ignored and'
-                      'numa_node_count will be applied'))
+        LOG.warning('Both numa_nodes and numa_node_count have been'
+                    'specified; numa_node definitions will be ignored and'
+                    'numa_node_count will be applied')
     if 'numa_node_count' in properties:
         es_dict['hw:numa_nodes'] = \
             properties['numa_node_count'].value

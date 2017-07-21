@@ -47,7 +47,7 @@ class VNFMonitorPing(abstract_driver.VNFMonitorAbstractDriver):
         return 'Tacker VNFMonitor Ping Driver'
 
     def monitor_url(self, plugin, context, vnf):
-        LOG.debug(_('monitor_url %s'), vnf)
+        LOG.debug('monitor_url %s', vnf)
         return vnf.get('monitor_url', '')
 
     def _is_pingable(self, mgmt_ip="", count=5, timeout=1, interval='0.2',

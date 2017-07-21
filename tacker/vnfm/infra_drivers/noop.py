@@ -55,7 +55,7 @@ class DeviceNoop(abstract_driver.DeviceAbstractDriver):
     @log.log
     def update(self, plugin, context, vnf_id, vnf_dict, vnf):
         if vnf_id not in self._instances:
-            LOG.debug(_('not found'))
+            LOG.debug('not found')
             raise ValueError('No instance %s' % vnf_id)
 
     @log.log

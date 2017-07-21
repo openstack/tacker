@@ -47,8 +47,8 @@ class HeatClient(object):
         try:
             self.stacks.delete(stack_id)
         except heatException.HTTPNotFound:
-            LOG.warning(_("Stack %(stack)s created by service chain driver is "
-                          "not found at cleanup"), {'stack': stack_id})
+            LOG.warning("Stack %(stack)s created by service chain driver is "
+                        "not found at cleanup", {'stack': stack_id})
 
     def get(self, stack_id):
         return self.stacks.get(stack_id)
