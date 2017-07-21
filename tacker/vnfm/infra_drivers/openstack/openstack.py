@@ -339,7 +339,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                 error_reason = _("VNF scaling failed for stack %(stack)s with "
                                  "error %(error)s") % {
                                      'stack': policy['instance_id'],
-                                     'error': e.message}
+                                     'error': str(e)}
                 LOG.warning(error_reason)
                 raise vnfm.VNFScaleWaitFailed(vnf_id=policy['vnf']['id'],
                                               reason=error_reason)
