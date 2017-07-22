@@ -155,7 +155,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
             keystone_version = self.keystone.get_version(auth_url)
         except Exception as e:
             LOG.error('VIM Auth URL invalid')
-            raise nfvo.VimConnectionException(message=e.message)
+            raise nfvo.VimConnectionException(message=str(e))
         return keystone_version
 
     def _initialize_keystone(self, version, auth):
