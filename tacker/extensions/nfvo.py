@@ -367,6 +367,12 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
             'default': None,
         },
+        'template_source': {
+            'allow_post': False,
+            'allow_put': False,
+            'is_visible': True,
+            'default': 'onboarded'
+        }
     },
 
     'vnffgs': {
@@ -389,6 +395,7 @@ RESOURCE_ATTRIBUTE_MAP = {
             'allow_put': False,
             'validate': {'type:uuid': None},
             'is_visible': True,
+            'default': None
         },
         'name': {
             'allow_post': True,
@@ -435,6 +442,13 @@ RESOURCE_ATTRIBUTE_MAP = {
             'allow_post': False,
             'allow_put': False,
             'is_visible': True,
+        },
+        'vnffgd_template': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:dict_or_nodata': None},
+            'is_visible': True,
+            'default': None,
         },
     },
 
@@ -636,6 +650,12 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
             'default': None,
         },
+        'template_source': {
+            'allow_post': False,
+            'allow_put': False,
+            'is_visible': True,
+            'default': 'onboarded'
+        },
 
     },
 
@@ -689,6 +709,7 @@ RESOURCE_ATTRIBUTE_MAP = {
             'allow_put': False,
             'validate': {'type:uuid': None},
             'is_visible': True,
+            'default': None,
         },
         'vim_id': {
             'allow_post': True,
@@ -721,6 +742,13 @@ RESOURCE_ATTRIBUTE_MAP = {
             'convert_to': attr.convert_none_to_empty_dict,
             'validate': {'type:dict_or_nodata': None},
             'is_visible': True,
+        },
+        'nsd_template': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:dict_or_nodata': None},
+            'is_visible': True,
+            'default': None,
         },
     },
 

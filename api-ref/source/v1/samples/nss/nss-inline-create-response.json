@@ -1,0 +1,16 @@
+{
+  "ns": {
+    "status": "PENDING_CREATE",
+    "created_at": "2017-07-14 17:03:33.596454",
+    "description": "sample NS",
+    "tenant_id": "058079ca392749bfa58831e0467a5439",
+    "vim_id": "0e70ec23-6f32-420a-a039-2cdb2c20c329",
+    "updated_at": null,
+    "mgmt_urls": null,
+    "vnf_ids": null,
+    "error_reason": null,
+    "nsd_id": "be18005d-5656-4d81-b499-6af4d4d8437f",
+    "id": "ff35e3f0-0a11-4071-bce6-279fdf1c8bf9",
+    "name": "ns_test"
+  }
+}

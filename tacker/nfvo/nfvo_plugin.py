@@ -266,6 +266,12 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
     def create_vnffgd(self, context, vnffgd):
         template = vnffgd['vnffgd']
 
+        if 'template_source' in template:
+            template_source = template.get('template_source')
+        else:
+            template_source = 'onboarded'
+        vnffgd['vnffgd']['template_source'] = template_source
+
         if 'vnffgd' not in template.get('template'):
             raise nfvo.VnffgdInvalidTemplate(template=template.get('template'))
         else:
@@ -279,6 +285,20 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
 
     @log.log
     def create_vnffg(self, context, vnffg):
+        vnffg_info = vnffg['vnffg']
+        name = vnffg_info['name']
+
+        if vnffg_info.get('vnffgd_template'):
+            vnffgd_name = utils.generate_resource_name(name, 'inline')
+            vnffgd = {'vnffgd': {'tenant_id': vnffg_info['tenant_id'],
+                                 'name': vnffgd_name,
+                                 'template': {
+                                     'vnffgd': vnffg_info['vnffgd_template']},
+                                 'template_source': 'inline',
+                                 'description': vnffg_info['description']}}
+            vnffg_info['vnffgd_id'] = \
+                self.create_vnffgd(context, vnffgd).get('id')
+
         vnffg_dict = super(NfvoPlugin, self)._create_vnffg_pre(context, vnffg)
         nfp = super(NfvoPlugin, self).get_nfp(context,
                                               vnffg_dict['forwarding_paths'])
@@ -502,6 +522,12 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 template)
         LOG.debug('nsd %s', nsd_data)
 
+        if 'template_source' in nsd_data:
+            template_source = nsd_data.get('template_source')
+        else:
+            template_source = "onboarded"
+        nsd['nsd']['template_source'] = template_source
+
         self._parse_template_input(context, nsd)
         return super(NfvoPlugin, self).create_nsd(
             context, nsd)
@@ -576,6 +602,19 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         VNFs will actually substitute their requirements.
         step-3: Create mistral workflow and execute the workflow
         """
+        ns_info = ns['ns']
+        name = ns_info['name']
+
+        if ns_info.get('nsd_template'):
+            nsd_name = utils.generate_resource_name(name, 'inline')
+            nsd = {'nsd': {
+                'attributes': {'nsd': ns_info['nsd_template']},
+                'description': ns_info['description'],
+                'name': nsd_name,
+                'template_source': 'inline',
+                'tenant_id': ns_info['tenant_id']}}
+            ns_info['nsd_id'] = self.create_nsd(context, nsd).get('id')
+
         nsd = self.get_nsd(context, ns['ns']['nsd_id'])
         nsd_dict = yaml.safe_load(nsd['attributes']['nsd'])
         vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']

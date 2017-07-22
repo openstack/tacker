@@ -29,9 +29,9 @@ Forwarding Graph Descriptors (VNFFGD). Please see the `devref guide
 /vnffgd_template_description.rst>`_ on VNFFGD to learn more about
 how a VNFFGD is defined.
 
-After creating a VNFFGD, a VNFFG is instantiated by a separate Tacker
-command.  This action will build the chain and classifier necessary to
-realize the VNFFG.
+VNFFG can be instantiated from VNFFGD or directly from VNFFGD template by
+separate Tacker commands.  This action will build the chain and classifier
+necessary to realize the VNFFG.
 
 Prerequisites
 ~~~~~~~~~~~~~
@@ -42,6 +42,22 @@ Classifiers.  Therefore it is required to install `networking-sfc
 in order to use Tacker VNFFG.  Networking-sfc also requires at least OVS 2.5
 .0, so also ensure that is installed.  See the full `Networking-sfc guide
 <https://wiki.openstack.org/wiki/Neutron/ServiceInsertionAndChaining>`_.
+
+A simple example of a service chain would be one that forces all traffice
+from HTTP client to HTTP server to go through VNFs that was created by
+VNFFG.
+
+Firstly, HTTP client and HTTP server must be launched.
+
+.. code-block:: console
+
+   net_id=$(openstack network list | grep net0 | awk '{print $2}')
+
+   openstack server create --flavor m1.tiny --image cirros-0.3.5-x86_64-disk \
+   --nic net-id=$net_id http_client
+
+   openstack server create --flavor m1.tiny --image cirros-0.3.5-x86_64-disk \
+   --nic net-id=$net_id http_server
 
 Creating the VNFFGD
 ~~~~~~~~~~~~~~~~~~~
@@ -62,6 +78,22 @@ tosca-vnffgd-sample.yaml>`_.
         type: ACL
         criteria:
         - network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480e1
+        - destination_port_range: 80-1024
+        - ip_proto: 6
+        - ip_dst_prefix: 192.168.1.2/24
+
+You can get network_src_port_id and IP destination address through
+OpenStack commands like bellow:
+
+.. code-block:: console
+
+   client_ip=$(openstack server list | grep http_client | \
+    grep -Eo '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
+
+   network_source_port_id=$(openstack port list | grep $client_ip | awk '{print $2}')
+
+   ip_dst=$(openstack server list | grep http_server | \
+    grep -Eo '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
 
 
 This is required due to a limitation of Neutron networking-sfc and only
@@ -71,7 +103,7 @@ Tacker provides the following CLI to create a VNFFGD:
 
 .. code-block:: console
 
-   tacker vnffgd-create --vnffgd-file <vnffgd file> <vnffgd name>
+   tacker vnffgd-create --vnffgd-file <vnffgd-file> <vnffgd-name>
 
 
 Creating the VNFFG
@@ -82,24 +114,41 @@ VNFD types listed in the VNFFGD.  Failure to do so will result in error when
 trying to create a VNFFG.  Note, the VNFD you define **must** include the
 same Connection Point definitions as the ones you declared in your VNFFGD.
 
-Refer the 'Getting Started' link below on how to create a VNFD and deploy a
-VNF:
+.. code-block:: console
+
+   tacker vnfd-create --vnfd-file tosca-vnffg-vnfd1.yaml VNFD1
+   tacker vnf-create --vnfd-name VNFD1 VNF1
+
+   tacker vnfd-create --vnfd-file tosca-vnffg-vnfd2.yaml VNFD2
+   tacker vnf-create --vnfd-name VNFD2 VNF2
+
+Refer the 'Getting Started' link below on how to create a VNFD and deploy
+2 VNFs: `VNF1`_ and `VNF2`_.
+
 http://docs.openstack.org/developer/tacker/install/getting_started.html
 
-Tacker provides the following CLI to create VNFFG:
+Tacker provides the following CLI to create VNFFG from VNFFGD:
 
 .. code-block:: console
 
-   tacker vnffg-create --vnffgd-name <vnffgd name> \
-          --vnf-mapping <vnf mapping> --symmetrical <boolean>
+   tacker vnffg-create --vnffgd-name <vnffgd-name> \
+          --vnf-mapping <vnf-mapping> --symmetrical <boolean> <vnffg-name>
+
+or you can create directly VNFFG from vnffgd template without initiating
+VNFFGD.
+
+.. code-block:: console
+
+   tacker vnffg-create --vnffgd-template <vnffgd-template> \
+      --vnf-mapping <vnf-mapping> --symmetrical <boolean> <vnffg-name>
 
 If you use a parameterized vnffg template:
 
 .. code-block:: console
 
-   tacker vnffg-create --vnffgd-name <vnffgd name> \
-     --param-file <param file> --vnf-mapping <vnf mapping> \
-     --symmetrical <boolean>
+   tacker vnffg-create --vnffgd-name <vnffgd-name> \
+      --param-file <param-file> --vnf-mapping <vnf-mapping> \
+      --symmetrical <boolean> <vnffg-name>
 
 Here,
 
@@ -109,18 +158,23 @@ Here,
 * symmetrical - True/False
 
 VNF Mapping is used to declare which exact VNF instance to be used for
-each VNF in the Forwarding Path.  For example, imagine a Forwarding Path
-'path' which includes VNF1 and VNF2 VNFDs.  Two VNF instances already exist
-(one from each VNFD): '91e32c20-6d1f-47a4-9ba7-08f5e5effe07',
-'7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'.  The following command would then
-map each VNFD defined in the VNFFGD Forwarding Path to the desired VNF
-instance:
+each VNF in the Forwarding Path. The following command would list VNFs
+in Tacker and then map each VNFD defined in the VNFFGD Forwarding Path
+to the desired VNF instance:
 
 .. code-block:: console
 
-   tacker vnffg-create --vnffgd-name myvnffgd \
-   --vnf-mapping VNF1:'91e32c20-6d1f-47a4-9ba7-08f5e5effe07', \
-   VNF2:'7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'
+   tacker vnf-list
+
+   +--------------------------------------+------+---------------------------+--------+--------------------------------------+--------------------------------------+
+   | id                                   | name | mgmt_url                  | status | vim_id                               | vnfd_id                              |
+   +--------------------------------------+------+---------------------------+--------+--------------------------------------+--------------------------------------+
+   | 7168062e-9fa1-4203-8cb7-f5c99ff3ee1b | VNF2 | {"VDU1": "192.168.1.5"}   | ACTIVE | 0e70ec23-6f32-420a-a039-2cdb2c20c329 | ea842879-5a7a-4f29-a8b0-528b2ad3b027 |
+   | 91e32c20-6d1f-47a4-9ba7-08f5e5effe07 | VNF1 | {"VDU1": "192.168.1.7"}   | ACTIVE | 0e70ec23-6f32-420a-a039-2cdb2c20c329 | 27795330-62a7-406d-9443-2daad76e674b |
+   +--------------------------------------+------+---------------------------+--------+--------------------------------------+--------------------------------------+
+
+   tacker vnffg-create --vnffgd-name myvnffgd --vnf-mapping \
+      VNFD1:'91e32c20-6d1f-47a4-9ba7-08f5e5effe07',VNF2:'7168062e-9fa1-4203-8cb7-f5c99ff3ee1b' myvnffg
 
 Alternatively, if no vnf-mapping is provided then Tacker VNFFG will attempt
 to search for VNF instances derived from the given VNFDs in the VNFFGD.  If
@@ -147,7 +201,7 @@ The value of a parameterized attribute can be specified like *{get_input foo}*
 in the TOSCA VNFFGD template. The corresponding param-file in the following
 YAML format can be provided in the vnffg-create command,
 
-::
+.. code-block:: console
 
   {
     foo: bar
@@ -155,10 +209,11 @@ YAML format can be provided in the vnffg-create command,
 
 VNFFG command with parameter file:
 
-  **tacker vnffg-create --vnffgd-name myvnffgd**
-  **--vnf-mapping VNF1:'91e32c20-6d1f-47a4-9ba7-08f5e5effe07',**
-  **VNF2:'7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'**
-  **--param-file cust-site-x-param.yaml**
+
+.. code-block:: console
+
+   tacker vnffg-create --vnffgd-name vnffgd-param --vnf-mapping VNFD1:'91e32c20-6d1f-47a4-9ba7-08f5e5effe07',\
+   VNFD2:'7168062e-9fa1-4203-8cb7-f5c99ff3ee1b' --param-file vnffg-param-file.yaml myvnffg
 
 
 See `VNFFGD template samples with parameter support <https://github.com/
@@ -192,3 +247,6 @@ Known Issues and Limitations
   'network_name'
 - NSH attributes not yet supported
 - Symmetrical is not supported by driver yet
+
+.. _VNF1: https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd1.yaml
+.. _VNF2: https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd2.yaml

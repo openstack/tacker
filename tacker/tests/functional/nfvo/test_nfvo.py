@@ -101,33 +101,56 @@ class NsdTestCreate(base.BaseTackerTest):
                     int(time.time()) - start_time) > timeout):
                 raise Exception("Failed with status: %s" % status)
 
-    def _test_create_delete_ns(self, nsd_file, ns_name):
+    def _test_create_delete_ns(self, nsd_file, ns_name,
+                               template_source='onboarded'):
         vnfd1_id = self._test_create_tosca_vnfd(
             'test-ns-vnfd1.yaml',
             'test-ns-vnfd1')
         vnfd2_id = self._test_create_tosca_vnfd(
             'test-ns-vnfd2.yaml',
             'test-ns-vnfd2')
-        nsd_id = self._test_create_nsd(
-            nsd_file,
-            'test-ns-nsd')
-        ns_arg = {'ns': {'nsd_id': nsd_id, 'name': ns_name,
-                  'attributes': {"param_values": {"nsd":
-                                {"vl2_name": "net0",
-                                 "vl1_name": "net_mgmt"}}}}}
-        ns_instance = self.client.create_ns(body=ns_arg)
-        ns_id = ns_instance['ns']['id']
+
+        if template_source == 'onboarded':
+            nsd_id = self._test_create_nsd(
+                nsd_file,
+                'test-ns-nsd')
+            ns_arg = {'ns': {
+                'nsd_id': nsd_id,
+                'name': ns_name,
+                'attributes': {"param_values": {
+                    "nsd": {
+                        "vl2_name": "net0",
+                        "vl1_name": "net_mgmt"}}}}}
+            ns_instance = self.client.create_ns(body=ns_arg)
+            ns_id = ns_instance['ns']['id']
+
+        if template_source == 'inline':
+            input_yaml = read_file(nsd_file)
+            template = yaml.safe_load(input_yaml)
+            ns_arg = {'ns': {
+                'name': ns_name,
+                'attributes': {"param_values": {
+                    "nsd": {
+                        "vl2_name": "net0",
+                        "vl1_name": "net_mgmt"}}},
+                'nsd_template': template}}
+            ns_instance = self.client.create_ns(body=ns_arg)
+            ns_id = ns_instance['ns']['id']
+
         self._wait_until_ns_status(ns_id, 'ACTIVE',
                                    constants.NS_CREATE_TIMEOUT,
                                    constants.ACTIVE_SLEEP_TIME)
         ns_show_out = self.client.show_ns(ns_id)['ns']
         self.assertIsNotNone(ns_show_out['mgmt_urls'])
+
         try:
             self.client.delete_ns(ns_id)
-        except Exception:
+        except Exception as e:
+            print("Exception:", e)
             assert False, "ns Delete failed"
-        self._wait_until_ns_delete(ns_id, constants.NS_DELETE_TIMEOUT)
-        self._test_delete_nsd(nsd_id)
+        if template_source == 'onboarded':
+            self._wait_until_ns_delete(ns_id, constants.NS_DELETE_TIMEOUT)
+            self._test_delete_nsd(nsd_id)
         self._test_delete_vnfd(vnfd1_id)
         self._test_delete_vnfd(vnfd2_id)
 
@@ -147,4 +170,9 @@ class NsdTestCreate(base.BaseTackerTest):
 
     def test_create_delete_network_service(self):
         self._test_create_delete_ns('test-ns-nsd.yaml',
-                                    'test-ns')
+                                    'test-ns-onboarded',
+                                    template_source='onboarded')
+        time.sleep(1)
+        self._test_create_delete_ns('test-ns-nsd.yaml',
+                                    'test-ns-inline',
+                                    template_source='inline')

@@ -12,11 +12,12 @@
 
 import ast
 from datetime import datetime
+import uuid
 
 from oslo_db.exception import DBDuplicateEntry
 from oslo_log import log as logging
 from oslo_utils import timeutils
-from oslo_utils import uuidutils
+from six import iteritems
 
 import sqlalchemy as sa
 from sqlalchemy import orm
@@ -53,6 +54,9 @@ class NSD(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
     name = sa.Column(sa.String(255), nullable=False)
     description = sa.Column(sa.Text)
     vnfds = sa.Column(types.Json, nullable=True)
+
+    # Nsd template source - onboarded
+    template_source = sa.Column(sa.String(255), server_default='onboarded')
 
     # (key, value) pair to spin up
     attributes = orm.relationship('NSDAttribute',
@@ -146,7 +150,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
             'attributes': self._make_attributes_dict(nsd['attributes']),
         }
         key_list = ('id', 'tenant_id', 'name', 'description',
-                    'created_at', 'updated_at', 'vnfds')
+                    'created_at', 'updated_at', 'vnfds', 'template_source')
         res.update((key, nsd[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -167,21 +171,23 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         nsd = nsd['nsd']
         LOG.debug('nsd %s', nsd)
         tenant_id = self._get_tenant_id_for_create(context, nsd)
+        template_source = nsd.get('template_source')
 
         try:
             with context.session.begin(subtransactions=True):
-                nsd_id = uuidutils.generate_uuid()
+                nsd_id = str(uuid.uuid4())
                 nsd_db = NSD(
                     id=nsd_id,
                     tenant_id=tenant_id,
                     name=nsd.get('name'),
                     vnfds=vnfds,
                     description=nsd.get('description'),
-                    deleted_at=datetime.min)
+                    deleted_at=datetime.min,
+                    template_source=template_source)
                 context.session.add(nsd_db)
                 for (key, value) in nsd.get('attributes', {}).items():
                     attribute_db = NSDAttribute(
-                        id=uuidutils.generate_uuid(),
+                        id=str(uuid.uuid4()),
                         nsd_id=nsd_id,
                         key=key,
                         value=value)
@@ -233,6 +239,9 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         return self._make_nsd_dict(nsd_db)
 
     def get_nsds(self, context, filters, fields=None):
+        if ('template_source' in filters) and \
+                (filters['template_source'][0] == 'all'):
+            filters.pop('template_source')
         return self._get_collection(context, NSD,
                                     self._make_nsd_dict,
                                     filters=filters, fields=fields)
@@ -245,7 +254,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         nsd_id = ns['nsd_id']
         vim_id = ns['vim_id']
         name = ns.get('name')
-        ns_id = uuidutils.generate_uuid()
+        ns_id = str(uuid.uuid4())
         try:
             with context.session.begin(subtransactions=True):
                 nsd_db = self._get_resource(context, NSD,
@@ -283,7 +292,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         mgmt_urls = dict()
         vnf_ids = dict()
         if len(output) > 0:
-            for vnfd_name, vnfd_val in (vnfd_dict).items():
+            for vnfd_name, vnfd_val in iteritems(vnfd_dict):
                 for instance in vnfd_val['instances']:
                     if 'mgmt_url_' + instance in output:
                         mgmt_urls[instance] = ast.literal_eval(
@@ -332,6 +341,8 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
 
     def delete_ns_post(self, context, ns_id, mistral_obj,
                        error_reason, soft_delete=True):
+        ns = self.get_ns(context, ns_id)
+        nsd_id = ns.get('nsd_id')
         with context.session.begin(subtransactions=True):
             query = (
                 self._model_query(context, NS).
@@ -359,6 +370,9 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                         details="ns Delete Complete")
                 else:
                     query.delete()
+            template_db = self._get_resource(context, NSD, nsd_id)
+            if template_db.get('template_source') == 'inline':
+                self.delete_nsd(context, nsd_id)
 
     def get_ns(self, context, ns_id, fields=None):
         ns_db = self._get_resource(context, NS, ns_id)

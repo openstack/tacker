@@ -1,0 +1,84 @@
+{
+  "vnffg": {
+    "forwarding_paths": "a2d2d1dd-433f-47b7-89f8-be3cd6b2086a",
+    "status": "PENDING_CREATE",
+    "description": "",
+    "tenant_id": "058079ca392749bfa58831e0467a5439",
+    "vnffgd_id": "5263b036-8d11-410c-9417-6e0300456160",
+    "vnf_mapping": {
+      "VNFD2": "af76238b-75db-4f70-9ad7-bd286bb0f88a",
+      "VNFD1": "dcda3482-1e75-4b37-8bdd-77c018a59cd7"
+    },
+    "attributes": {
+      "vnffgd": {
+        "imports": [
+          "/opt/stack/tacker/tacker/tosca/lib/tacker_defs.yaml",
+          "/opt/stack/tacker/tacker/tosca/lib/tacker_nfv_defs.yaml"
+        ],
+        "description": "Sample VNFFG template",
+        "topology_template": {
+          "node_templates": {
+            "Forwarding_path1": {
+              "type": "tosca.nodes.nfv.FP.Tacker",
+              "description": "creates path (CP12->CP22)",
+              "properties": {
+                "policy": {
+                  "type": "ACL",
+                  "criteria": [
+                    {
+                      "network_src_port_id": "9ec6bef0-5da9-4b04-bdc7-c57bc26bcdea"
+                    },
+                    {
+                      "ip_proto": 1
+                    }
+                  ]
+                },
+                "path": [
+                  {
+                    "capability": "CP12",
+                    "forwarder": "VNFD1"
+                  },
+                  {
+                    "capability": "CP22",
+                    "forwarder": "VNFD2"
+                  }
+                ],
+                "id": 51
+              }
+            }
+          },
+          "description": "Sample VNFFG template",
+          "groups": {
+            "VNFFG1": {
+              "type": "tosca.groups.nfv.VNFFG",
+              "description": "HTTP to Corporate Net",
+              "members": [
+                "Forwarding_path1"
+              ],
+              "properties": {
+                "vendor": "tacker",
+                "connection_point": [
+                  "CP12",
+                  "CP22"
+                ],
+                "version": 1,
+                "constituent_vnfs": [
+                  "VNFD1",
+                  "VNFD2"
+                ],
+                "number_of_endpoints": 2,
+                "dependent_virtual_link": [
+                  "VL12",
+                  "VL22"
+                ]
+              }
+            }
+          }
+        },
+        "tosca_definitions_version": "tosca_simple_profile_for_nfv_1_0_0"
+      }
+    },
+    "id": "d86b2e7c-6e88-4d6e-ac1a-9a9ad56b48f5",
+    "name": "vnffg1"
+  }
+}
