@@ -9,7 +9,7 @@ Manages VNF Forwarding Graph Descriptors (VNFFGDs).
 The VNFFGD is a template which describes information about deployment and
 behavior of VNF Forwarding Graphs (VNFFGs). For more information, see
 `VNFFG Descriptor Template Guide
-<http://docs.openstack.org/developer/tacker/devref/vnffgd_template_description.html>`_.
+<https://docs.openstack.org/tacker/latest/contributor/vnffgd_template_description.html>`_.
 
 
 Create VNFFGD

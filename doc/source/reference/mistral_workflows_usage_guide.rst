@@ -27,7 +27,7 @@ References
 ~~~~~~~~~~
 
 - `Mistral workflow samples   <https://github.com/openstack/tacker/tree/master/samples/mistral/workflows>`_.
-- `Mistral Client / CLI Guide <http://docs.openstack.org/developer/mistral/guides/mistralclient_guide.html>`_.
+- `Mistral Client / CLI Guide <https://docs.openstack.org/mistral/latest/install/mistralclient_guide.html>`_.
 
 Workflow definition file validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

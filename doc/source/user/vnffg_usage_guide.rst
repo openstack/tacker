@@ -125,7 +125,7 @@ same Connection Point definitions as the ones you declared in your VNFFGD.
 Refer the 'Getting Started' link below on how to create a VNFD and deploy
 2 VNFs: `VNF1`_ and `VNF2`_.
 
-http://docs.openstack.org/developer/tacker/install/getting_started.html
+https://docs.openstack.org/tacker/latest/install/getting_started.html
 
 Tacker provides the following CLI to create VNFFG from VNFFGD:
 
