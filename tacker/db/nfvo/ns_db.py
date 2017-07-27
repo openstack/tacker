@@ -12,11 +12,11 @@
 
 import ast
 from datetime import datetime
-import uuid
 
 from oslo_db.exception import DBDuplicateEntry
 from oslo_log import log as logging
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
 from six import iteritems
 
 import sqlalchemy as sa
@@ -175,7 +175,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
 
         try:
             with context.session.begin(subtransactions=True):
-                nsd_id = str(uuid.uuid4())
+                nsd_id = uuidutils.generate_uuid()
                 nsd_db = NSD(
                     id=nsd_id,
                     tenant_id=tenant_id,
@@ -187,7 +187,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                 context.session.add(nsd_db)
                 for (key, value) in nsd.get('attributes', {}).items():
                     attribute_db = NSDAttribute(
-                        id=str(uuid.uuid4()),
+                        id=uuidutils.generate_uuid(),
                         nsd_id=nsd_id,
                         key=key,
                         value=value)
@@ -254,7 +254,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         nsd_id = ns['nsd_id']
         vim_id = ns['vim_id']
         name = ns.get('name')
-        ns_id = str(uuid.uuid4())
+        ns_id = uuidutils.generate_uuid()
         try:
             with context.session.begin(subtransactions=True):
                 nsd_db = self._get_resource(context, NSD,

@@ -13,9 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_utils import uuidutils
 import random
 import sqlalchemy as sa
-import uuid
 
 from oslo_log import log as logging
 from six import iteritems
@@ -195,8 +195,8 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
 
     def create_vnffg(self, context, vnffg):
         vnffg_dict = self._create_vnffg_pre(context, vnffg)
-        sfc_instance = str(uuid.uuid4())
-        fc_instance = str(uuid.uuid4())
+        sfc_instance = uuidutils.generate_uuid()
+        fc_instance = uuidutils.generate_uuid()
         self._create_vnffg_post(context, sfc_instance,
                                 fc_instance, vnffg_dict)
         self._create_vnffg_status(context, vnffg_dict)
@@ -226,7 +226,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         template_source = template.get('template_source')
 
         with context.session.begin(subtransactions=True):
-            template_id = str(uuid.uuid4())
+            template_id = uuidutils.generate_uuid()
             template_db = VnffgTemplate(
                 id=template_id,
                 tenant_id=tenant_id,
@@ -332,7 +332,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         LOG.debug('vnffg %s', vnffg)
         tenant_id = self._get_tenant_id_for_create(context, vnffg)
         name = vnffg.get('name')
-        vnffg_id = vnffg.get('id') or str(uuid.uuid4())
+        vnffg_id = vnffg.get('id') or uuidutils.generate_uuid()
         template_id = vnffg['vnffgd_id']
         symmetrical = vnffg['symmetrical']
 
@@ -370,9 +370,9 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                              status=constants.PENDING_CREATE)
             context.session.add(vnffg_db)
 
-            nfp_id = str(uuid.uuid4())
-            sfc_id = str(uuid.uuid4())
-            classifier_id = str(uuid.uuid4())
+            nfp_id = uuidutils.generate_uuid()
+            sfc_id = uuidutils.generate_uuid()
+            classifier_id = uuidutils.generate_uuid()
 
             nfp_db = VnffgNfp(id=nfp_id, vnffg_id=vnffg_id,
                               tenant_id=tenant_id,
@@ -408,7 +408,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             LOG.debug('acl_match %s', match)
 
             match_db_table = ACLMatchCriteria(
-                id=str(uuid.uuid4()),
+                id=uuidutils.generate_uuid(),
                 vnffgc_id=classifier_id,
                 **match)
 
@@ -671,7 +671,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         """
         # this should be overridden with driver call to find ID given name
         # for resource
-        return str(uuid.uuid4())
+        return uuidutils.generate_uuid()
 
     # called internally, not by REST API
     # instance_id = None means error on creation

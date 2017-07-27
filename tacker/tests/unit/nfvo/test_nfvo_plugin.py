@@ -17,8 +17,7 @@ import codecs
 from datetime import datetime
 import mock
 import os
-import uuid
-
+from oslo_utils import uuidutils
 
 from mock import patch
 
@@ -57,7 +56,7 @@ class FakeDriverManager(mock.Mock):
     def invoke(self, *args, **kwargs):
         if any(x in ['create', 'create_chain', 'create_flow_classifier'] for
                x in args):
-            return str(uuid.uuid4())
+            return uuidutils.generate_uuid()
         elif 'execute_workflow' in args:
             mock_execution = mock.Mock()
             mock_execution.id.return_value = \
@@ -724,7 +723,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         session.add(nsd_template)
         for (key, value) in attributes.items():
             attribute_db = ns_db.NSDAttribute(
-                id=str(uuid.uuid4()),
+                id=uuidutils.generate_uuid(),
                 nsd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
                 key=key,
                 value=value)
@@ -761,7 +760,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         session.add(nsd_template)
         for (key, value) in attributes.items():
             attribute_db = ns_db.NSDAttribute(
-                id=str(uuid.uuid4()),
+                id=uuidutils.generate_uuid(),
                 nsd_id='be18005d-5656-4d81-b499-6af4d4d8437f',
                 key=key,
                 value=value)
