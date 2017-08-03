@@ -304,9 +304,9 @@ ns_id:
   in: body
   required: true
   type: string
-ns_mgmt_url:
+ns_mgmt_ip_address:
   description: |
-    Management URL information for the NS.
+    Management ip address for the NS.
   in: body
   required: true
   type: string
@@ -696,9 +696,9 @@ vnf_mapping_opt:
   in: body
   required: false
   type: object
-vnf_mgmt_url:
+vnf_mgmt_ip_address:
   description: |
-    Management URL information for the VNF.
+    Management ip address for the VNF.
   in: body
   required: true
   type: string

@@ -48,9 +48,9 @@ class VnfMgmtOpenWRT(abstract_driver.VnfMGMTAbstractDriver):
     def get_description(self):
         return 'Tacker VNFMgmt OpenWRT Driver'
 
-    def mgmt_url(self, plugin, context, vnf):
-        LOG.debug('mgmt_url %s', vnf)
-        return vnf.get('mgmt_url', '')
+    def mgmt_ip_address(self, plugin, context, vnf):
+        LOG.debug('mgmt_ip_address %s', vnf)
+        return vnf.get('mgmt_ip_address', '')
 
     @log.log
     def _config_service(self, mgmt_ip_address, service, config):
@@ -82,8 +82,8 @@ class VnfMgmtOpenWRT(abstract_driver.VnfMGMTAbstractDriver):
             return
         dev_attrs = vnf.get('attributes', {})
 
-        mgmt_url = jsonutils.loads(vnf.get('mgmt_url', '{}'))
-        if not mgmt_url:
+        mgmt_ip_address = jsonutils.loads(vnf.get('mgmt_ip_address', '{}'))
+        if not mgmt_ip_address:
             return
 
         vdus_config = dev_attrs.get('config', '')
@@ -97,7 +97,7 @@ class VnfMgmtOpenWRT(abstract_driver.VnfMGMTAbstractDriver):
                 KNOWN_SERVICES = ('firewall', 'network', 'dhcp', 'qos')
                 if key not in KNOWN_SERVICES:
                     continue
-                mgmt_ip_address = mgmt_url.get(vdu, '')
+                mgmt_ip_address = mgmt_ip_address.get(vdu, '')
                 if not mgmt_ip_address:
                     LOG.warning('tried to configure unknown mgmt '
                                 'address on VNF %(vnf)s VDU %(vdu)s',

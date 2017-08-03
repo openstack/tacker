@@ -27,7 +27,7 @@ from tacker.vnfm.policy_actions.vdu_autoheal import vdu_autoheal
 
 vnf_dict = {
     'id': uuidutils.generate_uuid(),
-    'mgmt_url': '{"VDU1": "a.b.c.d"}',
+    'mgmt_ip_address': '{"VDU1": "a.b.c.d"}',
     'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
     'instance_id': 'a737497c-761c-11e5-89c3-9cb6541d805d',
     'attributes': {

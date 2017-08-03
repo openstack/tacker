@@ -131,8 +131,8 @@ class VNF(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
 
     # For a management tool to talk to manage this hosting vnf.
     # opaque string.
-    # e.g. (driver, mgmt_url) = (ssh, ip address), ...
-    mgmt_url = sa.Column(sa.String(255), nullable=True)
+    # e.g. (driver, mgmt_ip_address) = (ssh, ip address), ...
+    mgmt_ip_address = sa.Column(sa.String(255), nullable=True)
     attributes = orm.relationship("VNFAttribute", backref="vnf")
 
     status = sa.Column(sa.String(64), nullable=False)
@@ -227,7 +227,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         }
         key_list = ('id', 'tenant_id', 'name', 'description', 'instance_id',
                     'vim_id', 'placement_attr', 'vnfd_id', 'status',
-                    'mgmt_url', 'error_reason', 'created_at', 'updated_at')
+                    'mgmt_ip_address', 'error_reason', 'created_at',
+                    'updated_at')
         res.update((key, vnf_db[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -436,14 +437,15 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
     # called internally, not by REST API
     # intsance_id = None means error on creation
     def _create_vnf_post(self, context, vnf_id, instance_id,
-                         mgmt_url, vnf_dict):
+                         mgmt_ip_address, vnf_dict):
         LOG.debug('vnf_dict %s', vnf_dict)
         with context.session.begin(subtransactions=True):
             query = (self._model_query(context, VNF).
                      filter(VNF.id == vnf_id).
                      filter(VNF.status.in_(CREATE_STATES)).
                      one())
-            query.update({'instance_id': instance_id, 'mgmt_url': mgmt_url})
+            query.update({'instance_id': instance_id,
+                          'mgmt_ip_address': mgmt_ip_address})
             if instance_id is None or vnf_dict['status'] == constants.ERROR:
                 query.update({'status': constants.ERROR})
 
@@ -453,7 +455,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                     self._vnf_attribute_update_or_create(context, vnf_id,
                                                          key, value)
         evt_details = ("Infra Instance ID created: %s and "
-                       "Mgmt URL set: %s") % (instance_id, mgmt_url)
+                       "Mgmt IP address set: %s") % (instance_id,
+                                                     mgmt_ip_address)
         self._cos_db_plg.create_event(
             context, res_id=vnf_dict['id'],
             res_type=constants.RES_TYPE_VNF,
@@ -509,12 +512,12 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                                    policy,
                                    previous_statuses,
                                    status,
-                                   mgmt_url=None):
+                                   mgmt_ip_address=None):
         with context.session.begin(subtransactions=True):
             vnf_db = self._update_vnf_status_db(
                 context, policy['vnf']['id'], previous_statuses, status)
-            if mgmt_url:
-                vnf_db.update({'mgmt_url': mgmt_url})
+            if mgmt_ip_address:
+                vnf_db.update({'mgmt_ip_address': mgmt_ip_address})
         updated_vnf_dict = self._make_vnf_dict(vnf_db)
         self._cos_db_plg.create_event(
             context, res_id=updated_vnf_dict['id'],
@@ -547,7 +550,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
              filter(VNF.status == vnf_status).
              update({'status': new_status,
                      'updated_at': updated_time_stamp,
-                     'mgmt_url': new_vnf_dict['mgmt_url']}))
+                     'mgmt_ip_address': new_vnf_dict['mgmt_ip_address']}))
 
             dev_attrs = new_vnf_dict.get('attributes', {})
             (context.session.query(VNFAttribute).

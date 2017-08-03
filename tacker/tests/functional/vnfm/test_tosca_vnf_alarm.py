@@ -53,7 +53,8 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
                 constants.ACTIVE_SLEEP_TIME)
             vnf = self.client.show_vnf(vnf_id)['vnf']
             # {"VDU1": ["10.0.0.14", "10.0.0.5"]}
-            self.assertEqual(count, len(json.loads(vnf['mgmt_url'])['VDU1']))
+            self.assertEqual(count, len(json.loads(vnf[
+                'mgmt_ip_address'])['VDU1']))
 
         def trigger_vnf(vnf, policy_name, policy_action):
             credential = 'g0jtsxu9'

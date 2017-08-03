@@ -7,7 +7,7 @@
     "tenant_id": "a81900a92bda40588c52699e1873a92f",
     "vim_id": "96025dd5-ca16-49f3-9823-958eb04260c4",
     "updated_at": null,
-    "mgmt_urls": null,
+    "mgmt_ip_addresses": null,
     "vnf_ids": null,
     "error_reason": null,
     "nsd_id": "99b2851e-a6a7-4467-9554-0eb50633f012",

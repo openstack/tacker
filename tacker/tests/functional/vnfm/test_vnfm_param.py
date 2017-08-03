@@ -66,7 +66,8 @@ class VnfmTestParam(base.BaseTackerTest):
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
+        self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf'][
+            'mgmt_ip_address'])
         vnf_instance = self.client.show_vnf(vnf_id)
 
         self.verify_vnf_crud_events(

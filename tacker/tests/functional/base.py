@@ -185,7 +185,8 @@ class BaseTackerTest(base.BaseTestCase):
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
-        self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
+        self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf'][
+            'mgmt_ip_address'])
 
         self.wait_until_vnf_dead(
             vnf_id,

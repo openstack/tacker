@@ -59,7 +59,8 @@ class VnfTestToscaScale(base.BaseTackerTest):
             vnf = self.client.show_vnf(vnf_id)['vnf']
 
             # {"VDU1": ["10.0.0.14", "10.0.0.5"]}
-            self.assertEqual(count, len(json.loads(vnf['mgmt_url'])['VDU1']))
+            self.assertEqual(count, len(json.loads(vnf[
+                'mgmt_ip_address'])['VDU1']))
 
         _wait(2)
         # Get nested resources when vnf is in active state

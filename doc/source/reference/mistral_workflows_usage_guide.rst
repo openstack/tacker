@@ -273,7 +273,7 @@ Gather VNF ID from execution output data.
 
   {
     "status": "ACTIVE",
-    "mgmt_url": "{\"VDU1\": \"192.168.120.7\"}",
+    "mgmt_ip_address": "{\"VDU1\": \"192.168.120.7\"}",
     "vim_id": "22ac5ce6-1415-460c-badf-40ffc5091f94",
     "vnf_id": "1c349534-a539-4d5a-b854-033f98036cd5"
   }
@@ -297,7 +297,7 @@ Verify VNF details using OpenStackClient CLI
   | error_reason   |                                                                                                                                                                       |
   | id             | 1c349534-a539-4d5a-b854-033f98036cd5                                                                                                                                  |
   | instance_id    | 771c53df-9f41-454c-a719-7eccd3a4eba9                                                                                                                                  |
-  | mgmt_url       | {"VDU1": "192.168.120.7"}                                                                                                                                             |
+  | mgmt_ip_address| {"VDU1": "192.168.120.7"}                                                                                                                                             |
   | name           | tacker-create-vnf                                                                                                                                                     |
   | placement_attr | {"vim_name": "VIM0"}                                                                                                                                                  |
   | status         | ACTIVE                                                                                                                                                                |

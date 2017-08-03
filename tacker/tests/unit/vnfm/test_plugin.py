@@ -107,9 +107,9 @@ class TestVNFMPluginMonitor(db_base.SqlTestCase):
                         '"interval": 1, "monitoring_delay": 45, "timeout": 2},'
                         '"monitoring_params": {"count": 3, "interval": 1,'
                         '"monitoring_delay": 45, "timeout": 2}}}}}'},
-            'mgmt_url': '{"VDU1": "a.b.c.d"}',
+            'mgmt_ip_address': '{"VDU1": "a.b.c.d"}',
             'deleted_at': datetime.min,
-            'management_ip_addresses': 'a.b.c.d'
+            'mgmt_ip_addresses': 'a.b.c.d'
         }]
 
         mock_get_vnfs.return_value = vnfs
@@ -122,7 +122,7 @@ class TestVNFMPluginMonitor(db_base.SqlTestCase):
         vnfm_plugin = plugin.VNFMPlugin()
         hosting_vnfs = vnfm_plugin._vnf_monitor._hosting_vnfs.values()
         hosting_vnf = hosting_vnfs[0]['vnf']
-        self.assertEqual('{"VDU1": "a.b.c.d"}', hosting_vnf['mgmt_url'])
+        self.assertEqual('{"VDU1": "a.b.c.d"}', hosting_vnf['mgmt_ip_address'])
         self.assertEqual(1, len(hosting_vnfs))
 
 
@@ -370,7 +370,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('instance_id', result)
         self.assertIn('status', result)
         self.assertIn('attributes', result)
-        self.assertIn('mgmt_url', result)
+        self.assertIn('mgmt_ip_address', result)
         self.assertIn('created_at', result)
         self.assertIn('updated_at', result)
         self._vnf_manager.invoke.assert_called_with('test_vim',
@@ -397,7 +397,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('instance_id', result)
         self.assertIn('status', result)
         self.assertIn('attributes', result)
-        self.assertIn('mgmt_url', result)
+        self.assertIn('mgmt_ip_address', result)
         self.assertIn('created_at', result)
         self.assertIn('updated_at', result)
         mock_create_vnfd.assert_called_once_with(mock.ANY, mock.ANY)
@@ -521,7 +521,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('instance_id', result)
         self.assertIn('status', result)
         self.assertIn('attributes', result)
-        self.assertIn('mgmt_url', result)
+        self.assertIn('mgmt_ip_address', result)
         self.assertIn('updated_at', result)
         self._pool.spawn_n.assert_called_once_with(mock.ANY, mock.ANY,
                                                    mock.ANY, mock.ANY,
@@ -676,7 +676,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('instance_id', result)
         self.assertIn('status', result)
         self.assertIn('attributes', result)
-        self.assertIn('mgmt_url', result)
+        self.assertIn('mgmt_ip_address', result)
         self.assertIn('updated_at', result)
 
         self._vnf_manager.invoke.assert_called_with(

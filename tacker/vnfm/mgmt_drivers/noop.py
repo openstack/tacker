@@ -32,8 +32,8 @@ class VnfMgmtNoop(abstract_driver.VnfMGMTAbstractDriver):
     def get_description(self):
         return 'Tacker VNFMgmt Noop Driver'
 
-    def mgmt_url(self, plugin, context, vnf):
-        LOG.debug('mgmt_url %s', vnf)
+    def mgmt_ip_address(self, plugin, context, vnf):
+        LOG.debug('mgmt_ip_address %s', vnf)
         return 'noop-mgmt-url'
 
     def mgmt_call(self, plugin, context, vnf, kwargs):

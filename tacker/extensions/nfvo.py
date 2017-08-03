@@ -803,7 +803,7 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
             'default': None,
         },
-        'mgmt_urls': {
+        'mgmt_ip_addresses': {
             'allow_post': False,
             'allow_put': False,
             'convert_to': attr.convert_none_to_empty_dict,

@@ -142,7 +142,7 @@ Now we create a vnf to verify it works:
    | error_reason   |                                                       |
    | id             | 71d3eef7-6b53-4495-b210-78786cb28ba4                  |
    | instance_id    | 08d0ce6f-69bc-4ff0-87b0-52686a01ce3e                  |
-   | mgmt_url       |                                                       |
+   | mgmt_ip_address|                                                       |
    | name           | vnf-test                                              |
    | placement_attr | {"region_name": "RegionOne", "vim_name": "vim-test"}  |
    | status         | PENDING_CREATE                                        |

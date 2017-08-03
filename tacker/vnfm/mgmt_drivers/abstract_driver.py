@@ -73,7 +73,7 @@ class VnfMGMTAbstractDriver(extensions.PluginInterface):
         return {}
 
     @abc.abstractmethod
-    def mgmt_url(self, plugin, context, vnf):
+    def mgmt_ip_address(self, plugin, context, vnf):
         pass
 
     @abc.abstractmethod

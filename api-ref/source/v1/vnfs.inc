@@ -65,7 +65,7 @@ Response Parameters
   - created_at: vnf_created_at
   - updated_at: vnf_updated_at
   - instance_id: vnf_instance_id
-  - mgmt_url: vnf_mgmt_url
+  - mgmt_ip_address: vnf_mgmt_ip_address
   - vim_id: vim_id
   - placement_attr: vnf_placement_attr
   - error_reason: vnf_error_reason
@@ -115,7 +115,7 @@ Response Parameters
   - created_at: vnf_created_at
   - updated_at: vnf_updated_at
   - instance_id: vnf_instance_id
-  - mgmt_url: vnf_mgmt_url
+  - mgmt_ip_address: vnf_mgmt_ip_address
   - vim_id: vim_id
   - placement_attr: vnf_placement_attr
   - error_reason: vnf_error_reason
@@ -173,7 +173,7 @@ Response Parameters
   - created_at: vnf_created_at
   - updated_at: vnf_updated_at
   - instance_id: vnf_instance_id
-  - mgmt_url: vnf_mgmt_url
+  - mgmt_ip_address: vnf_mgmt_ip_address
   - vim_id: vim_id
   - placement_attr: vnf_placement_attr
   - error_reason: vnf_error_reason
@@ -241,7 +241,7 @@ Response Parameters
   - created_at: vnf_created_at
   - updated_at: vnf_updated_at
   - instance_id: vnf_instance_id
-  - mgmt_url: vnf_mgmt_url
+  - mgmt_ip_address: vnf_mgmt_ip_address
   - vim_id: vim_id
   - placement_attr: vnf_placement_attr
   - error_reason: vnf_error_reason

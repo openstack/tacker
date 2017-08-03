@@ -163,7 +163,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                         get("vdu_name").split("-")[1]
                     mgmt_ip = service_info.spec.cluster_ip
                     mgmt_ips.update({vdu_name: mgmt_ip})
-                    vnf_dict['mgmt_url'] = jsonutils.dumps(mgmt_ips)
+                    vnf_dict['mgmt_ip_address'] = jsonutils.dumps(mgmt_ips)
         except Exception as e:
             LOG.error('Creating wait VNF got an error due to %s', e)
             raise
