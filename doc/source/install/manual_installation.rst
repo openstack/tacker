@@ -154,19 +154,6 @@ If you are using keystone v2 then,
 
    cd tacker
    sudo pip install -r requirements.txt
-
-..
-
-.. note::
-
-   If OpenStack components mentioned in pre-requisites section have been
-   installed, the below command would be sufficient.
-
-.. code-block:: console
-
-   cd tacker
-   sudo pip install tosca-parser
-
 ..
 
 
