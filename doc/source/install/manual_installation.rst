@@ -39,7 +39,7 @@ http://docs.openstack.org/newton/install-guide-ubuntu/keystone-openrc.html#creat
 
 .. code-block:: console
 
-   sudo apt-get install python-pip git
+   sudo apt-get install python-pip git tox
 
 ..
 
@@ -188,8 +188,15 @@ If you are using keystone v2 then,
 ..
 
 7). Generate the tacker.conf.sample using tools/generate_config_file_sample.sh
-    or 'tox -e config-gen' command and rename it to tacker.conf. Then edit it
-    to ensure the below entries:
+    or 'tox -e config-gen' command. Rename the "tacker.conf.sample" file at
+    "etc/tacker/" to tacker.conf. Then edit it to ensure the below entries:
+
+.. note::
+
+   Ignore any warnings generated while using the
+   "generate_config_file_sample.sh".
+
+..
 
 .. note::
 
@@ -240,7 +247,16 @@ If you are using keystone v2 then,
 
 ..
 
-8). Populate Tacker database:
+8). Copy the tacker.conf file to "/usr/local/etc/tacker/" directory
+
+.. code-block:: console
+
+   sudo su
+   cp etc/tacker/tacker.conf /usr/local/etc/tacker/
+
+..
+
+9). Populate Tacker database:
 
 .. code-block:: console
 
