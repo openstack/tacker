@@ -73,7 +73,7 @@ The default vim needs to be registered. This is required when the optional
 argument -vim-id is not provided during vnf-create. Refer to steps described in
 `manual installation`_ to register default vim.
 
-.. _manual installation: http://docs.openstack.org/developer/tacker/install/manual_installation.html#registering-default-vim
+.. _manual installation: https://docs.openstack.org/tacker/latest/install/manual_installation.html#registering-default-vim
 
 Deploying a new VNF on registered VIM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

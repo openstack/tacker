@@ -105,7 +105,7 @@ https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd
 
 Refer the 'Getting Started' link below on how to create a VNFD and deploy a
 VNF:
-http://docs.openstack.org/developer/tacker/install/getting_started.html
+https://docs.openstack.org/tacker/latest/install/getting_started.html
 
 
 How to scale VNF using CLI

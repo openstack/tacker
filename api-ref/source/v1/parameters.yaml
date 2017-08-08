@@ -713,7 +713,7 @@ vnf_param_values:
     VNF parameter object. These parameters will be substituted for VNF
     if the VNFD template is appropriately parameterized.
     See `VNFD Template Parameterization
-    <http://docs.openstack.org/developer/tacker/devref/vnfd_template_parameterization.html>`_
+    <https://docs.openstack.org/tacker/latest/contributor/vnfd_template_parameterization.html>`_
     for more information.
   in: body
   required: true
@@ -723,7 +723,7 @@ vnf_param_values_opt:
     VNF parameter object. These parameters will be substituted for VNF
     if the VNFD template is appropriately parameterized.
     See `VNFD Template Parameterization
-    <http://docs.openstack.org/developer/tacker/devref/vnfd_template_parameterization.html>`_
+    <https://docs.openstack.org/tacker/latest/contributor/vnfd_template_parameterization.html>`_
     for more information.
   in: body
   required: false
@@ -775,7 +775,7 @@ vnf_scale_policy:
   description: |
     Scaling policy defined in VNFD template. For more information, see
     `VNFD scaling
-    <http://docs.openstack.org/developer/tacker/devref/vnfd_template_parameterization.html>`_.
+    <https://docs.openstack.org/tacker/latest/contributor/vnfd_template_parameterization.html>`_.
   in: body
   required: true
   type: string
@@ -877,7 +877,7 @@ vnffgd_template:
     A template object which includes behavioral and deployment
     information of VNFFGs. For more information, see
     `VNFFG Descriptor Template Guide
-    <http://docs.openstack.org/developer/tacker/devref/vnffgd_template_description.html>`_.
+    <https://docs.openstack.org/tacker/latest/contributor/vnffgd_template_description.html>`_.
   in: body
   required: true
   type: object

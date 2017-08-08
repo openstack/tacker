@@ -9,7 +9,7 @@ Manages Virtualized Network Function Descriptors (VNFDs).
 The VNFD is a template which describes information about deployment
 and behavior of Virtualized Network Functions (VNFs). For more information, see
 `VNF Descriptor Template Guide
-<http://docs.openstack.org/developer/tacker/devref/vnfd_template_description.html>`_.
+<https://docs.openstack.org/tacker/latest/contributor/vnfd_template_description.html>`_.
 
 Create VNFD
 ===========
