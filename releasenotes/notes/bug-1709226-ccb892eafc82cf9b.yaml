@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Support to change ns's description using "tacker ns-create --description".

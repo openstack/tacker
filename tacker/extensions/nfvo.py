@@ -696,7 +696,7 @@ RESOURCE_ATTRIBUTE_MAP = {
         'description': {
             'allow_post': True,
             'allow_put': True,
-            'validate': {'type:string': None},
+            'validate': {'type:string': NAME_MAX_LEN},
             'is_visible': True,
             'default': '',
         },
