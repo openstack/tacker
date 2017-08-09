@@ -21,7 +21,6 @@ from barbicanclient import exceptions as barbican_exception
 from keystoneauth1 import identity
 from keystoneauth1 import session
 from oslo_log import log as logging
-from six.moves import urllib
 
 from tacker._i18n import _
 from tacker.keymgr import exception
@@ -63,6 +62,8 @@ class BarbicanKeyManager(key_manager.KeyManager):
             sess = session.Session(auth=auth)
 
             self._barbican_endpoint = self._get_barbican_endpoint(auth, sess)
+            if self._barbican_endpoint[-1] != '/':
+                self._barbican_endpoint += '/'
             self._barbican_client = barbican_client.Client(
                 session=sess,
                 endpoint=self._barbican_endpoint)
@@ -138,8 +139,7 @@ class BarbicanKeyManager(key_manager.KeyManager):
             raise exception.KeyManagerError(reason=msg)
         latest_version = raw_data[-1]
         api_version = latest_version.get('id')
-
-        base_url = urllib.parse.urljoin(endpoint, api_version)
+        base_url = "%s%s/" % (endpoint, api_version)
         return base_url
 
     def store(self, context, secret, expiration=None):
@@ -178,10 +178,7 @@ class BarbicanKeyManager(key_manager.KeyManager):
         if not object_id:
             msg = _("Key ID is None")
             raise exception.KeyManagerError(reason=msg)
-        base_url = self._base_url
-        if base_url[-1] != '/':
-            base_url += '/'
-        return urllib.parse.urljoin(base_url, "secrets/" + object_id)
+        return "%ssecrets/%s" % (self._base_url, object_id)
 
     def _retrieve_secret_uuid(self, secret_ref):
         """Retrieves the UUID of the secret from the secret_ref.
