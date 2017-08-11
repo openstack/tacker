@@ -43,8 +43,8 @@ can be referred `here <https://github.com/openstack/heat-templates/blob/master/
 hot/software-config/elements/README.rst>`_. The tool
 'tools/vnfc/build_image.sh' can be used to generate such a kind of image.
 
-Currently VNFC feature works by using `heat software config <http://docs.openstack.org/
-developer/heat/template_guide/openstack.html#OS::Heat::SoftwareConfig>`_  which
+Currently VNFC feature works by using `heat software config <https://docs.openstack.org/heat/latest/
+template_guide/software_deployment.html#software-config-resources>`_  which
 makes use of heat API.
 
 So the glance images which has heat-config agents installed are only to be

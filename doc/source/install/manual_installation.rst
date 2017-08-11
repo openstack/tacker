@@ -26,14 +26,14 @@ Pre-requisites
 ==============
 
 1). Ensure that OpenStack components Keystone, Glance, Nova, Neutron, Heat and
-Horizon are installed. Refer http://docs.openstack.org/ for installation of
+Horizon are installed. Refer https://docs.openstack.org/ for installation of
 OpenStack on different Operating Systems.
 
 2). Create client environment scripts "admin-openrc.sh" and "demo-openrc.sh"
 for the admin and demo projects. Sample instructions for Ubuntu can be found
 at link below:
 
-http://docs.openstack.org/newton/install-guide-ubuntu/keystone-openrc.html#creating-the-scripts
+https://docs.openstack.org/newton/install-guide-ubuntu/keystone-openrc.html#creating-the-scripts
 
 3). Ensure that the below required packages are installed on the system.
 
