@@ -54,4 +54,4 @@ topology_template:
                     method: average
                     comparison_operator: gt
                 metadata: VDU1
-                action: [respawn]
+                action: [respawn, log]

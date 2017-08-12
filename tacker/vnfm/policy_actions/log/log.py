@@ -32,12 +32,12 @@ def _log_monitor_events(context, vnf_dict, evt_details):
                              details=evt_details)
 
 
-class VNFActionLogOnly(abstract_action.AbstractPolicyAction):
+class VNFActionLog(abstract_action.AbstractPolicyAction):
     def get_type(self):
-        return 'log_only'
+        return 'log'
 
     def get_name(self):
-        return 'log_only'
+        return 'log'
 
     def get_description(self):
         return 'Tacker VNF logging policy'

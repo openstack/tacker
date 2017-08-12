@@ -220,8 +220,9 @@ class VNFAlarmMonitor(object):
             params['vnf_id'] = vnf['id']
             params['mon_policy_name'] = trigger_name
             driver = trigger_dict['event_type']['implementation']
-            policy_action_list = trigger_dict.get('actions')
-            if len(policy_action_list) == 0:
+            # TODO(Tung Doan) trigger_dict.get('actions') needs to be used
+            policy_action = trigger_dict.get('action')
+            if len(policy_action) == 0:
                 _log_monitor_events(t_context.get_admin_context(),
                                     vnf,
                                     "Alarm not set: policy action missing")
@@ -234,8 +235,9 @@ class VNFAlarmMonitor(object):
                     'policy_name': bk_policy_name,
                     'action_name': bk_action_name}
                 return policy
-            for policy_action in policy_action_list:
-                filters = {'name': policy_action}
+
+            for index, policy_action_name in enumerate(policy_action):
+                filters = {'name': policy_action_name}
                 bkend_policies =\
                     plugin.get_vnf_policies(context, vnf['id'], filters)
                 if bkend_policies:
@@ -244,16 +246,19 @@ class VNFAlarmMonitor(object):
                         cp = trigger_dict['condition'].\
                             get('comparison_operator')
                         scaling_type = 'out' if cp == 'gt' else 'in'
-                        policy_action = _refactor_backend_policy(policy_action,
-                                                                 scaling_type)
+                        policy_action[index] = _refactor_backend_policy(
+                            policy_action_name, scaling_type)
 
-                params['mon_policy_action'] = policy_action
-                alarm_url[trigger_name] =\
-                    self.call_alarm_url(driver, vnf, params)
-                details = "Alarm URL set successfully: %s" % alarm_url
-                _log_monitor_events(t_context.get_admin_context(),
-                                    vnf,
-                                    details)
+            # Support multiple action. Ex: respawn % notify
+            action_name = '%'.join(policy_action)
+
+            params['mon_policy_action'] = action_name
+            alarm_url[trigger_name] =\
+                self.call_alarm_url(driver, vnf, params)
+            details = "Alarm URL set successfully: %s" % alarm_url
+            _log_monitor_events(t_context.get_admin_context(),
+                                vnf,
+                                details)
         return alarm_url
 
     def process_alarm_for_vnf(self, vnf, trigger):

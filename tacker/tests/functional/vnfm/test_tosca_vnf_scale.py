@@ -27,7 +27,7 @@ CONF = cfg.CONF
 
 
 class VnfTestToscaScale(base.BaseTackerTest):
-    @unittest.skip("Related Bug 1682098")
+    @unittest.skip("Skip and wait for releasing Heat Translator")
     def test_vnf_tosca_scale(self):
         data = dict()
         data['tosca'] = read_file('sample-tosca-scale-all.yaml')
@@ -71,7 +71,7 @@ class VnfTestToscaScale(base.BaseTackerTest):
         self.assertIn('VDU1', resources_list)
 
         self.assertIn('CP1', resources_list)
-        self.assertIn('G1', resources_list)
+        self.assertIn('SP1_group', resources_list)
 
         def _scale(type, count):
             body = {"scale": {'type': type, 'policy': 'SP1'}}

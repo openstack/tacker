@@ -248,9 +248,9 @@ function configure_tacker {
 
         # Experimental settings for monitor alarm auth settings,
         # Will be changed according to new implementation.
-        iniset $TACKER_CONF alarm_auth username tacker
-        iniset $TACKER_CONF alarm_auth password "$SERVICE_PASSWORD"
-        iniset $TACKER_CONF alarm_auth project_name "$SERVICE_PROJECT_NAME"
+        iniset $TACKER_CONF alarm_auth username admin
+        iniset $TACKER_CONF alarm_auth password "$ADMIN_PASSWORD"
+        iniset $TACKER_CONF alarm_auth project_name admin
         iniset $TACKER_CONF alarm_auth url http://$SERVICE_HOST:35357/v3
 
         echo "Creating bridge"
