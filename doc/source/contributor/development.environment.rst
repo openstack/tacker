@@ -27,7 +27,7 @@ to using Git and `this guide`_ for a tutorial on using Gerrit and Git for
 code contribution to Openstack projects.
 
 .. _this Git tutorial: http://git-scm.com/book/en/Getting-Started
-.. _this guide: http://docs.openstack.org/infra/manual/developers.html#development-workflow
+.. _this guide: https://docs.openstack.org/infra/manual/developers.html#development-workflow
 
 If you want to be able to run Tacker in a full OpenStack environment,
 you can use the excellent `DevStack`_ project to do so. There is a wiki page

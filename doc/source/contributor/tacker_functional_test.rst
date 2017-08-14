@@ -118,7 +118,7 @@ Committing testcase and opening a review:
 
 * Once testcase is added in local setup, commit the testcase and open for
   review using below guidelines:
-  http://docs.openstack.org/infra/manual/developers.html
+  https://docs.openstack.org/infra/manual/developers.html
 
 Sample testcase:
 ================
