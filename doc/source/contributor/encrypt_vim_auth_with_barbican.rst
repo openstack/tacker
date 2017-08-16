@@ -1,5 +1,6 @@
-Barbican Guide
-==============
+Save VIM credentials into Barbican
+==================================
+
 Overview
 --------
 

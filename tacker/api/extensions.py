@@ -452,7 +452,7 @@ class ExtensionManager(object):
         """Extend resources with additional resources or attributes.
 
         :param attr_map: the existing mapping from resource name to
-        attrs definition.
+                         attrs definition.
 
         After this function, we will extend the attr_map if an extension
         wants to extend this map.
