@@ -1,0 +1,15 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Import VNDs(already on-boarded) without param
+imports:
+    - sample2-tosca-vnfd1
+    - sample2-tosca-vnfd2
+
+topology_template:
+  node_templates:
+      VNF1:
+        type: tosca.nodes.nfv.VNF1
+
+      VNF2:
+        type: tosca.nodes.nfv.VNF2
+
