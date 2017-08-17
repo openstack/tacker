@@ -65,8 +65,8 @@ network function.
     flavor describing physical properties for the VDU to be spawned, monitoring
     policies for the VDU, providing user data in form of custom commands to the
     VDU. A complete list of VDU properties currently supported by Tacker are
-    listed `here <https://github.com/openstack/tacker/blob/master/tacker/vnfm/
-    tosca/lib/tacker_nfv_defs.yaml>`_ under **properties** section of
+    listed `here <https://github.com/openstack/tacker/blob/master/tacker/tosca/
+    lib/tacker_nfv_defs.yaml>`_ under **properties** section of
     **tosca.nodes.nfv.VDU.Tacker** field
 
 Specifying VDU properties
