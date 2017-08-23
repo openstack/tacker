@@ -250,6 +250,7 @@ class TOSCAToHOT(object):
                 LOG.debug("Params not Well Formed: %s", str(e))
                 raise vnfm.ParamYAMLNotWellFormed(error_msg_details=str(e))
 
+        block_storage_details = toscautils.get_block_storage_details(vnfd_dict)
         toscautils.updateimports(vnfd_dict)
         if 'substitution_mappings' in str(vnfd_dict):
             toscautils.check_for_substitution_mappings(vnfd_dict,
@@ -308,7 +309,7 @@ class TOSCAToHOT(object):
 
         heat_template_yaml = toscautils.post_process_heat_template(
             heat_template_yaml, mgmt_ports, metadata, alarm_resources,
-            res_tpl, self.unsupported_props)
+            res_tpl, block_storage_details, self.unsupported_props)
 
         self.heat_template_yaml = heat_template_yaml
         self.monitoring_dict = monitoring_dict

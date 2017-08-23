@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add support to attach cinder volumes to the VNF. We can create cinder volumes
+    through new syntax in TOSCA VNFD template and we can attach it to VNFs.
+other:
+  - |
+    Only attaching volumes to the VNFs is supported. Boot from volume is not supported

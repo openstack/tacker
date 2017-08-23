@@ -268,3 +268,22 @@ node_types:
       - host:
          node: tosca.nodes.nfv.VDU.Tacker
          relationship: tosca.relationships.HostedOn
+
+  tosca.nodes.BlockStorage.Tacker:
+    derived_from: tosca.nodes.BlockStorage
+    properties:
+      image:
+        type: string
+        required: false
+
+  tosca.nodes.BlockStorageAttachment:
+    derived_from: tosca.nodes.Root
+    properties:
+      location:
+        type: string
+        required: true
+    requirements:
+      - virtualBinding:
+          node: tosca.nodes.nfv.VDU.Tacker
+      - virtualAttachment:
+          node: tosca.nodes.BlockStorage.Tacker
