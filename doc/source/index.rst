@@ -57,6 +57,7 @@ Feature Documentation
    contributor/tacker_conductor.rst
    contributor/tacker_vim_monitoring.rst
    contributor/policy_actions_framework.rst
+   contributor/encrypt_vim_auth_with_barbican.rst
 
 User Guide
 ==========
