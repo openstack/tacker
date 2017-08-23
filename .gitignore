@@ -29,3 +29,4 @@ subunit.log
 
 releasenotes/build
 etc/tacker/tacker.conf.sample
+doc/source/api
