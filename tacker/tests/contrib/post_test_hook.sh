@@ -53,14 +53,14 @@ function generate_testr_results {
     fi
 }
 
-source ${TACKER_DIR}/tacker/tests/contrib/post_test_hook_lib.sh
+. ${TACKER_DIR}/tacker/tests/contrib/post_test_hook_lib.sh
 
 if [[ "$venv" == dsvm-functional* ]]
 then
     owner=stack
     sudo_env=
     log_dir="/tmp/${venv}-logs"
-    source $DEVSTACK_DIR/openrc admin admin
+    . $DEVSTACK_DIR/openrc admin admin
     fixup_quota
     add_key
     add_secgrp

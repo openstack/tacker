@@ -5,7 +5,7 @@ XTRACE=$(set +o | grep xtrace)
 set -o xtrace
 
 echo_summary "tacker's plugin.sh was called..."
-source $DEST/tacker/devstack/lib/tacker
+. $DEST/tacker/devstack/lib/tacker
 (set -o posix; set)
 
 # check for service enabled

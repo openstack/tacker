@@ -12,8 +12,8 @@ if [ ! -f ${DEVSTACK_DIR}/openrc ]; then
     exit 1
 fi
 
-source $DEVSTACK_DIR/openrc admin admin
-source ${TACKER_DIR}/tacker/tests/contrib/post_test_hook_lib.sh
+. $DEVSTACK_DIR/openrc admin admin
+. ${TACKER_DIR}/tacker/tests/contrib/post_test_hook_lib.sh
 
 fixup_quota
 add_key_if_not_exist
