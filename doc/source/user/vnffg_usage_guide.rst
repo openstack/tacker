@@ -41,7 +41,7 @@ Classifiers.  Therefore it is required to install `networking-sfc
 <https://github.com/openstack/networking-sfc>`_ project
 in order to use Tacker VNFFG.  Networking-sfc also requires at least OVS 2.5
 .0, so also ensure that is installed.  See the full `Networking-sfc guide
-<https://wiki.openstack.org/wiki/Neutron/ServiceInsertionAndChaining>`_.
+<https://docs.openstack.org/networking-sfc/latest/>`_.
 
 A simple example of a service chain would be one that forces all traffice
 from HTTP client to HTTP server to go through VNFs that was created by
