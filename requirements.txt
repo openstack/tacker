@@ -40,6 +40,6 @@ tosca-parser>=0.8.1 # Apache-2.0
 heat-translator>=0.4.0 # Apache-2.0
 cryptography!=2.0,>=1.6 # BSD/Apache-2.0
 paramiko>=2.0 # LGPLv2.1+
-pyroute2>=0.4.17 # Apache-2.0 (+ dual licensed GPL2)
+pyroute2!=0.4.18,!=0.4.19,!=0.4.20,>=0.4.17 # Apache-2.0 (+ dual licensed GPL2)
 python-mistralclient>=3.1.0 # Apache-2.0
 python-barbicanclient!=4.5.0,!=4.5.1,>=4.0.0 # Apache-2.0
