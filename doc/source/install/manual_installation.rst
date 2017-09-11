@@ -69,6 +69,12 @@ Installing Tacker server
    The paths we are using for configuration files in these steps are with reference to
    Ubuntu Operating System. The paths may vary for other Operating Systems.
 
+   The branch_name which is used in commands, specify the branch_name as
+   "stable/<branch>" for any stable branch installation.
+   For eg: stable/ocata, stable/newton. If unspecified the default will be
+   "master" branch.
+
+
 1). Create MySQL database and user.
 
 .. code-block:: console
@@ -145,7 +151,8 @@ If you are using keystone v2 then,
 
 .. code-block:: console
 
-   git clone https://github.com/openstack/tacker
+   cd ~/
+   git clone https://github.com/openstack/tacker -b <branch_name>
 ..
 
 4). Install all requirements.
@@ -260,7 +267,7 @@ Install Tacker client
 .. code-block:: console
 
    cd ~/
-   git clone https://github.com/openstack/python-tackerclient
+   git clone https://github.com/openstack/python-tackerclient -b <branch_name>
 ..
 
 2). Install tacker-client.
@@ -280,7 +287,7 @@ Install Tacker horizon
 .. code-block:: console
 
    cd ~/
-   git clone https://github.com/openstack/tacker-horizon
+   git clone https://github.com/openstack/tacker-horizon -b <branch_name>
 ..
 
 2). Install horizon module.
