@@ -13,10 +13,10 @@
 TOP_DIR=$(cd $(dirname "$0") && pwd)
 
 # Import common functions
-source $TOP_DIR/functions
+. $TOP_DIR/functions
 
 # Use openrc + stackrc + localrc for settings
-source $TOP_DIR/stackrc
+. $TOP_DIR/stackrc
 
 # Destination path for installation ``DEST``
 DEST=${DEST:-/opt/stack}
@@ -38,7 +38,7 @@ if is_service_enabled mysql; then
         exit_distro_not_supported "mysql configuration"
     fi
 
-    sudo bash -c "source $TOP_DIR/functions && \
+    sudo bash -c ". $TOP_DIR/functions && \
         iniset $my_conf mysqld max_connections 1024 && \
         iniset $my_conf mysqld query_cache_type OFF && \
         iniset $my_conf mysqld query_cache_size 0"

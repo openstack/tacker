@@ -42,7 +42,7 @@ Create a vim and verify it works:
 
 .. code-block:: bash
 
-   $ source openrc-admin.sh
+   $ . openrc-admin.sh
    $ openstack project create test
    $ openstack user create --password a test
    $ openstack role add --project test --user test admin
