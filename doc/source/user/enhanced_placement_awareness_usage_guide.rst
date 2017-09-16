@@ -85,7 +85,7 @@ nova.conf file.
 The SR-IOV feature enablement requires configuration on both the controller
 and compute nodes. Please refer link similar to below for the appropriate
 OpenStack release to setup SR-IOV:
-https://docs.openstack.org/networking-guide/config-sriov.html
+https://docs.openstack.org/neutron/latest/admin/config-sriov.html
 
 The CPU Pinning feature enablement requires configuring the nova.conf on
 compute nodes. It requires an entry similar to below:

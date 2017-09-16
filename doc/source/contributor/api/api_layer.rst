@@ -43,7 +43,7 @@ vnfd, vnf) to URLs, and the controller for each resource.
 
 .. _api-paste.ini: http://git.openstack.org/cgit/openstack/tacker/tree/etc/tacker/api-paste.ini
 
-.. _APIRouter: http://git.openstack.org/cgit/openstack/tacker/tree/tacker/api/v2/router.py
+.. _APIRouter: http://git.openstack.org/cgit/openstack/tacker/tree/tacker/api/v1/router.py
 
 .. _Paste: http://pythonpaste.org/
 
