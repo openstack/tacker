@@ -31,6 +31,7 @@ There are two ways to install Tacker service:
 .. toctree::
    :maxdepth: 1
 
+   install/kolla.rst
    install/devstack.rst
    install/manual_installation.rst
 
