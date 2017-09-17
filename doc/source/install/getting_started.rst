@@ -21,7 +21,44 @@ Getting Started
 Once tacker is installed successfully, follow the steps given below to get
 started with tacker and validate the installation.
 
-i). Create a sample-vnfd.yaml file with the following content:
+
+Registering default OpenStack VIM
+=================================
+1.) Get one account on the OpenStack VIM.
+
+In Tacker MANO system, the VNF can be onboarded to one target OpenStack, which
+is also called VIM. Get one account on this OpenStack. For example, the below
+is the account information collected in file vim-config.yaml::
+
+    auth_url: 'http://10.18.112.10:5000'
+    username: 'nfv_user'
+    password: 'mySecretPW'
+    project_name: 'nfv'
+    project_domain_name: 'Default'
+    user_domain_name: 'Default'
+
+.. note::
+
+   Here nfv_user need have 'admin' and 'advsvc' role on the
+   project that will be used to deploy VNFs according to the VNF descriptor.
+
+
+2.) Register the VIM that will be used as a default VIM for VNF deployments.
+This will be required when the optional argument --vim-id is not provided by
+the user during vnf-create.
+
+.. code-block:: console
+
+   tacker vim-register --is-default --config-file vim-config.yaml \
+          --description 'my first vim' hellovim
+..
+
+
+
+Onboarding sample VNF
+=======================
+
+1). Create a sample-vnfd.yaml file with the following content:
 
 .. code-block:: ini
 
@@ -72,28 +109,39 @@ i). Create a sample-vnfd.yaml file with the following content:
 
 .. note::
 
-   You can find more sample tosca templates at https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd
+   You can find more sample tosca templates at
+   https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd.
 
-ii). Create a sample vnfd.
+.. note::
+
+   For this VNFD to work, the VIM account should be able to create Flavor via
+   heat on target VIM. Please refer to the OpenStack HEAT documentation about
+   how to enable Flavor creation.
+
+   The target OpenStack should have cirros-0.3.5-x86_64-disk glance image and
+   net_mgmt virtual network created for the VIM account.
+
+
+2). Create a sample vnfd.
 
 .. code-block:: console
 
-   tacker vnfd-create --vnfd-file sample-vnfd.yaml <NAME>
+   tacker vnfd-create --vnfd-file sample-vnfd.yaml samplevnfd
 ..
 
-iii). Create a VNF.
+3). Create a VNF.
 
 .. code-block:: console
 
-   tacker vnf-create --vnfd-id <VNFD_ID> <NAME>
+   tacker vnf-create --vnfd-name samplevnfd samplevnf
 ..
 
-iv). Check the status.
+5). Check the status.
 
 .. code-block:: console
 
    tacker vim-list
    tacker vnfd-list
    tacker vnf-list
-   tacker vnf-show <VNF_ID>
+   tacker vnf-show samplevnf
 ..

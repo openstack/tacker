@@ -19,47 +19,31 @@
 Manual Installation
 ===================
 
-This document describes how to install and run Tacker manually on the
-controller node.
+This document describes how to install and run Tacker manually.
 
 Pre-requisites
 ==============
 
-1). Ensure that OpenStack components Keystone, Glance, Nova, Neutron, Heat and
-Horizon are installed. Refer https://docs.openstack.org/ for installation of
-OpenStack on different Operating Systems.
+1). Ensure that OpenStack components Keystone, Mistral, Barbican and
+Horizon are installed. Refer https://docs.openstack.org/latest/projects.html
+for installation of these OpenStack projects on different Operating Systems.
 
-2). Create client environment scripts "admin-openrc.sh" and "demo-openrc.sh"
-for the admin and demo projects. Sample instructions for Ubuntu can be found
-at link below:
-
-https://docs.openstack.org/newton/install-guide-ubuntu/keystone-openrc.html#creating-the-scripts
-
-3). Ensure that the below required packages are installed on the system.
-
-.. code-block:: console
-
-   sudo apt-get install python-pip git tox
-
-..
-
-4). Ensure entry for extensions drivers in ml2_conf.ini. Restart neutron
-services after the below entry has been added.
-
-.. code-block:: console
-
-   [ml2]
-   extension_drivers = port_security
-
-..
-
-5). Modify heat's policy.json file under /etc/heat/policy.json file to allow
-users in non-admin projects with 'admin' roles to create flavors.
+2). one admin-openrc.sh file is generated. one sample admin-openrc.sh file
+is like the below:
 
 .. code-block:: ini
 
-   "resource_types:OS::Nova::Flavor": "role:admin"
-..
+    export OS_PROJECT_DOMAIN_NAME=Default
+    export OS_USER_DOMAIN_NAME=Default
+    export OS_PROJECT_NAME=admin
+    export OS_TENANT_NAME=admin
+    export OS_USERNAME=admin
+    export OS_PASSWORD=KTskN5eUMTpeHLKorRcZBBbH0AM96wdvgQhwENxY
+    export OS_AUTH_URL=http://localhost:35357/v3
+    export OS_INTERFACE=internal
+    export OS_IDENTITY_API_VERSION=3
+    export OS_REGION_NAME=RegionOne
+
 
 Installing Tacker server
 ========================
@@ -325,37 +309,3 @@ required because the console will be locked by a running process.
        --config-file /usr/local/etc/tacker/tacker.conf \
        --log-file /var/log/tacker/tacker.log
 ..
-
-Registering default VIM
-=======================
-
-1.) Register the VIM that will be used as a default VIM for VNF deployments.
-This will be required when the optional argument --vim-id is not provided by
-the user during vnf-create.
-
-.. code-block:: console
-
-   tacker vim-register --is-default --config-file config.yaml \
-          --description <Default VIM description> <Default VIM Name>
-..
-
-2.) The config.yaml will contain VIM specific parameters as below:
-
-.. code-block:: ini
-
-   auth_url: http://<keystone_public_endpoint_url>:5000
-   username: <Tacker service username>
-   password: <Tacker service password>
-   project_name: <project_name>
-
-Add following parameters to config.yaml if VIM is using keystone v3:
-
-.. code-block:: ini
-
-   project_domain_name: <domain_name>
-   user_domain_name: <domain_name>
-
-.. note::
-
-   Here username must point to the user having 'admin' and 'advsvc' role on the
-   project that will be used for deploying VNFs.
