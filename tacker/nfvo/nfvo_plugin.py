@@ -713,7 +713,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 error_reason = _(
                     "NS creation is not completed within"
                     " {wait} seconds as creation of mistral"
-                    " exection {mistral} is not completed").format(
+                    " execution {mistral} is not completed").format(
                     wait=MISTRAL_RETRIES * MISTRAL_RETRY_WAIT,
                     mistral=execution_id)
             exec_obj = self._vim_drivers.invoke(
@@ -816,7 +816,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 error_reason = _(
                     "NS deletion is not completed within"
                     " {wait} seconds as deletion of mistral"
-                    " exection {mistral} is not completed").format(
+                    " execution {mistral} is not completed").format(
                     wait=MISTRAL_RETRIES * MISTRAL_RETRY_WAIT,
                     mistral=execution_id)
             exec_obj = self._vim_drivers.invoke(
