@@ -40,7 +40,7 @@ Create Volume
 
 To add volume, we need to add the below node to the VNFD:
 
-::
+.. code-block:: yaml
 
   VB1:
     type: tosca.nodes.BlockStorage.Tacker
@@ -51,7 +51,7 @@ Attach volume to VDU
 ~~~~~~~~~~~~~~~~~~~~
 Next attach the created volume to VDU as below:
 
-::
+.. code-block:: yaml
 
   CB1:
     type: tosca.nodes.BlockStorageAttachment
@@ -65,7 +65,8 @@ Next attach the created volume to VDU as below:
 
 With these additions, the new VNFD looks like below:
 
-::
+.. code-block:: yaml
+
   tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
   description: Demo example
 
@@ -77,25 +78,21 @@ With these additions, the new VNFD looks like below:
       VDU1:
         type: tosca.nodes.nfv.VDU.Tacker
         capabilities:
-
           nfv_compute:
             properties:
               num_cpus: 1
               mem_size: 512 MB
               disk_size: 1 GB
-
         properties:
           image: cirros-0.3.5-x86_64-disk
           availability_zone: nova
           mgmt_driver: noop
-
           config: |
             param0: key1
             param1: key2
 
       CP1:
         type: tosca.nodes.nfv.CP.Tacker
-
         properties:
           management: true
           order: 0
@@ -108,16 +105,13 @@ With these additions, the new VNFD looks like below:
 
       VB1:
         type: tosca.nodes.BlockStorage.Tacker
-
         properties:
           size: 1 GB
 
       CB1:
         type: tosca.nodes.BlockStorageAttachment
-
         properties:
           location: /dev/vdb
-
           requirements:
             - virtualBinding:
                 node: VDU1
@@ -126,7 +120,6 @@ With these additions, the new VNFD looks like below:
 
       VL1:
         type: tosca.nodes.nfv.VL
-
         properties:
           network_name: net_mgmt
           vendor: Tacker

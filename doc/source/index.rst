@@ -74,6 +74,7 @@ User Guide
    user/vnf_component_usage_guide.rst
    user/enhanced_placement_awareness_usage_guide.rst
    reference/mistral_workflows_usage_guide.rst
+   reference/block_storage_usage_guide.rst
 
 API Documentation
 =================
