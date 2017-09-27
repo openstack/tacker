@@ -269,7 +269,7 @@ class VnfPolicyNotFound(NotFound):
 
 class VnfPolicyActionInvalid(BadRequest):
     message = _("Invalid action %(action)s for policy %(policy)s, "
-                "should be one of %(valid_acions)s")
+                "should be one of %(valid_actions)s")
 
 
 class VnfPolicyTypeInvalid(BadRequest):
