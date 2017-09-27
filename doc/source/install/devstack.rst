@@ -19,53 +19,48 @@
 Install via Devstack
 ====================
 
-If there is no preference, it is recommended to install Tacker from master
-branch.
-
-Install from master
-~~~~~~~~~~~~~~~~~~~
+The devstack supports installation from different code branch by specifying
+<branch-name> below. If there is no preference, it is recommended to install
+Tacker from master branch, i.e. the <branch-name> is master. If pike branch
+is the target branch, the <branch-name> is stable/pike.
 
 1. Download DevStack::
 
-    $ git clone https://git.openstack.org/openstack-dev/devstack
+    $ git clone https://git.openstack.org/openstack-dev/devstack -b <branch-name>
     $ cd devstack
 
-2. Enable both heat and tacker devstack plugins in ``local.conf`` file::
+2. Enable tacker related devstack plugins in ``local.conf`` file::
 
     [[local|localrc]]
-    enable_plugin heat https://git.openstack.org/openstack/heat
-    enable_plugin tacker https://git.openstack.org/openstack/tacker
+    ############################################################
+    # Customize the following HOST_IP based on your installation
+    ############################################################
+    HOST_IP=127.0.0.1
+    SERVICE_HOST=127.0.0.1
+    SERVICE_PASSWORD=devstack
+    ADMIN_PASSWORD=devstack
+    SERVICE_TOKEN=devstack
+    DATABASE_PASSWORD=root
+    RABBIT_PASSWORD=password
+    ENABLE_HTTPD_MOD_WSGI_SERVICES=True
+    KEYSTONE_USE_MOD_WSGI=True
+
+    # Logging
+    LOGFILE=$DEST/logs/stack.sh.log
+    SCREEN_LOGDIR=$DEST/logs/screen
+    VERBOSE=True
+    ENABLE_DEBUG_LOG_LEVEL=True
+    ENABLE_VERBOSE_LOG_LEVEL=True
+    GIT_BASE=${GIT_BASE:-git://git.openstack.org}
+
+    TACKER_MODE=standalone
+    USE_BARBICAN=True
+    TACKER_BRANCH=<branch-name>
+    enable_plugin networking-sfc ${GIT_BASE}/openstack/networking-sfc $TACKER_BRANCH
+    enable_plugin barbican ${GIT_BASE}/openstack/barbican $TACKER_BRANCH
+    enable_plugin mistral ${GIT_BASE}/openstack/mistral $TACKER_BRANCH
+    enable_plugin tacker ${GIT_BASE}/openstack/tacker $TACKER_BRANCH
 
 3. Run ``stack.sh``::
 
     $ ./stack.sh
-
-Install from stable branch
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-Choose the required stable branch name from the git repository and use it in
-place of branch-name as given below:
-
-1. Download DevStack stable branch::
-
-    $ git clone -b stable/<branch-name> https://git.openstack.org/openstack-dev/devstack
-    $ cd devstack
-
-
-2. Add this repo as an external repository into your ``local.conf`` file::
-
-    [[local|localrc]]
-    enable_plugin tacker https://git.openstack.org/openstack/tacker stable/<branch-name>
-
-
-3. Run ``stack.sh``::
-
-    $ ./stack.sh
-
-Standalone mode installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-By default, the tacker devstack plugin will install the tacker and
-other OpenStack services together. By setting TACKER_MODE=standalone
-in local.conf, we will install a standalone tacker environment with
-some mandatory OpenStack services, such as KeyStone.
-After this installation, a default VIM must be registered manually.
