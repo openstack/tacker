@@ -6,6 +6,7 @@ set -o xtrace
 
 echo_summary "tacker's plugin.sh was called with args $1 and $2 ..."
 . $DEST/tacker/devstack/lib/tacker
+. $DEST/tacker/devstack/lib/kubernetes_vim
 (set -o posix; set)
 
 # check for service enabled
@@ -19,6 +20,9 @@ if is_service_enabled tacker; then
         # Configure after the other layer 1 and 2 services have been configured
         echo_summary "Configuring Tacker"
         configure_tacker
+        if [ "${KUBERNETES_VIM}" == "True" ]; then
+            configure_k8s_vim
+        fi
         create_tacker_accounts
 
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
@@ -34,6 +38,9 @@ if is_service_enabled tacker; then
             modify_heat_flavor_policy_rule
             echo_summary "Setup initial tacker network"
             tacker_create_initial_network
+            if [ "${KUBERNETES_VIM}" == "True" ]; then
+                tacker_create_initial_k8s_network
+            fi
             echo_summary "Check and download images for tacker initial"
             tacker_check_and_download_images
             echo_summary "Registering default VIM"

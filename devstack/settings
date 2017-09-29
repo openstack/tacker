@@ -1,5 +1,6 @@
 TACKER_MODE=${TACKER_MODE:-all}
 USE_BARBICAN=True
+KUBERNETES_VIM=${KUBERNETES_VIM:-False}
 
 if [ "${TACKER_MODE}" == "all" ]; then
     # Nova
@@ -43,6 +44,32 @@ if [ "${TACKER_MODE}" == "all" ]; then
     SUBNET1=${SUBNET1:-subnet1}
     FIXED_RANGE1=${FIXED_RANGE1:-10.10.1.0/24}
     NETWORK_GATEWAY1=${NETWORK_GATEWAY1:-10.10.1.1}
+
+    if [ "${KUBERNETES_VIM}" == "True" ]; then
+        K8S_PHYS_NET=${K8S_PHYS_NET:-"k8s-physnet"}
+        BR_K8S=${BR_K8S:-"br-k8s0"}
+        NET_K8S=${NET_K8S:-"k8s-public-net"}
+        SUBNET_K8S=${SUBNET_K8S:-"public-subnet"}
+        FIXED_RANGE_K8S=${FIXED_RANGE_K8S:-192.168.28.0/22}
+        NETWORK_GATEWAY_K8S=${NETWORK_GATEWAY_K8S:-192.168.28.1}
+        NETWORK_GATEWAY_K8S_IP=${NETWORK_GATEWAY_K8S_IP:-192.168.28.1/24}
+
+        KURYR_NEUTRON_DEFAULT_PROJECT="admin"
+        Q_ROUTER_NAME="route-k8s"
+        KURYR_NEUTRON_DEFAULT_ROUTER=${KURYR_NEUTRON_DEFAULT_ROUTER:-$Q_ROUTER_NAME}
+        SUBNETPOOL_NAME_V4=${SUBNETPOOL_NAME:-"shared-default-subnetpool-v4"}
+        SUBNETPOOL_SIZE_V4=${SUBNETPOOL_SIZE_V4:-26}
+        SUBNETPOOL_V4_ID=${SUBNETPOOL_V4_ID:-} #nqa
+
+        enable_service q-lbaasv2
+        enable_service etcd3
+        enable_service kubernetes-api
+        enable_service kubernetes-controller-manager
+        enable_service kubernetes-scheduler
+        enable_service kubelet
+        enable_service kuryr-kubernetes
+        NEUTRON_LBAAS_SERVICE_PROVIDERV2="LOADBALANCERV2:Haproxy:neutron_lbaas.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver:default"
+    fi
 elif [ "${TACKER_MODE}" == "standalone" ]; then
     # set the enabled services here. This will need tacker devstack plugin put as the last one in local.conf
     ENABLED_SERVICES=key,horizon,tacker,tacker-conductor,mysql,dstat,barbican,mistral,mistral-api,mistral-engine,mistral-executor,mistral-event-engine

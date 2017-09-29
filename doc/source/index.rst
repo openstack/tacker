@@ -52,6 +52,7 @@ us how to prepare a target VIM for Tacker.
    :maxdepth: 1
 
    install/openstack_vim_installation.rst
+   install/kubernetes_vim_installation.rst
 
 
 Getting Started
