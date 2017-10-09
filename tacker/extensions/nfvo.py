@@ -60,7 +60,7 @@ class VimKeyNotFoundException(exceptions.TackerException):
 
 
 class VimUnsupportedResourceTypeException(exceptions.TackerException):
-    message = _("Resource type %(type) is unsupported by VIM")
+    message = _("Resource type %(type)s is unsupported by VIM")
 
 
 class VimGetResourceException(exceptions.TackerException):
@@ -208,7 +208,7 @@ class NfpForwarderNotFoundException(exceptions.NotFound):
 
 
 class NfpRequirementsException(exceptions.TackerException):
-    message = _('VNFD Forwarder %(vnfd) specified more than twice in '
+    message = _('VNFD Forwarder %(vnfd)s specified more than twice in '
                 'requirements path')
 
 
