@@ -70,7 +70,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
 
     OPTS = [
         cfg.ListOpt(
-            'vim_drivers', default=['openstack'],
+            'vim_drivers', default=['openstack', 'kubernetes'],
             help=_('VIM driver for launching VNFs')),
         cfg.IntOpt(
             'monitor_interval', default=30,
@@ -140,24 +140,44 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         old_auth_need_delete = False
         new_auth_created = False
         try:
-            # re-register the VIM only if there is a change in password.
+            # re-register the VIM only if there is a change in bearer_token,
+            # username, password or bearer_token.
             # auth_url of auth_cred is from vim object which
             # is not updatable. so no need to consider it
             if 'auth_cred' in update_args:
                 auth_cred = update_args['auth_cred']
-                if 'password' in auth_cred:
+                if ('username' in auth_cred) and ('password' in auth_cred)\
+                        and (auth_cred['password'] is not None):
+                    # update new username and password, remove bearer_token
+                    # if it exists in the old vim
+                    vim_obj['auth_cred']['username'] = auth_cred['username']
                     vim_obj['auth_cred']['password'] = auth_cred['password']
-                    # Notice: vim_obj may be updated in vim driver's
-                    self._vim_drivers.invoke(vim_type,
-                                             'register_vim',
-                                             context=context,
-                                             vim_obj=vim_obj)
-                    new_auth_created = True
+                    if 'bearer_token' in vim_obj['auth_cred']:
+                        vim_obj['auth_cred'].pop('bearer_token')
+                elif 'bearer_token' in auth_cred:
+                    # update bearer_token, remove username and password
+                    # if they exist in the old vim
+                    vim_obj['auth_cred']['bearer_token'] =\
+                        auth_cred['bearer_token']
+                    if ('username' in vim_obj['auth_cred']) and\
+                            ('password' in vim_obj['auth_cred']):
+                        vim_obj['auth_cred'].pop('username')
+                        vim_obj['auth_cred'].pop('password')
+                if 'ssl_ca_cert' in auth_cred:
+                    # update new ssl_ca_cert
+                    vim_obj['auth_cred']['ssl_ca_cert'] =\
+                        auth_cred['ssl_ca_cert']
+                # Notice: vim_obj may be updated in vim driver's
+                self._vim_drivers.invoke(vim_type,
+                                         'register_vim',
+                                         context=context,
+                                         vim_obj=vim_obj)
+                new_auth_created = True
 
-                    # Check whether old vim's auth need to be deleted
-                    old_key_type = old_vim_obj['auth_cred'].get('key_type')
-                    if old_key_type == 'barbican_key':
-                        old_auth_need_delete = True
+                # Check whether old vim's auth need to be deleted
+                old_key_type = old_vim_obj['auth_cred'].get('key_type')
+                if old_key_type == 'barbican_key':
+                    old_auth_need_delete = True
 
             vim_obj = super(NfvoPlugin, self).update_vim(
                 context, vim_id, vim_obj)

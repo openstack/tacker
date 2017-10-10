@@ -59,6 +59,10 @@ class VimKeyNotFoundException(exceptions.TackerException):
     message = _("Unable to find key file for VIM %(vim_id)s")
 
 
+class VimEncryptKeyError(exceptions.TackerException):
+    message = _("Barbican must be enabled for VIM %(vim_id)s")
+
+
 class VimUnsupportedResourceTypeException(exceptions.TackerException):
     message = _("Resource type %(type)s is unsupported by VIM")
 

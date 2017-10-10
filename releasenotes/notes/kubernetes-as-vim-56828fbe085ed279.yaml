@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Add support Kubernetes VIM, user can create, update or delete
+    Kubernetes VIM

@@ -143,8 +143,8 @@ kuryr-kubernetes to get more information [#third]_.
 
 5. Register Kubernetes VIM
 
-In vim_config.yaml, project_name is namespace in Kubernetes environment
-where user will deploy Pod, Deployment or Horizontal Pod Autoscaling, etc.
+In vim_config.yaml, project_name is fixed as "default", that will use to
+support multi tenant on Kubernetes in the future.
 
 * Create vim_config.yaml file for Kubernetes VIM as the following examples:
 
@@ -233,6 +233,7 @@ authentication.
   username: "admin"
   password: "admin"
   project_name: "default"
+  ssl_ca_cert: None
   type: "kubernetes"
 
 
@@ -250,4 +251,3 @@ References
 .. [#second] https://github.com/openstack/tacker/blob/master/devstack/local.conf.example
 .. [#third] https://github.com/openstack/kuryr-kubernetes/blob/master/doc/source/installation/testing_connectivity.rst
 .. [#fourth] https://kubernetes.io/docs/admin/authentication
-

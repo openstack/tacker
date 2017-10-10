@@ -62,7 +62,11 @@ def delete_workflow(mistral_client, vim_id):
 def monitor_vim(auth_dict, vim_obj):
     mc = get_mistral_client(auth_dict)
     auth_url = vim_obj["auth_url"]
-    vim_ip = auth_url.split("//")[-1].split(":")[0].split("/")[0]
+    vim_type = vim_obj['type']
+    if vim_type == 'openstack':
+        vim_ip = auth_url.split("//")[-1].split(":")[0].split("/")[0]
+    elif vim_type == 'kubernetes':
+        vim_ip = auth_url.split("//")[-1].split(":")[0]
     workflow_input_dict = {
         'vim_id': vim_obj['id'],
         'count': cfg.CONF.vim_monitor.count,
