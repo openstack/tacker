@@ -1,0 +1,4 @@
+---
+features:
+  - Add support for multiple classifiers per chain through
+    VNFFG templates.

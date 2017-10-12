@@ -103,8 +103,9 @@ class VnffgNfp(model_base.BASE, models_v1.HasTenant, models_v1.HasId):
     name = sa.Column(sa.String(255), nullable=False)
     vnffg_id = sa.Column(types.Uuid, sa.ForeignKey('vnffgs.id'),
                          nullable=False)
-    classifier = orm.relationship('VnffgClassifier', backref='nfp',
-                                  uselist=False)
+
+    # List of associated classifiers
+    classifiers = orm.relationship('VnffgClassifier', backref='nfp')
     chain = orm.relationship('VnffgChain', backref='nfp',
                              uselist=False)
 
@@ -274,6 +275,10 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                                     self._make_classifier_dict,
                                     filters=filters, fields=fields)
 
+    def create_classifiers_map(self, classifier_ids, instance_ids):
+        return {classifier_id: instance_ids[i]
+                for i, classifier_id in enumerate(classifier_ids)}
+
     def get_nfp(self, context, nfp_id, fields=None):
         nfp_db = self._get_resource(context, VnffgNfp, nfp_id)
         return self._make_nfp_dict(nfp_db, fields)
@@ -372,7 +377,13 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
 
             nfp_id = uuidutils.generate_uuid()
             sfc_id = uuidutils.generate_uuid()
-            classifier_id = uuidutils.generate_uuid()
+
+            matches = self._policy_to_acl_criteria(context, template_db,
+                                                   nfp_dict['name'],
+                                                   vnf_mapping)
+            LOG.debug('acl_matches %s', matches)
+
+            classifier_ids = [uuidutils.generate_uuid() for i in matches]
 
             nfp_db = VnffgNfp(id=nfp_id, vnffg_id=vnffg_id,
                               tenant_id=tenant_id,
@@ -395,24 +406,21 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
 
             context.session.add(sfc_db)
 
-            sfcc_db = VnffgClassifier(id=classifier_id,
-                                      tenant_id=tenant_id,
-                                      status=constants.PENDING_CREATE,
-                                      nfp_id=nfp_id,
-                                      chain_id=sfc_id)
-            context.session.add(sfcc_db)
+            for i, classifier_id in enumerate(classifier_ids):
 
-            match = self._policy_to_acl_criteria(context, template_db,
-                                                 nfp_dict['name'],
-                                                 vnf_mapping)
-            LOG.debug('acl_match %s', match)
+                sfcc_db = VnffgClassifier(id=classifier_id,
+                                          tenant_id=tenant_id,
+                                          status=constants.PENDING_CREATE,
+                                          nfp_id=nfp_id,
+                                          chain_id=sfc_id)
+                context.session.add(sfcc_db)
 
-            match_db_table = ACLMatchCriteria(
-                id=uuidutils.generate_uuid(),
-                vnffgc_id=classifier_id,
-                **match)
+                match_db_table = ACLMatchCriteria(
+                    id=uuidutils.generate_uuid(),
+                    vnffgc_id=classifier_id,
+                    **matches[i])
 
-            context.session.add(match_db_table)
+                context.session.add(match_db_table)
 
         return self._make_vnffg_dict(vnffg_db)
 
@@ -598,6 +606,25 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             elif vnf_dict['vim_id'] != vim_id:
                 raise nfvo.VnffgVimMappingException(vnf_id=vnf, vim_id=vim_id)
 
+    def _validate_criteria(self, criteria):
+        """Validate whether or not the classifiers are unique.
+
+        We define a classifier as unique when at least one
+        key-value pair is different from another classifier.
+        """
+        if not criteria:
+            raise nfvo.NfpPolicyCriteriaIndexError()
+        elif len(criteria) == 1:
+            pass
+        else:
+            for index, dict_one in enumerate(criteria):
+                if index != (len(criteria) - 1):
+                    for dict_two in criteria[(index + 1):]:
+                        if dict_one == dict_two:
+                            raise nfvo. \
+                                NfpDuplicatePolicyCriteria(first_dict=dict_one,
+                                                           sec_dict=dict_two)
+
     def _policy_to_acl_criteria(self, context, template_db, nfp_name,
                                 vnf_mapping):
         template = template_db.template['vnffgd']['topology_template']
@@ -612,10 +639,14 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 raise nfvo.NfpPolicyTypeError(type=policy['type'])
 
         if 'criteria' not in policy:
-            raise nfvo.NfpPolicyCriteriaError(error="Missing criteria in "
-                                              "policy")
-        match = dict()
+            raise nfvo.NfpPolicyCriteriaError(
+                error="Missing criteria in policy")
+
+        self._validate_criteria(policy['criteria'])
+
+        matches = []
         for criteria in policy['criteria']:
+            match = dict()
             for key, val in criteria.items():
                 if key in MATCH_CRITERIA:
                     match.update(self._convert_criteria(context, key, val,
@@ -624,7 +655,9 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                     raise nfvo.NfpPolicyCriteriaError(error="Unsupported "
                                                       "criteria: "
                                                       "{}".format(key))
-        return match
+            matches.append(match)
+
+        return matches
 
     def _convert_criteria(self, context, criteria, value, vnf_mapping):
         """Method is used to convert criteria to proper db value from template
@@ -676,12 +709,12 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
     # called internally, not by REST API
     # instance_id = None means error on creation
     def _create_vnffg_post(self, context, sfc_instance_id,
-                           fc_instance_id, vnffg_dict):
+                           classifiers_map, vnffg_dict):
         LOG.debug('SFC created instance is %s', sfc_instance_id)
-        LOG.debug('Flow Classifier created instance is %s', fc_instance_id)
+        LOG.debug('Flow Classifiers created instances are %s',
+                  [classifiers_map[item] for item in classifiers_map])
         nfp_dict = self.get_nfp(context, vnffg_dict['forwarding_paths'])
         sfc_id = nfp_dict['chain_id']
-        classifier_id = nfp_dict['classifier_id']
         with context.session.begin(subtransactions=True):
             query = (self._model_query(context, VnffgChain).
                      filter(VnffgChain.id == sfc_id).
@@ -692,32 +725,44 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 query.update({'status': constants.ERROR})
             else:
                 query.update({'status': constants.ACTIVE})
+            for classifier_id, fc_instance_id in classifiers_map.items():
+                query = (self._model_query(context, VnffgClassifier).
+                         filter(VnffgClassifier.id == classifier_id).
+                         filter(VnffgClassifier.status ==
+                                constants.PENDING_CREATE).
+                         one())
+                query.update({'instance_id': fc_instance_id})
 
-            query = (self._model_query(context, VnffgClassifier).
-                     filter(VnffgClassifier.id == classifier_id).
-                     filter(VnffgClassifier.status ==
-                            constants.PENDING_CREATE).
-                     one())
-            query.update({'instance_id': fc_instance_id})
-
-            if fc_instance_id is None:
-                query.update({'status': constants.ERROR})
-            else:
-                query.update({'status': constants.ACTIVE})
+                if fc_instance_id is None:
+                    query.update({'status': constants.ERROR})
+                else:
+                    query.update({'status': constants.ACTIVE})
 
     def _create_vnffg_status(self, context, vnffg):
         nfp = self.get_nfp(context, vnffg['forwarding_paths'])
         chain = self.get_sfc(context, nfp['chain_id'])
-        classifier = self.get_classifier(context, nfp['classifier_id'])
 
-        if classifier['status'] == constants.ERROR or chain['status'] ==\
-                constants.ERROR:
+        if chain['status'] == constants.ERROR:
             self._update_all_status(context, vnffg['id'], nfp['id'],
                                     constants.ERROR)
-        elif classifier['status'] == constants.ACTIVE and \
-                chain['status'] == constants.ACTIVE:
-            self._update_all_status(context, vnffg['id'], nfp['id'],
+
+        elif chain['status'] == constants.ACTIVE:
+            classifiers_active_state = True
+            for classifier in [self.get_classifier(context, classifier_id)
+                               for classifier_id in nfp['classifier_ids']]:
+
+                if classifier['status'] == constants.ACTIVE:
+                    continue
+                elif classifier['status'] == constants.ERROR:
+                    classifiers_active_state = False
+                    break
+
+            if classifiers_active_state:
+                self._update_all_status(context, vnffg['id'], nfp['id'],
                                     constants.ACTIVE)
+            else:
+                self._update_all_status(context, vnffg['id'], nfp['id'],
+                                    constants.ERROR)
 
     def _update_all_status(self, context, vnffg_id, nfp_id, status):
         with context.session.begin(subtransactions=True):
@@ -743,7 +788,8 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         vnffg = self.get_vnffg(context, vnffg_id)
         nfp = self.get_nfp(context, vnffg['forwarding_paths'])
         sfc = self.get_sfc(context, nfp['chain_id'])
-        fc = self.get_classifier(context, nfp['classifier_id'])
+        classifiers = [self.get_classifier(context, classifier_id) for
+                       classifier_id in nfp['classifier_ids']]
         with context.session.begin(subtransactions=True):
             vnffg_db = self._get_vnffg_db(context, vnffg['id'], _ACTIVE_UPDATE,
                                           constants.PENDING_UPDATE)
@@ -751,8 +797,10 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                              constants.PENDING_UPDATE)
             self._get_sfc_db(context, sfc['id'], _ACTIVE_UPDATE,
                              constants.PENDING_UPDATE)
-            self._get_classifier_db(context, fc['id'], _ACTIVE_UPDATE,
-                                    constants.PENDING_UPDATE)
+            for classifier in classifiers:
+                self._get_classifier_db(context, classifier['id'],
+                                        _ACTIVE_UPDATE,
+                                        constants.PENDING_UPDATE)
         return self._make_vnffg_dict(vnffg_db)
 
     def _update_vnffg_post(self, context, vnffg_id, new_status,
@@ -760,18 +808,18 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         vnffg = self.get_vnffg(context, vnffg_id)
         nfp = self.get_nfp(context, vnffg['forwarding_paths'])
         sfc_id = nfp['chain_id']
-        classifier_id = nfp['classifier_id']
+        classifier_ids = nfp['classifier_ids']
         with context.session.begin(subtransactions=True):
             query = (self._model_query(context, VnffgChain).
                      filter(VnffgChain.id == sfc_id).
                      filter(VnffgChain.status == constants.PENDING_UPDATE))
             query.update({'status': new_status})
-
-            query = (self._model_query(context, VnffgClassifier).
-                     filter(VnffgClassifier.id == classifier_id).
-                     filter(VnffgClassifier.status ==
-                            constants.PENDING_UPDATE))
-            query.update({'status': new_status})
+            for classifier_id in classifier_ids:
+                query = (self._model_query(context, VnffgClassifier).
+                         filter(VnffgClassifier.id == classifier_id).
+                         filter(VnffgClassifier.status ==
+                                constants.PENDING_UPDATE))
+                query.update({'status': new_status})
 
             query = (self._model_query(context, Vnffg).
                      filter(Vnffg.id == vnffg['id']).
@@ -799,14 +847,15 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 for key in _VALID_SFC_UPDATE_ATTRIBUTES:
                     sfc_query.update({key: new_sfc[key]})
 
-    def _update_classifier_post(self, context, sfc_id, new_status,
+    def _update_classifier_post(self, context, classifier_ids, new_status,
                                new_fc=None):
         with context.session.begin(subtransactions=True):
-            fc_query = (self._model_query(context, VnffgClassifier).
-                        filter(VnffgClassifier.id == sfc_id).
-                        filter(VnffgClassifier.status ==
-                        constants.PENDING_UPDATE))
-            fc_query.update({'status': new_status})
+            for classifier_id in classifier_ids:
+                fc_query = (self._model_query(context, VnffgClassifier).
+                            filter(VnffgClassifier.id == classifier_id).
+                            filter(VnffgClassifier.status ==
+                            constants.PENDING_UPDATE))
+                fc_query.update({'status': new_status})
 
             if new_fc is not None:
                 for key in _VALID_FC_UPDATE_ATTRIBUTES:
@@ -872,7 +921,8 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         vnffg = self.get_vnffg(context, vnffg_id)
         nfp = self.get_nfp(context, vnffg['forwarding_paths'])
         chain = self.get_sfc(context, nfp['chain_id'])
-        classifier = self.get_classifier(context, nfp['classifier_id'])
+        classifiers = [self.get_classifier(context, classifier_id)
+                       for classifier_id in nfp['classifier_ids']]
         with context.session.begin(subtransactions=True):
             vnffg_db = self._get_vnffg_db(
                 context, vnffg['id'], _ACTIVE_UPDATE_ERROR_DEAD,
@@ -881,9 +931,10 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                              constants.PENDING_DELETE)
             self._get_sfc_db(context, chain['id'], _ACTIVE_UPDATE_ERROR_DEAD,
                              constants.PENDING_DELETE)
-            self._get_classifier_db(context, classifier['id'],
-                                    _ACTIVE_UPDATE_ERROR_DEAD,
-                                    constants.PENDING_DELETE)
+            for classifier in classifiers:
+                self._get_classifier_db(context, classifier['id'],
+                                        _ACTIVE_UPDATE_ERROR_DEAD,
+                                        constants.PENDING_DELETE)
 
         return self._make_vnffg_dict(vnffg_db)
 
@@ -891,7 +942,10 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         vnffg = self.get_vnffg(context, vnffg_id)
         nfp = self.get_nfp(context, vnffg['forwarding_paths'])
         chain = self.get_sfc(context, nfp['chain_id'])
-        classifier = self.get_classifier(context, nfp['classifier_id'])
+        classifiers = [self.get_classifier(context, classifier_id)
+                       for classifier_id in nfp['classifier_ids']]
+        fc_queries = []
+        match_queries = []
         with context.session.begin(subtransactions=True):
             vnffg_query = (
                 self._model_query(context, Vnffg).
@@ -905,21 +959,26 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 self._model_query(context, VnffgChain).
                 filter(VnffgChain.id == chain['id']).
                 filter(VnffgChain.status == constants.PENDING_DELETE))
-            fc_query = (
-                self._model_query(context, VnffgClassifier).
-                filter(VnffgClassifier.id == classifier['id']).
-                filter(VnffgClassifier.status == constants.PENDING_DELETE))
-            match_query = (
-                self._model_query(context, ACLMatchCriteria).
-                filter(ACLMatchCriteria.vnffgc_id == classifier['id']))
+            for classifier in classifiers:
+                fc_queries.append((
+                    self._model_query(context, VnffgClassifier).
+                    filter(VnffgClassifier.id == classifier['id']).
+                    filter(VnffgClassifier.status ==
+                           constants.PENDING_DELETE)))
+                match_queries.append((
+                    self._model_query(context, ACLMatchCriteria).
+                    filter(ACLMatchCriteria.vnffgc_id == classifier['id'])))
             if error:
                 vnffg_query.update({'status': constants.ERROR})
                 nfp_query.update({'status': constants.ERROR})
                 sfc_query.update({'status': constants.ERROR})
-                fc_query.update({'status': constants.ERROR})
+                for fc_query in fc_queries:
+                    fc_query.update({'status': constants.ERROR})
             else:
-                match_query.delete()
-                fc_query.delete()
+                for match_query in match_queries:
+                    match_query.delete()
+                for fc_query in fc_queries:
+                    fc_query.delete()
                 sfc_query.delete()
                 nfp_query.delete()
                 vnffg_query.delete()
@@ -957,7 +1016,8 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
     def _make_nfp_dict(self, nfp_db, fields=None):
         LOG.debug('nfp_db %s', nfp_db)
         res = {'chain_id': nfp_db.chain['id'],
-               'classifier_id': nfp_db.classifier['id']}
+               'classifier_ids': [classifier['id'] for classifier in
+                               nfp_db.classifiers]}
         key_list = ('name', 'id', 'tenant_id', 'symmetrical', 'status',
                     'path_id', 'vnffg_id')
         res.update((key, nfp_db[key]) for key in key_list)

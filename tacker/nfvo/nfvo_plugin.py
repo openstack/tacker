@@ -303,9 +303,12 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         nfp = super(NfvoPlugin, self).get_nfp(context,
                                               vnffg_dict['forwarding_paths'])
         sfc = super(NfvoPlugin, self).get_sfc(context, nfp['chain_id'])
-        match = super(NfvoPlugin, self).get_classifier(context,
-                                                       nfp['classifier_id'],
-                                                       fields='match')['match']
+        matches = []
+        for classifier_id in nfp['classifier_ids']:
+            matches.append(super(NfvoPlugin, self).
+                    get_classifier(context,
+                                   classifier_id,
+                                   fields='match')['match'])
         # grab the first VNF to check it's VIM type
         # we have already checked that all VNFs are in the same VIM
         vim_obj = self._get_vim_from_vnf(context,
@@ -315,22 +318,28 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         # to the driver.  Is it a session, or is full vim obj good enough?
         driver_type = vim_obj['type']
         try:
-            fc_id = self._vim_drivers.invoke(driver_type,
+            fc_ids = []
+            for match in matches:
+                fc_ids.append(self._vim_drivers.invoke(driver_type,
                                              'create_flow_classifier',
                                              name=vnffg_dict['name'],
                                              fc=match,
                                              auth_attr=vim_obj['auth_cred'],
-                                             symmetrical=sfc['symmetrical'])
+                                             symmetrical=sfc['symmetrical']))
             sfc_id = self._vim_drivers.invoke(driver_type,
                                               'create_chain',
                                               name=vnffg_dict['name'],
-                                              vnfs=sfc['chain'], fc_id=fc_id,
+                                              vnfs=sfc['chain'],
+                                              fc_ids=fc_ids,
                                               symmetrical=sfc['symmetrical'],
                                               auth_attr=vim_obj['auth_cred'])
         except Exception:
             with excutils.save_and_reraise_exception():
                 self.delete_vnffg(context, vnffg_id=vnffg_dict['id'])
-        super(NfvoPlugin, self)._create_vnffg_post(context, sfc_id, fc_id,
+        classifiers_map = super(NfvoPlugin, self). \
+            create_classifiers_map(nfp['classifier_ids'], fc_ids)
+        super(NfvoPlugin, self)._create_vnffg_post(context, sfc_id,
+                                                   classifiers_map,
                                                    vnffg_dict)
         super(NfvoPlugin, self)._create_vnffg_status(context, vnffg_dict)
         return vnffg_dict
@@ -345,8 +354,9 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                               vnffg_dict['forwarding_paths'])
         sfc = super(NfvoPlugin, self).get_sfc(context, nfp['chain_id'])
 
-        fc = super(NfvoPlugin, self).get_classifier(context,
-                                                    nfp['classifier_id'])
+        classifiers = [super(NfvoPlugin, self).
+                       get_classifier(context, classifier_id) for classifier_id
+                       in nfp['classifier_ids']]
         template_db = self._get_resource(context, vnffg_db.VnffgTemplate,
                                          vnffg_dict['vnffgd_id'])
         vnf_members = self._get_vnffg_property(template_db.template,
@@ -376,13 +386,21 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
             # we don't support updating the match criteria in first iteration
             # so this is essentially a noop.  Good to keep for future use
             # though.
-            self._vim_drivers.invoke(driver_type, 'update_flow_classifier',
-                                     fc_id=fc['instance_id'], fc=fc['match'],
-                                     auth_attr=vim_obj['auth_cred'],
-                                     symmetrical=new_vnffg['symmetrical'])
+            # In addition to that the code we are adding for the multiple
+            # classifier support is also a noop and we are adding it so we
+            # do not get compilation errors. It should be changed when the
+            # update of the classifier will be supported.
+            classifier_instances = []
+            for classifier in classifiers:
+                self._vim_drivers.invoke(driver_type, 'update_flow_classifier',
+                                         fc_id=classifier['instance_id'],
+                                         fc=classifier['match'],
+                                         auth_attr=vim_obj['auth_cred'],
+                                         symmetrical=new_vnffg['symmetrical'])
+                classifier_instances.append(classifier['instance_id'])
             self._vim_drivers.invoke(driver_type, 'update_chain',
                                      vnfs=sfc['chain'],
-                                     fc_ids=[fc['instance_id']],
+                                     fc_ids=classifier_instances,
                                      chain_id=sfc['instance_id'],
                                      auth_attr=vim_obj['auth_cred'],
                                      symmetrical=new_vnffg['symmetrical'])
@@ -398,7 +416,8 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                                  constants.ACTIVE, sfc)
         # update classifier - this is just updating status until functional
         # updates are supported to classifier
-        super(NfvoPlugin, self)._update_classifier_post(context, fc['id'],
+        super(NfvoPlugin, self)._update_classifier_post(context,
+                                                        nfp['classifier_ids'],
                                                         constants.ACTIVE)
         return vnffg_dict
 
@@ -410,8 +429,9 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                               vnffg_dict['forwarding_paths'])
         sfc = super(NfvoPlugin, self).get_sfc(context, nfp['chain_id'])
 
-        fc = super(NfvoPlugin, self).get_classifier(context,
-                                                    nfp['classifier_id'])
+        classifiers = [super(NfvoPlugin, self).
+            get_classifier(context, classifier_id)
+            for classifier_id in nfp['classifier_ids']]
         vim_obj = self._get_vim_from_vnf(context,
                                          list(vnffg_dict[
                                               'vnf_mapping'].values())[0])
@@ -421,11 +441,12 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 self._vim_drivers.invoke(driver_type, 'delete_chain',
                                          chain_id=sfc['instance_id'],
                                          auth_attr=vim_obj['auth_cred'])
-            if fc['instance_id'] is not None:
-                self._vim_drivers.invoke(driver_type,
-                                         'delete_flow_classifier',
-                                         fc_id=fc['instance_id'],
-                                         auth_attr=vim_obj['auth_cred'])
+            for classifier in classifiers:
+                if classifier['instance_id'] is not None:
+                    self._vim_drivers.invoke(driver_type,
+                                             'delete_flow_classifier',
+                                             fc_id=classifier['instance_id'],
+                                             auth_attr=vim_obj['auth_cred'])
         except Exception:
             with excutils.save_and_reraise_exception():
                 vnffg_dict['status'] = constants.ERROR

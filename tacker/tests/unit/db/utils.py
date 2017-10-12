@@ -45,6 +45,8 @@ vnffgd_tosca_multi_param_template = yaml.safe_load(_get_template(
     'tosca_vnffgd_multi_param_template.yaml'))
 vnffgd_invalid_tosca_template = yaml.safe_load(_get_template(
     'tosca_invalid_vnffgd_template.yaml'))
+vnffgd_tosca_dupl_criteria_template = yaml.safe_load(_get_template(
+    'tosca_vnffgd_dupl_criteria_template.yaml'))
 vnfd_scale_tosca_template = _get_template('tosca_scale.yaml')
 vnfd_alarm_respawn_tosca_template = _get_template(
     'test_tosca_vnfd_alarm_respawn.yaml')
@@ -251,6 +253,17 @@ def get_dummy_vnffg_obj_vnf_mapping():
                           'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effe07',
                           'VNF3': '7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'
                       },
+                      'symmetrical': False}}
+
+
+def get_dummy_vnffg_obj_dupl_criteria():
+    return {'vnffg': {'description': 'dummy_vnffg_description',
+                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'name': 'dummy_vnffg',
+                      u'attributes': {u'template':
+                                      vnffgd_tosca_dupl_criteria_template},
+                      'vnf_mapping': {},
                       'symmetrical': False}}
 
 
