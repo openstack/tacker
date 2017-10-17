@@ -47,7 +47,6 @@ is the target branch, the <branch-name> is stable/pike.
 
     # Logging
     LOGFILE=$DEST/logs/stack.sh.log
-    SCREEN_LOGDIR=$DEST/logs/screen
     VERBOSE=True
     ENABLE_DEBUG_LOG_LEVEL=True
     ENABLE_VERBOSE_LOG_LEVEL=True
