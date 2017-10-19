@@ -759,7 +759,20 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                            new_vnffg=None):
         vnffg = self.get_vnffg(context, vnffg_id)
         nfp = self.get_nfp(context, vnffg['forwarding_paths'])
+        sfc_id = nfp['chain_id']
+        classifier_id = nfp['classifier_id']
         with context.session.begin(subtransactions=True):
+            query = (self._model_query(context, VnffgChain).
+                     filter(VnffgChain.id == sfc_id).
+                     filter(VnffgChain.status == constants.PENDING_UPDATE))
+            query.update({'status': new_status})
+
+            query = (self._model_query(context, VnffgClassifier).
+                     filter(VnffgClassifier.id == classifier_id).
+                     filter(VnffgClassifier.status ==
+                            constants.PENDING_UPDATE))
+            query.update({'status': new_status})
+
             query = (self._model_query(context, Vnffg).
                      filter(Vnffg.id == vnffg['id']).
                      filter(Vnffg.status == constants.PENDING_UPDATE))
