@@ -102,13 +102,16 @@ class FakeVNFMPlugin(mock.Mock):
         super(FakeVNFMPlugin, self).__init__()
         self.vnf1_vnfd_id = 'eb094833-995e-49f0-a047-dfb56aaf7c4e'
         self.vnf1_vnf_id = '91e32c20-6d1f-47a4-9ba7-08f5e5effe07'
+        self.vnf1_update_vnf_id = '91e32c20-6d1f-47a4-9ba7-08f5e5effaf6'
         self.vnf3_vnfd_id = 'e4015e9f-1ef2-49fb-adb6-070791ad3c45'
         self.vnf2_vnfd_id = 'e4015e9f-1ef2-49fb-adb6-070791ad3c45'
         self.vnf3_vnf_id = '7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'
         self.vnf3_update_vnf_id = '10f66bc5-b2f1-45b7-a7cd-6dd6ad0017f5'
 
         self.cp11_id = 'd18c8bae-898a-4932-bff8-d5eac981a9c9'
+        self.cp11_update_id = 'a18c8bae-898a-4932-bff8-d5eac981a9b8'
         self.cp12_id = 'c8906342-3e30-4b2a-9401-a251a7a9b5dd'
+        self.cp12_update_id = 'b8906342-3e30-4b2a-9401-a251a7a9b5cc'
         self.cp32_id = '3d1bd2a2-bf0e-44d1-87af-a2c6b2cad3ed'
         self.cp32_update_id = '064c0d99-5a61-4711-9597-2a44dc5da14b'
 
@@ -143,6 +146,8 @@ class FakeVNFMPlugin(mock.Mock):
     def get_vnf(self, *args, **kwargs):
         if self.vnf1_vnf_id in args:
             return self.get_dummy_vnf1()
+        elif self.vnf1_update_vnf_id in args:
+            return self.get_dummy_vnf1_update()
         elif self.vnf3_vnf_id in args:
             return self.get_dummy_vnf3()
         elif self.vnf3_update_vnf_id in args:
@@ -151,6 +156,8 @@ class FakeVNFMPlugin(mock.Mock):
     def get_vnf_resources(self, *args, **kwargs):
         if self.vnf1_vnf_id in args:
             return self.get_dummy_vnf1_details()
+        elif self.vnf1_update_vnf_id in args:
+            return self.get_dummy_vnf1_update_details()
         elif self.vnf3_vnf_id in args:
             return self.get_dummy_vnf3_details()
         elif self.vnf3_update_vnf_id in args:
@@ -159,6 +166,10 @@ class FakeVNFMPlugin(mock.Mock):
     def get_dummy_vnf1_details(self):
         return [{'name': 'CP11', 'id': self.cp11_id},
                 {'name': 'CP12', 'id': self.cp12_id}]
+
+    def get_dummy_vnf1_update_details(self):
+        return [{'name': 'CP11', 'id': self.cp11_update_id},
+                {'name': 'CP12', 'id': self.cp12_update_id}]
 
     def get_dummy_vnf3_details(self):
         return [{'name': 'CP32', 'id': self.cp32_id}]
@@ -172,6 +183,14 @@ class FakeVNFMPlugin(mock.Mock):
                 'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
                 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                 'name': 'dummy_vnf1',
+                'attributes': {}}
+
+    def get_dummy_vnf1_update(self):
+        return {'description': 'dummy_vnf_description',
+                'vnfd_id': self.vnf1_vnfd_id,
+                'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                'name': 'dummy_vnf1_update',
                 'attributes': {}}
 
     def get_dummy_vnf3(self):
@@ -680,10 +699,60 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             updated_vnffg = utils.get_dummy_vnffg_obj_vnf_mapping()
             updated_vnffg['vnffg']['symmetrical'] = True
             updated_vnf_mapping = \
-                {'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effe07',
+                {'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effaf6',
                  'VNF3': '5c7f5631-9e74-46e8-b3d2-397c0eda9d0b'}
             updated_vnffg['vnffg']['vnf_mapping'] = updated_vnf_mapping
             self.assertRaises(nfvo.VnffgInvalidMappingException,
+                              self.nfvo_plugin.update_vnffg,
+                              self.context, vnffg['id'], updated_vnffg)
+
+    def test_update_vnffg_empty_vnf_mapping_dict(self):
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock.patch('tacker.common.driver_manager.DriverManager',
+                       side_effect=FakeDriverManager()).start()
+            self._insert_dummy_vnffg_template()
+            vnffg = self._insert_dummy_vnffg()
+            updated_vnffg = utils.get_dummy_vnffg_obj_vnf_mapping()
+            updated_vnffg['vnffg']['symmetrical'] = True
+            updated_vnf_mapping = {}
+            updated_vnffg['vnffg']['vnf_mapping'] = updated_vnf_mapping
+            self.assertRaises(nfvo.VnfMappingNotFoundException,
+                              self.nfvo_plugin.update_vnffg,
+                              self.context, vnffg['id'], updated_vnffg)
+
+    def test_update_vnffg_vnf_mapping_key_none(self):
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock.patch('tacker.common.driver_manager.DriverManager',
+                       side_effect=FakeDriverManager()).start()
+            self._insert_dummy_vnffg_template()
+            vnffg = self._insert_dummy_vnffg()
+            updated_vnffg = utils.get_dummy_vnffg_obj_vnf_mapping()
+            updated_vnffg['vnffg']['symmetrical'] = True
+            updated_vnf_mapping = None
+            updated_vnffg['vnffg']['vnf_mapping'] = updated_vnf_mapping
+            self.assertRaises(nfvo.VnfMappingNotFoundException,
+                              self.nfvo_plugin.update_vnffg,
+                              self.context, vnffg['id'], updated_vnffg)
+
+    def test_update_vnffg_vnfd_not_in_vnffg_template(self):
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock.patch('tacker.common.driver_manager.DriverManager',
+                       side_effect=FakeDriverManager()).start()
+            self._insert_dummy_vnffg_template()
+            vnffg = self._insert_dummy_vnffg()
+            updated_vnffg = utils.get_dummy_vnffg_obj_vnf_mapping()
+            updated_vnffg['vnffg']['symmetrical'] = True
+            updated_vnf_mapping = \
+                {'VNF2': '91e32c20-6d1f-47a4-9ba7-08f5e5effad7',
+                 'VNF3': '5c7f5631-9e74-46e8-b3d2-397c0eda9d0b'}
+            updated_vnffg['vnffg']['vnf_mapping'] = updated_vnf_mapping
+            self.assertRaises(nfvo.VnfMappingNotValidException,
                               self.nfvo_plugin.update_vnffg,
                               self.context, vnffg['id'], updated_vnffg)
 
@@ -697,18 +766,29 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             vnffg = self._insert_dummy_vnffg()
             updated_vnffg = utils.get_dummy_vnffg_obj_vnf_mapping()
             updated_vnffg['vnffg']['symmetrical'] = True
+            expected_mapping = {'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effe07',
+                                'VNF3': '7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'}
             updated_vnf_mapping = \
-                {'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effe07',
+                {'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effaf6',
                  'VNF3': '10f66bc5-b2f1-45b7-a7cd-6dd6ad0017f5'}
             updated_vnffg['vnffg']['vnf_mapping'] = updated_vnf_mapping
-            self.nfvo_plugin.update_vnffg(self.context, vnffg['id'],
-                                          updated_vnffg)
-            self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
+            result = self.nfvo_plugin.update_vnffg(self.context, vnffg['id'],
+                                            updated_vnffg)
+            self.assertIn('id', result)
+            self.assertIn('status', result)
+            self.assertIn('vnf_mapping', result)
+            self.assertEqual('ffc1a59b-65bb-4874-94d3-84f639e63c74',
+                             result['id'])
+            self.assertEqual('PENDING_UPDATE', result['status'])
+            for vnfd, vnf in result['vnf_mapping'].items():
+                self.assertIn(vnfd, expected_mapping)
+                self.assertEqual(vnf, expected_mapping[vnfd])
+            self._driver_manager.invoke.assert_called_with(mock.ANY,
+                                                           mock.ANY,
                                                            vnfs=mock.ANY,
                                                            fc_ids=mock.ANY,
                                                            chain_id=mock.ANY,
-                                                           auth_attr=mock.ANY,
-                                                           symmetrical=True)
+                                                           auth_attr=mock.ANY)
 
     def test_delete_vnffg(self):
         self._insert_dummy_vnffg_template()

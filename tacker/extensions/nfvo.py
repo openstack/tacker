@@ -240,6 +240,14 @@ class ClassifierNotFoundException(exceptions.NotFound):
     message = _('Classifier %(classifier_id)s could not be found')
 
 
+class VnfMappingNotFoundException(exceptions.NotFound):
+    message = _('VNF mapping not found/defined')
+
+
+class VnfMappingNotValidException(exceptions.TackerException):
+    message = _('The %(vnfd)s is not found in constituent VNFDs')
+
+
 class NSDInUse(exceptions.InUse):
     message = _('NSD %(nsd_id)s is still in use')
 
@@ -250,6 +258,11 @@ class NSInUse(exceptions.InUse):
 
 class NoTasksException(exceptions.TackerException):
     message = _('No tasks to run for %(action)s on %(resource)s')
+
+
+class UpdateChainException(exceptions.TackerException):
+    message = _("%(message)s")
+
 
 NAME_MAX_LEN = 255
 

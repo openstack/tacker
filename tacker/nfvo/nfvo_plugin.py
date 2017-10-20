@@ -254,7 +254,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         known_forwarders = set()
         for element in path:
             if element.get('forwarder') in known_forwarders:
-                if prev_element is not None and element.get('forwarder')\
+                if prev_element is not None and element.get('forwarder') \
                         != prev_element['forwarder']:
                     raise nfvo.VnffgdDuplicateForwarderException(
                         forwarder=element.get('forwarder')
@@ -378,10 +378,27 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                        in nfp['classifier_ids']]
         template_db = self._get_resource(context, vnffg_db.VnffgTemplate,
                                          vnffg_dict['vnffgd_id'])
-        vnf_members = self._get_vnffg_property(template_db.template,
+        vnfd_members = self._get_vnffg_property(template_db.template,
                                                'constituent_vnfs')
-        new_vnffg['vnf_mapping'] = super(NfvoPlugin, self)._get_vnf_mapping(
-            context, new_vnffg.get('vnf_mapping'), vnf_members)
+        try:
+            super(NfvoPlugin, self)._validate_vnfd_in_vnf_mapping(
+                new_vnffg.get('vnf_mapping'), vnfd_members)
+
+            combined_vnf_mapping = super(
+                NfvoPlugin, self)._combine_current_and_new_vnf_mapping(
+                    context, new_vnffg['vnf_mapping'],
+                    vnffg_dict['vnf_mapping'])
+
+            new_vnffg['vnf_mapping'] = super(
+                NfvoPlugin, self)._get_vnf_mapping(context,
+                                                   combined_vnf_mapping,
+                                                   vnfd_members)
+
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                super(NfvoPlugin, self)._update_vnffg_status(
+                    context, vnffg_id, error=True, db_state=constants.ACTIVE)
+
         template_id = vnffg_dict['vnffgd_id']
         template_db = self._get_resource(context, vnffg_db.VnffgTemplate,
                                          template_id)
@@ -396,7 +413,10 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                                            nfp['name'])
         LOG.debug('chain update: %s', chain)
         sfc['chain'] = chain
-        sfc['symmetrical'] = new_vnffg['symmetrical']
+
+        # Symmetrical update currently is not supported
+        del new_vnffg['symmetrical']
+
         vim_obj = self._get_vim_from_vnf(context,
                                          list(vnffg_dict[
                                               'vnf_mapping'].values())[0])
@@ -416,27 +436,23 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                          fc=classifier['match'],
                                          auth_attr=vim_obj['auth_cred'])
                 classifier_instances.append(classifier['instance_id'])
-            self._vim_drivers.invoke(driver_type, 'update_chain',
-                                     vnfs=sfc['chain'],
-                                     fc_ids=classifier_instances,
-                                     chain_id=sfc['instance_id'],
-                                     auth_attr=vim_obj['auth_cred'],
-                                     symmetrical=new_vnffg['symmetrical'])
+            n_sfc_chain_id = self._vim_drivers.invoke(
+                driver_type, 'update_chain',
+                vnfs=sfc['chain'], fc_ids=classifier_instances,
+                chain_id=sfc['instance_id'], auth_attr=vim_obj['auth_cred'])
         except Exception:
             with excutils.save_and_reraise_exception():
-                vnffg_dict['status'] = constants.ERROR
-                super(NfvoPlugin, self)._update_vnffg_post(context, vnffg_id,
-                                                           constants.ERROR)
+                super(NfvoPlugin, self)._update_vnffg_status(context,
+                                                             vnffg_id,
+                                                             error=True)
+
+        new_vnffg['chain'] = chain
         super(NfvoPlugin, self)._update_vnffg_post(context, vnffg_id,
-                                                   constants.ACTIVE, new_vnffg)
-        # update chain
-        super(NfvoPlugin, self)._update_sfc_post(context, sfc['id'],
-                                                 constants.ACTIVE, sfc)
-        # update classifier - this is just updating status until functional
-        # updates are supported to classifier
-        super(NfvoPlugin, self)._update_classifier_post(context,
-                                                        nfp['classifier_ids'],
-                                                        constants.ACTIVE)
+                                                   new_vnffg,
+                                                   n_sfc_chain_id)
+        super(NfvoPlugin, self)._update_vnffg_status(context,
+                                                     vnffg_id,
+                                                     db_state=constants.ACTIVE)
         return vnffg_dict
 
     @log.log
@@ -702,7 +718,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 if req_val in nsd_dict['topology_template']['node_templates']:
                     param_values[vnfd_name]['substitution_mappings'][
                         res_name] = nsd_dict['topology_template'][
-                            'node_templates'][req_val]
+                        'node_templates'][req_val]
 
             param_values[vnfd_name]['substitution_mappings'][
                 'requirements'] = req_dict
@@ -874,6 +890,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                      auth_dict=self.get_auth_dict(context))
             super(NfvoPlugin, self).delete_ns_post(context, ns_id, exec_obj,
                                                    error_reason)
+
         if workflow:
             self.spawn_n(_delete_ns_wait, ns['id'], mistral_execution.id)
         else:
