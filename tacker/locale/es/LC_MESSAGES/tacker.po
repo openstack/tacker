@@ -1,0 +1,1296 @@
+# OpenStack Infra <zanata@openstack.org>, 2015. #zanata
+# Tom Cocozzello <tjcocozz@us.ibm.com>, 2015. #zanata
+# Andreas Jaeger <jaegerandi@gmail.com>, 2016. #zanata
+# Eduardo Gonzalez Gutierrez <dabarren@gmail.com>, 2017. #zanata
+msgid ""
+msgstr ""
+"Project-Id-Version: tacker 0.8.1.dev35\n"
+"Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
+"POT-Creation-Date: 2017-10-13 13:49+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2017-09-27 03:29+0000\n"
+"Last-Translator: Eduardo Gonzalez Gutierrez <dabarren@gmail.com>\n"
+"Language-Team: Spanish\n"
+"Language: es\n"
+"X-Generator: Zanata 3.9.6\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+#, python-format
+msgid ""
+"\n"
+"Command: %(cmd)s\n"
+"Exit code: %(code)s\n"
+"Stdout: %(stdout)r\n"
+"Stderr: %(stderr)r"
+msgstr ""
+"\n"
+"Comando: %(cmd)s\n"
+"Código de salida: %(code)s\n"
+" Salida estándar: %(stdout)r\n"
+"Salida de error: %(stderr)r"
+
+msgid " Cannot fetch details"
+msgstr "No ha sido posible extraer detalles"
+
+#, python-format
+msgid "%(_type)s already exist with given %(entry)s"
+msgstr "%(_type)s ya existe con %(entry)s dado"
+
+#, python-format
+msgid "%(error)s in policy"
+msgstr "%(error)s en regla"
+
+#, python-format
+msgid ""
+"%(invalid_dirs)s is invalid value for sort_dirs, valid value is '%(asc)s' "
+"and '%(desc)s'"
+msgstr ""
+"%(invalid_dirs)s es un valor no válido para sort_dirs, los valores válidos "
+"son '%(asc)s' y '%(desc)s'"
+
+#, python-format
+msgid "%(message)s"
+msgstr "%(message)s"
+
+#, python-format
+msgid "%(msg)s"
+msgstr "%(msg)s"
+
+#, python-format
+msgid "%(reason)s"
+msgstr "%(reason)s"
+
+#, python-format
+msgid "%(resource)s with name %(name)s already exists"
+msgstr "%(resource)s con nombre %(name)s ya existe"
+
+#, python-format
+msgid "%(url)s returned a fault: %(exception)s"
+msgstr "%(url)s ha devuelto un error: %(exception)s"
+
+#, python-format
+msgid "%(url)s returned with HTTP %(status)d"
+msgstr "Se ha devuelto %(url)s con HTTP %(status)d"
+
+#, python-format
+msgid "%s is invalid attribute for sort_key"
+msgstr "%s es un atributo no válido para sort_key"
+
+#, python-format
+msgid "%s is invalid attribute for sort_keys"
+msgstr "%s es un atributo no válido para sort_keys"
+
+#, python-format
+msgid "%s is not a valid VLAN tag"
+msgstr "%s no es una etiqueta VLAN válida"
+
+#, python-format
+msgid "'%(data)s' exceeds maximum length of %(max_len)s"
+msgstr "'%(data)s' supera la longitud máxima de %(max_len)s"
+
+#, python-format
+msgid "'%(data)s' is not in %(valid_values)s"
+msgstr "'%(data)s' no está en %(valid_values)s"
+
+#, python-format
+msgid "'%(data)s' is too large - must be no larger than '%(limit)d'"
+msgstr "'%(data)s' es muy grande, no debe ser más grande que '%(limit)d'"
+
+#, python-format
+msgid "'%(data)s' is too small - must be at least '%(limit)d'"
+msgstr "'%(data)s' es muy pequeño, debe ser al menos '%(limit)d'"
+
+#, python-format
+msgid "'%(data)s' isn't a recognized IP subnet cidr, '%(cidr)s' is recommended"
+msgstr ""
+"'%(data)s' no es un cidr de subred IP reconocido, se recomienda '%(cidr)s'"
+
+#, python-format
+msgid "'%s' - age should be a positive integer"
+msgstr "'%s' - edad debe ser un entero positivo"
+
+#, python-format
+msgid "'%s' - age should be an integer"
+msgstr "'%s' - edad debe ser un entero"
+
+#, python-format
+msgid "'%s' Blank strings are not permitted"
+msgstr "No se permiten '%s' series en blanco"
+
+#, python-format
+msgid "'%s' cannot be converted to boolean"
+msgstr "'%s' no se puede convertir a booleano"
+
+#, python-format
+msgid "'%s' contains whitespace"
+msgstr "'%s' contiene espacios en blanco"
+
+#, python-format
+msgid "'%s' granularity should be days, hours, minutes, or seconds"
+msgstr "'%s' granularidad debe ser días, horas, minutos o segundos"
+
+#, python-format
+msgid "'%s' is not a dictionary"
+msgstr "'%s' no es un diccionario"
+
+#, python-format
+msgid "'%s' is not a list"
+msgstr "'%s' no es una lista"
+
+#, python-format
+msgid "'%s' is not a valid IP address"
+msgstr "'%s' no es una dirección IP válida"
+
+#, python-format
+msgid "'%s' is not a valid IP subnet"
+msgstr "'%s' no es una subred IP válida"
+
+#, python-format
+msgid "'%s' is not a valid MAC address"
+msgstr "'%s' no es una dirección MAC válida"
+
+#, python-format
+msgid "'%s' is not a valid UUID"
+msgstr "'%s' no es un UUID válido"
+
+#, python-format
+msgid "'%s' is not a valid boolean value"
+msgstr "'%s' no es un valor booleano"
+
+#, python-format
+msgid "'%s' is not a valid input"
+msgstr "'%s' no es una entrada válida"
+
+#, python-format
+msgid "'%s' is not a valid nameserver"
+msgstr "%s no es un nombre de servidor valido"
+
+#, python-format
+msgid "'%s' is not a valid string"
+msgstr "'%s' no es una serie válida"
+
+#, python-format
+msgid "'%s' is not an integer"
+msgstr "'%s' no es un entero"
+
+#, python-format
+msgid "'%s' is not of the form <key>=[value]"
+msgstr "'%s' no tiene el formato <clave>=[valor]"
+
+#, python-format
+msgid "'%s' should be non-negative"
+msgstr "'%s' debe ser no negativo"
+
+msgid ""
+"'file' attribute is missing for tosca.artifacts.Deployment.Image.VM artifact "
+"type"
+msgstr ""
+"Falta atributo 'file' para tipo de artefacto tosca.artifacts.Deployment."
+"Image.VM"
+
+#, python-format
+msgid "Added output for %s"
+msgstr "Salida añadida para %s"
+
+msgid "Address which drivers use to trigger"
+msgstr "Dirección que los driver usan para notificar"
+
+msgid ""
+"Alarm monitoring driver to communicate with Hosting VNF/logical service "
+"instance tacker plugin will use"
+msgstr ""
+"Driver de monitor de alarmas para comunicar con la instancia Hosting VNF/"
+"servicio logico que tacker plugin usara"
+
+#, python-format
+msgid ""
+"All the requirements for substitution_mappings are not provided. Missing "
+"requirement for %(requirement)s"
+msgstr ""
+"Todos los requerimientos para substitution_mappings no han sido "
+"proporcionados. Requerimientos que faltan %(requirement)s"
+
+msgid "Allow the usage of the bulk API"
+msgstr "Permitir el uso de la API masiva"
+
+msgid "Allow the usage of the pagination"
+msgstr "Permitir el uso de la paginación"
+
+msgid "Allow the usage of the sorting"
+msgstr "Permitir el uso de la ordenación"
+
+#, python-format
+msgid "An invalid value was provided for %(opt_name)s: %(opt_value)s"
+msgstr ""
+"Se ha proporcionado un valor no válido para %(opt_name)s: %(opt_value)s"
+
+msgid "An unknown exception occurred."
+msgstr "Una excepción desconocida ha ocurrido"
+
+#, python-format
+msgid "Attribute '%s' not allowed in POST"
+msgstr "El atributo '%s' no está permitido en POST"
+
+msgid "Available commands"
+msgstr "Mandatos disponibles"
+
+#, python-format
+msgid "Bad %(resource)s request: %(msg)s"
+msgstr "Solicitud %(resource)s incorrecta: %(msg)s"
+
+#, python-format
+msgid "Bridge %(bridge)s does not exist."
+msgstr "El puente %(bridge)s no existe."
+
+msgid "Bulk operation not supported"
+msgstr "No se soporta operación masiva"
+
+msgid "CA certificate file to use to verify connecting clients"
+msgstr ""
+"Archivo de certificado CA para usar para verificar los clientes de conexión"
+
+msgid "Cannot create resource for another tenant"
+msgstr "No se puede crear el recurso para otro arrendatario"
+
+msgid "Cannot understand JSON"
+msgstr "No se puede entender JSON"
+
+#, python-format
+msgid "Cannot update read-only attribute %s"
+msgstr "No se puede actualizar el atributo de sólo lectura %s"
+
+msgid "Certificate file to use when starting the server securely"
+msgstr ""
+"Archivo del certificado para usar al iniciar el servidor de manera segura"
+
+#, python-format
+msgid ""
+"Change would make usage less than 0 for the following resources: %(unders)s"
+msgstr ""
+"El cambio produciría un uso inferior a 0 para los recursos siguientes: "
+"%(unders)s."
+
+msgid "Class not found."
+msgstr "No se ha encontrado la clase."
+
+#, python-format
+msgid "Classifier %(classifier_id)s could not be found"
+msgstr "Classifier %(classifier_id)s no ha sido encontrado"
+
+#, python-format
+msgid "Classifier %(classifier_id)s is still in use"
+msgstr "Classifier %(classifier_id)s sigue en uso"
+
+#, python-format
+msgid "Could not bind to %(host)s:%(port)s after trying for %(time)d seconds"
+msgstr ""
+"No se puede enlazar a %(host)s:%(port)s después de intentar por %(time)d "
+"segundos"
+
+msgid "Could not deserialize data"
+msgstr "No se han podido deserializar los datos"
+
+#, python-format
+msgid "Could not find discovery information for %s"
+msgstr "No ha sido posible encontrar la información de descubrimiento para %s"
+
+#, python-format
+msgid ""
+"Could not retrieve VNF resource IDs and types. Please check %(service)s "
+"status."
+msgstr ""
+"No ha sido posible conseguir IDs y tipos del recurso VNF. Por favor "
+"comprueba el estado del servicio %(service)s."
+
+#, python-format
+msgid "Creating VNFFG based on %(vnffgd_id)s failed"
+msgstr "Creación de VNFFG basado en %(vnffgd_id)s falló"
+
+#, python-format
+msgid "Creation failed. %(dev_name)s already exists."
+msgstr "La creación ha fallado. %(dev_name)s ya existe."
+
+#, python-format
+msgid ""
+"Current gateway ip %(ip_address)s already in use by port %(port_id)s. Unable "
+"to update."
+msgstr ""
+"IP de puerta de enlace actual %(ip_address)s ya está en uso por el puerto "
+"%(port_id)s. No es posible actualizar."
+
+msgid "Database engine"
+msgstr "Motor de base de datos"
+
+#, python-format
+msgid "Default VIM already exists %(vim_id)s."
+msgstr "VIM por defecto ya existe %(vim_id)s."
+
+msgid "Default VIM is not defined."
+msgstr "VIM por defecto no definido."
+
+#, python-format
+msgid "Deleting VNFFG %(vnffg_id)s failed"
+msgstr "Borrado de VNFFG %(vnffg_id)s falló"
+
+#, python-format
+msgid "Duplicate IP address '%s'"
+msgstr "Dirección IP duplicada '%s'"
+
+#, python-format
+msgid "Duplicate hostroute '%s'"
+msgstr "Ruta de host '%s' duplicada"
+
+#, python-format
+msgid "Duplicate items in the list: '%s'"
+msgstr "Elementos duplicados en la lista: '%s'"
+
+#, python-format
+msgid "Duplicate nameserver '%s'"
+msgstr "Servidor de nombres '%s' duplicado"
+
+#, python-format
+msgid "ERROR: %s"
+msgstr "ERROR: %s"
+
+msgid ""
+"ERROR: Unable to find configuration file via the default search paths (~/."
+"tacker/, ~/, /etc/tacker/, /etc/) and the '--config-file' option!"
+msgstr ""
+"ERROR: No ha sido posible encontrar el fichero de configuración en las rutas "
+"de búsqueda por defecto (~/.tacker/, ~/, /etc/tacker/, /etc/) y en la opción "
+"'--config-file'"
+
+msgid "Enable SSL on the API server"
+msgstr "Habilitar SSL en el servidor API"
+
+msgid "End of VLAN range is less than start of VLAN range"
+msgstr "El final del rango VLAN es menor que el inicio del rango VLAN"
+
+#, python-format
+msgid ""
+"Error while trying to issue %(cmd)s to find resource type %(type)s by "
+"resource name %(name)s"
+msgstr ""
+"Error al intentar ejecutar %(cmd)s para buscar tipo de recurso %(type)s por "
+"nombre de recurso %(name)s"
+
+#, python-format
+msgid "Extension with alias %s does not exist"
+msgstr "La ampliación con el alias %s no existe"
+
+#, python-format
+msgid "Extensions not found: %(extensions)s"
+msgstr "Extensiones no encontradas: %(extensions)s"
+
+#, python-format
+msgid "Failed to check policy %(policy)s because %(reason)s"
+msgstr "No se ha podido comprobar la política %(policy)s debido a %(reason)s"
+
+#, python-format
+msgid "Failed to create an event: %(error_str)s"
+msgstr "Fallo al crear evento: %(error_str)s"
+
+#, python-format
+msgid "Failed to init policy %(policy)s because %(reason)s"
+msgstr "No se ha podido iniciar la política %(policy)s debido a %(reason)s"
+
+#, python-format
+msgid ""
+"Failed to parse VNFFG Template due to missing input param %(get_input)s."
+msgstr ""
+"Falló al analizar plantilla VNFFG debido a falta de parámetros de entrada "
+"%(get_input)s."
+
+#, python-format
+msgid "Failed to parse request. Parameter '%s' not specified"
+msgstr ""
+"No se ha podido analizar la solicitud. No se ha especificado el parámetro "
+"'%s'"
+
+#, python-format
+msgid "Failed to parse request. Required attribute '%s' not specified"
+msgstr ""
+"No se ha podido analizar la solicitud. No se ha especificado el atributo "
+"necesario '%s'"
+
+msgid "Flavor Extra Specs"
+msgstr "Especificaciones extra de sabor"
+
+#, python-format
+msgid "Found duplicate extension: %(alias)s"
+msgstr "Se ha encontrado ampliación duplicada: %(alias)s"
+
+#, python-format
+msgid ""
+"Found overlapping allocation pools:%(pool_1)s %(pool_2)s for subnet "
+"%(subnet_cidr)s."
+msgstr ""
+"Se ha encontrado solapamiento de agrupaciones de asignación:%(pool_1)s "
+"%(pool_2)s para la subred %(subnet_cidr)s."
+
+#, python-format
+msgid "Gateway ip %(ip_address)s conflicts with allocation pool %(pool)s"
+msgstr ""
+"La IP de pasarela %(ip_address)s está en conflicto con la agrupación de "
+"asignación %(pool)s"
+
+#, python-format
+msgid ""
+"Getting resource id from VIM with resource name %(name)s by %(cmd)s returns "
+"more than one"
+msgstr ""
+"Obteniendo ID de recurso desde VIM con nombre de recurso %(name)s por "
+"%(cmd)s responde con mas de uno"
+
+#, python-format
+msgid ""
+"Getting resource id from VIM with resource name %(name)s by %(cmd)s returns "
+"nothing"
+msgstr ""
+"Obteniendo ID de recurso desde VIM con nombre de recurso %(name)s por "
+"%(cmd)s no responde nada"
+
+msgid "Granularity to use for age argument, defaults to days."
+msgstr "Granularidad para usar por argumento de edad, por defecto a días."
+
+msgid "HEAD file does not match migration timeline head"
+msgstr ""
+"Fichero HEAD no coincide con HEAD de la linea del tiempo de la migración"
+
+msgid "HTTP port number to send request"
+msgstr "Numero de puerto HTTP para enviar petición"
+
+msgid "Hosting vnf drivers tacker plugin will use"
+msgstr "Drivers VNF de hospedaje que plugin de tacker va a usar"
+
+msgid "How long to preserve deleted data,defaults to 90"
+msgstr "Cuánto tiempo preservar los datos eliminados, por defecto 90"
+
+msgid "IP Address input values should be in a list format"
+msgstr "Valores de entrada de direcciones IP deben ser en formato de lista"
+
+#, python-format
+msgid ""
+"Input for substitution mapping requirements are not valid for "
+"%(requirement)s. They must be in the form of list with two entries"
+msgstr ""
+"Requerimientos de entrada para el mapeo de sustitución no son validos para "
+"%(requirement)s. Deben ser en formato de lista con dos entradas."
+
+msgid ""
+"Insufficient credential data was provided, either \"token\" must be set in "
+"the passed conf, or a context with an \"auth_token\" property must be passed."
+msgstr ""
+"Datos de credenciales proporcionadas son insuficientes, o \"token\" debe ser "
+"pasado en la configuración, o un contexto con una propiedad \"auth_token\" "
+"debe ser pasado."
+
+msgid "Interval to check for VIM health"
+msgstr "Intervalo para comprobar salud del VIM"
+
+#, python-format
+msgid "Invalid CIDR %(input)s given as IP prefix"
+msgstr "Se ha proporcionado un CIDR %(input)s no válido como prefijo de IP"
+
+#, python-format
+msgid "Invalid Forwarding Path contains duplicate connection point : %(cp)s"
+msgstr ""
+"Forwarding Path no válido, contiene punto de conexión duplicado: %(cp)s"
+
+#, python-format
+msgid ""
+"Invalid Forwarding Path contains duplicate forwarder not in order: "
+"%(forwarder)s"
+msgstr ""
+"Forwarding Path no válido, contiene el  forwarder duplicado sin orden: "
+"%(forwarder)s"
+
+#, python-format
+msgid "Invalid VNFFG template input: %(template)s"
+msgstr "Plantilla VNFFG insertada no valida: %(template)s"
+
+#, python-format
+msgid "Invalid alarm url for VNF %(vnf_id)s"
+msgstr "Url de alarma invalida para VNF %(vnf_id)s"
+
+#, python-format
+msgid "Invalid auth_type was specified, auth_type: %(type)s"
+msgstr "auth_type especificado no es válido, auth_type: %(type)s"
+
+#, python-format
+msgid "Invalid content type %(content_type)s"
+msgstr "Tipo de contenido no válido %(content_type)s"
+
+#, python-format
+msgid "Invalid data format for IP pool: '%s'"
+msgstr "Formato de datos no válido para agrupación de IP: '%s'"
+
+#, python-format
+msgid "Invalid data format for fixed IP: '%s'"
+msgstr "Formato de datos no válido para IP fija: '%s'"
+
+#, python-format
+msgid "Invalid data format for hostroute: '%s'"
+msgstr "Formato de datos no válido para ruta de host: '%s'"
+
+#, python-format
+msgid "Invalid data format for nameserver: '%s'"
+msgstr "Formato de datos no válido para servidor de nombres: '%s'"
+
+#, python-format
+msgid "Invalid extension environment: %(reason)s"
+msgstr "Entorno de ampliación no válido: %(reason)s"
+
+#, python-format
+msgid "Invalid format: %s"
+msgstr "Formato no válido: %s"
+
+#, python-format
+msgid "Invalid input for %(attr)s. Reason: %(reason)s."
+msgstr "Entrada no válida para %(attr)s. Razón: %(reason)s."
+
+#, python-format
+msgid "Invalid input for operation: %(error_message)s."
+msgstr "Entrada no válida para operación: %(error_message)s."
+
+#, python-format
+msgid ""
+"Invalid input. '%(target_dict)s' must be a dictionary with keys: "
+"%(expected_keys)s"
+msgstr ""
+"Entrada no válida. '%(target_dict)s' debe ser un diccionario con claves: "
+"%(expected_keys)s"
+
+#, python-format
+msgid ""
+"Invalid keys specified in VNFD - %(error_msg_details)s.Supported keys are: "
+"%(valid_keys)s"
+msgstr ""
+"Claves invalidas especificadas en VNFD - %(error_msg_details)s. Claves "
+"soportadas son: %(valid_keys)s"
+
+#, python-format
+msgid "Invalid network VLAN range: '%(vlan_range)s' - '%(error)s'"
+msgstr "Rango de VLAN de red no válido: '%(vlan_range)s' - '%(error)s'"
+
+#, python-format
+msgid "Invalid network VXLAN port range: '%(vxlan_range)s'"
+msgstr "Rango de puerto VXLAN de red no válido: '%(vxlan_range)s'"
+
+#, python-format
+msgid ""
+"Invalid type %(type)s for policy %(policy)s, should be one of %(valid_types)s"
+msgstr ""
+"Tipo %(type)s invalido para regla %(policy)s, debe ser uno de %(valid_types)s"
+
+msgid "Key ID is None"
+msgstr "ID de clave es None"
+
+#, python-format
+msgid "Key manager error: %(reason)s"
+msgstr "Error del gestor de claves: %(reason)s"
+
+#, python-format
+msgid "Key not found, uuid: %(uuid)s"
+msgstr "Clave no ha sido encontrada, uuid: %(uuid)s"
+
+#, python-format
+msgid "Limit must be an integer 0 or greater and not '%d'"
+msgstr "El límite debe ser un entero mayor o igual a 0 y no '%d'"
+
+msgid ""
+"MGMT driver to communicate with Hosting VNF/logical service instance tacker "
+"plugin will use"
+msgstr ""
+"Driver de MGMT para comunicar con la instancia Hosting VNF/servicio logico "
+"que tacker plugin usara"
+
+msgid "Malformed request body"
+msgstr "Cuerpo de solicitud incorrecto"
+
+#, python-format
+msgid "Malformed request body: %(reason)s"
+msgstr "Cuerpo de solicitud formado incorrectamente: %(reason)s"
+
+#, python-format
+msgid ""
+"Matching VNF Instance for VNFD %(vnfd_name)s could not be found. Please "
+"create an instance of this VNFD before creating/updating VNFFG."
+msgstr ""
+"Instancia VNF correspondiente a VNFD %(vnfd_name)s no ha sido encontrada. "
+"Por favor crea una instancia de este VNFD antes de crear/actualizar el VNFFG."
+
+msgid "Max header line to accommodate large tokens"
+msgstr "Máximo de línea de cabecera para acomodar señales grandes"
+
+msgid "Metadata for alarm policy is not matched"
+msgstr "Meta datos para la política de alarmas no coincide."
+
+msgid ""
+"Monitor driver to communicate with Hosting VNF/logical service instance "
+"tacker plugin will use"
+msgstr ""
+"Driver de monitor para comunicar con la instancia Hosting VNF/servicio "
+"logico que tacker plugin usara"
+
+msgid "More than one MGMT Driver per vnfd is not supported"
+msgstr "Más de un Driver MGMT por vnfd no está soportado"
+
+msgid "More than one external network exists"
+msgstr "Existe más de una red externa"
+
+#, python-format
+msgid "Multiple plugins for service %s were configured"
+msgstr "Se han configurado varios complementos para el servicio %s"
+
+#, python-format
+msgid "NFP %(nfp_id)s could not be found"
+msgstr "NFP %(nfp_id)s no ha sido encontrado"
+
+#, python-format
+msgid "NFP %(nfp_id)s is still in use"
+msgstr "NFP %(nfp_id)s sigue en uso"
+
+#, python-format
+msgid "NFP attribute %(attribute)s could not be found"
+msgstr "Atributo NFP %(attribute)s no ha sido encontrado"
+
+#, python-format
+msgid "NS %(ns_id)s could not be found"
+msgstr "NS %(ns_id)s no ha sido encontrado"
+
+#, python-format
+msgid "NS %(ns_id)s is still in use"
+msgstr "NS %(ns_id)s sigue en uso"
+
+#, python-format
+msgid "NSD %(nsd_id)s could not be found"
+msgstr "NSD %(nsd_id)s no ha sido encontrado"
+
+#, python-format
+msgid "NSD %(nsd_id)s is still in use"
+msgstr "NSD %(nsd_id)s sigue en uso"
+
+msgid "Native pagination depend on native sorting"
+msgstr "La paginación nativa depende de la ordenación nativa"
+
+#, python-format
+msgid "Network %(net_id)s could not be found"
+msgstr "No se ha podido encontrar la red %(net_id)s."
+
+msgid "No details."
+msgstr "Sin detalles."
+
+#, python-format
+msgid "No more IP addresses available on network %(net_id)s."
+msgstr "No hay más direcciones IP disponibles en la red %(net_id)s. "
+
+#, python-format
+msgid "No tasks to run for %(action)s on %(resource)s"
+msgstr "No hay tareas para ejecutar %(action)s en %(resource)s"
+
+msgid "Not authorized."
+msgstr "No Autorizado"
+
+msgid "Number of attempts to retry for stack creation/deletion"
+msgstr "Numero de intentos para re intentar creación/borrado de pila"
+
+msgid "Number of backlog requests to configure the socket with"
+msgstr ""
+"Número de solicitudes de registro de reserva para configurar el socket con"
+
+msgid "Number of seconds to keep retrying to listen"
+msgstr "Número de segundos en seguir intentando escuchar"
+
+msgid "Number of separate worker processes for service"
+msgstr "Numero de procesos independientes por servicio"
+
+#, python-format
+msgid "Param input %(param_key)s not used."
+msgstr "Parámetro de entrada %(param_key)s no usado."
+
+#, python-format
+msgid "Param values %(param_value)s is not in dict format."
+msgstr ""
+"Valores de los parámetros %(param_value)s no están en formato de diccionario."
+
+msgid "Parameter YAML input missing"
+msgstr "Falta parámetro de entrada YAML"
+
+#, python-format
+msgid "Parameter YAML not well formed - %(error_msg_details)s"
+msgstr "Parameter YAML no bien formateado - %(error_msg_details)s"
+
+#, python-format
+msgid "Parameter input values missing for the key '%(key)s'"
+msgstr "Faltan valores de parámetros de entrada para la clave '%(key)s'"
+
+msgid "Please provide parameters for substitution mappings"
+msgstr "Por favor, proporcione parámetros para los mapeo de sustitución"
+
+#, python-format
+msgid "Plugin '%s' not found."
+msgstr "No se ha encontrado el plugin '%s'."
+
+#, python-format
+msgid "Policy %(policy)s does not exist for VNF %(vnf_id)s"
+msgstr "Regla %(policy)s no existe para VNF %(vnf_id)s"
+
+msgid "Policy configuration policy.json could not be found"
+msgstr "No se ha podido encontrar el policy.json de configuración de política"
+
+#, python-format
+msgid "Policy doesn't allow %(action)s to be performed."
+msgstr "La política no permite que la %(action)s se realice"
+
+#, python-format
+msgid "Policy not found in NFP %(nfp)s"
+msgstr "Regla no encontrada en NFP %(nfp)s"
+
+msgid "Private key file to use when starting the server securely"
+msgstr ""
+"Archivo de clave privada para usar al iniciar el servidor de manera segura"
+
+#, python-format
+msgid "Quota exceeded for resources: %(overs)s"
+msgstr "Cuota superada para recursos: %(overs)s"
+
+msgid ""
+"Range of seconds to randomly delay when starting the periodic task scheduler "
+"to reduce stampeding. (Disable by setting to 0)"
+msgstr ""
+"Rango de segundos para retrasar aleatoriamente al iniciar la tarea periódica "
+"programador para reducir avalanchas. (Inhabilitar al establecer en 0)"
+
+msgid "Request Failed: internal server error while processing your request."
+msgstr ""
+"Ha fallado la solicitar: error interno de servidor al procesar la solicitud."
+
+msgid "Resource body required"
+msgstr "Se necesita cuerpo de recurso"
+
+msgid ""
+"Resource cleanup for vnf is not completed within {wait} seconds as deletion "
+"of Stack {stack} is not completed"
+msgstr ""
+"Eliminado de recursos no ha sido completado en {wait} segundos como "
+"eliminado de pila {stack} no ha sido completado"
+
+msgid ""
+"Resource creation is not completed within {wait} seconds as creation of "
+"stack {stack} is not completed"
+msgstr ""
+"Creación de recursos no ha sido completada en {wait} segundos como creación "
+"de pila {stack} no ha sido completada"
+
+msgid "Resource name for which deleted entries are to be purged."
+msgstr "Nombre de recurso para el cual las entradas serán eliminadas"
+
+msgid "Resource not found."
+msgstr "Recurso no encontrado."
+
+msgid "Resources required"
+msgstr "Recursos necesarios "
+
+msgid "Running without keystone AuthN requires  that tenant_id is specified"
+msgstr "Ejecución sin keystone AuthN requiere que tenant_id sea especificado"
+
+#, python-format
+msgid "SFC %(sfc_id)s is still in use"
+msgstr "SFC %(sfc_id)s sigue en uso"
+
+#, python-format
+msgid ""
+"Scaling Policy actionskipped due to status:%(status)s for vnf: %(vnfid)s"
+msgstr ""
+"Acciones de Scaling Policy no ejecutadas debido a estado: %(status)s de vnf: "
+"%(vnfid)s"
+
+msgid "Seconds between running components report states"
+msgstr "Segundos para reportar estado de componentes ejecutándose"
+
+msgid "Seconds between running periodic tasks"
+msgstr "Segundos entre tareas periódicas en ejecución"
+
+#, python-format
+msgid "Service Function Chain %(sfc_id)s could not be found"
+msgstr "Service Function Chain %(sfc_id)s no ha sido encontrado"
+
+msgid ""
+"Sets the value of TCP_KEEPIDLE in seconds for each server socket. Not "
+"supported on OS X."
+msgstr ""
+"Establece el valor de TCP_KEEPIDLE en segundos para cada socket del "
+"servidor. No soportado en OS X."
+
+#, python-format
+msgid "Specified CP %(cp_id)s could not be found in VNF %(vnf_id)s."
+msgstr "CP especificado %(cp_id)s no ha sido encontrado en VNF %(vnf_id)s."
+
+#, python-format
+msgid ""
+"Specified CP %(cp_id)s could not be found in VNFD %(vnfd_name)s. Please "
+"check VNFD for correct Connection Point."
+msgstr ""
+"CP especificado %(cp_id)s no ha sido encontrado en VNFD %(vnfd_name)s. Por "
+"favor comprueba VNFD para el correcto Punto de Conexión."
+
+#, python-format
+msgid ""
+"Specified CP %(cp_id)s in VNFD %(vnfd_name)s does not have forwarding "
+"capability, which is required to be included in forwarding path"
+msgstr ""
+"CP %(cp_id)s especificado en VNFD %(vnfd_name)s no tiene capacidad de "
+"reenvío, que es requerida para ser incluido en el forwarding path"
+
+#, python-format
+msgid ""
+"Specified Event id %(evt_id)s is invalid. Please verify and pass a valid "
+"Event id"
+msgstr ""
+"ID de evento especificado %(evt_id)s es invalido. Por favor, verifique y "
+"pasa un ID de evento valido."
+
+#, python-format
+msgid ""
+"Specified VIM id %(vim_id)s is invalid. Please verify and pass a valid VIM id"
+msgstr ""
+"VIM id especificado %(vim_id)s no es valido. Por favor, verifique y pasa un "
+"VIM id valido"
+
+#, python-format
+msgid "Specified VNF instance %(vnf_name)s in VNF Mapping could not be found"
+msgstr ""
+"Instancia VNF %(vnf_name)s especificada en VNF Mapping no ha sido encontrada"
+
+#, python-format
+msgid ""
+"Specified VNFD %(vnfd_name)s in VNFFGD does not exist. Please create VNFDs "
+"before creating VNFFG"
+msgstr ""
+"VNFD especificado %(vnfd_name)s en VNFFGD no existe. Por favor crea VNFDs "
+"antes de crear VNFFG"
+
+msgid "Specified model is invalid, only Event model supported"
+msgstr "Modelo especificado es invalido, solo modelo Event soportado"
+
+#, python-format
+msgid ""
+"Specified number_of_endpoints %(number)s is not equal to the number of "
+"connection_point %(cps)s"
+msgstr ""
+"number_of_endpoints %(number)s especificado no es igual al número de "
+"connection_point %(cps)s"
+
+msgid ""
+"Specifying 'tenant_id' other than authenticated tenant in request requires "
+"admin privileges"
+msgstr ""
+"Para especificar un 'tenant_id' distinto del arrendatario autenticado en la "
+"solicitud requiere privilegios administrativos"
+
+msgid "Sudo privilege is required to run this command."
+msgstr "Privilegios de sudo son necesarios para ejecutar este comando."
+
+msgid "Tenant-id was missing from Quota request"
+msgstr "El ID de arrendatario faltaba en la solicitud de cuota"
+
+msgid "The API paste config file to use"
+msgstr "El archivo de configuración de pegar de API a utilizar"
+
+#, python-format
+msgid "The allocation pool %(pool)s is not valid."
+msgstr "La agrupación de asignación %(pool)s no es válida. "
+
+#, python-format
+msgid ""
+"The allocation pool %(pool)s spans beyond the subnet cidr %(subnet_cidr)s."
+msgstr ""
+"La agrupación de asignación %(pool)s abarca más allá de cidr de subred "
+"%(subnet_cidr)s."
+
+#, python-format
+msgid ""
+"The attribute '%(attr)s' is reference to other resource, can't used by sort "
+"'%(resource)s'"
+msgstr ""
+"Otro recurso hace referencia al atributo '%(attr)s', la ordenación "
+"'%(resource)s no puede usarlo'"
+
+#, python-format
+msgid ""
+"The following device_id %(device_id)s is not owned by your tenant or matches "
+"another tenants router."
+msgstr ""
+"El siguiente device_id %(device_id)s no es propiedad de su arrendatario o "
+"coincide con el direccionador de otros arrendatarios."
+
+msgid "The host IP to bind to"
+msgstr "El IP de host al que enlazar"
+
+msgid "The hostname Tacker is running on"
+msgstr "El nombre de servidor donde Tacker está ejecutándose"
+
+msgid ""
+"The maximum number of items returned in a single response, value was "
+"'infinite' or negative integer means no limit"
+msgstr ""
+"El número máximo de elementos devueltos en una única respuesta, el valor "
+"'infinite' o un entero negativo significa que no hay límite"
+
+msgid "The number of sort_keys and sort_dirs must be same"
+msgstr "El número de sort_keys y sort_dirs debe ser igual"
+
+msgid "The path for API extensions"
+msgstr "La vía de acceso para ampliaciones de API"
+
+msgid "The policy file to use"
+msgstr "El fichero de reglas a usar"
+
+msgid "The port to bind to"
+msgstr "El puerto al que enlazar"
+
+#, python-format
+msgid "The requested content type %s is invalid."
+msgstr "El tipo de contenido solicitado %s no es válido."
+
+msgid "The resource could not be found."
+msgstr "El recurso no se ha podido encontrar."
+
+msgid "The resource is inuse"
+msgstr "El recurso se está utilizando"
+
+msgid "The service is unavailable"
+msgstr "El servicio no está disponible"
+
+msgid "The service plugins Tacker will use"
+msgstr "Los plugins de servicio que Tacker va a usar"
+
+msgid "The type of authentication to use"
+msgstr "El tipo de autenticación a utilizar"
+
+msgid "Time interval to wait for VM to boot"
+msgstr "Intervalo de tiempo a esperar para que inicie la instancia"
+
+msgid "Timeline branches unable to generate timeline"
+msgstr "Las ramas de la línea de tiempo no pueden generar la línea de tiempo"
+
+#, python-format
+msgid "Trigger %(trigger_name)s does not exist for VNF %(vnf_id)s"
+msgstr "Disparador %(trigger_name)s no existe para VNF %(vnf_id)s"
+
+msgid "URL to database"
+msgstr "URL en base de datos"
+
+#, python-format
+msgid "Unable to find '%s' in request body"
+msgstr "No se puede encontrar '%s' en el cuerpo de solicitud "
+
+#, python-format
+msgid "Unable to find any IP address on external network %(net_id)s."
+msgstr ""
+"No se ha podido encontrar ninguna dirección IP en la red externa %(net_id)s."
+
+#, python-format
+msgid "Unable to find key file for VIM %(vim_id)s"
+msgstr "No ha sido posible encontrar el fichero de clave para VIM %(vim_id)s"
+
+#, python-format
+msgid "Unable to find ssl_ca_file : %s"
+msgstr "No se ha podido encontrar ssl_ca_file : %s"
+
+#, python-format
+msgid "Unable to find ssl_cert_file : %s"
+msgstr "No se ha podido encontrar ssl_cert_file : %s"
+
+#, python-format
+msgid "Unable to find ssl_key_file : %s"
+msgstr "No se ha podido encontrar ssl_key_file : %s"
+
+#, python-format
+msgid "Unable to generate unique mac on network %(net_id)s."
+msgstr "No se puede generar mac exclusivo en la red %(net_id)s. "
+
+#, python-format
+msgid ""
+"Unable to identify a target field from:%s. Match should be in the form "
+"%%(<field_name>)s"
+msgstr ""
+"No ha sido posible identificar celda objetivo de: %s. Coincidencia debe se "
+"en forma de %%(<field_name>)s"
+
+#, python-format
+msgid "Unable to load %(app_name)s from configuration file %(config_path)s."
+msgstr ""
+"No se puede cargar %(app_name)s del archivo de configuración %(config_path)s."
+
+#, python-format
+msgid ""
+"Unable to reconfigure sharing settings for network %(network)s. Multiple "
+"tenants are using it"
+msgstr ""
+"No se ha podido volver a configurar los valores para la red %(network)s. "
+"Varios arrendatarios la están utilizando"
+
+msgid "Unknown API version specified"
+msgstr "Versión API desconocida especificada"
+
+#, python-format
+msgid "Unknown VIM region name %(region_name)s"
+msgstr "Nombre de región del VIM desconocido %(region_name)s"
+
+#, python-format
+msgid "Unknown quota resources %(unknown)s."
+msgstr "Recursos de cuota desconocidos %(unknown)s."
+
+msgid "Unmapped error"
+msgstr "Error no correlacionado"
+
+#, python-format
+msgid "Unrecognized attribute(s) '%s'"
+msgstr "Atributo(s) no reconocido(s) '%s'"
+
+msgid "Unsupported Content-Type"
+msgstr "Tipo de contenido no soportado"
+
+#, python-format
+msgid "Unsupported Policy Type: %(type)s"
+msgstr "Tipo de regla no soportada: %(type)s"
+
+#, python-format
+msgid "Unsupported port state: %(port_state)s"
+msgstr "Estado de puerto no soportado: %(port_state)s "
+
+msgid ""
+"Use barbican to encrypt vim password if True, save vim credentials in local "
+"file system if False"
+msgstr ""
+"Usa Barbican para encriptar la contraseña de VIM si True, guarda "
+"credenciales de VIM en fichero local del sistema is False"
+
+#, python-format
+msgid "User does not have admin privileges: %(reason)s"
+msgstr "El usuario no tiene privilegios de administración: %(reason)s"
+
+msgid "User is not authorized to use key manager."
+msgstr "Usuario no autorizado para usar el gestor de claves."
+
+msgid "User name for alarm monitoring"
+msgstr "Nombre de usuario para motorización de alarmas"
+
+#, python-format
+msgid "VIM %(vim_id)s is still in use by VNF"
+msgstr "VIM %(vim_id)s sigue en uso por VNF"
+
+msgid "VIM driver for launching VNFs"
+msgstr "Driver VIM para ejecutar VNFs"
+
+#, python-format
+msgid "VIM from VNF %(vnf_id)s could not be found"
+msgstr "VIM de VNF %(vnf_id)s no ha sido encontrado"
+
+#, python-format
+msgid "VIM type %(vim_name)s is not supported as an infra driver "
+msgstr "Tipo de VIM %(vim_name)s no soportado como driver de infra"
+
+#, python-format
+msgid "VNF %(vnf_id)s could not be found"
+msgstr "VNF %(vnf_id)s no ha sido encontrado"
+
+#, python-format
+msgid "VNF %(vnf_id)s is not in Active state %(message)s"
+msgstr "VNF %(vnf_id)s no está en estado Activo %(message)s"
+
+#, python-format
+msgid "VNF %(vnf_id)s is still in use"
+msgstr "VNF %(vnf_id)s sigue en uso"
+
+msgid "VNF configuration failed"
+msgstr "Fallo la configuración de VNF"
+
+#, python-format
+msgid "VNF scaling failed for stack %(stack)s with error %(error)s"
+msgstr "Fallo escalado de VNF para pila %(stack)s con error %(error)s"
+
+#, python-format
+msgid ""
+"VNF scaling failed to complete within %{wait}s seconds while waiting for the "
+"stack %(stack)s to be scaled."
+msgstr ""
+"Fallo para completar escalado de VNF en %{wait}s segundos mientras esperaba "
+"a que la pila %(stack)s escalara."
+
+#, python-format
+msgid "VNFD %(vnfd_id)s could not be found"
+msgstr "VNFD %(vnfd_id)s no ha sido encontrado"
+
+#, python-format
+msgid "VNFD %(vnfd_id)s is still in use"
+msgstr "VNFD %(vnfd_id)s sigue en uso"
+
+#, python-format
+msgid "VNFD Forwarder %(vnfd)s not found in VNF Mapping %(mapping)s"
+msgstr "VNFD Forwarder %(vnfd)s no encontrado en VNF Mapping %(mapping)s"
+
+#, python-format
+msgid "VNFFG %(vnffg_id)s could not be found"
+msgstr "VNFFG %(vnffg_id)s no ha sido encontrado"
+
+#, python-format
+msgid "VNFFG %(vnffg_id)s is still in use"
+msgstr "VNFFG %(vnffg_id)s sigue en uso"
+
+#, python-format
+msgid "VNFFG Property %(vnffg_property)s could not be found"
+msgstr "Propiedad %(vnffg_property)s de VNFFG no ha sido encontrada"
+
+#, python-format
+msgid "VNFFG Template %(vnffgd_id)s could not be found"
+msgstr "Plantilla VNFFG %(vnffgd_id)s no ha sido encontrada"
+
+#, python-format
+msgid "VNFFGD %(vnffgd_id)s is still in use"
+msgstr "VNFFGD %(vnffgd_id)s sigue en uso"
+
+msgid "VXLAN Network unsupported."
+msgstr "Red VXLAN no soportada."
+
+#, python-format
+msgid ""
+"Validation of dictionary's keys failed.Expected keys: %(expected_keys)s "
+"Provided keys: %(provided_keys)s"
+msgstr ""
+"Validación de claves en diccionario fallo: Claves esperadas: "
+"%(expected_keys)s Claves proporcionadas: %(provided_keys)s"
+
+#, python-format
+msgid "Validator '%s' does not exist."
+msgstr "El validador '%s' no existe."
+
+#, python-format
+msgid ""
+"Value specified for mem_page_size is invalid:%(error_msg_details)s. The "
+"valid values are 'small', 'large','any' or an integer value in MB"
+msgstr ""
+"Valor especificado para mem_page_size es invalido: %(error_msg_details)s. "
+"Valores validos son 'small', 'large', 'any' o un valor entero en MB"
+
+msgid "Wait time (in seconds) between consecutive stack create/delete retries"
+msgstr ""
+"Tiempo de espera (en segundos) entre re intentos consecutivos de creación/"
+"borrado de pila"
+
+msgid ""
+"Where to store Tacker state files. This directory must be writable by the "
+"agent."
+msgstr ""
+"Lugar para almacenar ficheros de estado de Tacker. El agente debe poder "
+"escribir en este directorio."
+
+msgid "You are not authorized to complete this action."
+msgstr "No está autorizado a completar esta acción."
+
+msgid "You must implement __call__"
+msgstr "Debe implementar __call__"
+
+msgid "You must provide a revision or relative delta"
+msgstr "Debe proporcionar una revisión o delta relativa"
+
+#, python-format
+msgid ""
+"can't load driver '%(new_driver)s' because driver '%(old_driver)s' is "
+"already registered for driver '%(type)s'"
+msgstr ""
+"No se puede cargar driver '%(new_driver)s' porque el driver '%(old_driver)s' "
+"continua registrado para driver '%(type)s'"
+
+msgid "check interval for monitor"
+msgstr "Intervalo de comprobación para el monitor"
+
+msgid ""
+"context must be of type KeystonePassword, KeystoneToken, RequestContext, or "
+"Context."
+msgstr ""
+"contexto debe ser del tipo KeystonePassword, KeystoneToken, RequestContext, "
+"o Context."
+
+#, python-format
+msgid "creating VNF based on %(vnfd_id)s failed"
+msgstr "Fallo en la creación de VNF basado en %(vnfd_id)s"
+
+#, python-format
+msgid ""
+"driver '%(new_driver)s' ignored because driver '%(old_driver)s' is already "
+"registered for driver '%(type)s'"
+msgstr ""
+"Driver '%(new_driver)s' ignorado porque el driver '%(old_driver)s' continua "
+"registrado para driver '%(type)s'"
+
+#, python-format
+msgid "empty list is not allowed for service list. '%s'"
+msgstr "Lista vacía no esta permitida para lista de servicio. '%s'"
+
+#, python-format
+msgid "heat-translator failed: - %(error_msg_details)s"
+msgstr "heat-translator fallo: - %(error_msg_details)s"
+
+#, python-format
+msgid "invalid data format for service list: '%s'"
+msgstr "Formato de datos inválidos para lista de servicio: '%s'"
+
+#, python-format
+msgid "invalid service type %(service_type)s"
+msgstr "Tipo de servicio invalido %(service_type)s"
+
+msgid "number of ICMP packets to send"
+msgstr "Numero de paquetes ICMP a enviar"
+
+msgid "number of seconds to wait between packets"
+msgstr "Numero de segundos a esperar entre paquetes"
+
+msgid "number of seconds to wait for a response"
+msgstr "Numero de segundos a esperar para la repuesta"
+
+msgid "number of times to retry"
+msgstr "Numero de veces para re intentar"
+
+msgid "password for alarm monitoring"
+msgstr "Contraseña para motorización de alarmas"
+
+msgid "password to login openwrt"
+msgstr "Contraseña para conectarse en openwrt"
+
+msgid "port number which drivers use to trigger"
+msgstr "Numero de puerto que los driver usan para notificar"
+
+msgid "project name for alarm monitoring"
+msgstr "Nombre de proyecto para motorización de alarmas"
+
+#, python-format
+msgid "service type %(service_type_id)s could not be found"
+msgstr "Tipo de servicio %(service_type_id)s no ha sido encontrado"
+
+msgid "service types are not specified"
+msgstr "Tipos de servicio no especificados"
+
+#, python-format
+msgid "tosca-parser failed: - %(error_msg_details)s"
+msgstr "tosca-parser falló: - %(error_msg_details)s"
+
+msgid "user name to login openwrt"
+msgstr "Nombre de usuario para conectarse en openwrt"
+
+msgid "user_data and/or user_data_format not provided"
+msgstr "user_data y/o user_data_format no proporcionado"
+
+msgid "vnf {vnf_id} deletion is not completed. {stack_status}"
+msgstr "Eliminado de vnf {vnf_id} no ha sido completado. {stack_status}"
+
+msgid ""
+"when signal occurred within cool down window, no events generated from heat, "
+"so ignore it"
+msgstr ""
+"Cuando señal ocurre junto a ventana de espera, no hay eventos generados de "
+"Heat, ignóralos"
