@@ -30,17 +30,12 @@ In Tacker MANO system, the VNF can be onboarded to one target OpenStack, which
 is also called VIM. Get one account on this OpenStack. For example, the below
 is the account information collected in file vim-config.yaml::
 
-    auth_url: 'http://10.18.112.10:5000'
+    auth_url: 'http://10.1.0.5:5000'
     username: 'nfv_user'
     password: 'mySecretPW'
     project_name: 'nfv'
     project_domain_name: 'Default'
     user_domain_name: 'Default'
-
-.. note::
-
-   Here nfv_user need have 'admin' and 'advsvc' role on the
-   project that will be used to deploy VNFs according to the VNF descriptor.
 
 
 2.) Register the VIM that will be used as a default VIM for VNF deployments.
@@ -56,7 +51,7 @@ the user during vnf-create.
 
 
 Onboarding sample VNF
-=======================
+=====================
 
 1). Create a sample-vnfd.yaml file with the following content:
 
@@ -111,15 +106,6 @@ Onboarding sample VNF
 
    You can find more sample tosca templates at
    https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd.
-
-.. note::
-
-   For this VNFD to work, the VIM account should be able to create Flavor via
-   heat on target VIM. Please refer to the OpenStack HEAT documentation about
-   how to enable Flavor creation.
-
-   The target OpenStack should have cirros-0.3.5-x86_64-disk glance image and
-   net_mgmt virtual network created for the VIM account.
 
 
 2). Create a sample vnfd.

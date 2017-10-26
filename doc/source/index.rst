@@ -41,7 +41,18 @@ and another is VIM systems. Tacker system can be installed
    install/kolla.rst
    install/devstack.rst
    install/manual_installation.rst
+
+Target VIM installation
+=======================
+
+Most of time, the target VIM existed for Tacker to manage. This section shows
+us how to prepare a target VIM for Tacker.
+
+.. toctree::
+   :maxdepth: 1
+
    install/openstack_vim_installation.rst
+
 
 Getting Started
 ===============
