@@ -477,11 +477,16 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
             raise NotImplementedError('symmetrical chain not supported')
 
         # for now, the only parameters allowed for flow-classifier-update
-        # is 'name' and/or 'description'
+        # is 'name' and/or 'description'.
+        # Currently we do not store the classifiers in the db with
+        # a name and/or a description which means that the default
+        # values of the name and/or description will be None.
 
         sfc_classifier_params = {}
-        sfc_classifier_params['name'] = fc['name']
-        sfc_classifier_params['description'] = fc['description']
+        if 'name' in fc:
+            sfc_classifier_params['name'] = fc['name']
+        if 'description' in fc:
+            sfc_classifier_params['description'] = fc['description']
 
         LOG.debug('sfc_classifier_params is %s', sfc_classifier_params)
 
