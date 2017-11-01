@@ -1,0 +1,4 @@
+---
+features:
+  - Added zabbix-pugin to monitor applications within VNF.
+

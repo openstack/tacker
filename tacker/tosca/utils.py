@@ -17,15 +17,14 @@ import re
 import sys
 import yaml
 
+from collections import OrderedDict
 from oslo_log import log as logging
-from toscaparser import properties
-from toscaparser.utils import yamlparser
-
 from tacker.common import log
 from tacker.common import utils
 from tacker.extensions import vnfm
+from toscaparser import properties
+from toscaparser.utils import yamlparser
 
-from collections import OrderedDict
 
 FAILURE = 'tosca.policies.tacker.Failure'
 LOG = logging.getLogger(__name__)
@@ -155,6 +154,28 @@ def get_vdu_monitoring(template):
                     mon_policy['monitoring_params'] = mon_policy['parameters']
                 policy_dict['vdus'][nt.name] = {}
                 policy_dict['vdus'][nt.name][mon_policy['name']] = mon_policy
+    if policy_dict.get('vdus'):
+        monitoring_dict = policy_dict
+    return monitoring_dict
+
+
+def get_vdu_applicationmonitoring(template):
+    tpl_temp = "topology_template"
+    n_temp = "node_templates"
+    poly = "app_monitoring_policy"
+    monitoring_dict = dict()
+    policy_dict = dict()
+    policy_dict['vdus'] = collections.OrderedDict()
+    node_list = template[tpl_temp][n_temp].keys()
+    for node in node_list:
+        nt = template[tpl_temp][n_temp][node]
+        if nt['type'] == TACKERVDU:
+            if poly in nt['properties'].keys():
+                mon_policy = nt['properties'][poly]
+                if mon_policy != 'noop':
+                    policy_dict['vdus'][node] = {}
+                    policy_dict['vdus'][node] = mon_policy
+                del template[tpl_temp][n_temp][node]['properties'][poly]
     if policy_dict.get('vdus'):
         monitoring_dict = policy_dict
     return monitoring_dict

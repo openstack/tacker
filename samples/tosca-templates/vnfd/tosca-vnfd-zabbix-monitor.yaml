@@ -1,0 +1,136 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Monitoring for multiple vdus
+
+metadata:
+  template_name: tosca-vnfd-monitoir-multi-vdu
+
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      capabilities:
+        nfv_compute:
+          properties:
+            num_cpus: 2
+            mem_size: 2048 MB
+            disk_size: 15 GB
+      properties:
+        name: VDU1
+        image: ubuntu16.04
+        availability_zone: nova
+        mgmt_driver: noop
+        config: |
+          param0: key1
+          param1: key2
+        user_data_format: RAW
+        user_data: |
+             #!/bin/bash
+             sudo apt-get -y update
+             sudo apt-get -y upgrade
+             sudo apt-get -y install zabbix-agent
+             sudo apt-get -y install apache2
+
+             sudo sed -i "2s/.*/`ifconfig [Interface name in VNF] | grep ""\"inet addr:\"""| cut -d: -f2 | awk ""\"{ print $1 }\"""`/g" "/etc/hosts"
+             sudo sed -i "s/Bcast/`cat /etc/hostname`/g" "/etc/hosts"
+             sudo sed -i "3s/.*/[Zabbix Host IP Address]\tmonitor/g" "/etc/hosts"
+             sudo /etc/init.d/networking restart
+             sudo echo 'zabbix ALL=NOPASSWD: ALL' >> /etc/sudoers
+
+             sudo sed -i "s/# EnableRemoteCommands=0/EnableRemoteCommands=1/" "/etc/zabbix/zabbix_agentd.conf"
+             sudo sed -i "s/Server=127.0.0.1/Server=[Zabbix server's IP Address]/" "/etc/zabbix/zabbix_agentd.conf"
+             sudo sed -i "s/ServerActive=127.0.0.1/ServerActive=[Zabbix server's IP Address:Port]/" "/etc/zabbix/zabbix_agentd.conf"
+             sudo sed -i "s/Hostname=Zabbix server/Hostname=`cat /etc/hostname`/" "/etc/zabbix/zabbix_agentd.conf"
+
+             sudo service apache2 restart
+             sudo service zabbix-agent restart
+             sudo echo 'ubuntu:ubuntu' | chpasswd
+             sudo echo 'root:root' | chpasswd
+        app_monitoring_policy:
+          name: zabbix
+          zabbix_username: Admin
+          zabbix_password: zabbix
+          zabbix_server_ip: 192.168.11.53
+          zabbix_server_port: 80
+          parameters:
+            application:
+              app_name: apache2
+              app_port: 80
+              ssh_username: ubuntu
+              ssh_password: ubuntu
+              app_status:
+                condition: [down]
+                actionname: cmd
+                cmd-action: sudo service apache2 restart
+              app_memory:
+                condition: [greater,22]
+                actionname: cmd
+                cmd-action: sudo service apache2 stop
+            OS:
+              os_agent_info:
+                condition: [down]
+                actionname: cmd
+                cmd-action: sudo service zabbix-agent restart
+              os_proc_value:
+                condition: [and less,22]
+                actionname: cmd
+                cmd-action: sudo reboot
+              os_cpu_load:
+                condition: [and greater,30]
+                actionname: cmd
+                cmd-action: sudo reboot
+              os_cpu_usage:
+                condition: [less,30]
+                actionname: cmd
+                cmd-action: sudo reboot
+
+    CP11:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        order: 0
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    CP12:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        order: 1
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL2
+        - virtualBinding:
+            node: VDU1
+
+    CP13:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        order: 2
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL3
+        - virtualBinding:
+            node: VDU1
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net_mgmt
+        vendor: Tacker
+
+    VL2:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net0
+        vendor: Tacker
+
+    VL3:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net1
+        vendor: Tacker
