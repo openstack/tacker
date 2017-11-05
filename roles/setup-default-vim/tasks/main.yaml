@@ -1,0 +1,24 @@
+- name: Copy files test setup default vim sh
+  copy:
+     remote_src=True
+     src=/opt/stack/tacker/tools/test-setup-default-vim.sh
+     dest={{ zuul_work_dir }}/tools/test-setup-default-vim.sh
+
+- name: Copy test vim file
+  copy:
+     remote_src=True
+     src=/opt/stack/tacker/tacker/tests/etc/samples/local-vim.yaml
+     dest={{ zuul_work_dir }}/tacker/tests/etc/samples/local-vim.yaml
+
+- name: Check if project's tools/test-setup-default-vim.sh exists
+  stat:
+    path: "{{ zuul_work_dir }}/tools/test-setup-default-vim.sh"
+  register: p
+
+- name: Run tools/test-setup-default-vim.sh
+  command: tools/test-setup-default-vim.sh
+  args:
+    chdir: "{{ zuul_work_dir }}"
+  when:
+    - p.stat.exists
+    - p.stat.executable

@@ -89,6 +89,8 @@ TACKER_NOVA_API_INSECURE=${TACKER_NOVA_API_INSECURE:-False}
 
 HEAT_CONF_DIR=/etc/heat
 
+source ${TACKER_DIR}/tacker/tests/contrib/post_test_hook_lib.sh
+
 # Functions
 # ---------
 # Test if any Tacker services are enabled
@@ -409,35 +411,60 @@ function tacker_register_default_vim {
     get_or_create_project $DEFAULT_VIM_PROJECT_NAME
     echo "Create NFV VIM user $DEFAULT_VIM_USER ..."
     get_or_create_user $DEFAULT_VIM_USER $DEFAULT_VIM_PASSWORD
-    get_or_add_user_project_role "admin" $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
-    get_or_add_user_project_role "advsvc" $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
+    get_or_add_user_project_role admin $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
+    # get_or_add_user_project_role advsvc $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
 
-    echo "Register default VIM ..."
+    echo "Set register default VIM sh which is called by ansible role..."
     mkdir -p $DATA_DIR/tacker
     cp $TACKER_DIR/devstack/vim_config.yaml $DATA_DIR/tacker
     VIM_CONFIG_FILE="$DATA_DIR/tacker/vim_config.yaml"
     sed -e "s|^auth_url:.*$|auth_url: \'${KEYSTONE_SERVICE_URI}\'|" -i $VIM_CONFIG_FILE
     echo "The content of VIM config file $VIM_CONFIG_FILE :"
     cat $VIM_CONFIG_FILE
-    local default_vim_id
     DEFAULT_VIM_NAME="VIM0"
-
-    old_project=$OS_PROJECT_NAME
-    old_user=$OS_USERNAME
-    $TOP_DIR/tools/create_userrc.sh -P -u $DEFAULT_VIM_USER -C $DEFAULT_VIM_PROJECT_NAME -p $DEFAULT_VIM_PASSWORD
-    echo "Switch environment openrc:"
-    echo $(cat $TOP_DIR/accrc/$DEFAULT_VIM_PROJECT_NAME/$DEFAULT_VIM_USER)
-    . $TOP_DIR/accrc/$DEFAULT_VIM_PROJECT_NAME/$DEFAULT_VIM_USER
-
-    default_vim_id=$(tacker vim-register --is-default --description "Default VIM" --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME -c id | grep id | awk '{print $4}')
-    echo "Default VIM registration done as $default_vim_id at $KEYSTONE_SERVICE_URI."
-    echo "Switch back to old environment openrc:"
-    echo $(cat $TOP_DIR/accrc/$old_project/$old_user)
-    . $TOP_DIR/accrc/$old_project/$old_user
+    cat >> $TACKER_DIR/tools/test-setup-default-vim.sh <<EOF
+tacker --os-username nfv_user --os-project-name nfv --os-password devstack --os-auth-url ${KEYSTONE_SERVICE_URI} --os-project-domain-name Default --os-user-domain-name Default vim-register --is-default --description "Default VIM" --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME
+EOF
+    echo "The content of $TACKER_DIR/tools/test-setup-default-vim.sh"
+    cat $TACKER_DIR/tools/test-setup-default-vim.sh
 
     echo "Update tacker/tests/etc/samples/local-vim.yaml for functional testing"
     functional_vim_file="$TACKER_DIR/tacker/tests/etc/samples/local-vim.yaml"
     sed -e "s|^auth_url:.*$|auth_url: \'${KEYSTONE_SERVICE_URI}\'|" -i $functional_vim_file
+    echo "The content of functional VIM config file $functional_vim_file :"
+    cat $functional_vim_file
+
+    echo "Set up target openstack vim resources ..."
+    openstack --os-cloud=devstack-admin quota set \
+              --class --instances -1 --cores -1 --ram -1 default
+    openstack --os-cloud=devstack-admin \
+              quota set --ports -1 $DEFAULT_VIM_PROJECT_NAME
+
+    openstack --os-region-name RegionOne --os-project-name $DEFAULT_VIM_PROJECT_NAME \
+              --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
+              --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
+              --os-password $DEFAULT_VIM_PASSWORD keypair create userKey
+
+    openstack --os-region-name RegionOne --os-project-name $DEFAULT_VIM_PROJECT_NAME \
+          --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
+          --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
+          --os-password $DEFAULT_VIM_PASSWORD \
+          security group create \
+          --description "tacker functest security group" test_secgrp
+
+    openstack --os-region-name RegionOne --os-project-name $DEFAULT_VIM_PROJECT_NAME \
+          --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
+          --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
+          --os-password $DEFAULT_VIM_PASSWORD \
+          security group rule create \
+          --ingress --protocol icmp test_secgrp
+    openstack --os-region-name RegionOne --os-project-name $DEFAULT_VIM_PROJECT_NAME \
+          --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
+          --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
+          --os-password $DEFAULT_VIM_PASSWORD \
+          security group rule create \
+          --ingress --protocol tcp --dst-port 22 test_secgrp
+
 }
 
 function modify_heat_flavor_policy_rule {

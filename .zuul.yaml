@@ -1,0 +1,59 @@
+- job:
+    name: tacker-functional-devstack
+    parent: devstack
+    description: |
+      Base job for devstack-based functional tests
+    pre-run: playbooks/devstack/pre
+    run: playbooks/devstack/run
+    post-run: playbooks/devstack/post
+    roles:
+      - zuul: openstack-infra/devstack
+    timeout: 9000
+    required-projects:
+      - openstack/aodh
+      - openstack/horizon
+      - openstack/barbican
+      - openstack/ceilometer
+      - openstack/heat
+      - openstack/mistral
+      - openstack/mistral-dashboard
+      - openstack/networking-sfc
+      - openstack/python-barbicanclient
+      - openstack/python-mistralclient
+      - openstack/python-tackerclient
+      - openstack/tacker
+      - openstack/tacker-horizon
+    vars:
+      devstack_services:
+        horizon: True
+        tacker: True
+        tacker-conductor: True
+      devstack_plugins:
+        heat: https://git.openstack.org/openstack/heat
+        networking-sfc:  https://git.openstack.org/openstack/networking-sfc
+        aodh: https://git.openstack.org/openstack/aodh
+        ceilometer: https://git.openstack.org/openstack/ceilometer
+        barbican: https://git.openstack.org/openstack/barbican
+        mistral: https://git.openstack.org/openstack/mistral
+        tacker: https://git.openstack.org/openstack/tacker
+      tox_install_siblings: False
+      tox_envlist: dsvm-functional
+      zuul_work_dir: src/git.openstack.org/openstack/tacker
+
+- job:
+    name: tacker-functional-devstack-python3
+    parent: tacker-functional-devstack
+    description: |
+      Run tacker functional tests using python3 against a master devstack
+    vars:
+      tacker_environment:
+        TACKER_TOX_PYTHON: python3
+
+- project:
+    name: openstack/tacker
+    check:
+      jobs:
+        - tacker-functional-devstack:
+            voting: false
+        - tacker-functional-devstack-python3:
+            voting: false

@@ -4,7 +4,7 @@
 XTRACE=$(set +o | grep xtrace)
 set -o xtrace
 
-echo_summary "tacker's plugin.sh was called..."
+echo_summary "tacker's plugin.sh was called with args $1 and $2 ..."
 . $DEST/tacker/devstack/lib/tacker
 (set -o posix; set)
 
@@ -60,4 +60,3 @@ $XTRACE
 ## Local variables:
 ## mode: shell-script
 ## End:
-

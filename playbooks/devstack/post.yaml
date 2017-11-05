@@ -1,0 +1,4 @@
+- hosts: all
+  roles:
+    - fetch-stestr-output
+    - devstack-config

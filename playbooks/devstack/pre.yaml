@@ -1,0 +1,10 @@
+- hosts: all
+  roles:
+    - run-devstack
+    - setup-default-vim
+    - role: bindep
+      bindep_profile: test
+      bindep_dir: "{{ zuul_work_dir }}"
+    - ensure-tox
+    - role: tox-siblings
+      when: tox_install_siblings
