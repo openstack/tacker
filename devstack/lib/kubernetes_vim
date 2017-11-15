@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# lib/kubernetes_vim
+# functions - functions specific to kubernetes_vim
+
+function configure_k8s_vim {
+    iniset "/$Q_PLUGIN_CONF_FILE" ml2_type_flat flat_networks $PUBLIC_PHYSICAL_NETWORK,$MGMT_PHYS_NET,$K8S_PHYS_NET
+    iniset "/$Q_PLUGIN_CONF_FILE" ovs bridge_mappings $PUBLIC_PHYSICAL_NETWORK:$PUBLIC_BRIDGE,$MGMT_PHYS_NET:$BR_MGMT,$K8S_PHYS_NET:$BR_K8S
+
+    echo "Creating Kubernetes bridge"
+    sudo ovs-vsctl --may-exist add-br ${BR_K8S}
+    iniset $TACKER_CONF k8s_vim use_barbican True
+}
+
+function tacker_create_initial_k8s_network {
+    SUBNETPOOL_V4_ID=$(openstack subnet pool create ${SUBNETPOOL_NAME_V4} --default-prefix-length ${SUBNETPOOL_SIZE_V4} --pool-prefix ${FIXED_RANGE_K8S} --share --default -f value -c id)
+    NET_K8S_ID=$(openstack network create --provider-network-type flat --provider-physical-network ${K8S_PHYS_NET} --share ${NET_K8S} | awk '/ id /{print $4}')
+    SUBNET_K8S_ID=$(openstack subnet create ${SUBNET_K8S} --ip-version 4 --gateway ${NETWORK_GATEWAY_K8S} --network ${NET_K8S_ID} --subnet-pool ${SUBNETPOOL_V4_ID} | awk '/ id /{print $4}')
+    SUBNET_K8S_CIDR=$(openstack subnet show ${SUBNET_K8S_ID} -c cidr -f value)
+
+    echo "Assign ip address to ${BR_K8S}"
+    sudo ip link set ${BR_K8S} up
+    sudo ip -4 address flush dev ${BR_K8S}
+    sudo ip address add ${NETWORK_GATEWAY_K8S_IP} dev ${BR_K8S}
+
+    echo "Create router to connect VM, Pod and Service networks"
+    openstack router create ${Q_ROUTER_NAME} | grep ' id ' | get_field 2
+    ROUTER_K8S_PORT_IP=$(_cidr_range "${SUBNET_K8S_CIDR}" | cut -f2)
+    ROUTER_K8S_PORT_ID=$(openstack port create --network ${NET_K8S_ID} --fixed-ip subnet=${SUBNET_K8S_ID},ip-address=${ROUTER_K8S_PORT_IP} port-router -f value -c id)
+    openstack router add port ${Q_ROUTER_NAME} ${ROUTER_K8S_PORT_ID}
+    openstack subnet set --host-route destination=${FIXED_RANGE_K8S},gateway=${ROUTER_K8S_PORT_IP} ${SUBNET_K8S_ID}
+}
+
+function _cidr_range {
+    python - <<EOF "$1"
+import sys
+from netaddr import IPAddress, IPNetwork
+n = IPNetwork(sys.argv[1])
+print("%s\\t%s" % (IPAddress(n.first + 1), IPAddress(n.last - 1)))
+EOF
+}
