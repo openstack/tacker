@@ -78,9 +78,13 @@ tosca-vnffgd-sample.yaml>`_.
         type: ACL
         criteria:
         - network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480e1
-        - destination_port_range: 80-1024
-        - ip_proto: 6
-        - ip_dst_prefix: 192.168.1.2/24
+          destination_port_range: 80-1024
+          ip_proto: 6
+          ip_dst_prefix: 192.168.1.2/24
+        - network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480eda
+          destination_port_range: 80-1024
+          ip_proto: 6
+          ip_dst_prefix: 192.168.2.2/24
 
 You can get network_src_port_id and IP destination address through
 OpenStack commands like bellow:
@@ -174,7 +178,7 @@ to the desired VNF instance:
    +--------------------------------------+------+---------------------------+--------+--------------------------------------+--------------------------------------+
 
    tacker vnffg-create --vnffgd-name myvnffgd --vnf-mapping \
-      VNFD1:'91e32c20-6d1f-47a4-9ba7-08f5e5effe07',VNF2:'7168062e-9fa1-4203-8cb7-f5c99ff3ee1b' myvnffg
+      VNFD1:'91e32c20-6d1f-47a4-9ba7-08f5e5effe07',VNFD2:'7168062e-9fa1-4203-8cb7-f5c99ff3ee1b' myvnffg
 
 Alternatively, if no vnf-mapping is provided then Tacker VNFFG will attempt
 to search for VNF instances derived from the given VNFDs in the VNFFGD.  If

@@ -195,6 +195,14 @@ class NfpPolicyCriteriaError(exceptions.PolicyCheckError):
     message = _('%(error)s in policy')
 
 
+class NfpPolicyCriteriaIndexError(exceptions.TackerException):
+    message = _('Criteria list can not be empty')
+
+
+class NfpDuplicatePolicyCriteria(exceptions.TackerException):
+    message = _('The %(first_dict)s and %(sec_dict)s are overlapped')
+
+
 class NfpPolicyNotFoundException(exceptions.NotFound):
     message = _('Policy not found in NFP %(nfp)s')
 

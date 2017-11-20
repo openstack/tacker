@@ -381,7 +381,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         raise ValueError('empty match field for input flow classifier')
 
-    def create_chain(self, name, fc_id, vnfs, symmetrical=False,
+    def create_chain(self, name, fc_ids, vnfs, symmetrical=False,
                      auth_attr=None):
         if not auth_attr:
             LOG.warning("auth information required for n-sfc driver")
@@ -444,7 +444,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         port_chain['name'] = name + '-port-chain'
         port_chain['description'] = 'port-chain for Tacker VNFFG'
         port_chain['port_pair_groups'] = port_pair_group_list
-        port_chain['flow_classifiers'] = [fc_id]
+        port_chain['flow_classifiers'] = fc_ids
         return neutronclient_.port_chain_create(port_chain)
 
     def update_chain(self, chain_id, fc_ids, vnfs,
