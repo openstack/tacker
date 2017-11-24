@@ -247,6 +247,7 @@ class NSInUse(exceptions.InUse):
 class NoTasksException(exceptions.TackerException):
     message = _('No tasks to run for %(action)s on %(resource)s')
 
+NAME_MAX_LEN = 255
 
 RESOURCE_ATTRIBUTE_MAP = {
 
@@ -292,7 +293,7 @@ RESOURCE_ATTRIBUTE_MAP = {
         'name': {
             'allow_post': True,
             'allow_put': True,
-            'validate': {'type:string': None},
+            'validate': {'type:string': NAME_MAX_LEN},
             'is_visible': True,
         },
         'description': {
@@ -357,7 +358,7 @@ RESOURCE_ATTRIBUTE_MAP = {
         'name': {
             'allow_post': True,
             'allow_put': True,
-            'validate': {'type:string': None},
+            'validate': {'type:string': NAME_MAX_LEN},
             'is_visible': True,
         },
         'description': {
@@ -408,7 +409,7 @@ RESOURCE_ATTRIBUTE_MAP = {
         'name': {
             'allow_post': True,
             'allow_put': True,
-            'validate': {'type:string': None},
+            'validate': {'type:string': NAME_MAX_LEN},
             'is_visible': True,
         },
         'description': {
@@ -630,7 +631,7 @@ RESOURCE_ATTRIBUTE_MAP = {
         'name': {
             'allow_post': True,
             'allow_put': True,
-            'validate': {'type:string': None},
+            'validate': {'type:string': NAME_MAX_LEN},
             'is_visible': True,
         },
         'description': {
@@ -685,7 +686,7 @@ RESOURCE_ATTRIBUTE_MAP = {
         'name': {
             'allow_post': True,
             'allow_put': True,
-            'validate': {'type:string': None},
+            'validate': {'type:string': NAME_MAX_LEN},
             'is_visible': True,
         },
         'description': {
