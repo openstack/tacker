@@ -3,9 +3,9 @@
     parent: devstack
     description: |
       Base job for devstack-based functional tests
-    pre-run: playbooks/devstack/pre
-    run: playbooks/devstack/run
-    post-run: playbooks/devstack/post
+    pre-run: playbooks/devstack/pre.yaml
+    run: playbooks/devstack/run.yaml
+    post-run: playbooks/devstack/post.yaml
     roles:
       - zuul: openstack-infra/devstack
     timeout: 9000
@@ -25,18 +25,18 @@
       - openstack/tacker-horizon
     vars:
       devstack_services:
-        horizon: True
-        tacker: True
-        tacker-conductor: True
+        horizon: true
+        tacker: true
+        tacker-conductor: true
       devstack_plugins:
         heat: https://git.openstack.org/openstack/heat
-        networking-sfc:  https://git.openstack.org/openstack/networking-sfc
+        networking-sfc: https://git.openstack.org/openstack/networking-sfc
         aodh: https://git.openstack.org/openstack/aodh
         ceilometer: https://git.openstack.org/openstack/ceilometer
         barbican: https://git.openstack.org/openstack/barbican
         mistral: https://git.openstack.org/openstack/mistral
         tacker: https://git.openstack.org/openstack/tacker
-      tox_install_siblings: False
+      tox_install_siblings: false
       tox_envlist: dsvm-functional
       zuul_work_dir: src/git.openstack.org/openstack/tacker
 
