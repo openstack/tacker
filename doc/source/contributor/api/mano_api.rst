@@ -232,6 +232,7 @@ Create vnf - Create a vnf based on the vnfd template id.
         "vnf": {
             "attributes": {},
             "vim_id": "",
+            "vim_name": "",
             "description": "demo-example",
             "vnfd_id": "ad0c2c7c-825e-43c5-a402-b5710902b408",
             "name": "demo-vnf"
