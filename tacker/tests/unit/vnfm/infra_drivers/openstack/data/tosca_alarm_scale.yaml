@@ -14,7 +14,7 @@ topology_template:
         mgmt_driver: noop
         availability_zone: nova
         flavor: m1.tiny
-        metadata: {metering.vnf: SG1}
+        metadata: {metering.server_group: SG1-2e3261d9-14}
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker
@@ -51,28 +51,30 @@ topology_template:
                 event_type:
                     type: tosca.events.resource.utilization
                     implementation: ceilometer
-                meter_name: cpu_util
+                metric: cpu_util
                 condition:
                     threshold: 50
                     constraint: utilization greater_than 50%
-                    period: 600
+                    granularity: 600
                     evaluations: 1
-                    method: average
+                    aggregation_method: mean
+                    resource_type: instance
                     comparison_operator: gt
-                metadata: SG1
+                metadata: SG1-2e3261d9-14
                 action: [SP1]
 
             vdu_lcpu_usage_scaling_in:
                 event_type:
                     type: tosca.events.resource.utilization
                     implementation: ceilometer
-                meter_name: cpu_util
+                metric: cpu_util
                 condition:
                     threshold: 10
                     constraint: utilization less_than 10%
-                    period: 600
+                    granularity: 600
                     evaluations: 1
-                    method: average
+                    aggregation_method: mean
+                    resource_type: instance
                     comparison_operator: lt
-                metadata: SG1
+                metadata: SG1-2e3261d9-14
                 action: [SP1]

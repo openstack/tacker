@@ -149,6 +149,11 @@ class MetadataNotMatched(exceptions.InvalidInput):
     message = _("Metadata for alarm policy is not matched")
 
 
+class InvalidResourceType(exceptions.InvalidInput):
+    message = _("Resource type %(resource_type)s for alarm policy "
+                "is not supported")
+
+
 class InvalidSubstitutionMapping(exceptions.InvalidInput):
     message = _("Input for substitution mapping requirements are not"
                 " valid for %(requirement)s. They must be in the form"

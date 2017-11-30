@@ -14,7 +14,7 @@ resources:
       - port: { get_resource: CP1 }
       image: cirros-0.4.0-x86_64-disk
       flavor: m1.tiny
-      metadata: {metering.vnf: SG1}
+      metadata: {metering.server_group: SG1-2e3261d9-14}
   VL1:
     type: OS::Neutron::Net
   CP1:

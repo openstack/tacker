@@ -28,23 +28,25 @@ described firstly like other TOSCA templates in Tacker.
 
 .. code-block:: yaml
 
-     policies:
-      - vdu1_cpu_usage_monitoring_policy:
-          type: tosca.policies.tacker.Alarming
-          triggers:
-            resize_compute:
+  policies:
+    - vdu1_cpu_usage_monitoring_policy:
+        type: tosca.policies.tacker.Alarming
+        triggers:
+            vdu_hcpu_usage_respawning:
                 event_type:
                     type: tosca.events.resource.utilization
                     implementation: ceilometer
-                metrics: cpu_util
+                metric: cpu_util
                 condition:
                     threshold: 50
                     constraint: utilization greater_than 50%
-                    period: 65
+                    granularity: 600
                     evaluations: 1
-                    method: avg
+                    aggregation_method: mean
+                    resource_type: instance
                     comparison_operator: gt
-                actions: [respawn]
+                metadata: VDU1
+                action: [respawn]
 
 Alarm framework already supported the some default backend actions like
 **scaling, respawn, log, and log_and_kill**.
@@ -77,7 +79,7 @@ in Tacker:
             image: cirros-0.4.0-x86_64-disk
             mgmt_driver: noop
             availability_zone: nova
-            metadata: {metering.vnf: SG1}
+            metadata: {metering.server_group: SG1}
 
         CP1:
           type: tosca.nodes.nfv.CP.Tacker
@@ -89,30 +91,6 @@ in Tacker:
                 node: VL1
             - virtualBinding:
                 node: VDU1
-        VDU2:
-          type: tosca.nodes.nfv.VDU.Tacker
-          capabilities:
-            nfv_compute:
-              properties:
-                disk_size: 1 GB
-                mem_size: 512 MB
-                num_cpus: 2
-          properties:
-            image: cirros-0.4.0-x86_64-disk
-            mgmt_driver: noop
-            availability_zone: nova
-            metadata: {metering.vnf: SG1}
-
-        CP2:
-          type: tosca.nodes.nfv.CP.Tacker
-          properties:
-            management: true
-            anti_spoofing_protection: false
-          requirements:
-            - virtualLink:
-                node: VL1
-            - virtualBinding:
-                node: VDU2
 
         VL1:
           type: tosca.nodes.nfv.VL
@@ -123,13 +101,13 @@ in Tacker:
       policies:
         - SP1:
             type: tosca.policies.tacker.Scaling
+            targets: [VDU1]
             properties:
               increment: 1
               cooldown: 120
               min_instances: 1
               max_instances: 3
-              default_instances: 2
-              targets: [VDU1,VDU2]
+              default_instances: 1
 
         - vdu_cpu_usage_monitoring_policy:
             type: tosca.policies.tacker.Alarming
@@ -138,32 +116,33 @@ in Tacker:
                     event_type:
                         type: tosca.events.resource.utilization
                         implementation: ceilometer
-                    metrics: cpu_util
+                    metric: cpu_util
                     condition:
-                        threshold: 50
-                        constraint: utilization greater_than 50%
-                        period: 600
+                        threshold: 80
+                        constraint: utilization greater_than 80%
+                        granularity: 300
                         evaluations: 1
-                        method: avg
+                        aggregation_method: mean
+                        resource_type: instance
                         comparison_operator: gt
                     metadata: SG1
-                    actions: [SP1]
+                    action: [SP1]
 
                 vdu_lcpu_usage_scaling_in:
-                    targets: [VDU1, VDU2]
                     event_type:
                         type: tosca.events.resource.utilization
                         implementation: ceilometer
-                    metrics: cpu_util
+                    metric: cpu_util
                     condition:
                         threshold: 10
                         constraint: utilization less_than 10%
-                        period: 600
+                        granularity: 300
                         evaluations: 1
-                        method: avg
+                        aggregation_method: mean
+                        resource_type: instance
                         comparison_operator: lt
                     metadata: SG1
-                    actions: [SP1]
+                    action: [SP1]
 
 
 **NOTE:**
@@ -188,6 +167,22 @@ How to monitor VNFs via alarm triggers
 How to setup alarm configuration
 ================================
 
+Tacker provides templates that implemented Ceilometer as alarm for monitoring
+VNFs, which are located in  **tacker/samples/tosca-templates/vnfd**.
+
+1. tosca-vnfd-alarm-multi-actions.yaml
+
+2. tosca-vnfd-alarm-respawn.yaml
+
+3. tosca-vnfd-alarm-scale.yaml
+
+The following commands shows creating VNF with alarms for scaling in and out.
+
+.. code-block:: console
+
+    $ cd ~/tacker/samples/tosca-templates/vnfd
+    $ openstack vnf create --vnfd-template tosca-vnfd-alarm-scale.yaml VNF1
+
 Firstly, vnfd and vnf need to be created successfully using pre-defined TOSCA
 template for alarm monitoring. Then, in order to know whether alarm
 configuration defined in Tacker is successfully passed to Ceilometer,
@@ -195,51 +190,53 @@ Tacker users could use CLI:
 
 .. code-block:: console
 
-    $ aodh alarm list
+    $ openstack alarm list
 
-    +--------------------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------------------+-------------------+----------+---------+
-    | alarm_id                             | type      | name                                                                                                                                 | state             | severity | enabled |
-    +--------------------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------------------+-------------------+----------+---------+
-    | 6f2336b9-e0a2-4e33-88be-bc036192b42b | threshold | tacker.vnfm.infra_drivers.openstack.openstack_OpenStack-a0f60b00-ad3d-4769-92ef-e8d9518da2c8-vdu_lcpu_scaling_in-smgctfnc3ql5        | insufficient data | low      | True    |
-    | e049f0d3-09a8-46c0-9b88-e61f1f524aab | threshold | tacker.vnfm.infra_drivers.openstack.openstack_OpenStack-a0f60b00-ad3d-4769-92ef-e8d9518da2c8-vdu_hcpu_usage_scaling_out-lubylov5g6xb | insufficient data | low      | True    |
-    +--------------------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------------------+-------------------+----------+---------+
+    +--------------------------------------+--------------------------------------------+-----------------------------------------------------------------------------------+-------------------+----------+---------+
+    | alarm_id                             | type                                       | name                                                                              | state             | severity | enabled |
+    +--------------------------------------+--------------------------------------------+-----------------------------------------------------------------------------------+-------------------+----------+---------+
+    | f418ebf8-f8a6-4991-8f0d-938e38434411 | gnocchi_aggregation_by_resources_threshold | VNF1_7582cdf4-58ed-4df8-8fa2-c15938adf70b-vdu_hcpu_usage_scaling_out-4imzw3c7cicb | insufficient data | low      | True    |
+    | 70d86622-940a-4bc3-87c2-d5dfbb01bbea | gnocchi_aggregation_by_resources_threshold | VNF1_7582cdf4-58ed-4df8-8fa2-c15938adf70b-vdu_lcpu_usage_scaling_in-dwvdvbegiqdk  | insufficient data | low      | True    |
+    +--------------------------------------+--------------------------------------------+-----------------------------------------------------------------------------------+-------------------+----------+---------+
+
 
 .. code-block:: console
 
-    $aodh alarm show 6f2336b9-e0a2-4e33-88be-bc036192b42b
-
-    +---------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-    | Field                     | Value                                                                                                                         |
-    +---------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-    | alarm_actions             | [u'http://pinedcn:9890/v1.0/vnfs/a0f60b00-ad3d-4769-92ef-e8d9518da2c8/vdu_lcpu_scaling_in/SP1-in/yl7kh5qd']                   |
-    | alarm_id                  | 6f2336b9-e0a2-4e33-88be-bc036192b42b                                                                                          |
-    | comparison_operator       | lt                                                                                                                            |
-    | description               | utilization less_than 10%                                                                                                     |
-    | enabled                   | True                                                                                                                          |
-    | evaluation_periods        | 1                                                                                                                             |
-    | exclude_outliers          | False                                                                                                                         |
-    | insufficient_data_actions | None                                                                                                                          |
-    | meter_name                | cpu_util                                                                                                                      |
-    | name                      | tacker.vnfm.infra_drivers.openstack.openstack_OpenStack-a0f60b00-ad3d-4769-92ef-e8d9518da2c8-vdu_lcpu_scaling_in-smgctfnc3ql5 |
-    | ok_actions                | None                                                                                                                          |
-    | period                    | 600                                                                                                                           |
-    | project_id                | 3db801789c9e4b61b14ce448c9e7fb6d                                                                                              |
-    | query                     | metadata.user_metadata.vnf_id = a0f60b00-ad3d-4769-92ef-e8d9518da2c8                                                          |
-    | repeat_actions            | True                                                                                                                          |
-    | severity                  | low                                                                                                                           |
-    | state                     | insufficient data                                                                                                             |
-    | state_timestamp           | 2016-11-16T18:39:30.134954                                                                                                    |
-    | statistic                 | avg                                                                                                                           |
-    | threshold                 | 10.0                                                                                                                          |
-    | time_constraints          | []                                                                                                                            |
-    | timestamp                 | 2016-11-16T18:39:30.134954                                                                                                    |
-    | type                      | threshold                                                                                                                     |
-    | user_id                   | a783e8a94768484fb9a43af03c6426cb                                                                                              |
-    +---------------------------+-------------------------------------------------------------------------------------------------------------------------------+
+    $ openstack alarm show 70d86622-940a-4bc3-87c2-d5dfbb01bbea
+    +---------------------------+------------------------------------------------------------------------------------------------------------------+
+    | Field                     | Value                                                                                                            |
+    +---------------------------+------------------------------------------------------------------------------------------------------------------+
+    | aggregation_method        | mean                                                                                                             |
+    | alarm_actions             | [u'http://ubuntu:9890/v1.0/vnfs/7582cdf4-58ed-4df8-8fa2-c15938adf70b/vdu_lcpu_usage_scaling_in/SP1-in/v2fq7rd7'] |
+    | alarm_id                  | 70d86622-940a-4bc3-87c2-d5dfbb01bbea                                                                             |
+    | comparison_operator       | lt                                                                                                               |
+    | description               | utilization less_than 10%                                                                                        |
+    | enabled                   | True                                                                                                             |
+    | evaluation_periods        | 1                                                                                                                |
+    | granularity               | 60                                                                                                               |
+    | insufficient_data_actions | []                                                                                                               |
+    | metric                    | cpu_util                                                                                                         |
+    | name                      | VNF1_7582cdf4-58ed-4df8-8fa2-c15938adf70b-vdu_lcpu_usage_scaling_in-dwvdvbegiqdk                                 |
+    | ok_actions                | []                                                                                                               |
+    | project_id                | b5e054a3861b4da2b084aca9530096be                                                                                 |
+    | query                     | {"=": {"server_group": "SG1-64beb5e4-c0"}}                                                                       |
+    | repeat_actions            | True                                                                                                             |
+    | resource_type             | instance                                                                                                         |
+    | severity                  | low                                                                                                              |
+    | state                     | insufficient data                                                                                                |
+    | state_reason              | Not evaluated yet                                                                                                |
+    | state_timestamp           | 2018-07-20T06:00:33.142762                                                                                       |
+    | threshold                 | 10.0                                                                                                             |
+    | time_constraints          | []                                                                                                               |
+    | timestamp                 | 2018-07-20T06:00:33.142762                                                                                       |
+    | type                      | gnocchi_aggregation_by_resources_threshold                                                                       |
+    | user_id                   | 61fb5c6193e549f3baee26bd508c0b29                                                                                 |
+    +---------------------------+------------------------------------------------------------------------------------------------------------------+
 
 
 How to trigger alarms:
 ======================
+
 As shown in the above Ceilometer command, alarm state is shown as
 "insufficient data". Alarm is triggered by Ceilometer once alarm
 state changes to "alarm".
@@ -252,9 +249,9 @@ in **/etc/ceilometer/pipeline.yaml** file and then restart Ceilometer service.
 
 Another way could be used to check if backend action is handled well in Tacker:
 
-.. code-block::ini
+.. code-block:: console
 
-curl -H "Content-Type: application/json" -X POST -d '{"alarm_id": "35a80852-e24f-46ed-bd34-e2f831d00172", "current": "alarm"}' http://pinedcn:9890/v1.0/vnfs/a0f60b00-ad3d-4769-92ef-e8d9518da2c8/vdu_lcpu_scaling_in/SP1-in/yl7kh5qd
+    curl -H "Content-Type: application/json" -X POST -d '{"alarm_id": "35a80852-e24f-46ed-bd34-e2f831d00172", "current": "alarm"}' http://ubuntu:9890/v1.0/vnfs/7582cdf4-58ed-4df8-8fa2-c15938adf70b/vdu_lcpu_usage_scaling_in/SP1-in/v2fq7rd7
 
 Then, users can check Horizon to know if vnf is respawned. Please note
 that the url used in the above command could be captured from

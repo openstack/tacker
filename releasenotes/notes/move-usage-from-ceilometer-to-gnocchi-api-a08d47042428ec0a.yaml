@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Removes usage of deprecated Ceilometer API:
+    1. Change trigger type from "OS::Ceilometer::Alarm" to
+    "OS::Aodh::GnocchiAggregationByResourcesAlarm"
+    2. Add "resource_type" fixed with value "instance"
+    3. Change some paramters (meter_name-> metric, statistic ->
+    aggregation_method, period-> granularity)
+    4. Change value from "average" to "mean" in method to compare
+    to the threshold

@@ -183,50 +183,67 @@ def get_vdu_applicationmonitoring(template):
 
 
 @log.log
-def get_vdu_metadata(template):
+def get_vdu_metadata(template, unique_id=None):
     metadata = dict()
     metadata.setdefault('vdus', {})
     for nt in template.nodetemplates:
         if nt.type_definition.is_derived_from(TACKERVDU):
             metadata_dict = nt.get_property_value('metadata') or None
             if metadata_dict:
+                metadata_dict['metering.server_group'] = \
+                    (metadata_dict['metering.server_group'] + '-'
+                     + unique_id)[:15]
                 metadata['vdus'][nt.name] = {}
                 metadata['vdus'][nt.name].update(metadata_dict)
     return metadata
 
 
 @log.log
-def pre_process_alarm_resources(vnf, template, vdu_metadata):
+def pre_process_alarm_resources(vnf, template, vdu_metadata, unique_id=None):
     alarm_resources = dict()
-    matching_metadata = dict()
+    query_metadata = dict()
     alarm_actions = dict()
     for policy in template.policies:
-        if (policy.type_definition.is_derived_from(MONITORING)):
-            matching_metadata =\
-                _process_matching_metadata(vdu_metadata, policy)
+        if policy.type_definition.is_derived_from(MONITORING):
+            query_metadata = _process_query_metadata(
+                vdu_metadata, policy, unique_id)
             alarm_actions = _process_alarm_actions(vnf, policy)
-    alarm_resources['matching_metadata'] = matching_metadata
+    alarm_resources['query_metadata'] = query_metadata
     alarm_resources['alarm_actions'] = alarm_actions
     return alarm_resources
 
 
-def _process_matching_metadata(metadata, policy):
-    matching_mtdata = dict()
+def _process_query_metadata(metadata, policy, unique_id):
+    query_mtdata = dict()
     triggers = policy.entity_tpl['triggers']
     for trigger_name, trigger_dict in triggers.items():
-        if not (trigger_dict.get('metadata') and metadata):
-            raise vnfm.MetadataNotMatched()
-        is_matched = False
-        for vdu_name, metadata_dict in metadata['vdus'].items():
-            if trigger_dict['metadata'] ==\
-                    metadata_dict['metering.vnf']:
-                is_matched = True
-        if not is_matched:
-            raise vnfm.MetadataNotMatched()
-        matching_mtdata[trigger_name] = dict()
-        matching_mtdata[trigger_name]['metadata.user_metadata.vnf'] =\
-            trigger_dict['metadata']
-    return matching_mtdata
+        resource_type = trigger_dict.get('condition').get('resource_type')
+        # TODO(phuoc): currently, Tacker only supports resource_type with
+        # instance value. Other types such as instance_network_interface,
+        # instance_disk can be supported in the future.
+        if resource_type == 'instance':
+            if not (trigger_dict.get('metadata') and metadata):
+                raise vnfm.MetadataNotMatched()
+            is_matched = False
+            for vdu_name, metadata_dict in metadata['vdus'].items():
+                trigger_dict['metadata'] = \
+                    (trigger_dict['metadata'] + '-' + unique_id)[:15]
+                if trigger_dict['metadata'] == \
+                        metadata_dict['metering.server_group']:
+                    is_matched = True
+            if not is_matched:
+                raise vnfm.MetadataNotMatched()
+            query_template = dict()
+            query_template['str_replace'] = dict()
+            query_template['str_replace']['template'] = \
+                '{"=": {"server_group": "scaling_group_id"}}'
+            scaling_group_param = \
+                {'scaling_group_id': trigger_dict['metadata']}
+            query_template['str_replace']['params'] = scaling_group_param
+        else:
+            raise vnfm.InvalidResourceType(resource_type=resource_type)
+        query_mtdata[trigger_name] = query_template
+    return query_mtdata
 
 
 def _process_alarm_actions(vnf, policy):
@@ -387,8 +404,8 @@ def represent_odict(dump, tag, mapping, flow_style=None):
 
 @log.log
 def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
-                               alarm_resources, res_tpl,
-                               vol_res={}, unsupported_res_prop=None):
+                               alarm_resources, res_tpl, vol_res={},
+                               unsupported_res_prop=None, unique_id=None):
     #
     # TODO(bobh) - remove when heat-translator can support literal strings.
     #
@@ -412,19 +429,21 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
         LOG.debug('Added output for %s', outputname)
     if metadata:
         for vdu_name, metadata_dict in metadata['vdus'].items():
+            metadata_dict['metering.server_group'] = \
+                (metadata_dict['metering.server_group'] + '-' + unique_id)[:15]
             if heat_dict['resources'].get(vdu_name):
                 heat_dict['resources'][vdu_name]['properties']['metadata'] =\
                     metadata_dict
-    matching_metadata = alarm_resources.get('matching_metadata')
+    query_metadata = alarm_resources.get('query_metadata')
     alarm_actions = alarm_resources.get('alarm_actions')
-    if matching_metadata:
-        for trigger_name, matching_metadata_dict in matching_metadata.items():
+    if query_metadata:
+        for trigger_name, matching_metadata_dict in query_metadata.items():
             if heat_dict['resources'].get(trigger_name):
-                matching_mtdata = dict()
-                matching_mtdata['matching_metadata'] =\
-                    matching_metadata[trigger_name]
+                query_mtdata = dict()
+                query_mtdata['query'] = \
+                    query_metadata[trigger_name]
                 heat_dict['resources'][trigger_name]['properties'].\
-                    update(matching_mtdata)
+                    update(query_mtdata)
     if alarm_actions:
         for trigger_name, alarm_actions_dict in alarm_actions.items():
             if heat_dict['resources'].get(trigger_name):

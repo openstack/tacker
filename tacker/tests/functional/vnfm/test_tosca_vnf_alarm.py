@@ -13,7 +13,6 @@
 #    under the License.
 import json
 import time
-import unittest
 
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
@@ -139,13 +138,11 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
         self.addCleanup(self.wait_until_vnf_delete, vnf_id,
                         constants.VNF_CIRROS_DELETE_TIMEOUT)
 
-    @unittest.skip("Skip to wait for Heat-translator to support gnocchi alarm")
     def test_vnf_alarm_respawn(self):
         self._test_vnf_tosca_alarm(
             'sample-tosca-alarm-respawn.yaml',
             'alarm and respawn-vnf')
 
-    @unittest.skip("Skip and wait for releasing Heat Translator")
     def test_vnf_alarm_scale(self):
         self._test_vnf_tosca_alarm(
             'sample-tosca-alarm-scale.yaml',

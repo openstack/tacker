@@ -18,7 +18,7 @@ topology_template:
         image: cirros-0.4.0-x86_64-disk
         mgmt_driver: noop
         availability_zone: nova
-        metadata: {metering.vnf: VDU1}
+        metadata: {metering.server_group: VDU1-2e3261d9-1}
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker
@@ -45,13 +45,14 @@ topology_template:
                 event_type:
                     type: tosca.events.resource.utilization
                     implementation: ceilometer
-                meter_name: cpu_util
+                metric: cpu_util
                 condition:
                     threshold: 50
                     constraint: utilization greater_than 50%
-                    period: 600
+                    granularity: 600
                     evaluations: 1
-                    method: average
+                    aggregation_method: mean
+                    resource_type: instance
                     comparison_operator: gt
-                metadata: VDU1
+                metadata: VDU1-2e3261d9-1
                 actions: [respawn, log]

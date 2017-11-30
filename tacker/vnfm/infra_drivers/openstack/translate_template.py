@@ -13,6 +13,7 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
+from oslo_utils import uuidutils
 from toscaparser import tosca_template
 from toscaparser.utils import yamlparser
 from translator.hot import tosca_translator
@@ -275,9 +276,11 @@ class TOSCAToHOT(object):
             LOG.debug("tosca-parser error: %s", str(e))
             raise vnfm.ToscaParserFailed(error_msg_details=str(e))
 
-        metadata = toscautils.get_vdu_metadata(tosca)
-        alarm_resources =\
-            toscautils.pre_process_alarm_resources(self.vnf, tosca, metadata)
+        unique_id = uuidutils.generate_uuid()
+        metadata = toscautils.get_vdu_metadata(tosca, unique_id=unique_id)
+
+        alarm_resources = toscautils.pre_process_alarm_resources(
+            self.vnf, tosca, metadata, unique_id=unique_id)
         monitoring_dict = toscautils.get_vdu_monitoring(tosca)
         mgmt_ports = toscautils.get_mgmt_ports(tosca)
         nested_resource_name = toscautils.get_nested_resources_name(tosca)
@@ -319,7 +322,8 @@ class TOSCAToHOT(object):
 
         heat_template_yaml = toscautils.post_process_heat_template(
             heat_template_yaml, mgmt_ports, metadata, alarm_resources,
-            res_tpl, block_storage_details, self.unsupported_props)
+            res_tpl, block_storage_details, self.unsupported_props,
+            unique_id=unique_id)
 
         self.heat_template_yaml = heat_template_yaml
         self.monitoring_dict = monitoring_dict

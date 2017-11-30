@@ -812,14 +812,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         return trigger
 
     def _handle_vnf_monitoring(self, context, trigger):
-        vnf_dict = trigger['vnf']
-        if trigger['action_name'] in constants.DEFAULT_ALARM_ACTIONS:
-            action = trigger['action_name']
-            LOG.debug('vnf for monitoring: %s', vnf_dict)
-            self._vnf_action.invoke(
-                action, 'execute_action', plugin=self, context=context,
-                vnf_dict=vnf_dict, args={})
 
+        vnf_dict = trigger['vnf']
         # Multiple actions support
         if trigger.get('policy_actions'):
             policy_actions = trigger['policy_actions']

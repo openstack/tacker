@@ -335,6 +335,12 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
                 if events[0].id != last_event_id:
                     if events[0].resource_status == 'SIGNAL_COMPLETE':
                         break
+                else:
+                    # When the number of instance reaches min or max, the below
+                    # comparision will let VNF status turn into ACTIVE state.
+                    if events[0].resource_status == 'CREATE_COMPLETE' or \
+                            events[0].resource_status == 'SIGNAL_COMPLETE':
+                        break
             except Exception as e:
                 error_reason = _("VNF scaling failed for stack %(stack)s with "
                                  "error %(error)s") % {

@@ -18,7 +18,7 @@ resources:
       networks:
       - port: {get_resource: CP1}
       user_data_format: SOFTWARE_CONFIG
-      metadata: {'metering.vnf': 'VDU1'}
+      metadata: {'metering.server_group': VDU1-2e3261d9-1}
     type: OS::Nova::Server
   CP1:
     properties: {network: net_mgmt, port_security_enabled: false}
@@ -30,13 +30,18 @@ resources:
       ram: 512
       vcpus: 2
   vdu_hcpu_usage_respawning:
-    type: OS::Aodh::Alarm
+    type: OS::Aodh::GnocchiAggregationByResourcesAlarm
     properties:
       description: utilization greater_than 50%
-      meter_name: cpu_util
+      metric: cpu_util
       threshold: 50
-      period: 60
-      statistic: avg
+      granularity: 60
+      aggregation_method: mean
+      resource_type: instance
       evaluation_periods: 1
       comparison_operator: gt
-      'matching_metadata': {'metadata.user_metadata.vnf': 'VDU1'}
+      query:
+        str_replace:
+          template: '{"=": {"server_group": "scaling_group_id"}}'
+          params:
+            scaling_group_id: VDU1-2e3261d9-1

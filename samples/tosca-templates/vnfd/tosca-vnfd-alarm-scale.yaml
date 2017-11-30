@@ -18,7 +18,7 @@ topology_template:
         image: cirros-0.4.0-x86_64-disk
         mgmt_driver: noop
         availability_zone: nova
-        metadata: {metering.vnf: SG1}
+        metadata: {metering.server_group: SG1}
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker
@@ -30,30 +30,6 @@ topology_template:
             node: VL1
         - virtualBinding:
             node: VDU1
-    VDU2:
-      type: tosca.nodes.nfv.VDU.Tacker
-      capabilities:
-        nfv_compute:
-          properties:
-            disk_size: 1 GB
-            mem_size: 512 MB
-            num_cpus: 2
-      properties:
-        image: cirros-0.4.0-x86_64-disk
-        mgmt_driver: noop
-        availability_zone: nova
-        metadata: {metering.vnf: SG1}
-
-    CP2:
-      type: tosca.nodes.nfv.CP.Tacker
-      properties:
-        management: true
-        anti_spoofing_protection: false
-      requirements:
-        - virtualLink:
-            node: VL1
-        - virtualBinding:
-            node: VDU2
 
     VL1:
       type: tosca.nodes.nfv.VL
@@ -64,13 +40,13 @@ topology_template:
   policies:
     - SP1:
         type: tosca.policies.tacker.Scaling
-        targets: [VDU1,VDU2]
+        targets: [VDU1]
         properties:
           increment: 1
           cooldown: 120
           min_instances: 1
           max_instances: 3
-          default_instances: 2
+          default_instances: 1
 
     - vdu_cpu_usage_monitoring_policy:
         type: tosca.policies.tacker.Alarming
@@ -79,13 +55,14 @@ topology_template:
                 event_type:
                     type: tosca.events.resource.utilization
                     implementation: ceilometer
-                meter_name: cpu_util
+                metric: cpu_util
                 condition:
-                    threshold: 50
-                    constraint: utilization greater_than 50%
-                    period: 600
+                    threshold: 80
+                    constraint: utilization greater_than 80%
+                    granularity: 60
                     evaluations: 1
-                    method: average
+                    aggregation_method: mean
+                    resource_type: instance
                     comparison_operator: gt
                 metadata: SG1
                 action: [SP1]
@@ -94,13 +71,14 @@ topology_template:
                 event_type:
                     type: tosca.events.resource.utilization
                     implementation: ceilometer
-                meter_name: cpu_util
+                metric: cpu_util
                 condition:
                     threshold: 10
                     constraint: utilization less_than 10%
-                    period: 600
+                    granularity: 60
                     evaluations: 1
-                    method: average
+                    aggregation_method: mean
+                    resource_type: instance
                     comparison_operator: lt
                 metadata: SG1
                 action: [SP1]
