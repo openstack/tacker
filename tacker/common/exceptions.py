@@ -86,14 +86,6 @@ class PolicyNotAuthorized(NotAuthorized):
     message = _("Policy doesn't allow %(action)s to be performed.")
 
 
-class NetworkNotFound(NotFound):
-    message = _("Network %(net_id)s could not be found")
-
-
-class PolicyFileNotFound(NotFound):
-    message = _("Policy configuration policy.json could not be found")
-
-
 class PolicyInitError(TackerException):
     message = _("Failed to init policy %(policy)s because %(reason)s")
 
@@ -102,16 +94,8 @@ class PolicyCheckError(TackerException):
     message = _("Failed to check policy %(policy)s because %(reason)s")
 
 
-class StateInvalid(BadRequest):
-    message = _("Unsupported port state: %(port_state)s")
-
-
 class InUse(TackerException):
     message = _("The resource is inuse")
-
-
-class ResourceExhausted(ServiceUnavailable):
-    pass
 
 
 class MalformedRequestBody(BadRequest):
@@ -128,96 +112,8 @@ class InvalidInput(BadRequest):
     message = _("Invalid input for operation: %(error_message)s.")
 
 
-class InvalidAllocationPool(BadRequest):
-    message = _("The allocation pool %(pool)s is not valid.")
-
-
-class OverlappingAllocationPools(Conflict):
-    message = _("Found overlapping allocation pools:"
-                "%(pool_1)s %(pool_2)s for subnet %(subnet_cidr)s.")
-
-
-class OutOfBoundsAllocationPool(BadRequest):
-    message = _("The allocation pool %(pool)s spans "
-                "beyond the subnet cidr %(subnet_cidr)s.")
-
-
-class MacAddressGenerationFailure(ServiceUnavailable):
-    message = _("Unable to generate unique mac on network %(net_id)s.")
-
-
-class IpAddressGenerationFailure(Conflict):
-    message = _("No more IP addresses available on network %(net_id)s.")
-
-
-class BridgeDoesNotExist(TackerException):
-    message = _("Bridge %(bridge)s does not exist.")
-
-
-class PreexistingDeviceFailure(TackerException):
-    message = _("Creation failed. %(dev_name)s already exists.")
-
-
-class SudoRequired(TackerException):
-    message = _("Sudo privilege is required to run this command.")
-
-
-class QuotaResourceUnknown(NotFound):
-    message = _("Unknown quota resources %(unknown)s.")
-
-
-class OverQuota(Conflict):
-    message = _("Quota exceeded for resources: %(overs)s")
-
-
-class QuotaMissingTenant(BadRequest):
-    message = _("Tenant-id was missing from Quota request")
-
-
-class InvalidQuotaValue(Conflict):
-    message = _("Change would make usage less than 0 for the following "
-                "resources: %(unders)s")
-
-
-class InvalidSharedSetting(Conflict):
-    message = _("Unable to reconfigure sharing settings for network "
-                "%(network)s. Multiple tenants are using it")
-
-
-class InvalidExtensionEnv(BadRequest):
-    message = _("Invalid extension environment: %(reason)s")
-
-
-class ExtensionsNotFound(NotFound):
-    message = _("Extensions not found: %(extensions)s")
-
-
 class InvalidContentType(TackerException):
     message = _("Invalid content type %(content_type)s")
-
-
-class ExternalIpAddressExhausted(BadRequest):
-    message = _("Unable to find any IP address on external "
-                "network %(net_id)s.")
-
-
-class TooManyExternalNetworks(TackerException):
-    message = _("More than one external network exists")
-
-
-class InvalidConfigurationOption(TackerException):
-    message = _("An invalid value was provided for %(opt_name)s: "
-                "%(opt_value)s")
-
-
-class GatewayConflictWithAllocationPools(InUse):
-    message = _("Gateway ip %(ip_address)s conflicts with "
-                "allocation pool %(pool)s")
-
-
-class GatewayIpInUse(InUse):
-    message = _("Current gateway ip %(ip_address)s already in use "
-                "by port %(port_id)s. Unable to update.")
 
 
 class NetworkVlanRangeError(TackerException):
@@ -230,25 +126,8 @@ class NetworkVlanRangeError(TackerException):
         super(NetworkVlanRangeError, self).__init__(**kwargs)
 
 
-class NetworkVxlanPortRangeError(TackerException):
-    message = _("Invalid network VXLAN port range: '%(vxlan_range)s'")
-
-
-class VxlanNetworkUnsupported(TackerException):
-    message = _("VXLAN Network unsupported.")
-
-
 class DuplicatedExtension(TackerException):
     message = _("Found duplicate extension: %(alias)s")
-
-
-class DeviceIDNotOwnedByTenant(Conflict):
-    message = _("The following device_id %(device_id)s is not owned by your "
-                "tenant or matches another tenants router.")
-
-
-class InvalidCIDR(BadRequest):
-    message = _("Invalid CIDR %(input)s given as IP prefix")
 
 
 class MgmtDriverException(TackerException):
