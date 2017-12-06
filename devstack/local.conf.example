@@ -36,14 +36,6 @@ Q_AGENT=openvswitch
 Q_USE_SECGROUP=False
 LIBVIRT_FIREWALL_DRIVER=nova.virt.firewall.NoopFirewallDriver
 
-#PUBLIC NETWORK CONFIGURATION
-Q_USE_PROVIDERNET_FOR_PUBLIC=False
-FLOATING_RANGE=10.12.161.0/24
-Q_FLOATING_ALLOCATION_POOL="start=10.12.161.150,end=10.12.161.201"
-PUBLIC_NETWORK_NAME=external
-PUBLIC_NETWORK_GATEWAY=10.12.161.1
-PUBLIC_PHYSICAL_NETWORK=public
-
 #NET K8S NETWORK CONFIGURATION
 #FIXED_RANGE_K8S=${FIXED_RANGE_K8S:-192.168.72.0/22}
 #NETWORK_GATEWAY_K8S=${NETWORK_GATEWAY_K8S:-192.168.72.1}
@@ -52,14 +44,18 @@ PUBLIC_PHYSICAL_NETWORK=public
 # Required for l3-agent to connect to external-network-bridge
 PUBLIC_BRIDGE=br-ext
 
-#PRIVATE NETWORK CONFIGURATION
-
-NETWORK_GATEWAY=${NETWORK_GATEWAY:-15.0.0.1}
-FIXED_RANGE=${FIXED_RANGE:-15.0.0.0/24}
-
+# Enable heat, networking-sfc, barbican and mistral
 enable_plugin heat https://git.openstack.org/openstack/heat master
 enable_plugin networking-sfc git://git.openstack.org/openstack/networking-sfc master
 enable_plugin barbican https://git.openstack.org/openstack/barbican master
+enable_plugin mistral https://git.openstack.org/openstack/mistral master
+
+#Ceilometer
+#CEILOMETER_PIPELINE_INTERVAL=300
+enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer master
+enable_plugin aodh https://git.openstack.org/openstack/aodh master
+
+#Tacker
 enable_plugin tacker https://git.openstack.org/openstack/tacker master
 
 enable_service n-novnc
@@ -77,3 +73,7 @@ enable_plugin kuryr-kubernetes https://git.openstack.org/openstack/kuryr-kuberne
 enable_plugin neutron-lbaas git://git.openstack.org/openstack/neutron-lbaas master
 enable_plugin devstack-plugin-container https://git.openstack.org/openstack/devstack-plugin-container master
 
+
+[[post-config|/etc/neutron/dhcp_agent.ini]]
+[DEFAULT]
+enable_isolated_metadata = True
