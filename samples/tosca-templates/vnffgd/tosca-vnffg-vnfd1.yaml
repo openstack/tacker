@@ -22,6 +22,17 @@ topology_template:
         config: |
           param0: key1
           param1: key2
+        user_data_format: RAW
+        user_data: |
+          #!/bin/sh
+          cat << EOF >> /etc/network/interfaces
+          auto eth1
+          iface eth1 inet dhcp
+          auto eth2
+          iface eth2 inet dhcp
+          EOF
+          ifup eth1
+          ifup eth2
 
     CP11:
       type: tosca.nodes.nfv.CP.Tacker
