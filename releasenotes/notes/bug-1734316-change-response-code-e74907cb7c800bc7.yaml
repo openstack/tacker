@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixes `bug 1734316`_ which will return correct response codes for below
+    API's:
+
+    - POST /v1.0/vnfds - old_response: 500,  new_response: 409
+    - POST /v1.0/vnfs - old_response: 500,  new_response: 409
+    - POST /v1.0/vims - old_response: 500,  new_response: 409
+    - POST /v1.0/nsds - old_response: 500,  new_response: 409
+    - POST /v1.0/nss - old_response: 500,  new_response: 409
+
+    .. _bug 1734316: https://bugs.launchpad.net/tacker/+bug/1734316

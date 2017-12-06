@@ -160,5 +160,5 @@ class DuplicateResourceName(TackerException):
     message = _("%(resource)s with name %(name)s already exists")
 
 
-class DuplicateEntity(TackerException):
+class DuplicateEntity(Conflict):
     message = _("%(_type)s already exist with given %(entry)s")
