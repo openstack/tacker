@@ -1,22 +1,9 @@
 tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
-description: Sample VNFFG parameterized template
+description: Sample symmetrical VNFFG template (network_dst_port_id and ip_dst_prefix must be set)
 
 topology_template:
-  description: Sample VNFFG parameterized template
-
-  inputs:
-    net_src_port_id:
-        type: string
-        description: Port UUID of source VM.
-
-    dst_port_range:
-        type: string
-        description: Destination port range
-
-    ip_dst_pre:
-        type: string
-        description: Cidr format of destination ip.
+  description: Sample symmetrical VNFFG template
 
   node_templates:
 
@@ -28,10 +15,11 @@ topology_template:
         policy:
           type: ACL
           criteria:
-            - network_src_port_id: { get_input: net_src_port_id }
-              destination_port_range: { get_input: dst_port_range }
+            - network_src_port_id: e8463552-f236-4127-afc2-571f2b1d81bb
+              network_dst_port_id: 8bff0400-a7b8-41eb-bbef-d7cff67a7361
+              ip_dst_prefix: 10.10.0.9/24
+              destination_port_range: 80-1024
               ip_proto: 6
-              ip_dst_prefix: { get_input: ip_dst_pre }
         path:
           - forwarder: VNFD1
             capability: CP12

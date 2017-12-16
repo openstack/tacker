@@ -338,8 +338,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         sess = session.Session(auth=auth_plugin)
         return client_type(session=sess)
 
-    def create_flow_classifier(self, name, fc, symmetrical=False,
-                               auth_attr=None):
+    def create_flow_classifier(self, name, fc, auth_attr=None):
         def _translate_ip_protocol(ip_proto):
             if ip_proto == '1':
                 return 'icmp'
@@ -354,9 +353,6 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
             LOG.warning("auth information required for n-sfc driver")
             return None
 
-        if symmetrical:
-            LOG.warning("n-sfc driver does not support symmetrical")
-            raise NotImplementedError('symmetrical chain not supported')
         LOG.debug('fc passed is %s', fc)
         sfc_classifier_params = {}
         for field in fc:
@@ -386,10 +382,6 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         if not auth_attr:
             LOG.warning("auth information required for n-sfc driver")
             return None
-
-        if symmetrical:
-            LOG.warning("n-sfc driver does not support symmetrical")
-            raise NotImplementedError('symmetrical chain not supported')
 
         neutronclient_ = NeutronClient(auth_attr)
         port_pair_group_list = []
@@ -445,6 +437,9 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         port_chain['description'] = 'port-chain for Tacker VNFFG'
         port_chain['port_pair_groups'] = port_pair_group_list
         port_chain['flow_classifiers'] = fc_ids
+        if symmetrical:
+            port_chain['chain_parameters'] = {}
+            port_chain['chain_parameters']['symmetric'] = True
         return neutronclient_.port_chain_create(port_chain)
 
     def update_chain(self, chain_id, fc_ids, vnfs,
@@ -466,15 +461,10 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         neutronclient_ = NeutronClient(auth_attr)
         neutronclient_.port_chain_delete(chain_id)
 
-    def update_flow_classifier(self, fc_id, fc,
-                               symmetrical=False, auth_attr=None):
+    def update_flow_classifier(self, fc_id, fc, auth_attr=None):
         if not auth_attr:
             LOG.warning("auth information required for n-sfc driver")
             return None
-
-        if symmetrical:
-            LOG.warning("n-sfc driver does not support symmetrical")
-            raise NotImplementedError('symmetrical chain not supported')
 
         # for now, the only parameters allowed for flow-classifier-update
         # is 'name' and/or 'description'.

@@ -52,14 +52,12 @@ class VnffgAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def create_flow_classifier(self, name, fc, symmetrical=False,
-                               auth_attr=None):
+    def create_flow_classifier(self, name, fc, auth_attr=None):
         """Create flow classifier and returns an ID"""
         pass
 
     @abc.abstractmethod
-    def update_flow_classifier(self, fc_id, fc, symmetrical=False,
-                               auth_attr=None):
+    def update_flow_classifier(self, fc_id, fc, auth_attr=None):
         """Update flow classifier"""
         pass
 

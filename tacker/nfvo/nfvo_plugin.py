@@ -344,8 +344,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                              'create_flow_classifier',
                                              name=vnffg_dict['name'],
                                              fc=match,
-                                             auth_attr=vim_obj['auth_cred'],
-                                             symmetrical=sfc['symmetrical']))
+                                             auth_attr=vim_obj['auth_cred']))
             sfc_id = self._vim_drivers.invoke(driver_type,
                                               'create_chain',
                                               name=vnffg_dict['name'],
@@ -415,8 +414,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 self._vim_drivers.invoke(driver_type, 'update_flow_classifier',
                                          fc_id=classifier['instance_id'],
                                          fc=classifier['match'],
-                                         auth_attr=vim_obj['auth_cred'],
-                                         symmetrical=new_vnffg['symmetrical'])
+                                         auth_attr=vim_obj['auth_cred'])
                 classifier_instances.append(classifier['instance_id'])
             self._vim_drivers.invoke(driver_type, 'update_chain',
                                      vnfs=sfc['chain'],
