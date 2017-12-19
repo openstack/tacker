@@ -30,8 +30,8 @@ CONF = cfg.CONF
 
 class KubernetesHTTPAPI(object):
 
-    def get_k8sClient(self, auth_plugin):
-        config = client.ConfigurationObject()
+    def get_k8s_client(self, auth_plugin):
+        config = client.Configuration()
         config.host = auth_plugin['auth_url']
         if ('username' in auth_plugin) and ('password' in auth_plugin)\
                 and (auth_plugin['password'] is not None):
@@ -48,20 +48,24 @@ class KubernetesHTTPAPI(object):
             config.verify_ssl = True
         else:
             config.verify_ssl = False
-        k8s_client = api_client.ApiClient(config=config)
+        k8s_client = api_client.ApiClient(configuration=config)
         return k8s_client
 
-    def initialize_ExtensionApiClient(self, auth):
-        k8s_client = self.get_k8sClient(auth_plugin=auth)
+    def get_extension_api_client(self, auth):
+        k8s_client = self.get_k8s_client(auth_plugin=auth)
         return client.ExtensionsV1beta1Api(api_client=k8s_client)
 
-    def initialize_CoreApiV1Client(self, auth):
-        k8s_client = self.get_k8sClient(auth_plugin=auth)
+    def get_core_v1_api_client(self, auth):
+        k8s_client = self.get_k8s_client(auth_plugin=auth)
         return client.CoreV1Api(api_client=k8s_client)
 
-    def initialize_CoreApiClient(self, auth):
-        k8s_client = self.get_k8sClient(auth_plugin=auth)
+    def get_core_api_client(self, auth):
+        k8s_client = self.get_k8s_client(auth_plugin=auth)
         return client.CoreApi(api_client=k8s_client)
+
+    def get_scaling_api_client(self, auth):
+        k8s_client = self.get_k8s_client(auth_plugin=auth)
+        return client.AutoscalingV1Api(api_client=k8s_client)
 
     @staticmethod
     def create_ca_cert_tmp_file(ca_cert):

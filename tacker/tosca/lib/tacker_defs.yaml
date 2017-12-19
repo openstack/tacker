@@ -169,6 +169,36 @@ data_types:
         description: The mac address allowed to be paired with specific virtual IP.
 
 
+  tosca.datatypes.nfv.VnfcConfigurableProperties:
+    properties:
+      num_cpus:
+        type: float
+        required: false
+      mem_size:
+        type: string
+        required: false
+      image:
+        type: string
+        required: false
+      command:
+        type: list
+        entry_schema:
+          type: string
+        required: false
+      args:
+        type: list
+        entry_schema:
+          type: string
+        required: false
+      ports:
+        type: list
+        entry_schema:
+          type: string
+        required: false
+      config:
+        type: string
+        required: false
+
 policy_types:
   tosca.policies.tacker.Placement:
     derived_from: tosca.policies.Root
@@ -279,6 +309,10 @@ policy_types:
           type: string
         required: true
         description: List of Scaling nodes.
+      target_cpu_utilization_percentage:
+        type: integer
+        required: false
+        description: The target average CPU utilization over all the pods which is used in Kubernetes environment
       min_instances:
         type: integer
         required: true

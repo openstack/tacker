@@ -70,9 +70,29 @@ class VimClient(object):
     def _build_vim_auth(self, context, vim_info):
         LOG.debug('VIM id is %s', vim_info['id'])
         vim_auth = vim_info['auth_cred']
-        vim_auth['password'] = self._decode_vim_auth(context,
-                                                     vim_info['id'],
-                                                     vim_auth)
+
+        # decode password
+        if ('password' in vim_auth) and (vim_auth['password'] is not None):
+            vim_auth['password'] = self._decode_vim_auth(context,
+                                                         vim_info['id'],
+                                                         vim_auth,
+                                                         vim_auth['password'])
+        # decode bearer_token
+        if 'bearer_token' in vim_auth:
+            vim_auth['bearer_token'] = self.\
+                _decode_vim_auth(context,
+                                 vim_info['id'],
+                                 vim_auth,
+                                 vim_auth['bearer_token'])
+        # decode ssl_ca_cert
+        if ('ssl_ca_cert' in vim_auth) and \
+                (vim_auth['ssl_ca_cert'] is not None):
+            vim_auth['ssl_ca_cert'] = self.\
+                _decode_vim_auth(context,
+                                 vim_info['id'],
+                                 vim_auth,
+                                 vim_auth['ssl_ca_cert'])
+
         vim_auth['auth_url'] = vim_info['auth_url']
 
         # These attributes are needless for authentication
@@ -83,13 +103,13 @@ class VimClient(object):
                 vim_auth.pop(attr, None)
         return vim_auth
 
-    def _decode_vim_auth(self, context, vim_id, auth):
+    def _decode_vim_auth(self, context, vim_id, auth, secret_value):
         """Decode Vim credentials
 
         Decrypt VIM cred, get fernet Key from local_file_system or
         barbican.
         """
-        cred = auth['password'].encode('utf-8')
+        cred = secret_value.encode('utf-8')
         if auth.get('key_type') == 'barbican_key':
             keystone_conf = CONF.keystone_authtoken
             secret_uuid = auth['secret_uuid']

@@ -1,0 +1,37 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+description: A sample containerized VNF with two containers per VDU
+
+metadata:
+    template_name: sample-tosca-vnfd
+
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        namespace: default
+        mapping_ports:
+          - "80:80"
+          - "88:88"
+        service_type: NodePort
+        vnfcs:
+          front_end:
+            num_cpus: 0.5
+            mem_size: 512 MB
+            image: nginx
+            ports:
+              - "80"
+          rss_reader:
+            num_cpus: 0.5
+            mem_size: 512 MB
+            image: nickchase/rss-php-nginx:v1
+            ports:
+              - "88"
+  policies:
+    - SP1:
+        type: tosca.policies.tacker.Scaling
+        targets: [VDU1]
+        properties:
+          min_instances: 1
+          max_instances: 3
+          target_cpu_utilization_percentage: 40

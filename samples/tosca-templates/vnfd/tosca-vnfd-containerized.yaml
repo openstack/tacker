@@ -1,0 +1,36 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+description: A sample containerized VNF with one container per VDU
+
+metadata:
+    template_name: sample-tosca-vnfd
+
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        namespace: default
+        mapping_ports:
+          - "80:80"
+        labels:
+          - "app: webserver"
+        service_type: ClusterIP
+        vnfcs:
+          web_server:
+            num_cpus: 0.2
+            mem_size: 100 MB
+            image: k8s.gcr.io/hpa-example
+            ports:
+              - "80"
+            config: |
+              param0: key1
+              param1: key2
+
+  policies:
+    - SP1:
+        type: tosca.policies.tacker.Scaling
+        targets: [VDU1]
+        properties:
+          min_instances: 1
+          max_instances: 10
+          target_cpu_utilization_percentage: 50

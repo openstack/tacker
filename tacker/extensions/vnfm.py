@@ -156,6 +156,18 @@ class InvalidParamsForSM(exceptions.InvalidInput):
     message = _("Please provide parameters for substitution mappings")
 
 
+class InvalidKubernetesScalingPolicyNumber(exceptions.InvalidInput):
+    message = _("Please provide only one Scaling policy")
+
+
+class InvalidKubernetesNetworkNumber(exceptions.InvalidInput):
+    message = _("Please provide one network for all vdus")
+
+
+class InvalidKubernetesInputParameter(exceptions.InvalidInput):
+    message = _("Found unsupported keys for %(found_keys)s ")
+
+
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("invalid data format for service list: '%s'") % data
