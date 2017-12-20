@@ -90,6 +90,7 @@ class TestOpenstack_Driver(base.TestCase):
                 'auth_cred': {'username': 'test_user',
                               'password': 'test_password',
                               'user_domain_name': 'default',
+                              'cert_verify': 'True',
                               'auth_url': 'http://localhost:5000'},
                 'name': 'VIM0',
                 'vim_project': {'name': 'test_project',
@@ -103,6 +104,7 @@ class TestOpenstack_Driver(base.TestCase):
                               'user_domain_name': 'default',
                               'key_type': 'barbican_key',
                               'secret_uuid': 'fake-secret-uuid',
+                              'cert_verify': 'True',
                               'auth_url': 'http://localhost:5000'},
                 'name': 'VIM0',
                 'vim_project': {'name': 'test_project',
@@ -131,8 +133,9 @@ class TestOpenstack_Driver(base.TestCase):
         mock_ks_client = mock.Mock(version='v2.0', **attrs)
         self.keystone.get_version.return_value = keystone_version
         auth_obj = {'tenant_name': 'test_project', 'username': 'test_user',
-                    'password': 'test_password', 'auth_url':
-                    'http://localhost:5000/v2.0', 'tenant_id': None}
+                    'password': 'test_password', 'cert_verify': 'True',
+                    'auth_url': 'http://localhost:5000/v2.0',
+                    'tenant_id': None}
         self._test_register_vim(self.vim_obj, mock_ks_client)
         self.keystone.initialize_client.assert_called_once_with(
             version=keystone_version, **auth_obj)
