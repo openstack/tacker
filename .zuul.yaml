@@ -24,10 +24,12 @@
       - openstack/tacker
       - openstack/tacker-horizon
     vars:
+      test_matrix_configs: ['neutron']
       devstack_services:
         horizon: true
         tacker: true
         tacker-conductor: true
+        swift: false
       devstack_plugins:
         heat: https://git.openstack.org/openstack/heat
         networking-sfc: https://git.openstack.org/openstack/networking-sfc
