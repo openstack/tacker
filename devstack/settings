@@ -7,9 +7,6 @@ if [ "${TACKER_MODE}" == "all" ]; then
     disable_service n-net
     VIRT_DRIVER=libvirt
 
-    #enable_service q-lbaas
-    #enable_service q-fwaas
-
     # TACKER_NEUTRON_AGENTS can be disabled by adding
     # TACKER_NEUTRON_AGENTS='' in local.conf if neutron agents are running on a separate node
     TACKER_NEUTRON_AGENTS=${TACKER_NEUTRON_AGENTS:-q-agt,q-dhcp,q-meta,q-l3}
@@ -24,7 +21,6 @@ if [ "${TACKER_MODE}" == "all" ]; then
     enable_service tacker
     # enable tacker-conductor will make systemctl enable conductor service
     enable_service tacker-conductor
-
     MGMT_PHYS_NET=${MGMT_PHYS_NET:-mgmtphysnet0}
     BR_MGMT=${BR_MGMT:-br-mgmt0}
     NET_MGMT=${NET_MGMT:-net_mgmt}
