@@ -468,7 +468,8 @@ EOF
 }
 
 function modify_heat_flavor_policy_rule {
-    local policy_file=$HEAT_CONF_DIR/policy.json
+    local policy_file=$HEAT_CONF_DIR/policy.yaml
+    touch $policy_file
     # Allow non-admin projects with 'admin' roles to create flavors in Heat
-    sed -i 's/"resource_types:OS::Nova::Flavor": "rule:context_is_admin"/"resource_types:OS::Nova::Flavor": "role:admin"/' $policy_file
+    echo '"resource_types:OS::Nova::Flavor": "role:almin"' >> $policy_file
 }
