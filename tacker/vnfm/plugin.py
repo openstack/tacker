@@ -32,11 +32,11 @@ from tacker.common import utils
 from tacker.db.vnfm import vnfm_db
 from tacker.extensions import vnfm
 from tacker.plugins.common import constants
+from tacker.tosca import utils as toscautils
 from tacker.vnfm.mgmt_drivers import constants as mgmt_constants
 from tacker.vnfm import monitor
 from tacker.vnfm import vim_client
 
-from tacker.tosca import utils as toscautils
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -143,6 +143,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             cfg.CONF.tacker.policy_action)
         self._vnf_monitor = monitor.VNFMonitor(self.boot_wait)
         self._vnf_alarm_monitor = monitor.VNFAlarmMonitor()
+        self._vnf_app_monitor = monitor.VNFAppMonitor()
 
     def spawn_n(self, function, *args, **kwargs):
         self._pool.spawn_n(function, *args, **kwargs)
@@ -246,6 +247,10 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                     vnf_dict['attributes']['alarming_policy'] = vnf_dict['id']
                     vnf_dict['attributes'].update(alarm_url)
                     break
+
+    def add_vnf_to_appmonitor(self, context, vnf_dict):
+        appmonitor = self._vnf_app_monitor.create_app_dict(context, vnf_dict)
+        self._vnf_app_monitor.add_to_appmonitor(appmonitor, vnf_dict)
 
     def config_vnf(self, context, vnf_dict):
         config = vnf_dict['attributes'].get('config')
@@ -392,6 +397,10 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
 
         def create_vnf_wait():
             self._create_vnf_wait(context, vnf_dict, vim_auth, infra_driver)
+
+            if 'app_monitoring_policy' in vnf_dict['attributes']:
+                self.add_vnf_to_appmonitor(context, vnf_dict)
+
             if vnf_dict['status'] is not constants.ERROR:
                 self.add_vnf_to_monitor(context, vnf_dict)
             self.config_vnf(context, vnf_dict)

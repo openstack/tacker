@@ -13,6 +13,89 @@ data_types:
           type: string
         required: false
 
+  tosca.datatypes.tacker.AppActionMap:
+    properties:
+      condition:
+        type: map
+        entry_schema:
+          type: string
+        required: false
+      actionname:
+        type: string
+        required: false
+      cmd-action:
+        type: string
+        required: false
+
+  tosca.datatypes.tacker.AppInfoParams:
+    properties:
+      app_name:
+        type: string
+        required: true
+      app_port:
+        type: string
+        required: true
+      ssh_username:
+        type: string
+        required: false
+      ssh_password:
+        type: string
+        required: false
+      app_status:
+        type: tosca.dataypes.tacker.AppActionMap
+        required: false
+      app_memory:
+        type: tosca.dataypes.tacker.AppActionMap
+        required: false
+
+  tosca.datatypes.tacker.OSInfoParams:
+    properties:
+      os_agent_info:
+        type: tosca.dataypes.tacker.AppActionMap
+        required: false
+      os_proc_value:
+        type: tosca.datatypes.tacker.AppActionMap
+        required: false
+      os_cpu_load:
+        type: tosca.datatypes.tacker.AppActionMap
+        required: false
+      os_cpu_usage:
+        type: tosca.datatypes.tacker.AppActionMap
+        required: false
+
+
+  tosca.datatypes.tacker.AppMonitoringParams:
+    properties:
+      application:
+        type: tosca.datatypes.tacker.AppInfoParams
+        required: false
+      OS:
+        type: tosca.datatypes.tacker.OSInfoParams
+        required: false
+
+  tosca.datatypes.tacker.AppMonitoringType:
+    properties:
+      name:
+        type: string
+        required: true
+      zabbix_username:
+        type: string
+        required: true
+      zabbix_password:
+        type: string
+        required: true
+      zabbix_server_ip:
+        type: string
+        required: true
+      zabbix_server_port:
+        type: int
+        required: true
+      parameters:
+        type: tosca.datatypes.tacker.AppMonitoringParams
+        required: false
+
+
+
   tosca.datatypes.tacker.MonitoringParams:
     properties:
       monitoring_delay:
@@ -45,6 +128,8 @@ data_types:
       parameters:
         type: tosca.datatypes.tacker.MonitoringParams
         required: false
+
+
 
   tosca.datatypes.compute_properties:
     properties:
@@ -82,6 +167,7 @@ data_types:
         type: string
         required: false
         description: The mac address allowed to be paired with specific virtual IP.
+
 
 policy_types:
   tosca.policies.tacker.Placement:
@@ -121,6 +207,20 @@ policy_types:
           type: string
         required: true
 
+  tosca.policies.tacker.AppMonitoring:
+    derived_from: tosca.policies.Root
+    properties:
+      name:
+        type: string
+        required: true
+      parameters:
+        type: map
+        entry_schema:
+          type: string
+        required: false
+
+
+
   tosca.policies.tacker.Monitoring.NoOp:
     derived_from: tosca.policies.tacker.Monitoring
     properties:
@@ -135,6 +235,12 @@ policy_types:
     derived_from: tosca.policies.tacker.Monitoring.Ping
     properties:
       name: http-ping
+
+  tosca.policies.tacker.Monitoring.Zabbix:
+    derived_from: tosca.policies.tacker.Appmonitoring
+    properties:
+      name: zabbix
+
 
   tosca.policies.tacker.Alarming:
     derived_from: tosca.policies.Monitoring

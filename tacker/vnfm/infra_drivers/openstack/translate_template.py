@@ -60,6 +60,7 @@ class TOSCAToHOT(object):
         self.nested_resources = dict()
         self.fields = None
         self.STACK_FLAVOR_EXTRA = cfg.CONF.openstack_vim.flavor_extra_specs
+        self.appmonitoring_dict = None
 
     @log.log
     def generate_hot(self):
@@ -78,6 +79,9 @@ class TOSCAToHOT(object):
         if self.monitoring_dict:
             self.vnf['attributes']['monitoring_policy'] = jsonutils.dumps(
                 self.monitoring_dict)
+        if self.appmonitoring_dict:
+            self.vnf['attributes']['app_monitoring_policy'] = \
+                jsonutils.dumps(self.appmonitoring_dict)
 
     @log.log
     def _get_vnfd(self):
@@ -250,11 +254,17 @@ class TOSCAToHOT(object):
                 LOG.debug("Params not Well Formed: %s", str(e))
                 raise vnfm.ParamYAMLNotWellFormed(error_msg_details=str(e))
 
-        block_storage_details = toscautils.get_block_storage_details(vnfd_dict)
+        appmonitoring_dict = \
+            toscautils.get_vdu_applicationmonitoring(vnfd_dict)
+
+        block_storage_details = toscautils.get_block_storage_details(
+            vnfd_dict)
         toscautils.updateimports(vnfd_dict)
         if 'substitution_mappings' in str(vnfd_dict):
-            toscautils.check_for_substitution_mappings(vnfd_dict,
-                parsed_params)
+            toscautils.check_for_substitution_mappings(
+                vnfd_dict,
+                parsed_params
+            )
 
         try:
             tosca = tosca_template.ToscaTemplate(parsed_params=parsed_params,
@@ -314,6 +324,7 @@ class TOSCAToHOT(object):
         self.heat_template_yaml = heat_template_yaml
         self.monitoring_dict = monitoring_dict
         self.metadata = metadata
+        self.appmonitoring_dict = appmonitoring_dict
 
     @log.log
     def represent_odict(self, dump, tag, mapping, flow_style=None):

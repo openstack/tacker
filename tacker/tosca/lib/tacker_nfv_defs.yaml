@@ -163,7 +163,7 @@ node_types:
         type: string
         required: false
       image:
-#        type: tosca.artifacts.Deployment.Image.VM
+#       type: tosca.artifacts.Deployment.Image.VM
         type: string
         required: false
       flavor:
@@ -186,6 +186,13 @@ node_types:
 #        type: tosca.policies.tacker.Placement
         type: string
         required: false
+      app_monitoring_policy:
+#        type: tosca.policies.tacker.AppMonitoring
+#        type: tosca.datatypes.tacker.AppMonitoringType
+        type: map
+        required: false
+
+
 
       monitoring_policy:
 #        type: tosca.policies.tacker.Monitoring
