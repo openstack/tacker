@@ -326,6 +326,11 @@ function tacker_horizon_install {
     restart_apache_server
 }
 
+function tacker_horizon_uninstall {
+    sudo rm -f  $DEST/horizon/openstack_dashboard/enabled/_80_nfv.py
+    restart_apache_server
+}
+
 function openstack_image_create {
     image=$1
     disk_format=raw
