@@ -50,6 +50,8 @@ if is_service_enabled tacker; then
 
     if [[ "$1" == "unstack" ]]; then
         # Shut down tacker services
+        echo_summary "Uninstall tacker horizon"
+        tacker_horizon_uninstall
 	stop_tacker
     fi
 
