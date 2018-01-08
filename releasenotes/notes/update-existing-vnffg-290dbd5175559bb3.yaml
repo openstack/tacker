@@ -1,0 +1,5 @@
+---
+features:
+  - Update an existing VNFFG. This functionality gives the ability
+    to update an existing VNFFG's components such as NFP, classifiers and
+    chain.

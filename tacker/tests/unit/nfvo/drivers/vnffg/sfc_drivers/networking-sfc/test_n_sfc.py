@@ -134,22 +134,49 @@ class TestChainSFC(base.TestCase):
         self.assertIsNotNone(result)
 
     def test_update_flow_classifier(self):
+        auth_attr = utils.get_vim_auth_obj()
         flow_classifier = {'name': 'next_fake_fc',
-                           'description': 'fake flow-classifier',
                            'source_port_range': '2005-2010',
                            'ip_proto': 6,
                            'destination_port_range': '80-180'}
+
+        fc_id = self.sfc_driver.\
+            create_flow_classifier(name='fake_ffg', fc=flow_classifier,
+                                   auth_attr=utils.get_vim_auth_obj())
+
+        flow_classifier_update = {'name': 'next_fake_fc_two',
+                                  'instance_id': None,
+                                  'status': 'PENDING_CREATE',
+                                  'match': {'source_port_range': '5-10',
+                                            'ip_proto': 17,
+                                            'destination_port_range': '2-4'}}
+
         fc_id = self.sfc_driver.\
             create_flow_classifier(name='fake_ffg', fc=flow_classifier,
                                    auth_attr=utils.get_vim_auth_obj())
 
         self.assertIsNotNone(fc_id)
 
-        flow_classifier['description'] = 'next fake flow-classifier'
+        vnf_1 = {'name': 'test_create_chain_vnf_1',
+                 'connection_points': [uuidutils.generate_uuid(),
+                                       uuidutils.generate_uuid()]}
+        vnf_2 = {'name': 'test_create_chain_vnf_2',
+                 'connection_points': [uuidutils.generate_uuid(),
+                                       uuidutils.generate_uuid()]}
+        vnf_3 = {'name': 'test_create_chain_vnf_3',
+                 'connection_points': [uuidutils.generate_uuid(),
+                                       uuidutils.generate_uuid()]}
+        vnfs = [vnf_1, vnf_2, vnf_3]
+
+        chain_id = self.sfc_driver.create_chain(name='fake_ffg',
+                                                fc_ids=fc_id,
+                                                vnfs=vnfs,
+                                                auth_attr=auth_attr)
+        self.assertIsNotNone(chain_id)
 
         result = self.sfc_driver.\
-            update_flow_classifier(fc_id=fc_id,
-                                   fc=flow_classifier,
+            update_flow_classifier(chain_id=chain_id,
+                                   fc=flow_classifier_update,
                                    auth_attr=utils.get_vim_auth_obj())
         self.assertIsNotNone(result)
 

@@ -1,0 +1,37 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: example template for update
+
+topology_template:
+  description: Example VNFFG template for update
+
+  node_templates:
+
+    Forwarding_path1:
+      type: tosca.nodes.nfv.FP.Tacker
+      description: creates path (CP11->CP12->CP32)
+      properties:
+        id: 51
+        policy:
+          type: ACL
+          criteria:
+            - network_name: tenant2_net
+              source_port_range: 80-1024
+              ip_proto: 17
+              ip_dst_prefix: 192.168.1.3/24
+        path:
+          - forwarder: VNF1
+            capability: CP11
+
+  groups:
+    VNFFG1:
+      type: tosca.groups.nfv.VNFFG
+      description: HTTP to Corporate Net
+      properties:
+        vendor: tacker
+        version: 1.0
+        number_of_endpoints: 1
+        dependent_virtual_link: [VL1]
+        connection_point: [CP11]
+        constituent_vnfs: [VNF1]
+      members: [Forwarding_path1]
