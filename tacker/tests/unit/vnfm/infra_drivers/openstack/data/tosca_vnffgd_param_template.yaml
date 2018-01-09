@@ -13,17 +13,19 @@ topology_template:
   node_templates:
 
     Forwarding_path1:
-      type: tosca.nodes.nfv.FP.Tacker
+      type: tosca.nodes.nfv.FP.TackerV2
       description: creates path (CP11->CP12->CP32)
       properties:
         id: 51
         policy:
           type: ACL
           criteria:
-            - network_src_port_id: { get_input: net_src_port_id }
-            - destination_port_range: 80-1024
-            - ip_proto: 6
-            - ip_dst_prefix: 192.168.1.2/24
+            - name: classifier_one
+              classifier:
+                network_src_port_id: { get_input: net_src_port_id }
+                destination_port_range: 80-1024
+                ip_proto: 6
+                ip_dst_prefix: 192.168.1.2/24
         path:
           - forwarder: VNF1
             capability: CP11

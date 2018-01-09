@@ -137,6 +137,8 @@ class VnffgChain(model_base.BASE, models_v1.HasTenant, models_v1.HasId):
 class VnffgClassifier(model_base.BASE, models_v1.HasTenant, models_v1.HasId):
     """VNFFG NFP Classifier Data Model"""
 
+    name = sa.Column(sa.String(255), nullable=True)
+
     status = sa.Column(sa.String(255), nullable=False)
 
     instance_id = sa.Column(sa.String(255), nullable=True)
@@ -379,12 +381,12 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             nfp_id = uuidutils.generate_uuid()
             sfc_id = uuidutils.generate_uuid()
 
-            matches = self._policy_to_acl_criteria(context, template_db,
+            classifiers = self._policy_to_acl_criteria(context, template_db,
                                                    nfp_dict['name'],
                                                    vnf_mapping)
-            LOG.debug('acl_matches %s', matches)
+            LOG.debug('classifiers %s', classifiers)
 
-            classifier_ids = [uuidutils.generate_uuid() for i in matches]
+            classifier_ids = [uuidutils.generate_uuid() for i in classifiers]
 
             nfp_db = VnffgNfp(id=nfp_id, vnffg_id=vnffg_id,
                               tenant_id=tenant_id,
@@ -410,6 +412,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             for i, classifier_id in enumerate(classifier_ids):
 
                 sfcc_db = VnffgClassifier(id=classifier_id,
+                                          name=classifiers[i]['name'],
                                           tenant_id=tenant_id,
                                           status=constants.PENDING_CREATE,
                                           nfp_id=nfp_id,
@@ -419,7 +422,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 match_db_table = ACLMatchCriteria(
                     id=uuidutils.generate_uuid(),
                     vnffgc_id=classifier_id,
-                    **matches[i])
+                    **classifiers[i]['match'])
 
                 context.session.add(match_db_table)
 
@@ -667,13 +670,26 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         if 'criteria' not in policy:
             raise nfvo.NfpPolicyCriteriaError(
                 error="Missing criteria in policy")
+        validation_list = []
+        for item in policy['criteria']:
+            if item.get('name') is None:
+                LOG.warning('The unnamed classifier approach'
+                            ' will be deprecated in subsequent'
+                            ' releases')
+                validation_list.append(item)
+            else:
+                validation_list.append(item['classifier'])
 
-        self._validate_criteria(policy['criteria'])
+        self._validate_criteria(validation_list)
 
-        matches = []
+        classifiers = []
         for criteria in policy['criteria']:
             match = dict()
-            for key, val in criteria.items():
+            if criteria.get('name') is None:
+                criteria_dict = criteria.copy()
+            else:
+                criteria_dict = criteria['classifier'].copy()
+            for key, val in criteria_dict.items():
                 if key in MATCH_CRITERIA:
                     match.update(self._convert_criteria(context, key, val,
                                                         vnf_mapping))
@@ -681,9 +697,10 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                     raise nfvo.NfpPolicyCriteriaError(error="Unsupported "
                                                       "criteria: "
                                                       "{}".format(key))
-            matches.append(match)
+            classifiers.append({'name': criteria.get('name'),
+                                'match': match})
 
-        return matches
+        return classifiers
 
     def _convert_criteria(self, context, criteria, value, vnf_mapping):
         """Method is used to convert criteria to proper db value from template
@@ -1053,8 +1070,8 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         res = {
             'match': self._make_acl_match_dict(classifier_db.match)
         }
-        key_list = ('id', 'tenant_id', 'instance_id', 'status', 'chain_id',
-                    'nfp_id')
+        key_list = ('id', 'name', 'tenant_id', 'instance_id', 'status',
+                    'chain_id', 'nfp_id')
         res.update((key, classifier_db[key]) for key in key_list)
         return self._fields(res, fields)
 

@@ -1,0 +1,5 @@
+---
+features:
+  - Add names to classifiers through VNFFG template.This functionality
+    allows the identification and the categorization of the different
+    classifiers according to their specific use.
