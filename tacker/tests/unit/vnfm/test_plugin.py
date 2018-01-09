@@ -23,6 +23,7 @@ import yaml
 from tacker import context
 from tacker.db.common_services import common_services_db_plugin
 from tacker.db.nfvo import nfvo_db
+from tacker.db.nfvo import ns_db
 from tacker.db.vnfm import vnfm_db
 from tacker.extensions import vnfm
 from tacker.plugins.common import constants
@@ -343,6 +344,66 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             self.context, evt_type=constants.RES_EVT_DELETE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
             tstamp=mock.ANY, details=mock.ANY)
+
+    def _insert_dummy_ns_template(self):
+        session = self.context.session
+        attributes = {
+            u'nsd': 'imports: [VNF1, VNF2]\ntopology_template:\n  inputs:\n  '
+                    '  vl1_name: {default: net_mgmt, description: name of VL1'
+                    ' virtuallink, type: string}\n    vl2_name: {default: '
+                    'net0, description: name of VL2 virtuallink, type: string'
+                    '}\n  node_templates:\n    VL1:\n      properties:\n     '
+                    '   network_name: {get_input: vl1_name}\n        vendor: '
+                    'tacker\n      type: tosca.nodes.nfv.VL\n    VL2:\n      '
+                    'properties:\n        network_name: {get_input: vl2_name}'
+                    '\n        vendor: tacker\n      type: tosca.nodes.nfv.VL'
+                    '\n    VNF1:\n      requirements:\n      - {virtualLink1: '
+                    'VL1}\n      - {virtualLink2: VL2}\n      type: tosca.node'
+                    's.nfv.VNF1\n    VNF2: {type: tosca.nodes.nfv.VNF2}\ntosca'
+                    '_definitions_version: tosca_simple_profile_for_nfv_1_0_0'
+                    '\n'}
+        nsd_template = ns_db.NSD(
+            id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='fake_template',
+            vnfds={'tosca.nodes.nfv.VNF1': 'vnf1',
+                   'tosca.nodes.nfv.VNF2': 'vnf2'},
+            description='fake_nsd_template_description',
+            deleted_at=datetime.min,
+            template_source='onboarded')
+        session.add(nsd_template)
+        for (key, value) in attributes.items():
+            attribute_db = ns_db.NSDAttribute(
+                id=uuidutils.generate_uuid(),
+                nsd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                key=key,
+                value=value)
+            session.add(attribute_db)
+        session.flush()
+        return nsd_template
+
+    def _insert_dummy_ns(self):
+        session = self.context.session
+        ns = ns_db.NS(
+            id='ba6bf017-f6f7-45f1-a280-57b073bf78ea',
+            name='dummy_ns',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            status='ACTIVE',
+            nsd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            description='dummy_ns_description',
+            vnf_ids='[5761579e-d6f3-49ad-8bc3-a9cb73477846,'
+                    '6261579e-d6f3-49ad-8bc3-a9cb974778fe]',
+            deleted_at=datetime.min)
+        session.add(ns)
+        session.flush()
+        return ns
+
+    def test_delete_vnf_of_active_ns(self):
+        self._insert_dummy_ns_template()
+        self._insert_dummy_ns()
+        self.assertRaises(vnfm.VNFInUse, self.vnfm_plugin.delete_vnf,
+            self.context, '6261579e-d6f3-49ad-8bc3-a9cb974778fe')
 
     def test_update_vnf(self):
         self._insert_dummy_device_template()

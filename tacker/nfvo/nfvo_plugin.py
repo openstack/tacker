@@ -805,6 +805,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
     def delete_ns(self, context, ns_id):
         ns = super(NfvoPlugin, self).get_ns(context, ns_id)
         vim_res = self.vim_client.get_vim(context, ns['vim_id'])
+        super(NfvoPlugin, self).delete_ns_pre(context, ns_id)
         driver_type = vim_res['vim_type']
         workflow = None
         try:
@@ -835,7 +836,6 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                          auth_dict=self.get_auth_dict(context))
 
                 raise ex
-        super(NfvoPlugin, self).delete_ns(context, ns_id)
 
         def _delete_ns_wait(ns_id, execution_id):
             exec_state = "RUNNING"

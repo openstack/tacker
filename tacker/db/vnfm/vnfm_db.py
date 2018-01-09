@@ -33,6 +33,7 @@ from tacker.db.common_services import common_services_db_plugin
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
+from tacker.db.nfvo import ns_db
 from tacker.db import types
 from tacker.extensions import vnfm
 from tacker import manager
@@ -547,6 +548,13 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def _delete_vnf_pre(self, context, vnf_id):
         with context.session.begin(subtransactions=True):
+
+            nss_db = context.session.query(ns_db.NS).filter(
+                ns_db.NS.vnf_ids.like("%" + vnf_id + "%")).first()
+            if (nss_db is not None and nss_db.status not in
+                    [constants.PENDING_DELETE, constants.ERROR]):
+                raise vnfm.VNFInUse(vnf_id=vnf_id)
+
             vnf_db = self._get_vnf_db(
                 context, vnf_id, _ACTIVE_UPDATE_ERROR_DEAD,
                 constants.PENDING_DELETE)

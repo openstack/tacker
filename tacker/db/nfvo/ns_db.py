@@ -325,7 +325,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         return ns_dict
 
     # reference implementation. needs to be overrided by subclass
-    def delete_ns(self, context, ns_id):
+    def delete_ns_pre(self, context, ns_id):
         with context.session.begin(subtransactions=True):
             ns_db = self._get_ns_db(
                 context, ns_id, _ACTIVE_UPDATE_ERROR_DEAD,

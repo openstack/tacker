@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    VNF not be allowed to delete separately, if part of an active NS.
