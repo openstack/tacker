@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Replace the class path uuid based stack names with vnf name plus vnf id
+    so that it is easy to find which stack is for which vnf.

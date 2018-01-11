@@ -142,7 +142,7 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
     def test_vnf_alarm_respawn(self):
         self._test_vnf_tosca_alarm(
             'sample-tosca-alarm-respawn.yaml',
-            'alarm and respawn vnf')
+            'alarm and respawn-vnf')
 
     @unittest.skip("Skip and wait for releasing Heat Translator")
     def test_vnf_alarm_scale(self):

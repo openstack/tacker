@@ -108,7 +108,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
     @log.log
     def _create_stack(self, heatclient, vnf, fields):
         if 'stack_name' not in fields:
-            name = __name__ + '_' + self.__class__.__name__ + '-' + vnf['id']
+            name = vnf['name'].replace(' ', '_') + '_' + vnf['id']
             if vnf['attributes'].get('failure_count'):
                 name += ('-RESPAWN-%s') % str(vnf['attributes'][
                     'failure_count'])
