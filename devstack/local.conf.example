@@ -73,7 +73,6 @@ enable_plugin kuryr-kubernetes https://git.openstack.org/openstack/kuryr-kuberne
 enable_plugin neutron-lbaas git://git.openstack.org/openstack/neutron-lbaas master
 enable_plugin devstack-plugin-container https://git.openstack.org/openstack/devstack-plugin-container master
 
-
 [[post-config|/etc/neutron/dhcp_agent.ini]]
 [DEFAULT]
 enable_isolated_metadata = True

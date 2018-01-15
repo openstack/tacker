@@ -116,8 +116,11 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         Initialize keystoneclient with provided authentication attributes.
         """
+        verify = 'True' == vim_obj['auth_cred'].get('cert_verify', 'True') \
+                 or False
         auth_url = vim_obj['auth_url']
-        keystone_version = self._validate_auth_url(auth_url)
+        keystone_version = self._validate_auth_url(auth_url=auth_url,
+                                                   verify=verify)
         auth_cred = self._get_auth_creds(keystone_version, vim_obj)
         return self._initialize_keystone(keystone_version, auth_cred)
 
@@ -150,9 +153,9 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         return auth_plugin
 
-    def _validate_auth_url(self, auth_url):
+    def _validate_auth_url(self, auth_url, verify):
         try:
-            keystone_version = self.keystone.get_version(auth_url)
+            keystone_version = self.keystone.get_version(auth_url, verify)
         except Exception as e:
             LOG.error('VIM Auth URL invalid')
             raise nfvo.VimConnectionException(message=str(e))
@@ -331,8 +334,10 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         :param client_type: openstack client to initialize
         :return: initialized client
         """
+        verify = 'True' == vim_obj.get('cert_verify', 'True') or False
         auth_url = vim_obj['auth_url']
-        keystone_version = self._validate_auth_url(auth_url)
+        keystone_version = self._validate_auth_url(auth_url=auth_url,
+                                                   verify=verify)
         auth_cred = self._get_auth_creds(keystone_version, vim_obj)
         auth_plugin = self._get_auth_plugin(keystone_version, **auth_cred)
         sess = session.Session(auth=auth_plugin)
@@ -537,8 +542,10 @@ class NeutronClient(object):
     """Neutron Client class for networking-sfc driver"""
 
     def __init__(self, auth_attr):
-        auth = identity.Password(**auth_attr)
-        sess = session.Session(auth=auth)
+        auth_cred = auth_attr.copy()
+        verify = 'True' == auth_cred.pop('cert_verify', 'True') or False
+        auth = identity.Password(**auth_cred)
+        sess = session.Session(auth=auth, verify=verify)
         self.client = neutron_client.Client(session=sess)
 
     def flow_classifier_create(self, fc_dict):

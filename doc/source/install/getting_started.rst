@@ -30,12 +30,16 @@ In Tacker MANO system, the VNF can be onboarded to one target OpenStack, which
 is also called VIM. Get one account on this OpenStack. For example, the below
 is the account information collected in file vim-config.yaml::
 
-    auth_url: 'http://10.1.0.5:5000'
+    auth_url: 'https://10.1.0.5:5000'
     username: 'nfv_user'
     password: 'mySecretPW'
     project_name: 'nfv'
     project_domain_name: 'Default'
     user_domain_name: 'Default'
+    cert_verify: 'True'
+
+By default, cert_verify is set as 'True'. To disable verifying SSL certificate,
+user can set cert_verify parameter to 'False'.
 
 
 2.) Register the VIM that will be used as a default VIM for VNF deployments.
