@@ -808,14 +808,15 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         driver_type = vim_res['vim_type']
         workflow = None
         try:
-            workflow = self._vim_drivers.invoke(
-                driver_type,
-                'prepare_and_create_workflow',
-                resource='vnf',
-                action='delete',
-                auth_dict=self.get_auth_dict(context),
-                kwargs={
-                    'ns': ns})
+            if ns['vnf_ids']:
+                workflow = self._vim_drivers.invoke(
+                    driver_type,
+                    'prepare_and_create_workflow',
+                    resource='vnf',
+                    action='delete',
+                    auth_dict=self.get_auth_dict(context),
+                    kwargs={
+                        'ns': ns})
         except nfvo.NoTasksException:
             LOG.warning("No VNF deletion task(s).")
         if workflow:
