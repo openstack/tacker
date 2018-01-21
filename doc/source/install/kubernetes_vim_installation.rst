@@ -43,7 +43,7 @@ You can also see the same examples in [#first]_ and [#second]_.
 
 .. code-block:: console
 
-  ./stack.sh
+  $ ./stack.sh
 
 3. Get Kubernetes VIM configuration
 
@@ -51,7 +51,7 @@ You can also see the same examples in [#first]_ and [#second]_.
 
 .. code-block:: console
 
-  TOKEN=$(kubectl describe secret $(kubectl get secrets | grep default | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d '\t')
+  $ TOKEN=$(kubectl describe secret $(kubectl get secrets | grep default | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d '\t')
 
 In the Hyperkube folder /yourdirectory/data/hyperkube/, user can get more
 information for authenticating to Kubernetes cluster.
@@ -97,6 +97,8 @@ example:
 
   password,user,uid,"group1,group2,group3"
 
+In this example, the user belongs to group1, group2 and group3.
+
 * Get Kubernetes server url
 
 By default Kubernetes server listens on https://127.0.0.1:6443 and
@@ -104,7 +106,7 @@ https://{HOST_IP}:6443
 
 .. code-block:: console
 
-  curl http://localhost:8080/api/
+  $ curl http://localhost:8080/api/
   {
     "kind": "APIVersions",
     "versions": [
@@ -126,7 +128,7 @@ the project k8s:
 
 .. code-block:: console
 
-  openstack network list --project admin
+  $ openstack network list --project admin
   +--------------------------------------+-----------------+--------------------------------------+
   | ID                                   | Name            | Subnets                              |
   +--------------------------------------+-----------------+--------------------------------------+
@@ -223,7 +225,17 @@ authentication.
 
 .. code-block:: console
 
-  tacker vim-register --config-file vim_config.yaml vim-kubernetes
+  $ tacker vim-register --config-file vim_config.yaml vim-kubernetes
+
+  $ tacker vim-list
+  +--------------------------------------+----------------------------------+----------------+------------+------------+------------------------------------------------------------+-----------+
+  | id                                   | tenant_id                        | name           | type       | is_default | placement_attr                                             | status    |
+  +--------------------------------------+----------------------------------+----------------+------------+------------+------------------------------------------------------------+-----------+
+  | 45456bde-6179-409c-86a1-d8cd93bd0c6d | a6f9b4bc9a4d439faa91518416ec0999 | vim-kubernetes | kubernetes | False      | {u'regions': [u'default', u'kube-public', u'kube-system']} | REACHABLE |
+  +--------------------------------------+----------------------------------+----------------+------------+------------+------------------------------------------------------------+-----------+
+
+In ``placement_attr``, there are three regions: 'default', 'kube-public',
+'kube-system', that map to ``namespace`` in Kubernetes environment.
 
 * Other related commands to Kubernetes VIM
 
@@ -237,9 +249,9 @@ authentication.
   type: "kubernetes"
 
 
-  tacker vim-update vim-kubernetes --config-file kubernetes-VIM-update.yaml
-  tacker vim-show vim-kubernetes
-  tacker vim-delete vim-kubernetes
+  $ tacker vim-update vim-kubernetes --config-file kubernetes-VIM-update.yaml
+  $ tacker vim-show vim-kubernetes
+  $ tacker vim-delete vim-kubernetes
 
 When update Kubernetes VIM, user can update VIM information (such as username,
 password, bearer_token and ssl_ca_cert) except auth_url and type of VIM.
