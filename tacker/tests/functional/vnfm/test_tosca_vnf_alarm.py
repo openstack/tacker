@@ -139,6 +139,7 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
         self.addCleanup(self.wait_until_vnf_delete, vnf_id,
                         constants.VNF_CIRROS_DELETE_TIMEOUT)
 
+    @unittest.skip("Skip to wait for Heat-translator to support gnocchi alarm")
     def test_vnf_alarm_respawn(self):
         self._test_vnf_tosca_alarm(
             'sample-tosca-alarm-respawn.yaml',
