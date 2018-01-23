@@ -84,9 +84,6 @@ TACKER_NOVA_URL=${TACKER_NOVA_URL:-http://127.0.0.1:8774/v2}
 TACKER_NOVA_CA_CERTIFICATES_FILE=${TACKER_NOVA_CA_CERTIFICATES_FILE:-}
 TACKER_NOVA_API_INSECURE=${TACKER_NOVA_API_INSECURE:-False}
 
-# Tell Tempest this project is present
-# TEMPEST_SERVICES+=,tacker
-
 HEAT_CONF_DIR=/etc/heat
 
 source ${TACKER_DIR}/tacker/tests/contrib/post_test_hook_lib.sh
