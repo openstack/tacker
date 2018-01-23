@@ -65,11 +65,14 @@ class FakeDriverManager(mock.Mock):
         elif ('prepare_and_create_workflow' in args and
               'delete' == kwargs['action'] and
               DUMMY_NS_2 == kwargs['kwargs']['ns']['id']):
-            raise nfvo.NoTasksException()
+            raise nfvo.NoTasksException(action=kwargs['action'],
+                                        resource=kwargs['kwargs']['ns']['id'])
         elif ('prepare_and_create_workflow' in args and
               'create' == kwargs['action'] and
               utils.DUMMY_NS_2_NAME == kwargs['kwargs']['ns']['ns']['name']):
-            raise nfvo.NoTasksException()
+            raise nfvo.NoTasksException(
+                action=kwargs['action'],
+                resource=kwargs['kwargs']['ns']['ns']['name'])
 
 
 def get_by_name():
@@ -298,6 +301,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertIn('placement_attr', res)
         self.assertIn('created_at', res)
         self.assertIn('updated_at', res)
+        self.assertEqual(False, res['is_default'])
 
     def test_delete_vim(self):
         self._insert_dummy_vim()

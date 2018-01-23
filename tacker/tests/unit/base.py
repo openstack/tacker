@@ -13,11 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
 import mock
 from oslo_config import cfg
 from oslo_config import fixture as config_fixture
-from oslotest import base
+
+from tacker.tests import base
 
 CONF = cfg.CONF
 
@@ -27,6 +27,7 @@ class TestCase(base.BaseTestCase):
     def setUp(self):
         super(TestCase, self).setUp()
         self.config_fixture = self.useFixture(config_fixture.Config(CONF))
+        CONF([], default_config_files=[])
 
     def _mock(self, target, new=mock.DEFAULT):
         patcher = mock.patch(target, new)

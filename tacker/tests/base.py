@@ -32,6 +32,7 @@ import testtools
 
 from tacker.common import config
 from tacker.common import rpc as n_rpc
+from tacker import context
 from tacker import manager
 from tacker.tests import fake_notifier
 from tacker.tests import post_mortem_debug
@@ -180,6 +181,9 @@ class BaseTestCase(testtools.TestCase):
 
         if sys.version_info < (2, 7) and getattr(self, 'fmt', '') == 'xml':
             raise self.skipException('XML Testing Skipped in Py26')
+
+    def fake_admin_context(self):
+        return context.get_admin_context()
 
     def config(self, **kw):
         """Override some configuration values.
