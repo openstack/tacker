@@ -881,6 +881,31 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIn('status', result)
             self.assertIn('tenant_id', result)
 
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
+    def test_create_ns_empty_description(self, mock_get_by_name,
+                                         mock_get_vimi, mock_auth_dict):
+        self._insert_dummy_ns_template()
+        self._insert_dummy_vim()
+        mock_auth_dict.return_value = {
+            'auth_url': 'http://127.0.0.1',
+            'token': 'DummyToken',
+            'project_domain_name': 'dummy_domain',
+            'project_name': 'dummy_project'
+        }
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock_get_by_name.return_value = get_by_name()
+
+            ns_obj = utils.get_dummy_ns_obj()
+            ns_obj['ns']['description'] = ''
+            result = self.nfvo_plugin.create_ns(self.context, ns_obj)
+            self.assertIn('id', result)
+            self.assertEqual(ns_obj['ns']['name'], result['name'])
+            self.assertEqual('', result['description'])
+
     @mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin.create_nsd')
     @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
     @mock.patch.object(vim_client.VimClient, 'get_vim')
