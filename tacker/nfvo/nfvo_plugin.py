@@ -323,12 +323,12 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         nfp = super(NfvoPlugin, self).get_nfp(context,
                                               vnffg_dict['forwarding_paths'])
         sfc = super(NfvoPlugin, self).get_sfc(context, nfp['chain_id'])
-        matches = []
+        classifier_dict = dict()
+        name_match_list = []
         for classifier_id in nfp['classifier_ids']:
-            matches.append(super(NfvoPlugin, self).
-                    get_classifier(context,
-                                   classifier_id,
-                                   fields='match')['match'])
+            classifier_dict = super(NfvoPlugin, self).get_classifier(
+                context, classifier_id, fields=['name', 'match'])
+            name_match_list.append(classifier_dict)
         # grab the first VNF to check it's VIM type
         # we have already checked that all VNFs are in the same VIM
         vim_obj = self._get_vim_from_vnf(context,
@@ -339,11 +339,11 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         driver_type = vim_obj['type']
         try:
             fc_ids = []
-            for match in matches:
+            for item in name_match_list:
                 fc_ids.append(self._vim_drivers.invoke(driver_type,
                                              'create_flow_classifier',
-                                             name=vnffg_dict['name'],
-                                             fc=match,
+                                             name=item['name'],
+                                             fc=item['match'],
                                              auth_attr=vim_obj['auth_cred']))
             sfc_id = self._vim_drivers.invoke(driver_type,
                                               'create_chain',

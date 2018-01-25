@@ -8,21 +8,25 @@ topology_template:
   node_templates:
 
     Forwarding_path1:
-      type: tosca.nodes.nfv.FP.Tacker
+      type: tosca.nodes.nfv.FP.TackerV2
       description: creates path (CP12->CP22)
       properties:
         id: 51
         policy:
           type: ACL
           criteria:
-            - network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480e1
-              destination_port_range: 80-1024
-              ip_proto: 6
-              ip_dst_prefix: 192.168.1.2/24
-            - network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480eda
-              destination_port_range: 80-1024
-              ip_proto: 6
-              ip_dst_prefix: 192.168.2.2/24
+            - name: block_tcp
+              classifier:
+                network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480e1
+                destination_port_range: 80-1024
+                ip_proto: 6
+                ip_dst_prefix: 192.168.1.2/24
+            - name: block_udp
+              classifier:
+                network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480eda
+                destination_port_range: 80-1024
+                ip_proto: 17
+                ip_dst_prefix: 192.168.2.2/24
         path:
           - forwarder: VNFD1
             capability: CP12

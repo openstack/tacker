@@ -152,6 +152,29 @@ data_types:
         entry_schema:
           type: tosca.nfv.datatypes.aclType
 
+
+  tosca.nfv.datatypes.policyTypeV2:
+    properties:
+      type:
+        type: string
+        required: false
+        constraints:
+          - valid_values: [ ACL ]
+      criteria:
+        type: list
+        required: true
+        entry_schema:
+          type: tosca.nfv.datatypes.classifierType
+
+  tosca.nfv.datatypes.classifierType:
+    properties:
+      name:
+        type: string
+        required: true
+      classifier:
+        type: tosca.nfv.datatypes.aclType
+        required: true
+
 node_types:
   tosca.nodes.nfv.VDU.Tacker:
     derived_from: tosca.nodes.nfv.VDU
@@ -254,6 +277,22 @@ node_types:
         constraints:
           - valid_values: [ sriov, vnic ]
 
+  tosca.nodes.nfv.FP.TackerV2:
+    derived_from: tosca.nodes.Root
+    properties:
+      id:
+        type: integer
+        required: false
+      policy:
+        type: tosca.nfv.datatypes.policyTypeV2
+        required: true
+        description: policy to use to match traffic for this FP
+      path:
+        type: list
+        required: true
+        entry_schema:
+          type: tosca.nfv.datatypes.pathType
+
   tosca.nodes.nfv.FP.Tacker:
     derived_from: tosca.nodes.Root
     properties:
@@ -269,6 +308,7 @@ node_types:
         required: true
         entry_schema:
           type: tosca.nfv.datatypes.pathType
+
   tosca.nodes.nfv.VNFC.Tacker:
     derived_from: tosca.nodes.SoftwareComponent
     requirements:

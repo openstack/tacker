@@ -359,6 +359,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         LOG.debug('fc passed is %s', fc)
         sfc_classifier_params = {}
+        sfc_classifier_params['name'] = name
         for field in fc:
             if field in FC_MAP:
                 sfc_classifier_params[FC_MAP[field]] = fc[field]

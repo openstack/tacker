@@ -490,6 +490,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         fc = vnffg_db.VnffgClassifier(
             id='a85f21b5-f446-43f0-86f4-d83bdc5590ab',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='classifier_one',
             status='ACTIVE',
             instance_id='3007dc2d-30dc-4651-9184-f1e6273cc0b6',
             chain_id='f28e33bc-1061-4762-b942-76060bbd59c4',

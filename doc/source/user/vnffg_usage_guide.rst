@@ -77,14 +77,18 @@ tosca-vnffgd-sample.yaml>`_.
       policy:
         type: ACL
         criteria:
-        - network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480e1
-          destination_port_range: 80-1024
-          ip_proto: 6
-          ip_dst_prefix: 192.168.1.2/24
-        - network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480eda
-          destination_port_range: 80-1024
-          ip_proto: 6
-          ip_dst_prefix: 192.168.2.2/24
+          - name: block_tcp
+            classifier:
+              network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480e1
+              destination_port_range: 80-1024
+              ip_proto: 6
+              ip_dst_prefix: 192.168.1.2/24
+          - name: block_udp
+            classifier:
+              network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480eda
+              destination_port_range: 80-1024
+              ip_proto: 17
+              ip_dst_prefix: 192.168.2.2/24
 
 In above example, VNFFG will have 2 flow classifier. List flow classifiers
 are defined in list of criteria.

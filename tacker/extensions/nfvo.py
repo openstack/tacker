@@ -628,6 +628,12 @@ RESOURCE_ATTRIBUTE_MAP = {
             'allow_put': False,
             'is_visible': True,
         },
+        'name': {
+            'allow_post': True,
+            'allow_put': True,
+            'validate': {'type:string': NAME_MAX_LEN},
+            'is_visible': True,
+        },
     },
 
     'nsds': {
