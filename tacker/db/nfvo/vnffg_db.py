@@ -422,6 +422,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 match_db_table = ACLMatchCriteria(
                     id=uuidutils.generate_uuid(),
                     vnffgc_id=classifier_id,
+                    tenant_id=tenant_id,
                     **classifiers[i]['match'])
 
                 context.session.add(match_db_table)
