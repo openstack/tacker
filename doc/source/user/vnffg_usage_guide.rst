@@ -257,6 +257,52 @@ sub-components for a rendered VNFFG:
    tacker classifier-list
    tacker classifier-show <classifier id>
 
+Updating the VNFFG
+~~~~~~~~~~~~~~~~~~
+
+To update an already created VNFFG template the user needs to locate the VNFFG
+which wants to update. To do so the following command is getting executed:
+
+Using the below command query the list of existing VNFFG templates.
+
+.. code-block:: console
+
+    tacker vnffg-list
+
+    +--------------------+---------+-------+-------------------------------------+
+    |    id              | name   | status | vnffgd_id                           |
+    +--------------------+-----------------+-------------------------------------+
+    | f4438511-e33d-43df-|        |        |                                     |
+    | 95d9-0199253db72e  | myvnffg| ACTIVE | bd7829bf-85de-4f3b-960a-8482028bfb34|
+    +--------------------+---------+-------+-------------+--------+--------------+
+
+
+After the user located the VNFFG the subsequent action is to update it.
+Based on the appropriate choice, update VNFFG template.
+Currently we support only the update of the vnf-mapping in a VNFFG.
+The user needs to use a VNF which is actually derived from the VNFD which
+is going to be used in the vnf-mapping parameter.
+If the user is not sure which VNF was used for the mapping during the time
+of the VNFFG creation he can execute:
+
+Execute the below command to query the VNF that was used in mapping at the time
+of VNFFG creation.
+
+.. code-block:: console
+
+   tacker vnffg-show myvnffg
+
+After user determined which VNF is used and which VNF is going to be used
+in the update procedure he can execute:
+
+To update the VNF mappings to VNFFG, execute the below command
+
+.. code-block:: console
+
+   tacker vnffg-update --vnf-mapping VNFD1:vnf1,VNFD2:vnf2 myvnffg
+
+   Updated vnffg: myvnffg
+
 Known Issues and Limitations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -41,7 +41,8 @@ class VnffgAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def update_chain(self, chain_id, fc_ids, vnfs, symmetrical=False,
+    def update_chain(self, chain_id, fc_ids, vnfs,
+                     symmetrical=False,
                      auth_attr=None):
         """Update service function chain"""
         pass

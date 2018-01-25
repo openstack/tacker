@@ -38,7 +38,6 @@ from tacker.nfvo.drivers.vnffg import abstract_vnffg_driver
 from tacker.nfvo.drivers.workflow import workflow_generator
 from tacker.vnfm import keystone
 
-
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
@@ -448,15 +447,109 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         return neutronclient_.port_chain_create(port_chain)
 
     def update_chain(self, chain_id, fc_ids, vnfs,
-                     symmetrical=False, auth_attr=None):
-        # TODO(s3wong): chain can be updated either for
+                     symmetrical=None, auth_attr=None):
+        # (s3wong): chain can be updated either for
         # the list of fc and/or list of port-pair-group
         # since n-sfc driver does NOT track the ppg id
         # it will look it up (or reconstruct) from
         # networking-sfc DB --- but the caveat is that
         # the VNF name MUST be unique
-        LOG.warning("n-sfc driver does not support sf chain update")
-        raise NotImplementedError('sf chain update not supported')
+
+        # TODO(mardim) Currently we figure out which VNF belongs to what
+        # port-pair-group or port-pair through the name of VNF.
+        # This is not the best approach. The best approach for the future
+        # propably is to maintain in the database the ID of the
+        # port-pair-group and port-pair that VNF belongs to so we can
+        # implemement the update in a more robust way.
+
+        if not auth_attr:
+            LOG.warning("auth information required for n-sfc driver")
+            return None
+
+        neutronclient_ = NeutronClient(auth_attr)
+        new_ppgs = []
+        updated_port_chain = dict()
+        pc_info = neutronclient_.port_chain_show(chain_id)
+        old_ppgs = pc_info['port_chain']['port_pair_groups']
+        old_ppgs_dict = {neutronclient_.
+                    port_pair_group_show(ppg_id)['port_pair_group']['name'].
+                    split('-')[0]: ppg_id for ppg_id in old_ppgs}
+        past_ppgs_dict = old_ppgs_dict.copy()
+        try:
+            for vnf in vnfs:
+                port_pair_group = {}
+                port_pair = {}
+                if vnf['name'] in old_ppgs_dict:
+                    old_ppg_id = old_ppgs_dict.pop(vnf['name'])
+                    new_ppgs.append(old_ppg_id)
+                else:
+                    port_pair_group['name'] = vnf['name'] + '-port-pair-group'
+                    port_pair_group['description'] = \
+                        'port pair group for %s' % vnf['name']
+                    port_pair_group['port_pairs'] = []
+
+                    if CONNECTION_POINT not in vnf:
+                        LOG.warning("Chain update failed due to missing "
+                                    "connection point info in VNF "
+                                    "%(vnfname)s", {'vnfname': vnf['name']})
+                        raise nfvo.UpdateChainException(
+                            message="Connection point not found")
+                    cp_list = vnf[CONNECTION_POINT]
+                    num_cps = len(cp_list)
+                    if num_cps != 1 and num_cps != 2:
+                        LOG.warning("Chain update failed due to wrong number "
+                                    "of connection points: expected [1 | 2],"
+                                    "got %(cps)d", {'cps': num_cps})
+                        raise nfvo.UpdateChainException(
+                            message="Invalid number of connection points")
+                    port_pair['name'] = vnf['name'] + '-connection-points'
+                    port_pair['description'] = 'port pair for %s' % vnf['name']
+                    if num_cps == 1:
+                        port_pair['ingress'] = cp_list[0]
+                        port_pair['egress'] = cp_list[0]
+                    else:
+                        port_pair['ingress'] = cp_list[0]
+                        port_pair['egress'] = cp_list[1]
+                    port_pair_id = neutronclient_.port_pair_create(port_pair)
+                    if not port_pair_id:
+                        LOG.warning("Chain update failed due to port pair "
+                                    "creation failed for "
+                                    "vnf %(vnf)s", {'vnf': vnf['name']})
+                        raise nfvo.UpdateChainException(
+                            message="Failed to create port-pair")
+                    port_pair_group['port_pairs'].append(port_pair_id)
+                    port_pair_group_id = \
+                        neutronclient_.port_pair_group_create(port_pair_group)
+                    if not port_pair_group_id:
+                        LOG.warning("Chain update failed due to port pair "
+                                    "group creation failed for vnf "
+                                    "%(vnf)s", {'vnf': vnf['name']})
+                        for pp_id in port_pair_group['port_pairs']:
+                            neutronclient_.port_pair_delete(pp_id)
+                        raise nfvo.UpdateChainException(
+                            message="Failed to create port-pair-group")
+                    new_ppgs.append(port_pair_group_id)
+        except nfvo.UpdateChainException as e:
+            self._delete_ppgs_and_pps(neutronclient_, new_ppgs, past_ppgs_dict)
+            raise e
+
+        updated_port_chain['port_pair_groups'] = new_ppgs
+        try:
+            pc_id = neutronclient_.port_chain_update(chain_id,
+                                                     updated_port_chain)
+        except (nc_exceptions.BadRequest, nfvo.UpdateChainException) as e:
+            self._delete_ppgs_and_pps(neutronclient_, new_ppgs, past_ppgs_dict)
+            raise e
+        for ppg_name in old_ppgs_dict:
+            ppg_info = neutronclient_. \
+                port_pair_group_show(old_ppgs_dict[ppg_name])
+            neutronclient_.port_pair_group_delete(old_ppgs_dict[ppg_name])
+            port_pairs = ppg_info['port_pair_group']['port_pairs']
+            if port_pairs and len(port_pairs):
+                for j in xrange(0, len(port_pairs)):
+                    pp_id = port_pairs[j]
+                    neutronclient_.port_pair_delete(pp_id)
+        return pc_id
 
     def delete_chain(self, chain_id, auth_attr=None):
         if not auth_attr:
@@ -519,23 +612,37 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         return {'id': workflow[0].id, 'input': wg.get_input_dict()}
 
     def execute_workflow(self, workflow, auth_dict=None):
-        return self.get_mistral_client(auth_dict)\
+        return self.get_mistral_client(auth_dict) \
             .executions.create(
-                workflow_identifier=workflow['id'],
-                workflow_input=workflow['input'],
-                wf_params={})
+            workflow_identifier=workflow['id'],
+            workflow_input=workflow['input'],
+            wf_params={})
 
     def get_execution(self, execution_id, auth_dict=None):
-        return self.get_mistral_client(auth_dict)\
+        return self.get_mistral_client(auth_dict) \
             .executions.get(execution_id)
 
     def delete_execution(self, execution_id, auth_dict=None):
-        return self.get_mistral_client(auth_dict).executions\
+        return self.get_mistral_client(auth_dict).executions \
             .delete(execution_id)
 
     def delete_workflow(self, workflow_id, auth_dict=None):
-        return self.get_mistral_client(auth_dict)\
+        return self.get_mistral_client(auth_dict) \
             .workflows.delete(workflow_id)
+
+    def _delete_ppgs_and_pps(self, neutronclient, new_ppgs, past_ppgs_dict):
+        if new_ppgs:
+            for item in new_ppgs:
+                if item not in past_ppgs_dict.values():
+                    new_ppg_info = neutronclient.port_pair_group_show(
+                        item)
+                    neutronclient.port_pair_group_delete(item)
+                    new_port_pairs = new_ppg_info['port_pair_group'][
+                        'port_pairs']
+                    if new_port_pairs and len(new_port_pairs):
+                        for j in xrange(0, len(new_port_pairs)):
+                            new_pp_id = new_port_pairs[j]
+                            neutronclient.port_pair_delete(new_pp_id)
 
 
 class NeutronClient(object):
@@ -638,3 +745,38 @@ class NeutronClient(object):
         except nc_exceptions.NotFound:
             LOG.warning('port chain %s not found', port_chain_id)
             raise ValueError('port chain %s not found' % port_chain_id)
+
+    def port_chain_update(self, port_chain_id, port_chain):
+        try:
+            pc = self.client.update_port_chain(port_chain_id,
+                                    {'port_chain': port_chain})
+        except nc_exceptions.BadRequest as e:
+            LOG.warning('update port chain returns %s', e)
+            raise ValueError(str(e))
+        if pc and len(pc):
+            return pc['port_chain']['id']
+        else:
+            raise nfvo.UpdateChainException(message="Failed to update "
+                                                    "port-chain")
+
+    def port_chain_show(self, port_chain_id):
+        try:
+            port_chain = self.client.show_port_chain(port_chain_id)
+            if port_chain is None:
+                raise ValueError('port chain %s not found' % port_chain_id)
+
+            return port_chain
+        except nc_exceptions.NotFound:
+            LOG.error('port chain %s not found', port_chain_id)
+            raise ValueError('port chain %s not found' % port_chain_id)
+
+    def port_pair_group_show(self, ppg_id):
+        try:
+            port_pair_group = self.client.show_port_pair_group(ppg_id)
+            if port_pair_group is None:
+                raise ValueError('port pair group %s not found' % ppg_id)
+
+            return port_pair_group
+        except nc_exceptions.NotFound:
+            LOG.warning('port pair group %s not found', ppg_id)
+            raise ValueError('port pair group %s not found' % ppg_id)
