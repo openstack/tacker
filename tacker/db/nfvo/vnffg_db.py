@@ -662,49 +662,48 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                                 vnf_mapping):
         template = template_db.template['vnffgd']['topology_template']
         nfp = template['node_templates'][nfp_name]
-        try:
+
+        if 'policy' in nfp['properties']:
             policy = nfp['properties']['policy']
-        except KeyError:
-            raise nfvo.NfpPolicyNotFoundException(policy=nfp)
+            if 'type' in policy:
+                if policy['type'] != 'ACL':
+                    raise nfvo.NfpPolicyTypeError(type=policy['type'])
 
-        if 'type' in policy:
-            if policy['type'] != 'ACL':
-                raise nfvo.NfpPolicyTypeError(type=policy['type'])
-
-        if 'criteria' not in policy:
-            raise nfvo.NfpPolicyCriteriaError(
-                error="Missing criteria in policy")
-        validation_list = []
-        for item in policy['criteria']:
-            if item.get('name') is None:
-                LOG.warning('The unnamed classifier approach'
-                            ' will be deprecated in subsequent'
-                            ' releases')
-                validation_list.append(item)
-            else:
-                validation_list.append(item['classifier'])
-
-        self._validate_criteria(validation_list)
-
-        classifiers = []
-        for criteria in policy['criteria']:
-            match = dict()
-            if criteria.get('name') is None:
-                criteria_dict = criteria.copy()
-            else:
-                criteria_dict = criteria['classifier'].copy()
-            for key, val in criteria_dict.items():
-                if key in MATCH_CRITERIA:
-                    match.update(self._convert_criteria(context, key, val,
-                                                        vnf_mapping))
+            if 'criteria' not in policy:
+                raise nfvo.NfpPolicyCriteriaError(
+                    error="Missing criteria in policy")
+            validation_list = []
+            for item in policy['criteria']:
+                if item.get('name') is None:
+                    LOG.warning('The unnamed classifier approach'
+                                ' will be deprecated in subsequent'
+                                ' releases')
+                    validation_list.append(item)
                 else:
-                    raise nfvo.NfpPolicyCriteriaError(error="Unsupported "
-                                                      "criteria: "
-                                                      "{}".format(key))
-            classifiers.append({'name': criteria.get('name'),
-                                'match': match})
+                    validation_list.append(item['classifier'])
 
-        return classifiers
+            self._validate_criteria(validation_list)
+
+            classifiers = []
+            for criteria in policy['criteria']:
+                match = dict()
+                if criteria.get('name') is None:
+                    criteria_dict = criteria.copy()
+                else:
+                    criteria_dict = criteria['classifier'].copy()
+                for key, val in criteria_dict.items():
+                    if key in MATCH_CRITERIA:
+                        match.update(self._convert_criteria(context, key, val,
+                                                            vnf_mapping))
+                    else:
+                        raise nfvo.NfpPolicyCriteriaError(error="Unsupported "
+                                                          "criteria: "
+                                                          "{}".format(key))
+                classifiers.append({'name': criteria.get('name'),
+                                    'match': match})
+            return classifiers
+        else:
+            return []
 
     def _convert_criteria(self, context, criteria, value, vnf_mapping):
         """Method is used to convert criteria to proper db value from template

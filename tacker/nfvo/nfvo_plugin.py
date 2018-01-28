@@ -323,7 +323,6 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         nfp = super(NfvoPlugin, self).get_nfp(context,
                                               vnffg_dict['forwarding_paths'])
         sfc = super(NfvoPlugin, self).get_sfc(context, nfp['chain_id'])
-        classifier_dict = dict()
         name_match_list = []
         for classifier_id in nfp['classifier_ids']:
             classifier_dict = super(NfvoPlugin, self).get_classifier(
