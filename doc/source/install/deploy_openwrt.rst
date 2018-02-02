@@ -47,7 +47,9 @@ And then upload this image into Glance by using the command specified below:
 First, we have a yaml template which contains the configuration of
 OpenWRT as shown below:
 
-.. code-block:: ini
+*toscar-vnfd-openwrt.yaml [#f2]_*
+
+.. code-block:: yaml
 
    tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
@@ -135,10 +137,12 @@ OpenWRT as shown below:
 
 ..
 
-We also have another configuration yaml template with
-some firewall rules of OpenWRT.
+We also have another configuration yaml template with some firewall rules of
+OpenWRT.
 
-.. code-block:: ini
+*toscar-config-openwrt-firewall.yaml [#f3]_*
+
+.. code-block:: yaml
 
    vdus:
      VDU1:
@@ -230,14 +234,13 @@ some firewall rules of OpenWRT.
 
 ..
 
-The above template files come from Tacker Repo.
-One is tosca-vnfd-openwrt.yaml [#f2]_ and
-other one is tosca-config-openwrt-with-firewall.yaml [#f3]_.
-In this template file, we specify the **mgmt_driver: openwrt** which means
-this VNFD is managed by openwrt driver [#f4]_. This driver can inject firewall rules
-which defined in VNFD into OpenWRT instance by using SSH protocol. We can
-run **cat /etc/config/firewall** to confirm the firewall rules if inject
-succeed.
+The above template files come from Tacker Repository. One is
+tosca-vnfd-openwrt.yaml [#f2]_ and other one is
+tosca-config-openwrt-with-firewall.yaml [#f3]_. In this template file, we
+specify the **mgmt_driver: openwrt** which means this VNFD is managed by
+openwrt driver [#f4]_. This driver can inject firewall rules which defined in
+VNFD into OpenWRT instance by using SSH protocol. We can run
+**cat /etc/config/firewall** to confirm the firewall rules if inject succeed.
 
 3.Create a sample vnfd:
 
@@ -251,12 +254,8 @@ succeed.
 .. code-block:: console
 
     tacker vnf-create --vnfd-name <VNFD_NAME> \
-                      --config-file tosca-config-openwrt-with-firewall.yaml <NAME>
+                      --config-file tosca-config-openwrt-firewall.yaml <NAME>
 ..
-
-This VNF will contains all the firewall rules that VNFD contains
-by using 'cat /etc/config/firewall' in VNF.
-
 
 5.Check the status:
 
@@ -267,8 +266,13 @@ by using 'cat /etc/config/firewall' in VNF.
 ..
 
 We can replace the firewall rules configuration file with
-tosca-config-openwrt-vrouter.yaml [#f5]_
-to create the OpenWRT-based Router VNF.
+tosca-config-openwrt-vrouter.yaml [#f5]_, tosca-config-openwrt-dnsmasq.yaml
+[#f6]_, or tosca-config-openwrt-qos.yaml [#f7]_ to deploy the router, DHCP,
+DNS, or QoS VNFs. The openwrt VNFM management driver will do the same way to
+inject the desired service rules into the OpenWRT instance. You can also do the
+same to check if the rules are injected successful: **cat /etc/config/network**
+to check vrouter, **cat /etc/config/dnsmasq** to check DHCP and DNS, and
+**cat /etc/config/qos** to check the QoS rules.
 
 6. Notes
 
@@ -306,6 +310,8 @@ to be suitable for OpenStack Tacker. The procedure is following as below:
 
 .. [#f1] https://anda.ssu.ac.kr/~openwrt/openwrt-x86-kvm_guest-combined-ext4.img.gz
 .. [#f2] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
-.. [#f3] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-with-firewall.yaml
+.. [#f3] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml
 .. [#f4] https://github.com/openstack/tacker/blob/master/tacker/vnfm/mgmt_drivers/openwrt/openwrt.py
 .. [#f5] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-vrouter.yaml
+.. [#f6] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-dnsmasq.yaml
+.. [#f7] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-qos.yaml
