@@ -222,7 +222,7 @@ If you are using keystone v2 then,
    ...
 
    [database]
-   connection = mysql://tacker:<TACKERDB_PASSWORD>@<MYSQL_IP>:3306/tacker?charset=utf8
+   connection = mysql+pymysql://tacker:<TACKERDB_PASSWORD>@<MYSQL_IP>:3306/tacker?charset=utf8
    ...
 
    [tacker]
