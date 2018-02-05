@@ -97,15 +97,15 @@ class TestKubernetes_Driver(base.TestCase):
         self._test_register_vim(self.vim_obj, mock_k8s_client,
                                 mock_k8s_coreV1Client)
         mock_k8s_coreV1Client.list_namespace.assert_called_once_with()
-        self.kubernetes_api.\
-            initialize_CoreApiClient.assert_called_once_with(auth_obj)
+        self.kubernetes_api. \
+            get_core_api_client.assert_called_once_with(auth_obj)
 
     def _test_register_vim(self, vim_obj, mock_k8s_client,
                            mock_k8s_coreV1Client):
-        self.kubernetes_api.\
-            initialize_CoreApiClient.return_value = mock_k8s_client
-        self.kubernetes_api.\
-            initialize_CoreApiV1Client.return_value = mock_k8s_coreV1Client
+        self.kubernetes_api. \
+            get_core_api_client.return_value = mock_k8s_client
+        self.kubernetes_api. \
+            get_core_v1_api_client.return_value = mock_k8s_coreV1Client
         fernet_attrs = {'encrypt.return_value': 'encrypted_password'}
         mock_fernet_obj = mock.Mock(**fernet_attrs)
         mock_fernet_key = 'test_fernet_key'

@@ -20,7 +20,7 @@ from oslo_utils import importutils
 
 
 def monkey_patch():
-    eventlet.monkey_patch()
+    eventlet.monkey_patch(all=False, socket=True)
     if os.name != 'nt':
         p_c_e = importutils.import_module('pyroute2.config.eventlet')
         p_c_e.eventlet_config()

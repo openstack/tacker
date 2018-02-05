@@ -115,7 +115,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     """
     OPTS_INFRA_DRIVER = [
         cfg.ListOpt(
-            'infra_driver', default=['noop', 'openstack'],
+            'infra_driver', default=['noop', 'openstack', 'kubernetes'],
             help=_('Hosting vnf drivers tacker plugin will use')),
     ]
     cfg.CONF.register_opts(OPTS_INFRA_DRIVER, 'tacker')
@@ -332,8 +332,10 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             context, vnf) if not vnf.get('id') else vnf
         vnf_id = vnf_dict['id']
         LOG.debug('vnf_dict %s', vnf_dict)
-        self.mgmt_create_pre(context, vnf_dict)
-        self.add_alarm_url_to_vnf(context, vnf_dict)
+        if driver_name == 'openstack':
+            self.mgmt_create_pre(context, vnf_dict)
+            self.add_alarm_url_to_vnf(context, vnf_dict)
+
         try:
             instance_id = self._vnf_manager.invoke(
                 driver_name, 'create', plugin=self,
@@ -366,6 +368,14 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                              'service_types': [{'service_type': 'vnfd'}]}}
             vnf_info['vnfd_id'] = self.create_vnfd(context, vnfd).get('id')
 
+        infra_driver, vim_auth = self._get_infra_driver(context, vnf_info)
+        if infra_driver not in self._vnf_manager:
+            LOG.debug('unknown vim driver '
+                      '%(infra_driver)s in %(drivers)s',
+                      {'infra_driver': infra_driver,
+                       'drivers': cfg.CONF.tacker.infra_driver})
+            raise vnfm.InvalidInfraDriver(vim_name=infra_driver)
+
         vnf_attributes = vnf_info['attributes']
         if vnf_attributes.get('param_values'):
             param = vnf_attributes['param_values']
@@ -385,13 +395,6 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 vnf_attributes['config'] = yaml.safe_dump(config)
             else:
                 self._report_deprecated_yaml_str()
-        infra_driver, vim_auth = self._get_infra_driver(context, vnf_info)
-        if infra_driver not in self._vnf_manager:
-            LOG.debug('unknown vim driver '
-                      '%(infra_driver)s in %(drivers)s',
-                      {'infra_driver': infra_driver,
-                       'drivers': cfg.CONF.tacker.infra_driver})
-            raise vnfm.InvalidInfraDriver(vim_name=infra_driver)
 
         vnf_dict = self._create_vnf(context, vnf_info, vim_auth, infra_driver)
 

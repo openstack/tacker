@@ -86,11 +86,11 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
     def _validate_vim(self, auth, file_descriptor):
         # If Tacker can get k8s_info, Kubernetes authentication is valid
         # if not, it is invalid
+        auth_dict = dict(auth)
         try:
-            auth_dict = dict(auth)
-            k8s_coreClient = \
-                self.kubernetes.initialize_CoreApiClient(auth_dict)
-            k8s_info = k8s_coreClient.get_api_versions()
+            core_api_client = \
+                self.kubernetes.get_core_api_client(auth_dict)
+            k8s_info = core_api_client.get_api_versions()
             LOG.info(k8s_info)
         except Exception as e:
             LOG.info('VIM Kubernetes authentication is wrong.')
@@ -98,18 +98,8 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
             self.clean_authenticate_vim(auth_dict, file_descriptor)
             raise nfvo.VimUnauthorizedException(message=str(e))
 
-    def _initialize_k8s_extensionClient(self, auth):
-        k8s_extensionClient =\
-            self.kubernetes.initialize_ExtensionApiClient(auth)
-        return k8s_extensionClient
-
-    def _initialize_k8s_coreV1Client(self, auth):
-        k8s_coreV1Client =\
-            self.kubernetes.initialize_CoreApiV1Client(auth)
-        return k8s_coreV1Client
-
-    def _find_regions(self, k8s_coreV1Client):
-        list_namespaces = k8s_coreV1Client.list_namespace()
+    def _find_regions(self, core_v1_api_client):
+        list_namespaces = core_v1_api_client.list_namespace()
         namespaces = [namespace.metadata.name
                       for namespace in list_namespaces.items]
         return namespaces
@@ -122,9 +112,9 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
         # in Kubernetes environment, user can deploy resource
         # on specific namespace
         auth_cred, file_descriptor = self._get_auth_creds(vim_obj)
-        k8s_coreV1Client = \
-            self.kubernetes.initialize_CoreApiV1Client(auth_cred)
-        namespace_list = self._find_regions(k8s_coreV1Client)
+        core_v1_api_client = \
+            self.kubernetes.get_core_v1_api_client(auth_cred)
+        namespace_list = self._find_regions(core_v1_api_client)
         self.clean_authenticate_vim(auth_cred, file_descriptor)
         vim_obj['placement_attr'] = {'regions': namespace_list}
         return vim_obj
