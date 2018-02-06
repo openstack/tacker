@@ -201,7 +201,7 @@ If you are using keystone v2 then,
    state_path = /var/lib/tacker
    ...
 
-   [nfvo]
+   [nfvo_vim]
    vim_drivers = openstack
 
    [keystone_authtoken]
