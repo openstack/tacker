@@ -334,6 +334,17 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             if param_matched.get(param_key) is None:
                 raise nfvo.VnffgParamValueNotUsed(param_key=param_key)
 
+    def _parametrize_topology_template(self, vnffg, template_db):
+        if vnffg.get('attributes') and \
+                vnffg['attributes'].get('param_values'):
+            vnffg_param = vnffg['attributes']
+            vnffgd_topology_template = \
+                template_db.template['vnffgd']['topology_template']
+            self._process_parameterized_template(vnffg_param,
+                                                 vnffgd_topology_template)
+            template_db.template['vnffgd']['topology_template'] = \
+                vnffgd_topology_template
+
     # called internally, not by REST API
     def _create_vnffg_pre(self, context, vnffg):
         vnffg = vnffg['vnffg']
@@ -349,15 +360,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                                              template_id)
             LOG.debug('vnffg template %s', template_db)
 
-            if vnffg.get('attributes') and \
-                    vnffg['attributes'].get('param_values'):
-                vnffg_param = vnffg['attributes']
-                vnffgd_topology_template = \
-                    template_db.template['vnffgd']['topology_template']
-                self._process_parameterized_template(vnffg_param,
-                                                     vnffgd_topology_template)
-                template_db.template['vnffgd']['topology_template'] = \
-                    vnffgd_topology_template
+            self._parametrize_topology_template(vnffg, template_db)
 
             vnf_members = self._get_vnffg_property(template_db.template,
                                                    'constituent_vnfs')
@@ -809,7 +812,17 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                                     constants.ERROR)
 
     def _update_all_status(self, context, vnffg_id, nfp_id, status):
+        nfp_dict = self.get_nfp(context, nfp_id)
+        sfc_id = nfp_dict['chain_id']
+
         with context.session.begin(subtransactions=True):
+            for classifier_id in nfp_dict['classifier_ids']:
+                query_cls = (self._model_query(context, VnffgClassifier).
+                             filter(VnffgClassifier.id == classifier_id))
+                query_cls.update({'status': status})
+            query_chain = (self._model_query(context, VnffgChain).
+                           filter(VnffgChain.id == sfc_id))
+            query_chain.update({'status': status})
             query = (self._model_query(context, Vnffg).
                      filter(Vnffg.id == vnffg_id))
             query.update({'status': status})
@@ -828,7 +841,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         res.update((key, vnffg_db[key]) for key in key_list)
         return self._fields(res, fields)
 
-    def _update_vnffg_pre(self, context, vnffg_id):
+    def _update_vnffg_status_pre(self, context, vnffg_id):
         vnffg = self.get_vnffg(context, vnffg_id)
         nfp = self.get_nfp(context, vnffg['forwarding_paths'])
         sfc = self.get_sfc(context, nfp['chain_id'])
@@ -847,82 +860,328 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                                         constants.PENDING_UPDATE)
         return self._make_vnffg_dict(vnffg_db)
 
-    def _update_vnffg_post(self, context, vnffg_id,
-                           updated_items,
-                           n_sfc_chain_id=None):
-        vnffg = self.get_vnffg(context, vnffg_id)
-        nfp = self.get_nfp(context, vnffg['forwarding_paths'])
+    def _update_vnffg_pre(self, context, vnffg, vnffg_id, vnffg_old):
+        vnffg = vnffg['vnffg']
+        del vnffg['symmetrical']
+        if vnffg.get('vnffgd_template') is None:
+            try:
+                return self._update_vnffg_without_template(context, vnffg_old,
+                                                           vnffg, vnffg_id)
+            except (nfvo.VnfMappingNotFoundException,
+                    nfvo.VnfMappingNotValidException) as e:
+                raise e
+
         with context.session.begin(subtransactions=True):
-            query_chain = (self._model_query(context, VnffgChain).
-                           filter(VnffgChain.id == nfp['chain_id']).
-                           filter(VnffgChain.status ==
-                               constants.PENDING_UPDATE))
+            # Templates
+            template_db_new = self._get_resource(context, VnffgTemplate,
+                                                 vnffg['vnffgd_id'])
+
+            LOG.debug('vnffg new template %s', template_db_new)
+
+            template_db_old = self._get_resource(context, VnffgTemplate,
+                                                 vnffg_old['vnffgd_id'])
+
+            LOG.debug('vnffg old template %s', template_db_old)
+
+            self._parametrize_topology_template(vnffg, template_db_new)
+
+            # VNF-Members
+            vnf_members_new = self._get_vnffg_property(
+                template_db_new.template, 'constituent_vnfs')
+
+            LOG.debug('New Constituent VNFs: %s', vnf_members_new)
+
+            vnf_members_old = self._get_vnffg_property(
+                template_db_old.template, 'constituent_vnfs')
+
+            LOG.debug('Old Constituent VNFs: %s', vnf_members_old)
+
+            if set(vnf_members_new) == set(vnf_members_old):
+                if vnffg.get('vnf_mapping') is None:
+                    final_vnf_mapping = vnffg_old['vnf_mapping']
+                else:
+                    try:
+                        self._validate_vnfd_in_vnf_mapping(
+                            vnffg['vnf_mapping'], vnf_members_new)
+                    except (nfvo.VnfMappingNotFoundException,
+                            nfvo.VnfMappingNotValidException) as e:
+                        raise e
+                    updated_vnf_mapping = \
+                        self._combine_current_and_new_vnf_mapping(
+                            context, vnffg['vnf_mapping'],
+                            vnffg_old['vnf_mapping'])
+
+                    final_vnf_mapping = self._get_vnf_mapping(
+                        context, updated_vnf_mapping, vnf_members_new)
+            else:
+                final_vnf_mapping = self._get_vnf_mapping(context, vnffg.get(
+                                                          'vnf_mapping'),
+                                                          vnf_members_new)
+
+            LOG.debug('VNF Mapping: %s', final_vnf_mapping)
+            # Update the vnffg with the new template.
+            query_vnffg = (self._model_query(context, Vnffg).
+                           filter(Vnffg.id == vnffg_old['id']).
+                           filter(Vnffg.status == constants.PENDING_UPDATE))
+            query_vnffg.update({'vnf_mapping': final_vnf_mapping,
+                                'vnffgd_id': vnffg['vnffgd_id'],
+                                'description': template_db_new.description,
+                                'attributes': template_db_new.get('template')})
+
+            # Delete the old_vnffgd_template if template_source is 'inline'
+            if template_db_old.template_source == 'inline':
+                self.delete_vnffgd(context, vnffg_old['vnffgd_id'])
+
+            # update NFP
+            nfp_dict_old = self.get_nfp(context, vnffg_old['forwarding_paths'])
+
+            LOG.debug('Current NFP: %s', nfp_dict_old)
+
+            nfp_dict_new = self._update_nfp_pre(template_db_new, nfp_dict_old)
+
+            LOG.debug('New NFP: %s', nfp_dict_new)
 
             query_nfp = (self._model_query(context, VnffgNfp).
-                         filter(VnffgNfp.id == nfp['id']).
-                         filter(VnffgNfp.status ==
-                             constants.PENDING_UPDATE))
+                     filter(VnffgNfp.id == nfp_dict_old['id']).
+                     filter(VnffgNfp.status == constants.PENDING_UPDATE))
+            query_nfp.update(nfp_dict_new)
 
-            query_vnffg = (self._model_query(context, Vnffg).
-                           filter(Vnffg.id == vnffg['id']).
-                           filter(Vnffg.status ==
-                               constants.PENDING_UPDATE))
+            # update chain
+            chain_old = self.get_sfc(context, nfp_dict_old['chain_id'])
+            LOG.debug('Current chain: %s', chain_old)
+            chain_new = self._create_port_chain(context, final_vnf_mapping,
+                                                template_db_new,
+                                                nfp_dict_new['name'])
+            LOG.debug('New chain: %s', chain_new)
+            # to check if it is updated
+            update_chain = self._set_updated_chain(chain_old['chain'],
+                                                   chain_new)
 
+            if update_chain:
+                query_chain = (self._model_query(context, VnffgChain).
+                               filter(VnffgChain.id == chain_old['id']).
+                               filter(VnffgChain.status == constants.
+                               PENDING_UPDATE))
+                query_chain.update({'chain': chain_new,
+                                    'path_id': nfp_dict_new['path_id']})
+
+            # update classifiers
+            classifiers_old = []
+            for classifier_id in nfp_dict_old['classifier_ids']:
+                classifiers_old.append(self.
+                                   get_classifier(context,
+                                   classifier_id,
+                                   fields=['name', 'match', 'id']))
+            classifiers_new = self._policy_to_acl_criteria(context,
+                                                       template_db_new,
+                                                       nfp_dict_new['name'],
+                                                       final_vnf_mapping)
+            try:
+                classifiers_update, classifiers_delete = \
+                    self._find_classifiers_to_update(classifiers_old,
+                                                     classifiers_new)
+            except nfvo.UpdateVnffgException as e:
+                raise e
+            for clsfr in classifiers_update:
+                if clsfr.get('id'):
+                    for item in MATCH_DB_KEY_LIST:
+                        if clsfr['match'].get(item) is None:
+                            clsfr['match'][item] = None
+                    query_match = (self._model_query(context,
+                                                     ACLMatchCriteria).
+                             filter(ACLMatchCriteria.vnffgc_id == clsfr['id']))
+                    query_match.update(clsfr['match'])
+                else:
+                    classifier_id = uuidutils.generate_uuid()
+                    sfcc_db = VnffgClassifier(id=classifier_id,
+                                          name=clsfr['name'],
+                                          tenant_id=vnffg_old['tenant_id'],
+                                          status=constants.PENDING_CREATE,
+                                          nfp_id=nfp_dict_old['id'],
+                                          chain_id=chain_old['id'])
+                    context.session.add(sfcc_db)
+
+                    match_db = ACLMatchCriteria(
+                        id=uuidutils.generate_uuid(),
+                        vnffgc_id=classifier_id,
+                        **clsfr['match'])
+                    context.session.add(match_db)
+            for clsfr in classifiers_delete:
+                query_clsfr = (self._model_query(context, VnffgClassifier).
+                               filter(VnffgClassifier.id == clsfr['id']).
+                               filter(VnffgClassifier.status == constants.
+                                     PENDING_UPDATE))
+                query_clsfr.update({'status': constants.PENDING_DELETE})
+
+        return self.get_vnffg(context, vnffg_id)
+
+    def _find_classifiers_to_update(self, current_classifiers,
+                                    new_classifiers):
+        update_classifiers = []
+        delete_classifiers = []
+        names_list = []
+        for new_clsfr in new_classifiers:
+            found_name = False
+            if new_clsfr['name'] is None:
+                LOG.error('VNFFG update requires named classifiers')
+                raise nfvo.UpdateVnffgException(
+                    message="Failed to update VNFFG")
+            for cur_clsfr in current_classifiers:
+                if cur_clsfr['name'] == new_clsfr['name']:
+                    new_clsfr['id'] = cur_clsfr['id']
+                    names_list.append(new_clsfr['name'])
+                    update_classifiers.append(new_clsfr)
+                    found_name = True
+                    break
+            if not found_name:
+                names_list.append(new_clsfr['name'])
+                update_classifiers.append(new_clsfr)
+        for cur_clsfr in current_classifiers:
+            if cur_clsfr['name'] not in names_list:
+                delete_classifiers.append(cur_clsfr)
+        return update_classifiers, delete_classifiers
+
+    def _set_updated_chain(self, current_chain, new_chain):
+        if len(current_chain) != len(new_chain):
+            return True
+        else:
+            for i, item in enumerate(current_chain):
+                cp_vnf = new_chain[i]
+                if (cp_vnf['name'] == item['name'] and
+                        cp_vnf['connection_points'] == item[
+                        'connection_points']):
+                    continue
+                else:
+                    return True
+        return False
+
+    def _update_vnffg_without_template(self, context, old_vnffg, new_vnffg,
+                                       vnffg_id):
+
+        template_db = self._get_resource(context, VnffgTemplate,
+                                         old_vnffg['vnffgd_id'])
+        vnfd_members = self._get_vnffg_property(template_db.template,
+                                                'constituent_vnfs')
+        nfp = self.get_nfp(context, old_vnffg['forwarding_paths'])
+
+        chain_dict = self.get_sfc(context, nfp['chain_id'])
+        try:
+            self._validate_vnfd_in_vnf_mapping(new_vnffg.get('vnf_mapping'),
+                                               vnfd_members)
+        except (nfvo.VnfMappingNotFoundException,
+                nfvo.VnfMappingNotValidException) as e:
+            raise e
+
+        combined_vnf_mapping = self._combine_current_and_new_vnf_mapping(
+            context, new_vnffg['vnf_mapping'], old_vnffg['vnf_mapping'])
+
+        new_vnffg['vnf_mapping'] = self._get_vnf_mapping(context,
+                                                         combined_vnf_mapping,
+                                                         vnfd_members)
+        new_chain = self._create_port_chain(context,
+                                            new_vnffg['vnf_mapping'],
+                                            template_db,
+                                            nfp['name'])
+
+        LOG.debug('chain update: %s', new_chain)
+
+        query_vnffg = (self._model_query(context, Vnffg).
+                       filter(Vnffg.id == old_vnffg['id']).
+                       filter(Vnffg.status == constants.PENDING_UPDATE))
+        query_vnffg.update({'vnf_mapping': new_vnffg['vnf_mapping']})
+
+        query_chain = (self._model_query(context, VnffgChain).
+                       filter(VnffgChain.id == chain_dict['id']).
+                       filter(VnffgChain.status == constants.
+                       PENDING_UPDATE))
+        query_chain.update({'chain': new_chain})
+
+        return self.get_vnffg(context, vnffg_id)
+
+    def _update_nfp_pre(self, template_db, nfp_dict_old):
+        template_new = template_db.template['vnffgd']['topology_template']
+        nfp_dict_new = dict()
+        vnffg_name = list(template_new['groups'].keys())[0]
+        nfp_dict_new['name'] = template_new['groups'][vnffg_name]['members'][0]
+        nfp_dict_new['path_id'] = template_new['node_templates'][nfp_dict_new[
+            'name']]['properties'].get('id')
+
+        if not nfp_dict_new['path_id']:
+            nfp_dict_new['path_id'] = nfp_dict_old['path_id']
+        return nfp_dict_new
+
+    def _update_vnffg_post(self, context, n_sfc_chain_id,
+                           classifiers_map, vnffg_dict):
+        """Updates the status and the n-sfc instance_ids in the db
+
+        :param context: SQL Session Context
+        :param n_sfc_chain_id: Id of port-chain in n-sfc side
+        :param classifiers_map: classifier and instance Ids map
+        :param vnffg_dict: vnffg dictionary
+        :return: None
+        """
+        nfp_dict = self.get_nfp(context, vnffg_dict['forwarding_paths'])
+        sfc_id = nfp_dict['chain_id']
+        with context.session.begin(subtransactions=True):
+            query_chain = (self._model_query(context, VnffgChain).
+                filter(VnffgChain.id == sfc_id).
+                filter(VnffgChain.status == constants.PENDING_UPDATE).one())
             if n_sfc_chain_id is None:
                 query_chain.update({'status': constants.ERROR})
             else:
-                for key in _VALID_VNFFG_UPDATE_ATTRIBUTES:
-                    if updated_items.get(key) is not None:
-                        query_vnffg.update({key: updated_items[key]})
-                for key in _VALID_NFP_UPDATE_ATTRIBUTES:
-                    if updated_items.get(key) is not None:
-                        query_nfp.update({key: updated_items[key]})
-                for key in _VALID_SFC_UPDATE_ATTRIBUTES:
-                    if updated_items.get(key) is not None:
-                        query_chain.update({key: updated_items[key]})
                 query_chain.update({'status': constants.ACTIVE})
-
-    def _update_vnffg_status(self, context, vnffg_id, error=False,
-                             db_state=constants.ERROR):
-        query_cls = []
-        vnffg = self.get_vnffg(context, vnffg_id)
-        nfp = self.get_nfp(context, vnffg['forwarding_paths'])
-        classifier_ids = nfp['classifier_ids']
-        chain_dict = self.get_sfc(context, nfp['chain_id'])
-        with context.session.begin(subtransactions=True):
-            query_chain = (self._model_query(context, VnffgChain).
-                           filter(VnffgChain.id == nfp['chain_id']))
-
-            for classifier_id in classifier_ids:
-                query_cl = (self._model_query(context, VnffgClassifier).
-                            filter(VnffgClassifier.id == classifier_id))
-
-                query_cls.append(query_cl)
-
-            query_nfp = (self._model_query(context, VnffgNfp).
-                         filter(VnffgNfp.id == nfp['id']))
-
-            query_vnffg = (self._model_query(context, Vnffg).
-                           filter(Vnffg.id == vnffg['id']))
-
-            if not error and chain_dict['status'] == constants.ACTIVE:
-                for query_cl in query_cls:
-                    query_cl.update({'status': constants.ACTIVE})
-                query_nfp.update({'status': constants.ACTIVE})
-                query_vnffg.update({'status': constants.ACTIVE})
-            else:
-                if db_state == constants.ACTIVE:
-                    query_chain.update({'status': constants.ACTIVE})
-                    for query_cl in query_cls:
-                        query_cl.update({'status': constants.ACTIVE})
-                    query_nfp.update({'status': constants.ACTIVE})
-                    query_vnffg.update({'status': constants.ACTIVE})
+            for clsfr_id in nfp_dict['classifier_ids']:
+                query_clsfr = (self._model_query(context, VnffgClassifier).
+                    filter(VnffgClassifier.id == clsfr_id))
+                if classifiers_map.get(clsfr_id):
+                    query_clsfr.update({
+                        'instance_id': classifiers_map[clsfr_id]})
+                    if classifiers_map[clsfr_id]:
+                        query_clsfr.update({'status': constants.ACTIVE})
+                    else:
+                        query_clsfr.update({'status': constants.ERROR})
                 else:
-                    query_chain.update({'status': constants.ERROR})
-                    for query_cl in query_cls:
-                        query_cl.update({'status': constants.ERROR})
-                    query_nfp.update({'status': constants.ERROR})
-                    query_vnffg.update({'status': constants.ERROR})
+                    # Deletion of unused Match criterias which are
+                    # not longer required due to the update classifier
+                    # procedure.
+                    query_match = (
+                        self._model_query(context, ACLMatchCriteria).
+                        filter(ACLMatchCriteria.vnffgc_id == clsfr_id))
+                    query_match.delete()
+                    query_clsfr.delete()
+
+    def _update_vnffg_status_post(self, context, vnffg, error=False,
+                                  db_state=constants.ERROR):
+
+        nfp = self.get_nfp(context, vnffg['forwarding_paths'])
+        chain = self.get_sfc(context, nfp['chain_id'])
+
+        if error:
+            if db_state == constants.ACTIVE:
+                self._update_all_status(context, vnffg['id'], nfp['id'],
+                                        constants.ACTIVE)
+            else:
+                self._update_all_status(context, vnffg['id'], nfp['id'],
+                                        constants.ERROR)
+        else:
+            if chain['status'] == constants.ERROR:
+                self._update_all_status(context, vnffg['id'], nfp['id'],
+                                    constants.ERROR)
+            elif chain['status'] == constants.ACTIVE:
+                classifiers_active_state = True
+                for classifier in [self.get_classifier(context, classifier_id)
+                                   for classifier_id in nfp['classifier_ids']]:
+                    if classifier['status'] == constants.ACTIVE:
+                        continue
+                    elif classifier['status'] == constants.ERROR:
+                        classifiers_active_state = False
+                        break
+                if classifiers_active_state:
+                    self._update_all_status(context, vnffg['id'], nfp['id'],
+                                        constants.ACTIVE)
+                else:
+                    self._update_all_status(context, vnffg['id'], nfp['id'],
+                                        constants.ERROR)
 
     def _get_vnffg_db(self, context, vnffg_id, current_statuses, new_status):
         try:

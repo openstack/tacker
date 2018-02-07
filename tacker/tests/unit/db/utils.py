@@ -37,6 +37,10 @@ vnffg_multi_params = _get_template('vnffg_multi_params.yaml')
 vnffgd_template = yaml.safe_load(_get_template('vnffgd_template.yaml'))
 vnffgd_tosca_template = yaml.safe_load(_get_template(
     'tosca_vnffgd_template.yaml'))
+vnffgd_tosca_template_for_update = yaml.safe_load(_get_template(
+    'tosca_vnffgd_template_for_update.yaml'))
+vnffgd_legacy_template = yaml.safe_load(_get_template(
+    'tosca_vnffgd_legacy_template_for_update.yaml'))
 vnffgd_tosca_param_template = yaml.safe_load(_get_template(
     'tosca_vnffgd_param_template.yaml'))
 vnffgd_tosca_str_param_template = yaml.safe_load(_get_template(
@@ -203,6 +207,20 @@ def get_dummy_vnffg_obj_inline():
                       'vnf_mapping': {},
                       'symmetrical': False,
                       'vnffgd_template': vnffgd_tosca_template}}
+
+
+def get_dummy_vnffg_obj_update_vnffgd_template():
+    return {'vnffg': {'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'name': 'dummy_vnffg',
+                      'symmetrical': False,
+                      'vnffgd_template': vnffgd_tosca_template_for_update}}
+
+
+def get_dummy_vnffg_obj_legacy_vnffgd_template():
+    return {'vnffg': {'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'name': 'dummy_vnffg',
+                      'symmetrical': False,
+                      'vnffgd_template': vnffgd_legacy_template}}
 
 
 def get_dummy_vnffg_param_obj():

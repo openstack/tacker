@@ -36,6 +36,7 @@ from tacker.mistral import mistral_client
 from tacker.nfvo.drivers.vim import abstract_vim_driver
 from tacker.nfvo.drivers.vnffg import abstract_vnffg_driver
 from tacker.nfvo.drivers.workflow import workflow_generator
+from tacker.plugins.common import constants
 from tacker.vnfm import keystone
 
 LOG = logging.getLogger(__name__)
@@ -342,8 +343,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         sess = session.Session(auth=auth_plugin)
         return client_type(session=sess)
 
-    def create_flow_classifier(self, name, fc, auth_attr=None):
-        def _translate_ip_protocol(ip_proto):
+    def _translate_ip_protocol(self, ip_proto):
             if ip_proto == '1':
                 return 'icmp'
             elif ip_proto == '6':
@@ -353,26 +353,31 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
             else:
                 return None
 
-        if not auth_attr:
-            LOG.warning("auth information required for n-sfc driver")
-            return None
-
-        LOG.debug('fc passed is %s', fc)
-        sfc_classifier_params = {}
-        sfc_classifier_params['name'] = name
+    def _create_classifier_params(self, fc):
+        classifier_params = {}
         for field in fc:
             if field in FC_MAP:
-                sfc_classifier_params[FC_MAP[field]] = fc[field]
+                classifier_params[FC_MAP[field]] = fc[field]
             elif field == 'ip_proto':
-                protocol = _translate_ip_protocol(str(fc[field]))
+                protocol = self._translate_ip_protocol(str(fc[field]))
                 if not protocol:
                     raise ValueError('protocol %s not supported' % fc[field])
-                sfc_classifier_params['protocol'] = protocol
+                classifier_params['protocol'] = protocol
             else:
                 LOG.warning("flow classifier %s not supported by "
                             "networking-sfc driver", field)
+        return classifier_params
 
+    def create_flow_classifier(self, name, fc, auth_attr=None):
+        if not auth_attr:
+            LOG.warning("auth information required for n-sfc driver")
+            return None
+        fc['name'] = name
+        LOG.debug('fc passed is %s', fc)
+
+        sfc_classifier_params = self._create_classifier_params(fc)
         LOG.debug('sfc_classifier_params is %s', sfc_classifier_params)
+
         if len(sfc_classifier_params) > 0:
             neutronclient_ = NeutronClient(auth_attr)
 
@@ -471,6 +476,8 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         new_ppgs = []
         updated_port_chain = dict()
         pc_info = neutronclient_.port_chain_show(chain_id)
+        if set(fc_ids) != set(pc_info['port_chain']['flow_classifiers']):
+            updated_port_chain['flow_classifiers'] = fc_ids
         old_ppgs = pc_info['port_chain']['port_pair_groups']
         old_ppgs_dict = {neutronclient_.
                     port_pair_group_show(ppg_id)['port_pair_group']['name'].
@@ -535,6 +542,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
             raise e
 
         updated_port_chain['port_pair_groups'] = new_ppgs
+        updated_port_chain['flow_classifiers'] = fc_ids
         try:
             pc_id = neutronclient_.port_chain_update(chain_id,
                                                      updated_port_chain)
@@ -560,28 +568,89 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         neutronclient_ = NeutronClient(auth_attr)
         neutronclient_.port_chain_delete(chain_id)
 
-    def update_flow_classifier(self, fc_id, fc, auth_attr=None):
+    def update_flow_classifier(self, chain_id, fc, auth_attr=None):
         if not auth_attr:
             LOG.warning("auth information required for n-sfc driver")
             return None
 
-        # for now, the only parameters allowed for flow-classifier-update
-        # is 'name' and/or 'description'.
-        # Currently we do not store the classifiers in the db with
-        # a name and/or a description which means that the default
-        # values of the name and/or description will be None.
+        fc_id = fc.pop('instance_id')
+        fc_status = fc.pop('status')
+        match_dict = fc.pop('match')
+        fc.update(match_dict)
 
-        sfc_classifier_params = {}
-        if 'name' in fc:
-            sfc_classifier_params['name'] = fc['name']
-        if 'description' in fc:
-            sfc_classifier_params['description'] = fc['description']
-
-        LOG.debug('sfc_classifier_params is %s', sfc_classifier_params)
-
+        sfc_classifier_params = self._create_classifier_params(fc)
         neutronclient_ = NeutronClient(auth_attr)
-        return neutronclient_.flow_classifier_update(fc_id,
-                                                     sfc_classifier_params)
+        if fc_status == constants.PENDING_UPDATE:
+            fc_info = neutronclient_.flow_classifier_show(fc_id)
+            for field in sfc_classifier_params:
+                # If the new classifier is the same with the old one then
+                # no change needed.
+                if (fc_info['flow_classifier'].get(field) is not None) and \
+                        (sfc_classifier_params[field] == fc_info[
+                            'flow_classifier'][field]):
+                    continue
+
+                # If the new classifier has different match criteria
+                # with the old one then we strip the classifier from
+                # the chain we delete the old classifier and we create
+                # a new one with the same name as before but with different
+                # match criteria. We are not using the flow_classifier_update
+                # from the n-sfc because it does not support match criteria
+                # update for an existing classifier yet.
+                else:
+                    try:
+                        self._dissociate_classifier_from_chain(chain_id,
+                                                               [fc_id],
+                                                               neutronclient_)
+                    except Exception as e:
+                        raise e
+                    fc_id = neutronclient_.flow_classifier_create(
+                        sfc_classifier_params)
+                    if fc_id is None:
+                        raise nfvo.UpdateClassifierException(
+                            message="Failed to update classifiers")
+                    break
+
+        # If the new classifier is completely different from the existing
+        # ones (name and match criteria) then we just create it.
+        else:
+            fc_id = neutronclient_.flow_classifier_create(
+                sfc_classifier_params)
+            if fc_id is None:
+                raise nfvo.UpdateClassifierException(
+                    message="Failed to update classifiers")
+
+        return fc_id
+
+    def _dissociate_classifier_from_chain(self, chain_id, fc_ids,
+                                          neutronclient):
+            pc_info = neutronclient.port_chain_show(chain_id)
+            current_fc_list = pc_info['port_chain']['flow_classifiers']
+            for fc_id in fc_ids:
+                current_fc_list.remove(fc_id)
+            pc_id = neutronclient.port_chain_update(chain_id,
+                    {'flow_classifiers': current_fc_list})
+            if pc_id is None:
+                raise nfvo.UpdateClassifierException(
+                    message="Failed to update classifiers")
+            for fc_id in fc_ids:
+                try:
+                    neutronclient.flow_classifier_delete(fc_id)
+                except ValueError as e:
+                    raise e
+
+    def remove_and_delete_flow_classifiers(self, chain_id, fc_ids,
+                                           auth_attr=None):
+        if not auth_attr:
+            LOG.warning("auth information required for n-sfc driver")
+            raise EnvironmentError('auth attribute required for'
+                                   ' networking-sfc driver')
+        neutronclient_ = NeutronClient(auth_attr)
+        try:
+            self._dissociate_classifier_from_chain(chain_id, fc_ids,
+                                                   neutronclient_)
+        except Exception as e:
+            raise e
 
     def delete_flow_classifier(self, fc_id, auth_attr=None):
         if not auth_attr:
@@ -655,6 +724,16 @@ class NeutronClient(object):
         auth = identity.Password(**auth_cred)
         sess = session.Session(auth=auth, verify=verify)
         self.client = neutron_client.Client(session=sess)
+
+    def flow_classifier_show(self, fc_id):
+        try:
+            fc = self.client.show_flow_classifier(fc_id)
+            if fc is None:
+                raise ValueError('classifier %s not found' % fc_id)
+            return fc
+        except nc_exceptions.NotFound:
+            LOG.error('classifier %s not found', fc_id)
+            raise ValueError('classifier %s not found' % fc_id)
 
     def flow_classifier_create(self, fc_dict):
         LOG.debug("fc_dict passed is {fc_dict}".format(fc_dict=fc_dict))

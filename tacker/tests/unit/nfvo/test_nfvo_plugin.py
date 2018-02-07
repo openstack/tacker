@@ -824,7 +824,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                               self.nfvo_plugin.update_vnffg,
                               self.context, vnffg['id'], updated_vnffg)
 
-    def test_update_vnffg(self):
+    def test_update_vnffg_vnf_mapping(self):
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
@@ -834,8 +834,9 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             vnffg = self._insert_dummy_vnffg()
             updated_vnffg = utils.get_dummy_vnffg_obj_vnf_mapping()
             updated_vnffg['vnffg']['symmetrical'] = True
-            expected_mapping = {'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effe07',
-                                'VNF3': '7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'}
+            expected_mapping = {'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effaf6',
+                                'VNF3': '10f66bc5-b2f1-45b7-a7cd-6dd6ad0017f5'}
+
             updated_vnf_mapping = \
                 {'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effaf6',
                  'VNF3': '10f66bc5-b2f1-45b7-a7cd-6dd6ad0017f5'}
@@ -857,6 +858,50 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                                                            fc_ids=mock.ANY,
                                                            chain_id=mock.ANY,
                                                            auth_attr=mock.ANY)
+
+    def test_update_vnffg_vnffgd_template(self):
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock.patch('tacker.common.driver_manager.DriverManager',
+                       side_effect=FakeDriverManager()).start()
+            self._insert_dummy_vnffg_template()
+            vnffg = self._insert_dummy_vnffg()
+            updated_vnffg = utils.get_dummy_vnffg_obj_update_vnffgd_template()
+            expected_mapping = {'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effaf6'}
+
+            updated_vnf_mapping = \
+                {'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effaf6'}
+            updated_vnffg['vnffg']['vnf_mapping'] = updated_vnf_mapping
+            result = self.nfvo_plugin.update_vnffg(self.context, vnffg['id'],
+                                            updated_vnffg)
+            self.assertIn('id', result)
+            self.assertIn('status', result)
+            self.assertIn('vnf_mapping', result)
+            self.assertEqual('ffc1a59b-65bb-4874-94d3-84f639e63c74',
+                             result['id'])
+            for vnfd, vnf in result['vnf_mapping'].items():
+                self.assertIn(vnfd, expected_mapping)
+                self.assertEqual(vnf, expected_mapping[vnfd])
+            self._driver_manager.invoke.assert_called_with(mock.ANY,
+                                                           mock.ANY,
+                                                           vnfs=mock.ANY,
+                                                           fc_ids=mock.ANY,
+                                                           chain_id=mock.ANY,
+                                                           auth_attr=mock.ANY)
+
+    def test_update_vnffg_legacy_vnffgd_template(self):
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock.patch('tacker.common.driver_manager.DriverManager',
+                       side_effect=FakeDriverManager()).start()
+            self._insert_dummy_vnffg_template()
+            vnffg = self._insert_dummy_vnffg()
+            updated_vnffg = utils.get_dummy_vnffg_obj_legacy_vnffgd_template()
+            self.assertRaises(nfvo.UpdateVnffgException,
+                              self.nfvo_plugin.update_vnffg,
+                              self.context, vnffg['id'], updated_vnffg)
 
     def test_delete_vnffg(self):
         self._insert_dummy_vnffg_template()

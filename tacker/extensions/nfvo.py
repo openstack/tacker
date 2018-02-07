@@ -264,6 +264,14 @@ class UpdateChainException(exceptions.TackerException):
     message = _("%(message)s")
 
 
+class UpdateClassifierException(exceptions.TackerException):
+    message = _("%(message)s")
+
+
+class UpdateVnffgException(exceptions.TackerException):
+    message = _("%(message)s")
+
+
 NAME_MAX_LEN = 255
 
 RESOURCE_ATTRIBUTE_MAP = {
@@ -471,7 +479,7 @@ RESOURCE_ATTRIBUTE_MAP = {
         },
         'vnffgd_template': {
             'allow_post': True,
-            'allow_put': False,
+            'allow_put': True,
             'validate': {'type:dict_or_nodata': None},
             'is_visible': True,
             'default': None,

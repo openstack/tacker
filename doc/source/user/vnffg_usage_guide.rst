@@ -283,7 +283,8 @@ Using the below command query the list of existing VNFFG templates.
 
 After the user located the VNFFG the subsequent action is to update it.
 Based on the appropriate choice, update VNFFG template.
-Currently we support only the update of the vnf-mapping in a VNFFG.
+Currently two choices are supported for the update of an existing VNFFG.
+The first choice is the use of the vnf-mapping parameter.
 The user needs to use a VNF which is actually derived from the VNFD which
 is going to be used in the vnf-mapping parameter.
 If the user is not sure which VNF was used for the mapping during the time
@@ -307,6 +308,126 @@ To update the VNF mappings to VNFFG, execute the below command
 
    Updated vnffg: myvnffg
 
+The second choice is the use of the vnffgd-template parameter.
+The aforementioned parameter provides the ability to use a vnffgd formated yaml
+template which contains all the elements and their parameters that Tacker is
+going to apply to its ecosystem.
+
+Below there is an example usage of updating an existing VNFFG:
+
+Assuming that the existing VNFFG in the system that we want to update is
+derived from the following VNFFGD template.
+
+.. code-block:: yaml
+
+   tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+   description: Sample VNFFG template
+
+   topology_template:
+     description: Sample VNFFG template
+
+     node_templates:
+
+       Forwarding_path1:
+         type: tosca.nodes.nfv.FP.TackerV2
+         description: creates path (CP1)
+         properties:
+           id: 51
+           policy:
+             type: ACL
+             criteria:
+               - name: block_udp
+                 classifier:
+                   destination_port_range: 80-1024
+                   ip_proto: 17
+           path:
+             - forwarder: VNFD3
+               capability: CP1
+
+     groups:
+       VNFFG1:
+         type: tosca.groups.nfv.VNFFG
+         description: UDP to Corporate Net
+         properties:
+           vendor: tacker
+           version: 1.0
+           number_of_endpoints: 1
+           dependent_virtual_link: [VL1]
+           connection_point: [CP1]
+           constituent_vnfs: [VNFD3]
+         members: [Forwarding_path1]
+
+By using the below VNFFGD template we can update the exisitng VNFFG.
+
+.. code-block:: yaml
+
+   tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+   description: Sample VNFFG template
+
+   topology_template:
+     description: Sample VNFFG template
+
+     node_templates:
+
+       Forwarding_path2:
+         type: tosca.nodes.nfv.FP.TackerV2
+         description: creates path (CP1->CP2)
+         properties:
+           id: 52
+           policy:
+             type: ACL
+             criteria:
+               - name: block_tcp
+                 classifier:
+                   network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480e1
+                   destination_port_range: 22-28
+                   ip_proto: 6
+                   ip_dst_prefix: 192.168.1.2/24
+           path:
+             - forwarder: VNFD1
+               capability: CP1
+             - forwarder: VNFD2
+               capability: CP2
+
+     groups:
+       VNFFG1:
+         type: tosca.groups.nfv.VNFFG
+         description: SSH to Corporate Net
+         properties:
+           vendor: tacker
+           version: 1.0
+           number_of_endpoints: 2
+           dependent_virtual_link: [VL1,VL2]
+           connection_point: [CP1,CP2]
+           constituent_vnfs: [VNFD1,VNFD2]
+         members: [Forwarding_path2]
+
+The above template informs Tacker to update the current classifier,NFP and
+path (chain) with the ones that are described in that template. After the completion
+of the update procedure the new NFP will be named 'Forwarding_path2' with an id of
+'52',the classifier in that NFP will be named 'block_tcp' and will have the corresponding
+match criteria and the updated chain will be consisted by two NVFs which are derived from
+VNFD1,VNFD2 VNFDs.
+
+To update the existing VNFFG through the vnffgd-template parameter, execute the
+below command:
+
+.. code-block:: console
+
+   tacker vnffg-update --vnffgd-template myvnffgd.yaml myvnffg
+
+   Updated vnffg: myvnffg
+
+Of course the above update VNFFG's choices can be combined in a single command.
+
+.. code-block:: console
+
+   tacker vnffg-update --vnf-mapping VNFD1:vnf1,VNFD2:vnf2 --vnffgd-template myvnffgd.yaml myvnffg
+
+   Updated vnffg: myvnffg
+
 Known Issues and Limitations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -315,6 +436,7 @@ Known Issues and Limitations
 - Matching on criteria with postfix 'name' does not work, for example
   'network_name'
 - NSH attributes not yet supported
+- n-sfc Bug: https://bugs.launchpad.net/networking-sfc/+bug/1746686
 
 .. _VNF1: https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd1.yaml
 .. _VNF2: https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd2.yaml
