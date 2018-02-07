@@ -24,7 +24,7 @@
       - openstack/tacker
       - openstack/tacker-horizon
     vars:
-      test_matrix_configs: ['neutron']
+      test_matrix_configs: [neutron]
       devstack_services:
         horizon: true
         tacker: true
@@ -52,7 +52,6 @@
         TACKER_TOX_PYTHON: python3
 
 - project:
-    name: openstack/tacker
     check:
       jobs:
         - tacker-functional-devstack:
