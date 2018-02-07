@@ -1,0 +1,3 @@
+---
+features:
+  - Add containerised vnf support to Kubernetes VIM
