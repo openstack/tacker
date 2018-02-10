@@ -28,8 +28,8 @@ from tacker.vnfm.mgmt_drivers import constants as mgmt_constants
 
 LOG = logging.getLogger(__name__)
 OPTS = [
-    cfg.StrOpt('user', default='root', help=_('user name to login openwrt')),
-    cfg.StrOpt('password', default='', help=_('password to login openwrt')),
+    cfg.StrOpt('user', default='root', help=_('User name to login openwrt')),
+    cfg.StrOpt('password', default='', help=_('Password to login openwrt')),
 ]
 cfg.CONF.register_opts(OPTS, 'openwrt')
 

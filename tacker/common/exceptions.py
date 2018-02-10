@@ -95,7 +95,7 @@ class PolicyCheckError(TackerException):
 
 
 class InUse(TackerException):
-    message = _("The resource is inuse")
+    message = _("The resource is in use")
 
 
 class MalformedRequestBody(BadRequest):

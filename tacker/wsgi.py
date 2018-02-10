@@ -151,18 +151,18 @@ class Server(object):
 
         if CONF.use_ssl:
             if not os.path.exists(CONF.ssl_cert_file):
-                raise RuntimeError(_("Unable to find ssl_cert_file "
+                raise RuntimeError(_("Unable to find ssl_cert_file"
                                      ": %s") % CONF.ssl_cert_file)
 
             # ssl_key_file is optional because the key may be embedded in the
             # certificate file
             if CONF.ssl_key_file and not os.path.exists(CONF.ssl_key_file):
                 raise RuntimeError(_("Unable to find "
-                                     "ssl_key_file : %s") % CONF.ssl_key_file)
+                                     "ssl_key_file: %s") % CONF.ssl_key_file)
 
             # ssl_ca_file is optional
             if CONF.ssl_ca_file and not os.path.exists(CONF.ssl_ca_file):
-                raise RuntimeError(_("Unable to find ssl_ca_file "
+                raise RuntimeError(_("Unable to find ssl_ca_file"
                                      ": %s") % CONF.ssl_ca_file)
 
         def wrap_ssl(sock):

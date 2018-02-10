@@ -265,7 +265,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
             raise vnfm.VNFDeleteWaitFailed(reason=error_reason)
 
         if stack_retries != 0 and status != 'DELETE_COMPLETE':
-            error_reason = _("vnf {vnf_id} deletion is not completed. "
+            error_reason = _("VNF {vnf_id} deletion is not completed. "
                             "{stack_status}").format(vnf_id=vnf_id,
                             stack_status=status)
             LOG.warning(error_reason)
@@ -347,7 +347,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
             if stack_retries == 0:
                 metadata = heatclient.resource_metadata(stack_id, policy_name)
                 if not metadata['scaling_in_progress']:
-                    error_reason = _('when signal occurred within cool down '
+                    error_reason = _('When signal occurred within cool down '
                                      'window, no events generated from heat, '
                                      'so ignore it')
                     LOG.warning(error_reason)

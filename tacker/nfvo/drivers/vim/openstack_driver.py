@@ -53,11 +53,11 @@ OPTS = [cfg.StrOpt('openstack', default='/etc/tacker/vim/fernet_keys',
 # same params as we used in ping monitor driver
 OPENSTACK_OPTS = [
     cfg.StrOpt('count', default='1',
-               help=_('number of ICMP packets to send')),
+               help=_('Number of ICMP packets to send')),
     cfg.StrOpt('timeout', default='1',
-               help=_('number of seconds to wait for a response')),
+               help=_('Number of seconds to wait for a response')),
     cfg.StrOpt('interval', default='1',
-               help=_('number of seconds to wait between packets'))
+               help=_('Number of seconds to wait between packets'))
 ]
 cfg.CONF.register_opts(OPTS, 'vim_keys')
 cfg.CONF.register_opts(OPENSTACK_OPTS, 'vim_monitor')
