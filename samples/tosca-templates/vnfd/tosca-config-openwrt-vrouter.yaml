@@ -10,15 +10,15 @@ vdus:
             option ipaddr '127.0.0.1'
             option netmask '255.0.0.0'
 
-        config interface 'mgmt_net'
+        config interface 'net_mgmt'
             option ifname 'eth0'
             option proto 'dhcp'
 
-        config interface 'net1'
+        config interface 'net0'
             option ifname 'eth1'
             option proto 'dhcp'
 
-        config interface 'net2'
+        config interface 'net1'
             option ifname 'eth2'
             option proto 'dhcp'
 
@@ -32,15 +32,15 @@ vdus:
             option forward 'ACCEPT'
 
         config zone
-            option name 'mgmt_net'
-            option network 'mgmt_net'
+            option name 'net_mgmt'
+            option network 'net_mgmt'
             option input 'ACCEPT'
             option output 'ACCEPT'
             option forward 'REJECT'
 
         config zone
             option name 'lan'
-            list network 'net1 net2'
+            list network 'net0 net1'
             option input 'ACCEPT'
             option output 'ACCEPT'
             option forward 'ACCEPT'
