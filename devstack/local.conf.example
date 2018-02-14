@@ -28,50 +28,38 @@ ENABLE_DEBUG_LOG_LEVEL=True
 ENABLE_VERBOSE_LOG_LEVEL=True
 
 # Neutron ML2 with OpenVSwitch
-
 Q_PLUGIN=ml2
 Q_AGENT=openvswitch
 
-#Disable security groups
+# Disable security groups
 Q_USE_SECGROUP=False
 LIBVIRT_FIREWALL_DRIVER=nova.virt.firewall.NoopFirewallDriver
 
-#NET K8S NETWORK CONFIGURATION
-#FIXED_RANGE_K8S=${FIXED_RANGE_K8S:-192.168.72.0/22}
-#NETWORK_GATEWAY_K8S=${NETWORK_GATEWAY_K8S:-192.168.72.1}
-#NETWORK_GATEWAY_K8S_IP=${NETWORK_GATEWAY_K8S_IP:-192.168.72.1/24}
-
-# Required for l3-agent to connect to external-network-bridge
-PUBLIC_BRIDGE=br-ext
-
 # Enable heat, networking-sfc, barbican and mistral
-enable_plugin heat https://git.openstack.org/openstack/heat master
-enable_plugin networking-sfc git://git.openstack.org/openstack/networking-sfc master
-enable_plugin barbican https://git.openstack.org/openstack/barbican master
-enable_plugin mistral https://git.openstack.org/openstack/mistral master
+enable_plugin heat https://git.openstack.org/openstack/heat stable/queens
+enable_plugin networking-sfc git://git.openstack.org/openstack/networking-sfc stable/queens
+enable_plugin barbican https://git.openstack.org/openstack/barbican stable/queens
+enable_plugin mistral https://git.openstack.org/openstack/mistral stable/queens
 
-#Ceilometer
+# Ceilometer
 #CEILOMETER_PIPELINE_INTERVAL=300
-enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer master
-enable_plugin aodh https://git.openstack.org/openstack/aodh master
+enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer stable/queens
+enable_plugin aodh https://git.openstack.org/openstack/aodh stable/queens
 
-#Tacker
-enable_plugin tacker https://git.openstack.org/openstack/tacker master
+# Tacker
+enable_plugin tacker https://git.openstack.org/openstack/tacker stable/queens
 
 enable_service n-novnc
 enable_service n-cauth
 
 disable_service tempest
 
-#TACKER CONFIGURATION
-USE_BARBICAN=True
-
 # Enable Kubernetes and kuryr-kubernetes
-KUBERNETES_VIM=True
-NEUTRON_CREATE_INITIAL_NETWORKS=False
-enable_plugin kuryr-kubernetes https://git.openstack.org/openstack/kuryr-kubernetes master
-enable_plugin neutron-lbaas git://git.openstack.org/openstack/neutron-lbaas master
-enable_plugin devstack-plugin-container https://git.openstack.org/openstack/devstack-plugin-container master
+#KUBERNETES_VIM=True
+#NEUTRON_CREATE_INITIAL_NETWORKS=False
+#enable_plugin kuryr-kubernetes https://git.openstack.org/openstack/kuryr-kubernetes stable/queens
+#enable_plugin neutron-lbaas git://git.openstack.org/openstack/neutron-lbaas stable/queens
+#enable_plugin devstack-plugin-container https://git.openstack.org/openstack/devstack-plugin-container stable/queens
 
 [[post-config|/etc/neutron/dhcp_agent.ini]]
 [DEFAULT]
