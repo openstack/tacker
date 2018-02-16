@@ -154,7 +154,9 @@ function start_tacker {
     # Start tacker conductor
     run_process tacker-conductor "$TACKER_BIN_DIR/tacker-conductor $cfg_file_options"
     # Start the Tacker service
-    run_process tacker "$TACKER_BIN_DIR/tacker-server $cfg_file_options"
+    sudo cp $TACKER_DIR/etc/systemd/system/tacker.service /etc/systemd/system/devstack@tacker.service
+    sudo systemctl daemon-reload
+    sudo systemctl restart devstack@tacker.service
     echo "Waiting for Tacker to start..."
     if is_ssl_enabled_service "tacker"; then
         ssl_ca="--ca-certificate=${SSL_BUNDLE_FILE}"
