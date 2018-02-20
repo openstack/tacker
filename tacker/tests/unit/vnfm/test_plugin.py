@@ -224,7 +224,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
     @mock.patch('tacker.vnfm.plugin.toscautils.get_mgmt_driver')
     def test_create_vnfd(self, mock_get_mgmt_driver, mock_tosca_template,
                         mock_update_imports):
-        mock_get_mgmt_driver.return_value = 'dummy_mgmt_driver'
+        mock_get_mgmt_driver.return_value = 'noop'
         mock_tosca_template.return_value = mock.ANY
 
         vnfd_obj = utils.get_dummy_vnfd_obj()
@@ -233,7 +233,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('id', result)
         self.assertEqual('dummy_vnfd', result['name'])
         self.assertEqual('dummy_vnfd_description', result['description'])
-        self.assertEqual('dummy_mgmt_driver', result['mgmt_driver'])
+        self.assertEqual('noop', result['mgmt_driver'])
         self.assertIn('service_types', result)
         self.assertIn('attributes', result)
         self.assertIn('created_at', result)
@@ -533,3 +533,12 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         policies = self.vnfm_plugin.get_vnf_policies(self.context, vnf_id,
             filters={'name': 'vdu1_cpu_usage_monitoring_policy'})
         self.assertEqual(1, len(policies))
+
+    @mock.patch('tacker.vnfm.plugin.toscautils.get_mgmt_driver')
+    def test_mgmt_driver(self, mock_get_mgmt_driver):
+        mock_get_mgmt_driver.return_value = 'dummy_mgmt_driver'
+
+        vnfd_obj = utils.get_dummy_vnfd_obj()
+        self.assertRaises(vnfm.InvalidMgmtDriver,
+                          self.vnfm_plugin.create_vnfd,
+                          self.context, vnfd_obj)

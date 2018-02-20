@@ -47,6 +47,10 @@ class VNFInUse(exceptions.InUse):
     message = _('VNF %(vnf_id)s is still in use')
 
 
+class InvalidMgmtDriver(exceptions.InvalidInput):
+    message = _('Invalid Mgmt driver %(mgmt_driver_name)s.')
+
+
 class InvalidInfraDriver(exceptions.InvalidInput):
     message = _('VIM type %(vim_name)s is not supported as an infra driver')
 
