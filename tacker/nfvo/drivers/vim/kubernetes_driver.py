@@ -74,8 +74,8 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
         return auth_cred, file_descriptor
 
     def _create_ssl_ca_file(self, auth_cred):
-        ca_cert = auth_cred['ssl_ca_cert']
-        if ca_cert is not None:
+        if auth_cred.get('ssl_ca_cert', ''):
+            ca_cert = auth_cred['ssl_ca_cert']
             file_descriptor, file_path = \
                 self.kubernetes.create_ca_cert_tmp_file(ca_cert)
             auth_cred['ca_cert_file'] = file_path
@@ -189,7 +189,7 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
             encoded_auth = fernet_obj.encrypt(
                 auth['bearer_token'].encode('utf-8'))
             auth['bearer_token'] = encoded_auth
-        if ('ssl_ca_cert' in auth) and (auth['ssl_ca_cert'] is not None):
+        if auth.get('ssl_ca_cert', ''):
             encoded_auth = fernet_obj.encrypt(
                 auth['ssl_ca_cert'].encode('utf-8'))
             auth['ssl_ca_cert'] = encoded_auth
