@@ -13,16 +13,16 @@ Welcome!
 Tacker is an OpenStack based NFV Orchestrator service with built-in general
 purpose VNF Manager to deploy and operate Virtual Network Functions (VNFs)
 on an OpenStack based NFV Platform. It is based on ETSI MANO Architectural
-Framework and provides full functional stack to orchestrate VNFs end-to-end.
+Framework and provides a fully functional stack to orchestrate VNFs end-to-end.
 
 Installation:
 =============
 
-Installation instructions:
-https://wiki.openstack.org/wiki/Tacker/Installation
+Installation instructions and user guides can be found at:
+https://docs.openstack.org/tacker/
 
-Tacker code base now supports OpenStack master and kilo releases. Please
-follow the instructions in the above wiki for a successful installation of
+Tacker code base supports OpenStack master and other releases. Please
+follow the instructions in the above address for a successful installation of
 corresponding release.
 
 Code:
