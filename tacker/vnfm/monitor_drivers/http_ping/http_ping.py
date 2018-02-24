@@ -24,9 +24,9 @@ from tacker.vnfm.monitor_drivers import abstract_driver
 LOG = logging.getLogger(__name__)
 OPTS = [
     cfg.IntOpt('retry', default=5,
-               help=_('number of times to retry')),
+               help=_('Number of times to retry')),
     cfg.IntOpt('timeout', default=1,
-               help=_('number of seconds to wait for a response')),
+               help=_('Number of seconds to wait for a response')),
     cfg.IntOpt('port', default=80,
                help=_('HTTP port number to send request'))
 ]

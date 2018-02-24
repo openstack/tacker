@@ -830,9 +830,9 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                     bckend_policy_type = bckend_policy['type']
                     if bckend_policy_type == constants.POLICY_SCALING:
                         if vnf_dict['status'] != constants.ACTIVE:
-                            LOG.info(_("Scaling Policy action"
-                                       "skipped due to status:"
-                                       "%(status)s for vnf: %(vnfid)s"),
+                            LOG.info(_("Scaling Policy action "
+                                       "skipped due to status "
+                                       "%(status)s for vnf %(vnfid)s"),
                                      {"status": vnf_dict['status'],
                                       "vnfid": vnf_dict['id']})
                             return

@@ -199,7 +199,7 @@ class OwnerCheck(policy.Check):
             self.target_field = re.findall(r'^\%\((.*)\)s$',
                                            match)[0]
         except IndexError:
-            err_reason = (_("Unable to identify a target field from:%s. "
+            err_reason = (_("Unable to identify a target field from: %s. "
                             "Match should be in the form %%(<field_name>)s") %
                           match)
             LOG.exception(err_reason)

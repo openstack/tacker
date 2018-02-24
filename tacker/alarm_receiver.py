@@ -26,9 +26,9 @@ OPTS = [
     cfg.StrOpt('username', default='admin',
         help=_('User name for alarm monitoring')),
     cfg.StrOpt('password', default='devstack',
-        help=_('password for alarm monitoring')),
+        help=_('Password for alarm monitoring')),
     cfg.StrOpt('project_name', default='admin',
-        help=_('project name for alarm monitoring')),
+        help=_('Project name for alarm monitoring')),
 ]
 
 cfg.CONF.register_opts(OPTS, 'alarm_auth')

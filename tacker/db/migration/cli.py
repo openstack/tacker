@@ -146,7 +146,7 @@ def add_command_parsers(subparsers):
         help=_('Resource name for which deleted entries are to be purged.'))
     # optional parameter, can be skipped. default='90'
     parser.add_argument('-a', '--age', nargs='?', default='90',
-                        help=_('How long to preserve deleted data,'
+                        help=_('How long to preserve deleted data, '
                                'defaults to 90'))
     # optional parameter, can be skipped. default='days'
     parser.add_argument(

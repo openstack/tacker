@@ -48,7 +48,7 @@ class VNFInUse(exceptions.InUse):
 
 
 class InvalidInfraDriver(exceptions.InvalidInput):
-    message = _('VIM type %(vim_name)s is not supported as an infra driver ')
+    message = _('VIM type %(vim_name)s is not supported as an infra driver')
 
 
 class InvalidServiceType(exceptions.InvalidInput):
@@ -108,9 +108,9 @@ class IPAddrInvalidInput(exceptions.InvalidInput):
 
 
 class HugePageSizeInvalidInput(exceptions.InvalidInput):
-    message = _("Value specified for mem_page_size is invalid:"
+    message = _("Value specified for mem_page_size is invalid: "
                 "%(error_msg_details)s. The valid values are 'small', 'large',"
-                "'any' or an integer value in MB")
+                " 'any' or an integer value in MB")
 
 
 class CpuAllocationInvalidKeys(exceptions.InvalidInput):
@@ -134,7 +134,7 @@ class InfraDriverUnreachable(exceptions.ServiceUnavailable):
 
 
 class VNFInactive(exceptions.InvalidInput):
-    message = _("VNF %(vnf_id)s is not in Active state %(message)s")
+    message = _("VNF %(vnf_id)s is not in Active state: %(message)s")
 
 
 class MetadataNotMatched(exceptions.InvalidInput):
@@ -170,11 +170,11 @@ class InvalidKubernetesInputParameter(exceptions.InvalidInput):
 
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
-        msg = _("invalid data format for service list: '%s'") % data
+        msg = _("Invalid data format for service list: '%s'") % data
         LOG.debug(msg)
         return msg
     if not data:
-        msg = _("empty list is not allowed for service list. '%s'") % data
+        msg = _("Empty list is not allowed for service list. '%s'") % data
         LOG.debug(msg)
         return msg
     key_specs = {

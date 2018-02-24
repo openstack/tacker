@@ -30,7 +30,7 @@ KUBERNETES_OPTS = [
     cfg.BoolOpt('use_barbican', default=True,
                 help=_('Use barbican to encrypt vim password if True'
                        ', save vim credentials in local file system'
-                       'if False'))
+                       ' if False'))
 ]
 cfg.CONF.register_opts(KUBERNETES_OPTS, 'k8s_vim')
 
