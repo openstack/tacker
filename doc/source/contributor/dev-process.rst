@@ -1,12 +1,14 @@
 Tacker Development Process
 ==========================
 
+.. include:: ../../../CONTRIBUTING.rst
+
 Enhancement to Tacker functionality can be done using one of the following
 two development process options. The choice depends on the complexity of the
 enhancement.
 
 Request for Enhancement (RFE) Process
-=====================================
+-------------------------------------
 
 The developer, or an operator, can write up the requested enhancement in a
 Tacker launchpad [#]_ bug.
@@ -29,7 +31,7 @@ This process is recommended for smaller enhancements that can be described
 easily and it is relatively easy to implement in a short period of time.
 
 Blueprint and Tacker-Specs process
-==================================
+----------------------------------
 
 The developer, or an operator, can write up the requested enhancement by
 submitting a patchset to the tacker-spec repository [#]_.
@@ -55,7 +57,7 @@ This process is recommended for medium to large enhancements that needs
 significant code-changes (LOC), community discussions and debates.
 
 References
-==========
+----------
 
 .. [#] https://bugs.launchpad.net/tacker
 .. [#] https://github.com/openstack/tacker-specs
