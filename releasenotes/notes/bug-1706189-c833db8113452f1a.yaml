@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix doc-migration for tacker.
