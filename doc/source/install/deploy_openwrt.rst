@@ -24,10 +24,16 @@ started with deploying OpenWRT as VNF.
 1. Ensure Glance already contains OpenWRT image. Normally, Tacker tries
 to add OpenWRT image to Glance while installing via devstack. By running
 **openstack image list** to check OpenWRT image if exists. If not, download
-the image from
-`OpenWRT official site
-<https://downloads.openwrt.org/chaos_calmer/15.05.1/x86/generic/>`_.
-And upload this image into Glance by using the command specified below:
+the customized image of OpenWRT 15.05.1 [#f1]_. Unzip the file by using
+the command below:
+
+.. code-block:: console
+
+   gunzip openwrt-x86-kvm_guest-combined-ext4.img.gz
+
+..
+
+And then upload this image into Glance by using the command specified below:
 
 .. code-block:: console
 
@@ -37,9 +43,9 @@ And upload this image into Glance by using the command specified below:
                                   --public
 ..
 
-2. Create a yaml template named tosca-vnfd-openwrt-with-firewall-rules.yaml
-which contains basic configuration of OpenWRT and some firewall rules of
-OpenWRT. All contents of the template file shows below:
+2. The below example shows how to create the OpenWRT-based Firewall VNF.
+First, we have a yaml template which contains the configuration of
+OpenWRT as shown below:
 
 .. code-block:: ini
 
@@ -52,6 +58,7 @@ OpenWRT. All contents of the template file shows below:
 
    topology_template:
      node_templates:
+
        VDU1:
          type: tosca.nodes.nfv.VDU.Tacker
          capabilities:
@@ -62,52 +69,9 @@ OpenWRT. All contents of the template file shows below:
                disk_size: 1 GB
          properties:
            image: OpenWRT
-           config:
-             firewall: |
-               package firewall
-
-               config defaults
-                   option syn_flood '1'
-                   option input 'ACCEPT'
-                   option output 'ACCEPT'
-                   option forward 'REJECT'
-
-               config zone
-                   option name 'lan'
-                   list network 'lan'
-                   option input 'ACCEPT'
-                   option output 'ACCEPT'
-                   option forward 'ACCEPT'
-
-               config zone
-                   option name 'wan'
-                   list network 'wan'
-                   list network 'wan6'
-                   option input 'REJECT'
-                   option output 'ACCEPT'
-                   option forward 'REJECT'
-                   option masq '1'
-                   option mtu_fix '1'
-
-               config forwarding
-                   option src 'lan'
-                   option dest 'wan'
-
-               config rule
-                   option name 'Allow-DHCP-Renew'
-                   option src 'wan'
-                   option proto 'udp'
-                   option dest_port '68'
-                   option target 'ACCEPT'
-                   option family 'ipv4'
-
-               config rule
-                   option name 'Allow-Ping'
-                   option src 'wan'
-                   option proto 'icmp'
-                   option icmp_type 'echo-request'
-                   option family 'ipv4'
-                   option target 'ACCEPT'
+           config: |
+             param0: key1
+             param1: key2
            mgmt_driver: openwrt
            monitoring_policy:
              name: ping
@@ -117,35 +81,160 @@ OpenWRT. All contents of the template file shows below:
              actions:
                failure: respawn
 
-       CP1:
+        CP1:
          type: tosca.nodes.nfv.CP.Tacker
          properties:
            management: true
+           order: 0
            anti_spoofing_protection: false
          requirements:
            - virtualLink:
-               node: VL1
+              node: VL1
            - virtualBinding:
                node: VDU1
 
-       VL1:
+        CP2:
+         type: tosca.nodes.nfv.CP.Tacker
+         properties:
+           order: 1
+           anti_spoofing_protection: false
+         requirements:
+           - virtualLink:
+               node: VL2
+           - virtualBinding:
+               node: VDU1
+
+        CP3:
+         type: tosca.nodes.nfv.CP.Tacker
+         properties:
+           order: 2
+           anti_spoofing_protection: false
+         requirements:
+           - virtualLink:
+               node: VL3
+           - virtualBinding:
+               node: VDU1
+
+        VL1:
          type: tosca.nodes.nfv.VL
          properties:
            network_name: net_mgmt
            vendor: Tacker
 
+        VL2:
+         type: tosca.nodes.nfv.VL
+         properties:
+           network_name: net0
+           vendor: Tacker
+
+        VL3:
+         type: tosca.nodes.nfv.VL
+         properties:
+           network_name: net1
+           vendor: Tacker firewall
+
 ..
 
-The above template file comes from two files. One is `tosca-vnfd-openwrt.yaml
-<https://github.com/openstack/tacker/blob/master/samples/tosca-templates/
-vnfd/tosca-vnfd-openwrt.yaml>`_ and other one is
-`tosca-config-openwrt-with-firewall.yaml
-<https://github.com/openstack/tacker/blob/master/samples/tosca-templates/
-vnfd/tosca-config-openwrt-with-firewall.yaml>`_.
+We also have another configuration yaml template with
+some firewall rules of OpenWRT.
+
+.. code-block:: ini
+
+   vdus:
+     VDU1:
+       config:
+         firewall: |
+           package firewall
+           config defaults
+               option syn_flood '1'
+               option input 'ACCEPT'
+               option output 'ACCEPT'
+               option forward 'REJECT'
+           config zone
+               option name 'lan'
+               list network 'lan'
+               option input 'ACCEPT'
+               option output 'ACCEPT'
+               option forward 'ACCEPT'
+           config zone
+               option name 'wan'
+               list network 'wan'
+               list network 'wan6'
+               option input 'REJECT'
+               option output 'ACCEPT'
+               option forward 'REJECT'
+               option masq '1'
+               option mtu_fix '1'
+           config forwarding
+               option src 'lan'
+               option dest 'wan'
+           config rule
+               option name 'Allow-DHCP-Renew'
+               option src 'wan'
+               option proto 'udp'
+               option dest_port '68'
+               option target 'ACCEPT'
+               option family 'ipv4'
+           config rule
+               option name 'Allow-Ping'
+               option src 'wan'
+               option proto 'icmp'
+               option icmp_type 'echo-request'
+               option family 'ipv4'
+               option target 'ACCEPT'
+           config rule
+               option name 'Allow-IGMP'
+               option src 'wan'
+               option proto 'igmp'
+               option family 'ipv4'
+               option target 'ACCEPT'
+           config rule
+               option name 'Allow-DHCPv6'
+               option src 'wan'
+               option proto 'udp'
+               option src_ip 'fe80::/10'
+               option src_port '547'
+               option dest_ip 'fe80::/10'
+               option dest_port '546'
+               option family 'ipv6'
+               option target 'ACCEPT'
+           config rule
+               option name 'Allow-MLD'
+               option src 'wan'
+               option proto 'icmp'
+               option src_ip 'fe80::/10'
+               list icmp_type '130/0'
+               list icmp_type '131/0'
+               list icmp_type '132/0'
+               list icmp_type '143/0'
+               option family 'ipv6'
+               option target 'ACCEPT'
+           config rule
+               option name 'Allow-ICMPv6-Input'
+               option src 'wan'
+               option proto 'icmp'
+               list icmp_type 'echo-request'
+               list icmp_type 'echo-reply'
+               list icmp_type 'destination-unreachable'
+               list icmp_type 'packet-too-big'
+               list icmp_type 'time-exceeded'
+               list icmp_type 'bad-header'
+               list icmp_type 'unknown-header-type'
+               list icmp_type 'router-solicitation'
+               list icmp_type 'neighbour-solicitation'
+               list icmp_type 'router-advertisement'
+               list icmp_type 'neighbour-advertisement'
+               option limit '190/sec'
+               option family 'ipv6'
+               option target 'REJECT'
+
+..
+
+The above template files come from Tacker Repo.
+One is tosca-vnfd-openwrt.yaml [#f2]_ and
+other one is tosca-config-openwrt-with-firewall.yaml [#f3]_.
 In this template file, we specify the **mgmt_driver: openwrt** which means
-this VNFD is managed by `openwrt driver
-<https://github.com/openstack/tacker/blob/master/tacker/
-vnfm/mgmt_drivers/openwrt/openwrt.py>`_. This driver can inject firewall rules
+this VNFD is managed by openwrt driver [#f4]_. This driver can inject firewall rules
 which defined in VNFD into OpenWRT instance by using SSH protocol. We can
 run **cat /etc/config/firewall** to confirm the firewall rules if inject
 succeed.
@@ -154,16 +243,15 @@ succeed.
 
 .. code-block:: console
 
-    tacker vnfd-create \
-                       --vnfd-file tosca-vnfd-openwrt-with-firewall-rules.yaml \
-                       <VNFD_NAME>
+    tacker vnfd-create --vnfd-file tosca-vnfd-openwrt.yaml <VNFD_NAME>
 ..
 
 4.Create a VNF:
 
 .. code-block:: console
 
-    tacker vnf-create --vnfd-name <VNFD_NAME> <NAME>
+    tacker vnf-create --vnfd-name <VNFD_NAME> \
+                      --config-file tosca-config-openwrt-with-firewall.yaml <NAME>
 ..
 
 This VNF will contains all the firewall rules that VNFD contains
@@ -177,3 +265,47 @@ by using 'cat /etc/config/firewall' in VNF.
     tacker vnf-list
     tacker vnf-show <VNF_ID>
 ..
+
+We can replace the firewall rules configuration file with
+tosca-config-openwrt-vrouter.yaml [#f5]_
+to create the OpenWRT-based Router VNF.
+
+6. Notes
+
+Note that the OpenWRT is modified based on KVM OpenWRT 15.05.1
+to be suitable for OpenStack Tacker. The procedure is following as below:
+
+.. code-block:: console
+
+    cd ~
+    wget https://archive.openwrt.org/chaos_calmer/15.05.1/x86/kvm_guest/openwrt-15.05.1-x86-kvm_guest-combined-ext4.img.gz \
+            -O openwrt-x86-kvm_guest-combined-ext4.img.gz
+    gunzip openwrt-x86-kvm_guest-combined-ext4.img.gz
+
+    mkdir -p imgroot
+
+    sudo kpartx -av openwrt-x86-kvm_guest-combined-ext4.img
+
+    # Replace the loopXp2 with the result of above command, e.g., loop0p2
+    sudo mount -o loop /dev/mapper/loopXp2 imgroot
+    sudo chroot imgroot /bin/ash
+
+    # Set password of this image to blank, type follow command and then enter two times
+    passwd
+
+    # Set DHCP for the network of OpenWRT so that the VNF can be ping
+    uci set network.lan.proto=dhcp; uci commit
+    exit
+
+    sudo umount imgroot
+    sudo kpartx -dv openwrt-x86-kvm_guest-combined-ext4.img
+
+..
+
+.. rubric:: Footnotes
+
+.. [#f1] https://anda.ssu.ac.kr/~openwrt/openwrt-x86-kvm_guest-combined-ext4.img.gz
+.. [#f2] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
+.. [#f3] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-with-firewall.yaml
+.. [#f4] https://github.com/openstack/tacker/blob/master/tacker/vnfm/mgmt_drivers/openwrt/openwrt.py
+.. [#f5] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-vrouter.yaml
