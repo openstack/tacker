@@ -13,7 +13,6 @@
 
 import json
 import time
-import unittest
 
 from oslo_config import cfg
 
@@ -27,7 +26,6 @@ CONF = cfg.CONF
 
 
 class VnfTestToscaScale(base.BaseTackerTest):
-    @unittest.skip("Skip and wait for releasing Heat Translator")
     def test_vnf_tosca_scale(self):
         data = dict()
         data['tosca'] = read_file('sample-tosca-scale-all.yaml')

@@ -247,6 +247,23 @@ If you are using keystone v2 then,
 
 ..
 
+10). To support systemd, copy tacker.service file to "/etc/systemd/system/"
+directory, and restart systemctl daemon.
+
+.. code-block:: console
+
+   sudo su
+   cp etc/systemd/system/tacker.service /etc/systemd/system/
+   systemctl daemon-reload
+
+..
+
+.. note::
+
+   Needs systemd support.
+   By default Ubuntu16.04 onward is supported.
+..
+
 
 Install Tacker client
 =====================
