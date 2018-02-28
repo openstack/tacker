@@ -307,7 +307,7 @@ node_types:
         required: false
       policy:
         type: tosca.nfv.datatypes.policyTypeV2
-        required: true
+        required: false
         description: policy to use to match traffic for this FP
       path:
         type: list

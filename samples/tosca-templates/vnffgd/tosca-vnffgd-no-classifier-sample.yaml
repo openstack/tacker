@@ -1,0 +1,32 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Sample VNFFG template with no flow classifier
+
+topology_template:
+  description: Sample VNFFG template
+
+  node_templates:
+
+    Forwarding_path1:
+      type: tosca.nodes.nfv.FP.TackerV2
+      description: creates path (CP12->CP22)
+      properties:
+        id: 51
+        path:
+          - forwarder: VNFD1
+            capability: CP12
+          - forwarder: VNFD2
+            capability: CP22
+
+  groups:
+    VNFFG1:
+      type: tosca.groups.nfv.VNFFG
+      description: HTTP to Corporate Net
+      properties:
+        vendor: tacker
+        version: 1.0
+        number_of_endpoints: 2
+        dependent_virtual_link: [VL12,VL22]
+        connection_point: [CP12,CP22]
+        constituent_vnfs: [VNFD1,VNFD2]
+      members: [Forwarding_path1]
