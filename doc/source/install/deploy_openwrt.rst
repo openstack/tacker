@@ -47,7 +47,7 @@ And then upload this image into Glance by using the command specified below:
 First, we have a yaml template which contains the configuration of
 OpenWRT as shown below:
 
-*toscar-vnfd-openwrt.yaml [#f2]_*
+*tosca-vnfd-openwrt.yaml* [#f2]_
 
 .. code-block:: yaml
 
@@ -140,7 +140,7 @@ OpenWRT as shown below:
 We also have another configuration yaml template with some firewall rules of
 OpenWRT.
 
-*toscar-config-openwrt-firewall.yaml [#f3]_*
+*tosca-config-openwrt-firewall.yaml* [#f3]_
 
 .. code-block:: yaml
 
