@@ -17,7 +17,6 @@ import codecs
 import json
 import mock
 import os
-import unittest
 import yaml
 
 from tacker import context
@@ -393,7 +392,6 @@ class TestOpenStack(base.TestCase):
             input_params
         )
 
-    @unittest.skip("Skip and wait for releasing Heat Translator")
     def test_create_tosca_scale(self):
         self._test_assert_equal_for_tosca_templates(
             'tosca_scale.yaml',
@@ -435,7 +433,6 @@ class TestOpenStack(base.TestCase):
             is_monitor=False
         )
 
-    @unittest.skip("Skip and wait for releasing Heat Translator")
     def test_create_tosca_alarm_scale(self):
         self._test_assert_equal_for_tosca_templates(
             'tosca_alarm_scale.yaml',

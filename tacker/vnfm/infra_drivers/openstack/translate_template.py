@@ -281,20 +281,20 @@ class TOSCAToHOT(object):
         monitoring_dict = toscautils.get_vdu_monitoring(tosca)
         mgmt_ports = toscautils.get_mgmt_ports(tosca)
         nested_resource_name = toscautils.get_nested_resources_name(tosca)
+        sub_heat_tmpl_name = toscautils.get_sub_heat_tmpl_name(tosca)
         res_tpl = toscautils.get_resources_dict(tosca,
                                                 self.STACK_FLAVOR_EXTRA)
         toscautils.post_process_template(tosca)
         scaling_policy_names = toscautils.get_scaling_policy(tosca)
         try:
-            translator = tosca_translator.TOSCATranslator(tosca,
-                                                          parsed_params)
+            translator = tosca_translator.TOSCATranslator(tosca, parsed_params)
             heat_template_yaml = translator.translate()
             if nested_resource_name:
                 sub_heat_template_yaml =\
-                    translator.translate_to_yaml_files_dict(
-                        nested_resource_name, True)
+                    translator.translate_to_yaml_files_dict(sub_heat_tmpl_name)
                 nested_resource_yaml =\
                     sub_heat_template_yaml[nested_resource_name]
+                LOG.debug("nested_resource_yaml: %s", nested_resource_yaml)
                 self.nested_resources[nested_resource_name] =\
                     nested_resource_yaml
 

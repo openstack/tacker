@@ -19,6 +19,7 @@ import yaml
 
 from collections import OrderedDict
 from oslo_log import log as logging
+from oslo_utils import uuidutils
 from tacker.common import log
 from tacker.common import utils
 from tacker.extensions import vnfm
@@ -668,6 +669,14 @@ def get_nested_resources_name(template):
             return nested_resource_name
 
 
+def get_sub_heat_tmpl_name(template):
+    for policy in template.policies:
+        if (policy.type_definition.is_derived_from(SCALING)):
+            sub_heat_tmpl_name = policy.name + '_' + \
+                uuidutils.generate_uuid() + '_res.yaml'
+            return sub_heat_tmpl_name
+
+
 def update_nested_scaling_resources(nested_resources, mgmt_ports, metadata,
                                     res_tpl, unsupported_res_prop=None):
     nested_tpl = dict()
@@ -678,8 +687,9 @@ def update_nested_scaling_resources(nested_resources, mgmt_ports, metadata,
             yamlparser.simple_ordered_parse(nested_resources_yaml)
         if metadata:
             for vdu_name, metadata_dict in metadata['vdus'].items():
-                nested_resources_dict['resources'][vdu_name]['properties']['metadata'] = \
-                    metadata_dict
+                if nested_resources_dict['resources'].get(vdu_name):
+                    nested_resources_dict['resources'][vdu_name]['properties']['metadata'] = \
+                        metadata_dict
         add_resources_tpl(nested_resources_dict, res_tpl)
         for res in nested_resources_dict["resources"].values():
             if not res['type'] == HEAT_SOFTWARE_CONFIG:
