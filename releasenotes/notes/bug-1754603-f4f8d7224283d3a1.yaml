@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Change the unusable link in Gerrit Dashboards.
