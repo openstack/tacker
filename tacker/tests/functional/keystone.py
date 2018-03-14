@@ -40,8 +40,8 @@ class Keystone(object):
             raise
         return keystone_client.version
 
-    def get_session(self, auth_plugin):
-        ses = session.Session(auth=auth_plugin)
+    def get_session(self, auth_plugin, verify=False):
+        ses = session.Session(auth=auth_plugin, verify=verify)
         return ses
 
     def get_endpoint(self, ses, service_type, region_name=None):
@@ -49,7 +49,8 @@ class Keystone(object):
 
     def initialize_client(self, version, **kwargs):
         from keystoneclient.v3 import client
+        verify = 'True' == kwargs.pop('cert_verify', 'False')
         auth_plugin = v3.Password(**kwargs)
-        ses = self.get_session(auth_plugin=auth_plugin)
+        ses = self.get_session(auth_plugin=auth_plugin, verify=verify)
         cli = client.Client(session=ses)
         return cli

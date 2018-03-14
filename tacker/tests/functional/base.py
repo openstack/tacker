@@ -65,7 +65,8 @@ class BaseTackerTest(base.BaseTestCase):
             project_name=vim_params['project_name'],
             user_domain_name=vim_params['user_domain_name'],
             project_domain_name=vim_params['project_domain_name'])
-        auth_ses = session.Session(auth=auth)
+        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        auth_ses = session.Session(auth=auth, verify=verify)
         return tacker_client.Client(session=auth_ses)
 
     @classmethod
@@ -77,7 +78,8 @@ class BaseTackerTest(base.BaseTestCase):
             project_name=vim_params['project_name'],
             user_domain_name=vim_params['user_domain_name'],
             project_domain_name=vim_params['project_domain_name'])
-        auth_ses = session.Session(auth=auth)
+        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        auth_ses = session.Session(auth=auth, verify=verify)
         return nova_client.Client(constants.NOVA_CLIENT_VERSION,
                                   session=auth_ses)
 
@@ -90,7 +92,8 @@ class BaseTackerTest(base.BaseTestCase):
             project_name=vim_params['project_name'],
             user_domain_name=vim_params['user_domain_name'],
             project_domain_name=vim_params['project_domain_name'])
-        auth_ses = session.Session(auth=auth)
+        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        auth_ses = session.Session(auth=auth, verify=verify)
         return neutron_client.Client(session=auth_ses)
 
     @classmethod

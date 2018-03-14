@@ -34,10 +34,6 @@ set +o xtrace
 # Defaults
 # --------
 
-if is_ssl_enabled_service "tacker" || is_service_enabled tls-proxy; then
-    TACKER_PROTOCOL="https"
-fi
-
 # Set up default directories
 GITREPO["tacker-horizon"]=${TACKERHORIZON_REPO:-${GIT_BASE}/openstack/tacker-horizon.git}
 GITBRANCH["tacker-horizon"]=${TACKERHORIZON_BRANCH:-master}
@@ -60,8 +56,6 @@ TACKER_CONF=$TACKER_CONF_DIR/tacker.conf
 TACKER_DB_NAME=${TACKER_DB_NAME:-tacker}
 # Default Tacker Port
 TACKER_PORT=${TACKER_PORT:-9890}
-# Default Tacker Internal Port when using TLS proxy
-TACKER_PORT_INT=${TACKER_PORT_INT:-19890}       # TODO(FIX)
 # Default Tacker Host
 TACKER_HOST=${TACKER_HOST:-$SERVICE_HOST}
 # Default protocol
@@ -147,10 +141,7 @@ function start_tacker {
     local cfg_file_options="--config-file $TACKER_CONF"
     local service_port=$TACKER_PORT
     local service_protocol=$TACKER_PROTOCOL
-    if is_service_enabled tls-proxy; then
-        service_port=$TACKER_PORT_INT
-        service_protocol="http"
-    fi
+
     # Start tacker conductor
     run_process tacker-conductor "$TACKER_BIN_DIR/tacker-conductor $cfg_file_options"
     # Start the Tacker service
@@ -158,15 +149,8 @@ function start_tacker {
     sudo systemctl daemon-reload
     sudo systemctl restart devstack@tacker.service
     echo "Waiting for Tacker to start..."
-    if is_ssl_enabled_service "tacker"; then
-        ssl_ca="--ca-certificate=${SSL_BUNDLE_FILE}"
-    fi
-    if ! timeout $SERVICE_TIMEOUT sh -c "while ! wget ${ssl_ca} --no-proxy -q -O- $service_protocol://$TACKER_HOST:$service_port; do sleep 1; done"; then
+    if ! timeout $SERVICE_TIMEOUT sh -c "while ! wget --no-proxy -q -O- $service_protocol://$TACKER_HOST:$service_port; do sleep 1; done"; then
         die $LINENO "Tacker did not start"
-    fi
-    # Start proxy if enabled
-    if is_service_enabled tls-proxy; then
-        start_tls_proxy '*' $TACKER_PORT $TACKER_HOST $TACKER_PORT_INT &
     fi
 }
 
@@ -211,19 +195,6 @@ function configure_tacker {
     else
         # Show user_name and project_name by default like in nova
         iniset $TACKER_CONF DEFAULT logging_context_format_string "%(asctime)s.%(msecs)03d %(levelname)s %(name)s [%(request_id)s %(user_name)s %(project_name)s] %(instance)s%(message)s"
-    fi
-
-    if is_service_enabled tls-proxy; then
-        # Set the service port for a proxy to take the original
-        iniset $TACKER_CONF DEFAULT bind_port "$TACKER_PORT_INT"
-    fi
-
-    if is_ssl_enabled_service "tacker"; then
-        ensure_certificates TACKER
-
-        iniset $TACKER_CONF DEFAULT use_ssl True
-        iniset $TACKER_CONF DEFAULT ssl_cert_file "$TACKER_SSL_CERT"
-        iniset $TACKER_CONF DEFAULT ssl_key_file "$TACKER_SSL_KEY"
     fi
 
     # server

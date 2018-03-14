@@ -26,6 +26,7 @@ CONF = cfg.CONF
 
 
 class VnfTestToscaScale(base.BaseTackerTest):
+
     def test_vnf_tosca_scale(self):
         data = dict()
         data['tosca'] = read_file('sample-tosca-scale-all.yaml')

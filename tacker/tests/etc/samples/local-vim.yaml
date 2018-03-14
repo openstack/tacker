@@ -5,3 +5,4 @@ project_name: nfv
 domain_name: Default
 user_domain_name: Default
 project_domain_name: Default
+cert_verify: 'False'
