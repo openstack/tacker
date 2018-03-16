@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tacker VERSION\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2018-01-22 06:01+0000\n"
+"POT-Creation-Date: 2018-03-01 07:40+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Last-Translator: Eduardo Gonzalez Gutierrez <dabarren@gmail.com>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
-"X-Generator: Zanata 3.9.6\n"
+"X-Generator: Zanata 4.3.3\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 #, python-format
@@ -419,9 +419,6 @@ msgstr "Numero de puerto HTTP para enviar petición"
 msgid "Hosting vnf drivers tacker plugin will use"
 msgstr "Drivers VNF de hospedaje que plugin de tacker va a usar"
 
-msgid "How long to preserve deleted data,defaults to 90"
-msgstr "Cuánto tiempo preservar los datos eliminados, por defecto 90"
-
 msgid "IP Address input values should be in a list format"
 msgstr "Valores de entrada de direcciones IP deben ser en formato de lista"
 
@@ -673,10 +670,6 @@ msgstr "Regla %(policy)s no existe para VNF %(vnf_id)s"
 msgid "Policy doesn't allow %(action)s to be performed."
 msgstr "La política no permite que la %(action)s se realice"
 
-#, python-format
-msgid "Policy not found in NFP %(nfp)s"
-msgstr "Regla no encontrada en NFP %(nfp)s"
-
 msgid "Private key file to use when starting the server securely"
 msgstr ""
 "Archivo de clave privada para usar al iniciar el servidor de manera segura"
@@ -718,19 +711,9 @@ msgstr "Recurso no encontrado."
 msgid "Resources required"
 msgstr "Recursos necesarios "
 
-msgid "Running without keystone AuthN requires  that tenant_id is specified"
-msgstr "Ejecución sin keystone AuthN requiere que tenant_id sea especificado"
-
 #, python-format
 msgid "SFC %(sfc_id)s is still in use"
 msgstr "SFC %(sfc_id)s sigue en uso"
-
-#, python-format
-msgid ""
-"Scaling Policy actionskipped due to status:%(status)s for vnf: %(vnfid)s"
-msgstr ""
-"Acciones de Scaling Policy no ejecutadas debido a estado: %(status)s de vnf: "
-"%(vnfid)s"
 
 msgid "Seconds between running components report states"
 msgstr "Segundos para reportar estado de componentes ejecutándose"
@@ -858,9 +841,6 @@ msgstr "El tipo de contenido solicitado %s no es válido."
 msgid "The resource could not be found."
 msgstr "El recurso no se ha podido encontrar."
 
-msgid "The resource is inuse"
-msgstr "El recurso se está utilizando"
-
 msgid "The service is unavailable"
 msgstr "El servicio no está disponible"
 
@@ -890,26 +870,6 @@ msgstr "No se puede encontrar '%s' en el cuerpo de solicitud "
 #, python-format
 msgid "Unable to find key file for VIM %(vim_id)s"
 msgstr "No ha sido posible encontrar el fichero de clave para VIM %(vim_id)s"
-
-#, python-format
-msgid "Unable to find ssl_ca_file : %s"
-msgstr "No se ha podido encontrar ssl_ca_file : %s"
-
-#, python-format
-msgid "Unable to find ssl_cert_file : %s"
-msgstr "No se ha podido encontrar ssl_cert_file : %s"
-
-#, python-format
-msgid "Unable to find ssl_key_file : %s"
-msgstr "No se ha podido encontrar ssl_key_file : %s"
-
-#, python-format
-msgid ""
-"Unable to identify a target field from:%s. Match should be in the form "
-"%%(<field_name>)s"
-msgstr ""
-"No ha sido posible identificar celda objetivo de: %s. Coincidencia debe se "
-"en forma de %%(<field_name>)s"
 
 #, python-format
 msgid "Unable to load %(app_name)s from configuration file %(config_path)s."
@@ -966,16 +926,8 @@ msgid "VIM from VNF %(vnf_id)s could not be found"
 msgstr "VIM de VNF %(vnf_id)s no ha sido encontrado"
 
 #, python-format
-msgid "VIM type %(vim_name)s is not supported as an infra driver "
-msgstr "Tipo de VIM %(vim_name)s no soportado como driver de infra"
-
-#, python-format
 msgid "VNF %(vnf_id)s could not be found"
 msgstr "VNF %(vnf_id)s no ha sido encontrado"
-
-#, python-format
-msgid "VNF %(vnf_id)s is not in Active state %(message)s"
-msgstr "VNF %(vnf_id)s no está en estado Activo %(message)s"
 
 #, python-format
 msgid "VNF %(vnf_id)s is still in use"
@@ -1029,24 +981,8 @@ msgid "VNFFGD %(vnffgd_id)s is still in use"
 msgstr "VNFFGD %(vnffgd_id)s sigue en uso"
 
 #, python-format
-msgid ""
-"Validation of dictionary's keys failed.Expected keys: %(expected_keys)s "
-"Provided keys: %(provided_keys)s"
-msgstr ""
-"Validación de claves en diccionario fallo: Claves esperadas: "
-"%(expected_keys)s Claves proporcionadas: %(provided_keys)s"
-
-#, python-format
 msgid "Validator '%s' does not exist."
 msgstr "El validador '%s' no existe."
-
-#, python-format
-msgid ""
-"Value specified for mem_page_size is invalid:%(error_msg_details)s. The "
-"valid values are 'small', 'large','any' or an integer value in MB"
-msgstr ""
-"Valor especificado para mem_page_size es invalido: %(error_msg_details)s. "
-"Valores validos son 'small', 'large', 'any' o un valor entero en MB"
 
 msgid "Wait time (in seconds) between consecutive stack create/delete retries"
 msgstr ""
@@ -1100,44 +1036,15 @@ msgstr ""
 "registrado para driver '%(type)s'"
 
 #, python-format
-msgid "empty list is not allowed for service list. '%s'"
-msgstr "Lista vacía no esta permitida para lista de servicio. '%s'"
-
-#, python-format
 msgid "heat-translator failed: - %(error_msg_details)s"
 msgstr "heat-translator fallo: - %(error_msg_details)s"
-
-#, python-format
-msgid "invalid data format for service list: '%s'"
-msgstr "Formato de datos inválidos para lista de servicio: '%s'"
 
 #, python-format
 msgid "invalid service type %(service_type)s"
 msgstr "Tipo de servicio invalido %(service_type)s"
 
-msgid "number of ICMP packets to send"
-msgstr "Numero de paquetes ICMP a enviar"
-
-msgid "number of seconds to wait between packets"
-msgstr "Numero de segundos a esperar entre paquetes"
-
-msgid "number of seconds to wait for a response"
-msgstr "Numero de segundos a esperar para la repuesta"
-
-msgid "number of times to retry"
-msgstr "Numero de veces para re intentar"
-
-msgid "password for alarm monitoring"
-msgstr "Contraseña para motorización de alarmas"
-
-msgid "password to login openwrt"
-msgstr "Contraseña para conectarse en openwrt"
-
 msgid "port number which drivers use to trigger"
 msgstr "Numero de puerto que los driver usan para notificar"
-
-msgid "project name for alarm monitoring"
-msgstr "Nombre de proyecto para motorización de alarmas"
 
 #, python-format
 msgid "service type %(service_type_id)s could not be found"
@@ -1150,18 +1057,5 @@ msgstr "Tipos de servicio no especificados"
 msgid "tosca-parser failed: - %(error_msg_details)s"
 msgstr "tosca-parser falló: - %(error_msg_details)s"
 
-msgid "user name to login openwrt"
-msgstr "Nombre de usuario para conectarse en openwrt"
-
 msgid "user_data and/or user_data_format not provided"
 msgstr "user_data y/o user_data_format no proporcionado"
-
-msgid "vnf {vnf_id} deletion is not completed. {stack_status}"
-msgstr "Eliminado de vnf {vnf_id} no ha sido completado. {stack_status}"
-
-msgid ""
-"when signal occurred within cool down window, no events generated from heat, "
-"so ignore it"
-msgstr ""
-"Cuando señal ocurre junto a ventana de espera, no hay eventos generados de "
-"Heat, ignóralos"
