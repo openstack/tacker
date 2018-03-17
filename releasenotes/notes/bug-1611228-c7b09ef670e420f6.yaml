@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Check the validation of mgmt_driver before creating the VNF.
