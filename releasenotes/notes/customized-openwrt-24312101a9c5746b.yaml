@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add dnsmasq and qos support for OpenWRT VNFM mgmt driver.
+fixes:
+  - |
+    Customized OpenWRT image fixs the OpenWRT-based VNFs that keep re-spawning
+    because Tacker cannot ping to these VNFs.
