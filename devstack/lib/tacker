@@ -293,6 +293,9 @@ function tacker_horizon_install {
     git_clone_by_name "tacker-horizon"
     setup_dev_lib "tacker-horizon"
     sudo cp $DEST/tacker-horizon/tacker_horizon/enabled/* $DEST/horizon/openstack_dashboard/enabled/
+    # make sure NFV's dashboard static files get loaded when deploying
+    $DEST/tacker-horizon/manage.py collectstatic --noinput
+    echo yes | $DEST/tacker-horizon/manage.py compress
     restart_apache_server
 }
 
