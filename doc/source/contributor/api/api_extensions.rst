@@ -12,7 +12,6 @@ Examples
 The easiest way to demonstrate how an API extension is written, is
 by studying an existing API extension and explaining the different layers.
 
-.. toctree::
-   :maxdepth: 1
+.. seealso::
 
-   mano_api.rst
+   https://developer.openstack.org/api-ref/nfv-orchestration/
