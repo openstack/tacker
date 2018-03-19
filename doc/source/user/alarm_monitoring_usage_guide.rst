@@ -51,8 +51,9 @@ Alarm framework already supported the some default backend actions like
 
 Tacker users could change the desired action as described in the above example.
 Until now, the backend actions could be pointed to the specific policy which
-is also described in TOSCA template like scaling policy. The integration between
-alarming monitoring and scaling was also supported by Alarm monitor in Tacker:
+is also described in TOSCA template like scaling policy. The integration
+between alarming monitoring and scaling was also supported by Alarm monitor
+in Tacker:
 
 .. code-block:: yaml
 
@@ -166,7 +167,8 @@ alarming monitoring and scaling was also supported by Alarm monitor in Tacker:
 
 
 **NOTE:**
-metadata defined in VDU properties must be matched with metadata in monitoring policy
+metadata defined in VDU properties must be matched with metadata
+in monitoring policy
 
 How to setup environment
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -254,7 +256,8 @@ Another way could be used to check if backend action is handled well in Tacker:
 
 curl -H "Content-Type: application/json" -X POST -d '{"alarm_id": "35a80852-e24f-46ed-bd34-e2f831d00172", "current": "alarm"}' http://pinedcn:9890/v1.0/vnfs/a0f60b00-ad3d-4769-92ef-e8d9518da2c8/vdu_lcpu_scaling_in/SP1-in/yl7kh5qd
 
-Then, users can check Horizon to know if vnf is respawned. Please note that
-the url used in the above command could be captured from "**ceilometer alarm-show** command as shown before.
-"key" attribute in body request need to be captured from the url. The reason is that key will be authenticated
-so that the url is requested only one time.
+Then, users can check Horizon to know if vnf is respawned. Please note
+that the url used in the above command could be captured from
+"**ceilometer alarm-show** command as shown before. "key" attribute
+in body request need to be captured from the url. The reason is that
+key will be authenticated so that the url is requested only one time.
