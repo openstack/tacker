@@ -21,7 +21,7 @@ Deploying OpenWRT as VNF
 Once tacker is installed successfully, follow the steps given below to get
 started with deploying OpenWRT as VNF.
 
-1. Ensure Glance already contains OpenWRT image. Normally, Tacker tries
+1.Ensure Glance already contains OpenWRT image. Normally, Tacker tries
 to add OpenWRT image to Glance while installing via devstack. By running
 **openstack image list** to check OpenWRT image if exists. If not, download
 the customized image of OpenWRT 15.05.1 [#f1]_. Unzip the file by using
@@ -43,7 +43,7 @@ And then upload this image into Glance by using the command specified below:
                                   --public
 ..
 
-2. The below example shows how to create the OpenWRT-based Firewall VNF.
+2.The below example shows how to create the OpenWRT-based Firewall VNF.
 First, we have a yaml template which contains the configuration of
 OpenWRT as shown below:
 
@@ -234,13 +234,11 @@ OpenWRT.
 
 ..
 
-The above template files come from Tacker Repository. One is
-tosca-vnfd-openwrt.yaml [#f2]_ and other one is
-tosca-config-openwrt-with-firewall.yaml [#f3]_. In this template file, we
-specify the **mgmt_driver: openwrt** which means this VNFD is managed by
-openwrt driver [#f4]_. This driver can inject firewall rules which defined in
-VNFD into OpenWRT instance by using SSH protocol. We can run
-**cat /etc/config/firewall** to confirm the firewall rules if inject succeed.
+In this template file, we specify the **mgmt_driver: openwrt** which means
+this VNFD is managed by openwrt driver [#f4]_. This driver can inject
+firewall rules which defined in VNFD into OpenWRT instance by using SSH protocol.
+We can run**cat /etc/config/firewall** to confirm the firewall rules if
+inject succeed.
 
 3.Create a sample vnfd:
 
@@ -274,7 +272,7 @@ same to check if the rules are injected successful: **cat /etc/config/network**
 to check vrouter, **cat /etc/config/dnsmasq** to check DHCP and DNS, and
 **cat /etc/config/qos** to check the QoS rules.
 
-6. Notes
+6.Notes
 
 Note that the OpenWRT is modified based on KVM OpenWRT 15.05.1
 to be suitable for OpenStack Tacker. The procedure is following as below:
@@ -308,10 +306,10 @@ to be suitable for OpenStack Tacker. The procedure is following as below:
 
 .. rubric:: Footnotes
 
-.. [#f1] https://anda.ssu.ac.kr/~openwrt/openwrt-x86-kvm_guest-combined-ext4.img.gz
-.. [#f2] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
-.. [#f3] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml
-.. [#f4] https://github.com/openstack/tacker/blob/master/tacker/vnfm/mgmt_drivers/openwrt/openwrt.py
-.. [#f5] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-vrouter.yaml
-.. [#f6] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-dnsmasq.yaml
-.. [#f7] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-qos.yaml
+.. [#] https://anda.ssu.ac.kr/~openwrt/openwrt-x86-kvm_guest-combined-ext4.img.gz
+.. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
+.. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml
+.. [#] https://github.com/openstack/tacker/blob/master/tacker/vnfm/mgmt_drivers/openwrt/openwrt.py
+.. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-vrouter.yaml
+.. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-dnsmasq.yaml
+.. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-qos.yaml
