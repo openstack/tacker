@@ -59,6 +59,11 @@ class FakeNeutronClient(mock.Mock):
         self.__pp_dict[pp_id] = port_pair
         return pp_id
 
+    def port_pair_list(self):
+        pp = {'port_pairs': [{'ingress': 'abc',
+                              'egress': 'xyz'}]}
+        return pp
+
     def show_port_pair(self, port_pair_dict):
         input_pp_name = port_pair_dict['name']
         for pp_id in self.__pp_dict:
@@ -72,6 +77,10 @@ class FakeNeutronClient(mock.Mock):
         ppg_id = uuidutils.generate_uuid()
         self.__ppg_dict[ppg_id] = port_pair_group
         return ppg_id
+
+    def port_pair_group_list(self):
+        value = {'port_pair_groups': []}
+        return value
 
     def show_port_pair_group(self, port_pair_group_dict):
         input_ppg_name = port_pair_group_dict['name']
@@ -99,6 +108,11 @@ class FakeNeutronClient(mock.Mock):
         if chain_id not in self.__chain_dict:
             raise ValueError('port chain delete failed')
         self.__chain_dict.pop(chain_id)
+
+    def port_chain_list(self):
+        pc = {'port_chains': [{'port_pair_groups': ['random_id1',
+                                                    'random_id2']}]}
+        return pc
 
 
 class TestChainSFC(base.TestCase):

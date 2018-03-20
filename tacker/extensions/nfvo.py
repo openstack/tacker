@@ -260,6 +260,10 @@ class UpdateChainException(exceptions.TackerException):
     message = _("%(message)s")
 
 
+class CreateChainException(exceptions.TackerException):
+    message = _("%(message)s")
+
+
 class UpdateClassifierException(exceptions.TackerException):
     message = _("%(message)s")
 

@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Currently, when a VNFFG is created, Tacker create new port-pairs,
+    port-pair-groups, port-chains and flow-classifiers. This patch will
+    let a new VNFFG use existing port-pair-group if it already existed.
+    User can create several VNFFGs that can go through a VNF.
