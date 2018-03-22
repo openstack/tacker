@@ -58,3 +58,7 @@
             voting: false
         - tacker-functional-devstack-python3:
             voting: false
+        - openstack-tox-lower-constraints
+    gate:
+      jobs:
+        - openstack-tox-lower-constraints
