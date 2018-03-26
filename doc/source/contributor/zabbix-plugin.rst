@@ -76,7 +76,7 @@ execution of action commands created by Zabbix-Server.
 Because Zabbix Server requires a lot of processes for monitoring
 projects, it is recommended to build it as a separate physical
 node if performance stability is required. Installation instructions
-for Zabbix Server are detailed in the manual provided by Zabbix.
+for Zabbix Server are detailed in the manual provided by Zabbix (see [#first]_).
 Examples of installation procedures are based on Ubuntu16.04
 and zabbix 3.2.
 
