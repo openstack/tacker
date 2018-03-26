@@ -34,7 +34,6 @@ Developer Info
 API Documentation
 -----------------
 
-.. toctree::
-   :maxdepth: 2
+.. seealso::
 
-   api/mano_api.rst
+   https://developer.openstack.org/api-ref/nfv-orchestration/
