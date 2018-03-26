@@ -405,11 +405,11 @@ By using the below VNFFGD template we can update the exisitng VNFFG.
          members: [Forwarding_path2]
 
 The above template informs Tacker to update the current classifier,NFP and
-path (chain) with the ones that are described in that template. After the completion
-of the update procedure the new NFP will be named 'Forwarding_path2' with an id of
-'52',the classifier in that NFP will be named 'block_tcp' and will have the corresponding
-match criteria and the updated chain will be consisted by two NVFs which are derived from
-VNFD1,VNFD2 VNFDs.
+path (chain) with the ones that are described in that template. After the
+completion of the update procedure the new NFP will be named 'Forwarding_path2'
+with an id of '52',the classifier in that NFP will be named 'block_tcp'
+and will have the corresponding match criteria and the updated chain will
+be consisted by two NVFs which are derived from VNFD1,VNFD2 VNFDs.
 
 To update the existing VNFFG through the vnffgd-template parameter, execute the
 below command:
