@@ -4,7 +4,7 @@ Overview
 --------
 
 This document explains VNFFGD template structure and its various fields based
-on TOSCA standards V1.0 CSD 03 [#f1]_.
+on TOSCA standards V1.0 [#f1]_.
 
 For VNFFG usage, please refer to the document available at [#f6]_.
 
@@ -43,7 +43,7 @@ Each VNFFGD template will have below fields:
 
 ..
 
-For examples, please refer sample VNFD templates available at GitHub [#f2]_.
+For examples, please refer sample VNFFGD templates available at GitHub [#f2]_.
 
 Node types
 ----------
@@ -231,7 +231,6 @@ composed of a Forwarding Path and a VNFFG. A full VNFFGD is shown below:
    description: Sample VNFFG template
 
    topology_template:
-     description: Sample VNFFG template
 
      node_templates:
 

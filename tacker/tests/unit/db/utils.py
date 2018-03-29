@@ -191,6 +191,20 @@ def get_dummy_vnffgd_obj_inline():
                         'template_source': 'inline'}}
 
 
+def get_dummy_vnffgd_obj_no_description():
+    return {u'vnffgd': {'name': 'dummy_vnffgd',
+                        'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                        u'template': {u'vnffgd': vnffgd_tosca_template},
+                        'template_source': 'onboarded'}}
+
+
+def get_dummy_vnffgd_obj_no_name():
+    return {u'vnffgd': {'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                        u'template': {u'vnffgd': vnffgd_tosca_template},
+                        'description': 'dummy_vnffgd_description',
+                        'template_source': 'onboarded'}}
+
+
 def get_dummy_vnffg_obj():
     return {'vnffg': {'description': 'dummy_vnffg_description',
                       'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',

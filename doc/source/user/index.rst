@@ -41,6 +41,7 @@ User Guide
    scale_usage_guide.rst
    vnf_component_usage_guide.rst
    vnffg_usage_guide.rst
+   vnffg_usage_guide_advanced.rst
    vnfm_usage_guide.rst
    ../reference/mistral_workflows_usage_guide.rst
    ../reference/block_storage_usage_guide.rst
