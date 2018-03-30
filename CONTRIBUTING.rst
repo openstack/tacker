@@ -43,10 +43,18 @@ and release tracking.
 
 Source Repository
 -----------------
-Like other OpenStack related projects, the official Git repository is
-available on `Tacker on GitHub`_.
 
-.. _`Tacker on GitHub`: https://github.com/openstack/tacker
+The offical Tacker source code is available in following repositories:
+
+* **Tacker server:** https://git.openstack.org/cgit/openstack/tacker
+* **Tacker Python client:** https://git.openstack.org/cgit/openstack/python-tackerclient
+* **Tacker Horizon UI:** https://git.openstack.org/cgit/openstack/tacker-horizon
+
+The mirror repositories on Github:
+
+* **Tacker server:** https://github.com/openstack/tacker
+* **Tacker Python client:** https://github.com/openstack/python-tackerclient
+* **Tacker Horizon UI:** https://github.com/openstack/tacker-horizon
 
 Gerrit
 ------
