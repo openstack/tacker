@@ -621,6 +621,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                 'name': vnffg.get('name'),
                 'description': 'fake_template_description',
                 'vnffgd_id': vnffg.get('vnffgd_id'),
+                'ns_id': None,
                 'attributes': template_db.get('template'),
                 'status': constants.PENDING_CREATE,
                 'vnf_mapping': vnf_mapping}
@@ -768,16 +769,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self._insert_dummy_vnffg_multi_param_template()
             vnffg_obj = utils.get_dummy_vnffg_param_obj()
             self.assertRaises(nfvo.VnffgTemplateParamParsingException,
-                              self.nfvo_plugin.create_vnffg,
-                              self.context, vnffg_obj)
-
-    def test_create_vnffg_param_value_not_use(self):
-        with patch.object(TackerManager, 'get_service_plugins') as \
-                mock_plugins:
-            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
-            self._insert_dummy_vnffg_param_template()
-            vnffg_obj = utils.get_dummy_vnffg_multi_param_obj()
-            self.assertRaises(nfvo.VnffgParamValueNotUsed,
                               self.nfvo_plugin.create_vnffg,
                               self.context, vnffg_obj)
 

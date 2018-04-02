@@ -98,6 +98,9 @@ class NS(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
     # Dict of VNF details that network service launches
     vnf_ids = sa.Column(sa.TEXT(65535), nullable=True)
 
+    # VNFFG ids
+    vnffg_ids = sa.Column(sa.TEXT(65535), nullable=True)
+
     # Dict of mgmt urls that network servic launches
     mgmt_urls = sa.Column(sa.TEXT(65535), nullable=True)
 
@@ -161,8 +164,8 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         LOG.debug('ns_db %s', ns_db)
         res = {}
         key_list = ('id', 'tenant_id', 'nsd_id', 'name', 'description',
-                    'vnf_ids', 'status', 'mgmt_urls', 'error_reason',
-                    'vim_id', 'created_at', 'updated_at')
+                    'vnf_ids', 'vnffg_ids', 'status', 'mgmt_urls',
+                    'error_reason', 'vim_id', 'created_at', 'updated_at')
         res.update((key, ns_db[key]) for key in key_list)
         return self._fields(res, fields)
 
@@ -209,18 +212,14 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
             tstamp=nsd_dict[constants.RES_EVT_CREATED_FLD])
         return nsd_dict
 
-    def delete_nsd(self,
-            context,
-            nsd_id,
-            soft_delete=True):
+    def delete_nsd(self, context, nsd_id, soft_delete=True):
         with context.session.begin(subtransactions=True):
             nss_db = context.session.query(NS).filter_by(
                 nsd_id=nsd_id).first()
             if nss_db is not None and nss_db.deleted_at is None:
                 raise nfvo.NSDInUse(nsd_id=nsd_id)
 
-            nsd_db = self._get_resource(context, NSD,
-                                        nsd_id)
+            nsd_db = self._get_resource(context, NSD, nsd_id)
             if soft_delete:
                 nsd_db.update({'deleted_at': timeutils.utcnow()})
                 self._cos_db_plg.create_event(
@@ -254,7 +253,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         nsd_id = ns['nsd_id']
         vim_id = ns['vim_id']
         name = ns.get('name')
-        ns_id = uuidutils.generate_uuid()
+        ns_id = ns['ns_id']
         description = None
         if 'description' in ns:
             description = ns.get('description')
@@ -269,6 +268,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                            name=name,
                            description=description,
                            vnf_ids=None,
+                           vnffg_ids=None,
                            status=constants.PENDING_CREATE,
                            mgmt_urls=None,
                            nsd_id=nsd_id,
@@ -291,11 +291,12 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         return self._make_ns_dict(ns_db)
 
     def create_ns_post(self, context, ns_id, mistral_obj,
-            vnfd_dict, error_reason):
+            vnfd_dict, vnffgd_templates, error_reason):
         LOG.debug('ns ID %s', ns_id)
         output = ast.literal_eval(mistral_obj.output)
         mgmt_urls = dict()
         vnf_ids = dict()
+        vnffg_ids = dict()
         if len(output) > 0:
             for vnfd_name, vnfd_val in iteritems(vnfd_dict):
                 for instance in vnfd_val['instances']:
@@ -305,28 +306,37 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                         vnf_ids[instance] = output['vnf_id_' + instance]
             vnf_ids = str(vnf_ids)
             mgmt_urls = str(mgmt_urls)
+            if vnffgd_templates:
+                for vnffg_name in vnffgd_templates:
+                    vnffg_output = 'vnffg_id_%s' % vnffg_name
+                    vnffg_ids[vnffg_name] = output[vnffg_output]
+            vnffg_ids = str(vnffg_ids)
 
         if not vnf_ids:
             vnf_ids = None
         if not mgmt_urls:
             mgmt_urls = None
+        if not vnffg_ids:
+            vnffg_ids = None
         status = constants.ACTIVE if mistral_obj.state == 'SUCCESS' \
             else constants.ERROR
+
         with context.session.begin(subtransactions=True):
-            ns_db = self._get_resource(context, NS,
-                                       ns_id)
+            ns_db = self._get_resource(context, NS, ns_id)
             ns_db.update({'vnf_ids': vnf_ids})
+            ns_db.update({'vnffg_ids': vnffg_ids})
             ns_db.update({'mgmt_urls': mgmt_urls})
             ns_db.update({'status': status})
             ns_db.update({'error_reason': error_reason})
             ns_db.update({'updated_at': timeutils.utcnow()})
             ns_dict = self._make_ns_dict(ns_db)
-            self._cos_db_plg.create_event(
-                context, res_id=ns_dict['id'],
-                res_type=constants.RES_TYPE_NS,
-                res_state=constants.RES_EVT_NA_STATE,
-                evt_type=constants.RES_EVT_UPDATE,
-                tstamp=ns_dict[constants.RES_EVT_UPDATED_FLD])
+
+        self._cos_db_plg.create_event(
+            context, res_id=ns_dict['id'],
+            res_type=constants.RES_TYPE_NS,
+            res_state=constants.RES_EVT_NA_STATE,
+            evt_type=constants.RES_EVT_UPDATE,
+            tstamp=ns_dict[constants.RES_EVT_UPDATED_FLD])
         return ns_dict
 
     # reference implementation. needs to be overrided by subclass

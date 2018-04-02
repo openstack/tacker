@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    This patch will add VNFFG support for NS. In NSD, users can describe VNFDs
+    and nested VNFFGD inside. When NS is created, VNFs and VNFFG are also
+    created.

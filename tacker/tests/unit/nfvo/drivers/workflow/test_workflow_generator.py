@@ -31,6 +31,71 @@ def get_dummy_ns():
             'placement_attr': {}}
 
 
+def get_dummy_vnffg_ns():
+    return {
+        u'ns': {
+            'description': '',
+            'vim_id': u'96025dd5-ca16-49f3-9823-958eb04260c4',
+            'vnf_ids': '', u'attributes': {},
+            u'nsd_id': u'b8587afb-6099-4f56-abce-572c62e3d61d',
+            u'name': u'test_create_ns'},
+        'vnfd_details': {
+            u'vnf1': {'instances': ['VNF1'],
+                      'id': u'dec09ed4-f355-4ec8-a00b-8548f6575a80'},
+            u'vnf2': {'instances': ['VNF2'],
+                      'id': u'9f8f2af7-6407-4f79-a6fe-302c56172231'}},
+        'placement_attr': {},
+        'vnffgd_templates': {
+            'VNFFG1': {
+                'tosca_definitions_version':
+                    'tosca_simple_profile_for_nfv_1_0_0',
+                'description': 'VNFFG1 descriptor',
+                'topology_template': {
+                    'node_templates': {
+                        'Forwarding_path1': {
+                            'type': 'tosca.nodes.nfv.FP.TackerV2',
+                            'description': 'creates path inside ns - test',
+                            'properties': {
+                                'policy': {
+                                    'type': 'ACL',
+                                    'criteria': [{
+                                        'classifier': {
+                                            'ip_proto': 6,
+                                            'network_src_port_id': {
+                                                'get_input': 'net_src_port_id'
+                                            },
+                                            'ip_dst_prefix': {
+                                                'get_input': 'ip_dest_prefix'
+                                            },
+                                            'destination_port_range': '80-1024'
+                                        },
+                                        'name': 'block_tcp'}]},
+                                'path': [
+                                    {'capability': 'CP12',
+                                     'forwarder': 'vnf1'},
+                                    {'capability': 'CP22',
+                                     'forwarder': 'vnf2'}],
+                                'id': 51}}},
+                    'groups': {
+                        'VNFFG1': {
+                            'type': 'tosca.groups.nfv.VNFFG',
+                            'description': 'HTTP to Corporate Net',
+                            'members': ['Forwarding_path1'],
+                            'properties': {
+                                'version': 1.0,
+                                'vendor': 'tacker',
+                                'constituent_vnfs': ['vnf1', 'vnf2'],
+                                'connection_point': ['CP12', 'CP22'],
+                                'number_of_endpoints': 2,
+                                'dependent_virtual_link': ['VL1', 'VL2']}
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
 def get_dummy_param():
     return {u'vnf1': {'substitution_mappings': {u'VL1b8587afb-60': {
             'type': 'tosca.nodes.nfv.VL', 'properties': {
@@ -45,7 +110,7 @@ def get_dummy_param():
 
 
 def get_dummy_create_workflow():
-    return {'std.create_vnf_dummy': {'input': ['vnf'],
+    return {'std.create_ns_dummy': {'input': ['ns'],
                 'tasks': {
                     'wait_vnf_active_VNF2': {
                         'action': 'tacker.show_vnf vnf=<% $.vnf_id_VNF2 %>',
@@ -61,30 +126,30 @@ def get_dummy_create_workflow():
                         'on-success': [{
                             'delete_vnf_VNF2': '<% $.status_VNF2='
                                                '"ERROR" %>'}]},
-                    'create_vnf_VNF2': {
-                        'action': 'tacker.create_vnf body=<% $.vnf.VNF2 %>',
-                        'input': {'body': '<% $.vnf.VNF2 %>'},
+                    'create_ns_VNF2': {
+                        'action': 'tacker.create_vnf body=<% $.ns.VNF2 %>',
+                        'input': {'body': '<% $.ns.VNF2 %>'},
                         'publish': {
-                            'status_VNF2': '<% task(create_vnf_VNF2).'
+                            'status_VNF2': '<% task(create_ns_VNF2).'
                                            'result.vnf.status %>',
-                            'vim_id_VNF2': '<% task(create_vnf_VNF2).'
+                            'vim_id_VNF2': '<% task(create_ns_VNF2).'
                                            'result.vnf.vim_id %>',
-                            'mgmt_url_VNF2': '<% task(create_vnf_VNF2).'
+                            'mgmt_url_VNF2': '<% task(create_ns_VNF2).'
                                              'result.vnf.mgmt_url %>',
-                            'vnf_id_VNF2': '<% task(create_vnf_VNF2)'
+                            'vnf_id_VNF2': '<% task(create_ns_VNF2)'
                                            '.result.vnf.id %>'},
                             'on-success': ['wait_vnf_active_VNF2']},
-                    'create_vnf_VNF1': {
-                        'action': 'tacker.create_vnf body=<% $.vnf.VNF1 %>',
-                        'input': {'body': '<% $.vnf.VNF1 %>'},
+                    'create_ns_VNF1': {
+                        'action': 'tacker.create_vnf body=<% $.ns.VNF1 %>',
+                        'input': {'body': '<% $.ns.VNF1 %>'},
                         'publish': {
-                            'status_VNF1': '<% task(create_vnf_VNF1).'
+                            'status_VNF1': '<% task(create_ns_VNF1).'
                                            'result.vnf.status %>',
-                            'vnf_id_VNF1': '<% task(create_vnf_VNF1).'
+                            'vnf_id_VNF1': '<% task(create_ns_VNF1).'
                                            'result.vnf.id %>',
-                            'mgmt_url_VNF1': '<% task(create_vnf_VNF1).'
+                            'mgmt_url_VNF1': '<% task(create_ns_VNF1).'
                                              'result.vnf.mgmt_url %>',
-                            'vim_id_VNF1': '<% task(create_vnf_VNF1).'
+                            'vim_id_VNF1': '<% task(create_ns_VNF1).'
                                            'result.vnf.vim_id %>'},
                         'on-success': ['wait_vnf_active_VNF1']},
                     'wait_vnf_active_VNF1': {
@@ -100,10 +165,10 @@ def get_dummy_create_workflow():
                                              'result.vnf.mgmt_url %>'},
                         'on-success': [{'delete_vnf_VNF1': '<% $.status_VNF1='
                                                            '"ERROR" %>'}]},
-                    'delete_vnf_VNF1': {'action': 'tacker.delete_vnf vnf=<% '
-                                                  '$.vnf_id_VNF1%>'},
-                    'delete_vnf_VNF2': {'action': 'tacker.delete_vnf vnf=<% '
-                                                  '$.vnf_id_VNF2%>'}},
+                    'delete_vnf_VNF1': {
+                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>'},
+                    'delete_vnf_VNF2': {
+                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF2%>'}},
                 'type': 'direct', 'output': {
                     'status_VNF1': '<% $.status_VNF1 %>',
                     'status_VNF2': '<% $.status_VNF2 %>',
@@ -116,15 +181,132 @@ def get_dummy_create_workflow():
             'version': '2.0'}
 
 
+def get_dummy_create_vnffg_ns_workflow():
+    return {
+        'std.create_ns_dummy': {
+            'input': ['ns'],
+            'tasks': {
+                'wait_vnf_active_VNF2': {
+                    'action': 'tacker.show_vnf vnf=<% $.vnf_id_VNF2 %>',
+                    'retry': {
+                        'count': 10,
+                        'delay': 10,
+                        'continue-on':
+                            '<% $.status_VNF2 = "PENDING_CREATE" %>',
+                        'break-on':
+                            '<% $.status_VNF2 = "ERROR" %>'},
+                    'publish': {
+                        'status_VNF2':
+                            '<% task(wait_vnf_active_VNF2).result.'
+                            'vnf.status %>',
+                        'mgmt_url_VNF2':
+                            ' <% task(wait_vnf_active_VNF2).result.'
+                            'vnf.mgmt_url %>'},
+                    'on-success': [
+                        {'delete_vnf_VNF2': '<% $.status_VNF2="ERROR" %>'},
+                        'create_vnffg_VNFFG1']},
+                'create_vnffg_VNFFG1': {
+                    'action': 'tacker.create_vnffg body=<% $.ns.VNFFG1 %>',
+                    'input': {'body': '<% $.ns.VNFFG1 %>'},
+                    'join': 'all',
+                    'publish': {
+                        'vnffg_id_VNFFG1': '<% task(create_vnffg_VNFFG1).'
+                                           'result.vnffg.id %>'}},
+                'wait_vnf_active_VNF1': {
+                    'action': 'tacker.show_vnf vnf=<% $.vnf_id_VNF1 %>',
+                    'retry': {
+                        'count': 10,
+                        'delay': 10,
+                        'continue-on':
+                            '<% $.status_VNF1 = "PENDING_CREATE" %>',
+                        'break-on':
+                            '<% $.status_VNF1 = "ERROR" %>'},
+                    'publish': {
+                        'status_VNF1':
+                            '<% task(wait_vnf_active_VNF1).result.'
+                            'vnf.status %>',
+                        'mgmt_url_VNF1':
+                            ' <% task(wait_vnf_active_VNF1).result.'
+                            'vnf.mgmt_url %>'},
+                    'on-success': [
+                        {'delete_vnf_VNF1': '<% $.status_VNF1="ERROR" %>'},
+                        'create_vnffg_VNFFG1']},
+                'create_ns_VNF1': {
+                    'action': 'tacker.create_vnf body=<% $.ns.VNF1 %>',
+                    'input': {'body': '<% $.ns.VNF1 %>'},
+                    'publish': {
+                        'status_VNF1':
+                            '<% task(create_ns_VNF1).result.vnf.status %>',
+                        'vnf_id_VNF1':
+                            '<% task(create_ns_VNF1).result.vnf.id %>',
+                        'mgmt_url_VNF1':
+                            '<% task(create_ns_VNF1).result.vnf.mgmt_url %>',
+                        'vim_id_VNF1':
+                            '<% task(create_ns_VNF1).result.vnf.vim_id %>'},
+                    'on-success': ['wait_vnf_active_VNF1']},
+                'create_ns_VNF2': {
+                    'action': 'tacker.create_vnf body=<% $.ns.VNF2 %>',
+                    'input': {'body': '<% $.ns.VNF2 %>'},
+                    'publish': {
+                        'status_VNF2':
+                            '<% task(create_ns_VNF2).result.vnf.status %>',
+                        'vim_id_VNF2':
+                            '<% task(create_ns_VNF2).result.vnf.vim_id %>',
+                        'mgmt_url_VNF2':
+                            '<% task(create_ns_VNF2).result.vnf.mgmt_url %>',
+                        'vnf_id_VNF2':
+                            '<% task(create_ns_VNF2).result.vnf.id %>'},
+                    'on-success': ['wait_vnf_active_VNF2']},
+                'delete_vnf_VNF1': {
+                    'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>'},
+                'delete_vnf_VNF2': {
+                    'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF2%>'}},
+            'type': 'direct',
+            'output': {
+                'status_VNF1': '<% $.status_VNF1 %>',
+                'status_VNF2': '<% $.status_VNF2 %>',
+                'mgmt_url_VNF2': '<% $.mgmt_url_VNF2 %>',
+                'mgmt_url_VNF1': '<% $.mgmt_url_VNF1 %>',
+                'vnffg_id_VNFFG1': '<% $.vnffg_id_VNFFG1 %>',
+                'vim_id_VNF2': '<% $.vim_id_VNF2 %>',
+                'vnf_id_VNF1': '<% $.vnf_id_VNF1 %>',
+                'vnf_id_VNF2': '<% $.vnf_id_VNF2 %>',
+                'vim_id_VNF1': '<% $.vim_id_VNF1 %>'}},
+        'version': '2.0'}
+
+
 def dummy_delete_ns_obj():
-    return {'vnf_ids': u"{'VNF1': '5de5eca6-3e21-4bbd-a9d7-86458de75f0c'}"}
+    return {'vnf_ids': u"{'VNF1': '5de5eca6-3e21-4bbd-a9d7-86458de75f0c'}",
+            'vnffg_ids': u"{}"}
+
+
+def dummy_delete_vnffg_ns_obj():
+    return {'vnf_ids': u"{'VNF1': '5de5eca6-3e21-4bbd-a9d7-86458de75f0c'}",
+            'vnffg_ids': u"{'VNFFG1': '99066f25-3124-44f1-bc5d-bc0bf236b012'}"}
 
 
 def get_dummy_delete_workflow():
     return {'version': '2.0',
-            'std.delete_vnf_dummy': {'input': ['vnf_id_VNF1'],
-                'tasks': {'delete_vnf_VNF1': {
-                    'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>'}},
+            'std.delete_ns_dummy': {
+                'input': ['vnf_id_VNF1'],
+                'tasks': {
+                    'delete_vnf_VNF1': {
+                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>'}},
+                'type': 'direct'}}
+
+
+def get_dummy_delete_vnffg_ns_workflow():
+    return {'version': '2.0',
+            'std.delete_ns_dummy': {
+                'input': ['vnf_id_VNF1', 'VNFFG1'],
+                'tasks': {
+                    'delete_vnf_VNF1': {
+                        'join': 'all',
+                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>'},
+                    'delete_vnffg_VNFFG1': {
+                        'action': 'tacker.delete_vnffg vnffg='
+                                  '<% $.VNFFG1 %>',
+                        'on-success': ['delete_vnf_VNF1']}},
                 'type': 'direct'}}
 
 
@@ -151,22 +333,49 @@ class TestWorkflowGenerator(base.TestCase):
 
     def test_prepare_workflow_create(self):
         fPlugin = FakeNFVOPlugin(context, self.mistral_client,
-                                 resource='vnf', action='create')
+                                 resource='ns', action='create')
         fPlugin.prepare_workflow(ns=get_dummy_ns(), params=get_dummy_param())
         wf_def_values = [fPlugin.wg.definition[k] for
             k in fPlugin.wg.definition]
-        self.assertIn(get_dummy_create_workflow()['std.create_vnf_dummy'],
+        self.assertIn(get_dummy_create_workflow()['std.create_ns_dummy'],
                       wf_def_values)
         self.assertEqual(get_dummy_create_workflow()['version'],
                          fPlugin.wg.definition['version'])
 
+    def test_prepare_vnffg_ns_workflow_create(self):
+        fPlugin = FakeNFVOPlugin(context, self.mistral_client,
+                                 resource='ns', action='create')
+        fPlugin.prepare_workflow(ns=get_dummy_vnffg_ns(),
+                                 params=get_dummy_param())
+        wf_def_values = [fPlugin.wg.definition[k] for
+            k in fPlugin.wg.definition]
+        self.assertIn(
+            get_dummy_create_vnffg_ns_workflow()['std.create_ns_dummy'],
+            wf_def_values)
+        self.assertEqual(
+            get_dummy_create_vnffg_ns_workflow()['version'],
+            fPlugin.wg.definition['version'])
+
     def test_prepare_workflow_delete(self):
         fPlugin = FakeNFVOPlugin(context, self.mistral_client,
-                                 resource='vnf', action='delete')
+                                 resource='ns', action='delete')
         fPlugin.prepare_workflow(ns=dummy_delete_ns_obj())
         wf_def_values = [fPlugin.wg.definition[k] for
             k in fPlugin.wg.definition]
-        self.assertIn(get_dummy_delete_workflow()['std.delete_vnf_dummy'],
+        self.assertIn(get_dummy_delete_workflow()['std.delete_ns_dummy'],
                       wf_def_values)
         self.assertEqual(get_dummy_delete_workflow()['version'],
                          fPlugin.wg.definition['version'])
+
+    def test_prepare_vnffg_ns_workflow_delete(self):
+        fPlugin = FakeNFVOPlugin(context, self.mistral_client,
+                                 resource='ns', action='delete')
+        fPlugin.prepare_workflow(ns=dummy_delete_vnffg_ns_obj())
+        wf_def_values = [fPlugin.wg.definition[k] for
+            k in fPlugin.wg.definition]
+        self.assertIn(
+            get_dummy_delete_vnffg_ns_workflow()['std.delete_ns_dummy'],
+            wf_def_values)
+        self.assertEqual(
+            get_dummy_delete_vnffg_ns_workflow()['version'],
+            fPlugin.wg.definition['version'])

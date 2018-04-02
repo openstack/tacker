@@ -153,10 +153,6 @@ class VnffgTemplateParamParsingException(exceptions.TackerException):
                 "missing input param %(get_input)s.")
 
 
-class VnffgParamValueNotUsed(exceptions.TackerException):
-    message = _("Param input %(param_key)s not used.")
-
-
 class VnffgPropertyNotFoundException(exceptions.NotFound):
     message = _('VNFFG Property %(vnffg_property)s could not be found')
 
@@ -181,6 +177,11 @@ class VnffgVnfNotFoundException(exceptions.NotFound):
 
 class VnffgDeleteFailed(exceptions.TackerException):
     message = _('Deleting VNFFG %(vnffg_id)s failed')
+
+
+class VnffgInUseNS(exceptions.TackerException):
+    message = _('VNFFG %(vnffg_id)s belongs to active network service '
+                '%(ns_id)s')
 
 
 class NfpAttributeNotFoundException(exceptions.NotFound):
@@ -485,6 +486,12 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
             'default': None,
         },
+        'ns_id': {
+            'allow_post': True,
+            'allow_put': False,
+            'is_visible': True,
+            'default': None,
+        },
     },
 
     'nfps': {
@@ -739,6 +746,13 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
         },
         'vnf_ids': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:string': None},
+            'is_visible': True,
+            'default': '',
+        },
+        'vnffg_ids': {
             'allow_post': True,
             'allow_put': False,
             'validate': {'type:string': None},

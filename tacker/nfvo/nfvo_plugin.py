@@ -664,15 +664,40 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 return vnfd['id']
 
     @log.log
+    def _get_vnffgds_from_nsd(self, nsd_dict):
+        ns_topo = nsd_dict.get('topology_template')
+        vnffgd_templates = dict()
+        if ns_topo and ns_topo.get('groups'):
+            for vnffg_name in ns_topo.get('groups'):
+                vnffgd_template = dict()
+                # TODO(phuoc): add checking in case vnffg_name exists
+                # more than one time.
+                # Constructing vnffgd from nsd, remove imports section
+                vnffgd_template['tosca_definitions_version'] = \
+                    nsd_dict.get('tosca_definitions_version')
+                vnffgd_template['description'] = nsd_dict.get('description')
+                vnffgd_template['topology_template'] = dict()
+                vnffgd_template['topology_template']['groups'] = dict()
+                vnffgd_template['topology_template']['groups'][vnffg_name] = \
+                    ns_topo['groups'].get(vnffg_name)
+                vnffgd_template['topology_template']['node_templates'] = dict()
+                for fp_name in ns_topo['groups'][vnffg_name]['members']:
+                    vnffgd_template['topology_template']['node_templates'][
+                        fp_name] = ns_topo['node_templates'].get(fp_name)
+                vnffgd_templates[vnffg_name] = vnffgd_template
+        return vnffgd_templates
+
+    @log.log
     def create_ns(self, context, ns):
-        """Create NS and corresponding VNFs.
+        """Create NS, corresponding VNFs, VNFFGs.
 
         :param ns: ns dict which contains nsd_id and attributes
         This method has 3 steps:
         step-1: substitute all get_input params to its corresponding values
         step-2: Build params dict for substitution mappings case through which
         VNFs will actually substitute their requirements.
-        step-3: Create mistral workflow and execute the workflow
+        step-3: Create mistral workflow to create VNFs, VNFFG and execute the
+        workflow
         """
         ns_info = ns['ns']
         name = ns_info['name']
@@ -698,6 +723,13 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         driver_type = vim_res['vim_type']
         if not ns['ns']['vim_id']:
             ns['ns']['vim_id'] = vim_res['vim_id']
+
+        # TODO(phuoc): currently, create_ns function does not have
+        # create_ns_pre function, that pre-defines information of a network
+        # service. Creating ns_uuid keeps ns_id for consistency, it should be
+        # provided as return value of create_ns_pre function in ns db.
+        # Generate ns_uuid
+        ns['ns']['ns_id'] = uuidutils.generate_uuid()
 
         # Step-1
         param_values = ns['ns']['attributes'].get('param_values', {})
@@ -740,6 +772,11 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
             param_values[vnfd_name]['substitution_mappings'][
                 'requirements'] = req_dict
         ns['vnfd_details'] = vnfd_dict
+
+        vnffgd_templates = self._get_vnffgds_from_nsd(nsd_dict)
+        LOG.debug('vnffgd_templates: %s', vnffgd_templates)
+        ns['vnffgd_templates'] = vnffgd_templates
+
         # Step-3
         kwargs = {'ns': ns, 'params': param_values}
 
@@ -747,7 +784,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         workflow = self._vim_drivers.invoke(
             driver_type,
             'prepare_and_create_workflow',
-            resource='vnf',
+            resource='ns',
             action='create',
             auth_dict=self.get_auth_dict(context),
             kwargs=kwargs)
@@ -780,6 +817,8 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 if exec_state == 'SUCCESS' or exec_state == 'ERROR':
                     break
                 mistral_retries = mistral_retries - 1
+            # TODO(phuoc): add more information about error reason in case
+            # of exec_state is 'ERROR'
             error_reason = None
             if mistral_retries == 0 and exec_state == 'RUNNING':
                 error_reason = _(
@@ -801,8 +840,9 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                      'delete_workflow',
                                      workflow_id=workflow['id'],
                                      auth_dict=self.get_auth_dict(context))
-            super(NfvoPlugin, self).create_ns_post(context, ns_id, exec_obj,
-                                                   vnfd_dict, error_reason)
+            super(NfvoPlugin, self).create_ns_post(
+                context, ns_id, exec_obj, vnfd_dict,
+                vnffgd_templates, error_reason)
 
         self.spawn_n(_create_ns_wait, self, ns_dict['id'],
                      mistral_execution.id)
@@ -837,6 +877,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
     @log.log
     def delete_ns(self, context, ns_id):
         ns = super(NfvoPlugin, self).get_ns(context, ns_id)
+        LOG.debug("Deleting ns: %s", ns)
         vim_res = self.vim_client.get_vim(context, ns['vim_id'])
         super(NfvoPlugin, self).delete_ns_pre(context, ns_id)
         driver_type = vim_res['vim_type']
@@ -846,11 +887,10 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 workflow = self._vim_drivers.invoke(
                     driver_type,
                     'prepare_and_create_workflow',
-                    resource='vnf',
+                    resource='ns',
                     action='delete',
                     auth_dict=self.get_auth_dict(context),
-                    kwargs={
-                        'ns': ns})
+                    kwargs={'ns': ns})
         except nfvo.NoTasksException:
             LOG.warning("No VNF deletion task(s).")
         if workflow:
@@ -884,6 +924,8 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 if exec_state == 'SUCCESS' or exec_state == 'ERROR':
                     break
                 mistral_retries -= 1
+            # TODO(phuoc): add more information about error reason in case
+            # of exec_state is 'ERROR'
             error_reason = None
             if mistral_retries == 0 and exec_state == 'RUNNING':
                 error_reason = _(

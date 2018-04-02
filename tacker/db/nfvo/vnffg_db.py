@@ -24,6 +24,7 @@ from sqlalchemy.orm import exc as orm_exc
 from tacker.db import db_base
 from tacker.db import model_base
 from tacker.db import models_v1
+from tacker.db.nfvo.ns_db import NS
 from tacker.db import types
 from tacker.extensions import nfvo
 from tacker.extensions.nfvo_plugins import vnffg
@@ -96,6 +97,9 @@ class Vnffg(model_base.BASE, models_v1.HasTenant, models_v1.HasId):
     vnf_mapping = sa.Column(types.Json)
 
     attributes = sa.Column(types.Json)
+
+    # Associated Network Service
+    ns_id = sa.Column(types.Uuid, sa.ForeignKey('ns.id'), nullable=True)
 
 
 class VnffgNfp(model_base.BASE, models_v1.HasTenant, models_v1.HasId):
@@ -332,7 +336,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 param_value=param_vattrs_dict)
         for param_key in param_vattrs_dict.keys():
             if param_matched.get(param_key) is None:
-                raise nfvo.VnffgParamValueNotUsed(param_key=param_key)
+                LOG.warning("Param input %s not used.", param_key)
 
     def _parametrize_topology_template(self, vnffg, template_db):
         if vnffg.get('attributes') and \
@@ -353,6 +357,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         name = vnffg.get('name')
         vnffg_id = vnffg.get('id') or uuidutils.generate_uuid()
         template_id = vnffg['vnffgd_id']
+        ns_id = vnffg.get('ns_id', None)
         symmetrical = vnffg['symmetrical']
 
         with context.session.begin(subtransactions=True):
@@ -377,6 +382,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                              description=template_db.description,
                              vnf_mapping=vnf_mapping,
                              vnffgd_id=template_id,
+                             ns_id=ns_id,
                              attributes=template_db.get('template'),
                              status=constants.PENDING_CREATE)
             context.session.add(vnffg_db)
@@ -835,7 +841,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         res = {
             'forwarding_paths': vnffg_db.forwarding_paths[0]['id']
         }
-        key_list = ('id', 'tenant_id', 'name', 'description',
+        key_list = ('id', 'tenant_id', 'name', 'description', 'ns_id',
                     'vnf_mapping', 'status', 'vnffgd_id', 'attributes')
         res.update((key, vnffg_db[key]) for key in key_list)
         return self._fields(res, fields)
@@ -1240,6 +1246,14 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
 
     def _delete_vnffg_pre(self, context, vnffg_id):
         vnffg = self.get_vnffg(context, vnffg_id)
+        ns_id = vnffg.get('ns_id')
+        if ns_id:
+            ns_db = self._get_resource(context, NS, ns_id)
+            # If network service is not in pending_delete status,
+            # raise error when delete vnffg.
+            if ns_db['status'] != constants.PENDING_DELETE:
+                raise nfvo.VnffgInUseNS(vnffg_id=vnffg_id,
+                                        ns_id=vnffg.get('ns_id'))
         nfp = self.get_nfp(context, vnffg['forwarding_paths'])
         chain = self.get_sfc(context, nfp['chain_id'])
         classifiers = [self.get_classifier(context, classifier_id)
