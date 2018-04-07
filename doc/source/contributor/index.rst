@@ -26,10 +26,16 @@ Developer Info
 
    dev-process.rst
    development.environment.rst
-   api/api_layer.rst
-   api/api_extensions.rst
+   api_layer.rst
+   api_extensions.rst
    tacker_functional_test.rst
    dashboards.rst
+
+Code Documentation
+------------------
+
+:ref:`modindex`
+
 
 API Documentation
 -----------------

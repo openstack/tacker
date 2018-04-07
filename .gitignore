@@ -26,7 +26,9 @@ subunit.log
 *.sw?
 *~
 .eggs/
+.stestr/
+SP1_res.yaml
 
 releasenotes/build
 etc/tacker/tacker.conf.sample
-doc/source/api
+doc/source/contributor/api

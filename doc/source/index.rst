@@ -60,5 +60,6 @@ Project Info
 Indices and tables
 ------------------
 
-* :ref:`search`
+* :ref:`genindex`
 * :ref:`modindex`
+* :ref:`search`

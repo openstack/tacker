@@ -20,15 +20,25 @@ sys.path.insert(0, os.path.abspath('../..'))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    #'sphinx.ext.intersphinx',
+    'sphinxcontrib.apidoc',
     'stevedore.sphinxext',
     'openstackdocstheme',
 ]
 
-# autodoc generation is a bit aggressive and a nuisance when doing heavy
-# text edit cycles.
-# execute "export SPHINX_DEBUG=1" in your terminal to disable
+# sphinxcontrib.apidoc options
+apidoc_module_dir = '../../tacker'
+apidoc_output_dir = 'contributor/api'
+apidoc_excluded_paths = [
+    'tests/*',
+    'tests',
+    'nfvo/workflows/*',
+    'nfvo/workflows',
+    'vnfm/workflows/*',
+    'vnfm/workflows',
+    'db/migration/alembic_migrations/*',
+    'db/migration/alembic_migrations',
+    'hacking']
+apidoc_separate_modules = True
 
 # The suffix of source filenames.
 source_suffix = '.rst'
