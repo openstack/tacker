@@ -302,6 +302,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertIn('created_at', res)
         self.assertIn('updated_at', res)
         self.assertEqual(False, res['is_default'])
+        self.assertEqual('openstack', res['type'])
 
     def test_delete_vim(self):
         self._insert_dummy_vim()

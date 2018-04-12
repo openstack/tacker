@@ -126,3 +126,14 @@ class VIMCreateTestCase(base.TestCase):
                                 self.controller.create,
                                 request, vim_dict)
         self.assertEqual(msg, six.text_type(exp))
+
+    @ddt.data("", " ", None, 123)
+    def test_create_vim_with_invalid_type(self, value):
+        vim_dict = get_vim_config()
+        vim_dict['vim']['type'] = value
+        request = wsgi.Request.blank("/vims.json", method='POST',
+            headers={'Content-Type': "application/json"})
+        request.environ['tacker.context'] = self.fake_admin_context()
+        self.assertRaises(exc.HTTPBadRequest,
+                          self.controller.create,
+                          request, vim_dict)
