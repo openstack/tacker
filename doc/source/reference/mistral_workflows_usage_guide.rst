@@ -366,7 +366,7 @@ Gather execution output data from execution id.
             "anotherrole",
             "Member"
         ],
-        "auth_uri": "http://192.168.122.250:5000/v3",
+        "www_authenticate_uri": "http://192.168.122.250:5000/v3",
         "auth_cacert": null,
         "auth_token": "2871049fae3643ca84f44f7e17f809a0",
         "is_trust_scoped": false,
@@ -466,7 +466,7 @@ Gather execution output data from execution id.
             "anotherrole",
             "Member"
         ],
-        "auth_uri": "http://192.168.122.250:5000/v3",
+        "www_authenticate_uri": "http://192.168.122.250:5000/v3",
         "auth_cacert": null,
         "auth_token": "176c9b5ebd9d40fb9fb0a8db921609eb",
         "is_trust_scoped": false,

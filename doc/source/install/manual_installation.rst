@@ -214,7 +214,7 @@ If you are using keystone v2 then,
    project_name = service
    password = <TACKER_SERVICE_USER_PASSWORD>
    auth_url = http://<KEYSTONE_IP>:35357
-   auth_uri = http://<KEYSTONE_IP>:5000
+   www_authenticate_uri = http://<KEYSTONE_IP>:5000
    ...
 
    [agent]
