@@ -559,6 +559,8 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertIn('id', result)
         self.assertIn('template', result)
         self.assertIn('template_source', result)
+        self.assertEqual('dummy_vnffgd', result['name'])
+        self.assertEqual('dummy_vnffgd_description', result['description'])
         self.assertEqual('onboarded', result['template_source'])
 
     def test_create_vnffgd_inline(self):
@@ -568,6 +570,24 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertIn('id', result)
         self.assertIn('template', result)
         self.assertEqual('inline', result['template_source'])
+
+    def test_create_vnffgd_no_input_description(self):
+        vnffgd_obj = utils.get_dummy_vnffgd_obj_no_description()
+        result = self.nfvo_plugin.create_vnffgd(self.context, vnffgd_obj)
+        self.assertIsNotNone(result)
+        self.assertIn('id', result)
+        self.assertIn('template', result)
+        self.assertIn('template_source', result)
+        self.assertEqual('Example VNFFG template', result['description'])
+
+    def test_create_vnffgd_no_input_name(self):
+        vnffgd_obj = utils.get_dummy_vnffgd_obj_no_name()
+        result = self.nfvo_plugin.create_vnffgd(self.context, vnffgd_obj)
+        self.assertIsNotNone(result)
+        self.assertIn('id', result)
+        self.assertIn('template', result)
+        self.assertIn('template_source', result)
+        self.assertEqual('example_vnffgd', result['name'])
 
     def test_create_vnffg_pre(self):
         VNFFG_ID = 'ffc1a59b-65bb-4874-94d3-84f639e63c74'

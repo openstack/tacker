@@ -62,6 +62,14 @@ Firstly, HTTP client and HTTP server must be launched.
 Creating the VNFFGD
 ~~~~~~~~~~~~~~~~~~~
 
+.. note::
+
+   Deprecated: 'tacker' command line is deprecated, will be deleted after
+   Rocky is released. Please use 'openstack' client command line instead.
+
+   Read more: https://docs.openstack.org/tacker/latest/admin/index.html
+
+
 Once OpenStack/Devstack along with Tacker has been successfully installed,
 deploy a sample VNFFGD template such as the one `here <https://github.com/
 openstack/tacker/tree/master/samples/tosca-templates/vnffgd/
@@ -325,7 +333,6 @@ derived from the following VNFFGD template.
    description: Sample VNFFG template
 
    topology_template:
-     description: Sample VNFFG template
 
      node_templates:
 
@@ -367,7 +374,6 @@ By using the below VNFFGD template we can update the exisitng VNFFG.
    description: Sample VNFFG template
 
    topology_template:
-     description: Sample VNFFG template
 
      node_templates:
 

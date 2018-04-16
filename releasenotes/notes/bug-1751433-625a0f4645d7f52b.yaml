@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Get right VNFFGD name and description from TOSCA template if not
+    given via API, and move the description key position in vnffgd
+    template to above topology_template.

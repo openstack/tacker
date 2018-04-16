@@ -11,8 +11,6 @@
   License for the specific language governing permissions and limitations
   under the License.
 
-.. _ref-vnffg:
-
 =========================================
 VNF Forwarding Graph Advanced Usage Guide
 =========================================
@@ -38,7 +36,6 @@ Forwarding_path1, the **path** shows that VNFFG1 will go through VNF1 and VNF2.
   description: Sample VNFFG template
 
   topology_template:
-    description: Sample VNFFG template
 
     node_templates:
 
@@ -85,7 +82,6 @@ goes through VNF1.
   description: Sample VNFFG template
 
   topology_template:
-    description: Sample VNFFG template
 
     node_templates:
 

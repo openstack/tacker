@@ -1,9 +1,8 @@
 tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
-description: example template
+description: Example VNFFG template
 
 topology_template:
-  description: Example VNFFG template
 
   inputs:
     net_src_port_id:

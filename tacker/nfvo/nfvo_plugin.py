@@ -301,6 +301,13 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
 
             self.validate_vnffg_properties(template['template'])
 
+            template_yaml = template['template']['vnffgd']
+            if not template.get('description'):
+                template['description'] = template_yaml.get('description', '')
+            if not template.get('name') and 'metadata' in template_yaml:
+                template['name'] = template_yaml['metadata'].get(
+                    'template_name', '')
+
         return super(NfvoPlugin, self).create_vnffgd(context, vnffgd)
 
     @log.log
