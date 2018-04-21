@@ -86,7 +86,7 @@ see this wiki page:
 
 .. _Testr: https://wiki.openstack.org/wiki/Testr
 .. _tox: http://tox.readthedocs.org/en/latest/
-.. _virtualenvs: https://pypi.python.org/pypi/virtualenv
+.. _virtualenvs: https://pypi.org/project/virtualenv
 
 
 Running individual tests

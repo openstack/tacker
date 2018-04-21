@@ -50,7 +50,7 @@ Install Kolla Ansible
 
 
 If the needed version has already been published at pypi site
-'https://pypi.python.org/pypi/kolla-ansible', the command below can be used:
+'https://pypi.org/project/kolla-ansible', the command below can be used:
 
 .. code-block:: console
 
