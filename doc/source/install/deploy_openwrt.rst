@@ -269,13 +269,17 @@ tosca-config-openwrt-vrouter.yaml [#f5]_, tosca-config-openwrt-dnsmasq.yaml
 DNS, or QoS VNFs. The openwrt VNFM management driver will do the same way to
 inject the desired service rules into the OpenWRT instance. You can also do the
 same to check if the rules are injected successful: **cat /etc/config/network**
-to check vrouter, **cat /etc/config/dnsmasq** to check DHCP and DNS, and
+to check vrouter, **cat /etc/config/dhcp** to check DHCP and DNS, and
 **cat /etc/config/qos** to check the QoS rules.
 
 6.Notes
+6.1.OpenWRT user and password
+The user account is 'root' and password is '', which means there is no
+password for root account.
 
-Note that the OpenWRT is modified based on KVM OpenWRT 15.05.1
-to be suitable for OpenStack Tacker. The procedure is following as below:
+6.2.Procedure to customize the OpenWRT image
+The OpenWRT is modified based on KVM OpenWRT 15.05.1 to be suitable forTacker.
+The procedure is following as below:
 
 .. code-block:: console
 
