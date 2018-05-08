@@ -201,7 +201,21 @@ data_types:
 
 policy_types:
   tosca.policies.tacker.Placement:
-    derived_from: tosca.policies.Root
+    derived_from: tosca.policies.Placement
+    description: Defines policy for placement of VDU's.
+    properties:
+      policy:
+        type: string
+        required: false
+        constraints:
+          - valid_values: [ affinity, anti-affinity ]
+        default: affinity
+        description: Placement policy for target VDU's.
+      strict:
+        type: boolean
+        required: false
+        default: true
+        description: If the policy is not mandatory, set this flag to 'false'. Setting this flag to 'false' allows the VDU deployment request to continue even if the nova-scheduler fails to assign compute hosts under the policy.
 
   tosca.policies.tacker.Failure:
     derived_from: tosca.policies.Root
