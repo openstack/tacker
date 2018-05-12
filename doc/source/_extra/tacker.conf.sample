@@ -431,7 +431,7 @@ transport_url = rabbit://stackrabbit:devstack@127.0.0.1:5672/
 
 
 [alarm_auth]
-url = http://127.0.0.1:35357/v3
+url = http://127.0.0.1:5000/v3
 project_name = admin
 password = devstack
 username = admin

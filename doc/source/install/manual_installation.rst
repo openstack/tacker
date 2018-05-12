@@ -44,7 +44,7 @@ is like the below:
     export OS_TENANT_NAME=admin
     export OS_USERNAME=admin
     export OS_PASSWORD=KTskN5eUMTpeHLKorRcZBBbH0AM96wdvgQhwENxY
-    export OS_AUTH_URL=http://localhost:35357/v3
+    export OS_AUTH_URL=http://localhost:5000/v3
     export OS_INTERFACE=internal
     export OS_IDENTITY_API_VERSION=3
     export OS_REGION_NAME=RegionOne
@@ -213,7 +213,7 @@ If you are using keystone v2 then,
    username = <TACKER_USER_NAME>
    project_name = service
    password = <TACKER_SERVICE_USER_PASSWORD>
-   auth_url = http://<KEYSTONE_IP>:35357
+   auth_url = http://<KEYSTONE_IP>:5000
    www_authenticate_uri = http://<KEYSTONE_IP>:5000
    ...
 

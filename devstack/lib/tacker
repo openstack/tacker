@@ -223,7 +223,7 @@ function configure_tacker {
         iniset $TACKER_CONF alarm_auth username admin
         iniset $TACKER_CONF alarm_auth password "$ADMIN_PASSWORD"
         iniset $TACKER_CONF alarm_auth project_name admin
-        iniset $TACKER_CONF alarm_auth url http://$SERVICE_HOST:35357/v3
+        iniset $TACKER_CONF alarm_auth url http://$SERVICE_HOST:5000/v3
 
         echo "Creating bridge"
         sudo ovs-vsctl --may-exist add-br ${BR_MGMT}
