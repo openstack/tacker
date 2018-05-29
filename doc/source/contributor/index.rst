@@ -36,6 +36,10 @@ Code Documentation
 
 :ref:`modindex`
 
+.. toctree::
+   :maxdepth: 1
+
+   api/modules.rst
 
 API Documentation
 -----------------

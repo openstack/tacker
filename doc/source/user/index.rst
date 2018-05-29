@@ -34,17 +34,18 @@ User Guide
    :maxdepth: 1
 
    alarm_monitoring_usage_guide.rst
-   containerized_vnf_usage_guide.rst
+   dynamic_vnffg_usage_guide.rst
    enhanced_placement_awareness_usage_guide.rst
+   containerized_vnf_usage_guide.rst
+   ../reference/mistral_workflows_usage_guide.rst
    multisite_vim_usage_guide.rst
    nsd_usage_guide.rst
+   ../reference/block_storage_usage_guide.rst
    scale_usage_guide.rst
    vnf_component_usage_guide.rst
    vnffg_usage_guide.rst
    vnffg_usage_guide_advanced.rst
    vnfm_usage_guide.rst
-   ../reference/mistral_workflows_usage_guide.rst
-   ../reference/block_storage_usage_guide.rst
 
 Feature Documentation
 ---------------------
@@ -52,13 +53,13 @@ Feature Documentation
 .. toctree::
    :maxdepth: 1
 
+   ../contributor/zabbix-plugin.rst
+   ../contributor/tacker_vim_monitoring.rst
    ../contributor/encrypt_vim_auth_with_barbican.rst
    ../contributor/event_logging.rst
    ../contributor/monitor-api.rst
    ../contributor/policy_actions_framework.rst
    ../contributor/tacker_conductor.rst
-   ../contributor/tacker_vim_monitoring.rst
    ../contributor/vnfd_template_description.rst
    ../contributor/vnfd_template_parameterization.rst
    ../contributor/vnffgd_template_description.rst
-   ../contributor/zabbix-plugin.rst

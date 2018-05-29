@@ -29,7 +29,7 @@ and be used to run kolla-ansible tool.
 
 The basic information and the topology of these nodes is like this:
 
-.. image:: openstack_nodes.png
+.. image:: ../_images/openstack_nodes.png
    :scale: 50 %
 
 
@@ -238,7 +238,7 @@ This is a simple task for any OpenStack administrator, but one thing to pay
 attention to is that the user must have 'admin' and 'heat_stack_owner'
 roles on the user's project.
 
-.. image:: openstack_role.png
+.. image:: ../_images/openstack_role.png
    :scale: 50 %
 
 
