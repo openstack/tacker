@@ -875,4 +875,4 @@ class NFVOPluginBase(service_base.NFVPluginBase):
         raise NotImplementedError()
 
     def get_default_vim(self, context):
-        raise NotImplementedError()
+        pass
