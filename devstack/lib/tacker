@@ -340,14 +340,16 @@ function tacker_check_and_download_images {
                         gunzip -c $FILES/$image_fname > $FILES/$new_image_fname
                         image_fname=$new_image_fname
                     fi
-                    openstack_image_create $FILES/$image_fname $glance_name
-                }||{
-                    echo "ERROR: tacker image create for $image_fname failed"
-                    image_fname=$image_fname"*"
-                    sudo rm -rf $FILES/$image_fname
-                    exit 1
                 }
             fi
+            {
+                openstack_image_create $FILES/$image_fname $glance_name
+            }||{
+                echo "ERROR: tacker image create for $image_fname failed"
+                image_fname=$image_fname"*"
+                sudo rm -rf $FILES/$image_fname
+                exit 1
+            }
         fi
         index=$(($index+1))
     done
