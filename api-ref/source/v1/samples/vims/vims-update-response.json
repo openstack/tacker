@@ -2,16 +2,15 @@
     "vim": {
         "status": "REACHABLE",
         "description": "New Description",
-        "tenant_id": "689708956a2d4ae0a27120d3aca6a560",
-        "created_at": "2016-10-21 10:35:12",
+        "tenant_id": "a5346a4d3c464b4f8776ee2f4bfb86af",
+        "created_at": "2018-06-18 04:13:26",
         "vim_project": {
             "project_domain_name": "NewDomain",
-            "id": "4391756708414b1380235cd047f0ee55",
             "name": "new_nfv"
-        },
-        "updated_at": "2016-10-21 10:35:40.043226",
+        }
+        "updated_at": "2018-06-18 04:33:41.462895",
         "is_default": false,
-        "auth_url": "http://192.168.1.2:5000/v3",
+        "auth_url": "http://192.168.42.131/identity/v3",
         "placement_attr": {
             "regions": [
                 "RegionOne"
@@ -20,15 +19,17 @@
         "auth_cred": {
             "username": "new_nfv_user",
             "password": "***",
+            "project_id": null,
             "project_name": "new_nfv",
-            "user_id": "11d7655309d849208ea1f39d44507e2e",
             "user_domain_name": "NewDomain",
-            "auth_url": "http://192.168.1.2:5000/v3",
-            "project_id": "4391756708414b1380235cd047f0ee55",
-            "project_domain_name": "NewDomain"
+            "auth_url": "http://192.168.42.131/identity/v3",
+            "project_domain_name": "NewDomain",
+            "cert_verify": "True",
+            "key_type": "barbican_key",
+            "secret_uuid": "***"
         },
         "type": "openstack",
-        "id": "ce4df54a-5734-493f-ab27-ce02fbfe2463",
+        "id": "28dbc4f0-80e2-4006-b26c-724a1202e82d",
         "name": "new_VIM1"
     }
 }
