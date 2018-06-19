@@ -23,6 +23,11 @@ There are two Command-Line Interfaces (CLIs) which support the Tacker API:
 <https://docs.openstack.org/python-openstackclient/latest/>`__
 and `tacker CLI <tacker>`.
 
+.. note::
+
+   Deprecated: 'tacker' command line is deprecated, will be deleted after
+   Rocky is released. Please use 'openstack' client command line instead.
+
 Tacker CLI
 ----------
 
