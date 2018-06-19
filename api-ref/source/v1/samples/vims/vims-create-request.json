@@ -1,12 +1,12 @@
 {
     "vim": {
-        "tenant_id": "689708956a2d4ae0a27120d3aca6a560",
         "type": "openstack",
-        "auth_url": "http://192.168.1.2:5000/v3",
+        "auth_url": "http://192.168.42.131/identity",
         "auth_cred": {
             "username": "nfv_user",
             "user_domain_name": "Default",
-            "password": "password"
+            "password": "password",
+            "cert_verify": "True"
         },
         "vim_project": {
             "name": "nfv",
