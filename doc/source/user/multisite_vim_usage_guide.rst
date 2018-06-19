@@ -147,8 +147,6 @@ Features
 
 Limitations
 ~~~~~~~~~~~
-* VNFs of all users currently land in the 'nfv' project that is specified
-  during VIM registration.
 * Fernet keys for password encryption and decryption is stored on file systems.
   This is a limitation when multiple servers are serving behind a load balancer
   server and the keys need to be synced across tacker server systems.
