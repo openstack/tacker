@@ -44,7 +44,7 @@ is like the below:
     export OS_TENANT_NAME=admin
     export OS_USERNAME=admin
     export OS_PASSWORD=KTskN5eUMTpeHLKorRcZBBbH0AM96wdvgQhwENxY
-    export OS_AUTH_URL=http://localhost:5000/v3
+    export OS_AUTH_URL=http://localhost:5000/identity
     export OS_INTERFACE=internal
     export OS_IDENTITY_API_VERSION=3
     export OS_REGION_NAME=RegionOne
@@ -247,13 +247,14 @@ If you are using keystone v2 then,
 
 ..
 
-10). To support systemd, copy tacker.service file to "/etc/systemd/system/"
-directory, and restart systemctl daemon.
+10). To support systemd, copy tacker.service and tacker-conductor.service file to
+     "/etc/systemd/system/" directory, and restart systemctl daemon.
 
 .. code-block:: console
 
    sudo su
    cp etc/systemd/system/tacker.service /etc/systemd/system/
+   cp etc/systemd/system/tacker-conductor.service /etc/systemd/system/
    systemctl daemon-reload
 
 ..
@@ -330,4 +331,17 @@ required because the console will be locked by a running process.
    sudo python /usr/local/bin/tacker-server \
        --config-file /usr/local/etc/tacker/tacker.conf \
        --log-file /var/log/tacker/tacker.log
+..
+
+Starting Tacker conductor
+=========================
+
+1).Open a new console and launch tacker-conductor. A separate terminal is
+required because the console will be locked by a running process.
+
+.. code-block:: console
+
+   sudo python /usr/local/bin/tacker-conductor \
+       --config-file /usr/local/etc/tacker/tacker.conf \
+       --log-file /var/log/tacker/tacker-conductor.log
 ..

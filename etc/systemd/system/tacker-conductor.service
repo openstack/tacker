@@ -1,0 +1,12 @@
+[Unit]
+Description = OpenStack tacker conductor service
+
+[Service]
+ExecReload = /bin/kill -HUP $MAINPID
+TimeoutStopSec = 300
+KillMode = process
+WorkingDirectory = /tmp
+ExecStart=/usr/local/bin/tacker-conductor --config-file /etc/tacker/tacker.conf
+
+[Install]
+WantedBy = multi-user.target
