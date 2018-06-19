@@ -1,16 +1,62 @@
-If you would like to contribute to the development of OpenStack,
-you must follow the steps in this page:
+============
+Contributing
+============
 
-   https://docs.openstack.org/infra/manual/developers.html
+The best way to join the community and get involved is to talk with others
+online or at a meetup and offer contributions. Here are some of the many
+ways you can contribute to the Tacker project:
 
-Once those steps have been completed, changes to OpenStack
-should be submitted for review via the Gerrit tool, following
-the workflow documented at:
+* Development and Code Reviews
+* Bug reporting/Bug fixes
+* Wiki and Documentation
+* Blueprints/Specifications
+* Testing
+* Deployment scripts
 
-   https://docs.openstack.org/infra/manual/developers.html#development-workflow
+Before you start contributing take a look at the `Openstack Developers Guide`_.
 
-Pull requests submitted through GitHub will be ignored.
+.. _`Openstack Developers Guide`: https://docs.openstack.org/infra/manual/developers.html
 
-Bugs should be filed on Launchpad, not GitHub:
+Freenode IRC (Chat)
+-------------------
+You can find tacker guys in our publicly accessible channel on `freenode`_
+``#tacker``. All conversations are logged and stored for your
+convenience at `eavesdrop.openstack.org`_. For more information regarding
+OpenStack IRC channels please visit the `OpenStack IRC Wiki`_.
 
-   https://bugs.launchpad.net/tacker
+.. _`freenode`: https://freenode.net
+.. _`OpenStack IRC Wiki`: https://wiki.openstack.org/wiki/IRC
+.. _`eavesdrop.openstack.org`: http://eavesdrop.openstack.org/irclogs/%23tacker/
+
+Launchpad
+---------
+Like other OpenStack related projects, we utilize Launchpad for our bug
+and release tracking.
+
+* `Tacker Launchpad Project`_
+
+.. _`Tacker Launchpad Project`: https://launchpad.net/tacker
+
+.. note::
+
+    Bugs should be filed on Launchpad, not Github.
+
+Source Repository
+-----------------
+Like other OpenStack related projects, the official Git repository is
+available on `Tacker on GitHub`_.
+
+.. _`Tacker on GitHub`: https://github.com/openstack/tacker
+
+Gerrit
+------
+Like other OpenStack related projects, we utilize the OpenStack Gerrit
+review system for all code reviews. If you're unfamiliar with using
+the OpenStack Gerrit review system, please review the `Gerrit Workflow`_
+wiki documentation.
+
+.. _`Gerrit Workflow`: https://docs.openstack.org/infra/manual/developers.html#development-workflow
+
+.. note::
+
+    Pull requests submitted through GitHub will be ignored.
