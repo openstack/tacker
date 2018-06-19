@@ -52,7 +52,7 @@ def delete_executions(mistral_client, vim_id):
     executions = mistral_client.executions.list(
         workflow_name='vim_id_' + vim_id)
     for execution in executions:
-        mistral_client.executions.delete(execution.id)
+        mistral_client.executions.delete(execution.id, force=True)
 
 
 def delete_workflow(mistral_client, vim_id):

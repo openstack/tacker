@@ -762,7 +762,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
     def delete_execution(self, execution_id, auth_dict=None):
         return self.get_mistral_client(auth_dict).executions \
-            .delete(execution_id)
+            .delete(execution_id, force=True)
 
     def delete_workflow(self, workflow_id, auth_dict=None):
         return self.get_mistral_client(auth_dict) \
