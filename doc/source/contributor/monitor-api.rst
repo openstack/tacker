@@ -126,7 +126,7 @@ Example Template
         actions:
           failure: respawn
 
-    acme_scaling_driver:
+    vdu_scaling_driver:
       monitoring_params:
         resource: cpu
         threshold: 10000

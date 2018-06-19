@@ -443,8 +443,8 @@ Virtual Links
 Virtual link provides connectivity between VDUs. It represents the logical
 virtual link entity.
 
-An example of a virtual link whose vendor is Acme and is attached to network
-net-01 is as shown below.
+An example of a virtual link whose vendor is "Tacker" and is attached to
+network net-01 is as shown below.
 
 ::
 
@@ -458,7 +458,7 @@ net-01 is as shown below.
       VL1:
         type: tosca.nodes.nfv.VL
         properties:
-          vendor: Acme
+          vendor: Tacker
           network_name: net-01
 
 :type:
@@ -629,4 +629,4 @@ a template which mentions all node types with all available options.
           type: tosca.nodes.nfv.VL
           properties:
             network_name: name of network to attach to
-            vendor: Acme
+            vendor: Tacker

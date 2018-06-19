@@ -40,4 +40,4 @@ topology_template:
       type: tosca.nodes.nfv.VL
       properties:
         network_name: existing_network_1
-        vendor: ACME
+        vendor: Tacker

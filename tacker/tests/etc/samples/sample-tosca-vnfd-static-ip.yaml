@@ -56,8 +56,8 @@ topology_template:
     VL1:
       type: tosca.nodes.nfv.VL
       properties:
-        vendor: ACME
         network_name: net_mgmt
+        vendor: Tacker
 
     VL2:
       type: tosca.nodes.nfv.VL
