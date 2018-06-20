@@ -75,6 +75,27 @@ argument -vim-id is not provided during vnf-create. Refer to steps described in
 
 .. _manual installation: https://docs.openstack.org/tacker/latest/install/manual_installation.html#registering-default-vim
 
+
+Onboard a VNFD
+~~~~~~~~~~~~~~
+
+::
+
+ $ tacker vnfd-create --description "Openwrt VNFD" --vnfd-file vnfd1.yaml openwrt-vnfd1
+ Created a new vnfd:
+ +-----------------+--------------------------------------+
+ | Field           | Value                                |
+ +-----------------+--------------------------------------+
+ | created_at      | 2018-06-20 05:37:57.589182           |
+ | description     | Openwrt VNFD                         |
+ | id              | c3cbf0c0-a492-49e3-9541-945e49e7ed7e |
+ | name            | openwrt-vnfd1                        |
+ | service_types   | vnfd                                 |
+ | template_source | onboarded                            |
+ | tenant_id       | a5346a4d3c464b4f8776ee2f4bfb86af     |
+ | updated_at      |                                      |
+ +-----------------+--------------------------------------+
+
 Deploying a new VNF on registered VIM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
