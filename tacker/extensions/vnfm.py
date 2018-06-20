@@ -55,6 +55,10 @@ class InvalidInfraDriver(exceptions.InvalidInput):
     message = _('VIM type %(vim_name)s is not supported as an infra driver')
 
 
+class InvalidAPIAttributeType(exceptions.InvalidInput):
+    message = _('Expecting dict type for API attribute instead of %(atype)s ')
+
+
 class InvalidServiceType(exceptions.InvalidInput):
     message = _('invalid service type %(service_type)s')
 

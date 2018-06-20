@@ -380,6 +380,15 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                           self.vnfm_plugin.create_vnfd,
                           self.context, vnfd_obj)
 
+    def test_create_vnfd_without_dict_type_attributes(self):
+        vnfd_obj = utils.get_dummy_vnfd_obj()
+        # Convert dict to string.
+        vnfd_obj['vnfd']['attributes']['vnfd'] = str(
+            vnfd_obj['vnfd']['attributes']['vnfd'])
+        self.assertRaises(vnfm.InvalidAPIAttributeType,
+                          self.vnfm_plugin.create_vnfd,
+                          self.context, vnfd_obj)
+
     def test_create_vnf_sync(self):
         self._insert_dummy_vnf_template()
         vnf_obj = utils.get_dummy_vnf_obj()
@@ -462,16 +471,14 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                           self.vnfm_plugin.create_vnf,
                           self.context, vnf_obj)
 
-    @patch('tacker.vnfm.plugin.VNFMPlugin._report_deprecated_yaml_str')
-    def test_create_vnf_with_invalid_param_and_config_format(self,
-                                            mock_report_deprecated_yaml_str):
+    def test_create_vnf_with_invalid_param_and_config_format(self):
         self._insert_dummy_vnf_template()
         vnf_obj = utils.get_dummy_vnf_obj()
         vnf_obj['vnf']['attributes']['param_values'] = 'image_name'
-        vnf_obj['vnf']['attributes']['config'] = "test"
-        result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
-        self.assertEqual(3, mock_report_deprecated_yaml_str.call_count)
-        self.assertEqual('ACTIVE', result['status'])
+        vnf_obj['vnf']['attributes']['config'] = 'test'
+        self.assertRaises(vnfm.InvalidAPIAttributeType,
+                          self.vnfm_plugin.create_vnf,
+                          self.context, vnf_obj)
 
     @patch('tacker.vnfm.plugin.VNFMPlugin.delete_vnf')
     def test_create_vnf_fail(self, mock_delete_vnf):
@@ -693,16 +700,14 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
             tstamp=mock.ANY)
 
-    @mock.patch('tacker.vnfm.plugin.VNFMPlugin._report_deprecated_yaml_str')
-    def test_update_vnf_invalid_config_format(self,
-                                              mock_report_deprecated_yaml_str):
+    def test_update_vnf_invalid_config_format(self):
         self._insert_dummy_vnf_template()
         dummy_vnf_obj = self._insert_dummy_vnf()
         vnf_config_obj = utils.get_dummy_vnf_config_obj()
-        vnf_config_obj['vnf']['attributes']['config'] = 'test'
+        vnf_config_obj['vnf']['attributes']['config'] = {'vdus': {
+            'vdu1': {'config': {'firewall': 'dummy_firewall_values'}}}}
         result = self.vnfm_plugin.update_vnf(self.context, dummy_vnf_obj[
             'id'], vnf_config_obj)
-        self.assertEqual(1, mock_report_deprecated_yaml_str.call_count)
         self.assertEqual(constants.ACTIVE, result['status'])
 
     @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.set_vnf_error_status_reason')

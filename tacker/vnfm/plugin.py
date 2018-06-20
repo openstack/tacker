@@ -168,8 +168,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             # key value string pairs in vnf attributes table
             vnfd_data['attributes']['vnfd'] = yaml.safe_dump(
                 template)
-        elif isinstance(template, str):
-            self._report_deprecated_yaml_str()
+        else:
+            raise vnfm.InvalidAPIAttributeType(atype=type(template))
         if "tosca_definitions_version" not in template:
             raise exceptions.Invalid('Not a valid template: '
                                      'tosca_definitions_version is missing.')
@@ -273,6 +273,12 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         config = vnf_dict['attributes'].get('config')
         if not config:
             return
+        if isinstance(config, str):
+            # TODO(dkushwaha) remove this load once db supports storing
+            # json format of yaml files in a separate column instead of
+            #  key value string pairs in vnf attributes table.
+            config = yaml.safe_load(config)
+
         eventlet.sleep(self.boot_wait)      # wait for vm to be ready
         vnf_id = vnf_dict['id']
         update = {
@@ -398,7 +404,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 #  key value string pairs in vnf attributes table
                 vnf_attributes['param_values'] = yaml.safe_dump(param)
             else:
-                self._report_deprecated_yaml_str()
+                raise vnfm.InvalidAPIAttributeType(atype=type(param))
         if vnf_attributes.get('config'):
             config = vnf_attributes['config']
             if isinstance(config, dict):
@@ -407,7 +413,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 #  key value string pairs in vnf attributes table
                 vnf_attributes['config'] = yaml.safe_dump(config)
             else:
-                self._report_deprecated_yaml_str()
+                raise vnfm.InvalidAPIAttributeType(atype=type(config))
 
         vnf_dict = self._create_vnf(context, vnf_info, vim_auth, infra_driver)
 
@@ -488,7 +494,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 #  key value string pairs in vnf attributes table
                 vnf_attributes['config'] = yaml.safe_dump(config)
             else:
-                self._report_deprecated_yaml_str()
+                raise vnfm.InvalidAPIAttributeType(atype=type(config))
         vnf_dict = self._update_vnf_pre(context, vnf_id,
                                         constants.PENDING_UPDATE)
         driver_name, vim_auth = self._get_infra_driver(context, vnf_dict)
@@ -736,10 +742,6 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         self.spawn_n(_vnf_policy_action_wait)
 
         return policy
-
-    def _report_deprecated_yaml_str(self):
-        utils.deprecate_warning(what='yaml as string',
-                                as_of='N', in_favor_of='yaml as dictionary')
 
     def _make_policy_dict(self, vnf, name, policy):
         p = {}
