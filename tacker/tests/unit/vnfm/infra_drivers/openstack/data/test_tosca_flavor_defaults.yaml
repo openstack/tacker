@@ -13,6 +13,8 @@ topology_template:
       capabilities:
         nfv_compute:
           properties:
+            mem_size: 512
+            num_cpus: 1
             disk_size: 10 GB
       properties:
         image: OpenWRT

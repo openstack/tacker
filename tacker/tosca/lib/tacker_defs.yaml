@@ -135,10 +135,10 @@ data_types:
     properties:
       num_cpus:
         type: integer
-        required: false
+        required: true
       mem_size:
         type: string
-        required: false
+        required: true
       disk_size:
         type: string
         required: false
