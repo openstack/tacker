@@ -1,0 +1,17 @@
+- name: Print net information
+  shell: sudo bash -c "ip address > /opt/stack/ipaddress.txt"
+
+- name: Collect net information
+  fetch:
+    flat: yes
+    dest: "{{ zuul.executor.log_root }}/{{ inventory_hostname }}/confs/devstack/ipaddress.txt"
+    src: "/opt/stack/ipaddress.txt"
+
+- name: print ovs information
+  shell: sudo bash -c "ovs-vsctl show > /opt/stack/ovsvsctl.txt"
+
+- name: Collect ovs information
+  fetch:
+    flat: yes
+    dest: "{{ zuul.executor.log_root }}/{{ inventory_hostname }}/confs/devstack/ovsvsctl.txt"
+    src: "/opt/stack/ovsvsctl.txt"

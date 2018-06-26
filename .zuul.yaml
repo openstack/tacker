@@ -1,8 +1,36 @@
+- nodeset:
+    name: openstack-multi-nodes
+    nodes:
+      - name: controller
+        label: ubuntu-xenial
+      - name: compute1
+        label: ubuntu-xenial
+    groups:
+      # Nodes running the compute service
+      - name: compute
+        nodes:
+          - controller
+          - compute1
+      # Nodes that are not the controller
+      - name: subnode
+        nodes:
+          - compute1
+      # Switch node for multinode networking setup
+      - name: switch
+        nodes:
+          - controller
+      # Peer nodes for multinode networking setup
+      - name: peers
+        nodes:
+          - compute1
+
+
 - job:
-    name: tacker-functional-devstack
+    name: tacker-functional-devstack-multinode
     parent: devstack
     description: |
-      Base job for devstack-based functional tests
+      Base multinodes job for devstack-based functional tests
+    nodeset: openstack-multi-nodes
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
     post-run: playbooks/devstack/post.yaml
@@ -24,41 +52,66 @@
       - openstack/tacker
       - openstack/tacker-horizon
     vars:
+      devstack_localrc:
+        CELLSV2_SETUP: singleconductor
+        Q_DVR_MODE: dvr
       test_matrix_configs: [neutron]
       devstack_services:
-        horizon: true
-        tacker: true
-        tacker-conductor: true
+        horizon: false
         swift: false
-      devstack_plugins:
-        heat: https://git.openstack.org/openstack/heat
-        networking-sfc: https://git.openstack.org/openstack/networking-sfc
-        aodh: https://git.openstack.org/openstack/aodh
-        ceilometer: https://git.openstack.org/openstack/ceilometer
-        barbican: https://git.openstack.org/openstack/barbican
-        mistral: https://git.openstack.org/openstack/mistral
-        tacker: https://git.openstack.org/openstack/tacker
-      tox_install_siblings: false
-      tox_envlist: dsvm-functional
+        s-account: false
+        s-container: false
+        s-object: false
+        s-proxy: false
+        c-bak: false
       zuul_work_dir: src/git.openstack.org/openstack/tacker
-
-- job:
-    name: tacker-functional-devstack-python3
-    parent: tacker-functional-devstack
-    description: |
-      Run tacker functional tests using python3 against a master devstack
-    vars:
-      tacker_environment:
-        TACKER_TOX_PYTHON: python3
+    host-vars:
+     controller:
+       devstack_plugins:
+         heat: https://git.openstack.org/openstack/heat
+         networking-sfc: https://git.openstack.org/openstack/networking-sfc
+         aodh: https://git.openstack.org/openstack/aodh
+         ceilometer: https://git.openstack.org/openstack/ceilometer
+         barbican: https://git.openstack.org/openstack/barbican
+         mistral: https://git.openstack.org/openstack/mistral
+         tacker: https://git.openstack.org/openstack/tacker
+       devstack_services:
+         horizon: false
+         swift: false
+         s-account: false
+         s-container: false
+         s-object: false
+         s-proxy: false
+         c-bak: false
+         tacker: true
+         tacker-conductor: true
+         q-svc: true
+       tox_install_siblings: false
+       tox_envlist: dsvm-functional
+    group-vars:
+      subnode:
+        devstack_localrc:
+          CELLSV2_SETUP: singleconductor
+          PHYSICAL_NETWORK: mgmtphysnet0
+        devstack_services:
+          q-agt: true
+          n-api: false
+          n-api-meta: false
+          n-cauth: false
+          n-cond: false
+          n-cpu: true
+          n-novnc: false
+          n-obj: false
+          n-sch: false
+          horizon: false
+          tls-proxy: false
 
 - project:
     check:
       jobs:
-        - tacker-functional-devstack:
-            voting: false
-        - tacker-functional-devstack-python3:
+        - tacker-functional-devstack-multinode:
             voting: false
         - openstack-tox-lower-constraints
     gate:
-      jobs:
-        - openstack-tox-lower-constraints
+        jobs:
+            - openstack-tox-lower-constraints
