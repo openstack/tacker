@@ -41,12 +41,6 @@ Tacker defines TOSCA schema for the scaling policy as given below:
         type: integer
         required: true
         description: Number of nodes to add or remove during the scale out/in.
-      targets:
-        type: list
-        entry_schema:
-          type: string
-        required: true
-        description: List of Scaling nodes.
       min_instances:
         type: integer
         required: true
@@ -65,6 +59,12 @@ Tacker defines TOSCA schema for the scaling policy as given below:
         default: 120
         description: Wait time (in seconds) between consecutive scaling
         operations. During the cooldown period, scaling action will be ignored
+    targets:
+      type: list
+      entry_schema:
+        type: string
+      required: true
+      description: List of Scaling nodes.
 
 
 Sample TOSCA with scaling policy
@@ -77,13 +77,15 @@ and vdu2 are already defined VDUs.
 
      policies:
 
-        sp1:
+       - sp1:
 
-          type: tosca.policies.tacker.Scaling
+           type: tosca.policies.tacker.Scaling
 
-          description: Simple VDU scaling
+           description: Simple VDU scaling
 
-          properties:
+           targets: [vdu1, vdu2]
+
+           properties:
              min_instances: 1
 
              max_instances: 3
@@ -91,9 +93,6 @@ and vdu2 are already defined VDUs.
              default_instances: 2
 
              increment: 1
-
-             targets: [vdu1, vdu2]
-
 
 Deploying scaling TOSCA template using Tacker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
