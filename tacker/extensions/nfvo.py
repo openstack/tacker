@@ -351,6 +351,7 @@ RESOURCE_ATTRIBUTE_MAP = {
             'allow_post': True,
             'allow_put': True,
             'is_visible': True,
+            'validate': {'type:boolean': None},
             'default': False
         },
         'created_at': {

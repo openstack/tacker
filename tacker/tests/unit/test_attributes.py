@@ -713,6 +713,15 @@ class TestConvertToBoolean(base.BaseTestCase):
         self.assertRaises(n_exc.InvalidInput,
                           attributes.convert_to_boolean,
                           '7')
+        self.assertRaises(n_exc.InvalidInput,
+                          attributes.convert_to_boolean,
+                          "")
+        self.assertRaises(n_exc.InvalidInput,
+                          attributes.convert_to_boolean,
+                          "abc")
+        self.assertRaises(n_exc.InvalidInput,
+                          attributes.convert_to_boolean,
+                          123)
 
 
 class TestConvertToInt(base.BaseTestCase):
