@@ -42,18 +42,18 @@ Release Notes
 .. toctree::
    :maxdepth: 1
 
-   Release Notes <http://docs.openstack.org/releasenotes/tacker>
+   Release Notes <https://docs.openstack.org/releasenotes/tacker>
 
 Project Info
 ------------
 
-* **Free software:** under the `Apache license <http://www.apache.org/licenses/LICENSE-2.0>`_
-* **Tacker Service:** http://git.openstack.org/cgit/openstack/tacker
+* **Free software:** under the `Apache license <https://www.apache.org/licenses/LICENSE-2.0>`_
+* **Tacker Service:** https://git.openstack.org/cgit/openstack/tacker
 * **Tacker Horizon:** https://git.openstack.org/cgit/openstack/tacker-horizon
 * **Tacker Specs:** https://git.openstack.org/cgit/openstack/tacker-specs
 * **Tacker Specs Documentation:** https://specs.openstack.org/openstack/tacker-specs
-* **Tacker Client Library:** http://git.openstack.org/cgit/openstack/python-tackerclient
-* **Tacker Bugs:** http://bugs.launchpad.net/tacker
+* **Tacker Client Library:** https://git.openstack.org/cgit/openstack/python-tackerclient
+* **Tacker Bugs:** https://bugs.launchpad.net/tacker
 * **Client Bugs:** https://bugs.launchpad.net/python-tackerclient
 * **Blueprints:** https://blueprints.launchpad.net/tacker
 
