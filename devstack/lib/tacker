@@ -430,25 +430,25 @@ EOF
     openstack --os-cloud=devstack-admin \
               quota set --ports -1 $DEFAULT_VIM_PROJECT_NAME
 
-    openstack --os-region-name RegionOne --os-project-name $DEFAULT_VIM_PROJECT_NAME \
+    openstack --os-region-name $REGION_NAME --os-project-name $DEFAULT_VIM_PROJECT_NAME \
               --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
               --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
               --os-password $DEFAULT_VIM_PASSWORD keypair create userKey
 
-    openstack --os-region-name RegionOne --os-project-name $DEFAULT_VIM_PROJECT_NAME \
+    openstack --os-region-name $REGION_NAME --os-project-name $DEFAULT_VIM_PROJECT_NAME \
           --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
           --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
           --os-password $DEFAULT_VIM_PASSWORD \
           security group create \
           --description "tacker functest security group" test_secgrp
 
-    openstack --os-region-name RegionOne --os-project-name $DEFAULT_VIM_PROJECT_NAME \
+    openstack --os-region-name $REGION_NAME --os-project-name $DEFAULT_VIM_PROJECT_NAME \
           --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
           --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
           --os-password $DEFAULT_VIM_PASSWORD \
           security group rule create \
           --ingress --protocol icmp test_secgrp
-    openstack --os-region-name RegionOne --os-project-name $DEFAULT_VIM_PROJECT_NAME \
+    openstack --os-region-name $REGION_NAME --os-project-name $DEFAULT_VIM_PROJECT_NAME \
           --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
           --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
           --os-password $DEFAULT_VIM_PASSWORD \
