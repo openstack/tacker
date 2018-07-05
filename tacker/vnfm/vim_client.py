@@ -19,6 +19,8 @@ from cryptography import fernet
 from oslo_config import cfg
 from oslo_log import log as logging
 
+
+from tacker import context as t_context
 from tacker.extensions import nfvo
 from tacker.keymgr import API as KEYMGR_API
 from tacker import manager
@@ -57,7 +59,7 @@ class VimClient(object):
                                                  ['regions'], region_name):
             raise nfvo.VimRegionNotFoundException(region_name=region_name)
 
-        vim_auth = self._build_vim_auth(context, vim_info)
+        vim_auth = self._build_vim_auth(vim_info)
         vim_res = {'vim_auth': vim_auth, 'vim_id': vim_info['id'],
                    'vim_name': vim_info.get('name', vim_info['id']),
                    'vim_type': vim_info['type']}
@@ -67,29 +69,26 @@ class VimClient(object):
     def region_valid(vim_regions, region_name):
         return region_name in vim_regions
 
-    def _build_vim_auth(self, context, vim_info):
+    def _build_vim_auth(self, vim_info):
         LOG.debug('VIM id is %s', vim_info['id'])
         vim_auth = vim_info['auth_cred']
 
         # decode password
         if ('password' in vim_auth) and (vim_auth['password'] is not None):
-            vim_auth['password'] = self._decode_vim_auth(context,
-                                                         vim_info['id'],
+            vim_auth['password'] = self._decode_vim_auth(vim_info['id'],
                                                          vim_auth,
                                                          vim_auth['password'])
         # decode bearer_token
         if 'bearer_token' in vim_auth:
             vim_auth['bearer_token'] = self.\
-                _decode_vim_auth(context,
-                                 vim_info['id'],
+                _decode_vim_auth(vim_info['id'],
                                  vim_auth,
                                  vim_auth['bearer_token'])
         # decode ssl_ca_cert
         if ('ssl_ca_cert' in vim_auth) and \
                 (vim_auth['ssl_ca_cert'] is not None):
             vim_auth['ssl_ca_cert'] = self.\
-                _decode_vim_auth(context,
-                                 vim_info['id'],
+                _decode_vim_auth(vim_info['id'],
                                  vim_auth,
                                  vim_auth['ssl_ca_cert'])
 
@@ -103,7 +102,7 @@ class VimClient(object):
                 vim_auth.pop(attr, None)
         return vim_auth
 
-    def _decode_vim_auth(self, context, vim_id, auth, secret_value):
+    def _decode_vim_auth(self, vim_id, auth, secret_value):
         """Decode Vim credentials
 
         Decrypt VIM cred, get fernet Key from local_file_system or
@@ -114,7 +113,8 @@ class VimClient(object):
             keystone_conf = CONF.keystone_authtoken
             secret_uuid = auth['secret_uuid']
             keymgr_api = KEYMGR_API(keystone_conf.auth_url)
-            secret_obj = keymgr_api.get(context, secret_uuid)
+            k_context = t_context.generate_tacker_service_context()
+            secret_obj = keymgr_api.get(k_context, secret_uuid)
             vim_key = secret_obj.payload
         else:
             vim_key = self._find_vim_key(vim_id)

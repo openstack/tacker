@@ -18,11 +18,15 @@
 import copy
 import datetime
 
+from castellan.common.credentials import keystone_password
+from oslo_config import cfg
 from oslo_context import context as oslo_context
 from oslo_db.sqlalchemy import enginefacade
 
 from tacker.db import api as db_api
 from tacker import policy
+
+CONF = cfg.CONF
 
 
 class ContextBase(oslo_context.RequestContext):
@@ -139,3 +143,13 @@ def get_admin_context_without_session():
     return ContextBase(user_id=None,
                        tenant_id=None,
                        is_admin=True)
+
+
+def generate_tacker_service_context():
+    return keystone_password.KeystonePassword(
+        password=CONF.keystone_authtoken.password,
+        auth_url=CONF.keystone_authtoken.auth_url,
+        username=CONF.keystone_authtoken.username,
+        user_domain_name=CONF.keystone_authtoken.user_domain_name,
+        project_name=CONF.keystone_authtoken.project_name,
+        project_domain_name=CONF.keystone_authtoken.project_domain_name)

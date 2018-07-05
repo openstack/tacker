@@ -44,7 +44,7 @@ class VimAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def register_vim(self, context, vim_obj):
+    def register_vim(self, vim_obj):
         """Register VIM object in to NFVO plugin
 
         Validate, encode and store VIM information for deploying VNFs.
@@ -52,7 +52,7 @@ class VimAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def deregister_vim(self, context, vim_obj):
+    def deregister_vim(self, vim_obj):
         """Deregister VIM object from NFVO plugin
 
         Cleanup VIM data and delete VIM information
@@ -60,7 +60,7 @@ class VimAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def authenticate_vim(self, context, vim_obj):
+    def authenticate_vim(self, vim_obj):
         """Authenticate VIM connection parameters
 
         Validate authentication credentials and connectivity of VIM
@@ -68,7 +68,7 @@ class VimAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def encode_vim_auth(self, context, vim_id, auth):
+    def encode_vim_auth(self, vim_id, auth):
         """Encrypt VIM credentials
 
         Encrypt and store VIM sensitive information such as password
@@ -76,7 +76,7 @@ class VimAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def delete_vim_auth(self, context, vim_id, auth):
+    def delete_vim_auth(self, vim_id, auth):
         """Delete VIM auth keys
 
         Delete VIM sensitive information such as keys from file system or DB

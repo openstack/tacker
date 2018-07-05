@@ -110,6 +110,7 @@ function create_tacker_accounts {
         create_service_user "tacker"
         get_or_create_role "advsvc"
         create_service_user "tacker" "advsvc"
+        create_service_user "tacker" "admin"
 
         local tacker_service=$(get_or_create_service "tacker" \
             "nfv-orchestration" "Tacker NFV Orchestration Service")

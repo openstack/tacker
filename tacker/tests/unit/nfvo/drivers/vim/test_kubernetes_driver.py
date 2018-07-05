@@ -14,8 +14,40 @@
 
 from collections import namedtuple
 import mock
+from oslo_config import cfg
+
+from tacker import context as t_context
 from tacker.nfvo.drivers.vim import kubernetes_driver
 from tacker.tests.unit import base
+
+
+OPTS = [cfg.StrOpt('user_domain_id',
+                   default='default',
+                   help='User Domain Id'),
+        cfg.StrOpt('project_domain_id',
+                   default='default',
+                   help='Project Domain Id'),
+        cfg.StrOpt('password',
+                   default='default',
+                   help='User Password'),
+        cfg.StrOpt('username',
+                   default='default',
+                   help='User Name'),
+        cfg.StrOpt('user_domain_name',
+                   default='default',
+                   help='Use Domain Name'),
+        cfg.StrOpt('project_name',
+                   default='default',
+                   help='Project Name'),
+        cfg.StrOpt('project_domain_name',
+                   default='default',
+                   help='Project Domain Name'),
+        cfg.StrOpt('auth_url',
+                   default='http://localhost:5000/v3',
+                   help='Keystone endpoint')]
+
+cfg.CONF.register_opts(OPTS, 'keystone_authtoken')
+CONF = cfg.CONF
 
 
 class FakeKubernetesAPI(mock.Mock):
@@ -113,15 +145,15 @@ class TestKubernetes_Driver(base.TestCase):
                                                               mock_fernet_obj)
         self.kubernetes_api.create_ca_cert_tmp_file.\
             return_value = ('file_descriptor', 'file_path')
-        self.kubernetes_driver.register_vim(None, vim_obj)
+        self.kubernetes_driver.register_vim(vim_obj)
         mock_fernet_obj.encrypt.assert_called_once_with(mock.ANY)
 
     def test_deregister_vim_barbican(self):
         self.keymgr.delete.return_value = None
         vim_obj = self.get_vim_obj_barbican()
-        self.kubernetes_driver.deregister_vim(None, vim_obj)
+        self.kubernetes_driver.deregister_vim(vim_obj)
         self.keymgr.delete.assert_called_once_with(
-            None, 'fake-secret-uuid')
+            t_context.generate_tacker_service_context(), 'fake-secret-uuid')
 
     def test_encode_vim_auth_barbican(self):
         self.config_fixture.config(group='k8s_vim',
@@ -135,10 +167,10 @@ class TestKubernetes_Driver(base.TestCase):
 
         vim_obj = self.get_vim_obj()
         self.kubernetes_driver.encode_vim_auth(
-            None, vim_obj['id'], vim_obj['auth_cred'])
+            vim_obj['id'], vim_obj['auth_cred'])
 
         self.keymgr.store.assert_called_once_with(
-            None, 'test_fernet_key')
+            t_context.generate_tacker_service_context(), 'test_fernet_key')
         mock_fernet_obj.encrypt.assert_called_once_with(mock.ANY)
         self.assertEqual(vim_obj['auth_cred']['key_type'],
                          'barbican_key')

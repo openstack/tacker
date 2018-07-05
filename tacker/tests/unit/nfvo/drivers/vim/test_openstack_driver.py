@@ -17,6 +17,7 @@ from keystoneauth1 import exceptions
 import mock
 from oslo_config import cfg
 
+from tacker import context as t_context
 from tacker.extensions import nfvo
 from tacker.nfvo.drivers.vim import openstack_driver
 from tacker.tests.unit import base
@@ -28,6 +29,21 @@ OPTS = [cfg.StrOpt('user_domain_id',
         cfg.StrOpt('project_domain_id',
                    default='default',
                    help='Project Domain Id'),
+        cfg.StrOpt('password',
+                   default='default',
+                   help='User Password'),
+        cfg.StrOpt('username',
+                   default='default',
+                   help='User Name'),
+        cfg.StrOpt('user_domain_name',
+                   default='default',
+                   help='Use Domain Name'),
+        cfg.StrOpt('project_name',
+                   default='default',
+                   help='Project Name'),
+        cfg.StrOpt('project_domain_name',
+                   default='default',
+                   help='Project Domain Name'),
         cfg.StrOpt('auth_url',
                    default='http://localhost:5000/v3',
                    help='Keystone endpoint')]
@@ -149,7 +165,7 @@ class TestOpenstack_Driver(base.TestCase):
                                                         mock_fernet_obj)
         file_mock = mock.mock_open()
         with mock.patch('six.moves.builtins.open', file_mock, create=True):
-            self.openstack_driver.register_vim(None, vim_obj)
+            self.openstack_driver.register_vim(vim_obj)
         mock_fernet_obj.encrypt.assert_called_once_with(mock.ANY)
         file_mock().write.assert_called_once_with('test_fernet_key')
 
@@ -162,15 +178,15 @@ class TestOpenstack_Driver(base.TestCase):
         vim_obj['id'] = vim_id
         file_path = CONF.vim_keys.openstack + '/' + vim_id
         mock_os_path.return_value = file_path
-        self.openstack_driver.deregister_vim(None, vim_obj)
+        self.openstack_driver.deregister_vim(vim_obj)
         mock_os_remove.assert_called_once_with(file_path)
 
     def test_deregister_vim_barbican(self):
         self.keymgr.delete.return_value = None
         vim_obj = self.get_vim_obj_barbican()
-        self.openstack_driver.deregister_vim(None, vim_obj)
+        self.openstack_driver.deregister_vim(vim_obj)
         self.keymgr.delete.assert_called_once_with(
-            None, 'fake-secret-uuid')
+            t_context.generate_tacker_service_context(), 'fake-secret-uuid')
 
     def test_encode_vim_auth_barbican(self):
         self.config_fixture.config(group='vim_keys',
@@ -184,10 +200,10 @@ class TestOpenstack_Driver(base.TestCase):
 
         vim_obj = self.get_vim_obj()
         self.openstack_driver.encode_vim_auth(
-            None, vim_obj['id'], vim_obj['auth_cred'])
+            vim_obj['id'], vim_obj['auth_cred'])
 
         self.keymgr.store.assert_called_once_with(
-            None, 'test_fernet_key')
+            t_context.generate_tacker_service_context(), 'test_fernet_key')
         mock_fernet_obj.encrypt.assert_called_once_with(mock.ANY)
         self.assertEqual(vim_obj['auth_cred']['key_type'],
                          'barbican_key')
@@ -209,7 +225,6 @@ class TestOpenstack_Driver(base.TestCase):
         self.keystone.initialize_client.return_value = mock_ks_client
         self.assertRaises(nfvo.VimUnauthorizedException,
                           self.openstack_driver.register_vim,
-                          None,
                           self.vim_obj)
         mock_ks_client.regions.list.assert_called_once_with()
         self.keystone.initialize_client.assert_called_once_with(

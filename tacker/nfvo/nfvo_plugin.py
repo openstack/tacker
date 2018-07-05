@@ -33,6 +33,7 @@ from tacker._i18n import _
 from tacker.common import driver_manager
 from tacker.common import log
 from tacker.common import utils
+from tacker import context as t_context
 from tacker.db.nfvo import nfvo_db_plugin
 from tacker.db.nfvo import ns_db
 from tacker.db.nfvo import vnffg_db
@@ -109,14 +110,12 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         try:
             self._vim_drivers.invoke(vim_type,
                                      'register_vim',
-                                     context=context,
                                      vim_obj=vim_obj)
             res = super(NfvoPlugin, self).create_vim(context, vim_obj)
         except Exception:
             with excutils.save_and_reraise_exception():
                 self._vim_drivers.invoke(vim_type,
                                          'delete_vim_auth',
-                                         context=context,
                                          vim_id=vim_obj['id'],
                                          auth=vim_obj['auth_cred'])
 
@@ -170,7 +169,6 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 # Notice: vim_obj may be updated in vim driver's
                 self._vim_drivers.invoke(vim_type,
                                          'register_vim',
-                                         context=context,
                                          vim_obj=vim_obj)
                 new_auth_created = True
 
@@ -185,7 +183,6 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 try:
                     self._vim_drivers.invoke(vim_type,
                                              'delete_vim_auth',
-                                             context=context,
                                              vim_id=old_vim_obj['id'],
                                              auth=old_vim_obj['auth_cred'])
                 except Exception as ex:
@@ -200,7 +197,6 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                     # delete new-created vim auth, old auth is still used.
                     self._vim_drivers.invoke(vim_type,
                                              'delete_vim_auth',
-                                             context=context,
                                              vim_id=vim_obj['id'],
                                              auth=vim_obj['auth_cred'])
 
@@ -209,7 +205,6 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         vim_obj = self._get_vim(context, vim_id)
         self._vim_drivers.invoke(vim_obj['type'],
                                  'deregister_vim',
-                                 context=context,
                                  vim_obj=vim_obj)
         try:
             auth_dict = self.get_auth_dict(context)
@@ -519,14 +514,13 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         vim_obj = self.get_vim(context, vim_id['vim_id'], mask_password=False)
         if vim_obj is None:
             raise nfvo.VimFromVnfNotFoundException(vnf_id=vnf_id)
-        self._build_vim_auth(context, vim_obj)
+        self._build_vim_auth(vim_obj)
         return vim_obj
 
-    def _build_vim_auth(self, context, vim_info):
+    def _build_vim_auth(self, vim_info):
         LOG.debug('VIM id is %s', vim_info['id'])
         vim_auth = vim_info['auth_cred']
-        vim_auth['password'] = self._decode_vim_auth(context,
-                                                     vim_info['id'],
+        vim_auth['password'] = self._decode_vim_auth(vim_info['id'],
                                                      vim_auth)
         vim_auth['auth_url'] = vim_info['auth_url']
 
@@ -538,7 +532,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 vim_auth.pop(attr, None)
         return vim_auth
 
-    def _decode_vim_auth(self, context, vim_id, auth):
+    def _decode_vim_auth(self, vim_id, auth):
         """Decode Vim credentials
 
         Decrypt VIM cred, get fernet Key from local_file_system or
@@ -546,10 +540,11 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         """
         cred = auth['password'].encode('utf-8')
         if auth.get('key_type') == 'barbican_key':
+            k_context = t_context.generate_tacker_service_context()
             keystone_conf = CONF.keystone_authtoken
             secret_uuid = auth['secret_uuid']
             keymgr_api = KEYMGR_API(keystone_conf.auth_url)
-            secret_obj = keymgr_api.get(context, secret_uuid)
+            secret_obj = keymgr_api.get(k_context, secret_uuid)
             vim_key = secret_obj.payload
         else:
             vim_key = self._find_vim_key(vim_id)

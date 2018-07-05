@@ -295,8 +295,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
             tstamp=mock.ANY)
         self._driver_manager.invoke.assert_any_call(
-            vim_type, 'register_vim',
-            context=self.context, vim_obj=vim_dict['vim'])
+            vim_type, 'register_vim', vim_obj=vim_dict['vim'])
         self.assertIsNotNone(res)
         self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
         self.assertIn('id', res)
@@ -310,11 +309,11 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self._insert_dummy_vim()
         vim_type = u'openstack'
         vim_id = '6261579e-d6f3-49ad-8bc3-a9cb974778ff'
+        self.context.tenant_id = 'ad7ebc56538745a08ef7c5e97f8bd437'
         vim_obj = self.nfvo_plugin._get_vim(self.context, vim_id)
         self.nfvo_plugin.delete_vim(self.context, vim_id)
         self._driver_manager.invoke.assert_called_once_with(
             vim_type, 'deregister_vim',
-            context=self.context,
             vim_obj=vim_obj)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_DELETE, res_id=mock.ANY,
@@ -330,6 +329,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         vim_auth_username = vim_dict['vim']['auth_cred']['username']
         vim_project = vim_dict['vim']['vim_project']
         self._insert_dummy_vim()
+        self.context.tenant_id = 'ad7ebc56538745a08ef7c5e97f8bd437'
         res = self.nfvo_plugin.update_vim(self.context, vim_dict['vim']['id'],
                                           vim_dict)
         vim_obj = self.nfvo_plugin._get_vim(
@@ -337,7 +337,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         vim_obj['updated_at'] = None
         self._driver_manager.invoke.assert_called_with(
             vim_type, 'register_vim',
-            context=self.context,
             vim_obj=vim_obj)
         self.assertIsNotNone(res)
         self.assertIn('id', res)
@@ -360,6 +359,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         vim_auth_username = vim_dict['vim']['auth_cred']['username']
         vim_project = vim_dict['vim']['vim_project']
         self._insert_dummy_vim_barbican()
+        self.context.tenant_id = 'ad7ebc56538745a08ef7c5e97f8bd437'
         old_vim_obj = self.nfvo_plugin._get_vim(
             self.context, vim_dict['vim']['id'])
         res = self.nfvo_plugin.update_vim(self.context, vim_dict['vim']['id'],
@@ -369,7 +369,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         vim_obj['updated_at'] = None
         self._driver_manager.invoke.assert_called_with(
             vim_type, 'delete_vim_auth',
-            context=self.context,
             vim_id=vim_obj['id'],
             auth=old_vim_obj['auth_cred'])
         self.assertIsNotNone(res)

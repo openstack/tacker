@@ -30,6 +30,7 @@ from oslo_log import log as logging
 
 from tacker._i18n import _
 from tacker.common import log
+from tacker import context as t_context
 from tacker.extensions import nfvo
 from tacker.keymgr import API as KEYMGR_API
 from tacker.mistral import mistral_client
@@ -195,7 +196,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         return vim_obj
 
     @log.log
-    def register_vim(self, context, vim_obj):
+    def register_vim(self, vim_obj):
         """Validate and set VIM placements."""
 
         if 'key_type' in vim_obj['auth_cred']:
@@ -205,19 +206,19 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         ks_client = self.authenticate_vim(vim_obj)
         self.discover_placement_attr(vim_obj, ks_client)
-        self.encode_vim_auth(context, vim_obj['id'], vim_obj['auth_cred'])
+        self.encode_vim_auth(vim_obj['id'], vim_obj['auth_cred'])
         LOG.debug('VIM registration completed for %s', vim_obj)
 
     @log.log
-    def deregister_vim(self, context, vim_obj):
+    def deregister_vim(self, vim_obj):
         """Deregister VIM from NFVO
 
         Delete VIM keys from file system
         """
-        self.delete_vim_auth(context, vim_obj['id'], vim_obj['auth_cred'])
+        self.delete_vim_auth(vim_obj['id'], vim_obj['auth_cred'])
 
     @log.log
-    def delete_vim_auth(self, context, vim_id, auth):
+    def delete_vim_auth(self, vim_id, auth):
         """Delete vim information
 
         Delete vim key stored in file system
@@ -226,10 +227,11 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         if auth.get('key_type') == 'barbican_key':
             try:
+                k_context = t_context.generate_tacker_service_context()
                 keystone_conf = CONF.keystone_authtoken
                 secret_uuid = auth['secret_uuid']
                 keymgr_api = KEYMGR_API(keystone_conf.auth_url)
-                keymgr_api.delete(context, secret_uuid)
+                keymgr_api.delete(k_context, secret_uuid)
                 LOG.debug('VIM key deleted successfully for vim %s',
                           vim_id)
             except Exception as ex:
@@ -248,7 +250,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                             vim_id)
 
     @log.log
-    def encode_vim_auth(self, context, vim_id, auth):
+    def encode_vim_auth(self, vim_id, auth):
         """Encode VIM credentials
 
          Store VIM auth using fernet key encryption
@@ -259,9 +261,10 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         if CONF.vim_keys.use_barbican:
             try:
+                k_context = t_context.generate_tacker_service_context()
                 keystone_conf = CONF.keystone_authtoken
                 keymgr_api = KEYMGR_API(keystone_conf.auth_url)
-                secret_uuid = keymgr_api.store(context, fernet_key)
+                secret_uuid = keymgr_api.store(k_context, fernet_key)
 
                 auth['key_type'] = 'barbican_key'
                 auth['secret_uuid'] = secret_uuid

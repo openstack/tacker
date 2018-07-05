@@ -119,7 +119,8 @@ class BarbicanKeyManager(key_manager.KeyManager):
                 project_id=context.tenant)
         else:
             msg = _("context must be of type KeystonePassword, "
-                    "KeystoneToken, RequestContext, or Context.")
+                    "KeystoneToken, RequestContext, or Context, got type "
+                    "%s") % context.__class__.__name__
             LOG.error(msg)
             raise exception.Forbidden(reason=msg)
 
