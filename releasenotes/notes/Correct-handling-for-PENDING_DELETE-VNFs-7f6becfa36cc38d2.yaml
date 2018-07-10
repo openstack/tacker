@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Correct error handling for PENDING_DELETE VNFs.

@@ -75,6 +75,10 @@ class VNFDeleteWaitFailed(exceptions.TackerException):
     message = _('%(reason)s')
 
 
+class VNFDeleteFailed(exceptions.TackerException):
+    message = _('%(reason)s')
+
+
 class VNFDNotFound(exceptions.NotFound):
     message = _('VNFD %(vnfd_id)s could not be found')
 

@@ -482,8 +482,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 with_lockmode('update').one())
         except orm_exc.NoResultFound:
             raise vnfm.VNFNotFound(vnf_id=vnf_id)
+        if vnf_db.status == constants.PENDING_DELETE:
+            error_reason = _("Operation on PENDING_DELETE VNF "
+                             "is not permited. Please contact your "
+                             "Administrator.")
+            raise vnfm.VNFDeleteFailed(reason=error_reason)
         if vnf_db.status == constants.PENDING_UPDATE:
             raise vnfm.VNFInUse(vnf_id=vnf_id)
+        # TODO(dkushwaha): status check/update will be moved out from here.
         vnf_db.update({'status': new_status})
         return vnf_db
 
