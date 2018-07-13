@@ -15,6 +15,7 @@
 import time
 import yaml
 
+from glanceclient.v2 import client as glance_client
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from neutronclient.v2_0 import client as neutron_client
@@ -104,6 +105,19 @@ class BaseTackerTest(base.BaseTestCase):
         data['user_domain_name'] = domain_name
         data['project_domain_name'] = domain_name
         return clients.OpenstackClients(auth_attr=data).heat
+
+    @classmethod
+    def glanceclient(cls):
+        vim_params = cls.get_credentials()
+        auth = v3.Password(auth_url=vim_params['auth_url'],
+            username=vim_params['username'],
+            password=vim_params['password'],
+            project_name=vim_params['project_name'],
+            user_domain_name=vim_params['user_domain_name'],
+            project_domain_name=vim_params['project_domain_name'])
+        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        auth_ses = session.Session(auth=auth, verify=verify)
+        return glance_client.Client(session=auth_ses)
 
     def wait_until_vnf_status(self, vnf_id, target_status, timeout,
                               sleep_interval):

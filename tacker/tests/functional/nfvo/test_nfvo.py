@@ -27,6 +27,7 @@ CONF = cfg.CONF
 
 
 class NsdTestCreate(base.BaseTackerTest):
+
     def _test_create_tosca_vnfd(self, tosca_vnfd_file, vnfd_name):
         input_yaml = read_file(tosca_vnfd_file)
         tosca_dict = yaml.safe_load(input_yaml)
@@ -154,6 +155,46 @@ class NsdTestCreate(base.BaseTackerTest):
         self._test_delete_vnfd(vnfd1_id)
         self._test_delete_vnfd(vnfd2_id)
 
+    def _test_create_delete_ns_vnffg(self, nsd_file, ns_name,
+                              source_port_id, dest_ip_prefix):
+        vnfd1_id = self._test_create_tosca_vnfd(
+            'tosca-ns-vnffg-vnfd1-sample.yaml',
+            'sample-vnfd1')
+        vnfd2_id = self._test_create_tosca_vnfd(
+            'tosca-ns-vnffg-vnfd2-sample.yaml',
+            'sample-vnfd2')
+
+        nsd_id = self._test_create_nsd(nsd_file, ns_name)
+        ns_arg = {'ns': {
+            'nsd_id': nsd_id,
+            'name': ns_name,
+            'attributes': {"param_values": {
+                "nsd": {
+                    "vl2_name": "net0",
+                    "vl1_name": "net_mgmt",
+                    "net_src_port_id": source_port_id,
+                    "ip_dest_prefix": dest_ip_prefix}}}}}
+        ns_instance = self.client.create_ns(body=ns_arg)
+        ns_id = ns_instance['ns']['id']
+
+        self._wait_until_ns_status(ns_id, 'ACTIVE',
+                                   constants.NS_CREATE_TIMEOUT,
+                                   constants.ACTIVE_SLEEP_TIME)
+        ns_show_out = self.client.show_ns(ns_id)['ns']
+
+        self.assertIsNotNone(ns_show_out['mgmt_urls'])
+        vnffg = self.client.list_vnffgs()
+        self.assertIsNotNone(vnffg)
+        try:
+            self.client.delete_ns(ns_id)
+        except Exception as e:
+            print("Exception:", e)
+            assert False, "ns Delete failed"
+        self._wait_until_ns_delete(ns_id, constants.NS_DELETE_TIMEOUT)
+        self._test_delete_nsd(nsd_id)
+        self._test_delete_vnfd(vnfd1_id)
+        self._test_delete_vnfd(vnfd2_id)
+
     def test_create_delete_nsd(self):
         vnfd1_id = self._test_create_tosca_vnfd(
             'test-nsd-vnfd1.yaml',
@@ -176,3 +217,45 @@ class NsdTestCreate(base.BaseTackerTest):
         self._test_create_delete_ns('test-ns-nsd.yaml',
                                     'test-ns-inline',
                                     template_source='inline')
+
+    def _wait_for_server_active(self, server_id, target_status='ACTIVE',
+                              timeout=60, sleep_interval=2):
+        start_time = int(time.time())
+        while True:
+                server_info = self.novaclient().servers.get(server_id)
+                if (server_info.status == target_status) or (
+                        (int(time.time()) - start_time) > timeout):
+                    break
+                time.sleep(sleep_interval)
+
+    def test_create_delete_ns_vnffg(self):
+        net = self.neutronclient().list_networks()
+        for network in net['networks']:
+            if network['name'] == 'net0':
+                net_id = network['id']
+        networks = [{'net-id': net_id}]
+        img = self.glanceclient().images.list(
+            name='cirros-0.3.5-x86_64-disk').next()
+        http_client = self.novaclient().servers.create(name='http_client',
+                                                       image=img['id'],
+                                                       flavor=1,
+                                                       nics=networks)
+        http_server = self.novaclient().servers.create(name='http_server',
+                                                       image=img['id'],
+                                                       flavor=1,
+                                                       nics=networks)
+        self._wait_for_server_active(http_client.id)
+        self._wait_for_server_active(http_server.id)
+        port_list = self.neutronclient().list_ports()
+        source_port_id = None
+        dest_ip_prefix = http_server.networks['net0'][0] + '/24'
+        for port in port_list['ports']:
+            if port['fixed_ips'][0]['ip_address'] == \
+                    http_client.networks['net0'][0]:
+                source_port_id = port['id']
+
+        self._test_create_delete_ns_vnffg('tosca-ns-vnffg.yaml',
+                                          'tosca-ns-vnffg',
+                                          source_port_id, dest_ip_prefix)
+        self.novaclient().servers.delete(http_server.id)
+        self.novaclient().servers.delete(http_client.id)
