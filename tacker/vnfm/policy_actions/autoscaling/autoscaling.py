@@ -13,23 +13,12 @@
 #
 
 from oslo_log import log as logging
-from oslo_utils import timeutils
 
-from tacker.db.common_services import common_services_db_plugin
 from tacker.plugins.common import constants
 from tacker.vnfm.policy_actions import abstract_action
+from tacker.vnfm import utils as vnfm_utils
 
 LOG = logging.getLogger(__name__)
-
-
-def _log_monitor_events(context, vnf_dict, evt_details):
-    _cos_db_plg = common_services_db_plugin.CommonServicesPluginDb()
-    _cos_db_plg.create_event(context, res_id=vnf_dict['id'],
-                             res_type=constants.RES_TYPE_VNF,
-                             res_state=vnf_dict['status'],
-                             evt_type=constants.RES_EVT_MONITOR,
-                             tstamp=timeutils.utcnow(),
-                             details=evt_details)
 
 
 class VNFActionAutoscaling(abstract_action.AbstractPolicyAction):
@@ -44,7 +33,7 @@ class VNFActionAutoscaling(abstract_action.AbstractPolicyAction):
 
     def execute_action(self, plugin, context, vnf_dict, args):
         vnf_id = vnf_dict['id']
-        _log_monitor_events(context,
-                            vnf_dict,
-                            "ActionAutoscalingHeat invoked")
+        vnfm_utils.log_events(context, vnf_dict,
+                              constants.RES_EVT_MONITOR,
+                              "ActionAutoscalingHeat invoked")
         plugin.create_vnf_scale(context, vnf_id, args)

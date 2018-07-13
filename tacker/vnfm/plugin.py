@@ -124,7 +124,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     OPTS_POLICY_ACTION = [
         cfg.ListOpt(
             'policy_action', default=['autoscaling', 'respawn',
-                                      'log', 'log_and_kill'],
+                                      'vdu_autoheal', 'log', 'log_and_kill'],
             help=_('Hosting vnf drivers tacker plugin will use')),
     ]
     cfg.CONF.register_opts(OPTS_POLICY_ACTION, 'tacker')
@@ -239,11 +239,11 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         dev_attrs = vnf_dict['attributes']
         mgmt_url = vnf_dict['mgmt_url']
         if 'monitoring_policy' in dev_attrs and mgmt_url:
-            def action_cb(action):
+            def action_cb(action, **kwargs):
                 LOG.debug('policy action: %s', action)
                 self._vnf_action.invoke(
                     action, 'execute_action', plugin=self, context=context,
-                    vnf_dict=hosting_vnf['vnf'], args={})
+                    vnf_dict=hosting_vnf['vnf'], args=kwargs)
 
             hosting_vnf = self._vnf_monitor.to_hosting_vnf(
                 vnf_dict, action_cb)
@@ -435,8 +435,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         self._create_vnf_wait(context, vnf_dict, vim_auth, infra_driver)
         return vnf_dict
 
-    def _update_vnf_wait(self, context, vnf_dict, vim_auth, driver_name):
-        instance_id = self._instance_id(vnf_dict)
+    def _update_vnf_wait(self, context, vnf_dict, vim_auth, driver_name,
+                         vnf_heal=False):
         kwargs = {
             mgmt_constants.KEY_ACTION: mgmt_constants.ACTION_UPDATE_VNF,
             mgmt_constants.KEY_KWARGS: {'vnf': vnf_dict},
@@ -448,9 +448,15 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         try:
             self._vnf_manager.invoke(
                 driver_name, 'update_wait', plugin=self,
-                context=context, vnf_id=instance_id, auth_attr=vim_auth,
+                context=context, vnf_dict=vnf_dict, auth_attr=vim_auth,
                 region_name=region_name)
             self.mgmt_call(context, vnf_dict, kwargs)
+        except vnfm.VNFUpdateWaitFailed as e:
+            with excutils.save_and_reraise_exception():
+                new_status = constants.ERROR
+                self._vnf_monitor.delete_hosting_vnf(vnf_dict['id'])
+                self.set_vnf_error_status_reason(context, vnf_dict['id'],
+                                                 six.text_type(e))
         except exceptions.MgmtDriverException as e:
             LOG.error('VNF configuration failed')
             new_status = constants.ERROR
@@ -460,8 +466,21 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         vnf_dict['status'] = new_status
         self.mgmt_update_post(context, vnf_dict)
 
-        self._update_vnf_post(context, vnf_dict['id'],
-                              new_status, vnf_dict)
+        if vnf_heal:
+            # Update vnf status to 'ACTIVE' so that monitoring can be resumed.
+            evt_details = ("Ends the heal vnf request for VNF '%s'" %
+                           vnf_dict['id'])
+            self._vnf_monitor.update_hosting_vnf(vnf_dict, evt_details)
+            # _update_vnf_post() method updates vnf_status and mgmt_url
+            self._update_vnf_post(context, vnf_dict['id'],
+                                  new_status, vnf_dict,
+                                  constants.PENDING_HEAL,
+                                  constants.RES_EVT_HEAL)
+
+        else:
+            self._update_vnf_post(context, vnf_dict['id'], new_status,
+                                  vnf_dict, constants.PENDING_UPDATE,
+                                  constants.RES_EVT_UPDATE)
 
     def update_vnf(self, context, vnf_id, vnf):
         vnf_attributes = vnf['vnf']['attributes']
@@ -474,7 +493,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 vnf_attributes['config'] = yaml.safe_dump(config)
             else:
                 self._report_deprecated_yaml_str()
-        vnf_dict = self._update_vnf_pre(context, vnf_id)
+        vnf_dict = self._update_vnf_pre(context, vnf_id,
+                                        constants.PENDING_UPDATE)
         driver_name, vim_auth = self._get_infra_driver(context, vnf_dict)
         instance_id = self._instance_id(vnf_dict)
 
@@ -494,10 +514,46 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 self.mgmt_update_post(context, vnf_dict)
                 self._update_vnf_post(context, vnf_id,
                                       constants.ERROR,
-                                      vnf_dict)
+                                      vnf_dict, constants.PENDING_UPDATE,
+                                      constants.RES_EVT_UPDATE)
 
         self.spawn_n(self._update_vnf_wait, context, vnf_dict, vim_auth,
                      driver_name)
+        return vnf_dict
+
+    def heal_vnf(self, context, vnf_id, heal_request_data_obj):
+        vnf_dict = self._update_vnf_pre(context, vnf_id,
+                                        constants.PENDING_HEAL)
+        driver_name, vim_auth = self._get_infra_driver(context, vnf_dict)
+        # Update vnf status to 'PENDING_HEAL' so that monitoring can
+        # be paused.
+        evt_details = ("Starts heal vnf request for VNF '%s'. "
+                       "Reason to Heal VNF: '%s'" % (vnf_dict['id'],
+                       heal_request_data_obj.cause))
+        self._vnf_monitor.update_hosting_vnf(vnf_dict, evt_details)
+
+        try:
+            self.mgmt_update_pre(context, vnf_dict)
+            self._vnf_manager.invoke(
+                driver_name, 'heal_vdu', plugin=self,
+                context=context, vnf_dict=vnf_dict,
+                heal_request_data_obj=heal_request_data_obj)
+        except vnfm.VNFHealFailed as e:
+            with excutils.save_and_reraise_exception():
+                vnf_dict['status'] = constants.ERROR
+                self._vnf_monitor.delete_hosting_vnf(vnf_id)
+                self.set_vnf_error_status_reason(context,
+                                                 vnf_dict['id'],
+                                                 six.text_type(e))
+                self.mgmt_update_post(context, vnf_dict)
+                self._update_vnf_post(context, vnf_id,
+                                      constants.ERROR,
+                                      vnf_dict, constants.PENDING_HEAL,
+                                      constants.RES_EVT_HEAL)
+
+        self.spawn_n(self._update_vnf_wait, context, vnf_dict, vim_auth,
+                     driver_name, vnf_heal=True)
+
         return vnf_dict
 
     def _delete_vnf_wait(self, context, vnf_dict, auth_attr, driver_name):

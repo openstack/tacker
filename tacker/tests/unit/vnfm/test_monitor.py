@@ -50,6 +50,33 @@ MOCK_VNF = {
 }
 
 
+MOCK_VNF_DEVICE_FOR_VDU_AUTOHEAL = {
+    'id': MOCK_VNF_ID,
+    'management_ip_addresses': {
+        'vdu1': 'a.b.c.d'
+    },
+    'monitoring_policy': {
+        'vdus': {
+            'vdu1': {
+                'ping': {
+                    'actions': {
+                        'failure': 'vdu_autoheal'
+                    },
+                    'monitoring_params': {
+                        'count': 1,
+                        'monitoring_delay': 0,
+                        'interval': 0,
+                        'timeout': 2
+                    }
+                }
+            }
+        }
+    },
+    'boot_at': timeutils.utcnow(),
+    'action_cb': mock.MagicMock()
+}
+
+
 class TestVNFMonitor(testtools.TestCase):
 
     def setUp(self):
@@ -112,7 +139,7 @@ class TestVNFMonitor(testtools.TestCase):
     @mock.patch('tacker.vnfm.monitor.VNFMonitor.__run__')
     def test_run_monitor(self, mock_monitor_run):
         test_hosting_vnf = MOCK_VNF
-        test_hosting_vnf['vnf'] = {}
+        test_hosting_vnf['vnf'] = {'status': 'ACTIVE'}
         test_boot_wait = 30
         mock_kwargs = {
             'count': 1,
@@ -125,6 +152,55 @@ class TestVNFMonitor(testtools.TestCase):
         self.mock_monitor_manager.invoke = mock.MagicMock()
         test_vnfmonitor._monitor_manager = self.mock_monitor_manager
         test_vnfmonitor.run_monitor(test_hosting_vnf)
-        self.mock_monitor_manager\
-            .invoke.assert_called_once_with('ping', 'monitor_call', vnf={},
+        self.mock_monitor_manager \
+            .invoke.assert_called_once_with('ping', 'monitor_call',
+                                            vnf={'status': 'ACTIVE'},
                                             kwargs=mock_kwargs)
+
+    @mock.patch('tacker.vnfm.monitor.VNFMonitor.__run__')
+    @mock.patch('tacker.vnfm.monitor.VNFMonitor.monitor_call')
+    def test_vdu_autoheal_action(self, mock_monitor_call, mock_monitor_run):
+        test_hosting_vnf = MOCK_VNF_DEVICE_FOR_VDU_AUTOHEAL
+        test_boot_wait = 30
+        test_device_dict = {
+            'status': 'ACTIVE',
+            'id': MOCK_VNF_ID,
+            'mgmt_url': '{"vdu1": "a.b.c.d"}',
+            'attributes': {
+                'monitoring_policy': json.dumps(
+                    MOCK_VNF_DEVICE_FOR_VDU_AUTOHEAL['monitoring_policy'])
+            }
+        }
+        test_hosting_vnf['vnf'] = test_device_dict
+        mock_monitor_call.return_value = 'failure'
+        test_vnfmonitor = monitor.VNFMonitor(test_boot_wait)
+        test_vnfmonitor._monitor_manager = self.mock_monitor_manager
+        test_vnfmonitor.run_monitor(test_hosting_vnf)
+        test_hosting_vnf['action_cb'].assert_called_once_with(
+            'vdu_autoheal', vdu_name='vdu1')
+
+    @mock.patch('tacker.vnfm.monitor.VNFMonitor.__run__')
+    def test_update_hosting_vnf(self, mock_monitor_run):
+        test_boot_wait = 30
+        test_vnfmonitor = monitor.VNFMonitor(test_boot_wait)
+        vnf_dict = {
+            'id': MOCK_VNF_ID,
+            'mgmt_url': '{"vdu1": "a.b.c.d"}',
+            'management_ip_addresses': 'a.b.c.d',
+            'vnf': {
+                'id': MOCK_VNF_ID,
+                'mgmt_url': '{"vdu1": "a.b.c.d"}',
+                'attributes': {
+                    'monitoring_policy': json.dumps(
+                        MOCK_VNF['monitoring_policy'])
+                },
+                'status': 'ACTIVE',
+            }
+        }
+
+        test_vnfmonitor.add_hosting_vnf(vnf_dict)
+        vnf_dict['status'] = 'PENDING_HEAL'
+        test_vnfmonitor.update_hosting_vnf(vnf_dict)
+        test_device_status = test_vnfmonitor._hosting_vnfs[MOCK_VNF_ID][
+            'vnf']['status']
+        self.assertEqual('PENDING_HEAL', test_device_status)

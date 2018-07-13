@@ -53,6 +53,9 @@ class HeatClient(object):
     def get(self, stack_id):
         return self.stacks.get(stack_id)
 
+    def update(self, stack_id, **kwargs):
+        return self.stacks.update(stack_id, **kwargs)
+
     def resource_attr_support(self, resource_name, property_name):
         resource = self.resource_types.get(resource_name)
         return property_name in resource['attributes']
@@ -72,3 +75,9 @@ class HeatClient(object):
 
     def resource_metadata(self, stack_id, rsc_name):
         return self.heat.resources.metadata(stack_id, rsc_name)
+
+    def resource_mark_unhealthy(self, stack_id, resource_name,
+                                mark_unhealthy, resource_status_reason):
+        return self.heat.resources.mark_unhealthy(stack_id, resource_name,
+                                                  mark_unhealthy,
+                                                  resource_status_reason)

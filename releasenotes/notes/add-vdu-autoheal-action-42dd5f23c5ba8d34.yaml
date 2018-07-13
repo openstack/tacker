@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Added a new monitoring policy action ``vdu_autoheal`` to bring back the
+    failed VDU. If a VNF contains one or more VDUs with monitoring policy
+    action set to `vdu_autoheal` and if any one of the VDU is unreachable,
+    it will simply delete the resources of that particular VDUs and re-create
+    them again.
+
+    The `vdu_autoheal` monitoring policy action is implemented only for
+    openstack infra driver.

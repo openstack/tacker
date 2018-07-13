@@ -84,6 +84,7 @@ oslo.serialization==2.18.0
 oslo.service==1.24.0
 oslo.upgradecheck==0.1.0
 oslo.utils==3.33.0
+oslo.versionedobjects==1.33.3
 oslotest==3.2.0
 packaging==17.1
 paramiko==2.0.0

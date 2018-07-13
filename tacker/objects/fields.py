@@ -1,3 +1,6 @@
+# Copyright 2018 NTT Data.
+# All Rights Reserved.
+#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -10,10 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from tacker.conductor import conductor_server
-from tacker import objects
+from oslo_versionedobjects import fields
 
 
-def main():
-    objects.register_all()
-    conductor_server.main()
+# Import fields from oslo.versionedobjects
+StringField = fields.StringField
+ListOfObjectsField = fields.ListOfObjectsField
+ListOfStringsField = fields.ListOfStringsField

@@ -63,6 +63,10 @@ class VNFCreateFailed(exceptions.TackerException):
     message = _('creating VNF based on %(vnfd_id)s failed')
 
 
+class VNFUpdateWaitFailed(exceptions.TackerException):
+    message = _('%(reason)s')
+
+
 class VNFCreateWaitFailed(exceptions.TackerException):
     message = _('%(reason)s')
 
@@ -77,6 +81,10 @@ class VNFDeleteWaitFailed(exceptions.TackerException):
 
 class VNFDeleteFailed(exceptions.TackerException):
     message = _('%(reason)s')
+
+
+class VNFHealFailed(exceptions.TackerException):
+    message = _('VNF %(vnf_id)s failed to heal')
 
 
 class VNFDNotFound(exceptions.NotFound):

@@ -53,7 +53,7 @@ class VnfAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def update_wait(self, plugin, context, vnf_id):
+    def update_wait(self, plugin, context, vnf_dict):
         pass
 
     @abc.abstractmethod
@@ -68,4 +68,8 @@ class VnfAbstractDriver(extensions.PluginInterface):
     def get_resource_info(self, plugin, context, vnf_info, auth_attr,
                           region_name=None):
         '''Fetches optional details of a VNF'''
+        pass
+
+    @abc.abstractmethod
+    def heal_vdu(self, plugin, context, vnf_dict, heal_request_data):
         pass

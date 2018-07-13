@@ -40,11 +40,12 @@ from tacker import manager
 from tacker.plugins.common import constants
 
 LOG = logging.getLogger(__name__)
-_ACTIVE_UPDATE = (constants.ACTIVE, constants.PENDING_UPDATE)
+_ACTIVE_UPDATE = (constants.ACTIVE, constants.PENDING_UPDATE,
+                  constants.PENDING_HEAL)
 _ACTIVE_UPDATE_ERROR_DEAD = (
     constants.PENDING_CREATE, constants.ACTIVE, constants.PENDING_UPDATE,
     constants.PENDING_SCALE_IN, constants.PENDING_SCALE_OUT, constants.ERROR,
-    constants.PENDING_DELETE, constants.DEAD)
+    constants.PENDING_DELETE, constants.DEAD, constants.PENDING_HEAL)
 CREATE_STATES = (constants.PENDING_CREATE, constants.DEAD)
 
 
@@ -498,7 +499,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                              "is not permited. Please contact your "
                              "Administrator.")
             raise vnfm.VNFDeleteFailed(reason=error_reason)
-        if vnf_db.status == constants.PENDING_UPDATE:
+        if(vnf_db.status in [constants.PENDING_UPDATE,
+                             constants.PENDING_HEAL]):
             raise vnfm.VNFInUse(vnf_id=vnf_id)
         return True
 
@@ -522,28 +524,30 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             tstamp=timeutils.utcnow())
         return updated_vnf_dict
 
-    def _update_vnf_pre(self, context, vnf_id):
+    def _update_vnf_pre(self, context, vnf_id, new_status):
         with context.session.begin(subtransactions=True):
             vnf_db = self._update_vnf_status_db(
-                context, vnf_id, _ACTIVE_UPDATE, constants.PENDING_UPDATE)
+                context, vnf_id, _ACTIVE_UPDATE, new_status)
         updated_vnf_dict = self._make_vnf_dict(vnf_db)
-        self._cos_db_plg.create_event(
-            context, res_id=vnf_id,
-            res_type=constants.RES_TYPE_VNF,
-            res_state=updated_vnf_dict['status'],
-            evt_type=constants.RES_EVT_UPDATE,
-            tstamp=timeutils.utcnow())
+        if new_status in constants.VNF_STATUS_TO_EVT_TYPES:
+            self._cos_db_plg.create_event(
+                context, res_id=vnf_id,
+                res_type=constants.RES_TYPE_VNF,
+                res_state=updated_vnf_dict['status'],
+                evt_type=constants.VNF_STATUS_TO_EVT_TYPES[new_status],
+                tstamp=timeutils.utcnow())
         return updated_vnf_dict
 
     def _update_vnf_post(self, context, vnf_id, new_status,
-                         new_vnf_dict):
+                         new_vnf_dict, vnf_status, evt_type):
         updated_time_stamp = timeutils.utcnow()
         with context.session.begin(subtransactions=True):
             (self._model_query(context, VNF).
              filter(VNF.id == vnf_id).
-             filter(VNF.status == constants.PENDING_UPDATE).
+             filter(VNF.status == vnf_status).
              update({'status': new_status,
-                     'updated_at': updated_time_stamp}))
+                     'updated_at': updated_time_stamp,
+                     'mgmt_url': new_vnf_dict['mgmt_url']}))
 
             dev_attrs = new_vnf_dict.get('attributes', {})
             (context.session.query(VNFAttribute).
@@ -559,7 +563,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             context, res_id=vnf_id,
             res_type=constants.RES_TYPE_VNF,
             res_state=new_status,
-            evt_type=constants.RES_EVT_UPDATE,
+            evt_type=evt_type,
             tstamp=updated_time_stamp)
 
     def _delete_vnf_pre(self, context, vnf_id):
@@ -635,7 +639,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     # reference implementation. needs to be overrided by subclass
     def update_vnf(self, context, vnf_id, vnf):
-        vnf_dict = self._update_vnf_pre(context, vnf_id)
+        new_status = constants.PENDING_UPDATE
+        vnf_dict = self._update_vnf_pre(context, vnf_id, new_status)
         # start actual update of hosting vnf
         # waiting for completion of update should be done backgroundly
         # by another thread if it takes a while

@@ -15,6 +15,7 @@
 #    under the License.
 
 import ast
+import copy
 import inspect
 import threading
 import time
@@ -26,8 +27,8 @@ from oslo_utils import timeutils
 
 from tacker.common import driver_manager
 from tacker import context as t_context
-from tacker.db.common_services import common_services_db_plugin
 from tacker.plugins.common import constants
+from tacker.vnfm import utils as vnfm_utils
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -44,16 +45,6 @@ def config_opts():
             ('tacker', VNFMonitor.OPTS),
             ('tacker', VNFAlarmMonitor.OPTS),
             ('tacker', VNFAppMonitor.OPTS)]
-
-
-def _log_monitor_events(context, vnf_dict, evt_details):
-    _cos_db_plg = common_services_db_plugin.CommonServicesPluginDb()
-    _cos_db_plg.create_event(context, res_id=vnf_dict['id'],
-                             res_type=constants.RES_TYPE_VNF,
-                             res_state=vnf_dict['status'],
-                             evt_type=constants.RES_EVT_MONITOR,
-                             tstamp=timeutils.utcnow(),
-                             details=evt_details)
 
 
 class VNFMonitor(object):
@@ -96,8 +87,12 @@ class VNFMonitor(object):
 
             with self._lock:
                 for hosting_vnf in VNFMonitor._hosting_vnfs.values():
-                    if hosting_vnf.get('dead', False):
-                        LOG.debug('monitor skips dead vnf %s', hosting_vnf)
+                    if hosting_vnf.get('dead', False) or (
+                            hosting_vnf['vnf']['status'] ==
+                            constants.PENDING_HEAL):
+                        LOG.debug(
+                            'monitor skips for DEAD/PENDING_HEAL vnf %s',
+                            hosting_vnf)
                         continue
                     try:
                         self.run_monitor(hosting_vnf)
@@ -130,8 +125,9 @@ class VNFMonitor(object):
         mon_policy_dict = attrib_dict['monitoring_policy']
         evt_details = (("VNF added for monitoring. "
                         "mon_policy_dict = %s,") % (mon_policy_dict))
-        _log_monitor_events(t_context.get_admin_context(), new_vnf['vnf'],
-                            evt_details)
+        vnfm_utils.log_events(t_context.get_admin_context(),
+                              new_vnf['vnf'],
+                              constants.RES_EVT_MONITOR, evt_details)
 
     def delete_hosting_vnf(self, vnf_id):
         LOG.debug('deleting vnf_id %(vnf_id)s', {'vnf_id': vnf_id})
@@ -142,6 +138,22 @@ class VNFMonitor(object):
                           {'vnf_id': vnf_id,
                            'ips': hosting_vnf['management_ip_addresses']})
 
+    def update_hosting_vnf(self, updated_vnf_dict, evt_details=None):
+        with self._lock:
+            vnf_to_update = VNFMonitor._hosting_vnfs.get(
+                updated_vnf_dict.get('id'))
+            if vnf_to_update:
+                updated_vnf = copy.deepcopy(updated_vnf_dict)
+                vnf_to_update['vnf'] = updated_vnf
+                vnf_to_update['management_ip_addresses'] = jsonutils.loads(
+                    updated_vnf_dict['mgmt_url'])
+
+                if evt_details is not None:
+                    vnfm_utils.log_events(t_context.get_admin_context(),
+                                          vnf_to_update['vnf'],
+                                          constants.RES_EVT_HEAL,
+                                          evt_details=evt_details)
+
     def run_monitor(self, hosting_vnf):
         mgmt_ips = hosting_vnf['management_ip_addresses']
         vdupolicies = hosting_vnf['monitoring_policy']['vdus']
@@ -150,7 +162,8 @@ class VNFMonitor(object):
             'monitoring_delay', self.boot_wait)
 
         for vdu in vdupolicies.keys():
-            if hosting_vnf.get('dead'):
+            if hosting_vnf.get('dead') or (
+                    hosting_vnf['vnf']['status']) == constants.PENDING_HEAL:
                 return
 
             policy = vdupolicies[vdu]
@@ -165,8 +178,7 @@ class VNFMonitor(object):
                         continue
 
                 actions = policy[driver].get('actions', {})
-                if 'mgmt_ip' not in params:
-                    params['mgmt_ip'] = mgmt_ips[vdu]
+                params['mgmt_ip'] = mgmt_ips[vdu]
 
                 driver_return = self.monitor_call(driver,
                                                   hosting_vnf['vnf'],
@@ -176,7 +188,7 @@ class VNFMonitor(object):
 
                 if driver_return in actions:
                     action = actions[driver_return]
-                    hosting_vnf['action_cb'](action)
+                    hosting_vnf['action_cb'](action, vdu_name=vdu)
 
     def mark_dead(self, vnf_id):
         VNFMonitor._hosting_vnfs[vnf_id]['dead'] = True
@@ -270,9 +282,9 @@ class VNFAlarmMonitor(object):
             # TODO(Tung Doan) trigger_dict.get('actions') needs to be used
             policy_action = trigger_dict.get('action')
             if len(policy_action) == 0:
-                _log_monitor_events(t_context.get_admin_context(),
-                                    vnf,
-                                    "Alarm not set: policy action missing")
+                vnfm_utils.log_events(t_context.get_admin_context(), vnf,
+                                      constants.RES_EVT_MONITOR,
+                                      "Alarm not set: policy action missing")
                 return
             # Other backend policies with the construct (policy, action)
             # ex: (SP1, in), (SP1, out)
@@ -303,9 +315,8 @@ class VNFAlarmMonitor(object):
             alarm_url[trigger_name] =\
                 self.call_alarm_url(driver, vnf, params)
             details = "Alarm URL set successfully: %s" % alarm_url
-            _log_monitor_events(t_context.get_admin_context(),
-                                vnf,
-                                details)
+            vnfm_utils.log_events(t_context.get_admin_context(), vnf,
+                                  constants.RES_EVT_MONITOR, details)
         return alarm_url
 
     def process_alarm_for_vnf(self, vnf, trigger):

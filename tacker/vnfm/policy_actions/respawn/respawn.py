@@ -13,25 +13,14 @@
 #
 
 from oslo_log import log as logging
-from oslo_utils import timeutils
 
-from tacker.db.common_services import common_services_db_plugin
 from tacker.plugins.common import constants
 from tacker.vnfm.infra_drivers.openstack import heat_client as hc
 from tacker.vnfm.policy_actions import abstract_action
+from tacker.vnfm import utils as vnfm_utils
 from tacker.vnfm import vim_client
 
 LOG = logging.getLogger(__name__)
-
-
-def _log_monitor_events(context, vnf_dict, evt_details):
-    _cos_db_plg = common_services_db_plugin.CommonServicesPluginDb()
-    _cos_db_plg.create_event(context, res_id=vnf_dict['id'],
-                             res_type=constants.RES_TYPE_VNF,
-                             res_state=vnf_dict['status'],
-                             evt_type=constants.RES_EVT_MONITOR,
-                             tstamp=timeutils.utcnow(),
-                             details=evt_details)
 
 
 class VNFActionRespawn(abstract_action.AbstractPolicyAction):
@@ -71,7 +60,9 @@ class VNFActionRespawn(abstract_action.AbstractPolicyAction):
             heatclient.delete(vnf_dict['instance_id'])
             LOG.debug("Heat stack %s delete initiated",
                       vnf_dict['instance_id'])
-            _log_monitor_events(context, vnf_dict, "ActionRespawnHeat invoked")
+            vnfm_utils.log_events(context, vnf_dict,
+                                  constants.RES_EVT_MONITOR,
+                                  "ActionRespawnHeat invoked")
 
         def _respawn_vnf():
             update_vnf_dict = plugin.create_vnf_sync(context, vnf_dict)

@@ -27,6 +27,7 @@ from tacker.db.nfvo import nfvo_db
 from tacker.db.nfvo import ns_db
 from tacker.db.vnfm import vnfm_db
 from tacker.extensions import vnfm
+from tacker.objects import heal_vnf_request
 from tacker.plugins.common import constants
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.db import utils
@@ -622,3 +623,32 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                           self.context,
                           uuidutils.generate_uuid(),
                           policy_type='invalid_policy_type')
+
+    @mock.patch('tacker.vnfm.monitor.VNFMonitor.update_hosting_vnf')
+    def test_heal_vnf_vdu(self, mock_update_hosting_vnf):
+        self._insert_dummy_vnf_template()
+        dummy_device_obj = self._insert_dummy_vnf()
+        additional_params_obj = heal_vnf_request.HealVnfAdditionalParams(
+            parameter='VDU1',
+            cause=["Unable to reach while monitoring resource: 'VDU1'"])
+        heal_request_data_obj = heal_vnf_request.HealVnfRequest(
+            cause='VNF monitoring fails.',
+            additional_params=[additional_params_obj])
+        result = self.vnfm_plugin.heal_vnf(self.context,
+                                           dummy_device_obj['id'],
+                                           heal_request_data_obj)
+        self.assertIsNotNone(result)
+        self.assertEqual(dummy_device_obj['id'], result['id'])
+        self.assertIn('instance_id', result)
+        self.assertIn('status', result)
+        self.assertIn('attributes', result)
+        self.assertIn('mgmt_url', result)
+        self.assertIn('updated_at', result)
+
+        self._vnf_manager.invoke.assert_called_with(
+            'test_vim', 'heal_vdu', plugin=self.vnfm_plugin,
+            context=self.context, vnf_dict=mock.ANY,
+            heal_request_data_obj=heal_request_data_obj)
+        self._pool.spawn_n.assert_called_once_with(
+            self.vnfm_plugin._update_vnf_wait, self.context, mock.ANY,
+            mock.ANY, 'test_vim', vnf_heal=True)

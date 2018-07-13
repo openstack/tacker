@@ -83,7 +83,13 @@ The available actions that a monitor driver can call when a particular event
 occurs.
 
 #. respawn
+    In case of OpenStack VIM, when any VDU monitoring fails, it will delete
+    the entire VNF and create a new one.
 #. log
+#. vdu_autoheal
+    In case of OpenStack VIM, when any VDU monitoring fails, it will delete
+    only that specific VDU resource and create a new one alone with it's
+    dependent resources like CP.
 
 How to write TOSCA template to monitor VNF entities
 ----------------------------------------------------
@@ -133,4 +139,10 @@ Example Template
       actions:
         max_foo_reached: scale_up
         min_foo_reached: scale_down
+
+  vdu3:
+    monitoring_policy:
+      ping:
+        actions:
+          failure: vdu_autoheal
 

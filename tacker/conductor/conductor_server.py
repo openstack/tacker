@@ -28,6 +28,7 @@ from tacker.db.common_services import common_services_db
 from tacker.db.nfvo import nfvo_db
 from tacker.extensions import nfvo
 from tacker import manager
+from tacker import objects
 from tacker.plugins.common import constants
 from tacker import service as tacker_service
 from tacker import version
@@ -80,6 +81,7 @@ def init(args, **kwargs):
 
 def main(manager='tacker.conductor.conductor_server.Conductor'):
     init(sys.argv[1:])
+    objects.register_all()
     logging.setup(cfg.CONF, "tacker")
     oslo_messaging.set_transport_defaults(control_exchange='tacker')
     logging.setup(cfg.CONF, "tacker")

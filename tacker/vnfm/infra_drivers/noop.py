@@ -73,3 +73,6 @@ class VnfNoop(abstract_driver.VnfAbstractDriver):
     def get_resource_info(self, plugin, context, vnf_info, auth_attr,
                           region_name=None):
         return {'noop': {'id': uuidutils.generate_uuid(), 'type': 'noop'}}
+
+    def heal_vdu(self, plugin, context, vnf_dict, heal_request_data):
+        pass

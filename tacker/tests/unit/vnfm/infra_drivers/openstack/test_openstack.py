@@ -20,10 +20,61 @@ import os
 import yaml
 
 from tacker import context
+from tacker.db.common_services import common_services_db_plugin
 from tacker.extensions import vnfm
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
 from tacker.vnfm.infra_drivers.openstack import openstack
+
+
+vnf_dict = {
+    'attributes': {
+        'heat_template': {
+            'outputs': {
+                'mgmt_ip-VDU1': {
+                    'value': {
+                        'get_attr': [
+                            'CP1', 'fixed_ips', 0, 'ip_address']
+                    }
+                }
+            },
+            'description': 'Demo example\n',
+            'parameters': {},
+            'resources': {
+                'VDU1': {
+                    'type': 'OS::Nova::Server',
+                    'properties': {
+                        'user_data_format': 'SOFTWARE_CONFIG',
+                        'availability_zone': 'nova',
+                        'image': 'cirros-0.4.0-x86_64-disk',
+                        'config_drive': False,
+                        'flavor': {'get_resource': 'VDU1_flavor'},
+                        'networks': [{'port': {'get_resource': 'CP1'}}]
+                    }
+                },
+                'CP1': {
+                    'type': 'OS::Neutron::Port',
+                    'properties': {
+                        'port_security_enabled': False,
+                        'network': 'net_mgmt'
+                    }
+                },
+                'VDU1_flavor': {
+                    'type': 'OS::Nova::Flavor',
+                    'properties': {'vcpus': 1, 'disk': 1, 'ram': 512}
+                }
+            }
+        }
+    },
+    'status': 'ACTIVE',
+    'vnfd_id': '576acf48-b9df-491d-a57c-342de660ec78',
+    'tenant_id': '13d2ca8de70d48b2a2e0dbac2c327c0b',
+    'vim_id': '3f41faa7-5630-47d2-9d4a-1216953c8887',
+    'instance_id': 'd1121d3c-368b-4ac2-b39d-835aa3e4ccd8',
+    'placement_attr': {'vim_name': 'openstack-vim'},
+    'id': 'a27fc58e-66ae-4031-bba4-efede318c60b',
+    'name': 'vnf_create_1'
+}
 
 
 class FakeHeatClient(mock.Mock):
@@ -59,6 +110,11 @@ class TestOpenStack(base.TestCase):
         self.context = context.get_admin_context()
         self.infra_driver = openstack.OpenStack()
         self._mock_heat_client()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin = \
+            common_services_db_plugin.CommonServicesPluginDb()
         self.addCleanup(mock.patch.stopall)
 
     def _mock_heat_client(self):
@@ -180,6 +236,25 @@ class TestOpenStack(base.TestCase):
         vnf_obj['attributes']['config'] = yaml.safe_load(vnf_obj['attributes'][
             'config'])
         self.assertEqual(expected_vnf_update, vnf_obj)
+
+    @mock.patch(
+        'tacker.vnfm.infra_drivers.openstack.vdu.Vdu')
+    def test_heal_vdu(self, mock_vdu):
+        self.infra_driver.heal_vdu(None, self.context, vnf_dict,
+                                   mock.ANY)
+        mock_vdu.assert_called_once_with(self.context, vnf_dict,
+                                         mock.ANY)
+
+    @mock.patch(
+        'tacker.vnfm.infra_drivers.openstack.vdu.Vdu')
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack.LOG')
+    def test_heal_vdu_failed(self, mock_log, mock_vdu):
+        mock_vdu.side_effect = Exception
+        self.assertRaises(vnfm.VNFHealFailed, self.infra_driver.heal_vdu,
+                          None, self.context, vnf_dict,
+                          mock.ANY)
+        mock_log.error.assert_called_with(
+            "VNF '%s' failed to heal", vnf_dict['id'])
 
     def _get_expected_fields_tosca(self, template):
         return {'stack_name':

@@ -545,3 +545,6 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         if file_descriptor is not None:
             file_path = vim_auth.pop('ca_cert_file')
             self.kubernetes.close_tmp_file(file_descriptor, file_path)
+
+    def heal_vdu(self, plugin, context, vnf_dict, heal_request_data):
+        pass

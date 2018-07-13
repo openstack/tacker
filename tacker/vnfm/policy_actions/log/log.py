@@ -13,23 +13,12 @@
 #
 
 from oslo_log import log as logging
-from oslo_utils import timeutils
 
-from tacker.db.common_services import common_services_db_plugin
 from tacker.plugins.common import constants
 from tacker.vnfm.policy_actions import abstract_action
+from tacker.vnfm import utils as vnfm_utils
 
 LOG = logging.getLogger(__name__)
-
-
-def _log_monitor_events(context, vnf_dict, evt_details):
-    _cos_db_plg = common_services_db_plugin.CommonServicesPluginDb()
-    _cos_db_plg.create_event(context, res_id=vnf_dict['id'],
-                             res_type=constants.RES_TYPE_VNF,
-                             res_state=vnf_dict['status'],
-                             evt_type=constants.RES_EVT_MONITOR,
-                             tstamp=timeutils.utcnow(),
-                             details=evt_details)
 
 
 class VNFActionLog(abstract_action.AbstractPolicyAction):
@@ -45,9 +34,9 @@ class VNFActionLog(abstract_action.AbstractPolicyAction):
     def execute_action(self, plugin, context, vnf_dict, args):
         vnf_id = vnf_dict['id']
         LOG.error('vnf %s dead', vnf_id)
-        _log_monitor_events(context,
-                            vnf_dict,
-                            "ActionLogOnly invoked")
+        vnfm_utils.log_events(context, vnf_dict,
+                              constants.RES_EVT_MONITOR,
+                              "ActionLogOnly invoked")
 
 
 class VNFActionLogAndKill(abstract_action.AbstractPolicyAction):
@@ -61,9 +50,9 @@ class VNFActionLogAndKill(abstract_action.AbstractPolicyAction):
         return 'Tacker VNF log_and_kill policy'
 
     def execute_action(self, plugin, context, vnf_dict, args):
-        _log_monitor_events(context,
-                            vnf_dict,
-                            "ActionLogAndKill invoked")
+        vnfm_utils.log_events(context, vnf_dict,
+                              constants.RES_EVT_MONITOR,
+                              "ActionLogAndKill invoked")
         vnf_id = vnf_dict['id']
         if plugin._mark_vnf_dead(vnf_dict['id']):
             if vnf_dict['attributes'].get('monitoring_policy'):

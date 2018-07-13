@@ -119,6 +119,9 @@ class BaseTackerTest(base.BaseTestCase):
         auth_ses = session.Session(auth=auth, verify=verify)
         return glance_client.Client(session=auth_ses)
 
+    def get_vdu_resource(self, stack_id, res_name):
+        return self.h_client.resources.get(stack_id, res_name)
+
     def wait_until_vnf_status(self, vnf_id, target_status, timeout,
                               sleep_interval):
         start_time = int(time.time())
@@ -139,6 +142,17 @@ class BaseTackerTest(base.BaseTestCase):
     def wait_until_vnf_active(self, vnf_id, timeout, sleep_interval):
         self.wait_until_vnf_status(vnf_id, 'ACTIVE', timeout,
                                    sleep_interval)
+
+    def verify_vnf_update(self, vnf_id):
+        self.wait_until_vnf_status(vnf_id, 'ACTIVE',
+                                   constants.VNF_CIRROS_CREATE_TIMEOUT,
+                                   constants.ACTIVE_SLEEP_TIME)
+        self.wait_until_vnf_status(vnf_id, 'PENDING_HEAL',
+                                   constants.VNF_CIRROS_PENDING_HEAL_TIMEOUT,
+                                   constants.PENDING_SLEEP_TIME)
+        self.wait_until_vnf_status(vnf_id, 'ACTIVE',
+                                  constants.VNF_CIRROS_CREATE_TIMEOUT,
+                                  constants.ACTIVE_SLEEP_TIME)
 
     def wait_until_vnf_delete(self, vnf_id, timeout):
         start_time = int(time.time())
