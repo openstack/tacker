@@ -20,7 +20,7 @@ from oslo_utils import importutils
 
 
 def monkey_patch():
-    eventlet.monkey_patch(all=False, socket=True)
+    eventlet.monkey_patch()
     if os.name != 'nt':
         p_c_e = importutils.import_module('pyroute2.config.asyncio')
         p_c_e.asyncio_config()
