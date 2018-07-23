@@ -1,5 +1,5 @@
 nsd:
   vl1_name: net_mgmt
   vl2_name: net0
-  net_src_port_id: 22566484-6585-483b-9f70-0c2811895f96
+  net_src_port_id: c0a40f9c-d229-40b7-871f-55131cf17783
   ip_dest_prefix: 10.10.0.11/24

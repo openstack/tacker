@@ -1,0 +1,109 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Import VNFDs(already on-boarded) with input parameters
+imports:
+    - sample-vnfd1
+    - sample-vnfd2
+
+topology_template:
+  inputs:
+    vl1_name:
+      type: string
+      description: name of VL1 virtuallink
+      default: net_mgmt
+    vl2_name:
+      type: string
+      description: name of VL2 virtuallink
+      default: net0
+    net_src_port_id:
+      type: string
+      description: neutron port id of source port
+    ip_dest_prefix:
+      type: string
+      description: IP prefix of destination port
+
+  node_templates:
+    VNF1:
+      type: tosca.nodes.nfv.VNF1
+      requirements:
+        - virtualLink1: VL1
+
+    VNF2:
+      type: tosca.nodes.nfv.VNF2
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: {get_input: vl1_name}
+        vendor: tacker
+
+    VL2:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: {get_input: vl2_name}
+        vendor: tacker
+
+    Forwarding_path1:
+      type: tosca.nodes.nfv.FP.TackerV2
+      description: creates path inside ns (src_port->CP12->CP22->dst_port)
+      properties:
+        id: 51
+        policy:
+          type: ACL
+          criteria:
+            - name: block_tcp
+              classifier:
+                network_src_port_id: {get_input: net_src_port_id}
+                destination_port_range: 80-1024
+                ip_proto: 6
+                ip_dst_prefix: {get_input: ip_dest_prefix}
+        path:
+          - forwarder: sample-vnfd1
+            capability: CP12
+          - forwarder: sample-vnfd2
+            capability: CP22
+
+    Forwarding_path2:
+      type: tosca.nodes.nfv.FP.TackerV2
+      description: creates path inside ns (src_port->CP12->dst_port)
+      properties:
+        id: 52
+        policy:
+          type: ACL
+          criteria:
+            - name: block_tcp
+              classifier:
+                network_src_port_id: {get_input: net_src_port_id}
+                destination_port_range: 8080-8080
+                ip_proto: 6
+                ip_dst_prefix: {get_input: ip_dest_prefix}
+        path:
+          - forwarder: sample-vnfd1
+            capability: CP12
+
+  groups:
+
+    VNFFG1:
+      type: tosca.groups.nfv.VNFFG
+      description: HTTP to Corporate Net
+      properties:
+        vendor: tacker
+        version: 1.0
+        number_of_endpoints: 2
+        dependent_virtual_link: [VL1, VL2]
+        connection_point: [CP12, CP22]
+        constituent_vnfs: [sample-vnfd1, sample-vnfd2]
+      members: [Forwarding_path1]
+
+    VNFFG2:
+      type: tosca.groups.nfv.VNFFG
+      description: HTTP to Corporate Net
+      properties:
+        vendor: tacker
+        version: 1.0
+        number_of_endpoints: 1
+        dependent_virtual_link: [VL1]
+        connection_point: [CP12]
+        constituent_vnfs: [sample-vnfd1]
+      members: [Forwarding_path2]
+
