@@ -12,7 +12,7 @@ resources:
       config_drive: false
       networks:
       - port: { get_resource: CP1 }
-      image: cirros-0.3.5-x86_64-disk
+      image: cirros-0.4.0-x86_64-disk
       flavor: m1.tiny
       metadata: {metering.vnf: SG1}
   VL1:

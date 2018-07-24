@@ -227,7 +227,7 @@ After installation, OpenStack administrator needs to:
    in OpenStack.
 
 *  Upload related images. Tacker repo's sample TOSCA templates are
-   referring to cirros image named 'cirros-0.3.5-x86_64-disk', so
+   referring to cirros image named 'cirros-0.4.0-x86_64-disk', so
    this image should uploaded into OpenStack before Tacker uses it.
 
 In additions, following steps are needed:

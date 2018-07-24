@@ -253,7 +253,7 @@ class TestToscaUtils(testtools.TestCase):
         expected_dict = {
             'volumes': {
                 'VB1': {
-                    'image': 'cirros-0.3.5-x86_64-disk',
+                    'image': 'cirros-0.4.0-x86_64-disk',
                     'size': '1'
                 }
             },
