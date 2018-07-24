@@ -52,9 +52,6 @@ fi
 TACKER_CONF_DIR=/etc/tacker
 TACKER_CONF=$TACKER_CONF_DIR/tacker.conf
 
-TACKER_LOG_DIR=/var/log/tacker
-TACKER_SERVER_LOG=$TACKER_LOG_DIR/tacker-server.log
-
 # Default name for Tacker database
 TACKER_DB_NAME=${TACKER_DB_NAME:-tacker}
 # Default Tacker Port
@@ -175,16 +172,10 @@ function _create_tacker_conf_dir {
     sudo install -d -o $STACK_USER $TACKER_CONF_DIR
 }
 
-function _create_tacker_log_dir {
-    # Create Tacker LOG DIR
-    sudo install -d -o $STACK_USER $TACKER_LOG_DIR
-}
-
 # configure_tacker()
 # Set common config for all tacker server and agents.
 function configure_tacker {
     _create_tacker_conf_dir
-    _create_tacker_log_dir
 
     cd $TACKER_DIR
     ./tools/generate_config_file_sample.sh
