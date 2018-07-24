@@ -183,6 +183,7 @@ class TestChainSFC(base.TestCase):
         vnfs = [vnf_1, vnf_2, vnf_3]
 
         chain_id = self.sfc_driver.create_chain(name='fake_ffg',
+                                                path_id=None,
                                                 fc_ids=fc_id,
                                                 vnfs=vnfs,
                                                 auth_attr=auth_attr)
@@ -238,6 +239,7 @@ class TestChainSFC(base.TestCase):
         vnfs = [vnf_1, vnf_2, vnf_3]
 
         result = self.sfc_driver.create_chain(name='fake_ffg',
+                                              path_id=None,
                                               fc_ids=fc_id,
                                               vnfs=vnfs,
                                               auth_attr=auth_attr)
@@ -269,6 +271,7 @@ class TestChainSFC(base.TestCase):
         vnfs = [vnf_1, vnf_2, vnf_3]
 
         chain_id = self.sfc_driver.create_chain(name='fake_ffg',
+                                                path_id=None,
                                                 fc_ids=fc_id,
                                                 vnfs=vnfs,
                                                 auth_attr=auth_attr)

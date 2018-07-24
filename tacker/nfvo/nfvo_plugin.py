@@ -351,9 +351,10 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                              name=item['name'],
                                              fc=item['match'],
                                              auth_attr=vim_obj['auth_cred']))
-            sfc_id = self._vim_drivers.invoke(driver_type,
+            sfc_id, path_id = self._vim_drivers.invoke(driver_type,
                                               'create_chain',
                                               name=vnffg_dict['name'],
+                                              path_id=sfc['path_id'],
                                               vnfs=sfc['chain'],
                                               fc_ids=fc_ids,
                                               symmetrical=sfc['symmetrical'],
@@ -364,7 +365,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         classifiers_map = super(NfvoPlugin, self). \
             create_classifiers_map(nfp['classifier_ids'], fc_ids)
         super(NfvoPlugin, self)._create_vnffg_post(context, sfc_id,
-                                                   classifiers_map,
+                                                   path_id, classifiers_map,
                                                    vnffg_dict)
         super(NfvoPlugin, self)._create_vnffg_status(context, vnffg_dict)
         return vnffg_dict
