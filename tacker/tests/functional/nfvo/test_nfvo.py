@@ -235,7 +235,7 @@ class NsdTestCreate(base.BaseTackerTest):
                 net_id = network['id']
         networks = [{'net-id': net_id}]
         img = self.glanceclient().images.list(
-            name='cirros-0.3.5-x86_64-disk').next()
+            name='cirros-0.4.0-x86_64-disk').next()
         http_client = self.novaclient().servers.create(name='http_client',
                                                        image=img['id'],
                                                        flavor=1,

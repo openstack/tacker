@@ -22,9 +22,9 @@ if [ -z "$network_id" ]; then
 fi
 
 echo "Creating HTTP client"
-openstack server create --flavor m1.tiny --image cirros-0.3.5-x86_64-disk --nic net-id=$network_id http_client
+openstack server create --flavor m1.tiny --image cirros-0.4.0-x86_64-disk --nic net-id=$network_id http_client
 echo "Creating HTTP server"
-openstack server create --flavor m1.tiny --image cirros-0.3.5-x86_64-disk --nic net-id=$network_id http_server
+openstack server create --flavor m1.tiny --image cirros-0.4.0-x86_64-disk --nic net-id=$network_id http_server
 
 sleep 15
 

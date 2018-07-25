@@ -74,7 +74,7 @@ in Tacker:
                 mem_size: 512 MB
                 num_cpus: 2
           properties:
-            image: cirros-0.3.5-x86_64-disk
+            image: cirros-0.4.0-x86_64-disk
             mgmt_driver: noop
             availability_zone: nova
             metadata: {metering.vnf: SG1}
@@ -98,7 +98,7 @@ in Tacker:
                 mem_size: 512 MB
                 num_cpus: 2
           properties:
-            image: cirros-0.3.5-x86_64-disk
+            image: cirros-0.4.0-x86_64-disk
             mgmt_driver: noop
             availability_zone: nova
             metadata: {metering.vnf: SG1}

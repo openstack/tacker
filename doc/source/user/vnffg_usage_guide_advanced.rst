@@ -122,8 +122,8 @@ and **http_server**. The example uses **net0** to create VNFFG on that network.
 .. code-block:: console
 
   $ net_id=$(openstack network list | grep net0 | awk '{print $2}')
-  $ openstack server create --flavor m1.tiny --image cirros-0.3.5-x86_64-disk --nic net-id=$net_id http_client
-  $ openstack server create --flavor m1.tiny --image cirros-0.3.5-x86_64-disk --nic net-id=$net_id http_server
+  $ openstack server create --flavor m1.tiny --image cirros-0.4.0-x86_64-disk --nic net-id=$net_id http_client
+  $ openstack server create --flavor m1.tiny --image cirros-0.4.0-x86_64-disk --nic net-id=$net_id http_server
 
 To get information about neutron ports of **http_client** and **http_server**
 that are used for classifying traffics, user can use openstack commands to
