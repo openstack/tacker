@@ -221,21 +221,22 @@ User can change the authentication like username, password, etc. Please see
 Kubernetes document [#fourth]_ to read more information about Kubernetes
 authentication.
 
-* Run Tacker command for register vim:
+* Run OpenStackClient command for register vim:
 
 .. code-block:: console
 
-  $ tacker vim-register --config-file vim_config.yaml vim-kubernetes
+  $ openstack vim register --config-file vim_config.yaml vim-kubernetes
 
-  $ tacker vim-list
+  $ openstack vim list
   +--------------------------------------+----------------------------------+----------------+------------+------------+------------------------------------------------------------+-----------+
-  | id                                   | tenant_id                        | name           | type       | is_default | placement_attr                                             | status    |
+  | ID                                   | Tenant ID                        | Name           | Type       | Is Default | Placement attribution                                      | Status    |
   +--------------------------------------+----------------------------------+----------------+------------+------------+------------------------------------------------------------+-----------+
   | 45456bde-6179-409c-86a1-d8cd93bd0c6d | a6f9b4bc9a4d439faa91518416ec0999 | vim-kubernetes | kubernetes | False      | {u'regions': [u'default', u'kube-public', u'kube-system']} | REACHABLE |
   +--------------------------------------+----------------------------------+----------------+------------+------------+------------------------------------------------------------+-----------+
 
-In ``placement_attr``, there are three regions: 'default', 'kube-public',
-'kube-system', that map to ``namespace`` in Kubernetes environment.
+In ``Placement attribution``, there are three regions: 'default',
+'kube-public', 'kube-system', that map to ``namespace`` in Kubernetes
+environment.
 
 * Other related commands to Kubernetes VIM
 
@@ -249,9 +250,9 @@ In ``placement_attr``, there are three regions: 'default', 'kube-public',
   type: "kubernetes"
 
 
-  $ tacker vim-update vim-kubernetes --config-file kubernetes-VIM-update.yaml
-  $ tacker vim-show vim-kubernetes
-  $ tacker vim-delete vim-kubernetes
+  $ openstack vim set vim-kubernetes --config-file kubernetes-VIM-update.yaml
+  $ openstack vim show vim-kubernetes
+  $ openstack vim delete vim-kubernetes
 
 When update Kubernetes VIM, user can update VIM information (such as username,
 password, bearer_token and ssl_ca_cert) except auth_url and type of VIM.

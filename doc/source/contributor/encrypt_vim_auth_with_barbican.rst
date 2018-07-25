@@ -71,7 +71,7 @@ Create a vim and verify it works:
    $ source openrc-test.sh
    $ openstack secret list
 
-   $ tacker vim-register --config-file vim-test.yaml vim-test
+   $ openstack vim register --config-file vim-test.yaml vim-test
    Created a new vim:
    +----------------+---------------------------------------------------------+
    | Field          | Value                                                   |
@@ -111,7 +111,7 @@ Now we create a vnf to verify it works:
 
 .. code-block:: bash
 
-   $ tacker vnf-create --vnfd-template vnfd-sample.yaml \
+   $ openstack vnf create --vnfd-template vnfd-sample.yaml \
      --vim-name vim-test --vim-region-name RegionOne vnf-test
    Created a new vnf:
    +----------------+-------------------------------------------------------+
@@ -132,7 +132,7 @@ Now we create a vnf to verify it works:
    | vnfd_id        | dc68ccfd-fd7c-4ef6-8fed-f097d036c722                  |
    +----------------+-------------------------------------------------------+
 
-   $ tacker vnf-delete vnf-test
+   $ openstack vnf delete vnf-test
 
 We can found that vnf create successfully.
 
@@ -140,7 +140,7 @@ Now we delete the vim to verify the secret can be deleted.
 
 .. code-block:: bash
 
-   $ tacker vim-delete vim-test
+   $ openstack vim delete vim-test
    All vim(s) deleted successfully
    $ openstack secret list
 

@@ -28,6 +28,64 @@ and `tacker CLI <tacker>`.
    Deprecated: 'tacker' command line is deprecated, will be deleted after
    Rocky is released. Please use 'openstack' client command line instead.
 
+
+OpenStackClient CLI
+-------------------
+
+The following list covers the extended commands for Tacker services
+available in **openstack** command.
+
+These commands can be referenced by doing **openstack help** and the detail
+of individual command can be referred by **openstack help <command-name>**.
+
+.. code-block:: console
+
+   openstack vnf create                            Create a VNF.
+   openstack vnf delete                            Delete given VNF(s).
+   openstack vnf list                              List VNF(s) that belong to a given tenant.
+   openstack vnf resource list                     List resources of a VNF like VDU, CP, etc.
+   openstack vnf scale                             Scale a VNF.
+   openstack vnf show                              Show information of a given VNF.
+   openstack vnf set                               Update a given VNF.
+   openstack vnf descriptor create                 Create a VNFD.
+   openstack vnf descriptor delete                 Delete given VNFD(s).
+   openstack vnf descriptor list                   List VNFD(s) that belong to a given tenant.
+   openstack vnf descriptor show                   Show information of a given VNFD.
+   openstack vnf descriptor template show          Show template of a given VNFD.
+   openstack vim list                              List VIM(s) that belong to a given tenant.
+   openstack vim register                          Create a VIM.
+   openstack vim show                              Show information of a given VIM.
+   openstack vim set                               Update a given VIM.
+   openstack vim delete                            Delete given VIM(s).
+   openstack ns create                             Create a NS.
+   openstack ns delete                             Delete given NS(s).
+   openstack ns list                               List NS that belong to a given tenant.
+   openstack ns show                               Show information of a given NS.
+   openstack ns descriptor create                  Create a NSD.
+   openstack ns descriptor delete                  Delete a given NSD.
+   openstack ns descriptor list                    List NSD(s) that belong to a given tenant.
+   openstack ns descriptor show                    Show information of a given NSD.
+   openstack ns descriptor template show           Show template of a given NSD.
+   openstack vnf graph create                      Create a VNFFG.
+   openstack vnf graph delete                      Delete a given VNFFG.
+   openstack vnf graph list                        List VNFFG(s) that belong to a given tenant.
+   openstack vnf graph show                        Show information of a given VNFFG.
+   openstack vnf graph set                         Update a given VNFFG.
+   openstack vnf graph descriptor create           Create a VNFFGD.
+   openstack vnf graph descriptor delete           Delete a given VNFFGD.
+   openstack vnf graph descriptor list             List VNFFGD(s) that belong to a given tenant.
+   openstack vnf graph descriptor show             Show information of a given VNFFGD.
+   openstack vnf graph descriptor template show    Show template of a given VNFFGD.
+   openstack vnf chain list                        List SFC(s) that belong to a given tenant.
+   openstack vnf chain show                        Show information of a given SFC.
+   openstack vnf classifier list                   List FC(s) that belong to a given tenant.
+   openstack vnf classifier show                   Show information of a given FC.
+   openstack vnf network forwarding path list      List NFP(s) that belong to a given tenant.
+   openstack vnf network forwarding path show      Show information of a given NFP.
+   openstack nfv event show                        Show event given the event id.
+   openstack nfv event list                        List events of resources.
+
+
 Tacker CLI
 ----------
 
@@ -191,61 +249,3 @@ Tacker CLI
       vnffgd-list            List VNFFGDs that belong to a given tenant.
       vnffgd-show            Show information of a given VNFFGD.
       vnffgd-template-show   Show template of a given VNFFGD.
-
-
-OpenStackClient CLI
--------------------
-
-The following list covers the extended commands for Tacker services
-available in **openstack** command.
-
-These commands can be referenced by doing **openstack help** and the detail
-of individual command can be referred by **openstack help <command-name>**.
-
-.. code-block:: console
-
-   openstack vnf create                            Create a VNF.
-   openstack vnf delete                            Delete given VNF(s).
-   openstack vnf list                              List VNF(s) that belong to a given tenant.
-   openstack vnf resource list                     List resources of a VNF like VDU, CP, etc.
-   openstack vnf scale                             Scale a VNF.
-   openstack vnf show                              Show information of a given VNF.
-   openstack vnf set                               Update a given VNF.
-   openstack vnf descriptor create                 Create a VNFD.
-   openstack vnf descriptor delete                 Delete given VNFD(s).
-   openstack vnf descriptor list                   List VNFD(s) that belong to a given tenant.
-   openstack vnf descriptor show                   Show information of a given VNFD.
-   openstack vnf descriptor template show          Show template of a given VNFD.
-   openstack vim list                              List VIM(s) that belong to a given tenant.
-   openstack vim register                          Create a VIM.
-   openstack vim show                              Show information of a given VIM.
-   openstack vim set                               Update a given VIM.
-   openstack vim delete                            Delete given VIM(s).
-   openstack ns create                             Create a NS.
-   openstack ns delete                             Delete given NS(s).
-   openstack ns list                               List NS that belong to a given tenant.
-   openstack ns show                               Show information of a given NS.
-   openstack ns descriptor create                  Create a NSD.
-   openstack ns descriptor delete                  Delete a given NSD.
-   openstack ns descriptor list                    List NSD(s) that belong to a given tenant.
-   openstack ns descriptor show                    Show information of a given NSD.
-   openstack ns descriptor template show           Show template of a given NSD.
-   openstack vnf graph create                      Create a VNFFG.
-   openstack vnf graph delete                      Delete a given VNFFG.
-   openstack vnf graph list                        List VNFFG(s) that belong to a given tenant.
-   openstack vnf graph show                        Show information of a given VNFFG.
-   openstack vnf graph set                         Update a given VNFFG.
-   openstack vnf graph descriptor create           Create a VNFFGD.
-   openstack vnf graph descriptor delete           Delete a given VNFFGD.
-   openstack vnf graph descriptor list             List VNFFGD(s) that belong to a given tenant.
-   openstack vnf graph descriptor show             Show information of a given VNFFGD.
-   openstack vnf graph descriptor template show    Show template of a given VNFFGD.
-   openstack vnf chain list                        List SFC(s) that belong to a given tenant.
-   openstack vnf chain show                        Show information of a given SFC.
-   openstack vnf classifier list                   List FC(s) that belong to a given tenant.
-   openstack vnf classifier show                   Show information of a given FC.
-   openstack vnf network forwarding path list      List NFP(s) that belong to a given tenant.
-   openstack vnf network forwarding path show      Show information of a given NFP.
-   openstack nfv event show                        Show event given the event id.
-   openstack nfv event list                        List events of resources.
-

@@ -115,7 +115,7 @@ Tacker provides following CLI for scaling.
 
 .. code-block::console
 
-**tacker vnf-scale --vnf-id <vnf-id>**
+**openstack vnf scale --vnf-id <vnf-id>**
                   **--vnf-name <vnf name>**
                   **--scaling-policy-name <policy name>**
                   **--scaling-type <type>**
@@ -132,7 +132,7 @@ as below:
 
 .. code-block::console
 
-**tacker vnf-scale --vnf-name sample-vnf**
+**openstack vnf scale --vnf-name sample-vnf**
                   **--scaling-policy-name sp1**
                   **--scaling-type out**
 

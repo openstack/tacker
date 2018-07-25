@@ -37,7 +37,7 @@ To register a new OpenStack VIM inside Tacker.
 
 ::
 
- $ tacker vim-register --description 'OpenStack Liberty' --config-file vim_config.yaml Site1
+ $ openstack vim register --description 'OpenStack Liberty' --config-file vim_config.yaml Site1
  Created a new vim:
  +----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
  | Field          | Value                                                                                                                                                    |
@@ -70,8 +70,8 @@ Default VIM configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The default vim needs to be registered. This is required when the optional
-argument -vim-id is not provided during vnf-create. Refer to steps described in
-`manual installation`_ to register default vim.
+argument -vim-id is not provided during vnf creation. Refer to steps described
+in `manual installation`_ to register default vim.
 
 .. _manual installation: https://docs.openstack.org/tacker/latest/install/manual_installation.html#registering-default-vim
 
@@ -81,7 +81,7 @@ Onboard a VNFD
 
 ::
 
- $ tacker vnfd-create --description "Openwrt VNFD" --vnfd-file vnfd1.yaml openwrt-vnfd1
+ $ openstack vnf descriptor create --description "Openwrt VNFD" --vnfd-file vnfd1.yaml openwrt-vnfd1
  Created a new vnfd:
  +-----------------+--------------------------------------+
  | Field           | Value                                |
@@ -101,7 +101,7 @@ Deploying a new VNF on registered VIM
 
 ::
 
- $ tacker vnf-create --description 'Openwrt VNF on Site1' --vnfd-id c3cbf0c0-a492-49e3-9541-945e49e7ed7e --vim-name Site1 openwrt_VNF
+ $ openstack vnf create --description 'Openwrt VNF on Site1' --vnfd-id c3cbf0c0-a492-49e3-9541-945e49e7ed7e --vim-name Site1 openwrt_VNF
  Created a new vnf:
  +----------------+--------------------------------------+
  | Field          | Value                                |
@@ -118,12 +118,12 @@ Deploying a new VNF on registered VIM
  | vnfd_id        | c3cbf0c0-a492-49e3-9541-945e49e7ed7e |
  +----------------+--------------------------------------+
 
-The --vim-id/--vim-name argument is optional during vnf-create. If
+The --vim-id/--vim-name argument is optional during vnf creation. If
 --vim-id/--vim-name is not specified, the default vim will
 be used to deploy VNF on the default site. We can create default vim
 by specifying --is-default option with vim-register command.
 
-User can optionally provide --vim-region-name during vnf-create to deploy the
+User can optionally provide --vim-region-name during vnf creation to deploy the
 VNF in a specify region  within that VIM.
 
 Updating a VIM
@@ -135,7 +135,7 @@ Tacker allows for updating VIM authorization parameters such as 'username',
 
 ::
 
- $tacker vim-update VIM0 --config-file update.yaml
+ $ openstack vim set VIM0 --config-file update.yaml
 
 update.yaml in above command will contain:
 
@@ -154,7 +154,7 @@ To delete a VIM :
 
 ::
 
- $ tacker vim-delete VIM1
+ $ openstack vim delete VIM1
  Deleted vim: VIM1
 
 Features

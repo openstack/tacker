@@ -38,7 +38,7 @@ Firstly register a VIM:
 
 .. code-block:: console
 
-    $ tacker vim-register --config-file ~/testvim_config.yaml testvim2 -c id -c name -c status
+    $ openstack vim register --config-file ~/testvim_config.yaml testvim2 -c id -c name -c status
     Created a new vim:
     +--------+--------------------------------------+
     | Field  | Value                                |
@@ -56,7 +56,7 @@ there is a mistral workflow named as
 
 .. code-block:: console
 
-    $ mistral workflow-list --filter name=vim_id_4406cf8f-f2af-46cc-bfb9-e00add5805b7 -c ID -c Name
+    $ openstack workflow list --filter name=vim_id_4406cf8f-f2af-46cc-bfb9-e00add5805b7 -c ID -c Name
     +--------------------------------------+---------------------------------------------+
     | ID                                   | Name                                        |
     +--------------------------------------+---------------------------------------------+
@@ -69,7 +69,7 @@ and it is executed:
 
 .. code-block:: console
 
-    $ mistral execution-list --filter workflow_name=vim_id_4406cf8f-f2af-46cc-bfb9-e00add5805b7 -c ID -c 'Workflow name' -c State
+    $ openstack workflow execution list --filter workflow_name=vim_id_4406cf8f-f2af-46cc-bfb9-e00add5805b7 -c ID -c 'Workflow name' -c State
     +--------------------------------------+---------------------------------------------+---------+
     | ID                                   | Workflow name                               | State   |
     +--------------------------------------+---------------------------------------------+---------+
@@ -82,7 +82,7 @@ The monitoring task is running too:
 
 .. code-block:: console
 
-    $ mistral task-list --filter workflow_name=vim_id_4406cf8f-f2af-46cc-bfb9-e00add5805b7 -c ID -c 'Workflow name' -c Name  -c State
+    $ openstack task execution list --filter workflow_name=vim_id_4406cf8f-f2af-46cc-bfb9-e00add5805b7 -c ID -c 'Workflow name' -c Name  -c State
     +--------------------------------------+-----------------------------+---------------------------------------------+---------+
     | ID                                   | Name                        | Workflow name                               | State   |
     +--------------------------------------+-----------------------------+---------------------------------------------+---------+
@@ -95,7 +95,7 @@ Of course, the VIM's state is in 'REACHABLE' status:
 
 .. code-block:: console
 
-    $ tacker vim-list --name testvim2 -c id -c name -c status
+    $ openstack vim list --name testvim2 -c id -c name -c status
     +--------------------------------------+----------+-----------+
     | id                                   | name     | status    |
     +--------------------------------------+----------+-----------+

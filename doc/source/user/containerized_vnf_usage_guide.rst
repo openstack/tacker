@@ -213,7 +213,7 @@ Create sample containerized VNF
 
 .. code-block:: console
 
-  $ tacker vnfd-create --vnfd-file tosca-vnfd-containerized.yaml VNFD1
+  $ openstack vnf descriptor create --vnfd-file tosca-vnfd-containerized.yaml VNFD1
   Created a new vnfd:
   +-----------------+-------------------------------------------------------------------------------------------------------+
   | Field           | Value                                                                                                 |
@@ -228,7 +228,7 @@ Create sample containerized VNF
   | updated_at      |                                                                                                       |
   +-----------------+-------------------------------------------------------------------------------------------------------+
 
-  $ tacker vnf-create --vnfd-name VNFD1 --vim-name vim-kubernetes VNF1
+  $ openstack vnf create --vnfd-name VNFD1 --vim-name vim-kubernetes VNF1
   Created a new vnf:
   +----------------+-------------------------------------------------------------------------------------------------------+
   | Field          | Value                                                                                                 |
@@ -248,7 +248,7 @@ Create sample containerized VNF
   | vnfd_id        | fb4a0aa8-e410-4e73-abdc-d2808de155ef                                                                  |
   +----------------+-------------------------------------------------------------------------------------------------------+
 
-  $ tacker vnf-list
+  $ openstack vnf list
   +--------------------------------------+------+----------------------------+--------+--------------------------------------+--------------------------------------+
   | id                                   | name | mgmt_url                   | status | vim_id                               | vnfd_id                              |
   +--------------------------------------+------+----------------------------+--------+--------------------------------------+--------------------------------------+
@@ -285,7 +285,7 @@ User also can scale VNF manually, by running the following commands:
 
 .. code-block:: console
 
-  $ tacker vnf-scale --vnf-name VNF1 --scaling-policy-name SP1 --scaling-type out
+  $ openstack vnf scale --vnf-name VNF1 --scaling-policy-name SP1 --scaling-type out
 
   $ kubectl get deployment
   NAME              DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE

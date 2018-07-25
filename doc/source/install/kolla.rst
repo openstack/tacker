@@ -192,6 +192,6 @@ components.
 .. code-block:: console
 
     $ . /etc/kolla/admin-openrc.sh
-    $ tacker vim-list
+    $ openstack vim list
 
 ..

@@ -31,7 +31,7 @@ command:
 
 .. code-block:: console
 
-   tacker vnfd-create --vnfd-file <yaml file path> <VNFD-NAME>
+   openstack vnf descriptor create --vnfd-file <yaml file path> <VNFD-NAME>
 
 .. note::
 
@@ -56,14 +56,14 @@ creating VNFs in Tacker.
 
 .. code-block:: console
 
-   tacker vnfd-create --vnfd-file <yaml file path> <VNFD-NAME>
+   openstack vnf descriptor create --vnfd-file <yaml file path> <VNFD-NAME>
 ..
 
   ii). Create a VNF.
 
 .. code-block:: console
 
-   tacker vnf-create --vnfd-name <VNFD-FILE-NAME> <VNF-NAME>
+   openstack vnf create --vnfd-name <VNFD-FILE-NAME> <VNF-NAME>
 
 
 Example
@@ -71,8 +71,8 @@ Example
 
 .. code-block:: console
 
-    tacker vnfd-create --vnfd-file sample-vnfd-hello-world.yaml hello-world-vnfd
-    tacker vnf-create --vnfd-name hello-world-vnfd hw-vnf
+    openstack vnf descriptor create --vnfd-file sample-vnfd-hello-world.yaml hello-world-vnfd
+    openstack vnf create --vnfd-name hello-world-vnfd hw-vnf
 
 Direct VNF Instantiation
 ------------------------
@@ -82,7 +82,7 @@ onboarding the template into Tacker VNFD Catalog.
 
 .. code-block:: console
 
-   tacker vnf-create --vnfd-template <VNFD-FILE-NAME> <VNF-NAME>
+   openstack vnf create --vnfd-template <VNFD-FILE-NAME> <VNF-NAME>
 
 This method is recommended when NFV Catalog is maintained outside Tacker and
 Tacker is primarily used as a NFV workflow engine.
@@ -92,7 +92,7 @@ Example
 
 .. code-block:: console
 
-    tacker vnf-create --vnfd-template sample-vnfd-hello-world.yaml hw-vnf
+    openstack vnf create --vnfd-template sample-vnfd-hello-world.yaml hw-vnf
 
 .. note ::
 
@@ -104,8 +104,8 @@ Example
 
     .. code-block:: console
 
-      tacker vnfd-list --template-source inline
-      tacker vnfd-list --template-source all
+      openstack vnf descriptor list --template-source inline
+      openstack vnf descriptor list --template-source all
 
 Finding VNFM Status
 ===================
@@ -114,11 +114,11 @@ Status of various VNFM resources can be checked by following commands.
 
 .. code-block:: console
 
-   tacker vim-list
-   tacker vnfd-list
-   tacker vnf-list
-   tacker vnf-show <VNF_ID>
-   tacker vnfd-show <VNFD_ID>
+   openstack vim list
+   openstack vnf descriptor list
+   openstack vnf list
+   openstack vnf show <VNF_ID>
+   openstack vnf descriptor show <VNFD_ID>
 
 ..
 
@@ -129,6 +129,6 @@ VNFs and VNFDs can be deleted as shown below.
 
 .. code-block:: console
 
-   tacker vnf-delete <VNF_ID/NAME>
-   tacker vnfd-delete <VNFD_ID/NAME>
+   openstack vnf delete <VNF_ID/NAME>
+   openstack vnf descriptor delete <VNFD_ID/NAME>
 ..

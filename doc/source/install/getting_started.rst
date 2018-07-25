@@ -44,12 +44,12 @@ user can set cert_verify parameter to 'False'.
 
 2.) Register the VIM that will be used as a default VIM for VNF deployments.
 This will be required when the optional argument --vim-id is not provided by
-the user during vnf-create.
+the user during vnf creation.
 
 .. code-block:: console
 
-   tacker vim-register --is-default --config-file vim-config.yaml \
-          --description 'my first vim' hellovim
+   openstack vim register --config-file vim-config.yaml \
+          --description 'my first vim' --is-default hellovim
 ..
 
 
@@ -116,22 +116,22 @@ Onboarding sample VNF
 
 .. code-block:: console
 
-   tacker vnfd-create --vnfd-file sample-vnfd.yaml samplevnfd
+   openstack vnf descriptor create --vnfd-file sample-vnfd.yaml samplevnfd
 ..
 
 3). Create a VNF.
 
 .. code-block:: console
 
-   tacker vnf-create --vnfd-name samplevnfd samplevnf
+   openstack vnf create --vnfd-name samplevnfd samplevnf
 ..
 
 5). Check the status.
 
 .. code-block:: console
 
-   tacker vim-list
-   tacker vnfd-list
-   tacker vnf-list
-   tacker vnf-show samplevnf
+   openstack vim list
+   openstack vnf descriptor list
+   openstack vnf list
+   openstack vnf show samplevnf
 ..
