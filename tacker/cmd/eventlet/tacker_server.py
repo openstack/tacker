@@ -44,7 +44,8 @@ def main():
     try:
         tacker_api = service.serve_wsgi(service.TackerApiService)
         launcher = common_service.launch(cfg.CONF, tacker_api,
-                                         workers=cfg.CONF.api_workers or None)
+                                         workers=cfg.CONF.api_workers or None,
+                                         restart_method='mutate')
         launcher.wait()
     except KeyboardInterrupt:
         pass

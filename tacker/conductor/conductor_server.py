@@ -88,4 +88,4 @@ def main(manager='tacker.conductor.conductor_server.Conductor'):
         binary='tacker-conductor',
         topic=topics.TOPIC_CONDUCTOR,
         manager=manager)
-    service.launch(cfg.CONF, server).wait()
+    service.launch(cfg.CONF, server, restart_method='mutate').wait()
