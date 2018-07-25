@@ -305,6 +305,9 @@ node_types:
       id:
         type: integer
         required: false
+      symmetrical:
+        type: boolean
+        required: false
       policy:
         type: tosca.nfv.datatypes.policyTypeV2
         required: false
@@ -320,6 +323,9 @@ node_types:
     properties:
       id:
         type: integer
+        required: false
+      symmetrical:
+        type: boolean
         required: false
       policy:
         type: tosca.nfv.datatypes.policyType

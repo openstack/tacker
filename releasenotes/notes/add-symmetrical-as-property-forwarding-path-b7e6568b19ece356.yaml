@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    This feature adds 'symmetrical' as a property of forwarding path,
+    so users can set 'symmetrical' value to 'true' or 'false' to change
+    the symmetrical value of a port chain in networking-sfc.

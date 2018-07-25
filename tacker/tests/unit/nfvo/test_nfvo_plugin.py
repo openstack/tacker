@@ -81,10 +81,6 @@ def get_by_name():
     return False
 
 
-def get_by_id():
-    return False
-
-
 def dummy_get_vim_auth(*args, **kwargs):
     return {'vim_auth': {u'username': u'admin', 'password': 'devstack',
                          u'project_name': u'nfv', u'user_id': u'',
@@ -757,12 +753,11 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                                                            symmetrical=mock.ANY
                                                            )
 
-    @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_id')
-    def test_create_vnffg_param_value_format_error(self, mock_get_by_id):
+    def test_create_vnffg_param_value_format_error(self):
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
-            mock_get_by_id.value = get_by_id()
+            self._insert_dummy_vnffg_param_template()
             vnffg_obj = utils.get_dummy_vnffg_str_param_obj()
             self.assertRaises(nfvo.VnffgParamValueFormatError,
                               self.nfvo_plugin.create_vnffg,

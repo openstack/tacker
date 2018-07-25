@@ -12,11 +12,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-echo "Deleting network service NS1"
-network_service_id=$(openstack ns list | grep NS1 | awk '{print $2}')
-if [ -n "$network_service_id" ]; then
-    openstack ns delete $network_service_id
-fi
+echo "Deleting network service NS1, NS2"
+for ns in NS1 NS2; do
+    network_service_id=$(openstack ns list | grep $ns | awk '{print $2}')
+    if [ -n "$network_service_id" ]; then
+        openstack ns delete $network_service_id
+    fi
+done
 
 sleep 5
 

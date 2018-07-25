@@ -48,12 +48,14 @@ topology_template:
       description: creates path inside ns (src_port->CP12->CP22->dst_port)
       properties:
         id: 51
+        symmetrical: true
         policy:
           type: ACL
           criteria:
             - name: block_tcp
               classifier:
                 network_src_port_id: {get_input: net_src_port_id}
+                network_dst_port_id: {get_input: net_dst_port_id}
                 destination_port_range: 80-1024
                 ip_proto: 6
                 ip_dst_prefix: {get_input: ip_dest_prefix}
@@ -68,6 +70,7 @@ topology_template:
       description: creates path inside ns (src_port->CP12->dst_port)
       properties:
         id: 52
+        symmetrical: false
         policy:
           type: ACL
           criteria:
