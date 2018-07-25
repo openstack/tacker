@@ -47,30 +47,27 @@ Tacker supports display of events to an end user via
 
 - Horizon UI - a separate events tab per resource displays associated events.
 
-- Tacker Client - supports below commands:
-    - event-show: Show detailed info for a given event ID.
-    - events-list: Lists all events for all resources.
-    - vim-events-list: List events that belong to a given VIM.
-    - vnf-events-list: List events that belong to a given VNF.
-    - vnfd-events-list: List events that belong to a given VNFD.
+- OpenStackClient CLI - supports below commands:
+    - openstack nfv event show: Show detailed info for a given event ID.
+    - openstack nfv event list: Lists all events for all resources.
 
 NOTE: For more details on the syntax of these CLIs, refer to
-`Tacker CLI reference guide <http://docs.openstack.org/cli-reference/tacker.html>`_
+`OpenStackClient CLI reference guide <https://docs.openstack.org/tacker/latest/admin/index.html>`_
 
-Tacker Client command usage examples to access resource lifecycle events
-------------------------------------------------------------------------
+OpenStackClient CLI usage examples to access resource lifecycle events
+----------------------------------------------------------------------
 
 1. The following command displays all the state transitions that occurred on
-a long running VNF.  The sample output illustrates a VNF that has
-successfully gone through a scale out operation. Note, the <resource_id> here
-is VNF's uuid.
+a long running VNF. The sample output illustrates a VNF that has
+successfully gone through a scale out operation. Note, the <VNF Resource ID>
+here is VNF's uuid.
 
 .. code-block:: console
 
-  tacker vnf-events-list --resource_id <resource_id>
+  openstack nfv event list --resource-id <VNF Resource ID>
 
   +----+---------------+-------------------+-------------------+------------+-------------------+---------------------+
-  | id | resource_type | resource_id       | resource_state    | event_type | timestamp         | event_details       |
+  | ID | Resource Type | Resource ID       | Resource State    | Event Type | Timestamp         | Event Details       |
   +----+---------------+-------------------+-------------------+------------+-------------------+---------------------+
   | 13 | vnf           | 9dd7b2f1-e91e-418 | PENDING_CREATE    | CREATE     | 2016-09-21        | VNF UUID assigned.  |
   |    |               | 3-bcbe-           |                   |            | 20:12:37          |                     |
@@ -98,14 +95,14 @@ is VNF's uuid.
 
 2. The following command displays any reachability issues related to a VIM
 site. The sample output illustrates a VIM that is reachable. Note, the
-<resource_id> here is a VIM uuid.
+<VIM Resource ID> here is a VIM uuid.
 
 .. code-block:: console
 
-  tacker vim-events-list --resource_id <resource_id>
+  openstack nfv event list --resource-id <VIM Resource ID>
 
   +----+---------------+---------------------+----------------+------------+---------------------+---------------+
-  | id | resource_type | resource_id         | resource_state | event_type | timestamp           | event_details |
+  | ID | Resource Type | Resource ID         | Resource State | Event Type | Timestamp           | Event Details |
   +----+---------------+---------------------+----------------+------------+---------------------+---------------+
   |  1 | vim           | d8c11a53-876c-454a- | PENDING        | CREATE     | 2016-09-20 23:07:42 |               |
   |    |               | bad1-cb13ad057595   |                |            |                     |               |
@@ -121,10 +118,10 @@ Miscellaneous events command examples:
 
 .. code-block:: console
 
-  tacker events-list
+  openstack nfv event list
 
   +----+---------------+-----------------+----------------+------------+-----------------+-----------------+
-  | id | resource_type | resource_id     | resource_state | event_type | timestamp       | event_details   |
+  | ID | Resource Type | Resource ID     | Resource State | Event Type | Timestamp       | Event Details   |
   +----+---------------+-----------------+----------------+------------+-----------------+-----------------+
   |  1 | vim           | c89e5d9d-6d55-4 | PENDING        | CREATE     | 2016-09-10      |                 |
   |    |               | db1-bd67-30982f |                |            | 20:32:46        |                 |
@@ -155,10 +152,10 @@ Miscellaneous events command examples:
 
 .. code-block:: console
 
-  tacker events-list --event_type CREATE
+  openstack nfv event list --event-type CREATE
 
   +----+---------------+-----------------+----------------+------------+-----------------+-----------------+
-  | id | resource_type | resource_id     | resource_state | event_type | timestamp       | event_details   |
+  | ID | Resource Type | Resource ID     | Resource State | Event Type | Timestamp       | Event Details   |
   +----+---------------+-----------------+----------------+------------+-----------------+-----------------+
   |  1 | vim           | c89e5d9d-6d55-4 | PENDING        | CREATE     | 2016-09-10      |                 |
   |    |               | db1-bd67-30982f |                |            | 20:32:46        |                 |
@@ -187,7 +184,7 @@ Miscellaneous events command examples:
 
 .. code-block:: console
 
-  tacker event-show 5
+  openstack nfv event show 5
 
   +----------------+------------------------------------------------------------------------------------------+
   | Field          | Value                                                                                    |

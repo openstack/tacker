@@ -19,8 +19,8 @@ Mistral workflows for Tacker
 
 OpenStack Mistral already integrated with Tacker. The Tenant User or Operator
 can make use of tacker actions to create custom Mistral Workflows. This
-document describes the usage of Mistral CLI to validate, create and executing
-Tacker workflows.
+document describes the usage of OpenStackClient CLI to validate, create
+and executing Tacker workflows.
 
 
 References
@@ -35,11 +35,11 @@ Validate workflow definition files before registering with Mistral.
 
 ::
 
-  usage: mistral workflow-validate <definition>
+  usage: openstack workflow validate <definition>
 
 ::
 
-  $ mistral workflow-validate create_vnf.yaml
+  $ openstack workflow validate create_vnf.yaml
 
   +-------+-------+
   | Field | Value |
@@ -48,7 +48,7 @@ Validate workflow definition files before registering with Mistral.
   | Error | None  |
   +-------+-------+
 
-  $ mistral workflow-validate create_vnfd.yaml
+  $ openstack workflow validate create_vnfd.yaml
 
   +-------+-------+
   | Field | Value |
@@ -57,7 +57,7 @@ Validate workflow definition files before registering with Mistral.
   | Error | None  |
   +-------+-------+
 
-  $ mistral workflow-validate delete_vnf.yaml
+  $ openstack workflow validate delete_vnf.yaml
 
   +-------+-------+
   | Field | Value |
@@ -66,7 +66,7 @@ Validate workflow definition files before registering with Mistral.
   | Error | None  |
   +-------+-------+
 
-  $ mistral workflow-validate delete_vnfd.yaml
+  $ openstack workflow validate delete_vnfd.yaml
 
   +-------+-------+
   | Field | Value |
@@ -83,11 +83,11 @@ std.delete_vnf workflows in Mistral.
 
 ::
 
-  usage: mistral workflow-create <definition> --public
+  usage: openstack workflow create <definition> --public
 
 ::
 
-  $ mistral workflow-create create_vnf.yaml --public
+  $ openstack workflow create create_vnf.yaml --public
 
   +--------------------------------------+----------------+----------------------------------+--------+-------+----------------------------+------------+
   | ID                                   | Name           | Project ID                       | Tags   | Input | Created at                 | Updated at |
@@ -95,7 +95,7 @@ std.delete_vnf workflows in Mistral.
   | 445e165a-3654-4996-aad4-c6fea65e95d5 | std.create_vnf | bde60e557de840a8a837733aaa96e42e | <none> | body  | 2016-07-29 15:08:45.585192 | None       |
   +--------------------------------------+----------------+----------------------------------+--------+-------+----------------------------+------------+
 
-  $ mistral workflow-create create_vnfd.yaml --public
+  $ openstack workflow create create_vnfd.yaml --public
 
   +--------------------------------------+-----------------+----------------------------------+--------+-------+----------------------------+------------+
   | ID                                   | Name            | Project ID                       | Tags   | Input | Created at                 | Updated at |
@@ -103,7 +103,7 @@ std.delete_vnf workflows in Mistral.
   | 926caa3e-ee59-4ca0-ac1b-cae03538e389 | std.create_vnfd | bde60e557de840a8a837733aaa96e42e | <none> | body  | 2016-07-29 15:08:54.933874 | None       |
   +--------------------------------------+-----------------+----------------------------------+--------+-------+----------------------------+------------+
 
-  $ mistral workflow-create delete_vnfd.yaml --public
+  $ openstack workflow create delete_vnfd.yaml --public
 
   +--------------------------------------+-----------------+----------------------------------+--------+---------+----------------------------+------------+
   | ID                                   | Name            | Project ID                       | Tags   | Input   | Created at                 | Updated at |
@@ -111,7 +111,7 @@ std.delete_vnf workflows in Mistral.
   | f15b7402-ce31-4369-98d4-818125191564 | std.delete_vnfd | bde60e557de840a8a837733aaa96e42e | <none> | vnfd_id | 2016-08-14 20:01:00.135104 | None       |
   +--------------------------------------+-----------------+----------------------------------+--------+---------+----------------------------+------------+
 
-  $ mistral workflow-create delete_vnf.yaml --public
+  $ openstack workflow create delete_vnf.yaml --public
   +--------------------------------------+----------------+----------------------------------+--------+--------+----------------------------+------------+
   | ID                                   | Name           | Project ID                       | Tags   | Input  | Created at                 | Updated at |
   +--------------------------------------+----------------+----------------------------------+--------+--------+----------------------------+------------+
@@ -128,11 +128,11 @@ Create new execution for VNFD creation.
 
 ::
 
-  usage: mistral execution-create <workflow_name> [<workflow_input>] [<params>]
+  usage: openstack workflow execution create <workflow_name> [<workflow_input>] [<params>]
 
 ::
 
-  $ mistral execution-create std.create_vnfd create_vnfd.json
+  $ openstack workflow execution create std.create_vnfd create_vnfd.json
 
   +-------------------+--------------------------------------+
   | Field             | Value                                |
@@ -152,11 +152,11 @@ Gather execution details based on execution id.
 
 ::
 
-  usage: mistral execution-get <id>
+  usage: openstack workflow execution show <id>
 
 ::
 
-  $mistral execution-get 31f086aa-a3c9-4f44-b8b2-bec560e32653
+  $ openstack workflow execution show 31f086aa-a3c9-4f44-b8b2-bec560e32653
 
   +-------------------+--------------------------------------+
   | Field             | Value                                |
@@ -178,11 +178,11 @@ Gather VNFD ID from execution output data.
 
 ::
 
-   usage: mistral execution-get-output <id>
+   usage: openstack workflow execution output show <id>
 
 ::
 
-  $ mistral execution-get-output 31f086aa-a3c9-4f44-b8b2-bec560e32653
+  $ openstack workflow execution output show 31f086aa-a3c9-4f44-b8b2-bec560e32653
 
   Response:
 
@@ -190,12 +190,12 @@ Gather VNFD ID from execution output data.
     "vnfd_id": "fb164b77-5e24-402d-b5f4-c6596352cabe"
   }
 
-Verify VNFD details using tacker CLI
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Verify VNFD details using OpenStackClient CLI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
 
-  $ tacker vnfd-show "fb164b77-5e24-402d-b5f4-c6596352cabe"
+  $ openstack vnf descriptor show "fb164b77-5e24-402d-b5f4-c6596352cabe"
 
   +---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
   | Field         | Value                                                                                                                                                                     |
@@ -227,7 +227,7 @@ Create new execution for VNF creation.
 
 ::
 
-  $ mistral execution-create std.create_vnf create_vnf.json
+  $ openstack workflow execution create std.create_vnf create_vnf.json
 
   +-------------------+--------------------------------------+
   | Field             | Value                                |
@@ -247,7 +247,7 @@ Gather execution details based on execution id.
 
 ::
 
-  $ mistral execution-get 3bf2051b-ac2e-433b-8f18-23f57f32f184
+  $ openstack workflow execution show 3bf2051b-ac2e-433b-8f18-23f57f32f184
 
   +-------------------+--------------------------------------+
   | Field             | Value                                |
@@ -267,7 +267,7 @@ Gather VNF ID from execution output data.
 
 ::
 
-  $ mistral execution-get-output 3bf2051b-ac2e-433b-8f18-23f57f32f184
+  $ openstack workflow execution output show 3bf2051b-ac2e-433b-8f18-23f57f32f184
 
   Response:
 
@@ -278,11 +278,11 @@ Gather VNF ID from execution output data.
     "vnf_id": "1c349534-a539-4d5a-b854-033f98036cd5"
   }
 
-Verify VNF details using tacker CLI
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Verify VNF details using OpenStackClient CLI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ::
 
-  $ tacker vnf-show "1c349534-a539-4d5a-b854-033f98036cd5"
+  $ openstack vnf show "1c349534-a539-4d5a-b854-033f98036cd5"
 
   +----------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
   | Field          | Value                                                                                                                                                                 |
@@ -313,7 +313,7 @@ Create new execution for VNF deletion.
 
 ::
 
-  $ mistral execution-create std.delete_vnf delete_vnf.json
+  $ openstack workflow execution create std.delete_vnf delete_vnf.json
 
   +-------------------+--------------------------------------+
   | Field             | Value                                |
@@ -333,7 +333,7 @@ Gather execution details based on execution id.
 
 ::
 
-  $ mistral execution-get 677c7bab-18ee-4a34-b1e6-a305e98ba887
+  $ openstack workflow execution show 677c7bab-18ee-4a34-b1e6-a305e98ba887
 
   +-------------------+--------------------------------------+
   | Field             | Value                                |
@@ -354,7 +354,7 @@ Gather execution output data from execution id.
 
 ::
 
-  $ mistral execution-get-output 677c7bab-18ee-4a34-b1e6-a305e98ba887
+  $ openstack workflow execution output show 677c7bab-18ee-4a34-b1e6-a305e98ba887
 
   Response:
 
@@ -412,7 +412,7 @@ Create new execution for VNF deletion.
 
 ::
 
-  $ mistral execution-create std.delete_vnfd delete_vnfd.json
+  $ openstack workflow execution create std.delete_vnfd delete_vnfd.json
 
   +-------------------+--------------------------------------+
   | Field             | Value                                |
@@ -432,7 +432,7 @@ Gather execution details based on execution id.
 
 ::
 
-  $ mistral execution-get 1e0340c0-bee8-4ca4-8150-ac6e5eb58c99
+  $ openstack workflow execution show 1e0340c0-bee8-4ca4-8150-ac6e5eb58c99
 
   +-------------------+--------------------------------------+
   | Field             | Value                                |
@@ -454,7 +454,7 @@ Gather execution output data from execution id.
 
 ::
 
-  $ mistral execution-get-output 1e0340c0-bee8-4ca4-8150-ac6e5eb58c99
+  $ openstack workflow execution output show 1e0340c0-bee8-4ca4-8150-ac6e5eb58c99
 
   Response:
 

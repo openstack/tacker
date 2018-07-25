@@ -34,7 +34,7 @@ you can use the excellent `DevStack`_ project to do so. There is a wiki page
 that describes `setting up Tacker using DevStack`_.
 
 .. _DevStack: https://git.openstack.org/cgit/openstack-dev/devstack
-.. _setting up Tacker using Devstack: https://wiki.openstack.org/wiki/Tacker/Installation
+.. _setting up Tacker using Devstack: https://docs.openstack.org/tacker/latest/install/devstack.html
 
 Getting the code
 ----------------

@@ -25,7 +25,7 @@ For Tacker to work, the system consists of two parts, one is tacker system
 and another is VIM systems. Tacker system can be installed
 (here just some ways are listed):
 
-* via devstack, which is usually used by developers
+* via DevStack, which is usually used by developers
 * via Tacker source code manually
 * via Kolla installation
 

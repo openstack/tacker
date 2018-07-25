@@ -244,14 +244,14 @@ rules if inject succeed.
 
 .. code-block:: console
 
-    tacker vnfd-create --vnfd-file tosca-vnfd-openwrt.yaml <VNFD_NAME>
+    openstack vnf descriptor create --vnfd-file tosca-vnfd-openwrt.yaml <VNFD_NAME>
 ..
 
 4.Create a VNF:
 
 .. code-block:: console
 
-    tacker vnf-create --vnfd-name <VNFD_NAME> \
+    openstack vnf create --vnfd-name <VNFD_NAME> \
                       --config-file tosca-config-openwrt-firewall.yaml <NAME>
 ..
 
@@ -259,8 +259,8 @@ rules if inject succeed.
 
 .. code-block:: console
 
-    tacker vnf-list
-    tacker vnf-show <VNF_ID>
+    openstack vnf list
+    openstack vnf show <VNF_ID>
 ..
 
 We can replace the firewall rules configuration file with
