@@ -22,7 +22,9 @@ if [ "${TACKER_MODE}" == "all" ]; then
     # enable tacker-conductor will make systemctl enable conductor service
     enable_service tacker-conductor
     MGMT_PHYS_NET=${MGMT_PHYS_NET:-mgmtphysnet0}
-    BR_MGMT=${BR_MGMT:-br-mgmt0}
+    # br-infra is created by devstack multi node job
+    # http://git.openstack.org/cgit/openstack-infra/zuul-jobs/tree/roles/multi-node-bridge
+    BR_MGMT=${BR_MGMT:-br-infra}
     NET_MGMT=${NET_MGMT:-net_mgmt}
     SUBNET_MGMT=${SUBNET_MGMT:-subnet_mgmt}
     FIXED_RANGE_MGMT=${FIXED_RANGE_MGMT:-192.168.120.0/24}

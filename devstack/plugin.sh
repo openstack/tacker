@@ -31,8 +31,11 @@ if is_service_enabled tacker; then
         init_tacker
         echo_summary "Starting Tacker API and conductor"
         start_tacker
-        echo_summary "Installing tacker horizon"
-        tacker_horizon_install
+        if is_service_enabled horizon; then
+            echo_summary "Installing tacker horizon"
+            tacker_horizon_install
+        fi
+
         if [[ "${TACKER_MODE}" == "all" ]]; then
             echo_summary "Modifying Heat policy.json file"
             modify_heat_flavor_policy_rule
@@ -50,9 +53,11 @@ if is_service_enabled tacker; then
 
     if [[ "$1" == "unstack" ]]; then
         # Shut down tacker services
-        echo_summary "Uninstall tacker horizon"
-        tacker_horizon_uninstall
-	stop_tacker
+        if is_service_enabled horizon; then
+            echo_summary "Uninstall tacker horizon"
+            tacker_horizon_uninstall
+        fi
+        stop_tacker
     fi
 
     if [[ "$1" == "clean" ]]; then
