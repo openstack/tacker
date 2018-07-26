@@ -46,6 +46,7 @@ User Guide
    vnffg_usage_guide.rst
    vnffg_usage_guide_advanced.rst
    vnfm_usage_guide.rst
+   placement_policy_usage_guide.rst
 
 Feature Documentation
 ---------------------

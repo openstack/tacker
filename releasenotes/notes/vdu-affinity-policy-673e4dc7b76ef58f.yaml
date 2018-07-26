@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Added placement policy support. Operator can specify below placement
+    policies in addition to `affinity` to VDU's:
+
+    * ``anti-affinity``
+    * ``soft-affinity``
+    * ``soft-anti-affinity``
+
+    Note: There is a known issue in nova that `late anti-affinity check`_ doesn't work
+    in multi-cells environment. So it is highly recommended to deploy nova in single cell
+    environment until this issue is resolved in multi-cells environment.
+
+    .. _`late anti-affinity check`: https://docs.openstack.org/nova/pike/user/cellsv2_layout.html#operations-requiring-upcalls

@@ -323,6 +323,26 @@ class TestOpenStack(base.TestCase):
             'test_tosca_flavor_defaults.yaml',
             'hot_flavor_defaults.yaml')
 
+    def test_create_tosca_with_placement_policy_anti_affinity(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_placement_policy_anti_affinity.yaml',
+            'hot_placement_policy_anti_affinity.yaml', is_monitor=False)
+
+    def test_create_tosca_with_placement_policy_affinity(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_placement_policy_affinity.yaml',
+            'hot_placement_policy_affinity.yaml', is_monitor=False)
+
+    def test_create_tosca_with_placement_policy_soft_anti_affinity(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_placement_policy_soft_anti_affinity.yaml',
+            'hot_placement_policy_soft_anti_affinity.yaml', is_monitor=False)
+
+    def test_create_tosca_with_placement_policy_default_affinity(self):
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_placement_policy_default_affinity.yaml',
+            'hot_placement_policy_default_affinity.yaml', is_monitor=False)
+
     def test_create_tosca_with_flavor_and_capabilities(self):
         self._test_assert_equal_for_tosca_templates(
             'test_tosca_flavor_and_capabilities.yaml',
