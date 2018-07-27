@@ -245,7 +245,6 @@ class BarbicanKeyManager(key_manager.KeyManager):
                 barbican_exception.HTTPServerError) as e:
             LOG.error("Error deleting object: %s", e)
             if self._is_secret_not_found_error(e):
-                raise exception.ManagedObjectNotFoundError(
-                    uuid=managed_object_id)
+                pass
             else:
                 raise exception.KeyManagerError(reason=e)
