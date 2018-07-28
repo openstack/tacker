@@ -24,7 +24,6 @@
         nodes:
           - compute1
 
-
 - job:
     name: tacker-functional-devstack-multinode
     parent: devstack
@@ -106,10 +105,21 @@
           horizon: false
           tls-proxy: false
 
+- job:
+    name: tacker-functional-devstack-multinode-python3
+    parent: tacker-functional-devstack-multinode
+    description: |
+      Run tacker functional tests using python3 against a master devstack
+    vars:
+      tacker_environment:
+        TACKER_TOX_PYTHON: python3
+
 - project:
     check:
       jobs:
         - tacker-functional-devstack-multinode:
+            voting: false
+        - tacker-functional-devstack-multinode-python3:
             voting: false
         - openstack-tox-lower-constraints
     gate:
