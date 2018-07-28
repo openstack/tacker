@@ -208,6 +208,11 @@ class NfpDuplicatePolicyCriteria(exceptions.TackerException):
     message = _('The %(first_dict)s and %(sec_dict)s are overlapped')
 
 
+class NfpDuplicatePathID(exceptions.TackerException):
+    message = _('The path_id %(path_id)s is overlapped with '
+                'NFP %(nfp_name)s in %(vnffg_name)s')
+
+
 class NfpPolicyTypeError(exceptions.PolicyCheckError):
     message = _('Unsupported Policy Type: %(type)s')
 

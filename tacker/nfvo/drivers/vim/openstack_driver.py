@@ -387,7 +387,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         raise ValueError('empty match field for input flow classifier')
 
-    def create_chain(self, name, fc_ids, vnfs, symmetrical=False,
+    def create_chain(self, name, path_id, fc_ids, vnfs, symmetrical=False,
                      auth_attr=None):
         if not auth_attr:
             LOG.warning("auth information required for n-sfc driver")
@@ -485,6 +485,8 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         # TODO(s3wong): should the chain name be given as a parameter?
         port_chain = {}
         port_chain['name'] = name + '-port-chain'
+        if path_id:
+            port_chain['chain_id'] = path_id
         port_chain['description'] = 'port-chain for Tacker VNFFG'
         port_chain['port_pair_groups'] = port_pair_group_list
         port_chain['flow_classifiers'] = fc_ids
@@ -915,7 +917,7 @@ class NeutronClient(object):
             raise ValueError(str(e))
 
         if pc and len(pc):
-            return pc['port_chain']['id']
+            return pc['port_chain']['id'], pc['port_chain']['chain_id']
         else:
             return None
 

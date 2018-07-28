@@ -54,9 +54,11 @@ def _get_template(name):
 
 class FakeDriverManager(mock.Mock):
     def invoke(self, *args, **kwargs):
-        if any(x in ['create', 'create_chain', 'create_flow_classifier'] for
+        if any(x in ['create', 'create_flow_classifier'] for
                x in args):
             return uuidutils.generate_uuid()
+        elif 'create_chain' in args:
+            return uuidutils.generate_uuid(), uuidutils.generate_uuid()
         elif 'execute_workflow' in args:
             mock_execution = mock.Mock()
             mock_execution.id.return_value = \
@@ -656,6 +658,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertEqual('PENDING_CREATE', result['status'])
             self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
                                                            name=mock.ANY,
+                                                           path_id=mock.ANY,
                                                            vnfs=mock.ANY,
                                                            fc_ids=mock.ANY,
                                                            auth_attr=mock.ANY,
@@ -677,6 +680,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertEqual('PENDING_CREATE', result['status'])
             self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
                                                            name=mock.ANY,
+                                                           path_id=mock.ANY,
                                                            vnfs=mock.ANY,
                                                            fc_ids=mock.ANY,
                                                            auth_attr=mock.ANY,
@@ -703,6 +707,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             mock_create_vnffgd.assert_called_once_with(mock.ANY, mock.ANY)
             self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
                                                            name=mock.ANY,
+                                                           path_id=mock.ANY,
                                                            vnfs=mock.ANY,
                                                            fc_ids=mock.ANY,
                                                            auth_attr=mock.ANY,
@@ -724,6 +729,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertEqual('PENDING_CREATE', result['status'])
             self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
                                                            name=mock.ANY,
+                                                           path_id=mock.ANY,
                                                            vnfs=mock.ANY,
                                                            fc_ids=mock.ANY,
                                                            auth_attr=mock.ANY,
@@ -745,6 +751,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertEqual('PENDING_CREATE', result['status'])
             self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
                                                            name=mock.ANY,
+                                                           path_id=mock.ANY,
                                                            vnfs=mock.ANY,
                                                            fc_ids=mock.ANY,
                                                            auth_attr=mock.ANY,
@@ -787,6 +794,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertEqual('PENDING_CREATE', result['status'])
             self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
                                                            name=mock.ANY,
+                                                           path_id=mock.ANY,
                                                            vnfs=mock.ANY,
                                                            fc_ids=mock.ANY,
                                                            auth_attr=mock.ANY,

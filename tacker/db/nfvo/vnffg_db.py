@@ -115,7 +115,7 @@ class VnffgNfp(model_base.BASE, models_v1.HasTenant, models_v1.HasId):
                              uselist=False)
 
     status = sa.Column(sa.String(255), nullable=False)
-    path_id = sa.Column(sa.String(255), nullable=False)
+    path_id = sa.Column(sa.String(255), nullable=True)
 
     # symmetry of forwarding path
     symmetrical = sa.Column(sa.Boolean(), default=False)
@@ -134,7 +134,7 @@ class VnffgChain(model_base.BASE, models_v1.HasTenant, models_v1.HasId):
     # chain
     chain = sa.Column(types.Json)
 
-    path_id = sa.Column(sa.String(255), nullable=False)
+    path_id = sa.Column(sa.String(255), nullable=True)
     nfp_id = sa.Column(types.Uuid, sa.ForeignKey('vnffgnfps.id'))
 
 
@@ -376,6 +376,17 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             # create NFP dict
             nfp_dict = self._create_nfp_pre(template_db)
             LOG.debug('NFP: %s', nfp_dict)
+            path_id = nfp_dict['path_id']
+            try:
+                if path_id:
+                    vnffgNfp_db = (self._model_query(context, VnffgNfp).
+                                   filter(VnffgNfp.path_id == path_id).one())
+                    raise nfvo.NfpDuplicatePathID(path_id=path_id,
+                                                  nfp_name=vnffgNfp_db.name,
+                                                  vnffg_name=name)
+            except orm_exc.NoResultFound:
+                pass
+
             vnffg_db = Vnffg(id=vnffg_id,
                              tenant_id=tenant_id,
                              name=name,
@@ -401,7 +412,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                               tenant_id=tenant_id,
                               name=nfp_dict['name'],
                               status=constants.PENDING_CREATE,
-                              path_id=nfp_dict['path_id'],
+                              path_id=path_id,
                               symmetrical=symmetrical)
             context.session.add(nfp_db)
 
@@ -414,7 +425,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                                 symmetrical=symmetrical,
                                 chain=chain,
                                 nfp_id=nfp_id,
-                                path_id=nfp_dict['path_id'])
+                                path_id=path_id)
 
             context.session.add(sfc_db)
 
@@ -446,13 +457,8 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         # we assume only one NFP for initial implementation
         nfp_dict['name'] = template['groups'][vnffg_name]['members'][0]
         nfp_dict['path_id'] = template['node_templates'][nfp_dict['name']][
-            'properties']['id']
-
-        if not nfp_dict['path_id']:
-            # TODO(trozet): do we need to check if this path ID is already
-            # taken by another VNFFG
-            nfp_dict['path_id'] = random.randint(1, 16777216)
-
+            'properties'].get('id', None)
+        # 'path_id' will be updated when creating port chain is done
         return nfp_dict
 
     def _create_port_chain(self, context, vnf_mapping, template_db, nfp_name):
@@ -760,7 +766,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
 
     # called internally, not by REST API
     # instance_id = None means error on creation
-    def _create_vnffg_post(self, context, sfc_instance_id,
+    def _create_vnffg_post(self, context, sfc_instance_id, path_id,
                            classifiers_map, vnffg_dict):
         LOG.debug('SFC created instance is %s', sfc_instance_id)
         LOG.debug('Flow Classifiers created instances are %s',
@@ -768,11 +774,16 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         nfp_dict = self.get_nfp(context, vnffg_dict['forwarding_paths'])
         sfc_id = nfp_dict['chain_id']
         with context.session.begin(subtransactions=True):
+            nfp_query = (self._model_query(context, VnffgNfp).
+                         filter(VnffgNfp.id == nfp_dict['id']).
+                         filter(VnffgNfp.status == constants.PENDING_CREATE).
+                         one())
+            nfp_query.update({'path_id': path_id})
             query = (self._model_query(context, VnffgChain).
                      filter(VnffgChain.id == sfc_id).
                      filter(VnffgChain.status == constants.PENDING_CREATE).
                      one())
-            query.update({'instance_id': sfc_instance_id})
+            query.update({'instance_id': sfc_instance_id, 'path_id': path_id})
             if sfc_instance_id is None:
                 query.update({'status': constants.ERROR})
             else:
