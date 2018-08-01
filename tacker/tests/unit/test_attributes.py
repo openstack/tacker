@@ -680,6 +680,15 @@ class TestAttributes(base.BaseTestCase):
         self.assertIsNone(msg, 'Validation of a valid dictionary failed.')
         self.assertIsNone(msg, 'Validation of a valid dictionary failed.')
 
+    def test_validate_dict_or_not_empty(self):
+        dictionary, constraints = self._construct_dict_and_constraints()
+        msg = attributes._validate_dict_not_empty({}, constraints)
+        self.assertEqual(msg, u"'{}' is not a valid dictionary or it is"
+                              u" an empty dictionary")
+        msg = attributes._validate_dict_not_empty("", constraints)
+        self.assertEqual(msg, u"'' is not a valid dictionary or it is an"
+                              u" empty dictionary")
+
     def test_validate_non_negative(self):
         for value in (-1, '-2'):
             self.assertEqual("'%s' should be non-negative" % value,

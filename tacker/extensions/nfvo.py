@@ -312,13 +312,13 @@ RESOURCE_ATTRIBUTE_MAP = {
         'auth_cred': {
             'allow_post': True,
             'allow_put': True,
-            'validate': {'type:dict_or_nodata': None},
+            'validate': {'type:dict_not_empty': None},
             'is_visible': True,
         },
         'vim_project': {
             'allow_post': True,
             'allow_put': True,
-            'validate': {'type:dict_or_nodata': None},
+            'validate': {'type:dict_not_empty': None},
             'is_visible': True,
         },
         'name': {

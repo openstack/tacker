@@ -449,6 +449,16 @@ def _validate_dict_or_nodata(data, key_specs=None):
         return _validate_dict(data, key_specs)
 
 
+def _validate_dict_not_empty(data, key_specs=None):
+    if not isinstance(data, dict) or len(data) == 0:
+        msg = _("'%s' is not a valid dictionary or it is an"
+                " empty dictionary") % data
+        LOG.debug(msg)
+        return msg
+    else:
+        return _validate_dict(data, key_specs)
+
+
 def _validate_non_negative(data, valid_values=None):
     try:
         data = int(data)
@@ -553,6 +563,7 @@ validators = {'type:dict': _validate_dict,
               'type:dict_or_none': _validate_dict_or_none,
               'type:dict_or_empty': _validate_dict_or_empty,
               'type:dict_or_nodata': _validate_dict_or_nodata,
+              'type:dict_not_empty': _validate_dict_not_empty,
               'type:fixed_ips': _validate_fixed_ips,
               'type:hostroutes': _validate_hostroutes,
               'type:ip_address': _validate_ip_address,

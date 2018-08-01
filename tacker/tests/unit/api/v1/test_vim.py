@@ -137,3 +137,33 @@ class VIMCreateTestCase(base.TestCase):
         self.assertRaises(exc.HTTPBadRequest,
                           self.controller.create,
                           request, vim_dict)
+
+    @ddt.data('', 'testing', {})
+    def test_create_vim_with_invalid_auth_cred(self, value):
+        vim_dict = get_vim_config()
+        vim_dict['vim']['auth_cred'] = value
+        request = wsgi.Request.blank("/vims.json", method='POST',
+                headers={'Content-Type': "application/json"})
+        request.environ['tacker.context'] = self.fake_admin_context()
+        msg = ("Invalid input for auth_cred. Reason: '%s' is "
+               "not a valid dictionary or it is an empty"
+               " dictionary.") % vim_dict['vim']['auth_cred']
+        exp = self.assertRaises(exc.HTTPBadRequest,
+                                self.controller.create,
+                                request, vim_dict)
+        self.assertEqual(msg, six.text_type(exp))
+
+    @ddt.data('', 'testing', {})
+    def test_create_vim_invalid_vim_project(self, value):
+        vim_dict = get_vim_config()
+        vim_dict['vim']['vim_project'] = value
+        request = wsgi.Request.blank("/vims.json", method='POST',
+                headers={'Content-Type': "application/json"})
+        request.environ['tacker.context'] = self.fake_admin_context()
+        msg = ("Invalid input for vim_project. Reason: '%s' is"
+               " not a valid dictionary or it is an empty"
+               " dictionary.") % vim_dict['vim']['vim_project']
+        exp = self.assertRaises(exc.HTTPBadRequest,
+                                self.controller.create,
+                                request, vim_dict)
+        self.assertEqual(msg, six.text_type(exp))
