@@ -24,15 +24,14 @@ fixes that are submitted also have tests to prove that they stay
 fixed!  In addition, before proposing for merge, all of the
 current tests should be passing.
 
-Running unit tests
-------------------
+Running unit tests with tox
+---------------------------
 
-There are two mechanisms for running tests: tox and nose. Before
-submitting a patch for review you should always ensure all test pass;
-a tox run is triggered by the jenkins gate executed on gerrit for
-each patch pushed for review.
+Before submitting a patch for review you should always ensure all
+test pass; a tox run is triggered by the Zuul gate executed on
+gerrit for each patch pushed for review.
 
-With these mechanisms you can either run the tests in the standard
+With this mechanism you can either run the tests in the standard
 environment or create a virtual environment to run them in.
 
 By default after running all of the tests, any pep8 errors
@@ -41,37 +40,14 @@ found in the tree will be reported.
 Note that the tests can use a database, see ``tools/tests-setup.sh``
 on how the databases are set up in the OpenStack CI environment.
 
-With `nose`
-~~~~~~~~~~~
-
-You can use `nose`_ to run individual tests, as well as use for debugging
-portions of your code::
-
-    source .venv/bin/activate
-    pip install nose
-    nosetests
-
-There are disadvantages to running Nose - the tests are run sequentially, so
-race condition bugs will not be triggered, and the full test suite will
-take significantly longer than tox & testr. The upside is that testr has
-some rough edges when it comes to diagnosing errors and failures, and there is
-no easy way to set a breakpoint in the Tacker code, and enter an
-interactive debugging session while using testr.
-
-.. _nose: https://nose.readthedocs.org/en/latest/index.html
-
-With `tox`
-~~~~~~~~~~
-
 Tacker, like other OpenStack projects, uses `tox`_ for managing the virtual
-environments for running test cases. It uses `Testr`_ for managing the running
+environments for running test cases. It uses `stestr`_ for managing the running
 of the test cases.
 
 Tox handles the creation of a series of `virtualenvs`_ that target specific
-versions of Python (2.7, 3.5, etc).
-
-Testr handles the parallel execution of series of test cases as well as
-the tracking of long-running tests and other things.
+versions of Python (2.7, 3.5, etc). stestr handles the parallel execution
+of series of test cases as well as the tracking of long-running tests and
+other things.
 
 Running unit tests is as easy as executing this in the root directory of the
 Tacker source code::
@@ -79,14 +55,12 @@ Tacker source code::
     tox
 
 For more information on the standard Tox-based test infrastructure used by
-OpenStack and how to do some common test/debugging procedures with Testr,
-see this wiki page:
+OpenStack and how to do some common test/debugging procedures with stestr,
+see at: https://governance.openstack.org/tc/reference/pti/python.html
 
-  https://wiki.openstack.org/wiki/Testr
-
-.. _Testr: https://wiki.openstack.org/wiki/Testr
-.. _tox: http://tox.readthedocs.org/en/latest/
-.. _virtualenvs: https://pypi.org/project/virtualenv
+.. _stestr: https://stestr.readthedocs.io/en/latest/
+.. _tox: https://tox.readthedocs.io/en/latest/
+.. _virtualenvs: https://pypi.org/project/virtualenv/
 
 
 Running individual tests
