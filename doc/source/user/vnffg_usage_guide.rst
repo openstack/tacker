@@ -123,14 +123,32 @@ without "symmetrical", you can ommit "network_dst_port_id" and "ip_dst_prefix".
 
 .. code-block:: yaml
 
-    policy:
-        type: ACL
-        criteria:
-        - network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480e1
-          network_dst_port_id: ea206bba-7083-4364-a9f1-c0b7fdf61b6e
-          destination_port_range: 80-1024
-          ip_proto: 6
-          ip_dst_prefix: 192.168.1.2/24
+    Forwarding_path1:
+      type: tosca.nodes.nfv.FP.TackerV2
+      description: creates path (CP12->CP22)
+      properties:
+        id: 51
+        symmetrical: true
+        policy:
+          type: ACL
+          criteria:
+            - name: block_tcp
+              classifier:
+                network_src_port_id: 640dfd77-c92b-45a3-b8fc-22712de480e1
+                network_dst_port_id: ea206bba-7083-4364-a9f1-c0b7fdf61b6e
+                ip_dst_prefix: 192.168.1.2/24
+                destination_port_range: 80-1024
+                ip_proto: 6
+        path:
+          - forwarder: VNFD1
+            capability: CP12
+          - forwarder: VNFD2
+            capability: CP22
+
+In above template, users can set **symmetrical** in properties of a forwarding
+path create symmetrical VNFFG. If this property is not set, **symmetrical**
+will be specified by **--symmetrical** in create VNFFG command (default value
+is False).
 
 You can use the sample VNFFGD template for symmetrical feature (in port chain)
 such as this `link <https://github.com/openstack/tacker/tree/master/samples/
@@ -196,7 +214,7 @@ Here,
 * param-file  - Parameter file in Yaml.
 * vnf-mapping - Allows a list of logical VNFD to VNF instance mapping
 * symmetrical - If --symmetrical is present, symmetrical is True
-  (default: False)
+  (default: False - The **symmectical** is set in template has higher priority)
 
 VNF Mapping is used to declare which exact VNF instance to be used for
 each VNF in the Forwarding Path. The following command would list VNFs
@@ -281,12 +299,12 @@ Using the below command query the list of existing VNFFG templates.
 
     openstack vnf graph list
 
-    +--------------------+--------+------- +-------------------------------------+
-    |    ID              | Name   | Status | VNFFGD ID                           |
-    +--------------------+-----------------+-------------------------------------+
-    | f4438511-e33d-43df-|        |        |                                     |
-    | 95d9-0199253db72e  | myvnffg| ACTIVE | bd7829bf-85de-4f3b-960a-8482028bfb34|
-    +--------------------+---------+-------+-------------+--------+--------------+
+    +--------------------+---------+--------+-------------------------------------+
+    |    ID              | Name    | Status | VNFFGD ID                           |
+    +--------------------+------------------+-------------------------------------+
+    | f4438511-e33d-43df-|         |        |                                     |
+    | 95d9-0199253db72e  | myvnffg | ACTIVE | bd7829bf-85de-4f3b-960a-8482028bfb34|
+    +--------------------+---------+--------+-------------+--------+--------------+
 
 
 After the user located the VNFFG the subsequent action is to update it.
@@ -341,6 +359,7 @@ derived from the following VNFFGD template.
          description: creates path (CP1)
          properties:
            id: 51
+           symmetrical: false
            policy:
              type: ACL
              criteria:
@@ -382,6 +401,7 @@ By using the below VNFFGD template we can update the exisitng VNFFG.
          description: creates path (CP1->CP2)
          properties:
            id: 52
+           symmetrical: false
            policy:
              type: ACL
              criteria:

@@ -11,6 +11,7 @@ topology_template:
       description: creates path (CP12->CP22)
       properties:
         id: 51
+        symmetrical: true
         policy:
           type: ACL
           criteria:

@@ -358,7 +358,9 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         vnffg_id = vnffg.get('id') or uuidutils.generate_uuid()
         template_id = vnffg['vnffgd_id']
         ns_id = vnffg.get('ns_id', None)
-        symmetrical = vnffg['symmetrical']
+        symmetrical_in_temp = self._get_symmetrical_template(context, vnffg)
+        symmetrical = symmetrical_in_temp if symmetrical_in_temp is not None \
+            else vnffg.get('symmetrical')
 
         with context.session.begin(subtransactions=True):
             template_db = self._get_resource(context, VnffgTemplate,
@@ -1335,6 +1337,19 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
 
             if template_db.get('template_source') == 'inline':
                 self.delete_vnffgd(context, vnffgd_id)
+
+    def _get_symmetrical_template(self, context, vnffg):
+        vnffgd_topo = None
+        if vnffg.get('vnffgd_template'):
+            vnffgd_topo = vnffg['vnffgd_template']['topology_template']
+        elif vnffg.get('vnffgd_id'):
+            vnffgd_template = self.get_vnffgd(context, vnffg.get('vnffgd_id'))
+            vnffgd_topo = vnffgd_template['template']['vnffgd'][
+                'topology_template']
+        vnffg_name = list(vnffgd_topo['groups'].keys())[0]
+        nfp_name = vnffgd_topo['groups'][vnffg_name]['members'][0]
+        fp_prop = vnffgd_topo['node_templates'][nfp_name]['properties']
+        return fp_prop.get('symmetrical', None)
 
     def _make_template_dict(self, template, fields=None):
         res = {}

@@ -256,10 +256,11 @@ def get_dummy_vnffg_param_obj():
                       'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
                       u'attributes': {
-                          u'template': vnffgd_tosca_param_template},
+                          u'template': vnffgd_tosca_param_template,
+                          u'param_values':
+                              yaml.safe_load(vnffg_params)
+                      },
                       'vnf_mapping': {},
-                      u'attributes': {u'param_values':
-                          yaml.safe_load(vnffg_params)},
                       'symmetrical': False}}
 
 
@@ -269,10 +270,9 @@ def get_dummy_vnffg_str_param_obj():
                       'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
                       u'attributes': {
-                          u'template': vnffgd_tosca_param_template},
-                      'vnf_mapping': {},
-                      u'attributes': {
+                          u'template': vnffgd_tosca_param_template,
                           u'param_values': 'value not dict format'},
+                      'vnf_mapping': {},
                       'symmetrical': False}}
 
 
@@ -282,10 +282,11 @@ def get_dummy_vnffg_multi_param_obj():
                       'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
                       u'attributes': {
-                          u'template': vnffgd_tosca_multi_param_template},
+                          u'template': vnffgd_tosca_multi_param_template,
+                          u'param_values':
+                              yaml.safe_load(vnffg_multi_params)
+                      },
                       'vnf_mapping': {},
-                      u'attributes': {u'param_values':
-                          yaml.safe_load(vnffg_multi_params)},
                       'symmetrical': False}}
 
 

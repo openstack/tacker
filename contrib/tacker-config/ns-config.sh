@@ -31,6 +31,7 @@ sleep 15
 client_ip=$(openstack server list | grep http_client | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
 network_source_port_id=$(openstack port list | grep $client_ip | awk '{print $2}')
 ip_dst=$(openstack server list | grep http_server | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
+network_dest_port_id=$(openstack port list | grep $ip_dst | awk '{print $2}')
 
 echo "Creating/ Updating ns_param.yaml file"
 cat > ../../samples/tosca-templates/vnffg-nsd/ns_param.yaml << EOL
@@ -39,6 +40,7 @@ nsd:
   vl2_name: net0
   net_src_port_id: ${network_source_port_id}
   ip_dest_prefix: ${ip_dst}/24
+  net_dst_port_id: ${network_dest_port_id}
 EOL
 
 vim_default=$(openstack vim list | grep openstack | awk '{print $10}')

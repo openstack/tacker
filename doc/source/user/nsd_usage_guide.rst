@@ -326,6 +326,7 @@ VNFFG.
           description: creates path inside ns (src_port->CP12->CP22->dst_port)
           properties:
             id: 51
+            symmetrical: true
             policy:
               type: ACL
               criteria:
@@ -346,6 +347,7 @@ VNFFG.
           description: creates path inside ns (src_port->CP12->CP22->dst_port)
           properties:
             id: 52
+            symmetrical: false
             policy:
               type: ACL
               criteria:
