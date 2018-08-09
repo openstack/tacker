@@ -43,6 +43,7 @@ from tacker.keymgr import API as KEYMGR_API
 from tacker import manager
 from tacker.nfvo.workflows.vim_monitor import vim_monitor_utils
 from tacker.plugins.common import constants
+from tacker.vnfm import keystone
 from tacker.vnfm import vim_client
 
 from tacker.tosca import utils as toscautils
@@ -87,10 +88,22 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
             cfg.CONF.nfvo_vim.vim_drivers)
         self.vim_client = vim_client.VimClient()
 
+    @staticmethod
+    def validate_keystone_auth_url(auth_url, verify):
+        keystone_obj = keystone.Keystone()
+        auth_url = utils.get_auth_url_v3(auth_url)
+        try:
+            return keystone_obj.get_version(auth_url, verify)
+        except Exception as e:
+            LOG.error('Keystone Auth URL invalid')
+            raise nfvo.VimConnectionException(message=str(e))
+
     def get_auth_dict(self, context):
         auth = CONF.keystone_authtoken
+        auth_url = utils.get_auth_url_v3(auth.auth_url)
+        self.validate_keystone_auth_url(auth_url, 'True')
         return {
-            'auth_url': auth.auth_url + '/v3',
+            'auth_url': auth_url,
             'token': context.auth_token,
             'project_domain_name': auth.project_domain_name or context.domain,
             'project_name': context.tenant_name
