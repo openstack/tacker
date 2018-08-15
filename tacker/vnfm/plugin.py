@@ -745,8 +745,9 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         if policies:
             return policies[0]
 
-        raise exceptions.VnfPolicyTypeInvalid(type=constants.POLICY_ALARMING,
-                                              vnf_id=vnf_id)
+        raise exceptions.VnfPolicyTypeInvalid(
+            type=policy_type, policy=None,
+            valid_types=constants.VALID_POLICY_TYPES)
 
     def _validate_alarming_policy(self, context, vnf_id, trigger):
         # validate alarm status

@@ -53,6 +53,7 @@ POLICY_SCALING_ACTIONS = (ACTION_SCALE_OUT,
                           ACTION_SCALE_IN) = ('out', 'in')
 POLICY_ACTIONS = {POLICY_SCALING: POLICY_SCALING_ACTIONS}
 POLICY_ALARMING = 'tosca.policies.tacker.Alarming'
+VALID_POLICY_TYPES = [POLICY_SCALING, POLICY_ALARMING]
 DEFAULT_ALARM_ACTIONS = ['respawn', 'log', 'log_and_kill', 'notify']
 
 RES_TYPE_VNFD = "vnfd"

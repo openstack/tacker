@@ -20,6 +20,7 @@ from mock import patch
 from oslo_utils import uuidutils
 import yaml
 
+from tacker.common import exceptions
 from tacker import context
 from tacker.db.common_services import common_services_db_plugin
 from tacker.db.nfvo import nfvo_db
@@ -542,3 +543,13 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertRaises(vnfm.InvalidMgmtDriver,
                           self.vnfm_plugin.create_vnfd,
                           self.context, vnfd_obj)
+
+    @mock.patch('tacker.vnfm.plugin.VNFMPlugin.get_vnf_policies')
+    def test_get_vnf_policy_by_type(self, mock_get_vnf_policies):
+        mock_get_vnf_policies.return_value = None
+
+        self.assertRaises(exceptions.VnfPolicyTypeInvalid,
+                          self.vnfm_plugin.get_vnf_policy_by_type,
+                          self.context,
+                          uuidutils.generate_uuid(),
+                          policy_type='invalid_policy_type')
