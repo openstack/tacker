@@ -121,6 +121,7 @@
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
       - openstack-python35-jobs
+      - openstack-python36-jobs
     check:
       jobs:
         - tacker-functional-devstack-multinode:
