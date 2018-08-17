@@ -1,0 +1,7 @@
+- project:
+    templates:
+      - check-requirements
+      - openstack-python-jobs
+      - publish-openstack-sphinx-docs
+      - release-notes-jobs
+      - openstack-python35-jobs
