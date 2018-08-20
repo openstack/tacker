@@ -23,6 +23,9 @@ The Devstack supports installation from different code branch by specifying
 <branch-name> below. If there is no preference, it is recommended to install
 Tacker from master branch, i.e. the <branch-name> is master. If pike branch
 is the target branch, the <branch-name> is stable/pike.
+Devstack should be run as a non-root with sudo enabled(standard logins to
+cloud images such as "ubuntu" or "cloud-user" are usually fine). Creating a
+separate user and granting relevant privileges please refer [#f0]_.
 
 1. Download DevStack:
 
@@ -168,6 +171,7 @@ to start setting up:
 
 .. rubric:: Footnotes
 
+.. [#f0] https://docs.openstack.org/devstack/latest/
 .. [#f1] https://github.com/openstack/tacker/tree/master/devstack
 .. [#f2] https://github.com/openstack/tacker/blob/master/devstack/local.conf.example
 .. [#f3] https://github.com/openstack/tacker/blob/master/devstack/local.conf.standalone
