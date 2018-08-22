@@ -12,6 +12,7 @@
 
 POLICY_ALARMING = 'tosca.policies.tacker.Alarming'
 DEFAULT_ALARM_ACTIONS = ['respawn', 'log', 'log_and_kill', 'notify']
+POLICY_RESERVATION = 'tosca.policies.tacker.Reservation'
 VNF_CIRROS_CREATE_TIMEOUT = 300
 VNFC_CREATE_TIMEOUT = 600
 VNF_CIRROS_DELETE_TIMEOUT = 300

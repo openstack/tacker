@@ -23,6 +23,7 @@ from tacker.common import exceptions
 from tacker.common import log
 from tacker.extensions import common_services as cs
 from tacker.extensions import vnfm
+from tacker.plugins.common import constants
 from tacker.tosca import utils as toscautils
 
 
@@ -279,6 +280,11 @@ class TOSCAToHOT(object):
 
         unique_id = uuidutils.generate_uuid()
         metadata = toscautils.get_vdu_metadata(tosca, unique_id=unique_id)
+        for policy in tosca.policies:
+            if policy.entity_tpl['type'] == constants.POLICY_RESERVATION:
+                metadata = toscautils.get_metadata_for_reservation(
+                    tosca, metadata)
+                break
 
         alarm_resources = toscautils.pre_process_alarm_resources(
             self.vnf, tosca, metadata, unique_id=unique_id)

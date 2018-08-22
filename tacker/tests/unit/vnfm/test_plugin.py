@@ -139,6 +139,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._stub_get_vim()
         self._mock_vnf_monitor()
         self._mock_vnf_alarm_monitor()
+        self._mock_vnf_reservation_monitor()
         self._insert_dummy_vim()
         self.vnfm_plugin = plugin.VNFMPlugin()
         mock.patch('tacker.db.common_services.common_services_db_plugin.'
@@ -203,6 +204,14 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         fake_vnf_alarm_monitor.return_value = self._vnf_alarm_monitor
         self._mock(
             'tacker.vnfm.monitor.VNFAlarmMonitor', fake_vnf_alarm_monitor)
+
+    def _mock_vnf_reservation_monitor(self):
+        self._vnf_reservation_mon = mock.Mock(wraps=FakeVNFMonitor())
+        fake_vnf_reservation_monitor = mock.Mock()
+        fake_vnf_reservation_monitor.return_value = self._vnf_reservation_mon
+        self._mock(
+            'tacker.vnfm.monitor.VNFReservationAlarmMonitor',
+            fake_vnf_reservation_monitor)
 
     def _insert_dummy_vnf_template(self):
         session = self.context.session
@@ -1004,3 +1013,11 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         mock_heal_vdu.assert_called_with(plugin=self.vnfm_plugin,
             context=self.context, vnf_dict=mock.ANY,
             heal_request_data_obj=heal_request_data_obj)
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
+    def test_create_vnf_trigger_scale_with_reservation(self, mock_get_vnf):
+        dummy_vnf = self._get_dummy_vnf(
+            utils.vnfd_instance_reservation_alarm_scale_tosca_template)
+        mock_get_vnf.return_value = dummy_vnf
+        self._test_create_vnf_trigger(policy_name="start_actions",
+                                      action_value="SP_RSV-out")

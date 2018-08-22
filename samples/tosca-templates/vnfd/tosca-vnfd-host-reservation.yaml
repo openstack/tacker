@@ -1,0 +1,103 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: VNF TOSCA template with reservation id input parameters
+
+metadata:
+  template_name: sample-tosca-vnfd-host-reservation
+
+topology_template:
+  inputs:
+    lease_id:
+      type: string
+      description: lease id
+
+    resource_type:
+      type: string
+      description: reservation resource type
+
+    reservation_id:
+      type: string
+      description: reservation id
+
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        image: cirros-0.4.0-x86_64-disk
+        flavor: m1.tiny
+        reservation_metadata:
+          resource_type: { get_input: resource_type }
+          id: { get_input: reservation_id }
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        order: 0
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    CP2:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        order: 1
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL2
+        - virtualBinding:
+            node: VDU1
+
+    CP3:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        order: 2
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL3
+        - virtualBinding:
+            node: VDU1
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net_mgmt
+        vendor: Tacker
+
+    VL2:
+      type: tosca.nodes.nfv.VL
+
+      properties:
+        network_name: net0
+        vendor: Tacker
+
+    VL3:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net1
+        vendor: Tacker
+
+
+  policies:
+    - RSV:
+        type: tosca.policies.tacker.Reservation
+        reservation:
+          start_actions: [SP_RSV]
+          before_end_actions: [SP_RSV]
+          end_actions: [noop]
+          properties:
+            lease_id: { get_input: lease_id }
+    - SP_RSV:
+        type: tosca.policies.tacker.Scaling
+        properties:
+          increment: 2
+          cooldown: 120
+          min_instances: 0
+          max_instances: 2
+          default_instances: 0
+        targets: [VDU1]

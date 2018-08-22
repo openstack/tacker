@@ -270,6 +270,10 @@ node_types:
         entry_schema:
           type: string
 
+      reservation_metadata:
+        type: tosca.datatypes.tacker.VduReservationMetadata
+        required: false
+
   tosca.nodes.nfv.CP.Tacker:
     derived_from: tosca.nodes.nfv.CP
     properties:

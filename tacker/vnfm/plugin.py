@@ -144,6 +144,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             cfg.CONF.tacker.policy_action)
         self._vnf_monitor = monitor.VNFMonitor(self.boot_wait)
         self._vnf_alarm_monitor = monitor.VNFAlarmMonitor()
+        self._vnf_reservation_monitor = monitor.VNFReservationAlarmMonitor()
         self._vnf_app_monitor = monitor.VNFAppMonitor()
         self._init_monitoring()
 
@@ -253,17 +254,23 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     def add_alarm_url_to_vnf(self, context, vnf_dict):
         vnfd_yaml = vnf_dict['vnfd']['attributes'].get('vnfd', '')
         vnfd_dict = yaml.safe_load(vnfd_yaml)
-        if vnfd_dict and vnfd_dict.get('tosca_definitions_version'):
-            polices = vnfd_dict['topology_template'].get('policies', [])
-            for policy_dict in polices:
-                name, policy = list(policy_dict.items())[0]
-                if policy['type'] in constants.POLICY_ALARMING:
-                    alarm_url =\
-                        self._vnf_alarm_monitor.update_vnf_with_alarm(
-                            self, context, vnf_dict, policy)
-                    vnf_dict['attributes']['alarming_policy'] = vnf_dict['id']
-                    vnf_dict['attributes'].update(alarm_url)
-                    break
+        if not (vnfd_dict and vnfd_dict.get('tosca_definitions_version')):
+            return
+        polices = vnfd_dict['topology_template'].get('policies', [])
+        for policy_dict in polices:
+            name, policy = list(policy_dict.items())[0]
+            if policy['type'] in constants.POLICY_ALARMING:
+                alarm_url =\
+                    self._vnf_alarm_monitor.update_vnf_with_alarm(
+                        self, context, vnf_dict, policy)
+                vnf_dict['attributes']['alarming_policy'] = vnf_dict['id']
+                vnf_dict['attributes'].update(alarm_url)
+            elif policy['type'] in constants.POLICY_RESERVATION:
+                alarm_url = \
+                    self._vnf_reservation_monitor.update_vnf_with_reservation(
+                        self, context, vnf_dict, policy)
+                vnf_dict['attributes']['reservation_policy'] = vnf_dict['id']
+                vnf_dict['attributes'].update(alarm_url)
 
     def add_vnf_to_appmonitor(self, context, vnf_dict):
         appmonitor = self._vnf_app_monitor.create_app_dict(context, vnf_dict)
@@ -746,7 +753,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     def _make_policy_dict(self, vnf, name, policy):
         p = {}
         p['type'] = policy.get('type')
-        p['properties'] = policy.get('properties') or policy.get('triggers')
+        p['properties'] = policy.get('properties') or policy.get(
+            'triggers') or policy.get('reservation')
         p['vnf'] = vnf
         p['name'] = name
         p['id'] = uuidutils.generate_uuid()
@@ -816,8 +824,20 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     def _validate_alarming_policy(self, context, vnf_id, trigger):
         # validate alarm status
-        if not self._vnf_alarm_monitor.process_alarm_for_vnf(vnf_id, trigger):
-            raise exceptions.AlarmUrlInvalid(vnf_id=vnf_id)
+
+        # Trigger will contain only one action in trigger['trigger'] as it
+        # filtered in _get_vnf_triggers().
+        # Getting action from trigger to decide which process_alarm_for_vnf
+        # method will be called.
+        if trigger['trigger'].keys()[0]\
+                in constants.RESERVATION_POLICY_ACTIONS:
+            if not self._vnf_reservation_monitor.process_alarm_for_vnf(
+                    vnf_id, trigger):
+                raise exceptions.AlarmUrlInvalid(vnf_id=vnf_id)
+        else:
+            if not self._vnf_alarm_monitor.process_alarm_for_vnf(
+                    vnf_id, trigger):
+                raise exceptions.AlarmUrlInvalid(vnf_id=vnf_id)
 
         # validate policy action. if action is composite, split it.
         # ex: respawn%notify
@@ -855,8 +875,12 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         # validate url
 
     def _get_vnf_triggers(self, context, vnf_id, filters=None, fields=None):
-        policy = self.get_vnf_policy_by_type(
-            context, vnf_id, policy_type=constants.POLICY_ALARMING)
+        if filters.get('name') in constants.RESERVATION_POLICY_ACTIONS:
+            policy = self.get_vnf_policy_by_type(
+                context, vnf_id, policy_type=constants.POLICY_RESERVATION)
+        else:
+            policy = self.get_vnf_policy_by_type(
+                context, vnf_id, policy_type=constants.POLICY_ALARMING)
         triggers = policy['properties']
         vnf_trigger = dict()
         for trigger_name, trigger_dict in triggers.items():

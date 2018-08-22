@@ -26,6 +26,7 @@ from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 
 from tacker.common import driver_manager
+from tacker.common import exceptions
 from tacker import context as t_context
 from tacker.plugins.common import constants
 from tacker.vnfm import utils as vnfm_utils
@@ -342,3 +343,87 @@ class VNFAlarmMonitor(object):
     def process_alarm(self, driver, vnf_dict, kwargs):
         return self._invoke(driver,
                             vnf=vnf_dict, kwargs=kwargs)
+
+
+class VNFReservationAlarmMonitor(VNFAlarmMonitor):
+    """VNF Reservation Alarm monitor"""
+
+    def update_vnf_with_reservation(self, plugin, context, vnf, policy_dict):
+
+        alarm_url = dict()
+
+        def create_alarm_action(action, action_list, scaling_type):
+            params = dict()
+            params['vnf_id'] = vnf['id']
+            params['mon_policy_name'] = action
+            driver = 'ceilometer'
+
+            def _refactor_backend_policy(bk_policy_name, bk_action_name):
+                policy = '%(policy_name)s%(action_name)s' % {
+                    'policy_name': bk_policy_name,
+                    'action_name': bk_action_name}
+                return policy
+
+            for index, policy_action_name in enumerate(action_list):
+                filters = {'name': policy_action_name}
+                bkend_policies = \
+                    plugin.get_vnf_policies(context, vnf['id'], filters)
+                if bkend_policies:
+                    if constants.POLICY_SCALING in str(bkend_policies[0]):
+                        action_list[index] = _refactor_backend_policy(
+                            policy_action_name, scaling_type)
+
+                # Support multiple action. Ex: respawn % notify
+                action_name = '%'.join(action_list)
+                params['mon_policy_action'] = action_name
+                alarm_url[action] = \
+                    self.call_alarm_url(driver, vnf, params)
+                details = "Alarm URL set successfully: %s" % alarm_url
+                vnfm_utils.log_events(t_context.get_admin_context(), vnf,
+                                      constants.RES_EVT_MONITOR,
+                                      details)
+
+        before_end_action = policy_dict['reservation']['before_end_actions']
+        end_action = policy_dict['reservation']['end_actions']
+        start_action = policy_dict['reservation']['start_actions']
+
+        scaling_policies = \
+            plugin.get_vnf_policies(
+                context, vnf['id'], filters={
+                    'type': constants.POLICY_SCALING})
+
+        if len(scaling_policies) == 0:
+            raise exceptions.VnfPolicyNotFound(
+                policy=constants.POLICY_SCALING, vnf_id=vnf['id'])
+
+        for scaling_policy in scaling_policies:
+            # validating start_action for scale-out policy action
+            if scaling_policy['name'] not in start_action:
+                raise exceptions.Invalid(
+                    'Not a valid template: start_action must contain'
+                    ' %s as scaling-out action' % scaling_policy['name'])
+
+            # validating before_end and end_actions for scale-in policy action
+            if scaling_policy['name'] not in before_end_action:
+                if scaling_policy['name'] not in end_action:
+                    raise exceptions.Invalid(
+                        'Not a valid template:'
+                        ' before_end_action or end_action'
+                        ' should contain scaling policy: %s'
+                        % scaling_policy['name'])
+
+        for action in constants.RESERVATION_POLICY_ACTIONS:
+            scaling_type = "-out" if action == 'start_actions' else "-in"
+            create_alarm_action(action, policy_dict[
+                'reservation'][action], scaling_type)
+
+        return alarm_url
+
+    def process_alarm_for_vnf(self, vnf, trigger):
+        """call in plugin"""
+        params = trigger['params']
+        alarm_dict = dict()
+        alarm_dict['alarm_id'] = params['data'].get('alarm_id')
+        alarm_dict['status'] = params['data'].get('current')
+        driver = 'ceilometer'
+        return self.process_alarm(driver, vnf, alarm_dict)

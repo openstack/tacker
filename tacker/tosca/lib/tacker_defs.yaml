@@ -199,6 +199,19 @@ data_types:
         type: string
         required: false
 
+  tosca.datatypes.tacker.VduReservationMetadata:
+    properties:
+      resource_type:
+        # TODO(niraj-singh): Need to add constraints
+        # ``valid_values: [ physical_host, virtual_instance ]``
+        # once Bug #1815755 is fixed.
+        type: string
+        required: true
+        default: virtual_instance
+      id:
+        type: string
+        required: true
+
 policy_types:
   tosca.policies.tacker.Placement:
     derived_from: tosca.policies.Placement
@@ -338,3 +351,26 @@ policy_types:
         required: false
         default: 120
         description: Wait time (in seconds) between consecutive scaling operations. During the cooldown period, scaling action will be ignored
+
+  tosca.policies.tacker.Reservation:
+      derived_from: tosca.policies.Reservation
+      reservation:
+        start_actions:
+          type: list
+          entry_schema:
+            type: string
+            required: true
+        before_end_actions:
+          type: list
+          entry_schema:
+            type: string
+            required: true
+        end_actions:
+          type: list
+          entry_schema:
+            type: string
+            required: true
+        properties:
+          lease_id:
+            type: string
+            required: true

@@ -99,6 +99,9 @@ The **local.conf** file of all-in-one mode from [#f2]_ is shown as below:
     enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer master
     enable_plugin aodh https://git.openstack.org/openstack/aodh master
 
+    # Blazar
+    enable_plugin blazar https://github.com/openstack/blazar.git master
+
     # Tacker
     enable_plugin tacker https://git.openstack.org/openstack/tacker master
 

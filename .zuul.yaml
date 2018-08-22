@@ -38,6 +38,8 @@
     timeout: 9000
     required-projects:
       - openstack/aodh
+      - openstack/blazar
+      - openstack/blazar-nova
       - openstack/horizon
       - openstack/barbican
       - openstack/ceilometer
@@ -46,6 +48,7 @@
       - openstack/mistral-dashboard
       - openstack/networking-sfc
       - openstack/python-barbicanclient
+      - openstack/python-blazarclient
       - openstack/python-mistralclient
       - openstack/python-tackerclient
       - openstack/tacker
@@ -74,6 +77,7 @@
           barbican: https://git.openstack.org/openstack/barbican
           mistral: https://git.openstack.org/openstack/mistral
           tacker: https://git.openstack.org/openstack/tacker
+          blazar: https://git.openstack.org/openstack/blazar
         devstack_services:
           horizon: false
           swift: false

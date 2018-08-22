@@ -1,0 +1,75 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: OpenWRT with services
+
+metadata:
+  template_name: OpenWRT
+
+topology_template:
+  node_templates:
+
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        image: OpenWRT
+        flavor: m1.tiny
+        reservation_metadata:
+          resource_type: physical_host
+          id: 459e94c9-efcd-4320-abf5-8c18cd82c331
+        config: |
+          param0: key1
+          param1: key2
+        mgmt_driver: openwrt
+        monitoring_policy:
+          name: ping
+          actions:
+            failure: respawn
+          parameters:
+            count: 3
+            interval: 10
+        metadata: {metering.server_group: VDU1-2e3261d9-1}
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        anti_spoofing_protection: false
+        type: sriov
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: existing_network_1
+        vendor: Tacker
+
+  policies:
+    - vdu1_placement_policy:
+        type: tosca.policies.tacker.Placement
+        properties:
+          policy: affinity
+          strict: true
+        description: Apply affinity placement policy to the application servers
+        targets: [ VDU1 ]
+    - vdu1_cpu_usage_monitoring_policy:
+        type: tosca.policies.tacker.Alarming
+        triggers:
+           vdu_hcpu_usage_respawning:
+                event_type:
+                    type: tosca.events.resource.utilization
+                    implementation: Ceilometer
+                metric: cpu_util
+                condition:
+                    threshold: 50
+                    constraint: utilization greater_than 50%
+                    granularity: 60
+                    evaluations: 1
+                    aggregation_method: mean
+                    resource_type: instance
+                    comparison_operator: gt
+                metadata: VDU1-2e3261d9-1
+                action: ''

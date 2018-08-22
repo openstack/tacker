@@ -17,9 +17,11 @@ from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 import testtools
 
+from tacker import context
 from tacker.db.common_services import common_services_db_plugin
 from tacker.plugins.common import constants
 from tacker.vnfm import monitor
+from tacker.vnfm import plugin
 
 MOCK_VNF_ID = 'a737497c-761c-11e5-89c3-9cb6541d805d'
 MOCK_VNF = {
@@ -203,3 +205,52 @@ class TestVNFMonitor(testtools.TestCase):
         test_device_status = test_vnfmonitor._hosting_vnfs[MOCK_VNF_ID][
             'vnf']['status']
         self.assertEqual('PENDING_HEAL', test_device_status)
+
+
+class TestVNFReservationAlarmMonitor(testtools.TestCase):
+
+    def setUp(self):
+        super(TestVNFReservationAlarmMonitor, self).setUp()
+        self.context = context.get_admin_context()
+        self.plugin = plugin.VNFMPlugin
+
+    def test_process_alarm_for_vnf(self):
+        vnf = {'id': 'a737497c-761c-11e5-89c3-9cb6541d805d'}
+        trigger = {'params': {'data': {
+            'alarm_id': 'a737497c-761c-11e5-89c3-9cb6541d805d',
+            'current': 'alarm'}}}
+        test_vnf_reservation_monitor = monitor.VNFReservationAlarmMonitor()
+        response = test_vnf_reservation_monitor.process_alarm_for_vnf(
+            vnf, trigger)
+        self.assertEqual(response, True)
+
+    @mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                'CommonServicesPluginDb.create_event')
+    @mock.patch('tacker.vnfm.plugin.VNFMPlugin.get_vnf_policies')
+    def test_update_vnf_with_alarm(self, mock_get_vnf_policies,
+                                   mock_db_service):
+        mock_get_vnf_policies.return_value = [
+            {'name': 'SP_RSV', 'type': 'tosca.policies.tacker.Scaling'}]
+        mock_db_service.return_value = {
+            'event_type': 'MONITOR',
+            'resource_id': '9770fa22-747d-426e-9819-057a95cb778c',
+            'timestamp': '2018-10-30 06:01:45.628162',
+            'event_details': {'Alarm URL set successfully': {
+                'start_actions': 'alarm'}},
+            'resource_state': 'CREATE',
+            'id': '4583',
+            'resource_type': 'vnf'}
+        vnf = {'id': 'a737497c-761c-11e5-89c3-9cb6541d805d',
+               'status': 'insufficient_data'}
+        test_vnf_reservation_monitor = monitor.VNFReservationAlarmMonitor()
+        policy_dict = {
+            'type': 'tosca.policies.tacker.Reservation',
+            'reservation': {'before_end_actions': ['SP_RSV'],
+                            'end_actions': ['noop'],
+                            'start_actions': ['SP_RSV'],
+                            'properties': {
+                                'lease_id':
+                                    'ffa079a0-9d6f-411d-ab15-89219c0ee14d'}}}
+        response = test_vnf_reservation_monitor.update_vnf_with_reservation(
+            self.plugin, self.context, vnf, policy_dict)
+        self.assertEqual(len(response.keys()), 3)

@@ -1,0 +1,4 @@
+---
+features:
+  - Added reservation policy support that will help to scale in/out the VDUs
+   with reserved compute resources.

@@ -20,9 +20,11 @@ import yaml
 from collections import OrderedDict
 from oslo_log import log as logging
 from oslo_utils import uuidutils
+from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import utils
 from tacker.extensions import vnfm
+from tacker.plugins.common import constants
 from toscaparser import properties
 from toscaparser.utils import yamlparser
 
@@ -31,6 +33,7 @@ FAILURE = 'tosca.policies.tacker.Failure'
 LOG = logging.getLogger(__name__)
 MONITORING = 'tosca.policies.Monitoring'
 SCALING = 'tosca.policies.Scaling'
+RESERVATION = 'tosca.policies.Reservation'
 PLACEMENT = 'tosca.policies.tacker.Placement'
 TACKERCP = 'tosca.nodes.nfv.CP.Tacker'
 TACKERVDU = 'tosca.nodes.nfv.VDU.Tacker'
@@ -201,15 +204,54 @@ def get_vdu_metadata(template, unique_id=None):
 
 
 @log.log
+def get_metadata_for_reservation(template, metadata):
+    """Method used to add lease_id in metadata
+
+     So that it can be used further while creating query_metadata
+
+    :param template: ToscaTemplate object
+    :param metadata: metadata dict
+    :return: dictionary contains lease_id
+    """
+
+    metadata.setdefault('reservation', {})
+    input_param_list = template.parsed_params.keys()
+    # if lease_id is passed in the parameter file,
+    # get it from template parsed_params.
+    if 'lease_id' in input_param_list:
+        metadata['reservation']['lease_id'] = template.parsed_params[
+            'lease_id']
+    else:
+        for policy in template.policies:
+            if policy.entity_tpl['type'] == constants.POLICY_RESERVATION:
+                metadata['reservation']['lease_id'] = policy.entity_tpl[
+                    'reservation']['properties']['lease_id']
+                break
+    if not uuidutils.is_uuid_like(metadata['reservation']['lease_id']):
+        raise exceptions.Invalid('Invalid UUID for lease_id')
+    return metadata
+
+
+@log.log
 def pre_process_alarm_resources(vnf, template, vdu_metadata, unique_id=None):
     alarm_resources = dict()
     query_metadata = dict()
     alarm_actions = dict()
     for policy in template.policies:
         if policy.type_definition.is_derived_from(MONITORING):
-            query_metadata = _process_query_metadata(
-                vdu_metadata, policy, unique_id)
-            alarm_actions = _process_alarm_actions(vnf, policy)
+            query_metadata.update(_process_query_metadata(
+                vdu_metadata, policy, unique_id))
+            alarm_actions.update(_process_alarm_actions(vnf, policy))
+        if policy.type_definition.is_derived_from(RESERVATION):
+            query_metadata.update(_process_query_metadata_reservation(
+                vdu_metadata, policy))
+            alarm_actions.update(_process_alarm_actions_for_reservation(
+                vnf, policy))
+            alarm_resources['event_types'] = {
+                'start_actions': {'event_type': 'lease.event.start_lease'},
+                'before_end_actions': {
+                    'event_type': 'lease.event.before_end_lease'},
+                'end_actions': {'event_type': 'lease.event.end_lease'}}
     alarm_resources['query_metadata'] = query_metadata
     alarm_resources['alarm_actions'] = alarm_actions
     return alarm_resources
@@ -248,6 +290,19 @@ def _process_query_metadata(metadata, policy, unique_id):
     return query_mtdata
 
 
+def _process_query_metadata_reservation(metadata, policy):
+    query_metadata = dict()
+    policy_actions = policy.entity_tpl['reservation'].keys()
+    policy_actions.remove('properties')
+    for action in policy_actions:
+        query_template = [{
+            "field": 'traits.lease_id', "op": "eq",
+            "value": metadata['reservation']['lease_id']}]
+        query_metadata[action] = query_template
+
+    return query_metadata
+
+
 def _process_alarm_actions(vnf, policy):
     # process  alarm url here
     triggers = policy.entity_tpl['triggers']
@@ -259,6 +314,20 @@ def _process_alarm_actions(vnf, policy):
             LOG.debug('Alarm url in heat %s', alarm_url)
             alarm_actions[trigger_name] = dict()
             alarm_actions[trigger_name]['alarm_actions'] = [alarm_url]
+    return alarm_actions
+
+
+def _process_alarm_actions_for_reservation(vnf, policy):
+    # process  alarm url here
+    alarm_actions = dict()
+    policy_actions = policy.entity_tpl['reservation'].keys()
+    policy_actions.remove('properties')
+    for action in policy_actions:
+        alarm_url = vnf['attributes'].get(action)
+        if alarm_url:
+            LOG.debug('Alarm url in heat %s', alarm_url)
+            alarm_actions[action] = dict()
+            alarm_actions[action]['alarm_actions'] = [alarm_url]
     return alarm_actions
 
 
@@ -429,28 +498,36 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
         else:
             heat_dict['outputs'] = output
         LOG.debug('Added output for %s', outputname)
-    if metadata:
+    if metadata.get('vdus'):
         for vdu_name, metadata_dict in metadata['vdus'].items():
             metadata_dict['metering.server_group'] = \
                 (metadata_dict['metering.server_group'] + '-' + unique_id)[:15]
             if heat_dict['resources'].get(vdu_name):
                 heat_dict['resources'][vdu_name]['properties']['metadata'] =\
                     metadata_dict
+
     query_metadata = alarm_resources.get('query_metadata')
     alarm_actions = alarm_resources.get('alarm_actions')
+    event_types = alarm_resources.get('event_types')
     if query_metadata:
         for trigger_name, matching_metadata_dict in query_metadata.items():
             if heat_dict['resources'].get(trigger_name):
                 query_mtdata = dict()
                 query_mtdata['query'] = \
                     query_metadata[trigger_name]
-                heat_dict['resources'][trigger_name]['properties'].\
-                    update(query_mtdata)
+                heat_dict['resources'][trigger_name][
+                    'properties'].update(query_mtdata)
     if alarm_actions:
         for trigger_name, alarm_actions_dict in alarm_actions.items():
             if heat_dict['resources'].get(trigger_name):
                 heat_dict['resources'][trigger_name]['properties']. \
                     update(alarm_actions_dict)
+
+    if event_types:
+        for trigger_name, event_type in event_types.items():
+            if heat_dict['resources'].get(trigger_name):
+                heat_dict['resources'][trigger_name]['properties'].update(
+                    event_type)
 
     add_resources_tpl(heat_dict, res_tpl)
     for res in heat_dict["resources"].values():
@@ -496,6 +573,18 @@ def add_volume_resources(heat_dict, vol_res):
 
 @log.log
 def post_process_template(template):
+    def _add_scheduler_hints_property(nt):
+        hints = nt.get_property_value('scheduler_hints')
+        if hints is None:
+            hints = OrderedDict()
+            hints_schema = {'type': 'map', 'required': False,
+                            'entry_schema': {'type': 'string'}}
+            hints_prop = properties.Property('scheduler_hints',
+                                             hints,
+                                             hints_schema)
+            nt.get_properties_objects().append(hints_prop)
+        return hints
+
     for nt in template.nodetemplates:
         if (nt.type_definition.is_derived_from(MONITORING) or
             nt.type_definition.is_derived_from(FAILURE) or
@@ -529,6 +618,43 @@ def post_process_template(template):
                             convert_prop[nt.type][prop], v, schema_dict)
                         nt.get_properties_objects().append(newprop)
                         nt.get_properties_objects().remove(p)
+
+        if nt.type_definition.is_derived_from(TACKERVDU):
+            reservation_metadata = nt.get_property_value(
+                'reservation_metadata')
+            if reservation_metadata is not None:
+                hints = _add_scheduler_hints_property(nt)
+
+                input_resource_type = reservation_metadata.get(
+                    'resource_type')
+                input_id = reservation_metadata.get('id')
+
+                # Checking if 'resource_type' and 'id' is passed through a
+                # input parameter file or not. If it's then get the value
+                # from input parameter file.
+                if (isinstance(input_resource_type, OrderedDict) and
+                        input_resource_type.get('get_input')):
+                    input_resource_type = template.parsed_params.get(
+                        input_resource_type.get('get_input'))
+                # TODO(niraj-singh): Remove this validation once bug
+                # 1815755 is fixed.
+                if input_resource_type not in (
+                        'physical_host', 'virtual_instance'):
+                    raise exceptions.Invalid(
+                        'resoure_type must be physical_host'
+                        ' or virtual_instance')
+
+                if (isinstance(input_id, OrderedDict) and
+                        input_id.get('get_input')):
+                    input_id = template.parsed_params.get(
+                        input_id.get('get_input'))
+
+                if input_resource_type == 'physical_host':
+                    hints['reservation'] = input_id
+                elif input_resource_type == 'virtual_instance':
+                    hints['group'] = input_id
+                nt.get_properties_objects().remove(nt.get_properties().get(
+                    'reservation_metadata'))
 
 
 @log.log
@@ -712,7 +838,7 @@ def update_nested_scaling_resources(nested_resources, mgmt_ports, metadata,
             list(nested_resources.items())[0]
         nested_resources_dict =\
             yamlparser.simple_ordered_parse(nested_resources_yaml)
-        if metadata:
+        if metadata.get('vdus'):
             for vdu_name, metadata_dict in metadata['vdus'].items():
                 if nested_resources_dict['resources'].get(vdu_name):
                     nested_resources_dict['resources'][vdu_name]['properties']['metadata'] = \

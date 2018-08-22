@@ -72,35 +72,54 @@ class TestToscaUtils(testtools.TestCase):
         self.assertEqual(expected_mgmt_ports, mgmt_ports)
 
     def test_post_process_template(self):
-        tosca2 = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                          yaml_dict_tpl=self.vnfd_dict)
-        toscautils.post_process_template(tosca2)
+        tosca_post_process_tpl = _get_template(
+            'test_tosca_post_process_template.yaml')
+        vnfd_dict = yaml.safe_load(tosca_post_process_tpl)
+        toscautils.updateimports(vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
+                                             yaml_dict_tpl=vnfd_dict)
+        toscautils.post_process_template(tosca)
+
         invalidNodes = 0
-        for nt in tosca2.nodetemplates:
+        deletedProperties = 0
+        convertedValues = 0
+        convertedProperties = 0
+
+        for nt in tosca.nodetemplates:
             if (nt.type_definition.is_derived_from(toscautils.MONITORING) or
-                nt.type_definition.is_derived_from(toscautils.FAILURE) or
+                    nt.type_definition.is_derived_from(toscautils.FAILURE) or
                     nt.type_definition.is_derived_from(toscautils.PLACEMENT)):
                 invalidNodes += 1
 
+            if nt.type in toscautils.delpropmap.keys():
+                for prop in toscautils.delpropmap[nt.type]:
+                    for p in nt.get_properties_objects():
+                        if prop == p.name:
+                            deletedProperties += 1
+
+            if nt.type in toscautils.convert_prop_values:
+                for prop in toscautils.convert_prop_values[nt.type].keys():
+                    convertmap = toscautils.convert_prop_values[nt.type][prop]
+                    for p in nt.get_properties_objects():
+                        if (prop == p.name and
+                                p.value in convertmap.keys()):
+                            convertedValues += 1
+
+            if nt.type in toscautils.convert_prop:
+                for prop in toscautils.convert_prop[nt.type].keys():
+                    for p in nt.get_properties_objects():
+                        if prop == p.name:
+                            convertedProperties += 1
+
+            if nt.name == 'VDU1':
+                vdu1_hints = nt.get_properties().get('scheduler_hints')
+                vdu1_rsv = vdu1_hints.value.get('reservation')
+
         self.assertEqual(0, invalidNodes)
-
-        deletedProperties = 0
-        if nt.type in toscautils.delpropmap.keys():
-            for prop in toscautils.delpropmap[nt.type]:
-                for p in nt.get_properties_objects():
-                    if prop == p.name:
-                        deletedProperties += 1
-
         self.assertEqual(0, deletedProperties)
-
-        convertedProperties = 0
-        if nt.type in toscautils.convert_prop:
-            for prop in toscautils.convert_prop[nt.type].keys():
-                for p in nt.get_properties_objects():
-                    if prop == p.name:
-                        convertedProperties += 1
-
+        self.assertEqual(0, convertedValues)
         self.assertEqual(0, convertedProperties)
+        self.assertEqual(vdu1_rsv, '459e94c9-efcd-4320-abf5-8c18cd82c331')
 
     def test_post_process_heat_template(self):
         tosca1 = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
