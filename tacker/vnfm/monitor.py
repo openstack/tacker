@@ -99,8 +99,12 @@ class VNFMonitor(object):
                     if hosting_vnf.get('dead', False):
                         LOG.debug('monitor skips dead vnf %s', hosting_vnf)
                         continue
-
-                    self.run_monitor(hosting_vnf)
+                    try:
+                        self.run_monitor(hosting_vnf)
+                    except Exception as ex:
+                        LOG.exception("Unknown exception: Monitoring failed "
+                                      "for VNF '%s' due to '%s' ",
+                                      hosting_vnf['id'], ex)
 
     @staticmethod
     def to_hosting_vnf(vnf_dict, action_cb):
