@@ -65,28 +65,28 @@
         c-bak: false
       zuul_work_dir: src/git.openstack.org/openstack/tacker
     host-vars:
-     controller:
-       devstack_plugins:
-         heat: https://git.openstack.org/openstack/heat
-         networking-sfc: https://git.openstack.org/openstack/networking-sfc
-         aodh: https://git.openstack.org/openstack/aodh
-         ceilometer: https://git.openstack.org/openstack/ceilometer
-         barbican: https://git.openstack.org/openstack/barbican
-         mistral: https://git.openstack.org/openstack/mistral
-         tacker: https://git.openstack.org/openstack/tacker
-       devstack_services:
-         horizon: false
-         swift: false
-         s-account: false
-         s-container: false
-         s-object: false
-         s-proxy: false
-         c-bak: false
-         tacker: true
-         tacker-conductor: true
-         q-svc: true
-       tox_install_siblings: false
-       tox_envlist: dsvm-functional
+      controller:
+        devstack_plugins:
+          heat: https://git.openstack.org/openstack/heat
+          networking-sfc: https://git.openstack.org/openstack/networking-sfc
+          aodh: https://git.openstack.org/openstack/aodh
+          ceilometer: https://git.openstack.org/openstack/ceilometer
+          barbican: https://git.openstack.org/openstack/barbican
+          mistral: https://git.openstack.org/openstack/mistral
+          tacker: https://git.openstack.org/openstack/tacker
+        devstack_services:
+          horizon: false
+          swift: false
+          s-account: false
+          s-container: false
+          s-object: false
+          s-proxy: false
+          c-bak: false
+          tacker: true
+          tacker-conductor: true
+          q-svc: true
+        tox_install_siblings: false
+        tox_envlist: dsvm-functional
     group-vars:
       subnode:
         devstack_localrc:
@@ -115,6 +115,12 @@
         TACKER_TOX_PYTHON: python3
 
 - project:
+    templates:
+      - check-requirements
+      - openstack-python-jobs
+      - publish-openstack-sphinx-docs
+      - release-notes-jobs
+      - openstack-python35-jobs
     check:
       jobs:
         - tacker-functional-devstack-multinode:
@@ -123,5 +129,5 @@
             voting: false
         - openstack-tox-lower-constraints
     gate:
-        jobs:
-            - openstack-tox-lower-constraints
+      jobs:
+        - openstack-tox-lower-constraints
