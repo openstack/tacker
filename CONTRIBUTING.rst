@@ -44,7 +44,7 @@ and release tracking.
 Source Repository
 -----------------
 
-The offical Tacker source code is available in following repositories:
+The official Tacker source code is available in following repositories:
 
 * **Tacker server:** https://git.openstack.org/cgit/openstack/tacker
 * **Tacker Python client:** https://git.openstack.org/cgit/openstack/python-tackerclient
