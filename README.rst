@@ -44,6 +44,8 @@ External Resources:
 
 * Tacker Wiki: https://wiki.openstack.org/wiki/Tacker
 
+* Tacker Blueprints: https://blueprints.launchpad.net/tacker
+
 * For help on usage and hacking of Tacker, please send an email to
   OpenStack-dev Mailing List <mailto:openstack-dev@lists.openstack.org> with
   **[openstack-dev] [Tacker]** tag.
