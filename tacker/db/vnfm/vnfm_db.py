@@ -688,11 +688,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def _mark_vnf_dead(self, vnf_id):
         exclude_status = [
-            constants.DOWN,
             constants.PENDING_CREATE,
             constants.PENDING_UPDATE,
             constants.PENDING_DELETE,
-            constants.INACTIVE,
             constants.ERROR]
         return self._mark_vnf_status(
             vnf_id, exclude_status, constants.DEAD)
