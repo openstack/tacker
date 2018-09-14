@@ -32,7 +32,7 @@ is the account information collected in file `vim_config.yaml` [1]_:
 
 .. code-block:: yaml
 
-    auth_url: 'https://10.1.0.5:5000'
+    auth_url: 'http://127.0.0.1/identity'
     username: 'nfv_user'
     password: 'mySecretPW'
     project_name: 'nfv'
@@ -40,6 +40,12 @@ is the account information collected in file `vim_config.yaml` [1]_:
     user_domain_name: 'Default'
     cert_verify: 'True'
 ..
+
+.. note::
+
+    In Keystone, port `5000` is enabled for authentication service [2]_, so the
+    end users can use `auth_url: 'http://127.0.0.1/5000/v3` instead  of
+    `auth_url: 'http://127.0.0.1/identity'` as above mention.
 
 By default, cert_verify is set as `True`. To disable verifying SSL
 certificate, user can set cert_verify parameter to `False`.
@@ -107,7 +113,7 @@ Onboarding sample VNF
 
 .. note::
 
-   You can find more sample tosca templates for VNFD at [2]_
+   You can find more sample tosca templates for VNFD at [3]_
 
 
 2. Create a sample VNFD
@@ -138,4 +144,5 @@ References
 ==========
 
 .. [1] https://github.com/longkb/tacker/blob/master/samples/vim/vim_config.yaml
-.. [2] https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd
+.. [2] https://docs.openstack.org/keystoneauth/latest/using-sessions.html#sessions-for-users
+.. [3] https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd

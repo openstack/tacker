@@ -45,7 +45,7 @@ OPTS = [cfg.StrOpt('user_domain_id',
                    default='default',
                    help='Project Domain Name'),
         cfg.StrOpt('auth_url',
-                   default='http://localhost:5000/v3',
+                   default='http://localhost/identity/v3',
                    help='Keystone endpoint')]
 
 cfg.CONF.register_opts(OPTS, 'keystone_authtoken')
@@ -102,26 +102,26 @@ class TestOpenstack_Driver(base.TestCase):
 
     def get_vim_obj(self):
         return {'id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff', 'type':
-                'openstack', 'auth_url': 'http://localhost:5000',
+                'openstack', 'auth_url': 'http://localhost/identity',
                 'auth_cred': {'username': 'test_user',
                               'password': 'test_password',
                               'user_domain_name': 'default',
                               'cert_verify': 'True',
-                              'auth_url': 'http://localhost:5000'},
+                              'auth_url': 'http://localhost/identity'},
                 'name': 'VIM0',
                 'vim_project': {'name': 'test_project',
                                 'project_domain_name': 'default'}}
 
     def get_vim_obj_barbican(self):
         return {'id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff', 'type':
-                'openstack', 'auth_url': 'http://localhost:5000',
+                'openstack', 'auth_url': 'http://localhost/identity',
                 'auth_cred': {'username': 'test_user',
                               'password': 'test_password',
                               'user_domain_name': 'default',
                               'key_type': 'barbican_key',
                               'secret_uuid': 'fake-secret-uuid',
                               'cert_verify': 'True',
-                              'auth_url': 'http://localhost:5000'},
+                              'auth_url': 'http://localhost/identity'},
                 'name': 'VIM0',
                 'vim_project': {'name': 'test_project',
                                 'project_domain_name': 'default'}}
@@ -150,7 +150,7 @@ class TestOpenstack_Driver(base.TestCase):
         self.keystone.get_version.return_value = keystone_version
         auth_obj = {'tenant_name': 'test_project', 'username': 'test_user',
                     'password': 'test_password', 'cert_verify': 'True',
-                    'auth_url': 'http://localhost:5000/v2.0',
+                    'auth_url': 'http://localhost/identity/v2.0',
                     'tenant_id': None}
         self._test_register_vim(self.vim_obj, mock_ks_client)
         self.keystone.initialize_client.assert_called_once_with(

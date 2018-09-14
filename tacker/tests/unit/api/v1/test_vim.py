@@ -30,7 +30,7 @@ def get_vim_config():
         "vim": {
             "tenant_id": 'test-project',
             "type": "openstack",
-            "auth_url": 'http://localhost:5000',
+            "auth_url": 'http://localhost/identity',
             "auth_cred": {
                 "username": "test_user",
                 "user_domain_name": "Default",
@@ -62,7 +62,7 @@ class VIMCreateTestCase(base.TestCase):
     def _vim_create_response(self):
         return {
             'auth_cred': {
-                'auth_url': 'http://localhost:5000',
+                'auth_url': 'http://localhost/identity',
                 'cert_verify': 'False',
                 'key_type': 'barbican_key',
                 'password': '***',
@@ -73,7 +73,7 @@ class VIMCreateTestCase(base.TestCase):
                 'user_domain_name': 'Default',
                 'username': 'test_user'
             },
-            'auth_url': 'http://localhost:5000',
+            'auth_url': 'http://localhost/identity',
             'created_at': None,
             'description': 'Additional site',
             'id': '73493efe-3616-414c-bf87-bf450d0b3650',

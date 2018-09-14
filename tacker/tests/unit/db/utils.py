@@ -155,7 +155,8 @@ def get_dummy_vnf_update_config():
 
 
 def get_vim_obj():
-    return {'vim': {'type': 'openstack', 'auth_url': 'http://localhost:5000',
+    return {'vim': {'type': 'openstack',
+                    'auth_url': 'http://localhost/identity',
                     'vim_project': {'name': 'test_project'},
                     'auth_cred': {'username': 'test_user',
                                   'password': 'test_password',
@@ -170,7 +171,7 @@ def get_vim_auth_obj():
             'project_id': None,
             'project_name': 'test_project',
             'cert_verify': 'True',
-            'auth_url': 'http://localhost:5000/v3',
+            'auth_url': 'http://localhost/identity/v3',
             'user_domain_name': 'default',
             'project_domain_name': 'default'}
 

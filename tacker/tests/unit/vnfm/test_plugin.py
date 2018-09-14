@@ -94,7 +94,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
     def _stub_get_vim(self):
         vim_obj = {'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
                    'vim_name': 'fake_vim', 'vim_auth':
-                   {'auth_url': 'http://localhost:5000', 'password':
+                   {'auth_url': 'http://localhost/identity', 'password':
                        'test_pw', 'username': 'test_user', 'project_name':
                        'test_project'}, 'vim_type': 'test_vim'}
         self.vim_client.get_vim.return_value = vim_obj
@@ -212,7 +212,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         vim_auth_db = nfvo_db.VimAuth(
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             password='encrypted_pw',
-            auth_url='http://localhost:5000',
+            auth_url='http://localhost/identity',
             vim_project={'name': 'test_project'},
             auth_cred={'username': 'test_user', 'user_domain_id': 'default',
                        'project_domain_id': 'default'})

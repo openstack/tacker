@@ -1,4 +1,4 @@
-auth_url: 'http://localhost:5000'
+auth_url: 'http://localhost/identity'
 username: 'nfv_user'
 password: 'devstack'
 project_name: 'nfv'

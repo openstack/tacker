@@ -43,8 +43,8 @@ To register a new OpenStack VIM inside Tacker.
  | Field          | Value                                                                                                                                                    |
  +----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
  | auth_cred      | {"username": "nfv_user", "password": "***", "project_name": "nfv", "user_id": "", "user_domain_name": "default", "auth_url":                               |
- |                | "http://10.18.161.165:5000/v3", "project_id": "", "project_domain_name": "default"}                                                                        |
- | auth_url       | http://10.18.161.165:5000/v3                                                                                                                             |
+ |                | "http://127.0.0.1/identity", "project_id": "", "project_domain_name": "default"}                                                                        |
+ | auth_url       | http://127.0.0.1/identity                                                                                                                             |
  | description    | OpenStack Liberty                                                                                                                                        |
  | id             | 3f3c51c5-8bda-4bd3-adb3-5ae62eae65c3                                                                                                                     |
  | name           | Site1                                                                                                                                                    |
@@ -58,13 +58,19 @@ In the above command, config.yaml contains VIM specific parameters as below:
 
 ::
 
- auth_url: 'http://localhost:5000'
+ auth_url: 'http://127.0.0.1/identity'
  username: 'nfv_user'
  password: 'devstack'
  project_name: 'nfv'
 
 The parameter auth_url points to the keystone service authorization URL of the
 remote OpenStack site.
+
+.. note::
+
+    In Keystone, port `5000` is enabled for authentication service [1]_, so the
+    end users can use `auth_url: 'http://127.0.0.1/5000/v3` instead  of
+    `auth_url: 'http://127.0.0.1/identity'` as above mention.
 
 Default VIM configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -171,3 +177,8 @@ Limitations
 * Fernet keys for password encryption and decryption is stored on file systems.
   This is a limitation when multiple servers are serving behind a load balancer
   server and the keys need to be synced across tacker server systems.
+
+References
+==========
+
+.. [1] https://docs.openstack.org/keystoneauth/latest/using-sessions.html#sessions-for-users

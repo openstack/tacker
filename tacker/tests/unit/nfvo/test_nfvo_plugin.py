@@ -249,7 +249,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         vim_auth_db = nfvo_db.VimAuth(
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             password='encrypted_pw',
-            auth_url='http://localhost:5000',
+            auth_url='http://localhost/identity',
             vim_project={'name': 'test_project'},
             auth_cred={'username': 'test_user', 'user_domain_id': 'default',
                        'project_domain_id': 'default',
@@ -272,7 +272,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         vim_auth_db = nfvo_db.VimAuth(
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             password='encrypted_pw',
-            auth_url='http://localhost:5000',
+            auth_url='http://localhost/identity',
             vim_project={'name': 'test_project'},
             auth_cred={'username': 'test_user', 'user_domain_id': 'default',
                        'project_domain_id': 'default',
