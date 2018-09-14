@@ -18,17 +18,19 @@
 Getting Started
 ===============
 
-Once tacker is installed successfully, follow the steps given below to get
-started with tacker and validate the installation.
+Once Tacker is installed successfully, follow the steps given below to get
+started with Tacker and validate the installation.
 
 
 Registering default OpenStack VIM
 =================================
-1.) Get one account on the OpenStack VIM.
+1. Get one account on the OpenStack VIM.
 
-In Tacker MANO system, the VNF can be onboarded to one target OpenStack, which
+In Tacker MANO system, the VNF can be on-boarded to one target OpenStack, which
 is also called VIM. Get one account on this OpenStack. For example, the below
-is the account information collected in file vim-config.yaml::
+is the account information collected in file `vim_config.yaml` [1]_:
+
+.. code-block:: yaml
 
     auth_url: 'https://10.1.0.5:5000'
     username: 'nfv_user'
@@ -37,29 +39,27 @@ is the account information collected in file vim-config.yaml::
     project_domain_name: 'Default'
     user_domain_name: 'Default'
     cert_verify: 'True'
+..
 
-By default, cert_verify is set as 'True'. To disable verifying SSL certificate,
-user can set cert_verify parameter to 'False'.
+By default, cert_verify is set as `True`. To disable verifying SSL
+certificate, user can set cert_verify parameter to `False`.
 
-
-2.) Register the VIM that will be used as a default VIM for VNF deployments.
-This will be required when the optional argument --vim-id is not provided by
-the user during vnf creation.
+2. Register the VIM that will be used as a default VIM for VNF deployments.
+This will be required when the optional argument `--vim-id` is not provided by
+the user during VNF creation.
 
 .. code-block:: console
 
-   openstack vim register --config-file vim-config.yaml \
+   openstack vim register --config-file vim_config.yaml \
           --description 'my first vim' --is-default hellovim
 ..
-
-
 
 Onboarding sample VNF
 =====================
 
-1). Create a sample-vnfd.yaml file with the following content:
+1. Create a `sample-vnfd.yaml` file with the following template:
 
-.. code-block:: ini
+.. code-block:: yaml
 
    tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
@@ -103,30 +103,28 @@ Onboarding sample VNF
          properties:
            network_name: net_mgmt
            vendor: Tacker
-
 ..
 
 .. note::
 
-   You can find more sample tosca templates at
-   https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd.
+   You can find more sample tosca templates for VNFD at [2]_
 
 
-2). Create a sample vnfd.
+2. Create a sample VNFD
 
 .. code-block:: console
 
    openstack vnf descriptor create --vnfd-file sample-vnfd.yaml samplevnfd
 ..
 
-3). Create a VNF.
+3. Create a VNF
 
 .. code-block:: console
 
    openstack vnf create --vnfd-name samplevnfd samplevnf
 ..
 
-5). Check the status.
+4. Some basic Tacker commands
 
 .. code-block:: console
 
@@ -135,3 +133,9 @@ Onboarding sample VNF
    openstack vnf list
    openstack vnf show samplevnf
 ..
+
+References
+==========
+
+.. [1] https://github.com/longkb/tacker/blob/master/samples/vim/vim_config.yaml
+.. [2] https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd
