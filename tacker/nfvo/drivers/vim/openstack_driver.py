@@ -628,7 +628,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                 neutronclient_.port_pair_group_delete(old_ppgs_dict[ppg_name])
                 port_pairs = ppg_info['port_pair_group']['port_pairs']
                 if port_pairs and len(port_pairs):
-                    for j in xrange(0, len(port_pairs)):
+                    for j in range(0, len(port_pairs)):
                         pp_id = port_pairs[j]
                         neutronclient_.port_pair_delete(pp_id)
         return pc_id
@@ -788,7 +788,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                         new_port_pairs = new_ppg_info['port_pair_group'][
                             'port_pairs']
                         if new_port_pairs and len(new_port_pairs):
-                            for j in xrange(0, len(new_port_pairs)):
+                            for j in range(0, len(new_port_pairs)):
                                 new_pp_id = new_port_pairs[j]
                                 neutronclient.port_pair_delete(new_pp_id)
         # clean flow classifiers
@@ -933,7 +933,7 @@ class NeutronClient(object):
                     self.client.list_sfc_port_chains()['port_chains']
                 ppg_list = port_chain['port_chain'].get('port_pair_groups')
                 if ppg_list and len(ppg_list):
-                    for i in xrange(0, len(ppg_list)):
+                    for i in range(0, len(ppg_list)):
                         ppg_in_use = False
                         # Firstly, Tacker delete port chain, if a port pair
                         # group still belong to other port chains, Tacker
@@ -951,7 +951,7 @@ class NeutronClient(object):
                                 port_pairs = \
                                     ppg['port_pair_group']['port_pairs']
                                 if port_pairs and len(port_pairs):
-                                    for j in xrange(0, len(port_pairs)):
+                                    for j in range(0, len(port_pairs)):
                                         pp_id = port_pairs[j]
                                         self.client.delete_sfc_port_pair(pp_id)
         except nc_exceptions.NotFound:
