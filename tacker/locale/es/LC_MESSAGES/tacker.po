@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tacker VERSION\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2018-03-01 07:40+0000\n"
+"POT-Creation-Date: 2018-09-21 05:31+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -636,10 +636,6 @@ msgid "Number of separate worker processes for service"
 msgstr "Numero de procesos independientes por servicio"
 
 #, python-format
-msgid "Param input %(param_key)s not used."
-msgstr "Parámetro de entrada %(param_key)s no usado."
-
-#, python-format
 msgid "Param values %(param_value)s is not in dict format."
 msgstr ""
 "Valores de los parámetros %(param_value)s no están en formato de diccionario."
@@ -1015,13 +1011,6 @@ msgstr ""
 
 msgid "check interval for monitor"
 msgstr "Intervalo de comprobación para el monitor"
-
-msgid ""
-"context must be of type KeystonePassword, KeystoneToken, RequestContext, or "
-"Context."
-msgstr ""
-"contexto debe ser del tipo KeystonePassword, KeystoneToken, RequestContext, "
-"o Context."
 
 #, python-format
 msgid "creating VNF based on %(vnfd_id)s failed"
