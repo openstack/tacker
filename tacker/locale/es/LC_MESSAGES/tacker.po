@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tacker VERSION\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2018-01-22 06:01+0000\n"
+"POT-Creation-Date: 2018-09-13 05:10+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Last-Translator: Eduardo Gonzalez Gutierrez <dabarren@gmail.com>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
-"X-Generator: Zanata 3.9.6\n"
+"X-Generator: Zanata 4.3.3\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 #, python-format
@@ -672,10 +672,6 @@ msgstr "Regla %(policy)s no existe para VNF %(vnf_id)s"
 #, python-format
 msgid "Policy doesn't allow %(action)s to be performed."
 msgstr "La política no permite que la %(action)s se realice"
-
-#, python-format
-msgid "Policy not found in NFP %(nfp)s"
-msgstr "Regla no encontrada en NFP %(nfp)s"
 
 msgid "Private key file to use when starting the server securely"
 msgstr ""
