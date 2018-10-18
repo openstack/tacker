@@ -33,6 +33,7 @@ Contents
    user/index
    admin/index
    configuration/index
+   cli/index
    contributor/index
    reference/index
 
