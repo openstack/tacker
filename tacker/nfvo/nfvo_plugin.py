@@ -727,8 +727,9 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         nsd_dict = yaml.safe_load(nsd['attributes']['nsd'])
         vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
         onboarded_vnfds = vnfm_plugin.get_vnfds(context, [])
-        region_name = ns.setdefault('placement_attr', {}).get(
-            'region_name', None)
+        region_name = ns_info.get('placement_attr', {}).\
+            get('region_name', None)
+
         vim_res = self.vim_client.get_vim(context, ns['ns']['vim_id'],
                                           region_name)
         driver_type = vim_res['vim_type']

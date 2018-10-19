@@ -771,6 +771,13 @@ RESOURCE_ATTRIBUTE_MAP = {
             'is_visible': True,
             'default': None,
         },
+        'placement_attr': {
+            'allow_post': True,
+            'allow_put': False,
+            'validate': {'type:dict_or_none': None},
+            'is_visible': True,
+            'default': {},
+        },
         'vim_id': {
             'allow_post': True,
             'allow_put': False,
