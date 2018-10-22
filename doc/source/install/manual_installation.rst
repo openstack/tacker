@@ -187,6 +187,19 @@ If you are using keystone v2 then,
    OpenStack distribution in the keystone_authtoken section.
 ..
 
+.. note::
+
+   The path of tacker-rootwrap varies according to the operating system,
+   e.g. it is /usr/bin/tacker-rootwrap for CentOS, therefore the configuration for
+   [agent] should be like:
+
+   .. code-block:: ini
+
+      [agent]
+      root_helper = sudo /usr/bin/tacker-rootwrap /usr/local/etc/tacker/rootwrap.conf
+   ..
+..
+
 .. code-block:: ini
 
    [DEFAULT]
@@ -240,6 +253,13 @@ If you are using keystone v2 then,
 ..
 
 9). Populate Tacker database:
+
+.. note::
+
+   The path of tacker-db-manage varies according to the operating system,
+   e.g. it is /usr/bin/tacker-bin-manage for CentOS
+
+..
 
 .. code-block:: console
 
@@ -326,6 +346,13 @@ Starting Tacker server
 1).Open a new console and launch tacker-server. A separate terminal is
 required because the console will be locked by a running process.
 
+.. note::
+
+   The path of tacker-server varies according to the operating system,
+   e.g. it is /usr/bin/tacker-server for CentOS
+
+..
+
 .. code-block:: console
 
    sudo python /usr/local/bin/tacker-server \
@@ -338,6 +365,13 @@ Starting Tacker conductor
 
 1).Open a new console and launch tacker-conductor. A separate terminal is
 required because the console will be locked by a running process.
+
+.. note::
+
+   The path of tacker-conductor varies according to the operating system,
+   e.g. it is /usr/bin/tacker-conductor for CentOS
+
+..
 
 .. code-block:: console
 
