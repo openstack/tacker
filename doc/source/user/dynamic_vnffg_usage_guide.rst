@@ -41,11 +41,13 @@ Topology
 + SFC with no classifier (HTTP works, ICMP works)
 
 .. figure:: ../_images/sfc1.png
+   :width: 100%
    :alt: SFC with no classifier
 
 + SFC with ICMP classifier (HTTP works, ICMP dropped)
 
 .. figure:: ../_images/sfc2.png
+   :width: 100%
    :alt: SFC with ICMP classifier
 
 Setting up and produce the scenario
@@ -67,6 +69,7 @@ Config the Zabbix server as below:
   should have installed the Zabbix agent, see step 3)
 
 .. figure:: ../_images/zabbix1.JPG
+   :width: 100%
    :alt: Zabbix server config 1
 
 + Create a trigger with a name which contains the keyword BpS (e.g. BpS in the
@@ -81,6 +84,7 @@ Config the Zabbix server as below:
 ..
 
 .. figure:: ../_images/zabbix2.JPG
+   :width: 100%
    :alt: Zabbix server config 2
 
 + Create an action which will update the classifier if a trigger with the BpS
@@ -91,9 +95,11 @@ Config the Zabbix server as below:
   to update the current classifier.
 
 .. figure:: ../_images/zabbix3.JPG
+   :width: 100%
    :alt: Zabbix server config 3
 
 .. figure:: ../_images/zabbix4.JPG
+   :width: 100%
    :alt: Zabbix server config 4
 
 The action command is as follows:
