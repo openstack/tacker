@@ -154,7 +154,7 @@ Configuring a VDU
 A VDU can be configured as a specific Network Function under **config**
 section in VNFD template. A sample template configuring a VDU as a firewall
 can be viewed in a `sample file <https://github.com/openstack/tacker/blob/
-master/samples/tosca-templates/vnfd/tosca-config-openwrt-with-firewall.yaml>`_.
+master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml>`_.
 
 Specifying external image
 """""""""""""""""""""""""
@@ -582,7 +582,7 @@ a template which mentions all node types with all available options.
                 numa_nodes:
                   node0: [ id: >=0, vcpus: [host CPU numbers], mem_size: >= 0MB]
           properties:
-            image: Image to be used in VM
+            image: Image to be used in VDU
             flavor: Nova supported flavors
             availability_zone: available availability zone
             mem_size: in MB
