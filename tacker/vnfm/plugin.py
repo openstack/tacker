@@ -863,13 +863,16 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     def get_vnf_resources(self, context, vnf_id, fields=None, filters=None):
         vnf_info = self.get_vnf(context, vnf_id)
         infra_driver, vim_auth = self._get_infra_driver(context, vnf_info)
+        region_name = vnf_info.get('placement_attr', {}).\
+            get('region_name', None)
         if vnf_info['status'] == constants.ACTIVE:
             vnf_details = self._vnf_manager.invoke(infra_driver,
                                                    'get_resource_info',
                                                    plugin=self,
                                                    context=context,
                                                    vnf_info=vnf_info,
-                                                   auth_attr=vim_auth)
+                                                   auth_attr=vim_auth,
+                                                   region_name=region_name)
             resources = [{'name': name,
                           'type': info.get('type'),
                           'id': info.get('id')}
