@@ -69,7 +69,7 @@ remote OpenStack site.
 .. note::
 
     In Keystone, port `5000` is enabled for authentication service [1]_, so the
-    end users can use `auth_url: 'http://127.0.0.1/5000/v3` instead  of
+    end users can use `auth_url: 'http://127.0.0.1:5000/v3` instead  of
     `auth_url: 'http://127.0.0.1/identity'` as above mention.
 
 Default VIM configuration

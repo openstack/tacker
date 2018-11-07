@@ -44,7 +44,7 @@ is the account information collected in file `vim_config.yaml` [1]_:
 .. note::
 
     In Keystone, port `5000` is enabled for authentication service [2]_, so the
-    end users can use `auth_url: 'http://127.0.0.1/5000/v3` instead  of
+    end users can use `auth_url: 'http://127.0.0.1:5000/v3` instead  of
     `auth_url: 'http://127.0.0.1/identity'` as above mention.
 
 By default, cert_verify is set as `True`. To disable verifying SSL
