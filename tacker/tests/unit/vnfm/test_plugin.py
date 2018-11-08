@@ -55,6 +55,68 @@ class FakeVimClient(mock.Mock):
     pass
 
 
+class TestVNFMPluginMonitor(db_base.SqlTestCase):
+    def setUp(self):
+        super(TestVNFMPluginMonitor, self).setUp()
+        self._mock_vnf_manager()
+
+    def _mock_vnf_manager(self):
+        self._vnf_manager = mock.Mock(wraps=FakeDriverManager())
+        self._vnf_manager.__contains__ = mock.Mock(
+            return_value=True)
+        fake_vnf_manager = mock.Mock()
+        fake_vnf_manager.return_value = self._vnf_manager
+        self._mock(
+            'tacker.common.driver_manager.DriverManager', fake_vnf_manager)
+
+    @mock.patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnfs')
+    @mock.patch('tacker.vnfm.monitor.VNFMonitor.__run__')
+    def test_init_monitoring(self, mock_run, mock_get_vnfs):
+        vnf_id = uuidutils.generate_uuid()
+        vnfs = [{
+            'id': vnf_id,
+            'vnf': {
+                'id': vnf_id,
+                'status': 'ACTIVE',
+                'name': 'fake_vnf',
+                'attributes': {
+                    'monitoring_policy':
+                        '{"vdus": '
+                        '{"VDU1": {"ping": {"actions": {"failure": "respawn"},'
+                        '"name": "ping", "parameters": {"count": 3,'
+                        '"interval": 1, "monitoring_delay": 45, "timeout": 2},'
+                        '"monitoring_params": {"count": 3, "interval": 1,'
+                        '"monitoring_delay": 45, "timeout": 2}}}}}'}
+            },
+            'name': 'fake_vnf',
+            'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+            'description': 'fake_vnf_description',
+            'instance_id': 'da85ea1a-4ec4-4201-bbb2-8d9249eca7ec',
+            'vnfd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            'placement_attr': {'region': 'RegionOne'},
+            'status': 'ACTIVE',
+            'attributes': {
+                    'monitoring_policy':
+                        '{"vdus": '
+                        '{"VDU1": {"ping": {"actions": {"failure": "respawn"},'
+                        '"name": "ping", "parameters": {"count": 3,'
+                        '"interval": 1, "monitoring_delay": 45, "timeout": 2},'
+                        '"monitoring_params": {"count": 3, "interval": 1,'
+                        '"monitoring_delay": 45, "timeout": 2}}}}}'},
+            'mgmt_url': '{"VDU1": "a.b.c.d"}',
+            'deleted_at': datetime.min,
+            'management_ip_addresses': 'a.b.c.d'
+        }]
+
+        mock_get_vnfs.return_value = vnfs
+        vnfm_plugin = plugin.VNFMPlugin()
+        hosting_vnfs = vnfm_plugin._vnf_monitor._hosting_vnfs.values()
+        hosting_vnf = hosting_vnfs[0]['vnf']
+        self.assertEqual('{"VDU1": "a.b.c.d"}', hosting_vnf['mgmt_url'])
+        self.assertEqual(1, len(hosting_vnfs))
+
+
 class TestVNFMPlugin(db_base.SqlTestCase):
     def setUp(self):
         super(TestVNFMPlugin, self).setUp()
