@@ -552,17 +552,19 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         f = fernet.Fernet(vim_key)
         if not f:
             LOG.warning('Unable to decode VIM auth')
-            raise nfvo.VimNotFoundException(
-                'Unable to decode VIM auth key')
+            raise nfvo.VimNotFoundException(vim_id=vim_id)
         return f.decrypt(cred)
 
     @staticmethod
     def _find_vim_key(vim_id):
         key_file = os.path.join(CONF.vim_keys.openstack, vim_id)
         LOG.debug('Attempting to open key file for vim id %s', vim_id)
-        with open(key_file, 'r') as f:
-            return f.read()
-        LOG.warning('VIM id invalid or key not found for  %s', vim_id)
+        try:
+            with open(key_file, 'r') as f:
+                    return f.read()
+        except Exception:
+            LOG.warning('VIM id invalid or key not found for  %s', vim_id)
+            raise nfvo.VimKeyNotFoundException(vim_id=vim_id)
 
     def _vim_resource_name_to_id(self, context, resource, name, vnf_id):
         """Converts a VIM resource name to its ID
