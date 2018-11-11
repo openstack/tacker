@@ -33,7 +33,7 @@ class TestSamples(testtools.TestCase):
     def _get_list_of_sample(self, tosca_files):
         if tosca_files:
             base_path = (os.path.dirname(os.path.abspath(__file__)) +
-                         '/../../../samples/tosca-templates/vnfd/')
+                         '/../../../../samples/tosca-templates/vnfd/')
             if isinstance(tosca_files, list):
                 list_of_samples = []
                 for tosca_file in tosca_files:
