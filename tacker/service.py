@@ -196,7 +196,7 @@ class Service(n_rpc.Service):
         if not binary:
             binary = os.path.basename(inspect.stack()[-1][1])
         if not topic:
-            topic = binary.rpartition('neutron-')[2]
+            topic = binary.rpartition('tacker-')[2]
             topic = topic.replace("-", "_")
         if not manager:
             manager = cfg.CONF.get('%s_manager' % topic, None)
