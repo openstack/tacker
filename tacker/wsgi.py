@@ -787,7 +787,7 @@ class Resource(Application):
             action, args, accept = self.deserializer.deserialize(request)
         except exception.InvalidContentType:
             LOG.exception("InvalidContentType: Unsupported Content-Type")
-            return Fault(webob.exc.HTTPBadRequest(
+            return Fault(webob.exc.HTTPUnsupportedMediaType(
                 explanation=_("Unsupported Content-Type")))
         except exception.MalformedRequestBody:
             LOG.exception("MalformedRequestBody: Malformed request body")

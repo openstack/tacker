@@ -616,7 +616,7 @@ class ResourceTest(base.BaseTestCase):
         resource = wsgi.Resource(Controller(), my_fault_body_function)
         request = FakeRequest()
         result = resource(request)
-        self.assertEqual(400, result.status_int)
+        self.assertEqual(415, result.status_int)
 
     def test_type_error(self):
         class Controller(object):
