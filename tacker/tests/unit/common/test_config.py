@@ -27,8 +27,8 @@ class ConfigurationTest(base.BaseTestCase):
     def test_defaults(self):
         self.assertEqual('0.0.0.0', cfg.CONF.bind_host)
         self.assertEqual(9890, cfg.CONF.bind_port)
-        self.assertEqual('api-paste.ini', cfg.CONF.api_paste_config)
-        self.assertEqual('', cfg.CONF.api_extensions_path)
+        self.assertEqual('api-paste.ini.test', cfg.CONF.api_paste_config)
+        self.assertEqual('unit/extensions', cfg.CONF.api_extensions_path)
         self.assertEqual('policy.json', cfg.CONF.policy_file)
         self.assertEqual('keystone', cfg.CONF.auth_strategy)
         self.assertTrue(cfg.CONF.allow_bulk)
