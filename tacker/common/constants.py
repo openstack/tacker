@@ -16,6 +16,9 @@
 # TODO(salv-orlando): Verify if a single set of operational
 # status constants is achievable
 
+MAX_VLAN_TAG = 4094
+MIN_VLAN_TAG = 1
+
 PAGINATION_INFINITE = 'infinite'
 
 SORT_DIRECTION_ASC = 'asc'
