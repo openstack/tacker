@@ -37,6 +37,7 @@ from tacker.mistral import mistral_client
 from tacker.nfvo.drivers.vim import abstract_vim_driver
 from tacker.nfvo.drivers.vnffg import abstract_vnffg_driver
 from tacker.nfvo.drivers.workflow import workflow_generator
+from tacker.nfvo.nfvo_plugin import NfvoPlugin
 from tacker.plugins.common import constants
 from tacker.vnfm import keystone
 
@@ -120,8 +121,9 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         verify = 'True' == vim_obj['auth_cred'].get('cert_verify', 'True') \
                  or False
         auth_url = vim_obj['auth_url']
-        keystone_version = self._validate_auth_url(auth_url=auth_url,
-                                                   verify=verify)
+        keystone_version = NfvoPlugin.validate_keystone_auth_url(
+            auth_url=auth_url,
+            verify=verify)
         auth_cred = self._get_auth_creds(keystone_version, vim_obj)
         return self._initialize_keystone(keystone_version, auth_cred)
 
@@ -153,14 +155,6 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
             auth_plugin = v3.Password(**kwargs)
 
         return auth_plugin
-
-    def _validate_auth_url(self, auth_url, verify):
-        try:
-            keystone_version = self.keystone.get_version(auth_url, verify)
-        except Exception as e:
-            LOG.error('VIM Auth URL invalid')
-            raise nfvo.VimConnectionException(message=str(e))
-        return keystone_version
 
     def _initialize_keystone(self, version, auth):
         ks_client = self.keystone.initialize_client(version=version, **auth)
@@ -339,8 +333,9 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         """
         verify = 'True' == vim_obj.get('cert_verify', 'True') or False
         auth_url = vim_obj['auth_url']
-        keystone_version = self._validate_auth_url(auth_url=auth_url,
-                                                   verify=verify)
+        keystone_version = NfvoPlugin.validate_keystone_auth_url(
+            auth_url=auth_url,
+            verify=verify)
         auth_cred = self._get_auth_creds(keystone_version, vim_obj)
         auth_plugin = self._get_auth_plugin(keystone_version, **auth_cred)
         sess = session.Session(auth=auth_plugin)

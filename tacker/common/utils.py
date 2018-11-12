@@ -21,6 +21,7 @@
 import logging as std_logging
 import os
 import random
+import re
 import signal
 import socket
 import string
@@ -224,3 +225,10 @@ def generate_resource_name(resource, prefix='tmpl'):
                   string.ascii_lowercase + string.digits)
           for _ in range(16)) \
         + '-' + resource
+
+
+def get_auth_url_v3(auth_url):
+    if re.match('.+v3/?$', auth_url) is not None:
+        return auth_url
+    else:
+        return '{0}/v3'.format(auth_url)
