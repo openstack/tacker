@@ -14,6 +14,7 @@
 #    under the License.
 
 import mock
+from oslo_serialization import jsonutils
 from webob import Request
 
 from tacker.alarm_receiver import AlarmReceiver
@@ -35,7 +36,7 @@ class TestAlarmReceiver(base.TestCase):
             '02_vnf_id': 'vnf-uuid',
             '03_monitoring_policy_name': 'mon-policy-name',
             '04_action_name': 'action-name',
-            '05_key': 'KEY'
+            '05_key': '8ef785'
         }
         self.vnf_id = 'vnf-uuid'
         self.ordered_url = self._generate_alarm_url()
@@ -50,11 +51,47 @@ class TestAlarmReceiver(base.TestCase):
         self.assertEqual(self.alarm_url['02_vnf_id'], p[3])
         self.assertEqual(self.alarm_url['03_monitoring_policy_name'], p[4])
         self.assertEqual(self.alarm_url['04_action_name'], p[5])
+        self.assertEqual(self.alarm_url['05_key'], p[6])
+
+    def test_handle_url_action_name(self):
+        new_url = 'http://tacker:9890/v1.0/vnfs/vnf-uuid/mon-policy-name/'\
+                  'respawn%25log/8ef785'
+        prefix_url, p, params = self.alarmrc.handle_url(new_url)
+        self.assertEqual(self.alarm_url['01_url_base'], prefix_url)
+        self.assertEqual(self.alarm_url['02_vnf_id'], p[3])
+        self.assertEqual(self.alarm_url['03_monitoring_policy_name'], p[4])
+        self.assertEqual('respawn%log', p[5])
+        self.assertEqual(self.alarm_url['05_key'], p[6])
 
     @mock.patch('tacker.vnfm.monitor_drivers.token.Token.create_token')
-    def test_process_request(self, mock_token):
+    def test_process_request(self, mock_create_token):
+        mock_create_token.return_value = 'fake_token'
         req = Request.blank(self.ordered_url)
         req.method = 'POST'
         self.alarmrc.process_request(req)
-        self.assertIsNotNone(req.body)
+
+        self.assertEqual('', req.body)
+        self.assertEqual('fake_token', req.headers['X_AUTH_TOKEN'])
+        self.assertIn(self.alarm_url['01_url_base'], req.environ['PATH_INFO'])
         self.assertIn('triggers', req.environ['PATH_INFO'])
+        self.assertEqual('', req.environ['QUERY_STRING'])
+        mock_create_token.assert_called_once_with()
+
+    @mock.patch('tacker.vnfm.monitor_drivers.token.Token.create_token')
+    def test_process_request_with_body(self, mock_create_token):
+        req = Request.blank(self.ordered_url)
+        req.method = 'POST'
+        old_body = {'fake_key': 'fake_value'}
+        req.body = jsonutils.dumps(old_body)
+
+        self.alarmrc.process_request(req)
+
+        body_dict = jsonutils.loads(req.body)
+        self.assertDictEqual(old_body,
+                             body_dict['trigger']['params']['data'])
+        self.assertEqual(self.alarm_url['05_key'],
+                         body_dict['trigger']['params']['credential'])
+        self.assertEqual(self.alarm_url['03_monitoring_policy_name'],
+                         body_dict['trigger']['policy_name'])
+        self.assertEqual(self.alarm_url['04_action_name'],
+                         body_dict['trigger']['action_name'])
