@@ -33,7 +33,7 @@ class ConfigurationTest(base.BaseTestCase):
         self.assertEqual('keystone', cfg.CONF.auth_strategy)
         self.assertTrue(cfg.CONF.allow_bulk)
         relative_dir = os.path.join(os.path.dirname(__file__),
-                                    '..', '..', '..')
+                                    '..', '..', '..', '..')
         absolute_dir = os.path.abspath(relative_dir)
         self.assertEqual(absolute_dir, cfg.CONF.state_path)
         self.assertEqual('tacker', cfg.CONF.control_exchange)

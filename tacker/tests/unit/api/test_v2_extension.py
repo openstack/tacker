@@ -22,8 +22,8 @@ import webtest
 
 from tacker.api import extensions
 from tacker.api.v1 import attributes
-from tacker.tests.unit import test_api_v2
-from tacker.tests.unit import test_extensions
+from tacker.tests.unit.api import test_extensions
+from tacker.tests.unit.api.v2 import test_api_v2
 from tacker.tests.unit import testlib_api
 
 

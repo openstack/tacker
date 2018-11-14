@@ -25,8 +25,8 @@ from tacker.api.v1 import attributes
 from tacker.common import config
 from tacker import manager
 from tacker.tests import base
+from tacker.tests.unit.api.v2 import test_api_v2
 from tacker.tests.unit.extensions import extendedattribute as extattr
-from tacker.tests.unit import test_api_v2
 from tacker.tests.unit import testlib_api
 from tacker import wsgi
 
