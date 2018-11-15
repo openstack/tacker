@@ -30,7 +30,12 @@ def build_plural_mappings(special_mappings, resource_map):
     """
     plural_mappings = {}
     for plural in resource_map:
-        singular = special_mappings.get(plural, plural[:-1])
+        singular = special_mappings.get(plural)
+        if not singular:
+            if plural.endswith('ies'):
+                singular = "%sy" % plural[:-3]
+            else:
+                singular = plural[:-1]
         plural_mappings[plural] = singular
     return plural_mappings
 
