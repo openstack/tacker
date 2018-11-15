@@ -23,7 +23,6 @@ from tacker.tests import base
 class TackerKeystoneContextTestCase(base.BaseTestCase):
     def setUp(self):
         super(TackerKeystoneContextTestCase, self).setUp()
-        self.skip("Not ready yet")
 
         @webob.dec.wsgify
         def fake_app(req):
@@ -62,8 +61,7 @@ class TackerKeystoneContextTestCase(base.BaseTestCase):
         self.request.headers['X_ROLES'] = 'role1, role2 , role3,role4,role5'
         response = self.request.get_response(self.middleware)
         self.assertEqual('200 OK', response.status)
-        self.assertEqual(['role1', 'role2',
-                          'role3', 'role4', 'role5'],
+        self.assertEqual(['role1', 'role2', 'role3', 'role4', 'role5'],
                          self.context.roles)
         self.assertFalse(self.context.is_admin)
 
@@ -74,10 +72,10 @@ class TackerKeystoneContextTestCase(base.BaseTestCase):
                                            'AdMiN')
         response = self.request.get_response(self.middleware)
         self.assertEqual('200 OK', response.status)
-        self.assertEqual(['role1', 'role2', 'role3',
-                          'role4', 'role5', 'AdMiN'],
+        self.assertEqual(['role1', 'role2', 'role3', 'role4', 'role5',
+                          'AdMiN'],
                          self.context.roles)
-        self.assertEqual(True, self.context.is_admin)
+        self.assertTrue(self.context.is_admin)
 
     def test_with_user_tenant_name(self):
         self.request.headers['X_PROJECT_ID'] = 'testtenantid'
@@ -98,3 +96,17 @@ class TackerKeystoneContextTestCase(base.BaseTestCase):
         self.request.environ[request_id.ENV_REQUEST_ID] = req_id
         self.request.get_response(self.middleware)
         self.assertEqual(req_id, self.context.request_id)
+
+    def test_with_auth_token(self):
+        self.request.headers['X_PROJECT_ID'] = 'testtenantid'
+        self.request.headers['X_USER_ID'] = 'testuserid'
+        response = self.request.get_response(self.middleware)
+        self.assertEqual('200 OK', response.status)
+        self.assertEqual('testauthtoken', self.context.auth_token)
+
+    def test_without_auth_token(self):
+        self.request.headers['X_PROJECT_ID'] = 'testtenantid'
+        self.request.headers['X_USER_ID'] = 'testuserid'
+        del self.request.headers['X_AUTH_TOKEN']
+        self.request.get_response(self.middleware)
+        self.assertIsNone(self.context.auth_token)

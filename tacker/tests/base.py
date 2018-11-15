@@ -34,9 +34,9 @@ from tacker.common import config
 from tacker.common import rpc as n_rpc
 from tacker import context
 from tacker import manager
+from tacker import policy
 from tacker.tests import fake_notifier
 from tacker.tests import post_mortem_debug
-
 
 CONF = cfg.CONF
 CONF.import_opt('state_path', 'tacker.common.config')
@@ -105,6 +105,10 @@ class BaseTestCase(testtools.TestCase):
         else:
             conf(args)
 
+    def setup_config(self, args=None):
+        """Tests that need a non-default config can override this method."""
+        self.config_parse(args=args)
+
     def setUp(self):
         super(BaseTestCase, self).setUp()
 
@@ -152,6 +156,9 @@ class BaseTestCase(testtools.TestCase):
         self.temp_dir = self.useFixture(fixtures.TempDir()).path
         cfg.CONF.set_override('state_path', self.temp_dir)
 
+        self.setup_config()
+        policy.init()
+        self.addCleanup(policy.reset)
         self.addCleanup(mock.patch.stopall)
         self.addCleanup(CONF.reset)
 

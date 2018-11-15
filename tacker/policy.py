@@ -15,7 +15,7 @@
 
 import collections
 import re
-
+import sys
 
 from oslo_config import cfg
 from oslo_db import exception as db_exc
@@ -36,6 +36,18 @@ _ENFORCER = None
 ADMIN_CTX_POLICY = 'context_is_admin'
 
 
+_BASE_RULES = [
+    policy.RuleDefault(
+        ADMIN_CTX_POLICY,
+        'role:admin',
+        description='Rule for cloud admin access'),
+    # policy.RuleDefault(
+    #    _ADVSVC_CTX_POLICY,
+    #     'role:advsvc',
+    #     description='Rule for advanced service role access'),
+]
+
+
 def reset():
     global _ENFORCER
     if _ENFORCER:
@@ -49,6 +61,7 @@ def init(conf=cfg.CONF, policy_file=None):
     global _ENFORCER
     if not _ENFORCER:
         _ENFORCER = policy.Enforcer(conf, policy_file=policy_file)
+        _ENFORCER.register_defaults(_BASE_RULES)
         _ENFORCER.load_rules(True)
 
 
@@ -407,7 +420,31 @@ def check_is_admin(context):
     """Verify context has admin rights according to policy settings."""
     init()
     # the target is user-self
-    credentials = context.to_dict()
-    if ADMIN_CTX_POLICY not in _ENFORCER.rules:
+    credentials = context.to_policy_values()
+    try:
+        return _ENFORCER.authorize(ADMIN_CTX_POLICY, credentials, credentials)
+    except policy.PolicyNotRegistered:
         return False
-    return _ENFORCER.enforce(ADMIN_CTX_POLICY, credentials, credentials)
+
+
+def get_enforcer():
+    # NOTE(amotoki): This was borrowed from nova/policy.py.
+    # This method is for use by oslo.policy CLI scripts. Those scripts need the
+    # 'output-file' and 'namespace' options, but having those in sys.argv means
+    # loading the tacker config options will fail as those are not expected to
+    # be present. So we pass in an arg list with those stripped out.
+    conf_args = []
+    # Start at 1 because cfg.CONF expects the equivalent of sys.argv[1:]
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i].strip('-') in ['namespace', 'output-file']:
+            i += 2
+            continue
+        conf_args.append(sys.argv[i])
+        i += 1
+
+    # 'project' must be 'tacker' so that get_enforcer looks at
+    # /etc/tacker/policy.json by default.
+    cfg.CONF(conf_args, project='tacker')
+    init()
+    return _ENFORCER
