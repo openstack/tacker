@@ -14,7 +14,6 @@
 #    under the License.
 
 import mock
-import oslo_i18n
 from webob import exc
 import webtest
 
@@ -30,90 +29,13 @@ class RequestTestCase(base.BaseTestCase):
         super(RequestTestCase, self).setUp()
         self.req = wsgi_resource.Request({'foo': 'bar'})
 
-    def test_content_type_missing(self):
-        request = wsgi.Request.blank('/tests/123', method='POST')
-        request.body = b"<body />"
-        self.assertIsNone(request.get_content_type())
-
-    def test_content_type_with_charset(self):
-        request = wsgi.Request.blank('/tests/123')
-        request.headers["Content-Type"] = "application/json; charset=UTF-8"
-        result = request.get_content_type()
-        self.assertEqual("application/json", result)
-
-    def test_content_type_from_accept(self):
-        content_type = 'application/json'
-        request = wsgi.Request.blank('/tests/123')
-        request.headers["Accept"] = content_type
-        result = request.best_match_content_type()
-        self.assertEqual(result, content_type)
-
-    def test_content_type_from_accept_best(self):
-        request = wsgi.Request.blank('/tests/123')
-        request.headers["Accept"] = "application/json"
-        result = request.best_match_content_type()
-        self.assertEqual("application/json", result)
-
-        request = wsgi.Request.blank('/tests/123')
-        request.headers["Accept"] = ("application/json; q=0.3, ")
-        result = request.best_match_content_type()
-        self.assertEqual("application/json", result)
-
-    def test_content_type_from_query_extension(self):
-        request = wsgi.Request.blank('/tests/123.json')
-        result = request.best_match_content_type()
-        self.assertEqual("application/json", result)
-
-        request = wsgi.Request.blank('/tests/123.json')
-        result = request.best_match_content_type()
-        self.assertEqual("application/json", result)
-
-        request = wsgi.Request.blank('/tests/123.invalid')
-        result = request.best_match_content_type()
-        self.assertEqual("application/json", result)
-
-    def test_content_type_accept_and_query_extension(self):
-        request = wsgi.Request.blank('/tests/123.json')
-        request.headers["Accept"] = "application/json"
-        result = request.best_match_content_type()
-        self.assertEqual("application/json", result)
-
-    def test_content_type_accept_default(self):
-        request = wsgi.Request.blank('/tests/123.unsupported')
-        request.headers["Accept"] = "application/unsupported1"
-        result = request.best_match_content_type()
-        self.assertEqual("application/json", result)
-
     def test_context_with_tacker_context(self):
-        self.skip("Not ready yet")
         ctxt = context.Context('fake_user', 'fake_tenant')
         self.req.environ['tacker.context'] = ctxt
         self.assertEqual(ctxt, self.req.context)
 
     def test_context_without_tacker_context(self):
         self.assertTrue(self.req.context.is_admin)
-
-    def test_best_match_language(self):
-        # Test that we are actually invoking language negotiation by webop
-        request = wsgi.Request.blank('/')
-        oslo_i18n.get_available_languages = mock.MagicMock()
-        oslo_i18n.get_available_languages.return_value = [
-            'known-language', 'es', 'zh']
-        request.headers['Accept-Language'] = 'known-language'
-        language = request.best_match_language()
-        self.assertEqual('known-language', language)
-
-        # If the Accept-Leader is an unknown language, missing or empty,
-        # the best match locale should be None
-        request.headers['Accept-Language'] = 'unknown-language'
-        language = request.best_match_language()
-        self.assertIsNone(language)
-        request.headers['Accept-Language'] = ''
-        language = request.best_match_language()
-        self.assertIsNone(language)
-        request.headers.pop('Accept-Language')
-        language = request.best_match_language()
-        self.assertIsNone(language)
 
 
 class ResourceTestCase(base.BaseTestCase):
