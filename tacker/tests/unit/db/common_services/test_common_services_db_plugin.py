@@ -1,7 +1,7 @@
-# Copyright 2016 Brocade Communications System, Inc.
+# Copyright (c) 2014-2018 China Mobile (SuZhou) Software Technology Co.,Ltd.
 # All Rights Reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
 #
@@ -20,18 +20,16 @@ from oslo_utils import timeutils
 from tacker import context
 from tacker.db.common_services import common_services_db_plugin
 from tacker.extensions import common_services
-from tacker.plugins.common_services import common_services_plugin
 from tacker.tests.unit.db import base as db_base
 
 
-class TestCommonServicesPlugin(db_base.SqlTestCase):
+class TestCommonServicesDbPlugin(db_base.SqlTestCase):
     def setUp(self):
-        super(TestCommonServicesPlugin, self).setUp()
+        super(TestCommonServicesDbPlugin, self).setUp()
         self.addCleanup(mock.patch.stopall)
         self.context = context.get_admin_context()
         self.event_db_plugin =\
             common_services_db_plugin.CommonServicesPluginDb()
-        self.coreutil_plugin = common_services_plugin.CommonServicesPlugin()
 
     def _get_dummy_event_obj(self):
         return {
@@ -63,7 +61,7 @@ class TestCommonServicesPlugin(db_base.SqlTestCase):
 
     def test_event_not_found(self):
         self.assertRaises(common_services.EventNotFoundException,
-                          self.coreutil_plugin.get_event, self.context, '99')
+                          self.event_db_plugin.get_event, self.context, '99')
 
     def test_InvalidModelInputExceptionNotThrown(self):
         evt_obj = self._get_dummy_event_obj()
@@ -75,7 +73,7 @@ class TestCommonServicesPlugin(db_base.SqlTestCase):
                                                    evt_obj['timestamp'],
                                                    evt_obj['event_details'])
         try:
-            self.coreutil_plugin.get_event(self.context, str(result['id']))
+            self.event_db_plugin.get_event(self.context, str(result['id']))
         except common_services.InvalidModelException:
             self.assertTrue(False)
         except Exception:
@@ -91,7 +89,7 @@ class TestCommonServicesPlugin(db_base.SqlTestCase):
             evt_obj['timestamp'],
             evt_obj['event_details'])
         self.assertIsNotNone(evt_created)
-        evt_get = self.coreutil_plugin.get_event(self.context,
+        evt_get = self.event_db_plugin.get_event(self.context,
                                                  evt_created['id'])
         self.assertEqual(evt_created['resource_id'], evt_get['resource_id'])
         self.assertEqual(evt_created['resource_state'],
@@ -112,7 +110,7 @@ class TestCommonServicesPlugin(db_base.SqlTestCase):
                                           evt_obj['event_type'],
                                           evt_obj['timestamp'],
                                           evt_obj['event_details'])
-        result = self.coreutil_plugin.get_events(self.context)
+        result = self.event_db_plugin.get_events(self.context)
         self.assertTrue(len(result))
 
     def test_get_events_filtered_invalid_id(self):
@@ -124,7 +122,8 @@ class TestCommonServicesPlugin(db_base.SqlTestCase):
                                           evt_obj['event_type'],
                                           evt_obj['timestamp'],
                                           evt_obj['event_details'])
-        result = self.coreutil_plugin.get_events(self.context, {'id': 'xyz'})
+        result = self.event_db_plugin.get_events(self.context,
+                                                 filters={'id': 'xyz'})
         self.assertFalse(len(result))
 
     def test_get_events_filtered_valid_id(self):
@@ -136,7 +135,7 @@ class TestCommonServicesPlugin(db_base.SqlTestCase):
                                           evt_obj['event_type'],
                                           evt_obj['timestamp'],
                                           evt_obj['event_details'])
-        result = self.coreutil_plugin.get_events(self.context, {'id': '1'})
+        result = self.event_db_plugin.get_events(self.context, {'id': '1'})
         self.assertTrue(len(result))
 
     def test_get_events_valid_fields(self):
@@ -148,7 +147,7 @@ class TestCommonServicesPlugin(db_base.SqlTestCase):
                                           evt_obj['event_type'],
                                           evt_obj['timestamp'],
                                           evt_obj['event_details'])
-        result = self.coreutil_plugin.get_events(self.context, {'id': '1'},
+        result = self.event_db_plugin.get_events(self.context, {'id': '1'},
                                             ['id', 'event_type'])
         self.assertTrue(len(result))
         self.assertIn('id', result[0])
