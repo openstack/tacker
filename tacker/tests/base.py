@@ -214,3 +214,39 @@ class BaseTestCase(testtools.TestCase):
             yield
             return
         self.fail('Execution of this test timed out')
+
+    def get_new_temp_dir(self):
+        """Create a new temporary directory.
+
+        :returns: fixtures.TempDir
+        """
+        return self.useFixture(fixtures.TempDir())
+
+    def get_default_temp_dir(self):
+        """Create a default temporary directory.
+
+        Returns the same directory during the whole test case.
+
+        :returns: fixtures.TempDir
+        """
+        if not hasattr(self, '_temp_dir'):
+            self._temp_dir = self.get_new_temp_dir()
+        return self._temp_dir
+
+    def get_temp_file_path(self, filename, root=None):
+        """Returns an absolute path for a temporary file.
+
+        If root is None, the file is created in default temporary directory. It
+        also creates the directory if it's not initialized yet.
+
+        If root is not None, the file is created inside the directory passed as
+        root= argument.
+
+        :param filename: filename
+        :type filename: string
+        :param root: temporary directory to create a new file in
+        :type root: fixtures.TempDir
+        :returns: absolute file path string
+        """
+        root = root or self.get_default_temp_dir()
+        return root.join(filename)
