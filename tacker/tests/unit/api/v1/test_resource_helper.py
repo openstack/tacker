@@ -13,7 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
+
+from tacker import manager
+
 from tacker.api.v1.resource_helper import build_plural_mappings
+from tacker.api.v1.resource_helper import build_resource_info
 from tacker.tests import base
 
 
@@ -59,3 +64,41 @@ class ResourceHelperTestCase(base.BaseTestCase):
         expected_res = {'vnffgs': 'vnffg', 'policies': 'policy'}
         result = build_plural_mappings(special_mappings, resource_map)
         self.assertEqual(expected_res, result)
+
+    @mock.patch.object(manager.TackerManager, "get_service_plugins")
+    def test_build_resource_info(self, mock_get_service_plugins):
+        mock_get_service_plugins.return_value = {"DUMMY": ""}
+        plural_mappings = {'test_vnffgs': 'test_vnffg', 'policies': 'policy'}
+        resource_map = {
+            'policies': {
+                'id': {
+                    'allow_post': False,
+                }
+            },
+            'test_vnffgs': {
+                'id': {
+                    'allow_post': False,
+                },
+            }
+        }
+        action_map = {'policy': ['do', 'undo']}
+
+        result = build_resource_info(plural_mappings, resource_map, "DUMMY")
+        self.assertEqual(2, len(result))
+        self.assertEqual("/dummy_svc", result[0].path_prefix)
+        self.assertEqual("/dummy_svc", result[1].path_prefix)
+        self.assertEqual({'id': {'allow_post': False}}, result[0].attr_map)
+        self.assertEqual({'id': {'allow_post': False}}, result[1].attr_map)
+
+        result = build_resource_info(plural_mappings, resource_map, "DUMMY",
+                                     action_map=action_map)
+        for i in range(len(result)):
+            a = result[i].member_actions in ({}, ['do', 'undo'])
+            self.assertEqual(a, True)
+
+        result = build_resource_info(plural_mappings, resource_map, "DUMMY",
+                                     action_map=action_map,
+                                     translate_name=True)
+        for i in range(len(result)):
+            a = result[i].collection in ('policies', 'test-vnffgs')
+            self.assertEqual(a, True)
