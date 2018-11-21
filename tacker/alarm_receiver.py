@@ -29,6 +29,10 @@ OPTS = [
         help=_('Password for alarm monitoring')),
     cfg.StrOpt('project_name', default='admin',
         help=_('Project name for alarm monitoring')),
+    cfg.StrOpt('user_domain_name', default='default',
+        help=_('User domain name for alarm monitoring')),
+    cfg.StrOpt('project_domain_name', default='default',
+        help=_('Project domain name for alarm monitoring')),
 ]
 
 cfg.CONF.register_opts(OPTS, 'alarm_auth')
@@ -48,12 +52,13 @@ class AlarmReceiver(wsgi.Middleware):
             return
         prefix, info, params = self.handle_url(req.url)
         auth = cfg.CONF.keystone_authtoken
-        token = Token(username=cfg.CONF.alarm_auth.username,
-                      password=cfg.CONF.alarm_auth.password,
-                      project_name=cfg.CONF.alarm_auth.project_name,
+        alarm_auth = cfg.CONF.alarm_auth
+        token = Token(username=alarm_auth.username,
+                      password=alarm_auth.password,
+                      project_name=alarm_auth.project_name,
                       auth_url=auth.auth_url + '/v3',
-                      user_domain_name='default',
-                      project_domain_name='default')
+                      user_domain_name=alarm_auth.user_domain_name,
+                      project_domain_name=alarm_auth.project_domain_name)
 
         token_identity = token.create_token()
         req.headers['X_AUTH_TOKEN'] = token_identity
