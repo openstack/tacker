@@ -182,11 +182,13 @@ class TestAttributes(base.BaseTestCase):
         self.assertEqual(err_msg % mac_addr, msg)
 
         mac_addr = None
+        err_msg = "MAC address must be string: 'NoneType' object has" \
+                  " no attribute 'split'"
         msg = validator(mac_addr)
         if allow_none:
             self.assertIsNone(msg)
         else:
-            self.assertEqual(err_msg % mac_addr, msg)
+            self.assertEqual(err_msg, msg)
 
     def test_validate_mac_address(self):
         self._test_validate_mac_address(attributes._validate_mac_address)
@@ -505,6 +507,17 @@ class TestAttributes(base.BaseTestCase):
     def test_validate_subnet_or_none(self):
         self._test_validate_subnet(attributes._validate_subnet_or_none,
                                    allow_none=True)
+
+    def test_validate_subnet_list(self):
+        subnet_list = ['10.0.2.0/24', 'fe80::/24']
+        result = attributes._validate_subnet_list(subnet_list)
+        self.assertEqual(None, result)
+
+        subnet_list = ['10.0.2.0/24', 'fe80::/24', '10.0.2.0/24']
+        expect_res = "Duplicate items in the list: '10.0.2.0/24, " \
+                     "fe80::/24, 10.0.2.0/24'"
+        result = attributes._validate_subnet_list(subnet_list)
+        self.assertEqual(expect_res, result)
 
     def _test_validate_regex(self, validator, allow_none=False):
         pattern = '[hc]at'
