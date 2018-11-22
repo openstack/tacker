@@ -126,6 +126,11 @@ class CpuAllocationInvalidKeys(exceptions.InvalidInput):
                 "Supported keys are: %(valid_keys)s")
 
 
+class CpuAllocationInvalidValues(exceptions.InvalidInput):
+    message = _("Invalid values specified in VNFD - %(error_msg_details)s."
+                "Supported Values are: %(valid_values)s")
+
+
 class NumaNodesInvalidKeys(exceptions.InvalidInput):
     message = _("Invalid keys specified in VNFD - %(error_msg_details)s."
                 "Supported keys are: %(valid_keys)s")

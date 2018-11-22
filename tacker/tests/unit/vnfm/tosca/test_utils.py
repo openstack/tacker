@@ -17,6 +17,7 @@ import os
 import testtools
 import yaml
 
+from tacker.extensions import vnfm
 from tacker.tosca import utils as toscautils
 from toscaparser import tosca_template
 from translator.hot import tosca_translator
@@ -178,6 +179,18 @@ class TestToscaUtils(testtools.TestCase):
         }
         actual_flavor_dict = toscautils.get_flavor_dict(tosca)
         self.assertEqual(expected_flavor_dict, actual_flavor_dict)
+
+    def test_get_flavor_dict_with_wrong_cpu(self):
+        tosca_fes = _get_template(
+            'tosca_flavor_with_wrong_cpu.yaml')
+        vnfd_dict = yaml.safe_load(tosca_fes)
+        toscautils.updateimports(vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(a_file=False,
+                                             yaml_dict_tpl=vnfd_dict)
+
+        self.assertRaises(vnfm.CpuAllocationInvalidValues,
+                          toscautils.get_flavor_dict,
+                          tosca)
 
     def test_tacker_conf_heat_extra_specs_all_numa_count(self):
         tosca_fes_all_numa_count = _get_template(

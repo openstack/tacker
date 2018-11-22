@@ -57,6 +57,8 @@ CPU_PROP_MAP = (('hw:cpu_policy', 'cpu_affinity'),
                 ('hw:cpu_threads', 'thread_count'),
                 ('hw:cpu_cores', 'core_count'))
 
+CPU_PROP_VAL_MAP = {'cpu_affinity': ('shared', 'dedicated')}
+
 CPU_PROP_KEY_SET = {'cpu_affinity', 'thread_allocation', 'socket_count',
                     'thread_count', 'core_count'}
 
@@ -621,8 +623,14 @@ def populate_flavor_extra_specs(es_dict, properties, flavor_extra_input):
                 error_msg_details=(', '.join(invalid_input)),
                 valid_keys=(', '.join(CPU_PROP_KEY_SET)))
         for(k, v) in CPU_PROP_MAP:
-            if v in cpu_dict:
-                es_dict[k] = cpu_dict[v]
+            if v not in cpu_dict:
+                continue
+            if CPU_PROP_VAL_MAP.get(v, None):
+                if cpu_dict[v] not in CPU_PROP_VAL_MAP[v]:
+                    raise vnfm.CpuAllocationInvalidValues(
+                        error_msg_details=cpu_dict[v],
+                        valid_values=CPU_PROP_VAL_MAP[v])
+            es_dict[k] = cpu_dict[v]
     if flavor_extra_input:
         es_dict.update(flavor_extra_input)
 
