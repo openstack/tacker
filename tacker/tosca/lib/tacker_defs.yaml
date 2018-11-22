@@ -148,7 +148,7 @@ data_types:
       numa_node_count:
         type: integer
         constraints:
-          - greater_or_equal: 2
+          - greater_or_equal: 1
         required: false
       numa_nodes:
         type: map
