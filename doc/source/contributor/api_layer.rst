@@ -5,23 +5,23 @@ This section will cover the internals of Tacker's HTTP API, and the classes
 in Tacker that can be used to create Extensions to the Tacker API.
 
 Python web applications interface with webservers through the Python Web
-Server Gateway Interface (WSGI) - defined in `PEP 333 <http://legacy.python.org/dev/peps/pep-0333/>`_
+Server Gateway Interface (WSGI) - defined in `PEP 333 <https://legacy.python.org/dev/peps/pep-0333/>`_
 
 Startup
 -------
 
-Tackers's WSGI server is started from the `server module <http://git.openstack.org/cgit/openstack/tacker/tree/tacker/service.py>`_
+Tackers's WSGI server is started from the `server module <https://git.openstack.org/cgit/openstack/tacker/tree/tacker/service.py>`_
 and the entry point `serve_wsgi` is called to build an instance of the
 `TackerApiService`_, which is then returned to the server module,
 which spawns a `Eventlet`_ `GreenPool`_ that will run the WSGI
 application and respond to requests from clients.
 
 
-.. _TackerApiService: http://git.openstack.org/cgit/openstack/tacker/tree/tacker/service.py
+.. _TackerApiService: https://git.openstack.org/cgit/openstack/tacker/tree/tacker/service.py
 
-.. _Eventlet: http://eventlet.net/
+.. _Eventlet: https://eventlet.net/
 
-.. _GreenPool: http://eventlet.net/doc/modules/greenpool.html
+.. _GreenPool: https://eventlet.net/doc/modules/greenpool.html
 
 WSGI Application
 ----------------
@@ -43,7 +43,7 @@ vnfd, vnf) to URLs, and the controller for each resource.
 
 .. _api-paste.ini: http://git.openstack.org/cgit/openstack/tacker/tree/etc/tacker/api-paste.ini
 
-.. _APIRouter: http://git.openstack.org/cgit/openstack/tacker/tree/tacker/api/v1/router.py
+.. _APIRouter: https://git.openstack.org/cgit/openstack/tacker/tree/tacker/api/v1/router.py
 
 .. _Paste: http://pythonpaste.org/
 
