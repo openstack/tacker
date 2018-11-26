@@ -14,6 +14,7 @@
 #    under the License.
 
 import os
+import oslo_i18n
 import socket
 
 import mock
@@ -338,6 +339,11 @@ class RequestTest(base.BaseTestCase):
 
         self.assertEqual("application/json", result)
 
+        request = wsgi.Request.blank('/tests/123')
+        request.headers["Accept"] = ("application/json; q=0.3, ")
+        result = request.best_match_content_type()
+        self.assertEqual("application/json", result)
+
     def test_content_type_from_query_extension(self):
         request = wsgi.Request.blank('/tests/123.json')
         result = request.best_match_content_type()
@@ -369,6 +375,28 @@ class RequestTest(base.BaseTestCase):
         result = request.best_match_content_type()
 
         self.assertEqual('application/json', result)
+
+    def test_best_match_language(self):
+        # Test that we are actually invoking language negotiation by webop
+        request = wsgi.Request.blank('/')
+        oslo_i18n.get_available_languages = mock.MagicMock()
+        oslo_i18n.get_available_languages.return_value = [
+            'known-language', 'es', 'zh']
+        request.headers['Accept-Language'] = 'known-language'
+        language = request.best_match_language()
+        self.assertEqual('known-language', language)
+
+        # If the Accept-Leader is an unknown language, missing or empty,
+        # the best match locale should be None
+        request.headers['Accept-Language'] = 'unknown-language'
+        language = request.best_match_language()
+        self.assertIsNone(language)
+        request.headers['Accept-Language'] = ''
+        language = request.best_match_language()
+        self.assertIsNone(language)
+        request.headers.pop('Accept-Language')
+        language = request.best_match_language()
+        self.assertIsNone(language)
 
 
 class ActionDispatcherTest(base.BaseTestCase):
