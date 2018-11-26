@@ -12,6 +12,8 @@
 #    under the License.
 #
 
+import netaddr
+
 from oslo_config import cfg
 from oslo_log import log as logging
 import random
@@ -65,6 +67,9 @@ class VNFMonitorCeilometer(
                   'port': port})
         origin = "http://%(host)s:%(port)s/v1.0/vnfs" % {
             'host': host, 'port': port}
+        if netaddr.valid_ipv6(host):
+            origin = "http://[%(host)s]:%(port)s/v1.0/vnfs" % {
+                'host': host, 'port': port}
         access_key = ''.join(
             random.SystemRandom().choice(
                 string.ascii_lowercase + string.digits)
