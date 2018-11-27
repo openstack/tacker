@@ -19,6 +19,7 @@ from toscaparser.utils import yamlparser
 from translator.hot import tosca_translator
 import yaml
 
+from tacker.common import exceptions
 from tacker.common import log
 from tacker.extensions import common_services as cs
 from tacker.extensions import vnfm
@@ -89,9 +90,8 @@ class TOSCAToHOT(object):
         self.attributes = self.vnf['vnfd']['attributes'].copy()
         self.vnfd_yaml = self.attributes.pop('vnfd', None)
         if self.vnfd_yaml is None:
-            # TODO(kangaraj-manickam) raise user level exception
-            LOG.info("VNFD is not provided, so no vnf is created !!")
-            return
+            LOG.error("VNFD is not provided, so no vnf is created !!")
+            raise exceptions.InvalidInput("VNFD template is None.")
         LOG.debug('vnfd_yaml %s', self.vnfd_yaml)
 
     @log.log
