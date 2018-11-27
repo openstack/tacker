@@ -233,22 +233,22 @@ class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
     def create_ns(self, **kwargs):
         ns = kwargs.get('ns')
         params = kwargs.get('params')
-        # TODO(anyone): Keep this statements in a loop and
-        # remove in all the methods.
-        self.definition[self.wf_identifier]['tasks'] = dict()
-        self.definition[self.wf_identifier]['tasks'].update(
-            self._add_create_vnf_tasks(ns))
-        self.definition[self.wf_identifier]['tasks'].update(
-            self._add_wait_vnf_tasks(ns))
-        self.definition[self.wf_identifier]['tasks'].update(
-            self._add_delete_vnf_tasks(ns))
-        self.definition[self.wf_identifier]['output'] = \
-            self._build_output_dict(ns)
+
+        tasks = {}
+        for func in [self._add_create_vnf_tasks,
+                     self._add_wait_vnf_tasks,
+                     self._add_delete_vnf_tasks]:
+            tasks.update(func(ns))
+
         self.build_input(ns, params)
         vnffgd_templates = ns.get('vnffgd_templates')
         if vnffgd_templates:
-            self.definition[self.wf_identifier]['tasks'].update(
-                self._add_create_vnffg_task(vnffgd_templates))
+            create_task = self._add_create_vnffg_task(vnffgd_templates)
+            tasks.update(create_task)
+
+        self.definition[self.wf_identifier]['tasks'] = tasks
+        self.definition[self.wf_identifier]['output'] = \
+            self._build_output_dict(ns)
 
     def delete_ns(self, ns):
         ns_dict = {'vnfd_details': {}}
