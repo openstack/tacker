@@ -107,10 +107,6 @@ class HeatClientException(exceptions.TackerException):
     message = _("%(msg)s")
 
 
-class UserDataFormatNotFound(exceptions.NotFound):
-    message = _("user_data and/or user_data_format not provided")
-
-
 class IPAddrInvalidInput(exceptions.InvalidInput):
     message = _("IP Address input values should be in a list format")
 
