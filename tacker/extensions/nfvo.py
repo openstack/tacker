@@ -830,7 +830,7 @@ class Nfvo(extensions.ExtensionDescriptor):
 
     @classmethod
     def get_namespace(cls):
-        return 'http://wiki.openstack.org/Tacker'
+        return 'https://wiki.openstack.org/Tacker'
 
     @classmethod
     def get_updated(cls):
