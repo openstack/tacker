@@ -12,6 +12,8 @@
 #    under the License.
 #
 
+import netaddr
+
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -60,7 +62,11 @@ class VNFMonitorPing(abstract_driver.VNFMonitorAbstractDriver):
         :param ip: IP to check
         :return: bool - True or string 'failure' depending on pingability.
         """
-        ping_cmd = ['ping',
+        cmd_ping = 'ping'
+        if netaddr.valid_ipv6(mgmt_ip):
+            cmd_ping = 'ping6'
+
+        ping_cmd = [cmd_ping,
                     '-c', count,
                     '-W', timeout,
                     '-i', interval,
