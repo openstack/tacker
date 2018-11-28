@@ -14,6 +14,7 @@
 #    under the License.
 
 import json
+import netaddr
 import requests
 import time
 
@@ -359,7 +360,10 @@ class VNFMonitorZabbix(abstract_driver.VNFMonitorAbstractDriver):
         zabbixport = \
             self.hostinfo[node]['zbx_info']['zabbix_port']
         self.URL = "http://" + zabbixip + ":" + \
-                   str(zabbixport) + zapi.URL_
+                   str(zabbixport) + zapi.URL
+        if netaddr.valid_ipv6(zabbixip):
+            self.URL = "http://[" + zabbixip + "]:" + \
+                       str(zabbixport) + zapi.URL
         response = requests.post(
             self.URL,
             headers=zapi.HEADERS,
