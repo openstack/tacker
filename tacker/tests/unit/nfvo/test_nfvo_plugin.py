@@ -651,14 +651,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIn('id', result)
             self.assertIn('status', result)
             self.assertEqual('PENDING_CREATE', result['status'])
-            self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
-                                                           name=mock.ANY,
-                                                           path_id=mock.ANY,
-                                                           vnfs=mock.ANY,
-                                                           fc_ids=mock.ANY,
-                                                           auth_attr=mock.ANY,
-                                                           symmetrical=mock.ANY
-                                                           )
+            self._driver_manager.invoke.assert_called_with(
+                mock.ANY, mock.ANY,
+                name=mock.ANY,
+                path_id=mock.ANY,
+                vnfs=mock.ANY,
+                fc_ids=mock.ANY,
+                auth_attr=mock.ANY,
+                symmetrical=mock.ANY,
+                correlation=mock.ANY)
 
     def test_create_vnffg_abstract_types(self):
         with patch.object(TackerManager, 'get_service_plugins') as \
@@ -673,14 +674,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIn('id', result)
             self.assertIn('status', result)
             self.assertEqual('PENDING_CREATE', result['status'])
-            self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
-                                                           name=mock.ANY,
-                                                           path_id=mock.ANY,
-                                                           vnfs=mock.ANY,
-                                                           fc_ids=mock.ANY,
-                                                           auth_attr=mock.ANY,
-                                                           symmetrical=mock.ANY
-                                                           )
+            self._driver_manager.invoke.assert_called_with(
+                mock.ANY, mock.ANY,
+                name=mock.ANY,
+                path_id=mock.ANY,
+                vnfs=mock.ANY,
+                fc_ids=mock.ANY,
+                auth_attr=mock.ANY,
+                symmetrical=mock.ANY,
+                correlation=mock.ANY)
 
     @mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin.create_vnffgd')
     def test_create_vnffg_abstract_types_inline(self, mock_create_vnffgd):
@@ -700,14 +702,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertEqual('PENDING_CREATE', result['status'])
             self.assertEqual('dummy_vnffg_inline', result['name'])
             mock_create_vnffgd.assert_called_once_with(mock.ANY, mock.ANY)
-            self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
-                                                           name=mock.ANY,
-                                                           path_id=mock.ANY,
-                                                           vnfs=mock.ANY,
-                                                           fc_ids=mock.ANY,
-                                                           auth_attr=mock.ANY,
-                                                           symmetrical=mock.ANY
-                                                           )
+            self._driver_manager.invoke.assert_called_with(
+                mock.ANY, mock.ANY,
+                name=mock.ANY,
+                path_id=mock.ANY,
+                vnfs=mock.ANY,
+                fc_ids=mock.ANY,
+                auth_attr=mock.ANY,
+                symmetrical=mock.ANY,
+                correlation=mock.ANY)
 
     def test_create_vnffg_param_values(self):
         with patch.object(TackerManager, 'get_service_plugins') as \
@@ -722,14 +725,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIn('id', result)
             self.assertIn('status', result)
             self.assertEqual('PENDING_CREATE', result['status'])
-            self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
-                                                           name=mock.ANY,
-                                                           path_id=mock.ANY,
-                                                           vnfs=mock.ANY,
-                                                           fc_ids=mock.ANY,
-                                                           auth_attr=mock.ANY,
-                                                           symmetrical=mock.ANY
-                                                           )
+            self._driver_manager.invoke.assert_called_with(
+                mock.ANY, mock.ANY,
+                name=mock.ANY,
+                path_id=mock.ANY,
+                vnfs=mock.ANY,
+                fc_ids=mock.ANY,
+                auth_attr=mock.ANY,
+                symmetrical=mock.ANY,
+                correlation=mock.ANY)
 
     def test_create_vnffg_no_classifier(self):
         with patch.object(TackerManager, 'get_service_plugins') as \
@@ -744,14 +748,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIn('id', result)
             self.assertIn('status', result)
             self.assertEqual('PENDING_CREATE', result['status'])
-            self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
-                                                           name=mock.ANY,
-                                                           path_id=mock.ANY,
-                                                           vnfs=mock.ANY,
-                                                           fc_ids=mock.ANY,
-                                                           auth_attr=mock.ANY,
-                                                           symmetrical=mock.ANY
-                                                           )
+            self._driver_manager.invoke.assert_called_with(
+                mock.ANY, mock.ANY,
+                name=mock.ANY,
+                path_id=mock.ANY,
+                vnfs=mock.ANY,
+                fc_ids=mock.ANY,
+                auth_attr=mock.ANY,
+                symmetrical=mock.ANY,
+                correlation=mock.ANY)
 
     def test_create_vnffg_param_value_format_error(self):
         with patch.object(TackerManager, 'get_service_plugins') as \
@@ -786,14 +791,16 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIn('id', result)
             self.assertIn('status', result)
             self.assertEqual('PENDING_CREATE', result['status'])
-            self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
-                                                           name=mock.ANY,
-                                                           path_id=mock.ANY,
-                                                           vnfs=mock.ANY,
-                                                           fc_ids=mock.ANY,
-                                                           auth_attr=mock.ANY,
-                                                           symmetrical=mock.ANY
-                                                           )
+            self._driver_manager.invoke.assert_called_with(
+                mock.ANY, mock.ANY,
+                name=mock.ANY,
+                path_id=mock.ANY,
+                vnfs=mock.ANY,
+                fc_ids=mock.ANY,
+                auth_attr=mock.ANY,
+                symmetrical=mock.ANY,
+                correlation=mock.ANY
+            )
 
     def test_create_vnffg_duplicate_criteria(self):
         with patch.object(TackerManager, 'get_service_plugins') as \

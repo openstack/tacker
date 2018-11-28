@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add support SFC encapsulation from networking-sfc. This feature allows
+    choosing SFC encapsulation between MPLS and NSH (default MPLS). It also
+    apply SFC proxy to make use of correlation.

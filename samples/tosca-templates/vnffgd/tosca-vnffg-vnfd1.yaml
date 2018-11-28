@@ -25,6 +25,7 @@ topology_template:
         user_data_format: RAW
         user_data: |
           #!/bin/sh
+          echo 1 > /proc/sys/net/ipv4/ip_forward
           cat << EOF >> /etc/network/interfaces
           auto eth1
           iface eth1 inet dhcp

@@ -121,6 +121,7 @@ without "symmetrical", you can ommit "network_dst_port_id" and "ip_dst_prefix".
       properties:
         id: 51
         symmetrical: true
+        correlation: nsh
         policy:
           type: ACL
           criteria:
@@ -134,13 +135,23 @@ without "symmetrical", you can ommit "network_dst_port_id" and "ip_dst_prefix".
         path:
           - forwarder: VNFD1
             capability: CP12
+            sfc_encap: True
           - forwarder: VNFD2
             capability: CP22
+            sfc_encap: False
 
 In above template, users can set **symmetrical** in properties of a forwarding
 path create symmetrical VNFFG. If this property is not set, **symmetrical**
 will be specified by **--symmetrical** in create VNFFG command (default value
 is False).
+
+In other hand, by setting **correlation** in properties let users can choose
+SFC encapsulation between MPLS or NSH (default: MPLS). If sfc_encap is True,
+port pair's correlation is set to same value with **correlation** to make use
+of **correlation** that SFC Encapsulation provides, otherwise port pair's
+correlation is set to None to install SFC proxy `SFC_PROXY`_. Detailed
+information about SFC encapsulation can be found in Networking-SFC project
+`SFC_ENCAPSULATION`_
 
 You can use the sample VNFFGD template for symmetrical feature (in port chain)
 such as this `link <https://github.com/openstack/tacker/tree/master/samples/
@@ -298,6 +309,20 @@ Using the below command query the list of existing VNFFG templates.
     | 95d9-0199253db72e  | myvnffg | ACTIVE | bd7829bf-85de-4f3b-960a-8482028bfb34|
     +--------------------+---------+--------+-------------+--------+--------------+
 
+To verify result, user can get information of port chain in networking-sfc:
+
+.. code-block:: console
+
+    $ openstack sfc port chain list --fit-width
+
+    +-----------------------+-------------------+-----------------------+-----------------------+-----------------------+----------+
+    | ID                    | Name              | Port Pair Groups      | Flow Classifiers      | Chain Parameters      | Chain ID |
+    +-----------------------+-------------------+-----------------------+-----------------------+-----------------------+----------+
+    | 60d1a3ee-8455-415e-   | VNFFG1-port-chain | [u'87d7d4c2-d2d1-4a99 | [u'02fa422c-9f40-4092 | {u'symmetric': False, |       51 |
+    | 8ff1-e0b6b9f9f277     |                   | -81fb-f3d5f51dd919',  | -a8b0-c04355116e5e']  | u'correlation':       |          |
+    |                       |                   | u'81213b4c-0e5e-445d- |                       | u'nsh'}               |          |
+    |                       |                   | add6-dea2bf55078f']   |                       |                       |          |
+    +-----------------------+-------------------+-----------------------+-----------------------+-----------------------+----------+
 
 After the user located the VNFFG the subsequent action is to update it.
 Based on the appropriate choice, update VNFFG template.
@@ -394,6 +419,7 @@ By using the below VNFFGD template we can update the exisitng VNFFG.
          properties:
            id: 52
            symmetrical: false
+           correlation: nsh
            policy:
              type: ACL
              criteria:
@@ -406,8 +432,10 @@ By using the below VNFFGD template we can update the exisitng VNFFG.
            path:
              - forwarder: VNFD1
                capability: CP1
+               sfc_encap: True
              - forwarder: VNFD2
                capability: CP2
+               sfc_encap: False
 
      groups:
        VNFFG1:
@@ -458,3 +486,5 @@ Known Issues and Limitations
 
 .. _VNF1: https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd1.yaml
 .. _VNF2: https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd2.yaml
+.. _SFC_PROXY: https://tools.ietf.org/html/rfc8300
+.. _SFC_ENCAPSULATION: https://docs.openstack.org/networking-sfc/latest/contributor/ietf_sfc_encapsulation.html

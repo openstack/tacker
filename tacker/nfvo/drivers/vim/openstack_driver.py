@@ -84,6 +84,7 @@ FC_MAP = {'name': 'name',
           'network_dst_port_id': 'logical_destination_port'}
 
 CONNECTION_POINT = 'connection_points'
+SFC_ENCAP = 'sfc_encap'
 
 
 def config_opts():
@@ -386,7 +387,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         raise ValueError('empty match field for input flow classifier')
 
     def create_chain(self, name, path_id, fc_ids, vnfs, symmetrical=False,
-                     auth_attr=None):
+                     correlation='mpls', auth_attr=None):
         if not auth_attr:
             LOG.warning("auth information required for n-sfc driver")
             return None
@@ -424,6 +425,12 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                     ingress = cp_list[0]
                     egress = cp_list[1]
 
+                # If sfc_encap is True, pp_corr is set to correlation to
+                # make use of correlation, otherwise pp_corr is set to None
+                # to install SFC proxy
+                sfc_encap = vnf.get(SFC_ENCAP, True)
+                pp_corr = correlation if sfc_encap else None
+
                 # valid_port_in_use function is used to find out the
                 # port_pair_group_id of the existing port pair group
                 # which was created by ingress and egress of current VNF
@@ -436,6 +443,8 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                     port_pair['description'] = 'port pair for ' + vnf['name']
                     port_pair['ingress'] = ingress
                     port_pair['egress'] = egress
+                    port_pair['service_function_parameters'] = {
+                        'correlation': pp_corr}
                     port_pair_id = neutronclient_.port_pair_create(port_pair)
                     if not port_pair_id:
                         LOG.warning("Chain creation failed due to port pair"
@@ -488,9 +497,9 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         port_chain['description'] = 'port-chain for Tacker VNFFG'
         port_chain['port_pair_groups'] = port_pair_group_list
         port_chain['flow_classifiers'] = fc_ids
-        if symmetrical:
-            port_chain['chain_parameters'] = {}
-            port_chain['chain_parameters']['symmetric'] = True
+        port_chain['chain_parameters'] = {}
+        port_chain['chain_parameters']['symmetric'] = symmetrical
+        port_chain['chain_parameters']['correlation'] = correlation
         return neutronclient_.port_chain_create(port_chain)
 
     def update_chain(self, chain_id, fc_ids, vnfs,
