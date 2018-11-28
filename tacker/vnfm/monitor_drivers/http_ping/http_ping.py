@@ -12,6 +12,8 @@
 #    under the License.
 #
 
+import netaddr
+
 from oslo_config import cfg
 from oslo_log import log as logging
 import six.moves.urllib.error as urlerr
@@ -64,6 +66,9 @@ class VNFMonitorHTTPPing(abstract_driver.VNFMonitorAbstractDriver):
         :return: bool - True or False depending on pingability.
         """
         url = 'http://' + mgmt_ip + ':' + str(port)
+        if netaddr.valid_ipv6(mgmt_ip):
+            url = 'http://[' + mgmt_ip + ']:' + str(port)
+
         for retry_index in range(int(retry)):
             try:
                 urlreq.urlopen(url, timeout=timeout)
