@@ -10,6 +10,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import netaddr
+
 from mistral.actions import base
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -48,7 +50,12 @@ class PingVimAction(base.Action):
         self.killed = True
 
     def _ping(self):
-        ping_cmd = ['ping', '-c', self.count,
+
+        cmd_ping = 'ping'
+        if netaddr.valid_ipv6(self.targetip):
+            cmd_ping = 'ping6'
+
+        ping_cmd = [cmd_ping, '-c', self.count,
                     '-W', self.timeout,
                     '-i', self.interval,
                     self.targetip]
