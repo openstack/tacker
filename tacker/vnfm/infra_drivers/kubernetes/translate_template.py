@@ -19,6 +19,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from toscaparser.utils import yamlparser
 
+from tacker.common import exceptions
 from tacker.common import log
 from tacker.extensions import common_services as cs
 from tacker.extensions import vnfm
@@ -70,8 +71,8 @@ class TOSCAToKubernetes(object):
         self.attributes = self.vnf['vnfd']['attributes'].copy()
         self.vnfd_yaml = self.attributes.pop('vnfd', None)
         if self.vnfd_yaml is None:
-            LOG.info("VNFD is not provided, so no vnf is created !!")
-            return
+            LOG.error("VNFD is not provided, so no vnf is created !!")
+            raise exceptions.InvalidInput("VNFD template is None.")
         LOG.debug('vnfd_yaml %s', self.vnfd_yaml)
         vnfd_dict = yamlparser.simple_ordered_parse(self.vnfd_yaml)
         LOG.debug('vnfd_dict %s', vnfd_dict)
