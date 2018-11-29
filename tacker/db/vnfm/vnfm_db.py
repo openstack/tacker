@@ -473,7 +473,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 evt_type=constants.RES_EVT_CREATE,
                 tstamp=timeutils.utcnow(), details="VNF creation completed")
 
-    def _get_vnf_db(self, context, vnf_id, current_statuses, new_status):
+    def _get_vnf_db(self, context, vnf_id, current_statuses):
         try:
             vnf_db = (
                 self._model_query(context, VNF).
@@ -482,6 +482,17 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 with_lockmode('update').one())
         except orm_exc.NoResultFound:
             raise vnfm.VNFNotFound(vnf_id=vnf_id)
+        return vnf_db
+
+    def _update_vnf_status_db(self, context, vnf_id, current_statuses,
+                              new_status):
+        vnf_db = self._get_vnf_db(context, vnf_id, current_statuses)
+        if self.check_vnf_status_legality(vnf_db, vnf_id):
+            vnf_db.update({'status': new_status})
+        return vnf_db
+
+    @staticmethod
+    def check_vnf_status_legality(vnf_db, vnf_id):
         if vnf_db.status == constants.PENDING_DELETE:
             error_reason = _("Operation on PENDING_DELETE VNF "
                              "is not permited. Please contact your "
@@ -489,9 +500,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             raise vnfm.VNFDeleteFailed(reason=error_reason)
         if vnf_db.status == constants.PENDING_UPDATE:
             raise vnfm.VNFInUse(vnf_id=vnf_id)
-        # TODO(dkushwaha): status check/update will be moved out from here.
-        vnf_db.update({'status': new_status})
-        return vnf_db
+        return True
 
     def _update_vnf_scaling_status(self,
                                    context,
@@ -500,7 +509,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                                    status,
                                    mgmt_url=None):
         with context.session.begin(subtransactions=True):
-            vnf_db = self._get_vnf_db(
+            vnf_db = self._update_vnf_status_db(
                 context, policy['vnf']['id'], previous_statuses, status)
             if mgmt_url:
                 vnf_db.update({'mgmt_url': mgmt_url})
@@ -515,7 +524,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def _update_vnf_pre(self, context, vnf_id):
         with context.session.begin(subtransactions=True):
-            vnf_db = self._get_vnf_db(
+            vnf_db = self._update_vnf_status_db(
                 context, vnf_id, _ACTIVE_UPDATE, constants.PENDING_UPDATE)
         updated_vnf_dict = self._make_vnf_dict(vnf_db)
         self._cos_db_plg.create_event(
@@ -562,7 +571,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                     [constants.PENDING_DELETE, constants.ERROR]):
                 raise vnfm.VNFInUse(vnf_id=vnf_id)
 
-            vnf_db = self._get_vnf_db(
+            vnf_db = self._update_vnf_status_db(
                 context, vnf_id, _ACTIVE_UPDATE_ERROR_DEAD,
                 constants.PENDING_DELETE)
         deleted_vnf_db = self._make_vnf_dict(vnf_db)
