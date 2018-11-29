@@ -27,30 +27,30 @@ class TestVNFMonitorHTTPPing(testtools.TestCase):
 
     @mock.patch('six.moves.urllib.request.urlopen')
     def test_monitor_call_for_success(self, mock_urlopen):
-        test_device = {}
+        test_vnf = {}
         test_kwargs = {
             'mgmt_ip': 'a.b.c.d'
         }
-        self.monitor_http_ping.monitor_call(test_device,
+        self.monitor_http_ping.monitor_call(test_vnf,
                                             test_kwargs)
         mock_urlopen.assert_called_once_with('http://a.b.c.d:80', timeout=5)
 
     @mock.patch('six.moves.urllib.request.urlopen')
     def test_monitor_call_for_failure(self, mock_urlopen):
         mock_urlopen.side_effect = urlerr.URLError("MOCK Error")
-        test_device = {}
+        test_vnf = {}
         test_kwargs = {
             'mgmt_ip': 'a.b.c.d'
         }
-        monitor_return = self.monitor_http_ping.monitor_call(test_device,
+        monitor_return = self.monitor_http_ping.monitor_call(test_vnf,
                                                              test_kwargs)
         self.assertEqual('failure', monitor_return)
 
     def test_monitor_url(self):
-        test_device = {
+        test_vnf = {
             'monitor_url': 'a.b.c.d'
         }
         test_monitor_url = self.monitor_http_ping.monitor_url(mock.ANY,
                                                               mock.ANY,
-                                                              test_device)
+                                                              test_vnf)
         self.assertEqual('a.b.c.d', test_monitor_url)

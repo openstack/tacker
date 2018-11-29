@@ -902,7 +902,7 @@ class JSONV2TestCase(APIv2TestBase, testlib_api.WebTestCase):
         self.assertEqual(400, res.status_int)
 
     def test_create_bulk_partial_body(self):
-        data = {'ports': [{'device_id': 'device_1',
+        data = {'ports': [{'vnf_id': 'vnf_1',
                            'tenant_id': _uuid()},
                           {'tenant_id': _uuid()}]}
         res = self.api.post(_get_path('ports', fmt=self.fmt),
@@ -914,21 +914,21 @@ class JSONV2TestCase(APIv2TestBase, testlib_api.WebTestCase):
     def test_create_attr_not_specified(self):
         net_id = _uuid()
         tenant_id = _uuid()
-        device_id = _uuid()
+        vnf_id = _uuid()
         initial_input = {'port': {'name': '', 'network_id': net_id,
                                   'tenant_id': tenant_id,
-                                  'device_id': device_id,
+                                  'vnf_id': vnf_id,
                                   'admin_state_up': True}}
         full_input = {'port': {'admin_state_up': True,
                                'mac_address': attributes.ATTR_NOT_SPECIFIED,
                                'fixed_ips': attributes.ATTR_NOT_SPECIFIED,
-                               'device_owner': ''}}
+                               'vnf_owner': ''}}
         full_input['port'].update(initial_input['port'])
         return_value = {'id': _uuid(), 'status': 'ACTIVE',
                         'admin_state_up': True,
                         'mac_address': 'ca:fe:de:ad:be:ef',
-                        'device_id': device_id,
-                        'device_owner': ''}
+                        'vnf_id': vnf_id,
+                        'vnf_owner': ''}
         return_value.update(initial_input['port'])
 
         instance = self.plugin.return_value
@@ -1232,7 +1232,7 @@ class V2Views(base.BaseTestCase):
 
     def test_port(self):
         keys = ('id', 'network_id', 'mac_address', 'fixed_ips',
-                'device_id', 'admin_state_up', 'tenant_id', 'status')
+                'vnf_id', 'admin_state_up', 'tenant_id', 'status')
         self._view(keys, 'ports', 'port')
 
     def test_subnet(self):

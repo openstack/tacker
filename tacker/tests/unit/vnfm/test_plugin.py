@@ -63,7 +63,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.context = context.get_admin_context()
         self._mock_vim_client()
         self._stub_get_vim()
-        self._mock_device_manager()
+        self._mock_vnf_manager()
         self._mock_vnf_monitor()
         self._mock_vnf_alarm_monitor()
         self._mock_green_pool()
@@ -75,14 +75,14 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._cos_db_plugin =\
             common_services_db_plugin.CommonServicesPluginDb()
 
-    def _mock_device_manager(self):
-        self._device_manager = mock.Mock(wraps=FakeDriverManager())
-        self._device_manager.__contains__ = mock.Mock(
+    def _mock_vnf_manager(self):
+        self._vnf_manager = mock.Mock(wraps=FakeDriverManager())
+        self._vnf_manager.__contains__ = mock.Mock(
             return_value=True)
-        fake_device_manager = mock.Mock()
-        fake_device_manager.return_value = self._device_manager
+        fake_vnf_manager = mock.Mock()
+        fake_vnf_manager.return_value = self._vnf_manager
         self._mock(
-            'tacker.common.driver_manager.DriverManager', fake_device_manager)
+            'tacker.common.driver_manager.DriverManager', fake_vnf_manager)
 
     def _mock_vim_client(self):
         self.vim_client = mock.Mock(wraps=FakeVimClient())
@@ -120,31 +120,31 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._mock(
             'tacker.vnfm.monitor.VNFAlarmMonitor', fake_vnf_alarm_monitor)
 
-    def _insert_dummy_device_template(self):
+    def _insert_dummy_vnf_template(self):
         session = self.context.session
-        device_template = vnfm_db.VNFD(
+        vnf_template = vnfm_db.VNFD(
             id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_template',
             description='fake_template_description',
             template_source='onboarded',
             deleted_at=datetime.min)
-        session.add(device_template)
+        session.add(vnf_template)
         session.flush()
-        return device_template
+        return vnf_template
 
-    def _insert_dummy_device_template_inline(self):
+    def _insert_dummy_vnf_template_inline(self):
         session = self.context.session
-        device_template = vnfm_db.VNFD(
+        vnf_template = vnfm_db.VNFD(
             id='d58bcc4e-d0cf-11e6-bf26-cec0c932ce01',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='tmpl-koeak4tqgoqo8cr4-dummy_inline_vnf',
             description='inline_fake_template_description',
             deleted_at=datetime.min,
             template_source='inline')
-        session.add(device_template)
+        session.add(vnf_template)
         session.flush()
-        return device_template
+        return vnf_template
 
     def _insert_dummy_vnfd_attributes(self, template):
         session = self.context.session
@@ -157,22 +157,22 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         session.flush()
         return vnfd_attr
 
-    def _insert_dummy_device(self):
+    def _insert_dummy_vnf(self):
         session = self.context.session
-        device_db = vnfm_db.VNF(
+        vnf_db = vnfm_db.VNF(
             id='6261579e-d6f3-49ad-8bc3-a9cb974778fe',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
-            name='fake_device',
-            description='fake_device_description',
+            name='fake_vnf',
+            description='fake_vnf_description',
             instance_id='da85ea1a-4ec4-4201-bbb2-8d9249eca7ec',
             vnfd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             placement_attr={'region': 'RegionOne'},
             status='ACTIVE',
             deleted_at=datetime.min)
-        session.add(device_db)
+        session.add(vnf_db)
         session.flush()
-        return device_db
+        return vnf_db
 
     def _insert_scaling_attributes_vnf(self):
         session = self.context.session
@@ -258,7 +258,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                           self.context, vnfd_obj)
 
     def test_create_vnf_with_vnfd(self):
-        self._insert_dummy_device_template()
+        self._insert_dummy_vnf_template()
         vnf_obj = utils.get_dummy_vnf_obj()
         result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
         self.assertIsNotNone(result)
@@ -269,12 +269,12 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('mgmt_url', result)
         self.assertIn('created_at', result)
         self.assertIn('updated_at', result)
-        self._device_manager.invoke.assert_called_with('test_vim',
-                                                       'create',
-                                                       plugin=mock.ANY,
-                                                       context=mock.ANY,
-                                                       vnf=mock.ANY,
-                                                       auth_attr=mock.ANY)
+        self._vnf_manager.invoke.assert_called_with('test_vim',
+                                                    'create',
+                                                    plugin=mock.ANY,
+                                                    context=mock.ANY,
+                                                    vnf=mock.ANY,
+                                                    auth_attr=mock.ANY)
         self._pool.spawn_n.assert_called_once_with(mock.ANY)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
@@ -283,7 +283,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
     @mock.patch('tacker.vnfm.plugin.VNFMPlugin.create_vnfd')
     def test_create_vnf_from_template(self, mock_create_vnfd):
-        self._insert_dummy_device_template_inline()
+        self._insert_dummy_vnf_template_inline()
         mock_create_vnfd.return_value = {'id':
                 'd58bcc4e-d0cf-11e6-bf26-cec0c932ce01'}
         vnf_obj = utils.get_dummy_inline_vnf_obj()
@@ -297,12 +297,12 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('created_at', result)
         self.assertIn('updated_at', result)
         mock_create_vnfd.assert_called_once_with(mock.ANY, mock.ANY)
-        self._device_manager.invoke.assert_called_with('test_vim',
-                                                       'create',
-                                                       plugin=mock.ANY,
-                                                       context=mock.ANY,
-                                                       vnf=mock.ANY,
-                                                       auth_attr=mock.ANY)
+        self._vnf_manager.invoke.assert_called_with('test_vim',
+                                                    'create',
+                                                    plugin=mock.ANY,
+                                                    context=mock.ANY,
+                                                    vnf=mock.ANY,
+                                                    auth_attr=mock.ANY)
         self._pool.spawn_n.assert_called_once_with(mock.ANY)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_CREATE,
@@ -311,15 +311,15 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             tstamp=mock.ANY, details=mock.ANY)
 
     def test_show_vnf_details_vnf_inactive(self):
-        self._insert_dummy_device_template()
+        self._insert_dummy_vnf_template()
         vnf_obj = utils.get_dummy_vnf_obj()
         result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
         self.assertRaises(vnfm.VNFInactive, self.vnfm_plugin.get_vnf_resources,
                           self.context, result['id'])
 
     def test_show_vnf_details_vnf_active(self):
-        self._insert_dummy_device_template()
-        active_vnf = self._insert_dummy_device()
+        self._insert_dummy_vnf_template()
+        active_vnf = self._insert_dummy_vnf()
         resources = self.vnfm_plugin.get_vnf_resources(self.context,
                                                        active_vnf['id'])[0]
         self.assertIn('name', resources)
@@ -327,16 +327,16 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('id', resources)
 
     def test_delete_vnf(self):
-        self._insert_dummy_device_template()
-        dummy_device_obj = self._insert_dummy_device()
-        self.vnfm_plugin.delete_vnf(self.context, dummy_device_obj[
+        self._insert_dummy_vnf_template()
+        dummy_vnf_obj = self._insert_dummy_vnf()
+        self.vnfm_plugin.delete_vnf(self.context, dummy_vnf_obj[
             'id'])
-        self._device_manager.invoke.assert_called_with('test_vim', 'delete',
-                                                       plugin=mock.ANY,
-                                                       context=mock.ANY,
-                                                       vnf_id=mock.ANY,
-                                                       auth_attr=mock.ANY,
-                                                       region_name=mock.ANY)
+        self._vnf_manager.invoke.assert_called_with('test_vim', 'delete',
+                                                    plugin=mock.ANY,
+                                                    context=mock.ANY,
+                                                    vnf_id=mock.ANY,
+                                                    auth_attr=mock.ANY,
+                                                    region_name=mock.ANY)
         self._vnf_monitor.delete_hosting_vnf.assert_called_with(mock.ANY)
         self._pool.spawn_n.assert_called_once_with(mock.ANY, mock.ANY,
                                                    mock.ANY, mock.ANY,
@@ -407,13 +407,13 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             self.context, '6261579e-d6f3-49ad-8bc3-a9cb974778fe')
 
     def test_update_vnf(self):
-        self._insert_dummy_device_template()
-        dummy_device_obj = self._insert_dummy_device()
+        self._insert_dummy_vnf_template()
+        dummy_vnf_obj = self._insert_dummy_vnf()
         vnf_config_obj = utils.get_dummy_vnf_config_obj()
-        result = self.vnfm_plugin.update_vnf(self.context, dummy_device_obj[
+        result = self.vnfm_plugin.update_vnf(self.context, dummy_vnf_obj[
             'id'], vnf_config_obj)
         self.assertIsNotNone(result)
-        self.assertEqual(dummy_device_obj['id'], result['id'])
+        self.assertEqual(dummy_vnf_obj['id'], result['id'])
         self.assertIn('instance_id', result)
         self.assertIn('status', result)
         self.assertIn('attributes', result)
@@ -436,22 +436,22 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
     def _test_scale_vnf(self, type, scale_state):
         # create vnfd
-        self._insert_dummy_device_template()
+        self._insert_dummy_vnf_template()
         self._insert_scaling_attributes_vnfd()
 
         # create vnf
-        dummy_device_obj = self._insert_dummy_device()
+        dummy_vnf_obj = self._insert_dummy_vnf()
         self._insert_scaling_attributes_vnf()
 
         # scale vnf
         vnf_scale = self._get_dummy_scaling_policy(type)
         self.vnfm_plugin.create_vnf_scale(
             self.context,
-            dummy_device_obj['id'],
+            dummy_vnf_obj['id'],
             vnf_scale)
 
         # validate
-        self._device_manager.invoke.assert_called_once_with(
+        self._vnf_manager.invoke.assert_called_once_with(
             mock.ANY,
             'scale',
             plugin=mock.ANY,
@@ -478,7 +478,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._test_scale_vnf('in', constants.PENDING_SCALE_IN)
 
     def _get_dummy_active_vnf(self, vnfd_template):
-        dummy_vnf = utils.get_dummy_device_obj()
+        dummy_vnf = utils.get_dummy_vnf()
         dummy_vnf['vnfd']['attributes']['vnfd'] = vnfd_template
         dummy_vnf['status'] = 'ACTIVE'
         dummy_vnf['instance_id'] = '4c00108e-c69d-4624-842d-389c77311c1d'
