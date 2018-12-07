@@ -64,7 +64,7 @@ class TestVNFMonitor(testtools.TestCase):
         self.addCleanup(p.stop)
 
     def test_to_hosting_vnf(self):
-        test_device_dict = {
+        test_vnf_dict = {
             'id': MOCK_DEVICE_ID,
             'mgmt_url': '{"vdu1": "a.b.c.d"}',
             'attributes': {
@@ -79,16 +79,16 @@ class TestVNFMonitor(testtools.TestCase):
             'management_ip_addresses': {
                 'vdu1': 'a.b.c.d'
             },
-            'vnf': test_device_dict,
+            'vnf': test_vnf_dict,
             'monitoring_policy': MOCK_VNF_DEVICE['monitoring_policy']
         }
-        output_dict = monitor.VNFMonitor.to_hosting_vnf(test_device_dict,
+        output_dict = monitor.VNFMonitor.to_hosting_vnf(test_vnf_dict,
                                                 action_cb)
         self.assertEqual(expected_output, output_dict)
 
     @mock.patch('tacker.vnfm.monitor.VNFMonitor.__run__')
     def test_add_hosting_vnf(self, mock_monitor_run):
-        test_device_dict = {
+        test_vnf_dict = {
             'id': MOCK_DEVICE_ID,
             'mgmt_url': '{"vdu1": "a.b.c.d"}',
             'attributes': {
@@ -100,10 +100,10 @@ class TestVNFMonitor(testtools.TestCase):
         action_cb = mock.MagicMock()
         test_boot_wait = 30
         test_vnfmonitor = monitor.VNFMonitor(test_boot_wait)
-        new_dict = test_vnfmonitor.to_hosting_vnf(test_device_dict, action_cb)
+        new_dict = test_vnfmonitor.to_hosting_vnf(test_vnf_dict, action_cb)
         test_vnfmonitor.add_hosting_vnf(new_dict)
-        test_device_id = list(test_vnfmonitor._hosting_vnfs.keys())[0]
-        self.assertEqual(MOCK_DEVICE_ID, test_device_id)
+        test_vnf_id = list(test_vnfmonitor._hosting_vnfs.keys())[0]
+        self.assertEqual(MOCK_DEVICE_ID, test_vnf_id)
         self._cos_db_plugin.create_event.assert_called_with(
             mock.ANY, res_id=mock.ANY, res_type=constants.RES_TYPE_VNF,
             res_state=mock.ANY, evt_type=constants.RES_EVT_MONITOR,

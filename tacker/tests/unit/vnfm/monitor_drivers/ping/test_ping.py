@@ -26,7 +26,7 @@ class TestVNFMonitorPing(testtools.TestCase):
 
     @mock.patch('tacker.agent.linux.utils.execute')
     def test_monitor_call_for_success(self, mock_utils_execute):
-        test_device = {}
+        test_vnf = {}
         test_kwargs = {
             'mgmt_ip': 'a.b.c.d'
         }
@@ -35,7 +35,7 @@ class TestVNFMonitorPing(testtools.TestCase):
                          '-W', 1,
                          '-i', '0.2',
                          'a.b.c.d']
-        self.monitor_ping.monitor_call(test_device,
+        self.monitor_ping.monitor_call(test_vnf,
                                        test_kwargs)
         mock_utils_execute.assert_called_once_with(mock_ping_cmd,
                                                    check_exit_code=True)
@@ -43,19 +43,19 @@ class TestVNFMonitorPing(testtools.TestCase):
     @mock.patch('tacker.agent.linux.utils.execute')
     def test_monitor_call_for_failure(self, mock_utils_execute):
         mock_utils_execute.side_effect = RuntimeError()
-        test_device = {}
+        test_vnf = {}
         test_kwargs = {
             'mgmt_ip': 'a.b.c.d'
         }
-        monitor_return = self.monitor_ping.monitor_call(test_device,
+        monitor_return = self.monitor_ping.monitor_call(test_vnf,
                                                         test_kwargs)
         self.assertEqual('failure', monitor_return)
 
     def test_monitor_url(self):
-        test_device = {
+        test_vnf = {
             'monitor_url': 'a.b.c.d'
         }
         test_monitor_url = self.monitor_ping.monitor_url(mock.ANY,
                                                          mock.ANY,
-                                                         test_device)
+                                                         test_vnf)
         self.assertEqual('a.b.c.d', test_monitor_url)

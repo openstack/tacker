@@ -244,7 +244,7 @@ class TestOpenStack(base.TestCase):
     def _get_dummy_tosca_vnf(self, template, input_params=''):
 
         tosca_template = _get_template(template)
-        vnf = utils.get_dummy_device_obj()
+        vnf = utils.get_dummy_vnf()
         dtemplate = self._get_expected_vnfd(tosca_template)
 
         vnf['vnfd'] = dtemplate

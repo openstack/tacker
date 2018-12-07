@@ -114,7 +114,7 @@ def get_dummy_vnf_config_obj():
         'config': {'firewall': 'dummy_firewall_values'}}}}}}}
 
 
-def get_dummy_device_obj():
+def get_dummy_vnf():
     return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
         u'test_openwrt', 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
         'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
