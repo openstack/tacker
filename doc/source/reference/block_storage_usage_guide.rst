@@ -112,11 +112,11 @@ With these additions, the new VNFD looks like below:
         type: tosca.nodes.BlockStorageAttachment
         properties:
           location: /dev/vdb
-          requirements:
-            - virtualBinding:
-                node: VDU1
-            - virtualAttachment:
-                node: VB1
+        requirements:
+          - virtualBinding:
+              node: VDU1
+          - virtualAttachment:
+              node: VB1
 
       VL1:
         type: tosca.nodes.nfv.VL
