@@ -22,9 +22,9 @@ from tacker.db.common_services import common_services_db_plugin
 from tacker.plugins.common import constants
 from tacker.vnfm import monitor
 
-MOCK_DEVICE_ID = 'a737497c-761c-11e5-89c3-9cb6541d805d'
-MOCK_VNF_DEVICE = {
-    'id': MOCK_DEVICE_ID,
+MOCK_VNF_ID = 'a737497c-761c-11e5-89c3-9cb6541d805d'
+MOCK_VNF = {
+    'id': MOCK_VNF_ID,
     'management_ip_addresses': {
         'vdu1': 'a.b.c.d'
     },
@@ -65,22 +65,22 @@ class TestVNFMonitor(testtools.TestCase):
 
     def test_to_hosting_vnf(self):
         test_vnf_dict = {
-            'id': MOCK_DEVICE_ID,
+            'id': MOCK_VNF_ID,
             'mgmt_url': '{"vdu1": "a.b.c.d"}',
             'attributes': {
                 'monitoring_policy': json.dumps(
-                        MOCK_VNF_DEVICE['monitoring_policy'])
+                        MOCK_VNF['monitoring_policy'])
             }
         }
         action_cb = mock.MagicMock()
         expected_output = {
-            'id': MOCK_DEVICE_ID,
+            'id': MOCK_VNF_ID,
             'action_cb': action_cb,
             'management_ip_addresses': {
                 'vdu1': 'a.b.c.d'
             },
             'vnf': test_vnf_dict,
-            'monitoring_policy': MOCK_VNF_DEVICE['monitoring_policy']
+            'monitoring_policy': MOCK_VNF['monitoring_policy']
         }
         output_dict = monitor.VNFMonitor.to_hosting_vnf(test_vnf_dict,
                                                 action_cb)
@@ -89,11 +89,11 @@ class TestVNFMonitor(testtools.TestCase):
     @mock.patch('tacker.vnfm.monitor.VNFMonitor.__run__')
     def test_add_hosting_vnf(self, mock_monitor_run):
         test_vnf_dict = {
-            'id': MOCK_DEVICE_ID,
+            'id': MOCK_VNF_ID,
             'mgmt_url': '{"vdu1": "a.b.c.d"}',
             'attributes': {
                 'monitoring_policy': json.dumps(
-                        MOCK_VNF_DEVICE['monitoring_policy'])
+                        MOCK_VNF['monitoring_policy'])
             },
             'status': 'ACTIVE'
         }
@@ -103,7 +103,7 @@ class TestVNFMonitor(testtools.TestCase):
         new_dict = test_vnfmonitor.to_hosting_vnf(test_vnf_dict, action_cb)
         test_vnfmonitor.add_hosting_vnf(new_dict)
         test_vnf_id = list(test_vnfmonitor._hosting_vnfs.keys())[0]
-        self.assertEqual(MOCK_DEVICE_ID, test_vnf_id)
+        self.assertEqual(MOCK_VNF_ID, test_vnf_id)
         self._cos_db_plugin.create_event.assert_called_with(
             mock.ANY, res_id=mock.ANY, res_type=constants.RES_TYPE_VNF,
             res_state=mock.ANY, evt_type=constants.RES_EVT_MONITOR,
@@ -111,7 +111,7 @@ class TestVNFMonitor(testtools.TestCase):
 
     @mock.patch('tacker.vnfm.monitor.VNFMonitor.__run__')
     def test_run_monitor(self, mock_monitor_run):
-        test_hosting_vnf = MOCK_VNF_DEVICE
+        test_hosting_vnf = MOCK_VNF
         test_hosting_vnf['vnf'] = {}
         test_boot_wait = 30
         mock_kwargs = {

@@ -75,7 +75,7 @@ def get_scaling_policy_name(action, policy_name):
     return '%s_scale_%s' % (policy_name, action)
 
 
-class OpenStack(abstract_driver.DeviceAbstractDriver,
+class OpenStack(abstract_driver.VnfAbstractDriver,
                 scale_driver.VnfScaleAbstractDriver):
     """Openstack infra driver for hosting vnfs"""
 

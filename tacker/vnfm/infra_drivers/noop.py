@@ -25,12 +25,12 @@ from tacker.vnfm.infra_drivers import abstract_driver
 LOG = logging.getLogger(__name__)
 
 
-class DeviceNoop(abstract_driver.DeviceAbstractDriver):
+class VnfNoop(abstract_driver.VnfAbstractDriver):
 
     """Noop driver of hosting vnf for tests."""
 
     def __init__(self):
-        super(DeviceNoop, self).__init__()
+        super(VnfNoop, self).__init__()
         self._instances = set()
 
     def get_type(self):
