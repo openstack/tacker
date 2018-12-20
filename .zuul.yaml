@@ -117,19 +117,16 @@
 - project:
     templates:
       - check-requirements
+      - openstack-cover-jobs
+      - openstack-lower-constraints-jobs
       - openstack-python-jobs
-      - publish-openstack-docs-pti
-      - release-notes-jobs-python3
       - openstack-python35-jobs
       - openstack-python36-jobs
-      - openstack-cover-jobs
+      - publish-openstack-docs-pti
+      - release-notes-jobs-python3
     check:
       jobs:
         - tacker-functional-devstack-multinode:
             voting: false
         - tacker-functional-devstack-multinode-python3:
             voting: false
-        - openstack-tox-lower-constraints
-    gate:
-      jobs:
-        - openstack-tox-lower-constraints
