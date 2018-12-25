@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""add descrition to vnf
+"""add description to vnf
 
 Revision ID: 13c0e0661015
 Revises: 4c31092895b8
