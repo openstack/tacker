@@ -13,12 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import fcntl
 import os
 import shlex
-import socket
-import struct
-import tempfile
 
 from eventlet.green import subprocess
 from eventlet import greenthread
@@ -84,34 +80,6 @@ def execute(cmd, root_helper=None, process_input=None, addl_env=None,
         greenthread.sleep(0)
 
     return return_stderr and (_stdout, _stderr) or _stdout
-
-
-def get_interface_mac(interface):
-    DEVICE_NAME_LEN = 15
-    MAC_START = 18
-    MAC_END = 24
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    info = fcntl.ioctl(s.fileno(), 0x8927,
-                       struct.pack('256s', interface[:DEVICE_NAME_LEN]))
-    return ''.join(['%02x:' % ord(char)
-                    for char in info[MAC_START:MAC_END]])[:-1]
-
-
-def replace_file(file_name, data):
-    """Replaces the contents of file_name with data in a safe manner.
-
-    First write to a temp file and then rename. Since POSIX renames are
-    atomic, the file is unlikely to be corrupted by competing writes.
-
-    We create the tempfile on the same device to ensure that it can be renamed.
-    """
-
-    base_dir = os.path.dirname(os.path.abspath(file_name))
-    tmp_file = tempfile.NamedTemporaryFile('w+', dir=base_dir, delete=False)
-    tmp_file.write(data)
-    tmp_file.close()
-    os.chmod(tmp_file.name, 0o644)
-    os.rename(tmp_file.name, file_name)
 
 
 def find_child_pids(pid):

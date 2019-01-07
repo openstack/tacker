@@ -22,7 +22,7 @@ from tacker.api import extensions
 
 
 @six.add_metaclass(abc.ABCMeta)
-class DeviceMGMTAbstractDriver(extensions.PluginInterface):
+class VnfMGMTAbstractDriver(extensions.PluginInterface):
 
     @abc.abstractmethod
     def get_type(self):

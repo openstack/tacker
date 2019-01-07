@@ -22,7 +22,7 @@ from tacker.vnfm.mgmt_drivers import abstract_driver
 LOG = logging.getLogger(__name__)
 
 
-class DeviceMgmtNoop(abstract_driver.DeviceMGMTAbstractDriver):
+class VnfMgmtNoop(abstract_driver.VnfMGMTAbstractDriver):
     def get_type(self):
         return 'noop'
 

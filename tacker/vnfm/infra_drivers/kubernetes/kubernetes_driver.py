@@ -58,7 +58,7 @@ def get_scaling_policy_name(action, policy_name):
     return '%s_scale_%s' % (policy_name, action)
 
 
-class Kubernetes(abstract_driver.DeviceAbstractDriver,
+class Kubernetes(abstract_driver.VnfAbstractDriver,
                  scale_driver.VnfScaleAbstractDriver):
     """Kubernetes infra driver for hosting containerized vnfs"""
 
