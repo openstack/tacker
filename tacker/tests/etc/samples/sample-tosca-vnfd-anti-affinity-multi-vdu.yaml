@@ -11,7 +11,7 @@ topology_template:
       type: tosca.nodes.nfv.VDU.Tacker
       properties:
         name: anti-affinity-vdu-insufficient-comp-nodes
-        image: cirros-0.3.5-x86_64-disk
+        image: cirros-0.4.0-x86_64-disk
         flavor: m1.tiny
         availability_zone: nova
         mgmt_driver: noop
@@ -54,7 +54,7 @@ topology_template:
       type: tosca.nodes.nfv.VDU.Tacker
       properties:
         name: anti-affinity-vdu-insufficient-comp-nodes
-        image: cirros-0.3.5-x86_64-disk
+        image: cirros-0.4.0-x86_64-disk
         flavor: m1.medium
         availability_zone: nova
         mgmt_driver: noop
@@ -97,7 +97,7 @@ topology_template:
       type: tosca.nodes.nfv.VDU.Tacker
       properties:
         name: anti-affinity-vdu-insufficient-comp-nodes
-        image: cirros-0.3.5-x86_64-disk
+        image: cirros-0.4.0-x86_64-disk
         flavor: m1.tiny
         availability_zone: nova
         mgmt_driver: noop
