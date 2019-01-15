@@ -29,6 +29,7 @@ from tacker.api.v1 import attributes
 from tacker.common import driver_manager
 from tacker.common import exceptions
 from tacker.common import utils
+from tacker import context as t_context
 from tacker.db.vnfm import vnfm_db
 from tacker.extensions import vnfm
 from tacker.plugins.common import constants
@@ -143,6 +144,16 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             cfg.CONF.tacker.policy_action)
         self._vnf_monitor = monitor.VNFMonitor(self.boot_wait)
         self._vnf_alarm_monitor = monitor.VNFAlarmMonitor()
+        self._init_monitoring()
+
+    def _init_monitoring(self):
+        context = t_context.get_admin_context()
+        vnfs = self.get_vnfs(context)
+        for vnf in vnfs:
+            # Add tenant_id in context object as it is required
+            # to get VIM in monitoring.
+            context.tenant_id = vnf['tenant_id']
+            self.add_vnf_to_monitor(context, vnf)
 
     def spawn_n(self, function, *args, **kwargs):
         self._pool.spawn_n(function, *args, **kwargs)
