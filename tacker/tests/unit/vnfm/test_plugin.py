@@ -29,6 +29,7 @@ from tacker.extensions import vnfm
 from tacker.plugins.common import constants
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.db import utils
+from tacker.vnfm import monitor
 from tacker.vnfm import plugin
 
 
@@ -110,6 +111,12 @@ class TestVNFMPluginMonitor(db_base.SqlTestCase):
         }]
 
         mock_get_vnfs.return_value = vnfs
+        # NOTE(bhagyashris): VNFMonitor class is using a singleton pattern
+        # and '_hosting_vnfs' is defined as a class level attribute.
+        # If one of the unit test adds a VNF to monitor it will show up here
+        # provided both the unit tests runs in the same process.
+        # Hence, you must reinitialize '_hosting_vnfs' to empty dict.
+        monitor.VNFMonitor._hosting_vnfs = dict()
         vnfm_plugin = plugin.VNFMPlugin()
         hosting_vnfs = vnfm_plugin._vnf_monitor._hosting_vnfs.values()
         hosting_vnf = hosting_vnfs[0]['vnf']
