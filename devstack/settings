@@ -42,29 +42,21 @@ if [ "${TACKER_MODE}" == "all" ]; then
     NETWORK_GATEWAY1=${NETWORK_GATEWAY1:-10.10.1.1}
 
     if [ "${KUBERNETES_VIM}" == "True" ]; then
-        K8S_PHYS_NET=${K8S_PHYS_NET:-"k8s-physnet"}
-        BR_K8S=${BR_K8S:-"br-k8s0"}
-        NET_K8S=${NET_K8S:-"k8s-public-net"}
-        SUBNET_K8S=${SUBNET_K8S:-"public-subnet"}
-        FIXED_RANGE_K8S=${FIXED_RANGE_K8S:-192.168.28.0/22}
-        NETWORK_GATEWAY_K8S=${NETWORK_GATEWAY_K8S:-192.168.28.1}
-        NETWORK_GATEWAY_K8S_IP=${NETWORK_GATEWAY_K8S_IP:-192.168.28.1/24}
+        KURYR_NEUTRON_DEFAULT_PROJECT="default"
+        # Octavia LBaaSv2
+        LIBS_FROM_GIT+=python-octaviaclient
+        TACKER_OCTAVIA_AGENTS=${TACKER_OCTAVIA_AGENTS:-octavia,o-api,o-cw,o-hm,o-hk}
+        for i in $(echo $TACKER_OCTAVIA_AGENTS | sed 's/,/ /g')
+        do
+            enable_service $i
+        done
 
-        KURYR_NEUTRON_DEFAULT_PROJECT="admin"
-        Q_ROUTER_NAME="route-k8s"
-        KURYR_NEUTRON_DEFAULT_ROUTER=${KURYR_NEUTRON_DEFAULT_ROUTER:-$Q_ROUTER_NAME}
-        SUBNETPOOL_NAME_V4=${SUBNETPOOL_NAME:-"shared-default-subnetpool-v4"}
-        SUBNETPOOL_SIZE_V4=${SUBNETPOOL_SIZE_V4:-26}
-        SUBNETPOOL_V4_ID=${SUBNETPOOL_V4_ID:-} #nqa
-
-        enable_service q-lbaasv2
-        enable_service etcd3
-        enable_service kubernetes-api
-        enable_service kubernetes-controller-manager
-        enable_service kubernetes-scheduler
-        enable_service kubelet
-        enable_service kuryr-kubernetes
-        NEUTRON_LBAAS_SERVICE_PROVIDERV2="LOADBALANCERV2:Haproxy:neutron_lbaas.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver:default"
+        # enable kuryr-kubernetes services
+        KURYR_KUBERNETES_AGENTS=${KURYR_KUBERNETES_AGENTS:-etcd3,kubernetes-api,kubernetes-controller-manager,kubernetes-scheduler,kubelet,kuryr-kubernetes,kuryr-daemon}
+        for i in $(echo $KURYR_KUBERNETES_AGENTS | sed 's/,/ /g')
+        do
+            enable_service $i
+        done
     fi
 elif [ "${TACKER_MODE}" == "standalone" ]; then
     # set the enabled services here. This will need tacker devstack plugin put as the last one in local.conf
