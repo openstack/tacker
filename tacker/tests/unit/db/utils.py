@@ -30,6 +30,7 @@ def _get_template(name):
     return f.read()
 
 tosca_vnfd_openwrt = _get_template('test_tosca_openwrt.yaml')
+tosca_invalid_vnfd = _get_template('test_tosca_parser_failure.yaml')
 config_data = _get_template('config_data.yaml')
 update_config_data = _get_template('update_config_data.yaml')
 vnffg_params = _get_template('vnffg_params.yaml')
@@ -71,6 +72,18 @@ def get_dummy_vnfd_obj():
                       'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
                       u'attributes': {u'vnfd': yaml.safe_load(
                           tosca_vnfd_openwrt)},
+                      'description': 'dummy_vnfd_description',
+                      'template_source': 'onboarded',
+            u'auth': {u'tenantName': u'admin', u'passwordCredentials': {
+                u'username': u'admin', u'password': u'devstack'}}}}
+
+
+def get_invalid_vnfd_obj():
+    return {u'vnfd': {u'service_types': [{u'service_type': u'vnfd'}],
+                      'name': 'dummy_vnfd',
+                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      u'attributes': {u'vnfd': yaml.safe_load(
+                          tosca_invalid_vnfd)},
                       'description': 'dummy_vnfd_description',
                       'template_source': 'onboarded',
             u'auth': {u'tenantName': u'admin', u'passwordCredentials': {

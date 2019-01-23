@@ -320,6 +320,40 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             res_state=constants.RES_EVT_ONBOARDED,
             res_type=constants.RES_TYPE_VNFD, tstamp=mock.ANY)
 
+    def test_create_vnfd_without_tosca_definitions_version(self):
+        vnfd_obj = utils.get_dummy_vnfd_obj()
+        vnfd_obj['vnfd']['attributes']['vnfd'].pop('tosca_definitions_version')
+        self.assertRaises(exceptions.Invalid,
+                          self.vnfm_plugin.create_vnfd,
+                          self.context, vnfd_obj)
+
+    def test_create_vnfd_with_empty_description(self):
+        vnfd_obj = utils.get_dummy_vnfd_obj()
+        vnfd_obj['vnfd']['description'] = ''
+        result = self.vnfm_plugin.create_vnfd(self.context, vnfd_obj)
+        self.assertIsNotNone(result)
+        # If vnfd description is an empty string, it sets the description of
+        # vnfd to the description that is present in the vnfd tosca template.
+        self.assertEqual(yaml.safe_load(
+            vnfd_obj['vnfd']['attributes']['vnfd'])['description'],
+            result['description'])
+
+    def test_create_vnfd_empty_name(self):
+        vnfd_obj = utils.get_dummy_vnfd_obj()
+        vnfd_obj['vnfd']['name'] = ''
+        result = self.vnfm_plugin.create_vnfd(self.context, vnfd_obj)
+        self.assertIsNotNone(result)
+        # If vnfd name is an empty string, it sets the name of vnfd to
+        # the name that is present in the vnfd tosca template.
+        self.assertEqual(yaml.safe_load(vnfd_obj['vnfd']['attributes']
+                    ['vnfd'])['metadata']['template_name'], result['name'])
+
+    def test_create_vnfd_with_tosca_parser_failure(self):
+        vnfd_obj = utils.get_invalid_vnfd_obj()
+        self.assertRaises(vnfm.ToscaParserFailed,
+                          self.vnfm_plugin.create_vnfd,
+                          self.context, vnfd_obj)
+
     def test_create_vnfd_no_service_types(self):
         vnfd_obj = utils.get_dummy_vnfd_obj()
         vnfd_obj['vnfd'].pop('service_types')
