@@ -58,6 +58,10 @@ class FakeVimClient(mock.Mock):
     pass
 
 
+class FakeException(Exception):
+    pass
+
+
 class TestVNFMPluginMonitor(db_base.SqlTestCase):
     def setUp(self):
         super(TestVNFMPluginMonitor, self).setUp()
@@ -542,6 +546,34 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
             tstamp=mock.ANY, details=mock.ANY)
 
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb._delete_vnf_post')
+    def test_delete_vnf_fail(self, mock_delete_vnf_post):
+        self.delete.side_effect = FakeException
+        self._insert_dummy_vnf_template()
+        dummy_device_obj = self._insert_dummy_vnf()
+        self.assertRaises(FakeException,
+                          self.vnfm_plugin.delete_vnf, self.context,
+                          dummy_device_obj['id'])
+        self._vnf_monitor.delete_hosting_vnf.assert_called_once_with(
+            dummy_device_obj['id'])
+        mock_delete_vnf_post.assert_called_once_with(self.context, mock.ANY,
+                                                     mock.ANY)
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context, evt_type=constants.RES_EVT_DELETE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
+            tstamp=mock.ANY, details=mock.ANY)
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.set_vnf_error_status_reason')
+    def test_delete_vnf_delete_wait_failed_exception(self,
+                                            mock_set_vnf_error_status_reason):
+        self._insert_dummy_vnf_template()
+        dummy_vnf_obj = self._insert_dummy_vnf()
+        self.delete_wait.side_effect = vnfm.VNFDeleteWaitFailed(reason='test')
+        self.vnfm_plugin.delete_vnf(self.context, dummy_vnf_obj['id'])
+        mock_set_vnf_error_status_reason.assert_called_once_with(self.context,
+                                                                 mock.ANY,
+                                                                 mock.ANY)
+
     def _insert_dummy_ns_template(self):
         session = self.context.session
         attributes = {
@@ -619,6 +651,75 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
             tstamp=mock.ANY)
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb._update_vnf_post')
+    def test_update_vnf_with_exception(self, mock_update_vnf_post):
+        self.update.side_effect = FakeException
+        self._insert_dummy_vnf_template()
+        dummy_device_obj = self._insert_dummy_vnf()
+        vnf_config_obj = utils.get_dummy_vnf_config_obj()
+        self.assertRaises(FakeException,
+                          self.vnfm_plugin.update_vnf, self.context,
+                          dummy_device_obj['id'], vnf_config_obj)
+        self._vnf_monitor.delete_hosting_vnf.assert_called_once_with(
+            dummy_device_obj['id'])
+        mock_update_vnf_post.assert_called_once_with(self.context,
+                                                     dummy_device_obj['id'],
+                                                     constants.ERROR,
+                                                     mock.ANY,
+                                                     constants.PENDING_UPDATE,
+                                                     constants.RES_EVT_UPDATE)
+
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
+            tstamp=mock.ANY)
+
+    @mock.patch('tacker.vnfm.plugin.VNFMPlugin._report_deprecated_yaml_str')
+    def test_update_vnf_invalid_config_format(self,
+                                              mock_report_deprecated_yaml_str):
+        self._insert_dummy_vnf_template()
+        dummy_vnf_obj = self._insert_dummy_vnf()
+        vnf_config_obj = utils.get_dummy_vnf_config_obj()
+        vnf_config_obj['vnf']['attributes']['config'] = 'test'
+        result = self.vnfm_plugin.update_vnf(self.context, dummy_vnf_obj[
+            'id'], vnf_config_obj)
+        self.assertEqual(1, mock_report_deprecated_yaml_str.call_count)
+        self.assertEqual(constants.ACTIVE, result['status'])
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.set_vnf_error_status_reason')
+    @mock.patch('tacker.vnfm.plugin.VNFMPlugin.mgmt_call')
+    def test_update_vnf_fail_mgmt_driver_error(self, mock_mgmt_call,
+                                            mock_set_vnf_error_status_reason):
+        self._insert_dummy_vnf_template()
+        dummy_vnf_obj = self._insert_dummy_vnf()
+        vnf_config_obj = utils.get_dummy_vnf_config_obj()
+        mock_mgmt_call.side_effect = exceptions.MgmtDriverException
+        vnf_dict = self.vnfm_plugin.update_vnf(self.context,
+                                               dummy_vnf_obj['id'],
+                                               vnf_config_obj)
+        self.assertEqual(constants.ERROR,
+                         vnf_dict['status'])
+        mock_set_vnf_error_status_reason.assert_called_once_with(self.context,
+                                                          dummy_vnf_obj['id'],
+                                                   'VNF configuration failed')
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.set_vnf_error_status_reason')
+    def test_update_vnf_fail_update_wait_error(self,
+                                            mock_set_vnf_error_status_reason):
+        self._insert_dummy_vnf_template()
+        dummy_vnf_obj = self._insert_dummy_vnf()
+        vnf_config_obj = utils.get_dummy_vnf_config_obj()
+        self.update_wait.side_effect = vnfm.VNFUpdateWaitFailed(reason='VNF'
+                                                            ' Updation failed')
+        self.assertRaises(vnfm.VNFUpdateWaitFailed,
+                          self.vnfm_plugin.update_vnf, self.context,
+                          dummy_vnf_obj['id'], vnf_config_obj)
+        self._vnf_monitor.\
+            delete_hosting_vnf.assert_called_once_with(dummy_vnf_obj['id'])
+        mock_set_vnf_error_status_reason.assert_called_once_with(self.context,
+                                                        dummy_vnf_obj['id'],
+                                                    'VNF Updation failed')
 
     def _get_dummy_scaling_policy(self, type):
         vnf_scale = {}
