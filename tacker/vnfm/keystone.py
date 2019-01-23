@@ -25,6 +25,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 
 
+DEFAULT_IDENTITY_VERSION = "v3"
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
@@ -51,22 +52,14 @@ class Keystone(object):
     def get_endpoint(self, ses, service_type, region_name=None):
         return ses.get_endpoint(service_type, region_name)
 
-    def initialize_client(self, version, **kwargs):
+    def initialize_client(self, **kwargs):
         verify = 'True' == kwargs.pop('cert_verify', 'True') or False
-        if version == 'v2.0':
-            from keystoneclient.v2_0 import client
-            if 'token' in kwargs:
-                auth_plugin = identity.v2.Token(**kwargs)
-            else:
-                auth_plugin = identity.v2.Password(**kwargs)
+        if 'token' in kwargs:
+            auth_plugin = identity.v3.Token(**kwargs)
         else:
-            from keystoneclient.v3 import client
-            if 'token' in kwargs:
-                auth_plugin = identity.v3.Token(**kwargs)
-            else:
-                auth_plugin = identity.v3.Password(**kwargs)
+            auth_plugin = identity.v3.Password(**kwargs)
         ses = self.get_session(auth_plugin=auth_plugin, verify=verify)
-        cli = client.Client(session=ses)
+        cli = client.Client(DEFAULT_IDENTITY_VERSION, session=ses)
         return cli
 
     @staticmethod

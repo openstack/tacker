@@ -25,9 +25,7 @@ class OpenstackClients(object):
         self.auth_attr = auth_attr
 
     def _keystone_client(self):
-        version = self.auth_attr['auth_url'].rpartition('/')[2]
-        return self.keystone_plugin.initialize_client(version,
-                                                      **self.auth_attr)
+        return self.keystone_plugin.initialize_client(**self.auth_attr)
 
     def _heat_client(self):
         endpoint = self.keystone_session.get_endpoint(

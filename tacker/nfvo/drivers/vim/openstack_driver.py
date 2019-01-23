@@ -20,7 +20,6 @@ import yaml
 
 from keystoneauth1 import exceptions
 from keystoneauth1 import identity
-from keystoneauth1.identity import v2
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from neutronclient.common import exceptions as nc_exceptions
@@ -124,56 +123,34 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         keystone_version = NfvoPlugin.validate_keystone_auth_url(
             auth_url=auth_url,
             verify=verify)
-        auth_cred = self._get_auth_creds(keystone_version, vim_obj)
-        return self._initialize_keystone(keystone_version, auth_cred)
+        auth_cred = self._get_auth_creds(vim_obj, keystone_version)
+        return self._initialize_keystone(auth_cred)
 
-    def _get_auth_creds(self, keystone_version, vim_obj):
-        auth_url = vim_obj['auth_url']
+    def _get_auth_creds(self, vim_obj, keystone_version):
         auth_cred = vim_obj['auth_cred']
         vim_project = vim_obj['vim_project']
-
-        if keystone_version not in auth_url:
-            vim_obj['auth_url'] = auth_url + '/' + keystone_version
-        if keystone_version == 'v3':
-            auth_cred['project_id'] = vim_project.get('id')
-            auth_cred['project_name'] = vim_project.get('name')
-            auth_cred['project_domain_name'] = vim_project.get(
-                'project_domain_name')
-        else:
-            auth_cred['tenant_id'] = vim_project.get('id')
-            auth_cred['tenant_name'] = vim_project.get('name')
-            # pop stuff not supported in keystone v2
-            auth_cred.pop('user_domain_name', None)
-            auth_cred.pop('user_id', None)
+        auth_cred['project_id'] = vim_project.get('id')
+        auth_cred['project_name'] = vim_project.get('name')
+        auth_cred['project_domain_name'] = vim_project.get(
+            'project_domain_name')
         auth_cred['auth_url'] = vim_obj['auth_url']
+        if keystone_version not in auth_cred['auth_url']:
+            auth_cred['auth_url'] = auth_cred['auth_url'] + '/' + \
+                keystone_version
         return auth_cred
 
-    def _get_auth_plugin(self, version, **kwargs):
-        if version == 'v2.0':
-            auth_plugin = v2.Password(**kwargs)
-        else:
-            auth_plugin = v3.Password(**kwargs)
+    def _get_auth_plugin(self, **kwargs):
+        auth_plugin = v3.Password(**kwargs)
 
         return auth_plugin
 
-    def _initialize_keystone(self, version, auth):
-        ks_client = self.keystone.initialize_client(version=version, **auth)
+    def _initialize_keystone(self, auth):
+        ks_client = self.keystone.initialize_client(**auth)
         return ks_client
 
     def _find_regions(self, ks_client):
-        if ks_client.version == 'v2.0':
-            service_list = ks_client.services.list()
-            heat_service_id = None
-            for service in service_list:
-                if service.type == 'orchestration':
-                    heat_service_id = service.id
-            endpoints_list = ks_client.endpoints.list()
-            region_list = [endpoint.region for endpoint in
-                           endpoints_list if endpoint.service_id ==
-                           heat_service_id]
-        else:
-            region_info = ks_client.regions.list()
-            region_list = [region.id for region in region_info]
+        region_info = ks_client.regions.list()
+        region_list = [region.id for region in region_info]
         return region_list
 
     def discover_placement_attr(self, vim_obj, ks_client):
@@ -336,8 +313,8 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         keystone_version = NfvoPlugin.validate_keystone_auth_url(
             auth_url=auth_url,
             verify=verify)
-        auth_cred = self._get_auth_creds(keystone_version, vim_obj)
-        auth_plugin = self._get_auth_plugin(keystone_version, **auth_cred)
+        auth_cred = self._get_auth_creds(vim_obj, keystone_version)
+        auth_plugin = self._get_auth_plugin(**auth_cred)
         sess = session.Session(auth=auth_plugin)
         return client_type(session=sess)
 
@@ -735,7 +712,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
             raise EnvironmentError('auth dict required for'
                                    ' mistral workflow driver')
         return mistral_client.MistralClient(
-            keystone.Keystone().initialize_client('2', **auth_dict),
+            keystone.Keystone().initialize_client(**auth_dict),
             auth_dict['token']).get_client()
 
     def prepare_and_create_workflow(self, resource, action,

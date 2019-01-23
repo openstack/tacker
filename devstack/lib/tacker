@@ -283,7 +283,7 @@ function _tacker_setup_keystone {
     # Configures keystone for metadata_agent
     # metadata_agent needs auth_url to communicate with keystone
     if [[ "$use_auth_url" == "True" ]]; then
-        iniset $conf_file $section auth_url $KEYSTONE_SERVICE_URI/v2.0
+        iniset $conf_file $section auth_url $KEYSTONE_SERVICE_URI
     fi
 
     create_tacker_cache_dir

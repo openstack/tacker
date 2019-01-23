@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 
 def get_mistral_client(auth_dict):
     return mistral_client.MistralClient(
-        keystone.Keystone().initialize_client('2', **auth_dict),
+        keystone.Keystone().initialize_client(**auth_dict),
         auth_dict['token']).get_client()
 
 

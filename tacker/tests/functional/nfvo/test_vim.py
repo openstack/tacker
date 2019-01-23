@@ -110,10 +110,6 @@ class VimTestCreate(base.BaseTackerTest):
                              "List of VIM events are Empty")
         self.assertEqual(cnt, len(vim_evt_list['vim_events']))
 
-    def verify_vim_v2(self, vim_instance, config_data):
-        self.assertEqual(config_data['project_name'],
-                         vim_instance['auth_cred']['tenant_name'])
-
     def verify_vim_v3(self, vim_instance, config_data):
         self.assertEqual(config_data['project_name'],
                          vim_instance['auth_cred']['project_name'])
@@ -135,11 +131,8 @@ class VimTestCreate(base.BaseTackerTest):
         project_name = data['project_name']
         auth_url = data['auth_url']
         if version:
-            if ('v2' == version and (not auth_url.endswith("/v2.0") or
-                                     not auth_url.endswith("/v2.0/"))):
-                auth_url += "/v2.0"
-            elif (not auth_url.endswith("/v3") or
-                  not auth_url.endswith("/v3/")):
+            if (not auth_url.endswith("/v3") or
+               not auth_url.endswith("/v3/")):
                 auth_url += "/v3"
         domain_name = data.get('domain_name', None)
         vim_arg = {'vim': {'name': name, 'description': description,

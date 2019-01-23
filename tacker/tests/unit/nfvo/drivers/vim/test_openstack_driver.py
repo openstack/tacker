@@ -130,31 +130,12 @@ class TestOpenstack_Driver(base.TestCase):
         regions = [mock_dict({'id': 'RegionOne'})]
         attrs = {'regions.list.return_value': regions}
         keystone_version = 'v3'
-        mock_ks_client = mock.Mock(version=keystone_version, **attrs)
+        mock_ks_client = mock.Mock(**attrs)
         self.keystone.get_version.return_value = keystone_version
         self._test_register_vim(self.vim_obj, mock_ks_client)
         mock_ks_client.regions.list.assert_called_once_with()
         self.keystone.initialize_client.assert_called_once_with(
-            version=keystone_version, **self.auth_obj)
-
-    def test_register_keystone_v2(self):
-        services_list = [mock_dict({'type': 'orchestration', 'id':
-                         'test_id'})]
-        endpoints_regions = mock_dict({'region': 'RegionOne'})
-        endpoints_list = [mock_dict({'service_id': 'test_id', 'regions':
-                          endpoints_regions})]
-        attrs = {'endpoints.list.return_value': endpoints_list,
-                 'services.list.return_value': services_list}
-        keystone_version = 'v2.0'
-        mock_ks_client = mock.Mock(version='v2.0', **attrs)
-        self.keystone.get_version.return_value = keystone_version
-        auth_obj = {'tenant_name': 'test_project', 'username': 'test_user',
-                    'password': 'test_password', 'cert_verify': 'True',
-                    'auth_url': 'http://localhost/identity/v2.0',
-                    'tenant_id': None}
-        self._test_register_vim(self.vim_obj, mock_ks_client)
-        self.keystone.initialize_client.assert_called_once_with(
-            version=keystone_version, **auth_obj)
+            **self.auth_obj)
 
     def _test_register_vim(self, vim_obj, mock_ks_client):
         self.keystone.initialize_client.return_value = mock_ks_client
@@ -220,15 +201,15 @@ class TestOpenstack_Driver(base.TestCase):
 
     def _test_register_vim_auth(self, attrs):
         keystone_version = 'v3'
-        mock_ks_client = mock.Mock(version=keystone_version, **attrs)
         self.keystone.get_version.return_value = keystone_version
+        mock_ks_client = mock.Mock(**attrs)
         self.keystone.initialize_client.return_value = mock_ks_client
         self.assertRaises(nfvo.VimUnauthorizedException,
                           self.openstack_driver.register_vim,
                           self.vim_obj)
         mock_ks_client.regions.list.assert_called_once_with()
         self.keystone.initialize_client.assert_called_once_with(
-            version=keystone_version, **self.auth_obj)
+            **self.auth_obj)
 
     def test_get_vim_resource_id(self):
         resource_type = 'network'

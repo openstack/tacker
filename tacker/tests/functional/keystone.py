@@ -47,10 +47,9 @@ class Keystone(object):
     def get_endpoint(self, ses, service_type, region_name=None):
         return ses.get_endpoint(service_type, region_name)
 
-    def initialize_client(self, version, **kwargs):
-        from keystoneclient.v3 import client
+    def initialize_client(self, **kwargs):
         verify = 'True' == kwargs.pop('cert_verify', 'False')
         auth_plugin = v3.Password(**kwargs)
         ses = self.get_session(auth_plugin=auth_plugin, verify=verify)
-        cli = client.Client(session=ses)
+        cli = client.Client('v3', session=ses)
         return cli
