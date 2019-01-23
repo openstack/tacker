@@ -133,26 +133,38 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.context = context.get_admin_context()
         self._mock_vim_client()
         self._stub_get_vim()
-        self._mock_vnf_manager()
         self._mock_vnf_monitor()
         self._mock_vnf_alarm_monitor()
-        self._mock_green_pool()
         self._insert_dummy_vim()
         self.vnfm_plugin = plugin.VNFMPlugin()
         mock.patch('tacker.db.common_services.common_services_db_plugin.'
                    'CommonServicesPluginDb.create_event'
                    ).start()
+        mock.patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb._mgmt_driver_name',
+                   return_value='noop').start()
+        self.create = mock.patch('tacker.vnfm.infra_drivers.openstack.'
+                                 'openstack.OpenStack.create',
+                        return_value=uuidutils.generate_uuid()).start()
+        self.create_wait = mock.patch('tacker.vnfm.infra_drivers.openstack.'
+                                  'openstack.OpenStack.create_wait').start()
+        self.update = mock.patch('tacker.vnfm.infra_drivers.openstack.'
+                                 'openstack.OpenStack.update').start()
+        self.update_wait = mock.patch('tacker.vnfm.infra_drivers.openstack.'
+                                    'openstack.OpenStack.update_wait').start()
+        self.delete = mock.patch('tacker.vnfm.infra_drivers.openstack.'
+                                 'openstack.OpenStack.delete',
+                            return_value=uuidutils.generate_uuid()).start()
+        self.delete_wait = mock.patch('tacker.vnfm.infra_drivers.openstack.'
+                                      'openstack.OpenStack.'
+                                      'delete_wait').start()
+
+        def _fake_spawn(func, *args, **kwargs):
+            func(*args, **kwargs)
+
+        mock.patch.object(self.vnfm_plugin, 'spawn_n',
+                          _fake_spawn).start()
         self._cos_db_plugin =\
             common_services_db_plugin.CommonServicesPluginDb()
-
-    def _mock_vnf_manager(self):
-        self._vnf_manager = mock.Mock(wraps=FakeDriverManager())
-        self._vnf_manager.__contains__ = mock.Mock(
-            return_value=True)
-        fake_vnf_manager = mock.Mock()
-        fake_vnf_manager.return_value = self._vnf_manager
-        self._mock(
-            'tacker.common.driver_manager.DriverManager', fake_vnf_manager)
 
     def _mock_vim_client(self):
         self.vim_client = mock.Mock(wraps=FakeVimClient())
@@ -166,15 +178,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                    'vim_name': 'fake_vim', 'vim_auth':
                    {'auth_url': 'http://localhost/identity', 'password':
                        'test_pw', 'username': 'test_user', 'project_name':
-                       'test_project'}, 'vim_type': 'test_vim'}
+                       'test_project'}, 'vim_type': 'openstack'}
         self.vim_client.get_vim.return_value = vim_obj
-
-    def _mock_green_pool(self):
-        self._pool = mock.Mock(wraps=FakeGreenPool())
-        fake_green_pool = mock.Mock()
-        fake_green_pool.return_value = self._pool
-        self._mock(
-            'eventlet.GreenPool', fake_green_pool)
 
     def _mock_vnf_monitor(self):
         self._vnf_monitor = mock.Mock(wraps=FakeVNFMonitor())
@@ -361,6 +366,18 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                           self.vnfm_plugin.create_vnfd,
                           self.context, vnfd_obj)
 
+    def test_create_vnf_sync(self):
+        self._insert_dummy_vnf_template()
+        vnf_obj = utils.get_dummy_vnf_obj()
+        vnf_dict = self.vnfm_plugin.create_vnf_sync(self.context,
+                                                    vnf_obj['vnf'])
+        self.assertIsNotNone(vnf_dict)
+        self.assertEqual('ACTIVE', vnf_dict['status'])
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
+            tstamp=mock.ANY, details=mock.ANY)
+
     def test_create_vnf_with_vnfd(self):
         self._insert_dummy_vnf_template()
         vnf_obj = utils.get_dummy_vnf_obj()
@@ -373,13 +390,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('mgmt_url', result)
         self.assertIn('created_at', result)
         self.assertIn('updated_at', result)
-        self._vnf_manager.invoke.assert_called_with('test_vim',
-                                                    'create',
-                                                    plugin=mock.ANY,
-                                                    context=mock.ANY,
-                                                    vnf=mock.ANY,
-                                                    auth_attr=mock.ANY)
-        self._pool.spawn_n.assert_called_once_with(mock.ANY)
+        self.assertEqual('ACTIVE', result['status'])
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
@@ -400,30 +411,116 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('mgmt_url', result)
         self.assertIn('created_at', result)
         self.assertIn('updated_at', result)
+        self.assertEqual('ACTIVE', result['status'])
         mock_create_vnfd.assert_called_once_with(mock.ANY, mock.ANY)
-        self._vnf_manager.invoke.assert_called_with('test_vim',
-                                                    'create',
-                                                    plugin=mock.ANY,
-                                                    context=mock.ANY,
-                                                    vnf=mock.ANY,
-                                                    auth_attr=mock.ANY)
-        self._pool.spawn_n.assert_called_once_with(mock.ANY)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_CREATE,
             res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
             tstamp=mock.ANY, details=mock.ANY)
 
-    def test_show_vnf_details_vnf_inactive(self):
+    def test_create_vnf_with_param_values(self):
+        self._insert_dummy_vnf_template()
+        vnf_obj = utils.get_dummy_vnf_obj()
+        vnf_obj['vnf']['attributes'] = {'param_values':
+        {'image_name': 'cirros-0.4.0-x86_64-disk', 'flavor': 'm1.tiny'}}
+        result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
+        self.assertIsNotNone(result)
+        self.assertEqual(vnf_obj['vnf']['attributes']['param_values'],
+                         result['attributes']['param_values'])
+        self.assertEqual('ACTIVE', result['status'])
+
+    def test_create_vnf_with_config_option(self):
+        self._insert_dummy_vnf_template()
+        vnf_obj = utils.get_dummy_vnf_obj()
+        config = utils.get_dummy_vnf_config_obj()
+        vnf_obj['vnf']['attributes'] = config['vnf']['attributes']
+        result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
+        self.assertEqual(vnf_obj['vnf']['attributes']['config'],
+                         result['attributes']['config'])
+        self.assertEqual('ACTIVE', result['status'])
+
+    @patch('tacker.vnfm.plugin.VNFMPlugin._report_deprecated_yaml_str')
+    def test_create_vnf_with_invalid_param_and_config_format(self,
+                                            mock_report_deprecated_yaml_str):
+        self._insert_dummy_vnf_template()
+        vnf_obj = utils.get_dummy_vnf_obj()
+        vnf_obj['vnf']['attributes']['param_values'] = 'image_name'
+        vnf_obj['vnf']['attributes']['config'] = "test"
+        result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
+        self.assertEqual(3, mock_report_deprecated_yaml_str.call_count)
+        self.assertEqual('ACTIVE', result['status'])
+
+    @patch('tacker.vnfm.plugin.VNFMPlugin.delete_vnf')
+    def test_create_vnf_fail(self, mock_delete_vnf):
+        self._insert_dummy_vnf_template()
+        vnf_obj = utils.get_dummy_vnf_obj()
+        self.create.side_effect = vnfm.HeatClientException(msg='test')
+        self.assertRaises(vnfm.HeatClientException,
+                          self.vnfm_plugin.create_vnf,
+                          self.context, vnf_obj)
+        vnf_id = self.vnfm_plugin.delete_vnf.call_args[0][1]
+        mock_delete_vnf.assert_called_once_with(self.context, vnf_id)
+
+    def test_create_vnf_create_wait_failed_exception(self):
+        self._insert_dummy_vnf_template()
+        vnf_obj = utils.get_dummy_vnf_obj()
+        self.create_wait.side_effect = vnfm.VNFCreateWaitFailed(
+            reason="TEST")
+        vnf_dict = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
+        self.assertEqual(constants.ERROR,
+                         vnf_dict['status'])
+
+    @patch('tacker.vnfm.plugin.VNFMPlugin.mgmt_call')
+    def test_create_vnf_mgmt_driver_exception(self, mock_mgmt_call):
+        self._insert_dummy_vnf_template()
+        vnf_obj = utils.get_dummy_vnf_obj()
+        mock_mgmt_call.side_effect = exceptions.MgmtDriverException
+        vnf_dict = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
+        self.assertEqual(constants.ERROR,
+                         vnf_dict['status'])
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb._create_vnf_post')
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb._create_vnf_pre')
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb._create_vnf_status')
+    def test_create_vnf_with_alarm_url(self, mock_create_vnf_status,
+                                       mock_create_vnf_pre,
+                                       mock_create_vnf_post):
+        self._insert_dummy_vnf_template()
+        vnf_obj = utils.get_dummy_vnf_obj()
+        alarm_url_dict = {'vdu_hcpu_usage_scaling_out':
+                        'http://localhost/identity',
+                          'vdu_lcpu_usage_scaling_in':
+                        'http://localhost/identity'}
+        self._vnf_alarm_monitor.update_vnf_with_alarm.return_value = \
+            alarm_url_dict
+        dummy_vnf = self._get_dummy_vnf(utils.vnfd_alarm_scale_tosca_template,
+                                        status='PENDING_CREATE')
+        mock_create_vnf_pre.return_value = dummy_vnf
+        vnf_dict = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
+        self.assertEqual(alarm_url_dict['vdu_lcpu_usage_scaling_in'],
+                         vnf_dict['attributes']['vdu_lcpu_usage_scaling_in'])
+        self.assertEqual(alarm_url_dict['vdu_hcpu_usage_scaling_out'],
+                         vnf_dict['attributes']['vdu_hcpu_usage_scaling_out'])
+
+    @patch('tacker.vnfm.plugin.VNFMPlugin._create_vnf_wait')
+    def test_show_vnf_details_vnf_inactive(self, mock_create_vnf_wait):
         self._insert_dummy_vnf_template()
         vnf_obj = utils.get_dummy_vnf_obj()
         result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
         self.assertRaises(vnfm.VNFInactive, self.vnfm_plugin.get_vnf_resources,
                           self.context, result['id'])
 
-    def test_show_vnf_details_vnf_active(self):
+    @patch('tacker.vnfm.infra_drivers.openstack.openstack.OpenStack.'
+           'get_resource_info')
+    def test_show_vnf_details_vnf_active(self, mock_get_resource_info):
         self._insert_dummy_vnf_template()
         active_vnf = self._insert_dummy_vnf()
+        mock_get_resource_info.return_value = {'resources': {'name':
+                                                            'dummy_vnf',
+                                                            'type': 'dummy',
+                                                            'id':
+                                                uuidutils.generate_uuid()}}
         resources = self.vnfm_plugin.get_vnf_resources(self.context,
                                                        active_vnf['id'])[0]
         self.assertIn('name', resources)
@@ -435,16 +532,11 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         dummy_vnf_obj = self._insert_dummy_vnf()
         self.vnfm_plugin.delete_vnf(self.context, dummy_vnf_obj[
             'id'])
-        self._vnf_manager.invoke.assert_called_with('test_vim', 'delete',
-                                                    plugin=mock.ANY,
-                                                    context=mock.ANY,
-                                                    vnf_id=mock.ANY,
-                                                    auth_attr=mock.ANY,
-                                                    region_name=mock.ANY)
         self._vnf_monitor.delete_hosting_vnf.assert_called_with(mock.ANY)
-        self._pool.spawn_n.assert_called_once_with(mock.ANY, mock.ANY,
-                                                   mock.ANY, mock.ANY,
-                                                   mock.ANY)
+        self.delete.assert_called_with(plugin=mock.ANY, context=mock.ANY,
+                                       vnf_id=mock.ANY,
+                                       auth_attr=mock.ANY,
+                                       region_name=mock.ANY)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_DELETE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
@@ -523,9 +615,6 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('attributes', result)
         self.assertIn('mgmt_url', result)
         self.assertIn('updated_at', result)
-        self._pool.spawn_n.assert_called_once_with(mock.ANY, mock.ANY,
-                                                   mock.ANY, mock.ANY,
-                                                   mock.ANY)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
@@ -538,8 +627,12 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         vnf_scale['scale']['policy'] = 'SP1'
         return vnf_scale
 
-    def _test_scale_vnf(self, type, scale_state):
+    @patch('tacker.vnfm.infra_drivers.openstack.openstack.OpenStack.scale')
+    @patch('tacker.vnfm.infra_drivers.openstack.openstack.OpenStack.'
+           'scale_wait')
+    def _test_scale_vnf(self, type, scale_state, mock_scale_wait, mock_scale):
         # create vnfd
+        mock_scale_wait.return_value = uuidutils.generate_uuid()
         self._insert_dummy_vnf_template()
         self._insert_scaling_attributes_vnfd()
 
@@ -555,9 +648,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             vnf_scale)
 
         # validate
-        self._vnf_manager.invoke.assert_called_once_with(
-            mock.ANY,
-            'scale',
+        mock_scale.assert_called_once_with(
             plugin=mock.ANY,
             context=mock.ANY,
             auth_attr=mock.ANY,
@@ -565,13 +656,11 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             region_name=mock.ANY
         )
 
-        self._pool.spawn_n.assert_called_once_with(mock.ANY)
-
         self._cos_db_plugin.create_event.assert_called_with(
             self.context,
             evt_type=constants.RES_EVT_SCALE,
             res_id='6261579e-d6f3-49ad-8bc3-a9cb974778fe',
-            res_state=scale_state,
+            res_state='ACTIVE',
             res_type=constants.RES_TYPE_VNF,
             tstamp=mock.ANY)
 
@@ -581,15 +670,18 @@ class TestVNFMPlugin(db_base.SqlTestCase):
     def test_scale_vnf_in(self):
         self._test_scale_vnf('in', constants.PENDING_SCALE_IN)
 
-    def _get_dummy_active_vnf(self, vnfd_template):
+    def _get_dummy_vnf(self, vnfd_template, status='ACTIVE'):
         dummy_vnf = utils.get_dummy_vnf()
         dummy_vnf['vnfd']['attributes']['vnfd'] = vnfd_template
-        dummy_vnf['status'] = 'ACTIVE'
+        dummy_vnf['status'] = status
         dummy_vnf['instance_id'] = '4c00108e-c69d-4624-842d-389c77311c1d'
         dummy_vnf['vim_id'] = '437ac8ef-a8fb-4b6e-8d8a-a5e86a376e8b'
         return dummy_vnf
 
-    def _test_create_vnf_trigger(self, policy_name, action_value):
+    @patch('tacker.vnfm.policy_actions.autoscaling.autoscaling.'
+           'VNFActionAutoscaling.execute_action')
+    def _test_create_vnf_trigger(self, mock_execute_action, policy_name,
+                                 action_value):
         vnf_id = "6261579e-d6f3-49ad-8bc3-a9cb974778fe"
         trigger_request = {"trigger": {"action_name": action_value, "params": {
             "credential": "026kll6n", "data": {"current": "alarm",
@@ -607,7 +699,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
     @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
     def test_create_vnf_trigger_respawn(self, mock_get_vnf):
-        dummy_vnf = self._get_dummy_active_vnf(
+        dummy_vnf = self._get_dummy_vnf(
             utils.vnfd_alarm_respawn_tosca_template)
         mock_get_vnf.return_value = dummy_vnf
         self._test_create_vnf_trigger(policy_name="vdu_hcpu_usage_respawning",
@@ -615,7 +707,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
     @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
     def test_create_vnf_trigger_scale(self, mock_get_vnf):
-        dummy_vnf = self._get_dummy_active_vnf(
+        dummy_vnf = self._get_dummy_vnf(
             utils.vnfd_alarm_scale_tosca_template)
         mock_get_vnf.return_value = dummy_vnf
         self._test_create_vnf_trigger(policy_name="vdu_hcpu_usage_scaling_out",
@@ -623,7 +715,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
     @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
     def test_create_vnf_trigger_multi_actions(self, mock_get_vnf):
-        dummy_vnf = self._get_dummy_active_vnf(
+        dummy_vnf = self._get_dummy_vnf(
             utils.vnfd_alarm_multi_actions_tosca_template)
         mock_get_vnf.return_value = dummy_vnf
         self._test_create_vnf_trigger(policy_name="mon_policy_multi_actions",
@@ -632,7 +724,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
     @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
     def test_get_vnf_policies(self, mock_get_vnf):
         vnf_id = "6261579e-d6f3-49ad-8bc3-a9cb974778fe"
-        dummy_vnf = self._get_dummy_active_vnf(
+        dummy_vnf = self._get_dummy_vnf(
             utils.vnfd_alarm_respawn_tosca_template)
         mock_get_vnf.return_value = dummy_vnf
         policies = self.vnfm_plugin.get_vnf_policies(self.context, vnf_id,
@@ -658,8 +750,10 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                           uuidutils.generate_uuid(),
                           policy_type='invalid_policy_type')
 
+    @patch('tacker.vnfm.infra_drivers.openstack.openstack.OpenStack.'
+           'heal_vdu')
     @mock.patch('tacker.vnfm.monitor.VNFMonitor.update_hosting_vnf')
-    def test_heal_vnf_vdu(self, mock_update_hosting_vnf):
+    def test_heal_vnf_vdu(self, mock_update_hosting_vnf, mock_heal_vdu):
         self._insert_dummy_vnf_template()
         dummy_device_obj = self._insert_dummy_vnf()
         additional_params_obj = heal_vnf_request.HealVnfAdditionalParams(
@@ -678,11 +772,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('attributes', result)
         self.assertIn('mgmt_url', result)
         self.assertIn('updated_at', result)
-
-        self._vnf_manager.invoke.assert_called_with(
-            'test_vim', 'heal_vdu', plugin=self.vnfm_plugin,
+        self.assertEqual('ACTIVE', result['status'])
+        mock_heal_vdu.assert_called_with(plugin=self.vnfm_plugin,
             context=self.context, vnf_dict=mock.ANY,
             heal_request_data_obj=heal_request_data_obj)
-        self._pool.spawn_n.assert_called_once_with(
-            self.vnfm_plugin._update_vnf_wait, self.context, mock.ANY,
-            mock.ANY, 'test_vim', vnf_heal=True)
