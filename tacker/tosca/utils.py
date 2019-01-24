@@ -590,8 +590,8 @@ def populate_flavor_extra_specs(es_dict, properties, flavor_extra_input):
                 error_msg_details=(mval + ":Invalid Input"))
         es_dict['hw:mem_page_size'] = mval
     if 'numa_nodes' in properties and 'numa_node_count' in properties:
-        LOG.warning('Both numa_nodes and numa_node_count have been'
-                    'specified; numa_node definitions will be ignored and'
+        LOG.warning('Both numa_nodes and numa_node_count have been '
+                    'specified; numa_node definitions will be ignored and '
                     'numa_node_count will be applied')
     if 'numa_node_count' in properties:
         es_dict['hw:numa_nodes'] = \

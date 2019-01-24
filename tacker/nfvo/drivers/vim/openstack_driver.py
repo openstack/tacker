@@ -438,7 +438,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                     port_pair['egress'] = egress
                     port_pair_id = neutronclient_.port_pair_create(port_pair)
                     if not port_pair_id:
-                        LOG.warning("Chain creation failed due to port pair"
+                        LOG.warning("Chain creation failed due to port pair "
                                     "creation failed for vnf %(vnf)s",
                                     {'vnf': vnf['name']})
                         return None
