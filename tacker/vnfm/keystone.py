@@ -78,8 +78,8 @@ class Keystone(object):
                 os.makedirs(path, 0o700)
             except OSError:
                 LOG.error(
-                    'Failed to create [fernet_tokens] key_repository: either'
-                    'it already exists or you don\'t have sufficient'
+                    'Failed to create [fernet_tokens] key_repository: either '
+                    'it already exists or you don\'t have sufficient '
                     'permissions to create it')
 
     def create_fernet_key(self):
