@@ -58,7 +58,7 @@ class BadRequest(TackerException):
 
 
 class NotFound(TackerException):
-    pass
+    message = _('%(resource)s %(name)s not Found')
 
 
 class Conflict(TackerException):
