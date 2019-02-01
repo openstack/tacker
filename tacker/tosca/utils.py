@@ -418,6 +418,10 @@ def add_resources_tpl(heat_dict, hot_res_tpl):
             }
 
             for prop, val in (vdu_dict).items():
+                # change from 'get_input' to 'get_param' to meet HOT template
+                if isinstance(val, dict):
+                    if 'get_input' in val:
+                        val['get_param'] = val.pop('get_input')
                 heat_dict["resources"][res_name]["properties"][prop] = val
             if heat_dict["resources"].get(vdu):
                 heat_dict["resources"][vdu]["properties"][res] = {

@@ -1,0 +1,46 @@
+description: >
+  Generic VDU with parameterized image and flavor
+
+heat_template_version: 2013-05-23
+outputs:
+  mgmt_ip-VDU1:
+    value: {get_attr: [CP1, fixed_ips, 0, ip_address]}
+parameters:
+  image_source:
+    default: http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
+    description: Image source for the server
+    type: string
+resources:
+  CP1:
+    properties:
+      network: net_mgmt
+      port_security_enabled: False
+    type: OS::Neutron::Port
+  CP2:
+    properties:
+      network: pkt_in
+      port_security_enabled: False
+    type: OS::Neutron::Port
+  CP3:
+    properties:
+      network: pkt_out
+      port_security_enabled: False
+    type: OS::Neutron::Port
+  VDU1:
+    properties:
+      config_drive: False
+      flavor: m1.tiny
+      image: {get_resource: VDU1_image}
+      networks:
+        - port: { get_resource: CP1 }
+        - port: { get_resource: CP2 }
+        - port: { get_resource: CP3 }
+      user_data_format: SOFTWARE_CONFIG
+    type: OS::Nova::Server
+  VDU1_image:
+    properties:
+      container_format: bare
+      disk_format: raw
+      location: {get_param: image_source}
+      name: VNFImage
+    type: OS::Glance::WebImage
