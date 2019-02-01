@@ -7,10 +7,6 @@ metadata:
 
 topology_template:
   inputs:
-    image_name:
-      type: string
-      description: Image Name
-
     image_source:
       type: string
       description: Image source
@@ -25,7 +21,7 @@ topology_template:
 
     network:
       type: string
-      description: management network
+      description: mgmt network
 
     management:
       type: string
@@ -47,49 +43,7 @@ topology_template:
     VDU1:
       type: tosca.nodes.nfv.VDU.Tacker
       properties:
-        image: { get_input: image_name }
-        flavor: { get_input: flavor }
-        availability_zone: { get_input: zone }
-        mgmt_driver: noop
-        config: |
-          param0: key1
-          param1: key2
-
-    CP11:
-      type: tosca.nodes.nfv.CP.Tacker
-      properties:
-        management: { get_input: management }
-        anti_spoofing_protection: false
-      requirements:
-        - virtualLink:
-            node: VL1
-        - virtualBinding:
-            node: VDU1
-
-    CP12:
-      type: tosca.nodes.nfv.CP.Tacker
-      properties:
-        anti_spoofing_protection: false
-      requirements:
-        - virtualLink:
-            node: VL2
-        - virtualBinding:
-            node: VDU1
-
-    CP13:
-      type: tosca.nodes.nfv.CP.Tacker
-      properties:
-        anti_spoofing_protection: false
-      requirements:
-        - virtualLink:
-            node: VL3
-        - virtualBinding:
-            node: VDU1
-
-    VDU2:
-      type: tosca.nodes.nfv.VDU.Tacker
-      properties:
-        flavor: { get_input: flavor }
+        flavor: {get_input: flavor}
         availability_zone: { get_input: zone }
         mgmt_driver: noop
         config: |
@@ -100,7 +54,7 @@ topology_template:
           type: tosca.artifacts.Deployment.Image.VM
           file: { get_input: image_source }
 
-    CP21:
+    CP1:
       type: tosca.nodes.nfv.CP.Tacker
       properties:
         management: { get_input: management }
@@ -109,9 +63,9 @@ topology_template:
         - virtualLink:
             node: VL1
         - virtualBinding:
-            node: VDU2
+            node: VDU1
 
-    CP22:
+    CP2:
       type: tosca.nodes.nfv.CP.Tacker
       properties:
         anti_spoofing_protection: false
@@ -119,9 +73,9 @@ topology_template:
         - virtualLink:
             node: VL2
         - virtualBinding:
-            node: VDU2
+            node: VDU1
 
-    CP23:
+    CP3:
       type: tosca.nodes.nfv.CP.Tacker
       properties:
         anti_spoofing_protection: false
@@ -129,22 +83,22 @@ topology_template:
         - virtualLink:
             node: VL3
         - virtualBinding:
-            node: VDU2
+            node: VDU1
 
     VL1:
       type: tosca.nodes.nfv.VL
       properties:
         network_name: { get_input: network }
-        vendor: { get_input: vendor }
+        vendor: {get_input: vendor}
 
     VL2:
       type: tosca.nodes.nfv.VL
       properties:
         network_name: { get_input: pkt_in_network }
-        vendor: { get_input: vendor }
+        vendor: {get_input: vendor}
 
     VL3:
       type: tosca.nodes.nfv.VL
       properties:
         network_name: { get_input: pkt_out_network }
-        vendor: { get_input: vendor }
+        vendor: {get_input: vendor}

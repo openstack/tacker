@@ -107,15 +107,27 @@ class VnfmTestParam(base.BaseTackerTest):
             'sample-tosca-vnfd-param.yaml', vnfd_name)
         self._test_vnfd_delete(vnfd_instance)
 
-    def test_vnf_param_tosca_template(self):
-        vnfd_name = 'cirros_vnfd_tosca_param'
-        vnfd_instance = self._test_vnfd_create(
-            'sample-tosca-vnfd-param.yaml', vnfd_name)
-        values_str = read_file('sample-tosca-vnf-values.yaml')
+    def test_vnf_param_tosca_template_default(self):
+        self._test_vnf_param_tosca_template(
+            vnfd_name='cirros_vnfd_tosca_param',
+            vnfd_file='sample-tosca-vnfd-param.yaml',
+            param_file='sample-tosca-vnf-values.yaml',
+            vnf_name='test_vnf_with_parameters_tosca_template')
+
+    def test_vnf_param_with_artifacts_image_tosca_template(self):
+        self._test_vnf_param_tosca_template(
+            vnfd_name='cirros_vnfd_tosca_param_artifacts_image',
+            vnfd_file='sample-tosca-vnfd-param-artifacts-image.yaml',
+            param_file='sample-tosca-vnf-artifacts-image-values.yaml',
+            vnf_name='test_vnf_with_param_artifacts_image_tosca_templ')
+
+    def _test_vnf_param_tosca_template(self, vnfd_file, vnfd_name,
+                                       param_file, vnf_name):
+        vnfd_instance = self._test_vnfd_create(vnfd_file, vnfd_name)
+        values_str = read_file(param_file)
         values_dict = yaml.safe_load(values_str)
-        vnf_instance, param_values_dict = self._test_vnf_create(vnfd_instance,
-                                    'test_vnf_with_parameters_tosca_template',
-                                                                values_dict)
+        vnf_instance, param_values_dict = self._test_vnf_create(
+            vnfd_instance, vnf_name, values_dict)
         self.assertEqual(values_dict, param_values_dict)
         self._test_vnf_delete(vnf_instance)
         vnf_id = vnf_instance['vnf']['id']
