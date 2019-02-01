@@ -29,7 +29,7 @@ resources:
       fixed_ips:
           - ip_address: 10.10.1.12
   VDU1_image:
-    type: OS::Glance::Image
+    type: OS::Glance::WebImage
     properties:
       container_format: bare
       disk_format: raw

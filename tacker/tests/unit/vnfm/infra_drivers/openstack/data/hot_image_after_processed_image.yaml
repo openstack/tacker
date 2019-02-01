@@ -8,7 +8,7 @@ resources:
       flavor: m1.tiny
       image: {get_resource: VDU1_image}
   VDU1_image:
-    type: OS::Glance::Image
+    type: OS::Glance::WebImage
     properties:
       location: http://URL/v1/openwrt.qcow2
       container_format: bare
