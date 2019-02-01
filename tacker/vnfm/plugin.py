@@ -364,10 +364,6 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             with excutils.save_and_reraise_exception():
                 self.delete_vnf(context, vnf_id)
 
-        if instance_id is None:
-            self._create_vnf_post(context, vnf_id, None, None,
-                                  vnf_dict)
-            return
         vnf_dict['instance_id'] = instance_id
         return vnf_dict
 
