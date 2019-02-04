@@ -25,7 +25,6 @@ class TestTackerContext(base.BaseTestCase):
 
     def setUp(self):
         super(TestTackerContext, self).setUp()
-        self.skip("Not ready yet")
         db_api = 'tacker.db.api.get_session'
         self._db_api_session_patcher = mock.patch(db_api)
         self.db_api_session = self._db_api_session_patcher.start()
@@ -40,11 +39,6 @@ class TestTackerContext(base.BaseTestCase):
         self.assertEqual('tenant_id', ctx.tenant)
         self.assertIsNone(ctx.user_name)
         self.assertIsNone(ctx.tenant_name)
-
-    def test_tacker_context_create_logs_unknown_kwarg(self):
-        with mock.patch.object(context.LOG, 'debug') as mock_log:
-            context.Context('user_id', 'tenant_id', foo=None)
-        self.assertEqual(1, mock_log.call_count)
 
     def test_tacker_context_create_with_name(self):
         ctx = context.Context('user_id', 'tenant_id',
@@ -96,12 +90,9 @@ class TestTackerContext(base.BaseTestCase):
         self.assertIsNone(ctx_dict['tenant_id'])
         self.assertFalse(hasattr(ctx, 'session'))
 
-    def test_tacker_context_with_load_roles_true(self):
+    def test_tacker_context_admin_context(self):
         ctx = context.get_admin_context()
-        self.assertIn('admin', ctx.roles)
-
-    def test_tacker_context_with_load_roles_false(self):
-        ctx = context.get_admin_context(load_admin_roles=False)
+        self.assertTrue(ctx.is_admin)
         self.assertFalse(ctx.roles)
 
     def test_tacker_context_elevated_retains_request_id(self):
