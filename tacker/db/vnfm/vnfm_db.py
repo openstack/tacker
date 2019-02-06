@@ -341,6 +341,8 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def get_vnfd(self, context, vnfd_id, fields=None):
         vnfd_db = self._get_resource(context, VNFD, vnfd_id)
+        if not vnfd_db:
+            raise exceptions.NotFound(resource='VNFD', name=vnfd_id)
         return self._make_vnfd_dict(vnfd_db)
 
     def get_vnfds(self, context, filters, fields=None):
