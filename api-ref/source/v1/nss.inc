@@ -64,7 +64,7 @@ Response Parameters
   - tenant_id: tenant_id
   - created_at: ns_created_at
   - updated_at: ns_updated_at
-  - mgmt_url: ns_mgmt_url
+  - mgmt_ip_address: ns_mgmt_ip_address
   - vim_id: vim_id
   - error_reason: ns_error_reason
   - attributes: ns_attributes
@@ -109,7 +109,7 @@ Response Parameters
   - tenant_id: tenant_id
   - created_at: ns_created_at
   - updated_at: ns_updated_at
-  - mgmt_url: ns_mgmt_url
+  - mgmt_ip_address: ns_mgmt_ip_address
   - vim_id: vim_id
   - error_reason: ns_error_reason
   - attributes: ns_attributes
@@ -162,7 +162,7 @@ Response Parameters
   - tenant_id: tenant_id
   - created_at: ns_created_at
   - updated_at: ns_updated_at
-  - mgmt_url: ns_mgmt_url
+  - mgmt_ip_address: ns_mgmt_ip_address
   - vim_id: vim_id
   - error_reason: ns_error_reason
   - attributes: ns_attributes

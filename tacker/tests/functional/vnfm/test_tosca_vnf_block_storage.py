@@ -60,7 +60,7 @@ class VnfBlockStorageTestToscaCreate(base.BaseTackerTest):
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
         vnf_show_out = self.client.show_vnf(vnf_id)['vnf']
-        self.assertIsNotNone(vnf_show_out['mgmt_url'])
+        self.assertIsNotNone(vnf_show_out['mgmt_ip_address'])
 
         input_dict = yaml.safe_load(values_str)
         prop_dict = input_dict['topology_template']['node_templates'][
@@ -68,10 +68,10 @@ class VnfBlockStorageTestToscaCreate(base.BaseTackerTest):
 
         # Verify if ip_address is static, it is same as in show_vnf
         if prop_dict.get('ip_address'):
-            mgmt_url_input = prop_dict.get('ip_address')
+            mgmt_ip_address_input = prop_dict.get('ip_address')
             mgmt_info = yaml.safe_load(
-                vnf_show_out['mgmt_url'])
-            self.assertEqual(mgmt_url_input, mgmt_info['VDU1'])
+                vnf_show_out['mgmt_ip_address'])
+            self.assertEqual(mgmt_ip_address_input, mgmt_info['VDU1'])
 
         # Verify anti spoofing settings
         stack_id = vnf_show_out['instance_id']

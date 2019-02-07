@@ -70,10 +70,11 @@ class VnfTestToscaVNFC(base.BaseTackerTest):
         self.verify_vnf_crud_events(
             vnf_id, evt_constants.RES_EVT_CREATE, evt_constants.ACTIVE)
 
-        # Validate mgmt_url with input yaml file
-        mgmt_url = self.client.show_vnf(vnf_id)['vnf']['mgmt_url']
-        self.assertIsNotNone(mgmt_url)
-        mgmt_dict = yaml.safe_load(str(mgmt_url))
+        # Validate mgmt_ip_address with input yaml file
+        mgmt_ip_address = self.client.show_vnf(vnf_id)['vnf'][
+            'mgmt_ip_address']
+        self.assertIsNotNone(mgmt_ip_address)
+        mgmt_dict = yaml.safe_load(str(mgmt_ip_address))
 
         input_dict = yaml.safe_load(input_yaml)
         toscautils.updateimports(input_dict)

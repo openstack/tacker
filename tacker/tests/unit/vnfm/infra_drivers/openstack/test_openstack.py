@@ -171,7 +171,7 @@ class TestOpenStack(base.TestCase):
                     'attributes': {u'vnfd': self.tosca_vnfd_openwrt},
                     'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
                     'name': u'OpenWRT'},
-                'mgmt_url': '{"vdu1": "192.168.120.31"}',
+                'mgmt_ip_address': '{"vdu1": "192.168.120.31"}',
                 'service_context': [],
                 'attributes': {u'param_values': param_values},
                 'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
@@ -188,7 +188,8 @@ class TestOpenStack(base.TestCase):
             u'ad7ebc56538745a08ef7c5e97f8bd437', 'mgmt_driver': u'openwrt',
             'attributes': {u'vnfd': self.tosca_vnfd_openwrt},
             'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
-            u'openwrt_services'}, 'mgmt_url': None, 'service_context': [],
+            u'openwrt_services'}, 'mgmt_ip_address': None,
+            'service_context': [],
             'attributes': {'config': utils.update_config_data},
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123', 'description':
                 u'OpenWRT with services'}
@@ -210,7 +211,7 @@ class TestOpenStack(base.TestCase):
                     'attributes': {u'vnfd': self.tosca_vnfd_openwrt},
                     'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
                     'name': u'openwrt_services'},
-                'mgmt_url': '{"vdu1": "192.168.120.31"}',
+                'mgmt_ip_address': '{"vdu1": "192.168.120.31"}',
                 'service_context': [],
                 'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
                 'description': u'OpenWRT with services'}
@@ -279,7 +280,7 @@ class TestOpenStack(base.TestCase):
             },
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
             'instance_id': None,
-            'mgmt_url': None,
+            'mgmt_ip_address': None,
             'name': u'test_openwrt',
             'service_context': [],
             'status': 'PENDING_CREATE',

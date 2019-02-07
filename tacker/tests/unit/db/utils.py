@@ -140,7 +140,7 @@ def get_dummy_vnf():
             'attributes': {u'vnfd': tosca_vnfd_openwrt},
             'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
             'name': u'openwrt_services'},
-        'mgmt_url': None, 'service_context': [],
+        'mgmt_ip_address': None, 'service_context': [],
         'attributes': {u'param_values': u''},
         'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
         'description': u'OpenWRT with services'}
@@ -157,7 +157,8 @@ def get_dummy_vnf_config_attr():
             'mgmt_driver': u'openwrt',
             'attributes': {u'vnfd': tosca_vnfd_openwrt},
             'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
-            u'openwrt_services'}, 'mgmt_url': None, 'service_context': [],
+            u'openwrt_services'}, 'mgmt_ip_address': None,
+            'service_context': [],
             'attributes': {u'config': config_data},
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
             'description': u'OpenWRT with services'}

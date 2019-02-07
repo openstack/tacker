@@ -142,7 +142,7 @@ class NsdTestCreate(base.BaseTackerTest):
                                    constants.NS_CREATE_TIMEOUT,
                                    constants.ACTIVE_SLEEP_TIME)
         ns_show_out = self.client.show_ns(ns_id)['ns']
-        self.assertIsNotNone(ns_show_out['mgmt_urls'])
+        self.assertIsNotNone(ns_show_out['mgmt_ip_addresses'])
 
         try:
             self.client.delete_ns(ns_id)
@@ -182,7 +182,7 @@ class NsdTestCreate(base.BaseTackerTest):
                                    constants.ACTIVE_SLEEP_TIME)
         ns_show_out = self.client.show_ns(ns_id)['ns']
 
-        self.assertIsNotNone(ns_show_out['mgmt_urls'])
+        self.assertIsNotNone(ns_show_out['mgmt_ip_addresses'])
         vnffg = self.client.list_vnffgs()
         self.assertIsNotNone(vnffg)
         try:

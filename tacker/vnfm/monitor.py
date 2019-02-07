@@ -105,8 +105,8 @@ class VNFMonitor(object):
     def to_hosting_vnf(vnf_dict, action_cb):
         return {
             'id': vnf_dict['id'],
-            'management_ip_addresses': jsonutils.loads(
-                vnf_dict['mgmt_url']),
+            'mgmt_ip_addresses': jsonutils.loads(
+                vnf_dict['mgmt_ip_address']),
             'action_cb': action_cb,
             'vnf': vnf_dict,
             'monitoring_policy': jsonutils.loads(
@@ -116,7 +116,7 @@ class VNFMonitor(object):
     def add_hosting_vnf(self, new_vnf):
         LOG.debug('Adding host %(id)s, Mgmt IP %(ips)s',
                   {'id': new_vnf['id'],
-                   'ips': new_vnf['management_ip_addresses']})
+                   'ips': new_vnf['mgmt_ip_addresses']})
         new_vnf['boot_at'] = timeutils.utcnow()
         with self._lock:
             VNFMonitor._hosting_vnfs[new_vnf['id']] = new_vnf
@@ -136,7 +136,7 @@ class VNFMonitor(object):
             if hosting_vnf:
                 LOG.debug('deleting vnf_id %(vnf_id)s, Mgmt IP %(ips)s',
                           {'vnf_id': vnf_id,
-                           'ips': hosting_vnf['management_ip_addresses']})
+                           'ips': hosting_vnf['mgmt_ip_addresses']})
 
     def update_hosting_vnf(self, updated_vnf_dict, evt_details=None):
         with self._lock:
@@ -145,8 +145,8 @@ class VNFMonitor(object):
             if vnf_to_update:
                 updated_vnf = copy.deepcopy(updated_vnf_dict)
                 vnf_to_update['vnf'] = updated_vnf
-                vnf_to_update['management_ip_addresses'] = jsonutils.loads(
-                    updated_vnf_dict['mgmt_url'])
+                vnf_to_update['mgmt_ip_addresses'] = jsonutils.loads(
+                    updated_vnf_dict['mgmt_ip_address'])
 
                 if evt_details is not None:
                     vnfm_utils.log_events(t_context.get_admin_context(),
@@ -155,7 +155,7 @@ class VNFMonitor(object):
                                           evt_details=evt_details)
 
     def run_monitor(self, hosting_vnf):
-        mgmt_ips = hosting_vnf['management_ip_addresses']
+        mgmt_ips = hosting_vnf['mgmt_ip_addresses']
         vdupolicies = hosting_vnf['monitoring_policy']['vdus']
 
         vnf_delay = hosting_vnf['monitoring_policy'].get(
@@ -227,20 +227,20 @@ class VNFAppMonitor(object):
             'tacker.tacker.app_monitor.drivers',
             cfg.CONF.tacker.app_monitor_driver)
 
-    def _create_app_monitoring_dict(self, dev_attrs, mgmt_url):
+    def _create_app_monitoring_dict(self, dev_attrs, mgmt_ip_address):
         app_policy = 'app_monitoring_policy'
         appmonitoring_dict = ast.literal_eval(dev_attrs[app_policy])
         vdulist = appmonitoring_dict['vdus'].keys()
 
         for vduname in vdulist:
-            temp = ast.literal_eval(mgmt_url)
+            temp = ast.literal_eval(mgmt_ip_address)
             appmonitoring_dict['vdus'][vduname]['mgmt_ip'] = temp[vduname]
         return appmonitoring_dict
 
     def create_app_dict(self, context, vnf_dict):
         dev_attrs = vnf_dict['attributes']
-        mgmt_url = vnf_dict['mgmt_url']
-        return self._create_app_monitoring_dict(dev_attrs, mgmt_url)
+        mgmt_ip_address = vnf_dict['mgmt_ip_address']
+        return self._create_app_monitoring_dict(dev_attrs, mgmt_ip_address)
 
     def _invoke(self, driver, **kwargs):
         method = inspect.stack()[1][3]

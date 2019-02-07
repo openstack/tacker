@@ -121,8 +121,10 @@ def get_dummy_create_workflow():
                         'publish': {
                             'status_VNF2': '<% task(wait_vnf_active_VNF2).'
                                            'result.vnf.status %>',
-                            'mgmt_url_VNF2': ' <% task(wait_vnf_active_VNF2).'
-                                             'result.vnf.mgmt_url %>'},
+                            'mgmt_ip_address_VNF2': ' <% task('
+                                                    'wait_vnf_active_VNF2).'
+                                                    'result.vnf.'
+                                                    'mgmt_ip_address %>'},
                         'on-success': [{
                             'delete_vnf_VNF2': '<% $.status_VNF2='
                                                '"ERROR" %>'}]},
@@ -134,8 +136,10 @@ def get_dummy_create_workflow():
                                            'result.vnf.status %>',
                             'vim_id_VNF2': '<% task(create_ns_VNF2).'
                                            'result.vnf.vim_id %>',
-                            'mgmt_url_VNF2': '<% task(create_ns_VNF2).'
-                                             'result.vnf.mgmt_url %>',
+                            'mgmt_ip_address_VNF2': '<% task('
+                                                    'create_ns_VNF2).'
+                                                    'result.vnf.'
+                                                    'mgmt_ip_address %>',
                             'vnf_id_VNF2': '<% task(create_ns_VNF2)'
                                            '.result.vnf.id %>'},
                             'on-success': ['wait_vnf_active_VNF2']},
@@ -147,8 +151,10 @@ def get_dummy_create_workflow():
                                            'result.vnf.status %>',
                             'vnf_id_VNF1': '<% task(create_ns_VNF1).'
                                            'result.vnf.id %>',
-                            'mgmt_url_VNF1': '<% task(create_ns_VNF1).'
-                                             'result.vnf.mgmt_url %>',
+                            'mgmt_ip_address_VNF1': '<% task('
+                                                    'create_ns_VNF1).'
+                                                    'result.vnf.'
+                                                    'mgmt_ip_address %>',
                             'vim_id_VNF1': '<% task(create_ns_VNF1).'
                                            'result.vnf.vim_id %>'},
                         'on-success': ['wait_vnf_active_VNF1']},
@@ -161,8 +167,10 @@ def get_dummy_create_workflow():
                         'publish': {
                             'status_VNF1': '<% task(wait_vnf_active_VNF1).'
                                            'result.vnf.status %>',
-                            'mgmt_url_VNF1': ' <% task(wait_vnf_active_VNF1).'
-                                             'result.vnf.mgmt_url %>'},
+                            'mgmt_ip_address_VNF1': ' <% task('
+                                                    'wait_vnf_active_VNF1).'
+                                                    'result.vnf.'
+                                                    'mgmt_ip_address %>'},
                         'on-success': [{'delete_vnf_VNF1': '<% $.status_VNF1='
                                                            '"ERROR" %>'}]},
                     'delete_vnf_VNF1': {
@@ -172,8 +180,8 @@ def get_dummy_create_workflow():
                 'type': 'direct', 'output': {
                     'status_VNF1': '<% $.status_VNF1 %>',
                     'status_VNF2': '<% $.status_VNF2 %>',
-                    'mgmt_url_VNF2': '<% $.mgmt_url_VNF2 %>',
-                    'mgmt_url_VNF1': '<% $.mgmt_url_VNF1 %>',
+                    'mgmt_ip_address_VNF2': '<% $.mgmt_ip_address_VNF2 %>',
+                    'mgmt_ip_address_VNF1': '<% $.mgmt_ip_address_VNF1 %>',
                     'vim_id_VNF2': '<% $.vim_id_VNF2 %>',
                     'vnf_id_VNF1': '<% $.vnf_id_VNF1 %>',
                     'vnf_id_VNF2': '<% $.vnf_id_VNF2 %>',
@@ -199,9 +207,9 @@ def get_dummy_create_vnffg_ns_workflow():
                         'status_VNF2':
                             '<% task(wait_vnf_active_VNF2).result.'
                             'vnf.status %>',
-                        'mgmt_url_VNF2':
+                        'mgmt_ip_address_VNF2':
                             ' <% task(wait_vnf_active_VNF2).result.'
-                            'vnf.mgmt_url %>'},
+                            'vnf.mgmt_ip_address %>'},
                     'on-success': [
                         {'delete_vnf_VNF2': '<% $.status_VNF2="ERROR" %>'},
                         'create_vnffg_VNFFG1']},
@@ -225,9 +233,9 @@ def get_dummy_create_vnffg_ns_workflow():
                         'status_VNF1':
                             '<% task(wait_vnf_active_VNF1).result.'
                             'vnf.status %>',
-                        'mgmt_url_VNF1':
+                        'mgmt_ip_address_VNF1':
                             ' <% task(wait_vnf_active_VNF1).result.'
-                            'vnf.mgmt_url %>'},
+                            'vnf.mgmt_ip_address %>'},
                     'on-success': [
                         {'delete_vnf_VNF1': '<% $.status_VNF1="ERROR" %>'},
                         'create_vnffg_VNFFG1']},
@@ -239,8 +247,9 @@ def get_dummy_create_vnffg_ns_workflow():
                             '<% task(create_ns_VNF1).result.vnf.status %>',
                         'vnf_id_VNF1':
                             '<% task(create_ns_VNF1).result.vnf.id %>',
-                        'mgmt_url_VNF1':
-                            '<% task(create_ns_VNF1).result.vnf.mgmt_url %>',
+                        'mgmt_ip_address_VNF1':
+                            '<% task(create_ns_VNF1).result.'
+                            'vnf.mgmt_ip_address %>',
                         'vim_id_VNF1':
                             '<% task(create_ns_VNF1).result.vnf.vim_id %>'},
                     'on-success': ['wait_vnf_active_VNF1']},
@@ -252,8 +261,9 @@ def get_dummy_create_vnffg_ns_workflow():
                             '<% task(create_ns_VNF2).result.vnf.status %>',
                         'vim_id_VNF2':
                             '<% task(create_ns_VNF2).result.vnf.vim_id %>',
-                        'mgmt_url_VNF2':
-                            '<% task(create_ns_VNF2).result.vnf.mgmt_url %>',
+                        'mgmt_ip_address_VNF2':
+                            '<% task(create_ns_VNF2).result.'
+                            'vnf.mgmt_ip_address %>',
                         'vnf_id_VNF2':
                             '<% task(create_ns_VNF2).result.vnf.id %>'},
                     'on-success': ['wait_vnf_active_VNF2']},
@@ -265,8 +275,8 @@ def get_dummy_create_vnffg_ns_workflow():
             'output': {
                 'status_VNF1': '<% $.status_VNF1 %>',
                 'status_VNF2': '<% $.status_VNF2 %>',
-                'mgmt_url_VNF2': '<% $.mgmt_url_VNF2 %>',
-                'mgmt_url_VNF1': '<% $.mgmt_url_VNF1 %>',
+                'mgmt_ip_address_VNF2': '<% $.mgmt_ip_address_VNF2 %>',
+                'mgmt_ip_address_VNF1': '<% $.mgmt_ip_address_VNF1 %>',
                 'vnffg_id_VNFFG1': '<% $.vnffg_id_VNFFG1 %>',
                 'vim_id_VNF2': '<% $.vim_id_VNF2 %>',
                 'vnf_id_VNF1': '<% $.vnf_id_VNF1 %>',

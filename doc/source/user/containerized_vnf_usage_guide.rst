@@ -238,7 +238,7 @@ Create sample containerized VNF
   | error_reason   |                                                                                                       |
   | id             | 1faf776b-8d2b-4ee6-889d-e3b7c7310411                                                                  |
   | instance_id    | default,svc-vdu1-05db44                                                                               |
-  | mgmt_url       |                                                                                                       |
+  | mgmt_ip_address|                                                                                                       |
   | name           | VNF1                                                                                                  |
   | placement_attr | {"vim_name": "vim-kubernetes"}                                                                        |
   | status         | PENDING_CREATE                                                                                        |
@@ -250,7 +250,7 @@ Create sample containerized VNF
 
   $ openstack vnf list
   +--------------------------------------+------+----------------------------+--------+--------------------------------------+--------------------------------------+
-  | id                                   | name | mgmt_url                   | status | vim_id                               | vnfd_id                              |
+  | id                                   | name | mgmt_ip_address            | status | vim_id                               | vnfd_id                              |
   +--------------------------------------+------+----------------------------+--------+--------------------------------------+--------------------------------------+
   | 1faf776b-8d2b-4ee6-889d-e3b7c7310411 | VNF1 |                            | ACTIVE | 791830a6-45fd-468a-bd85-e07fe24e5ce3 | fb4a0aa8-e410-4e73-abdc-d2808de155ef |
   +--------------------------------------+------+----------------------------+--------+--------------------------------------+--------------------------------------+

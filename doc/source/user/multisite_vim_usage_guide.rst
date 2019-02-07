@@ -115,7 +115,7 @@ Deploying a new VNF on registered VIM
  | description    | Openwrt tosca template               |
  | id             | 159ed8a5-a5a7-4f7a-be50-0f5f86603e3a |
  | instance_id    | 7b4ab046-d977-4781-9f0c-1ee9dcce01c6 |
- | mgmt_url       |                                      |
+ | mgmt_ip_address|                                      |
  | name           | openwrt_VNF                          |
  | placement_attr | {"vim_name": "Site1"}                |
  | status         | PENDING_CREATE                       |

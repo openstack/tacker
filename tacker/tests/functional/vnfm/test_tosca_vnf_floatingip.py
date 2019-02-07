@@ -86,7 +86,7 @@ class VnfTestToscaFloatingIp(base.BaseTackerTest):
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
         vnf_show_out = self.client.show_vnf(vnf_id)['vnf']
-        self.assertIsNotNone(vnf_show_out['mgmt_url'])
+        self.assertIsNotNone(vnf_show_out['mgmt_ip_address'])
 
         stack_id = vnf_show_out['instance_id']
         fip_res = self.get_heat_stack_resource(stack_id, 'FIP1')

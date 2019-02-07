@@ -16,7 +16,7 @@ from tacker.mistral import workflow_generator
 
 
 OUTPUT = {
-    'create_vnf': ['vnf_id', 'vim_id', 'mgmt_url', 'status'],
+    'create_vnf': ['vnf_id', 'vim_id', 'mgmt_ip_address', 'status'],
     'create_vnffg': ['vnffg_id'],
 }
 
@@ -39,8 +39,9 @@ class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
                                           '%>'.format(task),
                         'vim_id_' + node: '<% task({0}).result.vnf.vim_id'
                                           ' %>'.format(task),
-                        'mgmt_url_' + node: '<% task({0}).result.vnf.mgmt_url'
-                                            ' %>'.format(task),
+                        'mgmt_ip_address_' + node: '<% task({0}).result.vnf.'
+                                                   'mgmt_ip_address '
+                                                   '%>'.format(task),
                         'status_' + node: '<% task({0}).result.vnf.status'
                                           ' %>'.format(task),
                               },
@@ -69,8 +70,9 @@ class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
                                        '%>'.format(node),
                               },
                     'publish': {
-                        'mgmt_url_' + node: ' <% task({0}).result.vnf.'
-                                            'mgmt_url %>'.format(task),
+                        'mgmt_ip_address_' + node: ' <% task({0}).result.'
+                                                   'vnf.mgmt_ip_address '
+                                                   '%>'.format(task),
                         'status_' + node: '<% task({0}).result.vnf.status'
                                           ' %>'.format(task),
                               },

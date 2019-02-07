@@ -25,7 +25,7 @@ from tacker.vnfm import monitor
 MOCK_VNF_ID = 'a737497c-761c-11e5-89c3-9cb6541d805d'
 MOCK_VNF = {
     'id': MOCK_VNF_ID,
-    'management_ip_addresses': {
+    'mgmt_ip_addresses': {
         'vdu1': 'a.b.c.d'
     },
     'monitoring_policy': {
@@ -52,7 +52,7 @@ MOCK_VNF = {
 
 MOCK_VNF_DEVICE_FOR_VDU_AUTOHEAL = {
     'id': MOCK_VNF_ID,
-    'management_ip_addresses': {
+    'mgmt_ip_addresses': {
         'vdu1': 'a.b.c.d'
     },
     'monitoring_policy': {
@@ -93,17 +93,17 @@ class TestVNFMonitor(testtools.TestCase):
     def test_to_hosting_vnf(self):
         test_vnf_dict = {
             'id': MOCK_VNF_ID,
-            'mgmt_url': '{"vdu1": "a.b.c.d"}',
+            'mgmt_ip_address': '{"vdu1": "a.b.c.d"}',
             'attributes': {
                 'monitoring_policy': json.dumps(
-                        MOCK_VNF['monitoring_policy'])
+                    MOCK_VNF['monitoring_policy'])
             }
         }
         action_cb = mock.MagicMock()
         expected_output = {
             'id': MOCK_VNF_ID,
             'action_cb': action_cb,
-            'management_ip_addresses': {
+            'mgmt_ip_addresses': {
                 'vdu1': 'a.b.c.d'
             },
             'vnf': test_vnf_dict,
@@ -117,10 +117,10 @@ class TestVNFMonitor(testtools.TestCase):
     def test_add_hosting_vnf(self, mock_monitor_run):
         test_vnf_dict = {
             'id': MOCK_VNF_ID,
-            'mgmt_url': '{"vdu1": "a.b.c.d"}',
+            'mgmt_ip_address': '{"vdu1": "a.b.c.d"}',
             'attributes': {
                 'monitoring_policy': json.dumps(
-                        MOCK_VNF['monitoring_policy'])
+                    MOCK_VNF['monitoring_policy'])
             },
             'status': 'ACTIVE'
         }
@@ -165,7 +165,7 @@ class TestVNFMonitor(testtools.TestCase):
         test_device_dict = {
             'status': 'ACTIVE',
             'id': MOCK_VNF_ID,
-            'mgmt_url': '{"vdu1": "a.b.c.d"}',
+            'mgmt_ip_address': '{"vdu1": "a.b.c.d"}',
             'attributes': {
                 'monitoring_policy': json.dumps(
                     MOCK_VNF_DEVICE_FOR_VDU_AUTOHEAL['monitoring_policy'])
@@ -185,11 +185,11 @@ class TestVNFMonitor(testtools.TestCase):
         test_vnfmonitor = monitor.VNFMonitor(test_boot_wait)
         vnf_dict = {
             'id': MOCK_VNF_ID,
-            'mgmt_url': '{"vdu1": "a.b.c.d"}',
-            'management_ip_addresses': 'a.b.c.d',
+            'mgmt_ip_address': '{"vdu1": "a.b.c.d"}',
+            'mgmt_ip_addresses': 'a.b.c.d',
             'vnf': {
                 'id': MOCK_VNF_ID,
-                'mgmt_url': '{"vdu1": "a.b.c.d"}',
+                'mgmt_ip_address': '{"vdu1": "a.b.c.d"}',
                 'attributes': {
                     'monitoring_policy': json.dumps(
                         MOCK_VNF['monitoring_policy'])

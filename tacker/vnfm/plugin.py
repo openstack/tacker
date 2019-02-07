@@ -99,7 +99,7 @@ class VNFMMgmtMixin(object):
         return self._invoke(
             vnf_dict, plugin=self, context=context, vnf=vnf_dict)
 
-    def mgmt_url(self, context, vnf_dict):
+    def mgmt_ip_address(self, context, vnf_dict):
         return self._invoke(
             vnf_dict, plugin=self, context=context, vnf=vnf_dict)
 
@@ -237,8 +237,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     def add_vnf_to_monitor(self, context, vnf_dict):
         dev_attrs = vnf_dict['attributes']
-        mgmt_url = vnf_dict['mgmt_url']
-        if 'monitoring_policy' in dev_attrs and mgmt_url:
+        mgmt_ip_address = vnf_dict['mgmt_ip_address']
+        if 'monitoring_policy' in dev_attrs and mgmt_ip_address:
             def action_cb(action, **kwargs):
                 LOG.debug('policy action: %s', action)
                 self._vnf_action.invoke(
@@ -305,20 +305,20 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                                              six.text_type(e))
 
         if instance_id is None or create_failed:
-            mgmt_url = None
+            mgmt_ip_address = None
         else:
-            # mgmt_url = self.mgmt_url(context, vnf_dict)
+            # mgmt_ip_address = self.mgmt_ip_address(context, vnf_dict)
             # FIXME(yamahata):
-            mgmt_url = vnf_dict['mgmt_url']
+            mgmt_ip_address = vnf_dict['mgmt_ip_address']
 
         self._create_vnf_post(
-            context, vnf_id, instance_id, mgmt_url, vnf_dict)
+            context, vnf_id, instance_id, mgmt_ip_address, vnf_dict)
         self.mgmt_create_post(context, vnf_dict)
 
         if instance_id is None or create_failed:
             return
 
-        vnf_dict['mgmt_url'] = mgmt_url
+        vnf_dict['mgmt_ip_address'] = mgmt_ip_address
 
         kwargs = {
             mgmt_constants.KEY_ACTION: mgmt_constants.ACTION_CREATE_VNF,
@@ -467,7 +467,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             evt_details = ("Ends the heal vnf request for VNF '%s'" %
                            vnf_dict['id'])
             self._vnf_monitor.update_hosting_vnf(vnf_dict, evt_details)
-            # _update_vnf_post() method updates vnf_status and mgmt_url
+            # _update_vnf_post() method updates vnf_status and mgmt_ip_address
             self._update_vnf_post(context, vnf_dict['id'],
                                   new_status, vnf_dict,
                                   constants.PENDING_HEAL,
@@ -658,13 +658,13 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             return result
 
         # post
-        def _handle_vnf_scaling_post(new_status, mgmt_url=None):
+        def _handle_vnf_scaling_post(new_status, mgmt_ip_address=None):
             status = _get_status()
             result = self._update_vnf_scaling_status(context,
                                                      policy,
                                                      [status],
                                                      new_status,
-                                                     mgmt_url)
+                                                     mgmt_ip_address)
             LOG.debug("Policy %(policy)s vnf is at %(status)s",
                       {'policy': policy['name'],
                        'status': new_status})
@@ -701,7 +701,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             try:
                 LOG.debug("Policy %s action is in progress",
                           policy['name'])
-                mgmt_url = self._vnf_manager.invoke(
+                mgmt_ip_address = self._vnf_manager.invoke(
                     infra_driver,
                     'scale_wait',
                     plugin=self,
@@ -713,7 +713,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 )
                 LOG.debug("Policy %s action is completed successfully",
                           policy['name'])
-                _handle_vnf_scaling_post(constants.ACTIVE, mgmt_url)
+                _handle_vnf_scaling_post(constants.ACTIVE, mgmt_ip_address)
                 # TODO(kanagaraj-manickam): Add support for config and mgmt
             except Exception as e:
                 LOG.error("Policy %s action is failed to complete",

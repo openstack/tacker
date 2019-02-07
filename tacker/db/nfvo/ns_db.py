@@ -101,8 +101,8 @@ class NS(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
     # VNFFG ids
     vnffg_ids = sa.Column(sa.TEXT(65535), nullable=True)
 
-    # Dict of mgmt urls that network servic launches
-    mgmt_urls = sa.Column(sa.TEXT(65535), nullable=True)
+    # Dict of mgmt ip addresses that network service launches
+    mgmt_ip_addresses = sa.Column(sa.TEXT(65535), nullable=True)
 
     status = sa.Column(sa.String(64), nullable=False)
     vim_id = sa.Column(types.Uuid, sa.ForeignKey('vims.id'), nullable=False)
@@ -164,7 +164,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         LOG.debug('ns_db %s', ns_db)
         res = {}
         key_list = ('id', 'tenant_id', 'nsd_id', 'name', 'description',
-                    'vnf_ids', 'vnffg_ids', 'status', 'mgmt_urls',
+                    'vnf_ids', 'vnffg_ids', 'status', 'mgmt_ip_addresses',
                     'error_reason', 'vim_id', 'created_at', 'updated_at')
         res.update((key, ns_db[key]) for key in key_list)
         return self._fields(res, fields)
@@ -270,7 +270,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                            vnf_ids=None,
                            vnffg_ids=None,
                            status=constants.PENDING_CREATE,
-                           mgmt_urls=None,
+                           mgmt_ip_addresses=None,
                            nsd_id=nsd_id,
                            vim_id=vim_id,
                            error_reason=None,
@@ -294,18 +294,18 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
             vnfd_dict, vnffgd_templates, error_reason):
         LOG.debug('ns ID %s', ns_id)
         output = ast.literal_eval(mistral_obj.output)
-        mgmt_urls = dict()
+        mgmt_ip_addresses = dict()
         vnf_ids = dict()
         vnffg_ids = dict()
         if len(output) > 0:
             for vnfd_name, vnfd_val in iteritems(vnfd_dict):
                 for instance in vnfd_val['instances']:
-                    if 'mgmt_url_' + instance in output:
-                        mgmt_urls[instance] = ast.literal_eval(
-                            output['mgmt_url_' + instance].strip())
+                    if 'mgmt_ip_address_' + instance in output:
+                        mgmt_ip_addresses[instance] = ast.literal_eval(
+                            output['mgmt_ip_address_' + instance].strip())
                         vnf_ids[instance] = output['vnf_id_' + instance]
             vnf_ids = str(vnf_ids)
-            mgmt_urls = str(mgmt_urls)
+            mgmt_ip_addresses = str(mgmt_ip_addresses)
             if vnffgd_templates:
                 for vnffg_name in vnffgd_templates:
                     vnffg_output = 'vnffg_id_%s' % vnffg_name
@@ -314,8 +314,8 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
 
         if not vnf_ids:
             vnf_ids = None
-        if not mgmt_urls:
-            mgmt_urls = None
+        if not mgmt_ip_addresses:
+            mgmt_ip_addresses = None
         if not vnffg_ids:
             vnffg_ids = None
         status = constants.ACTIVE if mistral_obj.state == 'SUCCESS' \
@@ -325,7 +325,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
             ns_db = self._get_resource(context, NS, ns_id)
             ns_db.update({'vnf_ids': vnf_ids})
             ns_db.update({'vnffg_ids': vnffg_ids})
-            ns_db.update({'mgmt_urls': mgmt_urls})
+            ns_db.update({'mgmt_ip_addresses': mgmt_ip_addresses})
             ns_db.update({'status': status})
             ns_db.update({'error_reason': error_reason})
             ns_db.update({'updated_at': timeutils.utcnow()})

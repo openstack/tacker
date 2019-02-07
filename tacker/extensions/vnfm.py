@@ -327,7 +327,7 @@ RESOURCE_ATTRIBUTE_MAP = {
             'validate': {'type:string': None},
             'is_visible': True,
         },
-        'mgmt_url': {
+        'mgmt_ip_address': {
             'allow_post': False,
             'allow_put': False,
             'validate': {'type:string': None},

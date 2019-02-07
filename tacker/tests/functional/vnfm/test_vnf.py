@@ -48,7 +48,8 @@ class VnfTestCreate(base.BaseTackerTest):
             vnf_id,
             constants.VNF_CIRROS_CREATE_TIMEOUT,
             constants.ACTIVE_SLEEP_TIME)
-        self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf']['mgmt_url'])
+        self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf'][
+            'mgmt_ip_address'])
         if vim_id:
             self.assertEqual(vim_id, vnf_instance['vnf']['vim_id'])
 

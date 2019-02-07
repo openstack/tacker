@@ -189,7 +189,7 @@ Miscellaneous events command examples:
   +----------------+------------------------------------------------------------------------------------------+
   | Field          | Value                                                                                    |
   +----------------+------------------------------------------------------------------------------------------+
-  | event_details  | Infra Instance ID created: 046dcb04-318d-4ec9-8a23-19d9c1f8c21d and Mgmt URL set:        |
+  | event_details  | Infra Instance ID created: 046dcb04-318d-4ec9-8a23-19d9c1f8c21d and Mgmt IP address set: |
   |                | {"VDU1": "192.168.120.8"}                                                                |
   | event_type     | CREATE                                                                                   |
   | id             | 5                                                                                        |
