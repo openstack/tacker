@@ -623,7 +623,11 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         LOG.debug('nsd_dict: %s', inner_nsd_dict)
 
         vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
-        vnfd_imports = inner_nsd_dict['imports']
+        vnfd_imports = inner_nsd_dict.get('imports')
+        if not vnfd_imports:
+            LOG.error('VNFD import section is missing')
+            raise nfvo.ToscaParserFailed(
+                error_msg_details='VNFD import section is missing')
         inner_nsd_dict['imports'] = []
         new_files = []
         for vnfd_name in vnfd_imports:

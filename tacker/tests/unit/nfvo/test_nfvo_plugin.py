@@ -1083,6 +1083,16 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIn('created_at', result)
             self.assertIn('updated_at', result)
 
+    def test_create_nsd_without_vnfd_imports(self):
+        nsd_obj = utils.get_dummy_nsd_obj()
+        # Remove vnfd import section from nsd.
+        nsd_obj['nsd']['attributes']['nsd'].pop('imports')
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            self.assertRaises(nfvo.ToscaParserFailed,
+                          self.nfvo_plugin.create_nsd, self.context, nsd_obj)
+
     def test_create_nsd_inline(self):
         nsd_obj = utils.get_dummy_nsd_obj_inline()
         with patch.object(TackerManager, 'get_service_plugins') as \
