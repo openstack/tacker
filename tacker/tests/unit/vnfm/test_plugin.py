@@ -156,11 +156,16 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.update_wait = mock.patch('tacker.vnfm.infra_drivers.openstack.'
                                     'openstack.OpenStack.update_wait').start()
         self.delete = mock.patch('tacker.vnfm.infra_drivers.openstack.'
-                                 'openstack.OpenStack.delete',
-                            return_value=uuidutils.generate_uuid()).start()
+                                 'openstack.OpenStack.delete').start()
         self.delete_wait = mock.patch('tacker.vnfm.infra_drivers.openstack.'
                                       'openstack.OpenStack.'
                                       'delete_wait').start()
+        self.scale = mock.patch('tacker.vnfm.infra_drivers.openstack.'
+                                'openstack.OpenStack.scale',
+                                return_value=uuidutils.generate_uuid()).start()
+        self.scale_wait = mock.patch('tacker.vnfm.infra_drivers.openstack.'
+                                'openstack.OpenStack.scale_wait',
+                                return_value=uuidutils.generate_uuid()).start()
 
         def _fake_spawn(func, *args, **kwargs):
             func(*args, **kwargs)
@@ -265,7 +270,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         session.flush()
         return vnf_attributes
 
-    def _insert_scaling_attributes_vnfd(self):
+    def _insert_scaling_attributes_vnfd(self, invalid_policy_type=False):
         session = self.context.session
         vnfd_attributes = vnfm_db.VNFDAttribute(
             id='7800cb81-7ed1-4cf6-8387-746468522650',
@@ -275,6 +280,11 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         )
         session.add(vnfd_attributes)
         session.flush()
+        if invalid_policy_type:
+            vnfd_template = yaml.safe_load(vnfd_attributes.value)
+            vnfd_template['topology_template']['policies'][0]['SP1']['type'] \
+                = "test_invalid_policy_type"
+            vnfd_attributes.value = yaml.dump(vnfd_template)
         return vnfd_attributes
 
     def _insert_dummy_vim(self):
@@ -443,6 +453,14 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertEqual(vnf_obj['vnf']['attributes']['config'],
                          result['attributes']['config'])
         self.assertEqual('ACTIVE', result['status'])
+
+    def test_create_vnf_fail_with_invalid_infra_driver_exception(self):
+        self.vim_client.get_vim.return_value['vim_type'] = 'test_invalid_vim'
+        self._insert_dummy_vnf_template()
+        vnf_obj = utils.get_dummy_vnf_obj()
+        self.assertRaises(vnfm.InvalidInfraDriver,
+                          self.vnfm_plugin.create_vnf,
+                          self.context, vnf_obj)
 
     @patch('tacker.vnfm.plugin.VNFMPlugin._report_deprecated_yaml_str')
     def test_create_vnf_with_invalid_param_and_config_format(self,
@@ -728,14 +746,10 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         vnf_scale['scale']['policy'] = 'SP1'
         return vnf_scale
 
-    @patch('tacker.vnfm.infra_drivers.openstack.openstack.OpenStack.scale')
-    @patch('tacker.vnfm.infra_drivers.openstack.openstack.OpenStack.'
-           'scale_wait')
-    def _test_scale_vnf(self, type, scale_state, mock_scale_wait, mock_scale):
+    def _get_scaling_vnf(self, type, invalid_policy_type=False):
         # create vnfd
-        mock_scale_wait.return_value = uuidutils.generate_uuid()
         self._insert_dummy_vnf_template()
-        self._insert_scaling_attributes_vnfd()
+        self._insert_scaling_attributes_vnfd(invalid_policy_type)
 
         # create vnf
         dummy_vnf_obj = self._insert_dummy_vnf()
@@ -743,20 +757,28 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
         # scale vnf
         vnf_scale = self._get_dummy_scaling_policy(type)
+        return dummy_vnf_obj, vnf_scale
+
+    def _test_scale_vnf(self, type):
+        dummy_vnf_obj, vnf_scale = self._get_scaling_vnf(type)
         self.vnfm_plugin.create_vnf_scale(
             self.context,
             dummy_vnf_obj['id'],
             vnf_scale)
-
         # validate
-        mock_scale.assert_called_once_with(
+        self.scale.assert_called_once_with(
             plugin=mock.ANY,
             context=mock.ANY,
             auth_attr=mock.ANY,
             policy=mock.ANY,
             region_name=mock.ANY
         )
-
+        self.scale_wait.assert_called_once_with(plugin=self.vnfm_plugin,
+                                                context=self.context,
+                                                auth_attr=mock.ANY,
+                                                policy=mock.ANY,
+                                                region_name=mock.ANY,
+                                                last_event_id=mock.ANY)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context,
             evt_type=constants.RES_EVT_SCALE,
@@ -766,10 +788,60 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             tstamp=mock.ANY)
 
     def test_scale_vnf_out(self):
-        self._test_scale_vnf('out', constants.PENDING_SCALE_OUT)
+        self._test_scale_vnf('out')
 
     def test_scale_vnf_in(self):
-        self._test_scale_vnf('in', constants.PENDING_SCALE_IN)
+        self._test_scale_vnf('in')
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb._update_vnf_scaling_status')
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.set_vnf_error_status_reason')
+    def test_scale_vnf_with_vnf_policy_action_exception(self,
+                                            mock_set_vnf_error_status_reason,
+                                            mock_update_vnf_scaling_status):
+        dummy_vnf_obj, vnf_scale = self._get_scaling_vnf('in')
+        self.scale.side_effect = FakeException
+        self.assertRaises(FakeException,
+                          self.vnfm_plugin.create_vnf_scale,
+                          self.context, dummy_vnf_obj['id'],
+                          vnf_scale)
+        mock_update_vnf_scaling_status.assert_called_with(
+            self.context, mock.ANY, [constants.PENDING_SCALE_IN],
+            constants.ERROR, mock.ANY)
+        mock_set_vnf_error_status_reason.assert_called_with(
+            self.context, dummy_vnf_obj['id'], mock.ANY)
+
+    @mock.patch('tacker.vnfm.plugin.VNFMPlugin.get_vnf_policies')
+    def test_scale_vnf_with_policy_not_found_exception(self,
+                                                      mock_get_vnf_policies):
+        dummy_vnf_obj, vnf_scale = self._get_scaling_vnf('in')
+        mock_get_vnf_policies.return_value = None
+        self.assertRaises(exceptions.VnfPolicyNotFound,
+                          self.vnfm_plugin.create_vnf_scale,
+                          self.context, dummy_vnf_obj['id'],
+                          vnf_scale)
+
+    def test_scale_vnf_with_invalid_policy_type(self):
+        dummy_vnf_obj, vnf_scale = self._get_scaling_vnf('in',
+                                                invalid_policy_type=True)
+        self.assertRaises(exceptions.VnfPolicyTypeInvalid,
+                          self.vnfm_plugin.create_vnf_scale,
+                          self.context, dummy_vnf_obj['id'], vnf_scale)
+
+    def test_scale_vnf_with_invalid_policy_action(self):
+        dummy_vnf_obj, vnf_scale = \
+            self._get_scaling_vnf('test_invalid_policy_action')
+        self.assertRaises(exceptions.VnfPolicyActionInvalid,
+                          self.vnfm_plugin.create_vnf_scale,
+                          self.context, dummy_vnf_obj['id'], vnf_scale)
+
+    def test_scale_vnf_scale_wait_failed_exception(self):
+        dummy_vnf_obj, vnf_scale = \
+            self._get_scaling_vnf('in')
+        self.scale_wait.side_effect = vnfm.VNFScaleWaitFailed(
+            reason='test')
+        self.assertRaises(vnfm.VNFScaleWaitFailed,
+                          self.vnfm_plugin.create_vnf_scale,
+                          self.context, dummy_vnf_obj['id'], vnf_scale)
 
     def _get_dummy_vnf(self, vnfd_template, status='ACTIVE'):
         dummy_vnf = utils.get_dummy_vnf()
@@ -779,10 +851,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         dummy_vnf['vim_id'] = '437ac8ef-a8fb-4b6e-8d8a-a5e86a376e8b'
         return dummy_vnf
 
-    @patch('tacker.vnfm.policy_actions.autoscaling.autoscaling.'
-           'VNFActionAutoscaling.execute_action')
-    def _test_create_vnf_trigger(self, mock_execute_action, policy_name,
-                                 action_value):
+    def _create_vnf_trigger_data(self, policy_name, action_value):
         vnf_id = "6261579e-d6f3-49ad-8bc3-a9cb974778fe"
         trigger_request = {"trigger": {"action_name": action_value, "params": {
             "credential": "026kll6n", "data": {"current": "alarm",
@@ -793,9 +862,17 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             "credential": "026kll6n", "data": {"current": "alarm",
             "alarm_id": "b7fa9ffd-0a4f-4165-954b-5a8d0672a35f"}},
             "policy_name": policy_name}
+        return vnf_id, trigger_request, expected_result
+
+    @patch('tacker.vnfm.policy_actions.autoscaling.autoscaling.'
+           'VNFActionAutoscaling.execute_action')
+    def _test_create_vnf_trigger(self, mock_execute_action,
+                                 policy_name, action_value):
+        vnf_id, trigger_request, expected_result = self.\
+            _create_vnf_trigger_data(policy_name, action_value)
         self._vnf_alarm_monitor.process_alarm_for_vnf.return_value = True
-        trigger_result = self.vnfm_plugin.create_vnf_trigger(
-            self.context, vnf_id, trigger_request)
+        trigger_result = self.vnfm_plugin.create_vnf_trigger(self.context,
+                                                    vnf_id, trigger_request)
         self.assertEqual(expected_result, trigger_result)
 
     @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
@@ -821,6 +898,51 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         mock_get_vnf.return_value = dummy_vnf
         self._test_create_vnf_trigger(policy_name="mon_policy_multi_actions",
                                       action_value="respawn&log")
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
+    def test_create_vnf_trigger_without_policy_actions(self, mock_get_vnf):
+        dummy_vnf = self._get_dummy_vnf(
+            utils.vnfd_alarm_multi_actions_tosca_template)
+        mock_get_vnf.return_value = dummy_vnf
+        vnf_id, trigger_request, _ = self._create_vnf_trigger_data(
+            "mon_policy_multi_actions", "respawn&log")
+        self._vnf_alarm_monitor.process_alarm_for_vnf.return_value = False
+        self.assertRaises(exceptions.AlarmUrlInvalid,
+                          self.vnfm_plugin.create_vnf_trigger,
+                          self.context,
+                          vnf_id, trigger_request)
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
+    def test_create_vnf_trigger_with_invalid_policy_name(self, mock_get_vnf):
+        dummy_vnf = self._get_dummy_vnf(
+            utils.vnfd_alarm_multi_actions_tosca_template)
+        mock_get_vnf.return_value = dummy_vnf
+        vnf_id, trigger_request, _ = self._create_vnf_trigger_data(
+            "invalid_policy_name", "respawn&log")
+        self.assertRaises(exceptions.TriggerNotFound,
+                          self.vnfm_plugin.create_vnf_trigger,
+                          self.context,
+                          vnf_id, trigger_request)
+
+    @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
+    @patch('tacker.vnfm.plugin.LOG')
+    def test_create_vnf_trigger_scale_with_invalid_vnf_status(self,
+                                                    mock_log, mock_get_vnf):
+        dummy_vnf = self._get_dummy_vnf(utils.vnfd_alarm_scale_tosca_template)
+        dummy_vnf['status'] = "PENDING_CREATE"
+        mock_get_vnf.return_value = dummy_vnf
+        vnf_id, trigger_request, expected_result = self. \
+            _create_vnf_trigger_data("vdu_hcpu_usage_scaling_out", "SP1-out")
+        expected_error_msg = (_("Scaling Policy action skipped due to status"
+                                ' %(status)s for vnf %(vnfid)s') %
+                              {'status': dummy_vnf['status'],
+                               'vnfid': dummy_vnf['id']})
+        self._vnf_alarm_monitor.process_alarm_for_vnf.return_value = True
+        trigger_result = self.vnfm_plugin.create_vnf_trigger(self.context,
+                                                     vnf_id, trigger_request)
+
+        mock_log.info.assert_called_with(expected_error_msg)
+        self.assertEqual(expected_result, trigger_result)
 
     @patch('tacker.db.vnfm.vnfm_db.VNFMPluginDb.get_vnf')
     def test_get_vnf_policies(self, mock_get_vnf):
