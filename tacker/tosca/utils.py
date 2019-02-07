@@ -84,7 +84,7 @@ deletenodes = (MONITORING, FAILURE, PLACEMENT)
 
 HEAT_RESOURCE_MAP = {
     "flavor": "OS::Nova::Flavor",
-    "image": "OS::Glance::Image"
+    "image": "OS::Glance::WebImage"
 }
 
 SCALE_GROUP_RESOURCE = "OS::Heat::AutoScalingGroup"

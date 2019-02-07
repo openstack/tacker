@@ -30,7 +30,7 @@ resources:
         - test_secgrp
 
   VDU1_image:
-    type: OS::Glance::Image
+    type: OS::Glance::WebImage
     properties:
       container_format: bare
       disk_format: raw
