@@ -896,7 +896,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                         if vnf_dict['status'] != constants.ACTIVE:
                             LOG.info(_("Scaling Policy action "
                                        "skipped due to status "
-                                       "%(status)s for vnf %(vnfid)s"),
+                                       "%(status)s for vnf %(vnfid)s") %
                                      {"status": vnf_dict['status'],
                                       "vnfid": vnf_dict['id']})
                             return
