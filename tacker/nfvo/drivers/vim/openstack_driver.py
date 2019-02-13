@@ -840,12 +840,13 @@ class NeutronClient(object):
 
     def flow_classifier_create(self, fc_dict):
         LOG.debug("fc_dict passed is {fc_dict}".format(fc_dict=fc_dict))
-        fc = self.client.create_sfc_flow_classifier(
-            {'flow_classifier': fc_dict})
-        if fc:
+        try:
+            fc = self.client.create_sfc_flow_classifier(
+                {'flow_classifier': fc_dict})
             return fc['flow_classifier']['id']
-        else:
-            return None
+        except Exception as ex:
+            LOG.error("Error while creating Flow Classifier: %s", str(ex))
+            raise nfvo.FlowClassiferCreationFailed(message=str(ex))
 
     def flow_classifier_update(self, fc_id, update_fc):
         update_fc_dict = {'flow_classifier': update_fc}
