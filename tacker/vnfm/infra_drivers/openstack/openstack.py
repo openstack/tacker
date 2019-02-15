@@ -180,13 +180,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     stack=vnf_id)
                 raise exception_class(reason=error_reason)
             elif stack_retries != 0 and status != wait_status:
-                if stack:
-                    error_reason = stack.stack_status_reason
-                else:
-                    error_reason = _("action on VNF %(vnf_id)s is not "
-                                     "completed. Current status of stack is "
-                                     "%(stack_status)s") % {'vnf_id': vnf_id,
-                                     'stack_status': status}
+                error_reason = stack.stack_status_reason
                 LOG.warning(error_reason)
                 raise exception_class(reason=error_reason)
 
