@@ -10,8 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import json
 import uuid
+
+from oslo_serialization import jsonutils
 
 from sqlalchemy.types import String
 from sqlalchemy.types import Text
@@ -39,9 +40,9 @@ class Json(TypeDecorator):
     impl = Text
 
     def process_bind_param(self, value, dialect):
-        return json.dumps(value)
+        return jsonutils.dump_as_bytes(value)
 
     def process_result_value(self, value, dialect):
         if value is None:
             return None
-        return json.loads(value)
+        return jsonutils.loads(value)

@@ -21,8 +21,9 @@ Create Date: 2016-06-01 09:50:46.296206
 
 """
 
-import json
 import pickle
+
+from oslo_serialization import jsonutils
 
 from alembic import op
 import sqlalchemy as sa
@@ -40,7 +41,8 @@ def _migrate_data(table, column_name):
 
     for r in t.select().execute():
         stmt = t.update().where(t.c.id == r.id).values(
-            {column_name: json.dumps(pickle.loads(getattr(r, column_name)))})
+            {column_name: jsonutils.dump_as_bytes(
+                pickle.loads(getattr(r, column_name)))})
         op.execute(stmt)
 
     op.alter_column(table,

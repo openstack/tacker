@@ -12,9 +12,8 @@
 #    under the License.
 #
 
-import json
-
 import mock
+from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 import testtools
 
@@ -95,7 +94,7 @@ class TestVNFMonitor(testtools.TestCase):
             'id': MOCK_VNF_ID,
             'mgmt_ip_address': '{"vdu1": "a.b.c.d"}',
             'attributes': {
-                'monitoring_policy': json.dumps(
+                'monitoring_policy': jsonutils.dump_as_bytes(
                     MOCK_VNF['monitoring_policy'])
             }
         }
@@ -119,7 +118,7 @@ class TestVNFMonitor(testtools.TestCase):
             'id': MOCK_VNF_ID,
             'mgmt_ip_address': '{"vdu1": "a.b.c.d"}',
             'attributes': {
-                'monitoring_policy': json.dumps(
+                'monitoring_policy': jsonutils.dump_as_bytes(
                     MOCK_VNF['monitoring_policy'])
             },
             'status': 'ACTIVE'
@@ -167,7 +166,7 @@ class TestVNFMonitor(testtools.TestCase):
             'id': MOCK_VNF_ID,
             'mgmt_ip_address': '{"vdu1": "a.b.c.d"}',
             'attributes': {
-                'monitoring_policy': json.dumps(
+                'monitoring_policy': jsonutils.dump_as_bytes(
                     MOCK_VNF_DEVICE_FOR_VDU_AUTOHEAL['monitoring_policy'])
             }
         }
@@ -191,7 +190,7 @@ class TestVNFMonitor(testtools.TestCase):
                 'id': MOCK_VNF_ID,
                 'mgmt_ip_address': '{"vdu1": "a.b.c.d"}',
                 'attributes': {
-                    'monitoring_policy': json.dumps(
+                    'monitoring_policy': jsonutils.dump_as_bytes(
                         MOCK_VNF['monitoring_policy'])
                 },
                 'status': 'ACTIVE',
