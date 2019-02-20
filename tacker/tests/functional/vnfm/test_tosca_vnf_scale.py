@@ -13,6 +13,7 @@
 
 import json
 import time
+import yaml
 
 from oslo_config import cfg
 
@@ -28,12 +29,11 @@ CONF = cfg.CONF
 class VnfTestToscaScale(base.BaseTackerTest):
 
     def test_vnf_tosca_scale(self):
-        data = dict()
-        data['tosca'] = read_file('sample-tosca-scale-all.yaml')
+        input_yaml = read_file('sample-tosca-scale-all.yaml')
+        tosca_dict = yaml.safe_load(input_yaml)
         vnfd_name = 'test_tosca_vnf_scale_all'
-        toscal = data['tosca']
         tosca_arg = {'vnfd': {'name': vnfd_name,
-                              'attributes': {'vnfd': toscal}}}
+                              'attributes': {'vnfd': tosca_dict}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)

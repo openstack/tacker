@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import yaml
+
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
@@ -21,11 +23,10 @@ from tacker.tests.utils import read_file
 class VnfTestPingMonitor(base.BaseTackerTest):
 
     def _vnfd_and_vnf_create(self, vnfd_file, vnf_name):
-        data = dict()
-        data['tosca'] = read_file(vnfd_file)
-        toscal = data['tosca']
+        input_yaml = read_file(vnfd_file)
+        tosca_dict = yaml.safe_load(input_yaml)
         tosca_arg = {'vnfd': {'name': vnf_name,
-                              'attributes': {'vnfd': toscal}}}
+                              'attributes': {'vnfd': tosca_dict}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)

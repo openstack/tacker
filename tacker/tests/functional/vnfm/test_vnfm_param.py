@@ -23,8 +23,9 @@ from tacker.tests.utils import read_file
 class VnfmTestParam(base.BaseTackerTest):
     def _test_vnfd_create(self, vnfd_file, vnfd_name):
         yaml_input = read_file(vnfd_file)
+        tosca_dict = yaml.safe_load(yaml_input)
         req_dict = {'vnfd': {'name': vnfd_name,
-                    'attributes': {'vnfd': yaml_input}}}
+                    'attributes': {'vnfd': tosca_dict}}}
 
         # Create vnfd
         vnfd_instance = self.client.create_vnfd(body=req_dict)

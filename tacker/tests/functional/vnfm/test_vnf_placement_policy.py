@@ -11,6 +11,8 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import yaml
+
 from tackerclient.common import exceptions
 
 from tacker.tests import constants
@@ -22,11 +24,10 @@ class VnfTestCreate(base.BaseTackerTest):
     def _test_create_delete_vnf(self, vnf_name, vnfd_name,
                                 placement_policy, vdu_name,
                                 vnf_expected_status="ACTIVE"):
-        data = dict()
-        data['tosca'] = read_file(vnfd_name + '.yaml')
-        toscal = data['tosca']
+        input_yaml = read_file(vnfd_name + '.yaml')
+        tosca_dict = yaml.safe_load(input_yaml)
         tosca_arg = {'vnfd': {'name': vnfd_name,
-                     'attributes': {'vnfd': toscal}}}
+                     'attributes': {'vnfd': tosca_dict}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)

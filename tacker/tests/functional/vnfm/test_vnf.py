@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import yaml
+
 from oslo_config import cfg
 
 from tacker.plugins.common import constants as evt_constants
@@ -25,11 +27,10 @@ VNF_CIRROS_CREATE_TIMEOUT = 120
 
 class VnfTestCreate(base.BaseTackerTest):
     def _test_create_delete_vnf(self, vnf_name, vnfd_name, vim_id=None):
-        data = dict()
-        data['tosca'] = read_file('sample-tosca-vnfd-no-monitor.yaml')
-        toscal = data['tosca']
+        input_yaml = read_file('sample-tosca-vnfd-no-monitor.yaml')
+        tosca_dict = yaml.safe_load(input_yaml)
         tosca_arg = {'vnfd': {'name': vnfd_name,
-                     'attributes': {'vnfd': toscal}}}
+                     'attributes': {'vnfd': tosca_dict}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)

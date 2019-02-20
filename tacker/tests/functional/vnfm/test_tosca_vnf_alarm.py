@@ -26,12 +26,10 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
 
     def _test_vnf_tosca_alarm(self, vnfd_file, vnf_name):
         vnf_trigger_path = '/vnfs/%s/triggers'
-        data = dict()
-        data['tosca'] = read_file(vnfd_file)
-        tosca_dict = yaml.safe_load(data['tosca'])
-        toscal = data['tosca']
+        input_yaml = read_file(vnfd_file)
+        tosca_dict = yaml.safe_load(input_yaml)
         tosca_arg = {'vnfd': {'name': vnf_name,
-                              'attributes': {'vnfd': toscal}}}
+                              'attributes': {'vnfd': tosca_dict}}}
 
         # Create vnfd with tosca template
         vnfd_instance = self.client.create_vnfd(body=tosca_arg)

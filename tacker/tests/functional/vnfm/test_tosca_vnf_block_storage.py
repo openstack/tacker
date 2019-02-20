@@ -29,12 +29,10 @@ VNF_CIRROS_CREATE_TIMEOUT = 120
 class VnfBlockStorageTestToscaCreate(base.BaseTackerTest):
     def _test_create_vnf(self, vnfd_file, vnf_name,
                          template_source="onboarded"):
-        data = dict()
-        values_str = read_file(vnfd_file)
-        data['tosca'] = values_str
-        toscal = data['tosca']
+        input_yaml = read_file(vnfd_file)
+        tosca_dict = yaml.safe_load(input_yaml)
         tosca_arg = {'vnfd': {'name': vnf_name,
-                              'attributes': {'vnfd': toscal}}}
+                              'attributes': {'vnfd': tosca_dict}}}
 
         if template_source == "onboarded":
             # Create vnfd with tosca template
@@ -49,8 +47,7 @@ class VnfBlockStorageTestToscaCreate(base.BaseTackerTest):
 
         if template_source == 'inline':
             # create vnf directly from template
-            template = yaml.safe_load(values_str)
-            vnf_arg = {'vnf': {'vnfd_template': template, 'name': vnf_name}}
+            vnf_arg = {'vnf': {'vnfd_template': tosca_dict, 'name': vnf_name}}
             vnf_instance = self.client.create_vnf(body=vnf_arg)
             vnfd_id = vnf_instance['vnf']['vnfd_id']
 
@@ -62,8 +59,7 @@ class VnfBlockStorageTestToscaCreate(base.BaseTackerTest):
         vnf_show_out = self.client.show_vnf(vnf_id)['vnf']
         self.assertIsNotNone(vnf_show_out['mgmt_ip_address'])
 
-        input_dict = yaml.safe_load(values_str)
-        prop_dict = input_dict['topology_template']['node_templates'][
+        prop_dict = tosca_dict['topology_template']['node_templates'][
             'CP1']['properties']
 
         # Verify if ip_address is static, it is same as in show_vnf
@@ -75,7 +71,7 @@ class VnfBlockStorageTestToscaCreate(base.BaseTackerTest):
 
         # Verify anti spoofing settings
         stack_id = vnf_show_out['instance_id']
-        template_dict = input_dict['topology_template']['node_templates']
+        template_dict = tosca_dict['topology_template']['node_templates']
         for field in template_dict.keys():
             prop_dict = template_dict[field]['properties']
             if prop_dict.get('anti_spoofing_protection'):
