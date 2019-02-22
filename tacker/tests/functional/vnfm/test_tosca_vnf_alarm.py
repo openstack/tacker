@@ -26,7 +26,6 @@ import yaml
 class VnfTestAlarmMonitor(base.BaseTackerTest):
 
     def _test_vnf_tosca_alarm(self, vnfd_file, vnf_name):
-        vnf_trigger_path = '/vnfs/%s/triggers'
         input_yaml = read_file(vnfd_file)
         tosca_dict = yaml.safe_load(input_yaml)
         tosca_arg = {'vnfd': {'name': vnf_name,
@@ -55,17 +54,6 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
             self.assertEqual(count, len(jsonutils.loads(vnf[
                 'mgmt_ip_address'])['VDU1']))
 
-        def trigger_vnf(vnf, policy_name, policy_action):
-            credential = 'g0jtsxu9'
-            body = {"trigger": {'policy_name': policy_name,
-                                'action_name': policy_action,
-                                'params': {
-                                    'data': {'alarm_id': '35a80852-e24f-46ed-bd34-e2f831d00172', 'current': 'alarm'},  # noqa
-                                    'credential': credential}
-                                }
-                    }
-            self.client.post(vnf_trigger_path % vnf, body)
-
         def _inject_monitoring_policy(vnfd_dict):
             polices = vnfd_dict['topology_template'].get('policies', [])
             mon_policy = dict()
@@ -92,14 +80,15 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
                     vnf_id,
                     constants.VNF_CIRROS_CREATE_TIMEOUT,
                     constants.ACTIVE_SLEEP_TIME)
-                trigger_vnf(vnf_id, mon_policy_name, mon_policy_action)
+                self.trigger_vnf(vnf_id, mon_policy_name, mon_policy_action)
             else:
                 if 'scaling_out' in mon_policy_name:
                     _waiting_time(2)
                     time.sleep(constants.SCALE_WINDOW_SLEEP_TIME)
                     # scaling-out backend action
                     scaling_out_action = mon_policy_action + '-out'
-                    trigger_vnf(vnf_id, mon_policy_name, scaling_out_action)
+                    self.trigger_vnf(
+                        vnf_id, mon_policy_name, scaling_out_action)
 
                     _waiting_time(3)
 
@@ -109,7 +98,8 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
                         time.sleep(constants.SCALE_WINDOW_SLEEP_TIME)
                         # scaling-in backend action
                         scaling_in_action = mon_policy_action + '-in'
-                        trigger_vnf(vnf_id, scaling_in_name, scaling_in_action)
+                        self.trigger_vnf(
+                            vnf_id, scaling_in_name, scaling_in_action)
 
                         _waiting_time(2)
 

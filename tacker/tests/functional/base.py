@@ -15,6 +15,7 @@
 import time
 import yaml
 
+from blazarclient import client as blazar_client
 from glanceclient.v2 import client as glance_client
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
@@ -105,6 +106,21 @@ class BaseTackerTest(base.BaseTestCase):
         data['user_domain_name'] = domain_name
         data['project_domain_name'] = domain_name
         return clients.OpenstackClients(auth_attr=data).heat
+
+    def blazarclient(cls):
+        data = cls.get_credentials()
+        domain_name = data.pop('domain_name')
+        data['user_domain_name'] = domain_name
+        data['project_domain_name'] = domain_name
+        auth_ses = clients.OpenstackClients(auth_attr=data).keystone_session
+        args = {
+            'session': auth_ses,
+            'service_type': 'reservation',
+            'interface': 'public',
+            'region_name': 'RegionOne',
+        }
+        client = blazar_client.Client(**args)
+        return client
 
     @classmethod
     def glanceclient(cls):
@@ -252,3 +268,14 @@ class BaseTackerTest(base.BaseTestCase):
                                               resource_name=resource_name)
         resource_dict = resource_details.to_dict()
         self.assertTrue(resource_dict['attributes']['port_security_enabled'])
+
+    def trigger_vnf(self, vnf, policy_name, policy_action):
+        credential = 'g0jtsxu9'
+        body = {"trigger": {'policy_name': policy_name,
+                            'action_name': policy_action,
+                            'params': {
+                                'data': {'alarm_id': '35a80852-e24f-46ed-bd34-e2f831d00172', 'current': 'alarm'},  # noqa
+                                'credential': credential}
+                            }
+                }
+        self.client.post('/vnfs/%s/triggers' % vnf, body)
