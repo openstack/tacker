@@ -82,7 +82,7 @@ class TestAlarmReceiver(base.TestCase):
         req = Request.blank(self.ordered_url)
         req.method = 'POST'
         old_body = {'fake_key': 'fake_value'}
-        req.body = jsonutils.dumps(old_body)
+        req.body = jsonutils.dump_as_bytes(old_body)
 
         self.alarmrc.process_request(req)
 

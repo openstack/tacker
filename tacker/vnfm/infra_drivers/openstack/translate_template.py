@@ -79,11 +79,12 @@ class TOSCAToHOT(object):
         if not self.vnf['attributes'].get('heat_template'):
             self.vnf['attributes']['heat_template'] = self.fields['template']
         if self.monitoring_dict:
-            self.vnf['attributes']['monitoring_policy'] = jsonutils.dumps(
+            self.vnf['attributes'][
+                'monitoring_policy'] = jsonutils.dump_as_bytes(
                 self.monitoring_dict)
         if self.appmonitoring_dict:
             self.vnf['attributes']['app_monitoring_policy'] = \
-                jsonutils.dumps(self.appmonitoring_dict)
+                jsonutils.dump_as_bytes(self.appmonitoring_dict)
 
     @log.log
     def _get_vnfd(self):
@@ -318,7 +319,7 @@ class TOSCAToHOT(object):
             scaling_group_dict = toscautils.get_scaling_group_dict(
                 heat_template_yaml, scaling_policy_names)
             self.vnf['attributes']['scaling_group_names'] =\
-                jsonutils.dumps(scaling_group_dict)
+                jsonutils.dump_as_bytes(scaling_group_dict)
 
         heat_template_yaml = toscautils.post_process_heat_template(
             heat_template_yaml, mgmt_ports, metadata, alarm_resources,

@@ -409,7 +409,7 @@ class JSONDictSerializer(DictSerializer):
     def default(self, data):
         def sanitizer(obj):
             return six.text_type(obj)
-        return encode_body(jsonutils.dumps(data, default=sanitizer))
+        return encode_body(jsonutils.dump_as_bytes(data, default=sanitizer))
 
 
 class ResponseHeaderSerializer(ActionDispatcher):

@@ -338,7 +338,7 @@ class ActionExtensionTest(base.BaseTestCase):
     def test_extended_action_for_adding_extra_data(self):
         action_name = 'FOXNSOX:add_tweedle'
         action_params = dict(name='Beetle')
-        req_body = jsonutils.dumps({action_name: action_params})
+        req_body = jsonutils.dump_as_bytes({action_name: action_params})
         response = self.extension_app.post('/dummy_resources/1/action',
                                            req_body,
                                            content_type='application/json')
@@ -347,7 +347,7 @@ class ActionExtensionTest(base.BaseTestCase):
     def test_extended_action_for_deleting_extra_data(self):
         action_name = 'FOXNSOX:delete_tweedle'
         action_params = dict(name='Bailey')
-        req_body = jsonutils.dumps({action_name: action_params})
+        req_body = jsonutils.dump_as_bytes({action_name: action_params})
         response = self.extension_app.post("/dummy_resources/1/action",
                                            req_body,
                                            content_type='application/json')
@@ -356,7 +356,8 @@ class ActionExtensionTest(base.BaseTestCase):
     def test_returns_404_for_non_existent_action(self):
         non_existent_action = 'blah_action'
         action_params = dict(name="test")
-        req_body = jsonutils.dumps({non_existent_action: action_params})
+        req_body = jsonutils.dump_as_bytes(
+            {non_existent_action: action_params})
 
         response = self.extension_app.post("/dummy_resources/1/action",
                                            req_body,
@@ -368,7 +369,7 @@ class ActionExtensionTest(base.BaseTestCase):
     def test_returns_404_for_non_existent_resource(self):
         action_name = 'add_tweedle'
         action_params = dict(name='Beetle')
-        req_body = jsonutils.dumps({action_name: action_params})
+        req_body = jsonutils.dump_as_bytes({action_name: action_params})
 
         response = self.extension_app.post("/asdf/1/action", req_body,
                                            content_type='application/json',

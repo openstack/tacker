@@ -159,7 +159,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             mgmt_ips = self._find_mgmt_ips(stack.outputs)
 
         if mgmt_ips:
-            vnf_dict['mgmt_ip_address'] = jsonutils.dumps(mgmt_ips)
+            vnf_dict['mgmt_ip_address'] = jsonutils.dump_as_bytes(mgmt_ips)
 
     def _wait_until_stack_ready(self, vnf_id, auth_attr, wait_status,
                                 region_name=None):
@@ -253,7 +253,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         mgmt_ips = self._find_mgmt_ips(stack.outputs)
 
         if mgmt_ips:
-            vnf_dict['mgmt_ip_address'] = jsonutils.dumps(mgmt_ips)
+            vnf_dict['mgmt_ip_address'] = jsonutils.dump_as_bytes(mgmt_ips)
 
     @log.log
     def delete(self, plugin, context, vnf_id, auth_attr, region_name=None):
@@ -393,7 +393,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                                    policy['instance_id'],
                                                    [policy['group_name']])
 
-        return jsonutils.dumps(mgmt_ips)
+        return jsonutils.dump_as_bytes(mgmt_ips)
 
     @log.log
     def get_resource_info(self, plugin, context, vnf_info, auth_attr,

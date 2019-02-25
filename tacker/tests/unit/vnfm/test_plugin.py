@@ -125,7 +125,7 @@ class TestVNFMPluginMonitor(db_base.SqlTestCase):
         monitor.VNFMonitor._hosting_vnfs = dict()
         vnfm_plugin = plugin.VNFMPlugin()
         hosting_vnfs = vnfm_plugin._vnf_monitor._hosting_vnfs.values()
-        hosting_vnf = hosting_vnfs[0]['vnf']
+        hosting_vnf = list(hosting_vnfs)[0]['vnf']
         self.assertEqual('{"VDU1": "a.b.c.d"}', hosting_vnf['mgmt_ip_address'])
         self.assertEqual(1, len(hosting_vnfs))
 

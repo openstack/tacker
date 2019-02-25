@@ -13,13 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
 import netaddr
 import requests
 import time
 
 import copy
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from tacker.vnfm.monitor_drivers import abstract_driver
 from tacker.vnfm.monitor_drivers.zabbix import zabbix_api as zapi
 
@@ -78,7 +78,7 @@ class VNFMonitorZabbix(abstract_driver.VNFMonitorAbstractDriver):
 
     def send_post(self, query):
         response = requests.post(self.URL, headers=zapi.HEADERS,
-                                 data=json.dumps(query))
+                                 data=jsonutils.dump_as_bytes(query))
         return dict(response.json())
 
     @staticmethod
@@ -367,7 +367,7 @@ class VNFMonitorZabbix(abstract_driver.VNFMonitorAbstractDriver):
         response = requests.post(
             self.URL,
             headers=zapi.HEADERS,
-            data=json.dumps(temp_auth_api)
+            data=jsonutils.dump_as_bytes(temp_auth_api)
         )
         response_dict = dict(response.json())
         VNFMonitorZabbix.check_error(response_dict)

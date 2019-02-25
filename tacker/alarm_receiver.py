@@ -74,7 +74,7 @@ class AlarmReceiver(wsgi.Middleware):
             # Update policy and action
             body_dict['trigger']['policy_name'] = info[4]
             body_dict['trigger']['action_name'] = info[5]
-            req.body = jsonutils.dumps(body_dict)
+            req.body = jsonutils.dump_as_bytes(body_dict)
             LOG.debug('Body alarm: %s', req.body)
         # Need to change url because of mandatory
         req.environ['PATH_INFO'] = prefix + 'triggers'

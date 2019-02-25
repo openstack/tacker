@@ -14,12 +14,12 @@
 
 
 import mock
-import six
 
 import oslo_i18n
 
 from tacker.agent.linux import utils
 from tacker.tests import base
+from tacker.tests.common import helpers
 
 
 _marker = object()
@@ -123,19 +123,12 @@ class AgentUtilsExecuteTest(base.BaseTestCase):
             self.assertTrue(log.error.called)
 
     def test_encode_process_input(self):
-        str_idata = "%s\n" % self.test_file[:-1]
-        str_odata = "%s\n" % self.test_file
-        if six.PY3:
-            bytes_idata = str_idata.encode(encoding='utf-8')
-            bytes_odata = str_odata.encode(encoding='utf-8')
-            self.mock_popen.return_value = [bytes_odata, b'']
-            result = utils.execute(['cat'], process_input=str_idata)
-            self.mock_popen.assert_called_once_with(bytes_idata)
-        else:
-            self.mock_popen.return_value = [str_odata, '']
-            result = utils.execute(['cat'], process_input=str_idata)
-            self.mock_popen.assert_called_once_with(str_idata)
-        self.assertEqual(str_odata, result)
+        bytes_idata = helpers.compact_byte("%s\n" % self.test_file[:-1])
+        bytes_odata = helpers.compact_byte("%s\n" % self.test_file)
+        self.mock_popen.return_value = [bytes_odata, b'']
+        result = utils.execute(['cat'], process_input=bytes_idata)
+        self.mock_popen.assert_called_once_with(bytes_idata)
+        self.assertEqual(bytes_odata, result)
 
     def test_return_str_data(self):
         str_data = "%s\n" % self.test_file
@@ -151,6 +144,6 @@ class AgentUtilsExecuteEncodeTest(base.BaseTestCase):
         open(self.test_file, 'w').close()
 
     def test_decode_return_data(self):
-        str_data = "%s\n" % self.test_file
+        str_data = helpers.compact_byte("%s\n" % self.test_file)
         result = utils.execute(['ls', self.test_file], return_stderr=True)
-        self.assertEqual((str_data, ''), result)
+        self.assertEqual((str_data, helpers.compact_byte('')), result)

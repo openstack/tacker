@@ -13,13 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
 import netaddr
 
 from testtools import matchers
 from webob import exc
 
 from oslo_policy import policy as oslo_policy
+from oslo_serialization import jsonutils
 from tacker.api import api_common as common
 from tacker.api.v1 import resource as wsgi_resource
 from tacker.common import exceptions
@@ -111,7 +111,8 @@ class APICommonTestCase(base.BaseTestCase):
                       'type': 'HTTPClientError',
                       'detail': ''}
 
-        self.assertEqual(except_res, json.loads(result.body)["TackerError"])
+        self.assertEqual(
+            except_res, jsonutils.loads(result.body)["TackerError"])
         self.assertEqual(400, result.code)
 
     def test_http_exception(self):
@@ -125,7 +126,8 @@ class APICommonTestCase(base.BaseTestCase):
                       "type": "HTTPInternalServerError",
                       "detail": ""}
 
-        self.assertEqual(except_res, json.loads(result.body)["TackerError"])
+        self.assertEqual(
+            except_res, jsonutils.loads(result.body)["TackerError"])
         self.assertEqual(500, result.code)
 
     def test_tacker_exception(self):
@@ -138,7 +140,8 @@ class APICommonTestCase(base.BaseTestCase):
                       'type': 'TackerException',
                       'detail': ''}
 
-        self.assertEqual(except_res, json.loads(result.body)["TackerError"])
+        self.assertEqual(
+            except_res, jsonutils.loads(result.body)["TackerError"])
         self.assertEqual(500, result.code)
 
     def test_addr_format_error_exception(self):
@@ -151,7 +154,8 @@ class APICommonTestCase(base.BaseTestCase):
                       'type': 'AddrFormatError',
                       'detail': ''}
 
-        self.assertEqual(except_res, json.loads(result.body)["TackerError"])
+        self.assertEqual(
+            except_res, jsonutils.loads(result.body)["TackerError"])
         self.assertEqual(500, result.code)
 
     def test_policy_not_authorized_exception(self):
@@ -164,7 +168,8 @@ class APICommonTestCase(base.BaseTestCase):
                       'type': 'PolicyNotAuthorized',
                       'detail': ''}
 
-        self.assertEqual(except_res, json.loads(result.body)["TackerError"])
+        self.assertEqual(
+            except_res, jsonutils.loads(result.body)["TackerError"])
         self.assertEqual(500, result.code)
 
     def test_not_implemented_error_exception(self):
@@ -177,7 +182,7 @@ class APICommonTestCase(base.BaseTestCase):
                                               'type': 'NotImplementedError',
                                               'detail': ''}}
 
-        self.assertEqual(except_res, json.loads(result.body))
+        self.assertEqual(except_res, jsonutils.loads(result.body))
         self.assertEqual(501, result.code)
 
     def test_get_exception_data(self):

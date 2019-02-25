@@ -13,8 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
 import mock
+
+from oslo_serialization import jsonutils
 
 from tacker.api.v1.router import APIRouter
 from tacker.api.v1.router import Index
@@ -38,7 +39,7 @@ class TestIndex(base.BaseTestCase):
                   'rel': 'self'}],
              'name': 'version'}]}
 
-        self.assertEqual(expect_body, json.loads(result.body))
+        self.assertEqual(expect_body, jsonutils.loads(result.body))
         self.assertEqual('application/json', result.content_type)
 
 

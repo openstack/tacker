@@ -80,7 +80,7 @@ class Foxinsocks(object):
             # You can use content type header to test for XML.
             data = jsonutils.loads(res.body)
             data['FOXNSOX:googoose'] = req.GET.get('chewing')
-            res.body = jsonutils.dumps(data)
+            res.body = jsonutils.dump_as_bytes(data)
             return res
 
         req_ext1 = extensions.RequestExtension('GET', '/dummy_resources/:(id)',
@@ -92,7 +92,7 @@ class Foxinsocks(object):
             # You can use content type header to test for XML.
             data = jsonutils.loads(res.body)
             data['FOXNSOX:big_bands'] = 'Pig Bands!'
-            res.body = jsonutils.dumps(data)
+            res.body = jsonutils.dump_as_bytes(data)
             return res
 
         req_ext2 = extensions.RequestExtension('GET', '/dummy_resources/:(id)',

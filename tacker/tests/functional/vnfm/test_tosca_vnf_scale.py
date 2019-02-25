@@ -11,11 +11,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
 import time
 import yaml
 
 from oslo_config import cfg
+from oslo_serialization import jsonutils
 
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
@@ -59,7 +59,7 @@ class VnfTestToscaScale(base.BaseTackerTest):
             vnf = self.client.show_vnf(vnf_id)['vnf']
 
             # {"VDU1": ["10.0.0.14", "10.0.0.5"]}
-            self.assertEqual(count, len(json.loads(vnf[
+            self.assertEqual(count, len(jsonutils.loads(vnf[
                 'mgmt_ip_address'])['VDU1']))
 
         _wait(2)

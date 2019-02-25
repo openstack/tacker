@@ -11,8 +11,9 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-import json
 import time
+
+from oslo_serialization import jsonutils
 
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
@@ -51,7 +52,7 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
                 constants.ACTIVE_SLEEP_TIME)
             vnf = self.client.show_vnf(vnf_id)['vnf']
             # {"VDU1": ["10.0.0.14", "10.0.0.5"]}
-            self.assertEqual(count, len(json.loads(vnf[
+            self.assertEqual(count, len(jsonutils.loads(vnf[
                 'mgmt_ip_address'])['VDU1']))
 
         def trigger_vnf(vnf, policy_name, policy_action):
