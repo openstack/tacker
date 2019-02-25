@@ -278,6 +278,10 @@ class UpdateVnffgException(exceptions.TackerException):
     message = _("%(message)s")
 
 
+class FlowClassiferCreationFailed(exceptions.TackerException):
+    message = _("%(message)s")
+
+
 NAME_MAX_LEN = 255
 
 RESOURCE_ATTRIBUTE_MAP = {
