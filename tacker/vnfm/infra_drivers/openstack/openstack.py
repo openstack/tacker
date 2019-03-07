@@ -371,7 +371,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     LOG.warning(error_reason)
                     break
                 error_reason = _(
-                    "VNF scaling failed to complete within %{wait}s seconds "
+                    "VNF scaling failed to complete within %(wait)s seconds "
                     "while waiting for the stack %(stack)s to be "
                     "scaled.") % {'stack': stack_id,
                                   'wait': self.STACK_RETRIES *
