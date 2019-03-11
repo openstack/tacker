@@ -310,7 +310,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                             namespace=namespace,
                             name=deployment_name,
                             body=body)
-                    LOG.debug('Successfully deleted Horizon Pod Auto-Scaling'
+                    LOG.debug('Successfully deleted Horizon Pod Auto-Scaling '
                               '%s', deployment_name)
                 except Exception as e:
                     LOG.debug(e)
