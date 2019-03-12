@@ -1,10 +1,10 @@
 - nodeset:
-    name: openstack-multi-nodes
+    name: openstack-2-nodes
     nodes:
       - name: controller
-        label: ubuntu-xenial
+        label: ubuntu-bionic
       - name: compute1
-        label: ubuntu-xenial
+        label: ubuntu-bionic
     groups:
       # Nodes running the compute service
       - name: compute
@@ -29,7 +29,7 @@
     parent: devstack
     description: |
       Base multinodes job for devstack-based functional tests
-    nodeset: openstack-multi-nodes
+    nodeset: openstack-2-nodes
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
     post-run: playbooks/devstack/post.yaml
