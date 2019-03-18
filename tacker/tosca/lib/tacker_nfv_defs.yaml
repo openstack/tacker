@@ -7,6 +7,10 @@ data_types:
       capability:
         type: string
         required: true
+      sfc_encap:
+        type: boolean
+        required: false
+        default: true
 
   tosca.nfv.datatypes.aclType:
     properties:
@@ -312,6 +316,13 @@ node_types:
       symmetrical:
         type: boolean
         required: false
+        default: false
+      correlation:
+        type: string
+        required: false
+        constraints:
+          - valid_values: [ mpls, nsh ]
+        default: mpls
       policy:
         type: tosca.nfv.datatypes.policyTypeV2
         required: false
@@ -331,6 +342,13 @@ node_types:
       symmetrical:
         type: boolean
         required: false
+        default: false
+      correlation:
+        type: string
+        required: false
+        constraints:
+          - valid_values: [ mpls, nsh ]
+        default: mpls
       policy:
         type: tosca.nfv.datatypes.policyType
         required: true

@@ -346,11 +346,13 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
             name_match_list.append(classifier_dict)
         # grab the first VNF to check it's VIM type
         # we have already checked that all VNFs are in the same VIM
-        vim_obj = self._get_vim_from_vnf(context,
-                                         list(vnffg_dict[
-                                              'vnf_mapping'].values())[0])
+        vim_obj = self._get_vim_from_vnf(
+            context, list(vnffg_dict['vnf_mapping'].values())[0])
         # TODO(trozet): figure out what auth info we actually need to pass
         # to the driver.  Is it a session, or is full vim obj good enough?
+
+        correlation = super(NfvoPlugin, self)._get_correlation_template(
+            context, vnffg_info)
         driver_type = vim_obj['type']
         try:
             fc_ids = []
@@ -367,6 +369,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                               vnfs=sfc['chain'],
                                               fc_ids=fc_ids,
                                               symmetrical=sfc['symmetrical'],
+                                              correlation=correlation,
                                               auth_attr=vim_obj['auth_cred'])
         except Exception:
             with excutils.save_and_reraise_exception():

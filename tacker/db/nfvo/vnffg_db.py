@@ -502,8 +502,10 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                     'capability'], vnf_id=vnf_mapping[element['forwarder']])
             # Check if this is a new VNF entry in the chain
             if element['forwarder'] != prev_forwarder:
-                chain_list.append({'name': vnf_info['name'],
-                                   CP: [vnf_cp]})
+                chain_list.append(
+                    {'name': vnf_info['name'],
+                     CP: [vnf_cp],
+                     'sfc_encap': element.get('sfc_encap', True)})
                 prev_forwarder = element['forwarder']
             # Must be an egress CP
             else:
@@ -512,7 +514,6 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                         'forwarder'])
                 else:
                     chain_list[-1][CP].append(vnf_cp)
-
         return chain_list
 
     @staticmethod
@@ -1339,6 +1340,14 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 self.delete_vnffgd(context, vnffgd_id)
 
     def _get_symmetrical_template(self, context, vnffg):
+        fp_prop = self._get_fp_properties(context, vnffg)
+        return fp_prop.get('symmetrical', False)
+
+    def _get_correlation_template(self, context, vnffg):
+        fp_prop = self._get_fp_properties(context, vnffg)
+        return fp_prop.get('correlation', 'mpls')
+
+    def _get_fp_properties(self, context, vnffg):
         vnffgd_topo = None
         if vnffg.get('vnffgd_template'):
             vnffgd_topo = vnffg['vnffgd_template']['topology_template']
@@ -1349,7 +1358,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         vnffg_name = list(vnffgd_topo['groups'].keys())[0]
         nfp_name = vnffgd_topo['groups'][vnffg_name]['members'][0]
         fp_prop = vnffgd_topo['node_templates'][nfp_name]['properties']
-        return fp_prop.get('symmetrical', None)
+        return fp_prop
 
     def _make_template_dict(self, template, fields=None):
         res = {}

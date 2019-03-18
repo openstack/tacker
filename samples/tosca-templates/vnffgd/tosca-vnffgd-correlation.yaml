@@ -1,0 +1,61 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Sample VNFFG template
+
+topology_template:
+
+  inputs:
+    net_src_port_id:
+        type: string
+        description: Port UUID of source VM.
+
+    dst_port_range:
+        type: string
+        description: Destination port range
+
+    ip_dst_pre:
+        type: string
+        description: Cidr format of destination ip.
+
+    net_dst_port_id:
+        type: string
+        description: Port UUID of dest VM.
+
+  node_templates:
+
+    Forwarding_path1:
+      type: tosca.nodes.nfv.FP.TackerV2
+      description: creates path (CP12->CP22)
+      properties:
+        id: 51
+        correlation: mpls
+        policy:
+          type: ACL
+          criteria:
+            - name: block_tcp
+              classifier:
+                network_src_port_id: { get_input: net_src_port_id }
+                destination_port_range: { get_input: dst_port_range }
+                ip_proto: 6
+                ip_dst_prefix: { get_input: ip_dst_pre }
+                network_dst_port_id: { get_input: net_dst_port_id }
+        path:
+          - forwarder: VNFD1
+            capability: CP12
+            sfc_encap: True
+          - forwarder: VNFD2
+            capability: CP22
+            sfc_encap: True
+
+  groups:
+    VNFFG1:
+      type: tosca.groups.nfv.VNFFG
+      description: HTTP to Corporate Net
+      properties:
+        vendor: tacker
+        version: 1.0
+        number_of_endpoints: 2
+        dependent_virtual_link: [VL12,VL22]
+        connection_point: [CP12,CP22]
+        constituent_vnfs: [VNFD1,VNFD2]
+      members: [Forwarding_path1]
