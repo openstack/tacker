@@ -829,7 +829,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         # filtered in _get_vnf_triggers().
         # Getting action from trigger to decide which process_alarm_for_vnf
         # method will be called.
-        if trigger['trigger'].keys()[0]\
+        if list(trigger['trigger'])[0]\
                 in constants.RESERVATION_POLICY_ACTIONS:
             if not self._vnf_reservation_monitor.process_alarm_for_vnf(
                     vnf_id, trigger):
