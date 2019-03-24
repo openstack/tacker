@@ -34,7 +34,7 @@ bring VMs and Pods (and other Kubernetes resources) on the same network.
   KUBERNETES_VIM=True
   NEUTRON_CREATE_INITIAL_NETWORKS=False
   enable_plugin kuryr-kubernetes https://git.openstack.org/openstack/kuryr-kubernetes master
-  enable_plugin neutron-lbaas git://git.openstack.org/openstack/neutron-lbaas master
+  enable_plugin neutron-lbaas https://git.openstack.org/openstack/neutron-lbaas master
   enable_plugin devstack-plugin-container https://git.openstack.org/openstack/devstack-plugin-container master
 
 You can also see the same examples in [#first]_ and [#second]_.
