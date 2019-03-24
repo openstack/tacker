@@ -51,7 +51,7 @@ FIXED_RANGE=${FIXED_RANGE:-15.0.0.0/24}
 
 enable_plugin heat https://git.openstack.org/openstack/heat stable/ocata
 enable_plugin tacker https://git.openstack.org/openstack/tacker stable/ocata
-enable_plugin networking-sfc git://git.openstack.org/openstack/networking-sfc stable/ocata
+enable_plugin networking-sfc https://git.openstack.org/openstack/networking-sfc stable/ocata
 
 enable_service n-novnc
 enable_service n-cauth
