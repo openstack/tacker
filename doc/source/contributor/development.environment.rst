@@ -41,7 +41,7 @@ Getting the code
 
 Grab the code::
 
-    git clone git://git.openstack.org/openstack/tacker.git
+    git clone https://git.openstack.org/openstack/tacker.git
     cd tacker
 
 

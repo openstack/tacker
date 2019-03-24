@@ -87,7 +87,7 @@ The **local.conf** file of all-in-one mode from [#f2]_ is shown as below:
 
     # Enable heat, networking-sfc, barbican and mistral
     enable_plugin heat https://git.openstack.org/openstack/heat master
-    enable_plugin networking-sfc git://git.openstack.org/openstack/networking-sfc master
+    enable_plugin networking-sfc https://git.openstack.org/openstack/networking-sfc master
     enable_plugin barbican https://git.openstack.org/openstack/barbican master
     enable_plugin mistral https://git.openstack.org/openstack/mistral master
 
@@ -108,7 +108,7 @@ The **local.conf** file of all-in-one mode from [#f2]_ is shown as below:
     KUBERNETES_VIM=True
     NEUTRON_CREATE_INITIAL_NETWORKS=False
     enable_plugin kuryr-kubernetes https://git.openstack.org/openstack/kuryr-kubernetes master
-    enable_plugin neutron-lbaas git://git.openstack.org/openstack/neutron-lbaas master
+    enable_plugin neutron-lbaas https://git.openstack.org/openstack/neutron-lbaas master
     enable_plugin devstack-plugin-container https://git.openstack.org/openstack/devstack-plugin-container master
 
     [[post-config|/etc/neutron/dhcp_agent.ini]]
@@ -143,7 +143,7 @@ The **local.conf** file of standalone mode from [#f3]_ is shown as below:
     VERBOSE=True
     ENABLE_DEBUG_LOG_LEVEL=True
     ENABLE_VERBOSE_LOG_LEVEL=True
-    GIT_BASE=${GIT_BASE:-git://git.openstack.org}
+    GIT_BASE=${GIT_BASE:-https://git.openstack.org}
 
     TACKER_MODE=standalone
     USE_BARBICAN=True
