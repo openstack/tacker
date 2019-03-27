@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Earlier when Tacker service restarted, it failed to resume monitoring
+    for VNFs.This issue is fixed and Tacker will resume monitoring for VNFs.
