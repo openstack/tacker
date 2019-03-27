@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Starting from Ocata tacker payloads only accept YAML dict for
+    config and param payload values. Hence remove the deprecation
+    warning when something other than YAML dict is received by the API.
