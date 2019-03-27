@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Improve returned message of nsd-create: When creating nsd with
+    non-existent vnfd in tosca template, it will return with NotFound error
+    message instead of internal error.
+    Improve returned message of create_vnffg: When create a vnffg with a
+    missing network_src_port_id in vnffgd, instead of giving internal error
+    it will return with FlowClassifierPortNotFound error message.
+
