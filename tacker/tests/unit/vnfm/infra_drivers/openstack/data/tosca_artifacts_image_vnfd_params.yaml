@@ -1,0 +1,84 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Generic VDU with parameterized image and flavor
+
+metadata:
+  template_name: OpenWRT
+
+topology_template:
+
+  inputs:
+
+    image_source:
+      type: string
+      description: Image source for the server
+      default: OpenWRT
+
+  node_templates:
+
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        image: m1.tiny
+        flavor: m1.tiny
+        monitoring_policy:
+          name: ping
+          actions:
+            failure: respawn
+          parameters:
+            count: 3
+            interval: 10
+      artifacts:
+        VNFImage:
+          type: tosca.artifacts.Deployment.Image.VM
+          file: { get_input: image_source }
+
+    CP1:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL1
+        - virtualBinding:
+            node: VDU1
+
+    CP2:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL2
+        - virtualBinding:
+            node: VDU1
+
+    CP3:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL3
+        - virtualBinding:
+            node: VDU1
+
+    VL1:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net_mgmt
+        vendor: Tacker
+
+    VL2:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: pkt_in
+        vendor: Tacker
+
+    VL3:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: pkt_out
+        vendor: Tacker
+

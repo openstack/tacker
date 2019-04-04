@@ -492,6 +492,16 @@ class TestOpenStack(base.TestCase):
             input_params
         )
 
+    def test_tosca_artifacts_image_params(self):
+        input_params = 'image_source: ' \
+                       'http://download.cirros-cloud.net/' \
+                       '0.4.0/cirros-0.4.0-x86_64-disk.img'
+        self._test_assert_equal_for_tosca_templates(
+            'tosca_artifacts_image_vnfd_params.yaml',
+            'hot_tosca_artifacts_image_vnfd_params.yaml',
+            input_params
+        )
+
     def test_create_tosca_scale(self):
         self._test_assert_equal_for_tosca_templates(
             'tosca_scale.yaml',

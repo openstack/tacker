@@ -1,5 +1,4 @@
 {
- image_name: 'cirros-0.4.0-x86_64-disk',
  image_source: 'http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img',
  flavor: 'm1.tiny',
  zone: 'nova',
