@@ -95,7 +95,7 @@ class VNFMonitor(object):
             time.sleep(self._status_check_intvl)
 
             with self._lock:
-                for hosting_vnf in self._hosting_vnfs.values():
+                for hosting_vnf in VNFMonitor._hosting_vnfs.values():
                     if hosting_vnf.get('dead', False):
                         LOG.debug('monitor skips dead vnf %s', hosting_vnf)
                         continue
@@ -120,7 +120,7 @@ class VNFMonitor(object):
                    'ips': new_vnf['management_ip_addresses']})
         new_vnf['boot_at'] = timeutils.utcnow()
         with self._lock:
-            self._hosting_vnfs[new_vnf['id']] = new_vnf
+            VNFMonitor._hosting_vnfs[new_vnf['id']] = new_vnf
 
         attrib_dict = new_vnf['vnf']['attributes']
         mon_policy_dict = attrib_dict['monitoring_policy']
@@ -132,7 +132,7 @@ class VNFMonitor(object):
     def delete_hosting_vnf(self, vnf_id):
         LOG.debug('deleting vnf_id %(vnf_id)s', {'vnf_id': vnf_id})
         with self._lock:
-            hosting_vnf = self._hosting_vnfs.pop(vnf_id, None)
+            hosting_vnf = VNFMonitor._hosting_vnfs.pop(vnf_id, None)
             if hosting_vnf:
                 LOG.debug('deleting vnf_id %(vnf_id)s, Mgmt IP %(ips)s',
                           {'vnf_id': vnf_id,
@@ -175,7 +175,7 @@ class VNFMonitor(object):
                     hosting_vnf['action_cb'](action)
 
     def mark_dead(self, vnf_id):
-        self._hosting_vnfs[vnf_id]['dead'] = True
+        VNFMonitor._hosting_vnfs[vnf_id]['dead'] = True
 
     def _invoke(self, driver, **kwargs):
         method = inspect.stack()[1][3]
