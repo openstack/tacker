@@ -129,24 +129,10 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             'region_name', None)
         heatclient = hc.HeatClient(auth_attr, region_name)
 
-        stack, status, stack_retries = self._wait_until_stack_ready(
+        stack = self._wait_until_stack_ready(
             vnf_id, auth_attr, infra_cnst.STACK_CREATE_IN_PROGRESS,
-            region_name=region_name)
-
-        if stack_retries == 0 and status != infra_cnst.STACK_CREATE_COMPLETE:
-            error_reason = _("Resource creation is not completed within"
-                             " {wait} seconds as creation of stack {stack}"
-                             " is not completed").format(
-                wait=(self.STACK_RETRIES *
-                      self.STACK_RETRY_WAIT),
-                stack=vnf_id)
-            LOG.warning("VNF Creation failed: %(reason)s",
-                        {'reason': error_reason})
-            raise vnfm.VNFCreateWaitFailed(reason=error_reason)
-
-        elif stack_retries != 0 and status != infra_cnst.STACK_CREATE_COMPLETE:
-            error_reason = stack.stack_status_reason
-            raise vnfm.VNFCreateWaitFailed(reason=error_reason)
+            infra_cnst.STACK_CREATE_COMPLETE,
+            vnfm.VNFCreateWaitFailed, region_name=region_name)
 
         # scaling enabled
         if vnf_dict['attributes'].get('scaling_group_names'):
@@ -162,15 +148,23 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             vnf_dict['mgmt_ip_address'] = jsonutils.dump_as_bytes(mgmt_ips)
 
     def _wait_until_stack_ready(self, vnf_id, auth_attr, wait_status,
+                                expected_status, exception_class,
                                 region_name=None):
         heatclient = hc.HeatClient(auth_attr, region_name)
-        stack = heatclient.get(vnf_id)
-        status = stack.stack_status
         stack_retries = self.STACK_RETRIES
-        while status == wait_status and stack_retries > 0:
-            time.sleep(self.STACK_RETRY_WAIT)
+        status = wait_status
+        stack = None
+        while stack_retries > 0:
             try:
+                stack_retries = stack_retries - 1
                 stack = heatclient.get(vnf_id)
+                status = stack.stack_status
+                if status == expected_status:
+                    LOG.debug('stack status: %(stack)s %(status)s',
+                              {'stack': str(stack), 'status': status})
+                    return stack
+                time.sleep(self.STACK_RETRY_WAIT)
+                LOG.debug('status: %s', status)
             except Exception:
                 LOG.warning("VNF Instance setup may not have "
                             "happened because Heat API request failed "
@@ -178,13 +172,23 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                             "created", {'stack': vnf_id})
                 # continue to avoid temporary connection error to target
                 # VIM
-            status = stack.stack_status
-            LOG.debug('status: %s', status)
-            stack_retries = stack_retries - 1
-        LOG.debug('stack status: %(stack)s %(status)s',
-                  {'stack': str(stack), 'status': status})
-
-        return stack, status, stack_retries
+            if stack_retries == 0 and status != expected_status:
+                error_reason = _("action is not completed within {wait} "
+                                 "seconds on stack {stack}").format(
+                    wait=(self.STACK_RETRIES *
+                          self.STACK_RETRY_WAIT),
+                    stack=vnf_id)
+                raise exception_class(reason=error_reason)
+            elif stack_retries != 0 and status != wait_status:
+                if stack:
+                    error_reason = stack.stack_status_reason
+                else:
+                    error_reason = _("action on VNF %(vnf_id) is not "
+                                     "completed. Current status of stack is "
+                                     "%(stack_status)") % {'vnf_id': vnf_id,
+                                     'stack_status': status}
+                LOG.warning(error_reason)
+                raise exception_class(reason=error_reason)
 
     def _find_mgmt_ips(self, outputs):
         LOG.debug('outputs %s', outputs)
@@ -230,25 +234,10 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     @log.log
     def update_wait(self, plugin, context, vnf_dict, auth_attr,
                     region_name=None):
-        stack, status, stack_retries = self._wait_until_stack_ready(
-            vnf_dict['instance_id'], auth_attr,
-            infra_cnst.STACK_UPDATE_IN_PROGRESS,
-            region_name=region_name)
-
-        if stack_retries == 0 and status != infra_cnst.STACK_UPDATE_COMPLETE:
-            error_reason = _("Resource updation is not completed within"
-                             " {wait} seconds as updation of stack {stack}"
-                             " is not completed").format(
-                wait=(self.STACK_RETRIES * self.STACK_RETRY_WAIT),
-                stack=vnf_dict['instance_id'])
-            LOG.error("VNF Updation failed: %(reason)s",
-                      {'reason': error_reason})
-            raise vnfm.VNFUpdateWaitFailed(reason=error_reason)
-
-        elif stack_retries != 0 and (status !=
-                                     infra_cnst.STACK_UPDATE_COMPLETE):
-            error_reason = stack.stack_status_reason
-            raise vnfm.VNFUpdateWaitFailed(reason=error_reason)
+        stack = self._wait_until_stack_ready(vnf_dict['instance_id'],
+            auth_attr, infra_cnst.STACK_UPDATE_IN_PROGRESS,
+            infra_cnst.STACK_UPDATE_COMPLETE,
+            vnfm.VNFUpdateWaitFailed, region_name=region_name)
 
         mgmt_ips = self._find_mgmt_ips(stack.outputs)
 
@@ -263,25 +252,10 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     @log.log
     def delete_wait(self, plugin, context, vnf_id, auth_attr,
                     region_name=None):
-        stack, status, stack_retries = self._wait_until_stack_ready(
-            vnf_id, auth_attr, infra_cnst.STACK_DELETE_IN_PROGRESS,
-            region_name=region_name)
-
-        if stack_retries == 0 and status != infra_cnst.STACK_DELETE_COMPLETE:
-            error_reason = _("Resource cleanup for vnf is"
-                             " not completed within {wait} seconds as "
-                             "deletion of Stack {stack} is "
-                             "not completed").format(stack=vnf_id,
-                             wait=(self.STACK_RETRIES * self.STACK_RETRY_WAIT))
-            LOG.warning(error_reason)
-            raise vnfm.VNFDeleteWaitFailed(reason=error_reason)
-
-        if stack_retries != 0 and status != infra_cnst.STACK_DELETE_COMPLETE:
-            error_reason = _("VNF {vnf_id} deletion is not completed. "
-                            "{stack_status}").format(vnf_id=vnf_id,
-                            stack_status=status)
-            LOG.warning(error_reason)
-            raise vnfm.VNFDeleteWaitFailed(reason=error_reason)
+        self._wait_until_stack_ready(vnf_id, auth_attr,
+            infra_cnst.STACK_DELETE_IN_PROGRESS,
+            infra_cnst.STACK_DELETE_COMPLETE, vnfm.VNFDeleteWaitFailed,
+                                     region_name=region_name)
 
     @classmethod
     def _find_mgmt_ips_from_groups(cls, heat_client, instance_id, group_names):

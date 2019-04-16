@@ -68,11 +68,11 @@ class VNFCreateFailed(exceptions.TackerException):
 
 
 class VNFUpdateWaitFailed(exceptions.TackerException):
-    message = _('%(reason)s')
+    message = _('VNF Update %(reason)s')
 
 
 class VNFCreateWaitFailed(exceptions.TackerException):
-    message = _('%(reason)s')
+    message = _('VNF Create %(reason)s')
 
 
 class VNFScaleWaitFailed(exceptions.TackerException):
@@ -80,7 +80,7 @@ class VNFScaleWaitFailed(exceptions.TackerException):
 
 
 class VNFDeleteWaitFailed(exceptions.TackerException):
-    message = _('%(reason)s')
+    message = _('VNF Delete %(reason)s')
 
 
 class VNFDeleteFailed(exceptions.TackerException):
