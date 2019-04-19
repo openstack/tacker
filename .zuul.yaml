@@ -31,16 +31,16 @@
         tacker-conductor: true
         swift: false
       devstack_plugins:
-        heat: https://git.openstack.org/openstack/heat
-        networking-sfc: https://git.openstack.org/openstack/networking-sfc
-        aodh: https://git.openstack.org/openstack/aodh
-        ceilometer: https://git.openstack.org/openstack/ceilometer
-        barbican: https://git.openstack.org/openstack/barbican
-        mistral: https://git.openstack.org/openstack/mistral
-        tacker: https://git.openstack.org/openstack/tacker
+        heat: https://opendev.org/openstack/heat
+        networking-sfc: https://opendev.org/openstack/networking-sfc
+        aodh: https://opendev.org/openstack/aodh
+        ceilometer: https://opendev.org/openstack/ceilometer
+        barbican: https://opendev.org/openstack/barbican
+        mistral: https://opendev.org/openstack/mistral
+        tacker: https://opendev.org/openstack/tacker
       tox_install_siblings: false
       tox_envlist: dsvm-functional
-      zuul_work_dir: src/git.openstack.org/openstack/tacker
+      zuul_work_dir: src/opendev.org/openstack/tacker
 
 - job:
     name: tacker-functional-devstack-python3
