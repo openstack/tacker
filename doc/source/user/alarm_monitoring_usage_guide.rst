@@ -157,9 +157,9 @@ Ceilometer and Aodh plugins will need to be enabled in local.conf:
 
 .. code-block::ini
 
-**enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer master**
+**enable_plugin ceilometer https://opendev.org/openstack/ceilometer master**
 
-**enable_plugin aodh https://git.openstack.org/openstack/aodh master**
+**enable_plugin aodh https://opendev.org/openstack/aodh master**
 
 How to monitor VNFs via alarm triggers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

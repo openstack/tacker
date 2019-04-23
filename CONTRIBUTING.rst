@@ -46,9 +46,9 @@ Source Repository
 
 The official Tacker source code is available in following repositories:
 
-* **Tacker server:** https://git.openstack.org/cgit/openstack/tacker
-* **Tacker Python client:** https://git.openstack.org/cgit/openstack/python-tackerclient
-* **Tacker Horizon UI:** https://git.openstack.org/cgit/openstack/tacker-horizon
+* **Tacker server:** https://opendev.org/openstack/tacker
+* **Tacker Python client:** https://opendev.org/openstack/python-tackerclient
+* **Tacker Horizon UI:** https://opendev.org/openstack/tacker-horizon
 
 The mirror repositories on Github:
 

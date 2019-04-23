@@ -23,7 +23,7 @@ if [ "${TACKER_MODE}" == "all" ]; then
     enable_service tacker-conductor
     MGMT_PHYS_NET=${MGMT_PHYS_NET:-mgmtphysnet0}
     # br-infra is created by devstack multi node job
-    # http://git.openstack.org/cgit/openstack-infra/zuul-jobs/tree/roles/multi-node-bridge
+    # https://opendev.org/zuul/zuul-jobs/src/branch/master/roles/multi-node-bridge
     BR_MGMT=${BR_MGMT:-br-infra}
     NET_MGMT=${NET_MGMT:-net_mgmt}
     SUBNET_MGMT=${SUBNET_MGMT:-subnet_mgmt}

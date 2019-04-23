@@ -31,7 +31,7 @@ separate user and granting relevant privileges please refer [#f0]_.
 
 .. code-block:: console
 
-    $ git clone https://git.openstack.org/openstack-dev/devstack -b <branch-name>
+    $ git clone https://opendev.org/openstack-dev/devstack -b <branch-name>
     $ cd devstack
 
 ..
@@ -89,21 +89,21 @@ The **local.conf** file of all-in-one mode from [#f2]_ is shown as below:
     LIBVIRT_FIREWALL_DRIVER=nova.virt.firewall.NoopFirewallDriver
 
     # Enable heat, networking-sfc, barbican and mistral
-    enable_plugin heat https://git.openstack.org/openstack/heat master
-    enable_plugin networking-sfc https://git.openstack.org/openstack/networking-sfc master
-    enable_plugin barbican https://git.openstack.org/openstack/barbican master
-    enable_plugin mistral https://git.openstack.org/openstack/mistral master
+    enable_plugin heat https://opendev.org/openstack/heat master
+    enable_plugin networking-sfc https://opendev.org/openstack/networking-sfc master
+    enable_plugin barbican https://opendev.org/openstack/barbican master
+    enable_plugin mistral https://opendev.org/openstack/mistral master
 
     # Ceilometer
     #CEILOMETER_PIPELINE_INTERVAL=300
-    enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer master
-    enable_plugin aodh https://git.openstack.org/openstack/aodh master
+    enable_plugin ceilometer https://opendev.org/openstack/ceilometer master
+    enable_plugin aodh https://opendev.org/openstack/aodh master
 
     # Blazar
     enable_plugin blazar https://github.com/openstack/blazar.git master
 
     # Tacker
-    enable_plugin tacker https://git.openstack.org/openstack/tacker master
+    enable_plugin tacker https://opendev.org/openstack/tacker master
 
     enable_service n-novnc
     enable_service n-cauth
@@ -113,9 +113,9 @@ The **local.conf** file of all-in-one mode from [#f2]_ is shown as below:
     # Enable Kubernetes and kuryr-kubernetes
     KUBERNETES_VIM=True
     NEUTRON_CREATE_INITIAL_NETWORKS=False
-    enable_plugin kuryr-kubernetes https://git.openstack.org/openstack/kuryr-kubernetes master
-    enable_plugin neutron-lbaas https://git.openstack.org/openstack/neutron-lbaas master
-    enable_plugin devstack-plugin-container https://git.openstack.org/openstack/devstack-plugin-container master
+    enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes master
+    enable_plugin neutron-lbaas https://opendev.org/openstack/neutron-lbaas master
+    enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
 
     [[post-config|/etc/neutron/dhcp_agent.ini]]
     [DEFAULT]
@@ -149,7 +149,7 @@ The **local.conf** file of standalone mode from [#f3]_ is shown as below:
     VERBOSE=True
     ENABLE_DEBUG_LOG_LEVEL=True
     ENABLE_VERBOSE_LOG_LEVEL=True
-    GIT_BASE=${GIT_BASE:-https://git.openstack.org}
+    GIT_BASE=${GIT_BASE:-https://opendev.org}
 
     TACKER_MODE=standalone
     USE_BARBICAN=True

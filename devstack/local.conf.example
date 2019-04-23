@@ -36,18 +36,18 @@ Q_USE_SECGROUP=False
 LIBVIRT_FIREWALL_DRIVER=nova.virt.firewall.NoopFirewallDriver
 
 # Enable heat, networking-sfc, barbican and mistral
-enable_plugin heat https://git.openstack.org/openstack/heat master
-enable_plugin networking-sfc https://git.openstack.org/openstack/networking-sfc master
-enable_plugin barbican https://git.openstack.org/openstack/barbican master
-enable_plugin mistral https://git.openstack.org/openstack/mistral master
+enable_plugin heat https://opendev.org/openstack/heat master
+enable_plugin networking-sfc https://opendev.org/openstack/networking-sfc master
+enable_plugin barbican https://opendev.org/openstack/barbican master
+enable_plugin mistral https://opendev.org/openstack/mistral master
 
 # Ceilometer
 #CEILOMETER_PIPELINE_INTERVAL=300
-enable_plugin ceilometer https://git.openstack.org/openstack/ceilometer master
-enable_plugin aodh https://git.openstack.org/openstack/aodh master
+enable_plugin ceilometer https://opendev.org/openstack/ceilometer master
+enable_plugin aodh https://opendev.org/openstack/aodh master
 
 # Tacker
-enable_plugin tacker https://git.openstack.org/openstack/tacker master
+enable_plugin tacker https://opendev.org/openstack/tacker master
 
 enable_service n-novnc
 enable_service n-cauth
