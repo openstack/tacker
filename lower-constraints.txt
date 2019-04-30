@@ -36,7 +36,7 @@ futurist==1.6.0
 google-auth==1.4.1
 greenlet==0.4.13
 hacking==0.12.0
-heat-translator==1.3.0
+heat-translator==1.3.1
 idna==2.6
 imagesize==1.0.0
 ipaddress==1.0.19
