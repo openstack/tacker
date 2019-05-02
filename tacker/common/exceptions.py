@@ -195,3 +195,7 @@ class DuplicateResourceName(TackerException):
 
 class DuplicateEntity(Conflict):
     message = _("%(_type)s already exist with given %(entry)s")
+
+
+class ValidationError(BadRequest):
+    message = "%(detail)s"
