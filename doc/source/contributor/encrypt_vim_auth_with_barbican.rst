@@ -49,8 +49,8 @@ We need enable barbican in devstack localrc file:
 
 .. code-block:: bash
 
-    enable_plugin barbican https://git.openstack.org/openstack/barbican
-    enable_plugin tacker https://git.openstack.org/openstack/tacker
+    enable_plugin barbican https://opendev.org/openstack/barbican
+    enable_plugin tacker https://opendev.org/openstack/tacker
     USE_BARBICAN=True
 
 .. note::

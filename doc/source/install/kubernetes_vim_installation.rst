@@ -33,9 +33,9 @@ bring VMs and Pods (and other Kubernetes resources) on the same network.
 
   # Enable kuryr-kubernetes, docker, octavia
   KUBERNETES_VIM=True
-  enable_plugin kuryr-kubernetes https://git.openstack.org/openstack/kuryr-kubernetes master
-  enable_plugin octavia https://git.openstack.org/openstack/octavia master
-  enable_plugin devstack-plugin-container https://git.openstack.org/openstack/devstack-plugin-container master
+  enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes master
+  enable_plugin octavia https://opendev.org/openstack/octavia master
+  enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
   KURYR_K8S_CLUSTER_IP_RANGE="10.0.0.0/24"
 
 The public network will be used to launched LoadBalancer for Services in
