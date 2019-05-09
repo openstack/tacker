@@ -504,7 +504,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._insert_dummy_vnf_template()
         vnf_obj = utils.get_dummy_vnf_obj()
         self.create_wait.side_effect = vnfm.VNFCreateWaitFailed(
-            reason="TEST")
+            reason="failed")
         vnf_dict = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
         self.assertEqual(constants.ERROR,
                          vnf_dict['status'])
@@ -602,7 +602,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                                             mock_set_vnf_error_status_reason):
         self._insert_dummy_vnf_template()
         dummy_vnf_obj = self._insert_dummy_vnf()
-        self.delete_wait.side_effect = vnfm.VNFDeleteWaitFailed(reason='test')
+        self.delete_wait.side_effect = vnfm.VNFDeleteWaitFailed(
+            reason='failed')
         self.vnfm_plugin.delete_vnf(self.context, dummy_vnf_obj['id'])
         mock_set_vnf_error_status_reason.assert_called_once_with(self.context,
                                                                  mock.ANY,
@@ -742,8 +743,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._insert_dummy_vnf_template()
         dummy_vnf_obj = self._insert_dummy_vnf()
         vnf_config_obj = utils.get_dummy_vnf_config_obj()
-        self.update_wait.side_effect = vnfm.VNFUpdateWaitFailed(reason='VNF'
-                                                            ' Updation failed')
+        self.update_wait.side_effect = vnfm.VNFUpdateWaitFailed(
+            reason='failed')
         self.assertRaises(vnfm.VNFUpdateWaitFailed,
                           self.vnfm_plugin.update_vnf, self.context,
                           dummy_vnf_obj['id'], vnf_config_obj)
@@ -751,7 +752,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             delete_hosting_vnf.assert_called_once_with(dummy_vnf_obj['id'])
         mock_set_vnf_error_status_reason.assert_called_once_with(self.context,
                                                         dummy_vnf_obj['id'],
-                                                    'VNF Updation failed')
+                                                    'VNF Update failed')
 
     def _get_dummy_scaling_policy(self, type):
         vnf_scale = {}
