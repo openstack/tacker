@@ -117,8 +117,9 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         LOG.debug('Create vim called with parameters %s',
                   strutils.mask_password(vim))
         vim_obj = vim['vim']
-        vim_obj['auth_url'] = utils.get_auth_url_v3(vim_obj['auth_url'])
         vim_type = vim_obj['type']
+        if vim_type == 'openstack':
+            vim_obj['auth_url'] = utils.get_auth_url_v3(vim_obj['auth_url'])
         vim_obj['id'] = uuidutils.generate_uuid()
         vim_obj['status'] = 'PENDING'
         try:
