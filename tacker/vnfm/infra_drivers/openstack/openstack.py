@@ -183,9 +183,9 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 if stack:
                     error_reason = stack.stack_status_reason
                 else:
-                    error_reason = _("action on VNF %(vnf_id) is not "
+                    error_reason = _("action on VNF %(vnf_id)s is not "
                                      "completed. Current status of stack is "
-                                     "%(stack_status)") % {'vnf_id': vnf_id,
+                                     "%(stack_status)s") % {'vnf_id': vnf_id,
                                      'stack_status': status}
                 LOG.warning(error_reason)
                 raise exception_class(reason=error_reason)
