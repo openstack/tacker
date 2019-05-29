@@ -591,8 +591,15 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         self.mgmt_delete_post(context, vnf_dict)
         self._delete_vnf_post(context, vnf_dict, e)
 
-    def delete_vnf(self, context, vnf_id):
-        vnf_dict = self._delete_vnf_pre(context, vnf_id)
+    def delete_vnf(self, context, vnf_id, vnf=None):
+
+        # Extract "force_delete" from request's body
+        force_delete = False
+        if vnf and vnf['vnf'].get('attributes').get('force'):
+            force_delete = vnf['vnf'].get('attributes').get('force')
+
+        vnf_dict = self._delete_vnf_pre(context, vnf_id,
+                                        force_delete=force_delete)
         driver_name, vim_auth = self._get_infra_driver(context, vnf_dict)
         self._vnf_monitor.delete_hosting_vnf(vnf_id)
         instance_id = self._instance_id(vnf_dict)
@@ -614,19 +621,25 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                                          auth_attr=vim_auth,
                                          region_name=region_name)
         except Exception as e:
-            # TODO(yamahata): when the devaice is already deleted. mask
+            # TODO(yamahata): when the device is already deleted. mask
             # the error, and delete row in db
             # Other case mark error
             with excutils.save_and_reraise_exception():
-                vnf_dict['status'] = constants.ERROR
-                vnf_dict['error_reason'] = six.text_type(e)
-                self.set_vnf_error_status_reason(context, vnf_dict['id'],
-                                                 vnf_dict['error_reason'])
-                self.mgmt_delete_post(context, vnf_dict)
-                self._delete_vnf_post(context, vnf_dict, e)
+                if not force_delete:
+                    vnf_dict['status'] = constants.ERROR
+                    vnf_dict['error_reason'] = six.text_type(e)
+                    self.set_vnf_error_status_reason(context, vnf_dict['id'],
+                                                     vnf_dict['error_reason'])
+                    self.mgmt_delete_post(context, vnf_dict)
+                    self._delete_vnf_post(context, vnf_dict, e)
 
-        self.spawn_n(self._delete_vnf_wait, context, vnf_dict, vim_auth,
-                     driver_name)
+        if force_delete:
+            self._delete_vnf_force(context, vnf_dict['id'])
+            self.mgmt_delete_post(context, vnf_dict)
+            self._delete_vnf_post(context, vnf_dict, None, force_delete=True)
+        else:
+            self.spawn_n(self._delete_vnf_wait, context, vnf_dict, vim_auth,
+                         driver_name)
 
     def _handle_vnf_scaling(self, context, policy):
         # validate
