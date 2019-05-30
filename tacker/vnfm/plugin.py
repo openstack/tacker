@@ -597,7 +597,9 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         force_delete = False
         if vnf and vnf['vnf'].get('attributes').get('force'):
             force_delete = vnf['vnf'].get('attributes').get('force')
-
+        if force_delete and not context.is_admin:
+            LOG.warning("force delete is admin only operation")
+            raise exceptions.AdminRequired(reason="Admin only operation")
         vnf_dict = self._delete_vnf_pre(context, vnf_id,
                                         force_delete=force_delete)
         driver_name, vim_auth = self._get_infra_driver(context, vnf_dict)
