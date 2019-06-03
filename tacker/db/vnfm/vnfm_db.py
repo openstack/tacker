@@ -497,6 +497,12 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             vnf_db.update({'status': new_status})
         return vnf_db
 
+    def _update_vnf_status_db_no_check(self, context, vnf_id, current_statuses,
+                              new_status):
+        vnf_db = self._get_vnf_db(context, vnf_id, current_statuses)
+        vnf_db.update({'status': new_status})
+        return vnf_db
+
     @staticmethod
     def check_vnf_status_legality(vnf_db, vnf_id):
         if vnf_db.status == constants.PENDING_DELETE:
@@ -571,34 +577,56 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             evt_type=evt_type,
             tstamp=updated_time_stamp)
 
-    def _delete_vnf_pre(self, context, vnf_id):
+    def _delete_vnf_pre(self, context, vnf_id, force_delete=False):
         with context.session.begin(subtransactions=True):
 
             nss_db = context.session.query(ns_db.NS).filter(
                 ns_db.NS.vnf_ids.like("%" + vnf_id + "%")).first()
-            if (nss_db is not None and nss_db.status not in
-                    [constants.PENDING_DELETE, constants.ERROR]):
-                raise vnfm.VNFInUse(vnf_id=vnf_id)
 
-            vnf_db = self._update_vnf_status_db(
-                context, vnf_id, _ACTIVE_UPDATE_ERROR_DEAD,
+            if not force_delete:
+                if (nss_db is not None and nss_db.status not in
+                        [constants.PENDING_DELETE, constants.ERROR]):
+                    raise vnfm.VNFInUse(vnf_id=vnf_id)
+
+                vnf_db = self._update_vnf_status_db(
+                    context, vnf_id, _ACTIVE_UPDATE_ERROR_DEAD,
+                    constants.PENDING_DELETE)
+            else:
+                vnf_db = self._update_vnf_status_db_no_check(context,
+                    vnf_id, _ACTIVE_UPDATE_ERROR_DEAD,
                 constants.PENDING_DELETE)
         deleted_vnf_db = self._make_vnf_dict(vnf_db)
+        details = "VNF delete initiated" if not force_delete else \
+            "VNF force delete initiated"
         self._cos_db_plg.create_event(
             context, res_id=vnf_id,
             res_type=constants.RES_TYPE_VNF,
             res_state=deleted_vnf_db['status'],
             evt_type=constants.RES_EVT_DELETE,
-            tstamp=timeutils.utcnow(), details="VNF delete initiated")
+            tstamp=timeutils.utcnow(), details=details)
         return deleted_vnf_db
 
-    def _delete_vnf_post(self, context, vnf_dict, error, soft_delete=True):
+    def _delete_vnf_force(self, context, vnf_id):
+        # Check mapping vnf in vnffg_db
+        with context.session.begin(subtransactions=True):
+            nss_db = context.session.query(ns_db.NS).filter(
+                ns_db.NS.vnf_ids.like("%" + vnf_id + "%")).first()
+            if nss_db:
+                pass
+
+    def _delete_vnf_post(self, context, vnf_dict, error,
+                         soft_delete=True, force_delete=False):
         vnf_id = vnf_dict['id']
         with context.session.begin(subtransactions=True):
-            query = (
-                self._model_query(context, VNF).
-                filter(VNF.id == vnf_id).
-                filter(VNF.status == constants.PENDING_DELETE))
+            if force_delete:
+                query = (
+                    self._model_query(context, VNF).
+                    filter(VNF.id == vnf_id))
+            else:
+                query = (
+                    self._model_query(context, VNF).
+                    filter(VNF.id == vnf_id).
+                    filter(VNF.status == constants.PENDING_DELETE))
             if error:
                 query.update({'status': constants.ERROR})
                 self._cos_db_plg.create_event(

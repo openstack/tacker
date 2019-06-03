@@ -394,7 +394,7 @@ class Controller(object):
                 return notify({self._resource: self._view(request.context,
                                                           obj)})
 
-    def delete(self, request, id, **kwargs):
+    def delete(self, request, id, body=None, **kwargs):
         """Deletes the specified entity."""
         self._notifier.info(request.context,
                             self._resource + '.delete.start',
@@ -416,6 +416,8 @@ class Controller(object):
             raise webob.exc.HTTPNotFound(msg)
 
         obj_deleter = getattr(self._plugin, action)
+        if body:
+            kwargs.update({self._resource: body})
         obj_deleter(request.context, id, **kwargs)
         notifier_method = self._resource + '.delete.end'
         self._notifier.info(request.context,
