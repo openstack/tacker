@@ -177,6 +177,17 @@ def get_admin_context_without_session():
                        is_admin=True)
 
 
+def is_user_context(context):
+    """Indicates if the request context is a normal user."""
+    if not context:
+        return False
+    if context.is_admin:
+        return False
+    if not context.user_id or not context.project_id:
+        return False
+    return True
+
+
 def generate_tacker_service_context():
     return keystone_password.KeystonePassword(
         password=CONF.keystone_authtoken.password,
