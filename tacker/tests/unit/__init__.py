@@ -17,8 +17,12 @@ import os
 
 from oslo_config import cfg
 
+from tacker import objects
+
 
 reldir = os.path.join(os.path.dirname(__file__), '..', '..', '..')
 absdir = os.path.abspath(reldir)
 cfg.CONF.state_path = absdir
 cfg.CONF.use_stderr = False
+
+objects.register_all()

@@ -199,3 +199,23 @@ class DuplicateEntity(Conflict):
 
 class ValidationError(BadRequest):
     message = "%(detail)s"
+
+
+class ObjectActionError(TackerException):
+    message = _("Object action %(action)s failed because: %(reason)s")
+
+
+class VnfPackageNotFound(NotFound):
+    message = _("No vnf package with id %(id)s.")
+
+
+class VnfDeploymentFlavourNotFound(NotFound):
+    message = _("No vnf deployment flavour with id %(id)s.")
+
+
+class VnfSoftwareImageNotFound(NotFound):
+    message = _("No vnf software image  with id %(id)s.")
+
+
+class OrphanedObjectError(TackerException):
+    msg_fmt = _('Cannot call %(method)s on orphaned %(objtype)s object')

@@ -34,6 +34,21 @@ class TestCase(base.BaseTestCase):
         patcher = mock.patch(target, new)
         return patcher.start()
 
+    def compare_obj(self, expected, result, subs=None, allow_missing=None):
+        if subs is None:
+            subs = {}
+        if allow_missing is None:
+            allow_missing = []
+
+        for key in expected.fields:
+            if key in allow_missing:
+                continue
+            obj_val = getattr(expected, key)
+            db_key = subs.get(key, key)
+            db_val = getattr(result, db_key)
+
+            self.assertEqual(db_val, obj_val)
+
 
 class FixturedTestCase(TestCase):
     client_fixture_class = None
