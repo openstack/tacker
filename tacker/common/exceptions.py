@@ -17,9 +17,37 @@
 Tacker base exception handling.
 """
 
-from oslo_utils import excutils
+from oslo_log import log as logging
+import webob.exc
+from webob import util as woutil
 
 from tacker._i18n import _
+
+
+LOG = logging.getLogger(__name__)
+
+
+class ConvertedException(webob.exc.WSGIHTTPException):
+    def __init__(self, code, title="", explanation=""):
+        self.code = code
+        # There is a strict rule about constructing status line for HTTP:
+        # '...Status-Line, consisting of the protocol version followed by a
+        # numeric status code and its associated textual phrase, with each
+        # element separated by SP characters'
+        # (http://www.faqs.org/rfcs/rfc2616.html)
+        # 'code' and 'title' can not be empty because they correspond
+        # to numeric status code and its associated text
+        if title:
+            self.title = title
+        else:
+            try:
+                self.title = woutil.status_reasons[self.code]
+            except KeyError:
+                msg = _("Improper or unknown HTTP status code used: %d")
+                LOG.error(msg, code)
+                self.title = woutil.status_generic_reasons[self.code // 100]
+        self.explanation = explanation
+        super(ConvertedException, self).__init__()
 
 
 class TackerException(Exception):
@@ -30,20 +58,23 @@ class TackerException(Exception):
     with the keyword arguments provided to the constructor.
     """
     message = _("An unknown exception occurred.")
+    code = 500
 
-    def __init__(self, **kwargs):
-        try:
-            super(TackerException, self).__init__(self.message % kwargs)
-            self.msg = self.message % kwargs
-        except Exception:
-            with excutils.save_and_reraise_exception() as ctxt:
-                if not self.use_fatal_exceptions():
-                    ctxt.reraise = False
-                    # at least get the core message out if something happened
-                    super(TackerException, self).__init__(self.message)
+    def __init__(self, message=None, **kwargs):
+        if not message:
+            try:
+                message = self.message % kwargs
+            except Exception:
+                message = self.message
+
+        self.msg = message
+        super(TackerException, self).__init__(message)
 
     def __str__(self):
         return self.msg
+
+    def format_message(self):
+        return self.args[0]
 
     def use_fatal_exceptions(self):
         """Is the instance using fatal exceptions.
@@ -55,6 +86,7 @@ class TackerException(Exception):
 
 class BadRequest(TackerException):
     message = _('Bad %(resource)s request: %(msg)s')
+    code = 400
 
 
 class NotFound(TackerException):
@@ -67,6 +99,12 @@ class Conflict(TackerException):
 
 class NotAuthorized(TackerException):
     message = _("Not authorized.")
+    code = 401
+
+
+class Forbidden(TackerException):
+    msg_fmt = _("Forbidden")
+    code = 403
 
 
 class ServiceUnavailable(TackerException):
@@ -77,7 +115,7 @@ class AdminRequired(NotAuthorized):
     message = _("User does not have admin privileges: %(reason)s")
 
 
-class PolicyNotAuthorized(NotAuthorized):
+class PolicyNotAuthorized(Forbidden):
     message = _("Policy doesn't allow %(action)s to be performed.")
 
 

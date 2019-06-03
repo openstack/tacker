@@ -574,10 +574,10 @@ class ResourceTest(base.BaseTestCase):
             return index
 
     def test_dispatch(self):
-        resource = wsgi.Resource(self.Controller(),
-                                 self.my_fault_body_function)
+        resource = wsgi.Resource(self.Controller())
+        req = wsgi.Request.blank('/')
         actual = resource.dispatch(
-            resource.controller, 'index', action_args={'index': 'off'})
+            req, 'index', action_args={'index': 'off'})
         expected = 'off'
 
         self.assertEqual(expected, actual)
@@ -590,7 +590,7 @@ class ResourceTest(base.BaseTestCase):
             resource.controller, 'create', {})
 
     def test_malformed_request_body_throws_bad_request(self):
-        resource = wsgi.Resource(None, self.my_fault_body_function)
+        resource = wsgi.Resource(None)
         request = wsgi.Request.blank(
             "/", body=b"{mal:formed", method='POST',
             headers={'Content-Type': "application/json"})
@@ -599,7 +599,7 @@ class ResourceTest(base.BaseTestCase):
         self.assertEqual(400, response.status_int)
 
     def test_wrong_content_type_throws_unsupported_media_type_error(self):
-        resource = wsgi.Resource(None, self.my_fault_body_function)
+        resource = wsgi.Resource(None)
         request = wsgi.Request.blank(
             "/", body=b"{some:json}", method='POST',
             headers={'Content-Type': "xxx"})
@@ -607,13 +607,13 @@ class ResourceTest(base.BaseTestCase):
         response = resource(request)
         self.assertEqual(400, response.status_int)
 
-    def test_wrong_content_type_server_error(self):
-        resource = wsgi.Resource(None, self.my_fault_body_function)
+    def test_wrong_content_type_bad_request_error(self):
+        resource = wsgi.Resource(self.Controller())
         request = wsgi.Request.blank(
             "/", method='POST', headers={'Content-Type': "unknow"})
 
         response = resource(request)
-        self.assertEqual(500, response.status_int)
+        self.assertEqual(400, response.status_int)
 
     def test_call_resource_class_bad_request(self):
         class FakeRequest(object):
@@ -628,23 +628,20 @@ class ResourceTest(base.BaseTestCase):
             def best_match_content_type(self):
                 return 'best_match_content_type'
 
-        resource = wsgi.Resource(self.Controller(),
-                                 self.my_fault_body_function)
+        resource = wsgi.Resource(self.Controller())
         request = FakeRequest()
         result = resource(request)
         self.assertEqual(415, result.status_int)
 
     def test_type_error(self):
-        resource = wsgi.Resource(self.Controller(),
-                                 self.my_fault_body_function)
+        resource = wsgi.Resource(self.Controller())
         request = wsgi.Request.blank(
-            "/", method='POST', headers={'Content-Type': "json"})
+            "/", method='GET', headers={'Content-Type': "json"})
 
-        response = resource.dispatch(
-            request, action='index', action_args='test')
+        response = resource(request)
         self.assertEqual(400, response.status_int)
 
-    def test_call_resource_class_internal_error(self):
+    def test_call_resource_class_bad_request_error(self):
         class FakeRequest(object):
             def __init__(self):
                 self.url = 'http://where.no'
@@ -657,11 +654,10 @@ class ResourceTest(base.BaseTestCase):
             def best_match_content_type(self):
                 return 'application/json'
 
-        resource = wsgi.Resource(self.Controller(),
-                                 self.my_fault_body_function)
+        resource = wsgi.Resource(self.Controller())
         request = FakeRequest()
         result = resource(request)
-        self.assertEqual(500, result.status_int)
+        self.assertEqual(400, result.status_int)
 
 
 class MiddlewareTest(base.BaseTestCase):
@@ -677,14 +673,16 @@ class MiddlewareTest(base.BaseTestCase):
 class FaultTest(base.BaseTestCase):
     def test_call_fault(self):
         class MyException(object):
-            status_int = 415
+            code = 415
             explanation = 'test'
 
-        my_exceptions = MyException()
-        my_fault = wsgi.Fault(exception=my_exceptions)
-        request = wsgi.Request.blank(
-            "/", method='POST', headers={'Content-Type': "unknow"})
-        response = my_fault(request)
+        my_exception = MyException()
+        converted_exp = exception.ConvertedException(code=my_exception.code,
+                                    explanation=my_exception.explanation)
+        my_fault = wsgi.Fault(converted_exp)
+        req = wsgi.Request.blank("/", method='POST',
+                                 headers={'Content-Type': "unknow"})
+        response = my_fault(req)
         self.assertEqual(415, response.status_int)
 
 
