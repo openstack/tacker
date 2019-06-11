@@ -225,3 +225,11 @@ def get_auth_url_v3(auth_url):
         return auth_url
     else:
         return '{0}/v3'.format(auth_url)
+
+
+def _none_from_string(myStr):
+    none_values = ['', 'None', 'NONE', 'null', 'NULL', [], {}]
+    if myStr in none_values:
+        return None
+    else:
+        return myStr
