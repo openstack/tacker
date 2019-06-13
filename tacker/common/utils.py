@@ -155,12 +155,11 @@ def is_valid_ipv4(address):
 
 
 def change_memory_unit(mem, to):
-    """Changes the memory value(mem) based on the unit('to') specified.
+    """Change the memory value(mem) based on the unit('to') specified.
 
     If the unit is not specified in 'mem', by default, it is considered
     as "MB". And this method returns only integer.
     """
-
     mem = str(mem) + " MB" if str(mem).isdigit() else mem.upper()
     for unit, value in (MEM_UNITS).items():
         mem_arr = mem.split(unit)
@@ -172,7 +171,7 @@ def change_memory_unit(mem, to):
 
 
 def load_class_by_alias_or_classname(namespace, name):
-    """Load class using stevedore alias or the class name
+    """Load class using stevedore alias or the class name.
 
     Load class using the stevedore driver manager
     :param namespace: namespace where the alias is defined
@@ -180,7 +179,6 @@ def load_class_by_alias_or_classname(namespace, name):
     :returns: class if calls can be loaded
     :raises ImportError: if class cannot be loaded
     """
-
     if not name:
         LOG.error("Alias or class name is not set")
         raise ImportError(_("Class not found."))
@@ -227,9 +225,9 @@ def get_auth_url_v3(auth_url):
         return '{0}/v3'.format(auth_url)
 
 
-def _none_from_string(myStr):
-    none_values = ['', 'None', 'NONE', 'null', 'NULL', [], {}]
-    if myStr in none_values:
+def none_from_string(orig_str):
+    none_values = ['', 'None', 'NONE', 'null', 'NULL']
+    if orig_str in none_values:
         return None
     else:
-        return myStr
+        return orig_str

@@ -96,7 +96,7 @@ class TestKubernetes_Driver(base.TestCase):
                 'auth_url': 'https://localhost:6443',
                 'auth_cred': {'username': 'test_user',
                               'password': 'test_password',
-                              'ssl_ca_cert': None},
+                              'ssl_ca_cert': 'None'},
                 'name': 'vim-kubernetes',
                 'vim_project': {'name': 'default'}}
 
@@ -124,7 +124,7 @@ class TestKubernetes_Driver(base.TestCase):
         mock_k8s_coreV1Client = mock.Mock(**attrs)
         auth_obj = {'username': 'test_user',
                     'password': 'test_password',
-                    'ssl_ca_cert': None,
+                    'ssl_ca_cert': 'None',
                     'auth_url': 'https://localhost:6443'}
         self._test_register_vim(self.vim_obj, mock_k8s_client,
                                 mock_k8s_coreV1Client)

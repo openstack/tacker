@@ -76,7 +76,7 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
         return auth_cred, file_descriptor
 
     def _create_ssl_ca_file(self, auth_cred):
-        ca_cert = utils._none_from_string(auth_cred.get('ssl_ca_cert'))
+        ca_cert = utils.none_from_string(auth_cred.get('ssl_ca_cert'))
         if ca_cert:
             file_descriptor, file_path = \
                 self.kubernetes.create_ca_cert_tmp_file(ca_cert)
@@ -182,8 +182,8 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
     def encode_vim_auth(self, vim_id, auth):
         """Encode VIM credentials
 
-         Store VIM auth using fernet key encryption
-         """
+        Store VIM auth using fernet key encryption
+        """
         fernet_key, fernet_obj = self.kubernetes.create_fernet_key()
         if ('password' in auth) and (auth['password'] is not None):
             encoded_auth = fernet_obj.encrypt(
@@ -193,7 +193,7 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
             encoded_auth = fernet_obj.encrypt(
                 auth['bearer_token'].encode('utf-8'))
             auth['bearer_token'] = encoded_auth
-        if utils._none_from_string(auth.get('ssl_ca_cert')):
+        if utils.none_from_string(auth.get('ssl_ca_cert')):
             encoded_auth = fernet_obj.encrypt(
                 auth['ssl_ca_cert'].encode('utf-8'))
             auth['ssl_ca_cert'] = encoded_auth
