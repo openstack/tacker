@@ -110,16 +110,20 @@ The **local.conf** file of all-in-one mode from [#f2]_ is shown as below:
 
     disable_service tempest
 
-    # Enable Kubernetes and kuryr-kubernetes
+    # Enable kuryr-kubernetes, docker, octavia
     KUBERNETES_VIM=True
-    NEUTRON_CREATE_INITIAL_NETWORKS=False
     enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes master
-    enable_plugin neutron-lbaas https://opendev.org/openstack/neutron-lbaas master
+    enable_plugin octavia https://opendev.org/openstack/octavia master
     enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
+    #KURYR_K8S_CLUSTER_IP_RANGE="10.0.0.0/24"
 
     [[post-config|/etc/neutron/dhcp_agent.ini]]
     [DEFAULT]
     enable_isolated_metadata = True
+
+    [[post-config|$OCTAVIA_CONF]]
+    [controller_worker]
+    amp_active_retries=9999
 
 ..
 
@@ -176,6 +180,6 @@ to start setting up:
 
 .. [#f0] https://docs.openstack.org/devstack/latest/
 .. [#f1] https://github.com/openstack/tacker/tree/master/devstack
-.. [#f2] https://github.com/openstack/tacker/blob/master/devstack/local.conf.example
+.. [#f2] https://github.com/openstack/tacker/blob/master/devstack/local.conf.kubernetes
 .. [#f3] https://github.com/openstack/tacker/blob/master/devstack/local.conf.standalone
 

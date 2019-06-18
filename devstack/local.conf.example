@@ -46,6 +46,9 @@ enable_plugin mistral https://opendev.org/openstack/mistral master
 enable_plugin ceilometer https://opendev.org/openstack/ceilometer master
 enable_plugin aodh https://opendev.org/openstack/aodh master
 
+# Blazar
+enable_plugin blazar https://github.com/openstack/blazar.git master
+
 # Tacker
 enable_plugin tacker https://opendev.org/openstack/tacker master
 
