@@ -59,10 +59,6 @@ class InvalidAPIAttributeType(exceptions.InvalidInput):
     message = _('Expecting dict type for API attribute instead of %(atype)s ')
 
 
-class InvalidServiceType(exceptions.InvalidInput):
-    message = _('invalid service type %(service_type)s')
-
-
 class VNFCreateFailed(exceptions.TackerException):
     message = _('creating VNF based on %(vnfd_id)s failed')
 
