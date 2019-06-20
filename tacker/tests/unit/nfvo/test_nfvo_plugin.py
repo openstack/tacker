@@ -21,6 +21,7 @@ from oslo_utils import uuidutils
 
 from mock import patch
 
+from tacker.common import exceptions
 from tacker import context
 from tacker.db.common_services import common_services_db_plugin
 from tacker.db.nfvo import nfvo_db
@@ -1043,13 +1044,13 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         session.flush()
         return nsd_template
 
-    def _insert_dummy_ns(self):
+    def _insert_dummy_ns(self, status='ACTIVE'):
         session = self.context.session
         ns = ns_db.NS(
             id='ba6bf017-f6f7-45f1-a280-57b073bf78ea',
             name='dummy_ns',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
-            status='ACTIVE',
+            status=status,
             nsd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             description='dummy_ns_description',
@@ -1269,4 +1270,57 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.nfvo_plugin.delete_ns(self.context,
                 DUMMY_NS_2)
         mock_delete_ns_post.assert_called_with(
-            self.context, DUMMY_NS_2, None, None)
+            self.context, DUMMY_NS_2, None, None, force_delete=False)
+
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
+    def test_delete_ns_force(self, mock_get_by_name,
+                             mock_get_vim, mock_auth_dict):
+        self._insert_dummy_vim()
+        self._insert_dummy_ns_template()
+        self._insert_dummy_ns(status='PENDING_DELETE')
+        mock_auth_dict.return_value = {
+            'auth_url': 'http://127.0.0.1',
+            'token': 'DummyToken',
+            'project_domain_name': 'dummy_domain',
+            'project_name': 'dummy_project'
+        }
+        nsattr = {'ns': {'attributes': {'force': True}}}
+
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock_get_by_name.return_value = get_by_name()
+            result = self.nfvo_plugin.delete_ns(self.context,
+                'ba6bf017-f6f7-45f1-a280-57b073bf78ea', ns=nsattr)
+            self.assertIsNotNone(result)
+
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
+    def test_delete_ns_force_non_admin(self, mock_get_by_name,
+                                       mock_get_vim, mock_auth_dict):
+        self._insert_dummy_vim()
+        self._insert_dummy_ns_template()
+        self._insert_dummy_ns(status='PENDING_DELETE')
+        mock_auth_dict.return_value = {
+            'auth_url': 'http://127.0.0.1',
+            'token': 'DummyToken',
+            'project_domain_name': 'dummy_domain',
+            'project_name': 'dummy_project'
+        }
+        nsattr = {'ns': {'attributes': {'force': True}}}
+
+        with patch.object(TackerManager, 'get_service_plugins') as \
+                mock_plugins:
+            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
+            mock_get_by_name.return_value = get_by_name()
+            non_admin_context = context.Context(user_id=None,
+                                            tenant_id=None,
+                                            is_admin=False)
+            self.assertRaises(exceptions.AdminRequired,
+                              self.nfvo_plugin.delete_ns,
+                              non_admin_context,
+                              'ba6bf017-f6f7-45f1-a280-57b073bf78ea',
+                              ns=nsattr)
