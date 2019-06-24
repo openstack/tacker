@@ -165,8 +165,8 @@ To delete a VIM :
 
 Features
 ~~~~~~~~
-* VIMs are shared across tenants -- As an admin operator, the user can register
-  a VIM once and allow tenants to deploy VNFs on the registered VIM.
+* Tacker support multi-tenancy, that means a VIM regisetered by one tenant can
+  not be shared with other.
 * Pluggable driver module framework allowing Tacker to interact with multiple
   VIM types.
 * Compatible for OpenStack versions starting from Kilo.
