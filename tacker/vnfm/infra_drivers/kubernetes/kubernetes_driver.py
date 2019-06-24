@@ -531,7 +531,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         return auth_cred, file_descriptor
 
     def _create_ssl_ca_file(self, auth_attr):
-        ca_cert = auth_attr['ssl_ca_cert']
+        ca_cert = utils.none_from_string(auth_attr.get('ssl_ca_cert'))
         if ca_cert is not None:
             file_descriptor, file_path = \
                 self.kubernetes.create_ca_cert_tmp_file(ca_cert)

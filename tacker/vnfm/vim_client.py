@@ -20,6 +20,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 
 
+from tacker.common import utils
 from tacker import context as t_context
 from tacker.extensions import nfvo
 from tacker.keymgr import API as KEYMGR_API
@@ -85,8 +86,7 @@ class VimClient(object):
                                  vim_auth,
                                  vim_auth['bearer_token'])
         # decode ssl_ca_cert
-        if ('ssl_ca_cert' in vim_auth) and \
-                (vim_auth['ssl_ca_cert'] is not None):
+        if utils.none_from_string(vim_auth.get('ssl_ca_cert')) is not None:
             vim_auth['ssl_ca_cert'] = self.\
                 _decode_vim_auth(vim_info['id'],
                                  vim_auth,
