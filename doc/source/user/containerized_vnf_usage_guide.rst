@@ -187,12 +187,11 @@ Similar to the above example, in this scenario, we define 2 containers in VDU1.
           service_type: ClusterIP
           vnfcs:
             web_server:
-              properties:
                 num_cpus: 0.5
                 mem_size: 512 MB
                 image: celebdor/kuryr-demo
                 ports:
-                  - 8080
+                  - "8080"
                 config: |
                   param0: key1
                   param1: key2
