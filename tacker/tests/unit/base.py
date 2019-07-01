@@ -16,6 +16,7 @@
 import mock
 from oslo_config import cfg
 from oslo_config import fixture as config_fixture
+from requests_mock.contrib import fixture as requests_mock_fixture
 
 from tacker.tests import base
 
@@ -32,3 +33,15 @@ class TestCase(base.BaseTestCase):
     def _mock(self, target, new=mock.DEFAULT):
         patcher = mock.patch(target, new)
         return patcher.start()
+
+
+class FixturedTestCase(TestCase):
+    client_fixture_class = None
+
+    def setUp(self):
+        super(FixturedTestCase, self).setUp()
+        if self.client_fixture_class:
+            self.requests_mock = self.useFixture(requests_mock_fixture.
+                                                 Fixture())
+            fix = self.client_fixture_class(self.requests_mock)
+            self.cs = self.useFixture(fix).client

@@ -129,8 +129,9 @@ def get_dummy_vnf_config_obj():
         'config': {'firewall': 'dummy_firewall_values'}}}}}}}
 
 
-def get_dummy_vnf():
-    return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
+def get_dummy_vnf(status='PENDING_CREATE', scaling_group=False,
+                  instance_id=None):
+    dummy_vnf = {'status': status, 'instance_id': instance_id, 'name':
         u'test_openwrt', 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
         'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
         'vnfd': {
@@ -146,6 +147,11 @@ def get_dummy_vnf():
         'attributes': {u'param_values': u''},
         'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
         'description': u'OpenWRT with services'}
+    if scaling_group:
+        dummy_vnf['attributes'].update({'scaling_group_names':
+                                   '{"SP1": "SP1_group"}',
+                                   'heat_template': 'test'})
+    return dummy_vnf
 
 
 def get_dummy_vnf_config_attr():
