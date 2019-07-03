@@ -46,6 +46,10 @@ class ParamYAMLInputMissing(exceptions.InvalidInput):
     message = _("Parameter YAML input missing")
 
 
+class InvalidFormat(exceptions.InvalidInput):
+    message = _("Invalid format. '%(error)s'")
+
+
 RESOURCE_ATTRIBUTE_MAP = {
 
     'events': {

@@ -16,6 +16,7 @@
 
 from sqlalchemy.orm import exc as orm_exc
 
+from oslo_db import exception
 from oslo_log import log as logging
 
 from tacker.common import log
@@ -82,7 +83,12 @@ class CommonServicesPluginDb(common_services.CommonServicesPluginBase,
     @log.log
     def get_events(self, context, filters=None, fields=None, sorts=None,
                    limit=None, marker_obj=None, page_reverse=False):
-        return self._get_collection(context, common_services_db.Event,
-                                    self._make_event_dict,
-                                    filters, fields, sorts, limit,
-                                    marker_obj, page_reverse)
+        try:
+            return self._get_collection(context, common_services_db.Event,
+                                        self._make_event_dict,
+                                        filters, fields, sorts, limit,
+                                        marker_obj, page_reverse)
+        except exception.DBError as e:
+            LOG.error("Failed to get event: %s", e.message)
+            msg = "Id should be in UUID v4 format"
+            raise common_services.InvalidFormat(error=msg)
