@@ -15,9 +15,10 @@
 from __future__ import print_function
 
 import compiler
-import imp
 import os.path
 import sys
+
+from olso_utils import importutils
 
 
 def is_localized(node):
@@ -116,9 +117,8 @@ def check_i18n(input_file, i18n_msg_predicates, msg_format_checkers, debug):
 
 if __name__ == '__main__':
     input_path = sys.argv[1]
-    cfg_path = sys.argv[2]
     try:
-        cfg_mod = imp.load_source('', cfg_path)
+        cfg_mod = importutils.import_module(tools.check_i18n)
     except Exception:
         print("Load cfg module failed", file=sys.stderr)
         sys.exit(1)
@@ -128,8 +128,8 @@ if __name__ == '__main__':
     black_list = cfg_mod.file_black_list
 
     debug = False
-    if len(sys.argv) > 3:
-        if sys.argv[3] == '-d':
+    if len(sys.argv) > 2:
+        if sys.argv[2] == '-d':
             debug = True
 
     if os.path.isfile(input_path):
