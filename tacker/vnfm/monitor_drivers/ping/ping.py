@@ -17,6 +17,7 @@ import netaddr
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from tacker._i18n import _
 from tacker.agent.linux import utils as linux_utils
 from tacker.common import log
 from tacker.vnfm.monitor_drivers import abstract_driver

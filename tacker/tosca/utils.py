@@ -20,6 +20,8 @@ import yaml
 from collections import OrderedDict
 from oslo_log import log as logging
 from oslo_utils import uuidutils
+
+from tacker._i18n import _
 from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import utils

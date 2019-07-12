@@ -17,6 +17,7 @@ import mock
 from webob import exc
 import webtest
 
+from tacker._i18n import _
 from tacker.api.v1 import resource as wsgi_resource
 from tacker.common import exceptions as n_exc
 from tacker import context

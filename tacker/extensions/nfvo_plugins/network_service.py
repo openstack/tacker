@@ -13,6 +13,7 @@
 import abc
 import six
 
+from tacker._i18n import _
 from tacker.common import exceptions
 from tacker.services import service_base
 

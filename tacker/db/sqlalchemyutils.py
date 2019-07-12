@@ -17,6 +17,7 @@ from six import moves
 import sqlalchemy
 from sqlalchemy.orm.properties import RelationshipProperty
 
+from tacker._i18n import _
 from tacker.common import exceptions as n_exc
 
 

@@ -24,6 +24,7 @@ from oslo_config import cfg
 import oslo_i18n
 from oslo_service import service as common_service
 
+from tacker._i18n import _
 from tacker.common import config
 from tacker import objects
 from tacker import service

@@ -21,6 +21,7 @@ from sqlalchemy import inspect
 
 from oslo_utils import timeutils
 
+from tacker._i18n import _
 from tacker.common import exceptions
 
 

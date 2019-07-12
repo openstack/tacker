@@ -22,6 +22,7 @@ from six import iteritems
 from six.moves.urllib import parse as urllib_parse
 from webob import exc
 
+from tacker._i18n import _
 from tacker.common import constants
 from tacker.common import exceptions
 from tacker import wsgi

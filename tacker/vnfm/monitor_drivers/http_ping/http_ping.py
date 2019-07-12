@@ -19,6 +19,7 @@ from oslo_log import log as logging
 import six.moves.urllib.error as urlerr
 import six.moves.urllib.request as urlreq
 
+from tacker._i18n import _
 from tacker.common import log
 from tacker.vnfm.monitor_drivers import abstract_driver
 

@@ -17,6 +17,7 @@ import webob.dec
 
 import oslo_i18n
 
+from tacker._i18n import _
 from tacker.api.views import versions as versions_view
 from tacker import wsgi
 

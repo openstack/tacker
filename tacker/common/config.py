@@ -25,6 +25,7 @@ from oslo_log import log as logging
 import oslo_messaging
 from paste import deploy
 
+from tacker._i18n import _
 from tacker.common import utils
 from tacker import version
 

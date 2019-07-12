@@ -25,6 +25,7 @@ from oslo_utils import excutils
 from oslo_utils import uuidutils
 from toscaparser.tosca_template import ToscaTemplate
 
+from tacker._i18n import _
 from tacker.api.v1 import attributes
 from tacker.common import driver_manager
 from tacker.common import exceptions

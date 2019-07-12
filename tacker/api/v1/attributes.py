@@ -20,6 +20,7 @@ from oslo_log import log as logging
 from oslo_utils import uuidutils
 import six
 
+from tacker._i18n import _
 from tacker.common import exceptions as n_exc
 
 

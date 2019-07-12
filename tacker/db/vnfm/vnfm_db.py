@@ -26,6 +26,7 @@ from sqlalchemy import orm
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import schema
 
+from tacker._i18n import _
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
 from tacker import context as t_context
