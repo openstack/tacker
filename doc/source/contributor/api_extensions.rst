@@ -14,4 +14,4 @@ by studying an existing API extension and explaining the different layers.
 
 .. seealso::
 
-   https://developer.openstack.org/api-ref/nfv-orchestration/
+   https://docs.openstack.org/api-ref/nfv-orchestration/

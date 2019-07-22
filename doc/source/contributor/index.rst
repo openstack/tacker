@@ -46,4 +46,4 @@ API Documentation
 
 .. seealso::
 
-   https://developer.openstack.org/api-ref/nfv-orchestration/
+   https://docs.openstack.org/api-ref/nfv-orchestration/
