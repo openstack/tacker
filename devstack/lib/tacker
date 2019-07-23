@@ -405,7 +405,7 @@ function tacker_register_default_vim {
     cat $VIM_CONFIG_FILE
     DEFAULT_VIM_NAME="VIM0"
     cat >> $TACKER_DIR/tools/test-setup-default-vim.sh <<EOF
-tacker --os-username nfv_user --os-project-name nfv --os-password devstack --os-auth-url ${KEYSTONE_SERVICE_URI} --os-project-domain-name Default --os-user-domain-name Default vim-register --is-default --description "Default VIM" --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME
+openstack --os-username nfv_user --os-project-name nfv --os-password devstack --os-auth-url ${KEYSTONE_SERVICE_URI} --os-project-domain-name Default --os-user-domain-name Default vim register --is-default --description "Default VIM" --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME
 EOF
     echo "The content of $TACKER_DIR/tools/test-setup-default-vim.sh"
     cat $TACKER_DIR/tools/test-setup-default-vim.sh
