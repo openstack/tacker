@@ -53,7 +53,6 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Tacker Release Notes'
 copyright = u'2016, Tacker Developers'
 
 # Release do not need a version number in the title, they
@@ -178,17 +177,6 @@ htmlhelp_basename = 'tackerdoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
-
-latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    # 'papersize': 'letterpaper',
-
-    # The font size ('10pt', '11pt' or '12pt').
-    # 'pointsize': '10pt',
-
-    # Additional stuff for the LaTeX preamble.
-    # 'preamble': '',
-}
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
