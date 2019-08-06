@@ -1,0 +1,37 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: A sample containerized VNF with one container per VDU
+
+metadata:
+    template_name: sample-tosca-vnfd
+
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      properties:
+        mapping_ports:
+          - 80:80
+        namespace: default
+        vnfcs:
+          web_server:
+            num_cpus: 0.2
+            mem_size: 100 MB
+            image: ubuntu:16.04
+            config: |
+              param0: key1
+              param1: key2
+    CP11:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+      requirements:
+        - virtualLink:
+            node: VL11
+        - virtualBinding:
+            node: VDU1
+    VL11:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: k8s-pod-subnet
+        vendor: Tacker

@@ -87,7 +87,6 @@ class Transformer(object):
 
         a list name of services
         """
-
         deployment_names = list()
         namespace = kubernetes_objects.get('namespace')
         k8s_objects = kubernetes_objects.get('objects')
@@ -220,7 +219,8 @@ class Transformer(object):
 
         # Create and configure a spec section
         pod_template = client.V1PodTemplateSpec(
-            metadata=client.V1ObjectMeta(labels=labels),
+            metadata=client.V1ObjectMeta(
+                labels=labels, annotations=tosca_kube_obj.annotations),
             spec=client.V1PodSpec(containers=containers))
 
         # Create the specification of deployment
