@@ -14,8 +14,10 @@
 
 import datetime
 
+import oslo_messaging as messaging
 from oslo_utils import versionutils
 from oslo_versionedobjects import base as ovoo_base
+from oslo_versionedobjects import exception as ovoo_exc
 
 from tacker import objects
 from tacker.objects import fields as obj_fields
@@ -115,6 +117,63 @@ class TackerObject(ovoo_base.VersionedObject):
             self._changed_fields -= set(fields)
         else:
             self._changed_fields.clear()
+
+
+class TackerObjectSerializer(messaging.NoOpSerializer):
+    """A TackerObject-aware Serializer.
+
+    This implements the Oslo Serializer interface and provides the
+    ability to serialize and deserialize TackerObject entities. Any service
+    that needs to accept or return TackerObjects as arguments or result values
+    should pass this to its RPCClient and RPCServer objects.
+    """
+
+    def _process_object(self, context, objprim):
+        try:
+            objinst = TackerObject.obj_from_primitive(objprim, context=context)
+        except ovoo_exc.IncompatibleObjectVersion:
+            raise
+        return objinst
+
+    def _process_iterable(self, context, action_fn, values):
+        """Process an iterable, taking an action on each value.
+
+        :param:context: Request context
+        :param:action_fn: Action to take on each item in values
+        :param:values: Iterable container of things to take action on
+        :returns: A new container of the same type (except set) with
+                  items from values having had action applied.
+        """
+        iterable = values.__class__
+        if issubclass(iterable, dict):
+            return iterable(**{k: action_fn(context, v)
+                               for k, v in values.items()})
+        else:
+            # NOTE(nirajsingh) A set can't have an unhashable value inside,
+            # such as a dict. Convert the set to list, which is fine, since we
+            # can't send them over RPC anyway. We convert it to list as this
+            # way there will be no semantic change between the fake rpc driver
+            # used in functional test and a normal rpc driver.
+            if iterable == set:
+                iterable = list
+            return iterable([action_fn(context, value) for value in values])
+
+    def serialize_entity(self, context, entity):
+        if isinstance(entity, (tuple, list, set, dict)):
+            entity = self._process_iterable(context, self.serialize_entity,
+                                            entity)
+        elif (hasattr(entity, 'obj_to_primitive') and
+              callable(entity.obj_to_primitive)):
+            entity = entity.obj_to_primitive()
+        return entity
+
+    def deserialize_entity(self, context, entity):
+        if isinstance(entity, dict) and 'tacker_object.name' in entity:
+            entity = self._process_object(context, entity)
+        elif isinstance(entity, (tuple, list, set, dict)):
+            entity = self._process_iterable(context, self.deserialize_entity,
+                                            entity)
+        return entity
 
 
 class TackerPersistentObject(object):
