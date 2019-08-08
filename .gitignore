@@ -28,9 +28,11 @@ subunit.log
 .eggs/
 .stestr/
 SP1_res.yaml
+etc/tacker/tacker.conf.sample
 etc/tacker/policy.yaml.sample
 
 releasenotes/build
 etc/tacker/tacker.conf.sample
 doc/source/contributor/api
+doc/source/_static/tacker.conf.sample
 doc/source/_static/tacker.policy.yaml.sample

@@ -23,9 +23,14 @@ extensions = [
     'sphinxcontrib.apidoc',
     'stevedore.sphinxext',
     'openstackdocstheme',
+    'oslo_config.sphinxext',
+    'oslo_config.sphinxconfiggen',
     'oslo_policy.sphinxext',
     'oslo_policy.sphinxpolicygen',
 ]
+
+config_generator_config_file = '../../etc/config-generator.conf'
+sample_config_basename = '_static/tacker'
 
 policy_generator_config_file = [
     ('../../etc/tacker-policy-generator.conf', '_static/tacker'),

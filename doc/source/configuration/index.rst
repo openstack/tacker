@@ -18,19 +18,22 @@
 Tacker Configuration Guide
 ==========================
 
-The Tacker service is configured in the ``/etc/tacker/tacker.conf`` file.
-These are described below.
+The static configuration for tacker lives in three main files:
+``api-paste.ini``, ``tacker.conf`` and ``policy.json``.
+These are described below. For a bigger picture view on configuring
+tacker to solve specific problems.
 
-The sample configuration can also be viewed in :download:`file form
-</_extra/tacker.conf.sample>`.
+Configuration
+-------------
 
-.. important::
+* :doc:`API Paste ini <api-paste.ini>`: A complete reference of
+  api-paste.ini available in the ``api-paste.ini`` file.
 
-   The sample configuration file is auto-generated from tacker when this
-   documentation is built. You must ensure your version of tacker matches the
-   version of this documentation.
+* :doc:`Config Reference <config>`: A complete reference of all
+  configuration options available in the ``tacker.conf`` file.
 
-.. literalinclude:: /_extra/tacker.conf.sample
+* :doc:`Sample Config File <sample_config>`: A sample config
+  file with inline documentation.
 
 Policy
 ------
@@ -50,5 +53,8 @@ permissions on REST API actions.
 .. toctree::
    :hidden:
 
+   api-paste.ini
    policy
    sample_policy
+   config
+   sample_config

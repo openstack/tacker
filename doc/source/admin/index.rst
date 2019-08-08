@@ -70,5 +70,3 @@ of individual command can be referred by **openstack help <command-name>**.
    openstack vnf network forwarding path show      Show information of a given NFP.
    openstack nfv event show                        Show event given the event id.
    openstack nfv event list                        List events of resources.
-
-
