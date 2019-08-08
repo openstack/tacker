@@ -1,6 +1,5 @@
 [DEFAULT]
 auth_strategy = keystone
-policy_file = /etc/tacker/policy.json
 debug = True
 logging_exception_prefix = %(color)s%(asctime)s.%(msecs)03d TRACE %(name)s [01;35m%(instance)s[00m
 logging_debug_format_suffix = [00;33mfrom (pid=%(process)d) %(funcName)s %(pathname)s:%(lineno)d[00m

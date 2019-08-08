@@ -28,24 +28,13 @@ import six
 from tacker._i18n import _
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
+from tacker import policies
 
 
 LOG = logging.getLogger(__name__)
 
 _ENFORCER = None
 ADMIN_CTX_POLICY = 'context_is_admin'
-
-
-_BASE_RULES = [
-    policy.RuleDefault(
-        ADMIN_CTX_POLICY,
-        'role:admin',
-        description='Rule for cloud admin access'),
-    # policy.RuleDefault(
-    #    _ADVSVC_CTX_POLICY,
-    #     'role:advsvc',
-    #     description='Rule for advanced service role access'),
-]
 
 
 def reset():
@@ -61,8 +50,29 @@ def init(conf=cfg.CONF, policy_file=None):
     global _ENFORCER
     if not _ENFORCER:
         _ENFORCER = policy.Enforcer(conf, policy_file=policy_file)
-        _ENFORCER.register_defaults(_BASE_RULES)
-        _ENFORCER.load_rules(True)
+        register_rules(_ENFORCER)
+        _ENFORCER.load_rules()
+
+
+def authorize(context, action, target, do_raise=True, exc=None):
+
+    init()
+    credentials = context.to_policy_values()
+    if not exc:
+        exc = exceptions.PolicyNotAuthorized
+    try:
+        result = _ENFORCER.authorize(action, target, credentials,
+                                     do_raise=do_raise, exc=exc, action=action)
+    except policy.PolicyNotRegistered:
+        with excutils.save_and_reraise_exception():
+            LOG.debug('Policy not registered')
+    except Exception:
+        with excutils.save_and_reraise_exception():
+            LOG.debug('Policy check for %(action)s failed with credentials '
+                      '%(credentials)s',
+                      {'action': action, 'credentials': credentials})
+
+    return result
 
 
 def refresh(policy_file=None):
@@ -425,6 +435,10 @@ def check_is_admin(context):
         return _ENFORCER.authorize(ADMIN_CTX_POLICY, credentials, credentials)
     except policy.PolicyNotRegistered:
         return False
+
+
+def register_rules(enforcer):
+    enforcer.register_defaults(policies.list_rules())
 
 
 def get_enforcer():

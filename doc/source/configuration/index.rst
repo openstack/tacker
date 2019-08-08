@@ -31,3 +31,24 @@ The sample configuration can also be viewed in :download:`file form
    version of this documentation.
 
 .. literalinclude:: /_extra/tacker.conf.sample
+
+Policy
+------
+
+Tacker, like most OpenStack projects, uses a policy language to restrict
+permissions on REST API actions.
+
+* :doc:`Policy Reference <policy>`: A complete reference of all
+  policy points in tacker and what they impact.
+
+* :doc:`Sample Policy File <sample_policy>`: A sample tacker
+  policy file with inline documentation.
+
+.. # NOTE(bhagyashris): This is the section where we hide things that we don't
+   # actually want in the table of contents but sphinx build would fail if
+   # they aren't in the toctree somewhere.
+.. toctree::
+   :hidden:
+
+   policy
+   sample_policy

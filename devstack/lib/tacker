@@ -200,16 +200,10 @@ function configure_tacker {
 
     # server
     TACKER_API_PASTE_FILE=$TACKER_CONF_DIR/api-paste.ini
-    TACKER_POLICY_FILE=$TACKER_CONF_DIR/policy.json
 
     cp $TACKER_DIR/etc/tacker/api-paste.ini $TACKER_API_PASTE_FILE
-    cp $TACKER_DIR/etc/tacker/policy.json $TACKER_POLICY_FILE
-
-    # allow tacker user to administer tacker to match tacker account
-    sed -i 's/"context_is_admin":  "role:admin"/"context_is_admin":  "role:admin or user_name:tacker"/g' $TACKER_POLICY_FILE
 
     iniset $TACKER_CONF DEFAULT debug $ENABLE_DEBUG_LOG_LEVEL
-    iniset $TACKER_CONF DEFAULT policy_file $TACKER_POLICY_FILE
 
     iniset $TACKER_CONF DEFAULT auth_strategy $TACKER_AUTH_STRATEGY
     _tacker_setup_keystone $TACKER_CONF keystone_authtoken

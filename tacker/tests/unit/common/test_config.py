@@ -29,7 +29,6 @@ class ConfigurationTest(base.BaseTestCase):
         self.assertEqual(9890, cfg.CONF.bind_port)
         self.assertEqual('api-paste.ini.test', cfg.CONF.api_paste_config)
         self.assertEqual('unit/extensions', cfg.CONF.api_extensions_path)
-        self.assertEqual('policy.json', cfg.CONF.policy_file)
         self.assertEqual('keystone', cfg.CONF.auth_strategy)
         self.assertTrue(cfg.CONF.allow_bulk)
         self.assertFalse(cfg.CONF.allow_pagination)

@@ -23,6 +23,7 @@ from oslo_config import cfg
 from oslo_context import context as oslo_context
 from oslo_db.sqlalchemy import enginefacade
 
+from tacker.common import exceptions
 from tacker.db import api as db_api
 from tacker import policy
 
@@ -141,6 +142,34 @@ class ContextBase(oslo_context.RequestContext):
             context.roles = context.roles + ["admin"]
 
         return context
+
+    def can(self, action, target=None, fatal=True):
+        """Verifies that the given action is valid on the target in this context.
+
+        :param action: string representing the action to be checked.
+        :param target: dictionary representing the object of the action
+            for object creation this should be a dictionary representing the
+            location of the object e.g. ``{'project_id': context.project_id}``.
+            If None, then this default target will be considered:
+            {'project_id': self.project_id, 'user_id': self.user_id}
+        :param fatal: if False, will return False when an exception.Forbidden
+           occurs.
+
+        :raises tacker.exception.Forbidden: if verification fails and fatal
+            is True.
+
+        :return: returns a non-False value (not necessarily "True") if
+            authorized and False if not authorized and fatal is False.
+        """
+        if target is None:
+            target = {'tenant_id': self.tenant_id,
+                      'user_id': self.user_id}
+        try:
+            return policy.authorize(self, action, target)
+        except exceptions.Forbidden:
+            if fatal:
+                raise
+            return False
 
 
 @enginefacade.transaction_context_provider
