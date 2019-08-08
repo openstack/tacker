@@ -136,9 +136,7 @@ class MalformedRequestBody(BadRequest):
 
 
 class Invalid(TackerException):
-    def __init__(self, message=None):
-        self.message = message
-        super(Invalid, self).__init__()
+    message = _("Bad Request - Invalid Parameters")
 
 
 class InvalidInput(BadRequest):
@@ -219,3 +217,35 @@ class VnfSoftwareImageNotFound(NotFound):
 
 class OrphanedObjectError(TackerException):
     msg_fmt = _('Cannot call %(method)s on orphaned %(objtype)s object')
+
+
+class CSARFileSizeLimitExceeded(TackerException):
+    message = _("The provided CSAR file is too large.")
+
+
+class VNFPackageURLInvalid(Invalid):
+    message = _("Failed to open URL %(url)s")
+
+
+class InvalidZipFile(Invalid):
+    message = _("Invalid zip file : %(path)s")
+
+
+class UploadFailedToGlanceStore(Invalid):
+    message = _("Failed to upload vnf package %(uuid)s to glance store: "
+                "%(error)s")
+
+
+class InvalidCSAR(Invalid):
+    message = _("Invalid csar: %(error)s")
+
+
+class LimitExceeded(TackerException):
+    message = _("The request returned a 413 Request Entity Too Large. This "
+                "generally means that rate limiting or a quota threshold was "
+                "breached.\n\nThe response body:\n%(body)s")
+
+    def __init__(self, *args, **kwargs):
+        self.retry_after = (int(kwargs['retry']) if kwargs.get('retry')
+                            else None)
+        super(LimitExceeded, self).__init__(*args, **kwargs)

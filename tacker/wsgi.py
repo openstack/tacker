@@ -17,6 +17,7 @@
 Utility methods for working with WSGI servers
 """
 from __future__ import print_function
+import functools
 
 import errno
 import os
@@ -91,6 +92,54 @@ def encode_body(body):
     WebOb requires to encode unicode body used to update response body.
     """
     return encodeutils.to_utf8(body)
+
+
+def expected_errors(errors):
+    """Decorator for Restful API methods which specifies expected exceptions.
+
+    Specify which exceptions may occur when an API method is called. If an
+    unexpected exception occurs then return a 500 instead and ask the user
+    of the API to file a bug report.
+    """
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapped(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except Exception as exc:
+                if isinstance(exc, webob.exc.WSGIHTTPException):
+                    if isinstance(errors, int):
+                        t_errors = (errors,)
+                    else:
+                        t_errors = errors
+                    if exc.code in t_errors:
+                        raise
+                elif isinstance(exc, exception.Forbidden):
+                    # Note(nirajsingh): Special case to handle
+                    # Forbidden exceptions so every
+                    # extension method does not need to wrap authorize
+                    # calls. ResourceExceptionHandler silently
+                    # converts NotAuthorized to HTTPForbidden
+                    raise
+                elif isinstance(exc, exception.ValidationError):
+                    # Note(nirajsingh): Handle a validation error, which
+                    # happens due to invalid API parameters, as an
+                    # expected error.
+                    raise
+                elif isinstance(exc, exception.NotAuthorized):
+                    # Handle an authorized exception, will be
+                    # automatically converted to a HTTP 401.
+                    raise
+
+                LOG.exception("Unexpected exception in API method")
+                msg = _('Unexpected API Error. Please report this at '
+                    'http://bugs.launchpad.net/tacker/ and attach the Tacker '
+                    'API log if possible.\n%s') % type(exc)
+                raise webob.exc.HTTPInternalServerError(explanation=msg)
+
+        return wrapped
+
+    return decorator
 
 
 class WorkerService(common_service.ServiceBase):
@@ -354,7 +403,7 @@ class Request(webob.Request):
         return bm or 'application/json'
 
     def get_content_type(self):
-        allowed_types = ("application/json")
+        allowed_types = ("application/json", "application/zip")
         if "Content-Type" not in self.headers:
             LOG.debug("Missing Content-Type")
             return None
@@ -429,6 +478,7 @@ class ResponseSerializer(object):
     def __init__(self, body_serializers=None, headers_serializer=None):
         self.body_serializers = {
             'application/json': JSONDictSerializer(),
+            'application/zip': JSONDictSerializer()
         }
         self.body_serializers.update(body_serializers or {})
 
@@ -827,6 +877,21 @@ class ResourceExceptionHandler(object):
         return False
 
 
+def response(code):
+    """Attaches response code to a method.
+
+    This decorator associates a response code with a method.  Note
+    that the function attributes are directly manipulated; the method
+    is not wrapped.
+    """
+
+    def decorator(func):
+        func.wsgi_code = code
+        return func
+
+    return decorator
+
+
 class ResponseObject(object):
     """Bundles a response object
 
@@ -1083,6 +1148,15 @@ class Controller(object):
     or return a dict which will be serialized by requested content type.
 
     """
+
+    _view_builder_class = None
+
+    def __init__(self):
+        """Initialize controller with a view builder instance."""
+        if self._view_builder_class:
+            self._view_builder = self._view_builder_class()
+        else:
+            self._view_builder = None
 
     @webob.dec.wsgify(RequestClass=Request)
     def __call__(self, req):

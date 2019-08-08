@@ -18,6 +18,8 @@
 
 """Utilities and helper functions."""
 
+import functools
+import inspect
 import logging as std_logging
 import os
 import random
@@ -32,11 +34,18 @@ import netaddr
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import excutils
 from oslo_utils import importutils
 from stevedore import driver
+try:
+    from eventlet import sleep
+except ImportError:
+    from time import sleep
 
 from tacker._i18n import _
 from tacker.common import constants as q_const
+from tacker.common import exceptions
+from tacker.common import safe_utils
 
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -66,6 +75,12 @@ MEM_UNITS = {
 }
 CONF = cfg.CONF
 synchronized = lockutils.synchronized_with_prefix(SYNCHRONIZED_PREFIX)
+MAX_COOP_READER_BUFFER_SIZE = 134217728
+
+if hasattr(inspect, 'getfullargspec'):
+    getargspec = inspect.getfullargspec
+else:
+    getargspec = inspect.getargspec
 
 
 def find_config_file(options, config_file):
@@ -231,3 +246,213 @@ def none_from_string(orig_str):
         return None
     else:
         return orig_str
+
+
+def expects_func_args(*args):
+    def _decorator_checker(dec):
+        @functools.wraps(dec)
+        def _decorator(f):
+            base_f = safe_utils.get_wrapped_function(f)
+            argspec = getargspec(base_f)
+            if argspec[1] or argspec[2] or set(args) <= set(argspec[0]):
+                # NOTE (nirajsingh): We can't really tell if correct stuff will
+                # be passed if it's a function with *args or **kwargs so
+                # we still carry on and hope for the best
+                return dec(f)
+            else:
+                raise TypeError("Decorated function %(f_name)s does not "
+                                "have the arguments expected by the "
+                                "decorator %(d_name)s" %
+                                {'f_name': base_f.__name__,
+                                 'd_name': dec.__name__})
+
+        return _decorator
+
+    return _decorator_checker
+
+
+def cooperative_iter(iter):
+    """Prevent eventlet thread starvation during iteration
+
+    Return an iterator which schedules after each
+    iteration. This can prevent eventlet thread starvation.
+
+    :param iter: an iterator to wrap
+    """
+    try:
+        for chunk in iter:
+            sleep(0)
+            yield chunk
+    except Exception as err:
+        with excutils.save_and_reraise_exception():
+            msg = _("Error: cooperative_iter exception %s") % err
+            LOG.error(msg)
+
+
+def cooperative_read(fd):
+    """Prevent eventlet thread starvationafter each read operation.
+
+    Wrap a file descriptor's read with a partial function which schedules
+    after each read. This can prevent eventlet thread starvation.
+
+    :param fd: a file descriptor to wrap
+    """
+    def readfn(*args):
+        result = fd.read(*args)
+        sleep(0)
+        return result
+    return readfn
+
+
+def chunkreadable(iter, chunk_size=65536):
+    """Wrap a readable iterator.
+
+    Wrap a readable iterator with a reader yielding chunks of
+    a preferred size, otherwise leave iterator unchanged.
+
+    :param iter: an iter which may also be readable
+    :param chunk_size: maximum size of chunk
+    """
+    return chunkiter(iter, chunk_size) if hasattr(iter, 'read') else iter
+
+
+def chunkiter(fp, chunk_size=65536):
+    """Convert iterator to a file-like object.
+
+    Return an iterator to a file-like obj which yields fixed size chunks
+
+    :param fp: a file-like object
+    :param chunk_size: maximum size of chunk
+    """
+    while True:
+        chunk = fp.read(chunk_size)
+        if chunk:
+            yield chunk
+        else:
+            break
+
+
+class CooperativeReader(object):
+    """An eventlet thread friendly class for reading in image data.
+
+    When accessing data either through the iterator or the read method
+    we perform a sleep to allow a co-operative yield. When there is more than
+    one image being uploaded/downloaded this prevents eventlet thread
+    starvation, ie allows all threads to be scheduled periodically rather than
+    having the same thread be continuously active.
+    """
+    def __init__(self, fd):
+        """Construct an CooperativeReader object.
+
+        :param fd: Underlying image file object
+
+        """
+        self.fd = fd
+        self.iterator = None
+        # NOTE(nirajsingh): if the underlying supports read(), overwrite the
+        # default iterator-based implementation with cooperative_read which
+        # is more straightforward
+        if hasattr(fd, 'read'):
+            self.read = cooperative_read(fd)
+        else:
+            self.iterator = None
+            self.buffer = b''
+            self.position = 0
+
+    def read(self, length=None):
+        """Return the requested amount of bytes.
+
+        Fetching the next chunk of the underlying iterator when needed.
+        This is replaced with cooperative_read in __init__ if the underlying
+        fd already supports read().
+
+        """
+
+        if length is None:
+            if len(self.buffer) - self.position > 0:
+                # if no length specified but some data exists in buffer,
+                # return that data and clear the buffer
+                result = self.buffer[self.position:]
+                self.buffer = b''
+                self.position = 0
+                return bytes(result)
+            else:
+                # otherwise read the next chunk from the underlying iterator
+                # and return it as a whole. Reset the buffer, as subsequent
+                # calls may specify the length
+                try:
+                    if self.iterator is None:
+                        self.iterator = self.__iter__()
+                    return next(self.iterator)
+                except StopIteration:
+                    return b''
+                finally:
+                    self.buffer = b''
+                    self.position = 0
+        else:
+            result = bytearray()
+            while len(result) < length:
+                if self.position < len(self.buffer):
+                    to_read = length - len(result)
+                    chunk = self.buffer[self.position:self.position + to_read]
+                    result.extend(chunk)
+
+                    # This check is here to prevent potential OOM issues if
+                    # this code is called with unreasonably high values of read
+                    # size. Currently it is only called from the HTTP clients
+                    # of Glance backend stores, which use httplib for data
+                    # streaming, which has readsize hardcoded to 8K, so this
+                    # check should never fire. Regardless it still worths to
+                    # make the check, as the code may be reused somewhere else.
+                    if len(result) >= MAX_COOP_READER_BUFFER_SIZE:
+                        raise exceptions.LimitExceeded()
+                    self.position += len(chunk)
+                else:
+                    try:
+                        if self.iterator is None:
+                            self.iterator = self.__iter__()
+                        self.buffer = next(self.iterator)
+                        self.position = 0
+                    except StopIteration:
+                        self.buffer = b''
+                        self.position = 0
+                        return bytes(result)
+            return bytes(result)
+
+    def __iter__(self):
+        return cooperative_iter(self.fd.__iter__())
+
+
+class LimitingReader(object):
+    """Limit Reader to read data past to configured allowed amount.
+
+    Reader designed to fail when reading image data past the configured
+    allowable amount.
+    """
+    def __init__(self, data, limit,
+                 exception_class=exceptions.CSARFileSizeLimitExceeded):
+        """Construct an LimitingReader object.
+
+        :param data: Underlying image data object
+        :param limit: maximum number of bytes the reader should allow
+        :param exception_class: Type of exception to be raised
+        """
+        self.data = data
+        self.limit = limit
+        self.bytes_read = 0
+        self.exception_class = exception_class
+
+    def __iter__(self):
+        for chunk in self.data:
+            self.bytes_read += len(chunk)
+            if self.bytes_read > self.limit:
+                raise self.exception_class()
+            else:
+                yield chunk
+
+    def read(self, i):
+        result = self.data.read(i)
+        self.bytes_read += len(result)
+        if self.bytes_read > self.limit:
+            raise self.exception_class()
+        return result

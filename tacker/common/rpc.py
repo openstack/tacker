@@ -27,6 +27,7 @@ from oslo_utils import excutils
 
 from tacker.common import exceptions
 from tacker import context
+from tacker.objects import base as objects_base
 
 LOG = logging.getLogger(__name__)
 
@@ -60,7 +61,8 @@ def init(conf):
                                                  allowed_remote_exmods=exmods)
     NOTIFICATION_TRANSPORT = oslo_messaging.get_notification_transport(
         conf, allowed_remote_exmods=exmods)
-    serializer = RequestContextSerializer()
+    json_serializer = oslo_messaging.JsonPayloadSerializer()
+    serializer = RequestContextSerializer(json_serializer)
     NOTIFIER = oslo_messaging.Notifier(NOTIFICATION_TRANSPORT,
                                        serializer=serializer)
 
@@ -298,7 +300,8 @@ class Connection(object):
         target = oslo_messaging.Target(
             topic=topic, server=host or cfg.CONF.host, fanout=fanout,
             exchange=exchange)
-        server = get_server(target, endpoints)
+        serializer = objects_base.TackerObjectSerializer()
+        server = get_server(target, endpoints, serializer)
         self.servers.append(server)
 
     def consume_in_threads(self):
