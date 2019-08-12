@@ -25,6 +25,7 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 
+from tacker._i18n import _
 from tacker.common import driver_manager
 from tacker.common import exceptions
 from tacker import context as t_context

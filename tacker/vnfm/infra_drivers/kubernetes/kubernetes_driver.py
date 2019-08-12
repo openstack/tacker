@@ -21,6 +21,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 
+from tacker._i18n import _
 from tacker.common.container import kubernetes_utils
 from tacker.common import log
 from tacker.common import utils

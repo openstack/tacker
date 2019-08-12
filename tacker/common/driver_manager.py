@@ -19,6 +19,8 @@ from oslo_log import log as logging
 
 import stevedore.named
 
+from tacker._i18n import _
+
 LOG = logging.getLogger(__name__)
 
 

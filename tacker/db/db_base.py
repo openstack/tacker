@@ -22,6 +22,7 @@ from six import iteritems
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import sql
 
+from tacker._i18n import _
 from tacker.common import exceptions as n_exc
 from tacker.db import sqlalchemyutils
 

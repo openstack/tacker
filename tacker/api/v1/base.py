@@ -19,6 +19,7 @@ import webob.exc
 from oslo_log import log as logging
 from oslo_utils import strutils
 
+from tacker._i18n import _
 from tacker.api import api_common
 from tacker.api.v1 import attributes
 from tacker.api.v1 import resource as wsgi_resource

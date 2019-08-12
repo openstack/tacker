@@ -18,6 +18,7 @@ from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import periodic_task
 
+from tacker._i18n import _
 from tacker.common import utils
 
 

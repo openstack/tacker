@@ -40,6 +40,7 @@ import six
 import webob.dec
 import webob.exc
 
+from tacker._i18n import _
 from tacker.common import exceptions as exception
 from tacker import context
 from tacker.db import api

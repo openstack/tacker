@@ -25,6 +25,7 @@ import six
 import webob.dec
 import webob.exc
 
+from tacker._i18n import _
 from tacker.common import exceptions
 import tacker.extensions
 from tacker import policy

@@ -15,6 +15,7 @@
 
 import testtools
 
+from tacker._i18n import _
 from tacker.api.v1 import attributes
 from tacker.common import exceptions as n_exc
 from tacker.tests import base

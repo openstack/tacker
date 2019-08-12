@@ -19,6 +19,7 @@ from toscaparser.utils import yamlparser
 from translator.hot import tosca_translator
 import yaml
 
+from tacker._i18n import _
 from tacker.common import exceptions
 from tacker.common import log
 from tacker.extensions import common_services as cs

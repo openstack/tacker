@@ -20,6 +20,7 @@ from mock import patch
 from oslo_utils import uuidutils
 import yaml
 
+from tacker._i18n import _
 from tacker.common import exceptions
 from tacker import context
 from tacker.db.common_services import common_services_db_plugin

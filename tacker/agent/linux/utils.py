@@ -21,6 +21,7 @@ from eventlet import greenthread
 from oslo_log import log as logging
 from oslo_utils import excutils
 
+from tacker._i18n import _
 from tacker.common import utils
 
 

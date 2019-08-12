@@ -26,6 +26,7 @@ from oslo_service import service
 from oslo_utils import excutils
 from oslo_utils import importutils
 
+from tacker._i18n import _
 from tacker.common import config
 from tacker.common import rpc as n_rpc
 from tacker import context

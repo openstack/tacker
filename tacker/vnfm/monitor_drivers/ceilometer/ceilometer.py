@@ -18,6 +18,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import random
 import string
+from tacker._i18n import _
 from tacker.common import utils
 from tacker.vnfm.monitor_drivers import abstract_driver
 

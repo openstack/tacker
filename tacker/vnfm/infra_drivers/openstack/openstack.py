@@ -21,6 +21,7 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 import yaml
 
+from tacker._i18n import _
 from tacker.common import log
 from tacker.common import utils
 from tacker.extensions import vnfm

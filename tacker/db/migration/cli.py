@@ -20,6 +20,7 @@ from alembic import script as alembic_script
 from alembic import util as alembic_util
 from oslo_config import cfg
 
+from tacker._i18n import _
 from tacker.db.migration.models import head  # noqa
 from tacker.db.migration import purge_tables
 

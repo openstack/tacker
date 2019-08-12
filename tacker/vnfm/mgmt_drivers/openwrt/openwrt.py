@@ -19,6 +19,7 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 import yaml
 
+from tacker._i18n import _
 from tacker.common import cmd_executer
 from tacker.common import exceptions
 from tacker.common import log

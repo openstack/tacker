@@ -16,6 +16,7 @@
 Common utilities and helper functions for Openstack Networking Plugins.
 """
 
+from tacker._i18n import _
 from tacker.common import exceptions as n_exc
 from tacker.common import utils
 from tacker.plugins.common import constants

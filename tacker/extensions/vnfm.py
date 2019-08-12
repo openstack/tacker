@@ -18,6 +18,7 @@ import abc
 from oslo_log import log as logging
 import six
 
+from tacker._i18n import _
 from tacker.api import extensions
 from tacker.api.v1 import attributes as attr
 from tacker.api.v1 import base
