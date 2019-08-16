@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from functools import cmp_to_key
 import netaddr
 from oslo_config import cfg
 import oslo_i18n
@@ -31,7 +32,7 @@ LOG = logging.getLogger(__name__)
 
 
 def get_filters(request, attr_info, skips=None):
-    """Extracts the filters from the request string.
+    """Extract the filters from the request string.
 
     Returns a dict of lists for the filters:
     check=a&check=b&name=Bob&
@@ -123,7 +124,7 @@ def _get_limit_param(request):
 
 
 def list_args(request, arg):
-    """Extracts the list of arg from request."""
+    """Extract the list of arg from request."""
     return [v for v in request.GET.getall(arg) if v]
 
 
@@ -150,8 +151,8 @@ def get_sorts(request, attr_info):
                 'asc': constants.SORT_DIRECTION_ASC,
                 'desc': constants.SORT_DIRECTION_DESC})
         raise exc.HTTPBadRequest(explanation=msg)
-    return zip(sort_keys,
-               [x == constants.SORT_DIRECTION_ASC for x in sort_dirs])
+    return list(zip(sort_keys,
+                    [x == constants.SORT_DIRECTION_ASC for x in sort_dirs]))
 
 
 def get_page_reverse(request):
@@ -290,7 +291,7 @@ class SortingEmulatedHelper(SortingHelper):
                 if ret:
                     return ret * (1 if direction else -1)
             return 0
-        return sorted(items, cmp=cmp_func)
+        return sorted(items, key=cmp_to_key(cmp_func))
 
 
 class SortingNativeHelper(SortingHelper):
@@ -309,6 +310,7 @@ class NoSortingHelper(SortingHelper):
 
 class TackerController(object):
     """Base controller class for Tacker API."""
+
     # _resource_name will be redefined in sub concrete controller
     _resource_name = None
 
@@ -317,7 +319,7 @@ class TackerController(object):
         super(TackerController, self).__init__()
 
     def _prepare_request_body(self, body, params):
-        """Verifies required parameters are in request body.
+        """Verify required parameters are in request body.
 
         Sets default value for missing optional parameters.
         Body argument must be the deserialized body.
@@ -400,7 +402,7 @@ def get_exception_data(e):
 
 
 def translate(translatable, locale):
-    """Translates the object to the given locale.
+    """Translate the object to the given locale.
 
     If the object is an exception its translatable elements are translated
     in place, if the object is a translatable string it is translated and
