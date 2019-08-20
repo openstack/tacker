@@ -229,10 +229,21 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     @log.log
     def update_wait(self, plugin, context, vnf_dict, auth_attr,
                     region_name=None):
+        # do nothing but checking if the stack exists at the moment
+        heatclient = hc.HeatClient(auth_attr, region_name)
+        stack = heatclient.get(vnf_dict['instance_id'])
+
+        mgmt_ips = self._find_mgmt_ips(stack.outputs)
+        if mgmt_ips:
+            vnf_dict['mgmt_ip_address'] = jsonutils.dump_as_bytes(mgmt_ips)
+
+    @log.log
+    def heal_wait(self, plugin, context, vnf_dict, auth_attr,
+                  region_name=None):
         stack = self._wait_until_stack_ready(vnf_dict['instance_id'],
             auth_attr, infra_cnst.STACK_UPDATE_IN_PROGRESS,
             infra_cnst.STACK_UPDATE_COMPLETE,
-            vnfm.VNFUpdateWaitFailed, region_name=region_name)
+            vnfm.VNFHealWaitFailed, region_name=region_name)
 
         mgmt_ips = self._find_mgmt_ips(stack.outputs)
 

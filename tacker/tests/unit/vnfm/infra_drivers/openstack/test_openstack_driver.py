@@ -148,8 +148,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.mock_log.warning.assert_called_once()
 
     def test_update_wait(self):
-        self._response_in_wait_until_stack_ready(["UPDATE_IN_PROGRESS",
-                                                 "UPDATE_COMPLETE"])
+        self._response_in_wait_until_stack_ready(["CREATE_COMPLETE"])
         vnf_dict = utils.get_dummy_vnf(status='PENDING_UPDATE',
                                        instance_id=self.instance_uuid)
         self.openstack.update_wait(None, None, vnf_dict, None)
@@ -158,33 +157,44 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertEqual('{"VDU1": "192.168.120.216"}',
                          vnf_dict['mgmt_ip_address'])
 
-    def test_update_wait_without_mgmt_ips(self):
+    def test_heal_wait(self):
         self._response_in_wait_until_stack_ready(["UPDATE_IN_PROGRESS",
-                                                  "UPDATE_COMPLETE"],
-                                                 stack_outputs=False)
-        vnf_dict = utils.get_dummy_vnf(status='PENDING_UPDATE',
+                                                 "UPDATE_COMPLETE"])
+        vnf_dict = utils.get_dummy_vnf(status='PENDING_HEAL',
                                        instance_id=self.instance_uuid)
-        self.openstack.update_wait(None, None, vnf_dict, None)
+        self.openstack.heal_wait(None, None, vnf_dict, None)
+        self.mock_log.debug.assert_called_with('outputs %s',
+                                    fd_utils.get_dummy_stack()['outputs'])
+        self.assertEqual('{"VDU1": "192.168.120.216"}',
+                         vnf_dict['mgmt_ip_address'])
+
+    def test_heal_wait_without_mgmt_ips(self):
+        self._response_in_wait_until_stack_ready(["UPDATE_IN_PROGRESS",
+                                                 "UPDATE_COMPLETE"],
+                                                 stack_outputs=False)
+        vnf_dict = utils.get_dummy_vnf(status='PENDING_HEAL',
+                                       instance_id=self.instance_uuid)
+        self.openstack.heal_wait(None, None, vnf_dict, None)
         self.mock_log.debug.assert_called_with('outputs %s',
                         fd_utils.get_dummy_stack(outputs=False)['outputs'])
         self.assertIsNone(vnf_dict['mgmt_ip_address'])
 
-    def test_update_wait_failed_with_retries_0(self):
+    def test_heal_wait_failed_with_retries_0(self):
         self._response_in_wait_until_stack_ready(["UPDATE_IN_PROGRESS"])
-        vnf_dict = utils.get_dummy_vnf(status='PENDING_UPDATE',
+        vnf_dict = utils.get_dummy_vnf(status='PENDING_HEAL',
                                        instance_id=self.instance_uuid)
-        self.assertRaises(vnfm.VNFUpdateWaitFailed,
-                          self.openstack.update_wait,
+        self.assertRaises(vnfm.VNFHealWaitFailed,
+                          self.openstack.heal_wait,
                           None, None, vnf_dict,
                           None)
 
-    def test_update_wait_failed_stack_retries_not_0(self):
+    def test_heal_wait_failed_stack_retries_not_0(self):
         self._response_in_wait_until_stack_ready(["UPDATE_IN_PROGRESS",
                                                  "FAILED"])
-        vnf_dict = utils.get_dummy_vnf(status='PENDING_UPDATE',
+        vnf_dict = utils.get_dummy_vnf(status='PENDING_HEAL',
                                        instance_id=self.instance_uuid)
-        self.assertRaises(vnfm.VNFUpdateWaitFailed,
-                          self.openstack.update_wait,
+        self.assertRaises(vnfm.VNFHealWaitFailed,
+                          self.openstack.heal_wait,
                           None, None, vnf_dict,
                           None)
 
