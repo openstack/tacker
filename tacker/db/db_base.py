@@ -90,11 +90,6 @@ class CommonDbMixin(object):
                                 (model.shared == sql.true()))
             else:
                 query_filter = (model.tenant_id == context.tenant_id)
-        elif context.is_admin and hasattr(model, 'tenant_id'):
-            # NOTE(Lijiale) One tenant can not access other tenant's Vim,
-            # NOTE(Lijiale) even though this tenant has admin role.
-            if hasattr(model, 'shared'):
-                query_filter = (model.tenant_id == context.tenant_id)
 
         # Execute query hooks registered from mixins and plugins
         for _name, hooks in iteritems(self._model_query_hooks.get(model, {})):

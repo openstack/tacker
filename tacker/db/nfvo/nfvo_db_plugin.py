@@ -201,7 +201,9 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
 
     def _get_default_vim(self, context):
         query = self._model_query(context, nfvo_db.Vim)
-        return query.filter(nfvo_db.Vim.is_default == sql.true()).one()
+        return query.filter(
+            nfvo_db.Vim.tenant_id == context.tenant_id).filter(
+            nfvo_db.Vim.is_default == sql.true()).one()
 
     def get_default_vim(self, context):
         vim_db = self._get_default_vim(context)
