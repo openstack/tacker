@@ -299,6 +299,108 @@ In the same way, user also scale in VNF with scaling-type is 'in'. The range
 of scaling manually is limited by 'min_instances' and 'max_instances' user
 provide in VNF template.
 
+Multi-Interface for C-VNF
+=========================
+
+To use multi-interface for C-VNF, User should follow below procedure.
+
+1. Checking kuryr.conf
+~~~~~~~~~~~~~~~~~~~~~~
+
+After installation, user should check kuryr.conf configuration.
+
+.. code-block:: console
+
+  $ sudo cat /etc/kuryr/kuryr.conf | grep multi_vif_drivers
+  multi_vif_drivers = npwg_multiple_interfaces
+
+2. Adding K8s CustomResourceDefinition
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To use CustomResourceDefinition, user needs to add CRD.
+User can make a additional network using yaml file like below.
+Create yaml file  like below and register it.
+
+.. code-block:: console
+
+  $ cat ./crdnetwork.yaml
+
+.. code-block:: yaml
+
+  apiVersion: apiextensions.k8s.io/v1beta1
+  kind: CustomResourceDefinition
+  metadata:
+    name: network-attachment-definitions.k8s.cni.cncf.io
+  spec:
+    group: k8s.cni.cncf.io
+    version: v1
+    scope: Namespaced
+    names:
+      plural: network-attachment-definitions
+      singular: network-attachment-definition
+      kind: NetworkAttachmentDefinition
+      shortNames:
+      - net-attach-def
+    validation:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              config:
+                   type: string
+
+Register crdnetwork.yaml
+
+.. code-block:: console
+
+  $ kubectl create -f ~/crdnetwork.yaml
+
+Get crd list
+
+.. code-block:: console
+
+  $ kubectl get crd
+
+  NAME                                             CREATED AT
+  kuryrnetpolicies.openstack.org                   2019-07-31T02:23:54Z
+  kuryrnets.openstack.org                          2019-07-31T02:23:54Z
+  network-attachment-definitions.k8s.cni.cncf.io   2019-07-31T02:23:55Z
+
+3. Adding neutron subnet id information to k8s CRD
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To use neutron subnet in kubernetes, user should register neutron
+subnet to CRD. At first, user should create subnet.yaml file.
+
+.. code-block:: console
+
+  $ cat ./kuryr-subnetname1.yaml
+
+  apiVersion: "k8s.cni.cncf.io/v1"
+  kind: NetworkAttachmentDefinition
+  metadata:
+    name: subnetname1
+    annotations:
+      openstack.org/kuryr-config: '{"subnetId": "$subnet_id"}'
+
+After making a yaml file, user should create subnet with yaml file.
+
+.. code-block:: console
+
+  $ kubectl create -f ~/kuryr-subnetname1.yaml
+
+
+After created, user can check subnet info like below.
+
+.. code-block:: console
+
+  $ kubectl get net-attach-def
+
+  NAME           AGE
+  k8s-multi-10   7d
+  k8s-multi-11   7d
+
+
 Known Issues and Limitations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -314,4 +416,3 @@ References
 .. [#fourth] https://kubernetes.io/docs/concepts/workloads/controllers/deployment
 .. [#fifth] https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap
 .. [#sixth] https://kubernetes.io/docs/concepts/services-networking/service
-
