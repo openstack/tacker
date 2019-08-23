@@ -51,6 +51,8 @@ fi
 
 TACKER_CONF_DIR=/etc/tacker
 TACKER_CONF=$TACKER_CONF_DIR/tacker.conf
+TACKER_DATA_DIR=${TACKER_DATA_DIR:=$DATA_DIR/tacker}
+
 
 # Default name for Tacker database
 TACKER_DB_NAME=${TACKER_DB_NAME:-tacker}
@@ -81,6 +83,10 @@ TACKER_NOVA_API_INSECURE=${TACKER_NOVA_API_INSECURE:-False}
 HEAT_CONF_DIR=/etc/heat
 
 source ${TACKER_DIR}/tacker/tests/contrib/post_test_hook_lib.sh
+
+VNF_PACKAGE_CSAR_PATH=${VNF_PACKAGE_CSAR_PATH:=$TACKER_DATA_DIR/vnfpackage}
+FILESYSTEM_STORE_DATA_DIR=${FILESYSTEM_STORE_DATA_DIR:=$TACKER_DATA_DIR/csar_files}
+GLANCE_DEFAULT_BACKEND=${GLANCE_DEFAULT_BACKEND:=file}
 
 # Functions
 # ---------
@@ -165,12 +171,25 @@ function stop_tacker {
 # runs that a clean run would need to clean up
 function cleanup_tacker {
     sudo rm -rf $TACKER_AUTH_CACHE_DIR
+    sudo rm -rf $VNF_PACKAGE_CSAR_PATH
+    sudo rm -rf $FILESYSTEM_STORE_DATA_DIR
 }
 
 
 function _create_tacker_conf_dir {
     # Put config files in ``TACKER_CONF_DIR`` for everyone to find
     sudo install -d -o $STACK_USER $TACKER_CONF_DIR
+}
+
+function _create_tacker_data_dirs {
+    # Create tacker data folder
+    sudo install -d -o $STACK_USER $TACKER_DATA_DIR
+
+    # Create vnf package csar extract path folder
+    sudo install -d -o $STACK_USER ${VNF_PACKAGE_CSAR_PATH}
+
+    # Create folder for storing csar files in the glance store.
+    sudo install -d -o $STACK_USER ${FILESYSTEM_STORE_DATA_DIR}
 }
 
 # configure_tacker()
@@ -187,8 +206,15 @@ function configure_tacker {
     iniset_rpc_backend tacker $TACKER_CONF
 
     iniset $TACKER_CONF database connection `database_connection_url $TACKER_DB_NAME`
-    iniset $TACKER_CONF DEFAULT state_path $DATA_DIR/tacker
+    iniset $TACKER_CONF DEFAULT state_path $TACKER_DATA_DIR
     iniset $TACKER_CONF DEFAULT use_syslog $SYSLOG
+
+    iniset $TACKER_CONF vnf_package vnf_package_csar_path "$VNF_PACKAGE_CSAR_PATH"
+    iniset $TACKER_CONF glance_store filesystem_store_datadir "$FILESYSTEM_STORE_DATA_DIR"
+    iniset $TACKER_CONF glance_store default_backend "$GLANCE_DEFAULT_BACKEND"
+
+    # Create the required data folders
+    _create_tacker_data_dirs
 
     # Format logging
     if [ "$LOG_COLOR" == "True" ] && [ "$SYSLOG" == "False" ]; then
@@ -391,9 +417,8 @@ function tacker_register_default_vim {
     # get_or_add_user_project_role advsvc $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
 
     echo "Set register default VIM sh which is called by ansible role..."
-    mkdir -p $DATA_DIR/tacker
-    cp $TACKER_DIR/devstack/vim_config.yaml $DATA_DIR/tacker
-    VIM_CONFIG_FILE="$DATA_DIR/tacker/vim_config.yaml"
+    cp $TACKER_DIR/devstack/vim_config.yaml $TACKER_DATA_DIR
+    VIM_CONFIG_FILE="$TACKER_DATA_DIR/vim_config.yaml"
     sed -e "s|^auth_url:.*$|auth_url: \'${KEYSTONE_SERVICE_URI}\'|" -i $VIM_CONFIG_FILE
     echo "The content of VIM config file $VIM_CONFIG_FILE :"
     cat $VIM_CONFIG_FILE
