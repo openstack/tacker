@@ -122,6 +122,6 @@ class VnfTestCreate(base.BaseTackerTest):
             vnfd_name='sample-tosca-vnfd-placement-policy-invalid',
             vdu_name='invalid-placement-policy-vdu',
             placement_policy='invalid')
-        self.assertIn("[u\'invalid\']", exc.message)
-        self.assertIn("is not an allowed value [anti-affinity, affinity, "
-                      "soft-anti-affinity, soft-affinity]", exc.message)
+        self.assertIn('["invalid"]', exc.message)
+        self.assertIn('is not an allowed value ["anti-affinity", "affinity", '
+                      '"soft-anti-affinity", "soft-affinity"]', exc.message)
