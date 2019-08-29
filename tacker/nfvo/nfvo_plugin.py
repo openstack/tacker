@@ -31,6 +31,7 @@ from toscaparser.tosca_template import ToscaTemplate
 
 from tacker._i18n import _
 from tacker.common import driver_manager
+from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import utils
 from tacker import context as t_context
@@ -896,15 +897,23 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
             raise cs.ParamYAMLInputMissing()
 
     @log.log
-    def delete_ns(self, context, ns_id):
+    def delete_ns(self, context, ns_id, ns=None):
+        # Extract "force_delete" from request's body
+        force_delete = False
+        if ns and ns.get('ns', {}).get('attributes', {}).get('force'):
+            force_delete = ns['ns'].get('attributes').get('force')
+        if force_delete and not context.is_admin:
+            LOG.warning("force delete is admin only operation")
+            raise exceptions.AdminRequired(reason="Admin only operation")
         ns = super(NfvoPlugin, self).get_ns(context, ns_id)
         LOG.debug("Deleting ns: %s", ns)
         vim_res = self.vim_client.get_vim(context, ns['vim_id'])
-        super(NfvoPlugin, self).delete_ns_pre(context, ns_id)
+        super(NfvoPlugin, self).delete_ns_pre(context, ns_id, force_delete)
         driver_type = vim_res['vim_type']
         workflow = None
         try:
             if ns['vnf_ids']:
+                ns['force_delete'] = force_delete
                 workflow = self._vim_drivers.invoke(
                     driver_type,
                     'prepare_and_create_workflow',
@@ -969,11 +978,12 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                      workflow_id=workflow['id'],
                                      auth_dict=self.get_auth_dict(context))
             super(NfvoPlugin, self).delete_ns_post(context, ns_id, exec_obj,
-                                                   error_reason)
+                                                   error_reason,
+                                                   force_delete=force_delete)
 
         if workflow:
             self.spawn_n(_delete_ns_wait, ns['id'], mistral_execution.id)
         else:
             super(NfvoPlugin, self).delete_ns_post(
-                context, ns_id, None, None)
+                context, ns_id, None, None, force_delete=force_delete)
         return ns['id']

@@ -60,3 +60,7 @@ class NSDNotFound(exceptions.NotFound):
 
 class NSNotFound(exceptions.NotFound):
     message = _('NS %(ns_id)s could not be found')
+
+
+class NSInUse(exceptions.InUse):
+    message = _('NS %(ns_id)s in use')

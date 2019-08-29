@@ -174,9 +174,13 @@ def get_dummy_create_workflow():
                         'on-success': [{'delete_vnf_VNF1': '<% $.status_VNF1='
                                                            '"ERROR" %>'}]},
                     'delete_vnf_VNF1': {
-                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>'},
+                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>',
+                        'input': {'body': {'vnf': {'attributes': {
+                                                   'force': False}}}}},
                     'delete_vnf_VNF2': {
-                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF2%>'}},
+                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF2%>',
+                        'input': {'body': {'vnf': {'attributes': {
+                                                   'force': False}}}}}},
                 'type': 'direct', 'output': {
                     'status_VNF1': '<% $.status_VNF1 %>',
                     'status_VNF2': '<% $.status_VNF2 %>',
@@ -268,9 +272,13 @@ def get_dummy_create_vnffg_ns_workflow():
                             '<% task(create_ns_VNF2).result.vnf.id %>'},
                     'on-success': ['wait_vnf_active_VNF2']},
                 'delete_vnf_VNF1': {
-                    'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>'},
+                    'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>',
+                    'input': {'body': {'vnf': {'attributes': {
+                                               'force': False}}}}},
                 'delete_vnf_VNF2': {
-                    'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF2%>'}},
+                    'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF2%>',
+                    'input': {'body': {'vnf': {'attributes': {
+                                               'force': False}}}}}},
             'type': 'direct',
             'output': {
                 'status_VNF1': '<% $.status_VNF1 %>',
@@ -301,7 +309,9 @@ def get_dummy_delete_workflow():
                 'input': ['vnf_id_VNF1'],
                 'tasks': {
                     'delete_vnf_VNF1': {
-                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>'}},
+                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>',
+                        'input': {'body': {'vnf': {'attributes': {
+                                                   'force': False}}}}}},
                 'type': 'direct'}}
 
 
@@ -312,7 +322,9 @@ def get_dummy_delete_vnffg_ns_workflow():
                 'tasks': {
                     'delete_vnf_VNF1': {
                         'join': 'all',
-                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>'},
+                        'action': 'tacker.delete_vnf vnf=<% $.vnf_id_VNF1%>',
+                        'input': {'body': {'vnf': {'attributes': {
+                                                   'force': False}}}}},
                     'delete_vnffg_VNFFG1': {
                         'action': 'tacker.delete_vnffg vnffg='
                                   '<% $.VNFFG1 %>',

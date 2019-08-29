@@ -96,6 +96,8 @@ class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
 
     def _add_delete_vnf_tasks(self, ns, vnffg_ids=None):
         vnfds = ns['vnfd_details']
+        vnf_attr = {'vnf': {'attributes': {
+                            'force': ns.get('force_delete', False)}}}
         task_dict = dict()
         for vnfd_name, vnfd_info in (vnfds).items():
             nodes = vnfd_info['instances']
@@ -104,6 +106,7 @@ class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
                 task_dict[task] = {
                     'action': 'tacker.delete_vnf vnf=<% $.vnf_id_{0}'
                               '%>'.format(node),
+                    'input': {'body': vnf_attr},
                 }
                 if vnffg_ids and len(vnffg_ids):
                     task_dict[task].update({'join': 'all'})
@@ -271,5 +274,6 @@ class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
                 ns_dict['vnffg_details'] = vnffg_ids
             self.definition[self.wf_identifier]['tasks'].update(
                 self._add_delete_vnffg_task(ns_dict))
+        ns_dict['force_delete'] = ns.get('force_delete', False)
         self.definition[self.wf_identifier]['tasks'].update(
             self._add_delete_vnf_tasks(ns_dict, vnffg_ids))

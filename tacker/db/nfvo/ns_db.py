@@ -133,7 +133,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
             else:
                 raise
 
-    def _get_ns_db(self, context, ns_id, current_statuses, new_status):
+    def _get_ns_db(self, context, ns_id, current_statuses):
         try:
             ns_db = (
                 self._model_query(context, NS).
@@ -142,6 +142,9 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                 with_lockmode('update').one())
         except orm_exc.NoResultFound:
             raise network_service.NSNotFound(ns_id=ns_id)
+        return ns_db
+
+    def _update_ns_db(self, ns_db, new_status):
         ns_db.update({'status': new_status})
         return ns_db
 
@@ -340,11 +343,17 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         return ns_dict
 
     # reference implementation. needs to be overrided by subclass
-    def delete_ns_pre(self, context, ns_id):
+    def delete_ns_pre(self, context, ns_id, force_delete=False):
         with context.session.begin(subtransactions=True):
             ns_db = self._get_ns_db(
-                context, ns_id, _ACTIVE_UPDATE_ERROR_DEAD,
-                constants.PENDING_DELETE)
+                context, ns_id, _ACTIVE_UPDATE_ERROR_DEAD)
+            if not force_delete:
+                if (ns_db is not None and ns_db.status in
+                        [constants.PENDING_DELETE,
+                         constants.PENDING_CREATE,
+                         constants.PENDING_UPDATE]):
+                    raise network_service.NSInUse(ns_id=ns_id)
+            ns_db = self._update_ns_db(ns_db, constants.PENDING_DELETE)
         deleted_ns_db = self._make_ns_dict(ns_db)
         self._cos_db_plg.create_event(
             context, res_id=ns_id,
@@ -355,15 +364,21 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
         return deleted_ns_db
 
     def delete_ns_post(self, context, ns_id, mistral_obj,
-                       error_reason, soft_delete=True):
+                       error_reason, soft_delete=True, force_delete=False):
         ns = self.get_ns(context, ns_id)
         nsd_id = ns.get('nsd_id')
         with context.session.begin(subtransactions=True):
-            query = (
-                self._model_query(context, NS).
-                filter(NS.id == ns_id).
-                filter(NS.status == constants.PENDING_DELETE))
-            if mistral_obj and mistral_obj.state == 'ERROR':
+            if force_delete:
+                query = (
+                    self._model_query(context, NS).
+                    filter(NS.id == ns_id))
+            else:
+                query = (
+                    self._model_query(context, NS).
+                    filter(NS.id == ns_id).
+                    filter(NS.status == constants.PENDING_DELETE))
+            if not force_delete and (mistral_obj
+                                     and mistral_obj.state == 'ERROR'):
                 query.update({'status': constants.ERROR})
                 self._cos_db_plg.create_event(
                     context, res_id=ns_id,
@@ -385,9 +400,12 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                         details="ns Delete Complete")
                 else:
                     query.delete()
-            template_db = self._get_resource(context, NSD, nsd_id)
-            if template_db.get('template_source') == 'inline':
-                self.delete_nsd(context, nsd_id)
+            try:
+                template_db = self._get_resource(context, NSD, nsd_id)
+                if template_db.get('template_source') == 'inline':
+                    self.delete_nsd(context, nsd_id)
+            except orm_exc.NoResultFound:
+                pass
 
     def get_ns(self, context, ns_id, fields=None):
         ns_db = self._get_resource(context, NS, ns_id)
