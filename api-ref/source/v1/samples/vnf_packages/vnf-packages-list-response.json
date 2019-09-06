@@ -1,0 +1,69 @@
+{
+   "vnf_packages":[
+      {
+         "vnfSoftwareVersion":"1.0",
+         "usageState":"NOT_IN_USE",
+         "vnfProductName":"Sample VNF",
+         "softwareImages":[
+            {
+               "imagePath":"",
+               "diskFormat":"qcow2",
+               "userMetadata":{
+
+               },
+               "id":"VirtualStorage",
+               "size":2,
+               "name":"VrtualStorage",
+               "checksum":{
+                  "hash":"b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d",
+                  "algorithm":"sha-256"
+               },
+               "minDisk":2,
+               "version":"0.4.0",
+               "provider":"provider",
+               "minRam":8192,
+               "containerFormat":"bare"
+            },
+            {
+               "imagePath":"",
+               "diskFormat":"qcow2",
+               "userMetadata":{
+
+               },
+               "id":"VDU1",
+               "size":1,
+               "name":"Software of VDU1",
+               "checksum":{
+                  "hash":"b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d",
+                  "algorithm":"sha-256"
+               },
+               "minDisk":1,
+               "version":"0.4.0",
+               "provider":"provider",
+               "minRam":0,
+               "containerFormat":"bare"
+            }
+         ],
+         "vnfProvider":"Test VNF Provider",
+         "userDefinedData":{
+            "abc":"xyz"
+         },
+         "vnfdId":"b3ab49d6-389d-46f9-8650-d0bf778b5e92",
+         "_links":{
+            "packageContent":{
+               "href":"/vnfpkgm/v1/vnf_packages/4e8b9d2c-ecb5-408b-a8ce-8ea0890bacbb/package_content"
+            },
+            "self":{
+               "href":"/vnfpkgm/v1/vnf_packages/4e8b9d2c-ecb5-408b-a8ce-8ea0890bacbb"
+            },
+            "vnfd":{
+               "href":"/vnfpkgm/v1/vnf_packages/4e8b9d2c-ecb5-408b-a8ce-8ea0890bacbb/vnfd"
+            }
+         },
+         "vnfdVersion":"1.0",
+         "onboardingState":"ONBOARDED",
+         "operationalState":"DISABLED",
+         "id":"4e8b9d2c-ecb5-408b-a8ce-8ea0890bacbb"
+      }
+   ]
+}
