@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds '--force' parameter to VNF and NS delete command, to delete
+    VNF and network service instances forcefully. This is admin only
+    operation to clean instances which stuck in abnormal state.
