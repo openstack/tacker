@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixed Kubernetes 'ssl_ca_cert' value error.
