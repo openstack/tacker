@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Allow non-admin's VIM accessible for admin
