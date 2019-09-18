@@ -61,16 +61,12 @@ class ContextBase(oslo_context.RequestContext):
             self.is_admin = policy.check_is_admin(self)
 
     @property
-    def project_id(self):
-        return self.tenant
-
-    @property
     def tenant_id(self):
-        return self.tenant
+        return self.project_id
 
     @tenant_id.setter
     def tenant_id(self, tenant_id):
-        self.tenant = tenant_id
+        self.project_id = tenant_id
 
     @property
     def tenant_name(self):
@@ -79,14 +75,6 @@ class ContextBase(oslo_context.RequestContext):
     @tenant_name.setter
     def tenant_name(self, tenant_name):
         self.project_name = tenant_name
-
-    @property
-    def user_id(self):
-        return self.user
-
-    @user_id.setter
-    def user_id(self, user_id):
-        self.user = user_id
 
     def to_dict(self):
         context = super(ContextBase, self).to_dict()
@@ -103,7 +91,7 @@ class ContextBase(oslo_context.RequestContext):
 
     @classmethod
     def from_dict(cls, values):
-        return cls(user_id=values.get('user_id', values.get('user')),
+        return cls(user_id=values.get('user_id'),
                    tenant_id=values.get('tenant_id', values.get('project_id')),
                    is_admin=values.get('is_admin'),
                    roles=values.get('roles'),
@@ -122,8 +110,8 @@ class ContextBase(oslo_context.RequestContext):
         # but kept for backwards compatibility. Remove them in Pike
         # (oslo.context from Ocata release already issues deprecation warnings
         # for non-standard keys).
-        values['user'] = self.user_id
-        values['tenant'] = self.project_id
+        values['user_id'] = self.user_id
+        values['project_id'] = self.project_id
         values['domain'] = self.domain_id
         values['user_domain'] = self.user_domain_id
         values['project_domain'] = self.project_domain_id
