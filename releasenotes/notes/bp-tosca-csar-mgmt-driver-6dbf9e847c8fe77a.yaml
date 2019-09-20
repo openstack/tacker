@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Added new RESTful APIs for managing VNF packages required for managing the
+    lifecycle of a VNF. See the `spec`_ for more details.
+
+    .. note:: VNF create API can create a VNF using a VNFD registered by
+      VNFD create API only. VNF creation and instantiation using VNF package
+      will be made available in future release.
+
+    .. _spec : https://specs.openstack.org/openstack/tacker-specs/specs/train/vnf_package_support.html
+

@@ -1,0 +1,20 @@
+{
+   "usageState":"NOT_IN_USE",
+   "userDefinedData":{
+      "abc":"xyz"
+   },
+   "_links":{
+      "packageContent":{
+         "href":"/vnfpkgm/v1/vnf_packages/4e8b9d2c-ecb5-408b-a8ce-8ea0890bacbb/package_content"
+      },
+      "self":{
+         "href":"/vnfpkgm/v1/vnf_packages/4e8b9d2c-ecb5-408b-a8ce-8ea0890bacbb"
+      },
+      "vnfd":{
+         "href":"/vnfpkgm/v1/vnf_packages/4e8b9d2c-ecb5-408b-a8ce-8ea0890bacbb/vnfd"
+      }
+   },
+   "onboardingState":"CREATED",
+   "operationalState":"DISABLED",
+   "id":"4e8b9d2c-ecb5-408b-a8ce-8ea0890bacbb"
+}
