@@ -19,9 +19,11 @@ from blazarclient import client as blazar_client
 from glanceclient.v2 import client as glance_client
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
+from keystoneclient import adapter
 from neutronclient.v2_0 import client as neutron_client
 from novaclient import client as nova_client
 from oslo_config import cfg
+from oslo_serialization import jsonutils
 from tempest.lib import base
 
 from tacker.plugins.common import constants as evt_constants
@@ -34,6 +36,40 @@ from tackerclient.v1_0 import client as tacker_client
 
 
 CONF = cfg.CONF
+
+
+class SessionClient(adapter.Adapter):
+    def request(self, *args, **kwargs):
+        kwargs.setdefault('authenticated', False)
+        kwargs.setdefault('raise_exc', False)
+
+        content_type = kwargs.pop('content_type', None) or 'application/json'
+
+        headers = kwargs.setdefault('headers', {})
+        headers.setdefault('Accept', content_type)
+
+        try:
+            kwargs.setdefault('data', kwargs.pop('body'))
+        except KeyError:
+            pass
+
+        if kwargs.get('data'):
+            headers.setdefault('Content-Type', content_type)
+
+        return super(SessionClient, self).request(*args, **kwargs)
+
+    def _decode_json(self, response):
+        body = response.text
+        if body:
+            return jsonutils.loads(body)
+        else:
+            return ""
+
+    def do_request(self, url, method, **kwargs):
+        kwargs.setdefault('authenticated', True)
+        resp = self.request(url, method, **kwargs)
+        body = self._decode_json(resp)
+        return resp, body
 
 
 class BaseTackerTest(base.BaseTestCase):
@@ -50,6 +86,7 @@ class BaseTackerTest(base.BaseTestCase):
                  **kwargs)
 
         cls.client = cls.tackerclient()
+        cls.http_client = cls.tacker_http_client()
         cls.h_client = cls.heatclient()
 
     @classmethod
@@ -59,9 +96,10 @@ class BaseTackerTest(base.BaseTestCase):
         return vim_params
 
     @classmethod
-    def tackerclient(cls):
+    def get_auth_session(cls):
         vim_params = cls.get_credentials()
-        auth = v3.Password(auth_url=vim_params['auth_url'],
+        auth = v3.Password(
+            auth_url=vim_params['auth_url'],
             username=vim_params['username'],
             password=vim_params['password'],
             project_name=vim_params['project_name'],
@@ -69,7 +107,19 @@ class BaseTackerTest(base.BaseTestCase):
             project_domain_name=vim_params['project_domain_name'])
         verify = 'True' == vim_params.pop('cert_verify', 'False')
         auth_ses = session.Session(auth=auth, verify=verify)
-        return tacker_client.Client(session=auth_ses)
+        return auth_ses
+
+    @classmethod
+    def tacker_http_client(cls):
+        auth_session = cls.get_auth_session()
+        return SessionClient(session=auth_session,
+                             service_type='nfv-orchestration',
+                             region_name='RegionOne')
+
+    @classmethod
+    def tackerclient(cls):
+        auth_session = cls.get_auth_session()
+        return tacker_client.Client(session=auth_session)
 
     @classmethod
     def novaclient(cls):

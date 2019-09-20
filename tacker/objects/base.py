@@ -144,6 +144,7 @@ class TackerObjectSerializer(messaging.NoOpSerializer):
         :returns: A new container of the same type (except set) with
                   items from values having had action applied.
         """
+
         iterable = values.__class__
         if issubclass(iterable, dict):
             return iterable(**{k: action_fn(context, v)

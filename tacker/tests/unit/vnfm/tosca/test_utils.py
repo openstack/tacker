@@ -35,12 +35,12 @@ class TestToscaUtils(testtools.TestCase):
     tosca_openwrt = _get_template('test_tosca_openwrt.yaml')
     vnfd_dict = yaml.safe_load(tosca_openwrt)
     toscautils.updateimports(vnfd_dict)
-    tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                          yaml_dict_tpl=vnfd_dict)
-    tosca_flavor = _get_template('test_tosca_flavor.yaml')
 
     def setUp(self):
         super(TestToscaUtils, self).setUp()
+        self.tosca = tosca_template.ToscaTemplate(
+            parsed_params={}, a_file=False, yaml_dict_tpl=self.vnfd_dict)
+        self.tosca_flavor = _get_template('test_tosca_flavor.yaml')
 
     def test_updateimport(self):
         importspath = os.path.abspath('./tacker/tosca/lib/')

@@ -40,3 +40,12 @@ VNF_DATA = {
     'usage_state': 'NOT_IN_USE',
     'user_data': {'abc': 'xyz'}
 }
+
+VNF_PACKAGE_DATA = {'algorithm': None, 'hash': None,
+                    'location_glance_store': None,
+                    'onboarding_state': 'CREATED',
+                    'operational_state': 'DISABLED',
+                    'tenant_id': uuidsentinel.tenant_id,
+                    'usage_state': 'NOT_IN_USE',
+                    'user_data': {'abc': 'xyz'}
+                    }

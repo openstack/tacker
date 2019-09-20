@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import glance_store
 from oslo_config import cfg
 
 from tacker.conf import conductor
@@ -23,3 +24,4 @@ CONF = cfg.CONF
 
 vnf_package.register_opts(CONF)
 conductor.register_opts(CONF)
+glance_store.register_opts(CONF)
