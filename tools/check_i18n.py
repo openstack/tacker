@@ -18,7 +18,7 @@ import compiler
 import os.path
 import sys
 
-from olso_utils import importutils
+from oslo_utils import importutils
 
 
 def is_localized(node):
