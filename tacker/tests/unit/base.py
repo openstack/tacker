@@ -19,6 +19,7 @@ from oslo_config import fixture as config_fixture
 from requests_mock.contrib import fixture as requests_mock_fixture
 
 from tacker.tests import base
+from tacker.tests.unit import fixtures as tacker_fixtures
 
 CONF = cfg.CONF
 
@@ -29,6 +30,9 @@ class TestCase(base.BaseTestCase):
         super(TestCase, self).setUp()
         self.config_fixture = self.useFixture(config_fixture.Config(CONF))
         CONF([], default_config_files=[])
+
+        # Limit the amount of DeprecationWarning messages in the unit test logs
+        self.useFixture(tacker_fixtures.WarningsFixture())
 
     def _mock(self, target, new=mock.DEFAULT):
         patcher = mock.patch(target, new)

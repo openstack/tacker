@@ -35,8 +35,8 @@ class TestTackerContext(base.BaseTestCase):
         self.assertEqual('tenant_id', ctx.project_id)
         self.assertEqual('tenant_id', ctx.tenant_id)
         self.assertThat(ctx.request_id, matchers.StartsWith('req-'))
-        self.assertEqual('user_id', ctx.user)
-        self.assertEqual('tenant_id', ctx.tenant)
+        self.assertEqual('user_id', ctx.user_id)
+        self.assertEqual('tenant_id', ctx.project_id)
         self.assertIsNone(ctx.user_name)
         self.assertIsNone(ctx.tenant_name)
 
@@ -47,8 +47,8 @@ class TestTackerContext(base.BaseTestCase):
         self.assertEqual('user_name', ctx.user_name)
         self.assertEqual('tenant_name', ctx.tenant_name)
         # Check user/tenant contains its ID even if user/tenant_name is passed
-        self.assertEqual('user_id', ctx.user)
-        self.assertEqual('tenant_id', ctx.tenant)
+        self.assertEqual('user_id', ctx.user_id)
+        self.assertEqual('tenant_id', ctx.project_id)
 
     def test_tacker_context_create_with_request_id(self):
         ctx = context.Context('user_id', 'tenant_id', request_id='req_id_xxx')
@@ -60,8 +60,8 @@ class TestTackerContext(base.BaseTestCase):
         self.assertEqual('user_id', ctx_dict['user_id'])
         self.assertEqual('tenant_id', ctx_dict['project_id'])
         self.assertEqual(ctx.request_id, ctx_dict['request_id'])
-        self.assertEqual('user_id', ctx_dict['user'])
-        self.assertEqual('tenant_id', ctx_dict['tenant'])
+        self.assertEqual('user_id', ctx_dict['user_id'])
+        self.assertEqual('tenant_id', ctx_dict['project_id'])
         self.assertIsNone(ctx_dict['user_name'])
         self.assertIsNone(ctx_dict['tenant_name'])
         self.assertIsNone(ctx_dict['project_name'])
