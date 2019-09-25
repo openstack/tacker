@@ -396,7 +396,7 @@ class Request(webob.Request):
         type_from_header = self.get_content_type()
         if type_from_header:
             return type_from_header
-        ctypes = ['application/json']
+        ctypes = ['application/json', 'text/plain', 'application/zip']
 
         # Finally search in Accept-* headers
         bm = self.accept.best_match(ctypes)
@@ -935,9 +935,11 @@ class ResponseObject(object):
         """
 
         serializer = self.serializer
-
-        body = None
-        if self.obj is not None:
+        if self.obj is None:
+            body = None
+        elif content_type == 'text/plain':
+            body = self.obj
+        else:
             body = serializer.serialize(self.obj)
         response = webob.Response(body=body)
         response.status_int = self.code
@@ -1032,7 +1034,8 @@ class Resource(Application):
 
         if not response:
             resp_obj = None
-            if type(action_result) is dict or action_result is None:
+            if isinstance(action_result, (dict, str)) \
+                    or action_result is None:
                 resp_obj = ResponseObject(action_result)
             elif isinstance(action_result, ResponseObject):
                 resp_obj = action_result

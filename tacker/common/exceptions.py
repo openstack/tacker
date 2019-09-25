@@ -240,6 +240,10 @@ class UploadFailedToGlanceStore(Invalid):
                 "%(error)s")
 
 
+class FailedToGetVnfdData(Invalid):
+    message = _("Failed to get csar zip file from glance store: %(error)s")
+
+
 class InvalidCSAR(Invalid):
     message = _("Invalid csar: %(error)s")
 

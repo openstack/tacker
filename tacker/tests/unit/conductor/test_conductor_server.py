@@ -13,13 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mock
 import os
+from oslo_config import cfg
 import shutil
 import sys
 
+from glance_store import exceptions as store_exceptions
+import mock
+import yaml
+
 from tacker.common import csar_utils
+from tacker.common import exceptions
 from tacker.conductor import conductor_server
+import tacker.conf
 from tacker import context
 from tacker.glance_store import store as glance_store
 from tacker import objects
@@ -27,6 +33,8 @@ from tacker.objects import vnf_package
 from tacker.tests.unit.conductor import fakes
 from tacker.tests.unit.db.base import SqlTestCase
 from tacker.tests import uuidsentinel
+
+CONF = tacker.conf.CONF
 
 
 class TestConductor(SqlTestCase):
@@ -91,6 +99,59 @@ class TestConductor(SqlTestCase):
         self.vnf_package.__setattr__('onboarding_state', 'ONBOARDED')
         self.conductor.delete_vnf_package(self.context, self.vnf_package)
         mock_delete_csar.assert_called()
+
+    def test_get_vnf_package_vnfd_with_tosca_meta_file_in_csar(self):
+        fake_csar = fakes.create_fake_csar_dir(self.vnf_package.id)
+        expected_data = fakes.get_expected_vnfd_data()
+        result = self.conductor.get_vnf_package_vnfd(self.context,
+                                                     self.vnf_package)
+        self.assertEqual(expected_data, result)
+        shutil.rmtree(fake_csar)
+
+    def test_get_vnf_package_vnfd_with_single_yaml_csar(self):
+        fake_csar = fakes.create_fake_csar_dir(self.vnf_package.id,
+                                               single_yaml_csar=True)
+        result = self.conductor.get_vnf_package_vnfd(self.context,
+                                                     self.vnf_package)
+        # only one key present in the result shows that it contains only one
+        # yaml file
+        self.assertEqual(1, len(result.keys()))
+        shutil.rmtree(fake_csar)
+
+    @mock.patch.object(glance_store, 'load_csar')
+    def test_get_vnf_package_vnfd_download_from_glance_store(self,
+                                                             mock_load_csar):
+        fake_csar = os.path.join('/tmp/', self.vnf_package.id)
+        cfg.CONF.set_override('vnf_package_csar_path', '/tmp',
+                              group='vnf_package')
+        # Scenario in which csar path is not present in the local storage.
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        sample_vnf_package = os.path.join(
+            base_path, "../../etc/samples/sample_vnf_package_csar.zip")
+        mock_load_csar.return_value = sample_vnf_package
+        expected_data = fakes.get_expected_vnfd_data()
+        result = self.conductor.get_vnf_package_vnfd(self.context,
+                                                     self.vnf_package)
+        self.assertEqual(expected_data, result)
+        shutil.rmtree(fake_csar)
+
+    @mock.patch.object(glance_store, 'load_csar')
+    def test_get_vnf_package_vnfd_exception_from_glance_store(self,
+                                                            mock_load_csar):
+        mock_load_csar.side_effect = store_exceptions.NotFound
+        self.assertRaises(exceptions.FailedToGetVnfdData,
+                          self.conductor.get_vnf_package_vnfd, self.context,
+                          self.vnf_package)
+
+    @mock.patch.object(conductor_server.Conductor, '_read_vnfd_files')
+    def test_get_vnf_package_vnfd_exception_from_read_vnfd_files(
+            self, mock_read_vnfd_files):
+        fake_csar = fakes.create_fake_csar_dir(self.vnf_package.id)
+        mock_read_vnfd_files.side_effect = yaml.YAMLError
+        self.assertRaises(exceptions.FailedToGetVnfdData,
+                          self.conductor.get_vnf_package_vnfd, self.context,
+                          self.vnf_package)
+        shutil.rmtree(fake_csar)
 
     @mock.patch.object(os, 'remove')
     @mock.patch.object(shutil, 'rmtree')

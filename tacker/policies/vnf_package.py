@@ -94,7 +94,16 @@ rules = [
                 'path': '/vnf_packages/{vnf_package_id}'
             }
         ]),
-
+    policy.DocumentedRuleDefault(
+        name=VNFPKGM % 'get_vnf_package_vnfd',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="reads the content of the VNFD within a VNF package.",
+        operations=[
+            {
+                'method': 'GET',
+                'path': '/vnf_packages/{vnf_package_id}/vnfd'
+            }
+        ]),
 ]
 
 

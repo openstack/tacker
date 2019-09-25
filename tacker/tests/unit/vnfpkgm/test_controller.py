@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import ddt
 import mock
 from oslo_serialization import jsonutils
 from six.moves import http_client
@@ -20,6 +21,7 @@ from six.moves import urllib
 from webob import exc
 
 from tacker.api.vnfpkgm.v1 import controller
+from tacker.common import exceptions
 from tacker.conductor.conductorrpc.vnf_pkgm_rpc import VNFPackageRPCAPI
 from tacker.glance_store import store as glance_store
 from tacker import objects
@@ -32,6 +34,7 @@ from tacker.tests.unit import fake_request
 from tacker.tests.unit.vnfpkgm import fakes
 
 
+@ddt.ddt
 class TestController(base.TestCase):
 
     def setUp(self):
@@ -413,3 +416,121 @@ class TestController(base.TestCase):
         self.assertRaises(exc.HTTPBadRequest,
                           self.controller.patch,
                           req, constants.UUID, body=body)
+
+    @mock.patch.object(VNFPackageRPCAPI, "get_vnf_package_vnfd")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    @ddt.data('application/zip', 'text/plain,application/zip',
+              'application/zip,text/plain')
+    def test_get_vnf_package_vnfd_with_valid_accept_headers(
+            self, accept_headers, mock_vnf_by_id, mock_get_vnf_package_vnfd):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(onboarded=True)
+        mock_get_vnf_package_vnfd.return_value = fakes.return_vnfd_data()
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/vnfd'
+            % constants.UUID)
+        req.headers['Accept'] = accept_headers
+        req.method = 'GET'
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.OK, resp.status_code)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_get_vnf_package_vnfd_with_invalid_accept_header(
+            self, mock_vnf_by_id):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(onboarded=True)
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/vnfd'
+            % constants.UUID)
+        req.headers['Accept'] = 'test-invalid-header'
+        req.method = 'GET'
+        self.assertRaises(exc.HTTPNotAcceptable,
+                          self.controller.get_vnf_package_vnfd,
+                          req, constants.UUID)
+
+    @mock.patch.object(VNFPackageRPCAPI, "get_vnf_package_vnfd")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_get_vnf_package_vnfd_failed_with_bad_request(
+            self, mock_vnf_by_id, mock_get_vnf_package_vnfd):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(onboarded=True)
+        mock_get_vnf_package_vnfd.return_value = fakes.return_vnfd_data()
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/vnfd'
+            % constants.UUID)
+        req.headers['Accept'] = 'text/plain'
+        req.method = 'GET'
+        self.assertRaises(exc.HTTPBadRequest,
+                          self.controller.get_vnf_package_vnfd,
+                          req, constants.UUID)
+
+    @mock.patch.object(VNFPackageRPCAPI, "get_vnf_package_vnfd")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_get_vnf_package_vnfd_for_content_type_text_plain(self,
+                                  mock_vnf_by_id,
+                                  mock_get_vnf_package_vnfd):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(onboarded=True)
+        fake_vnfd_data = fakes.return_vnfd_data(multiple_yaml_files=False)
+        mock_get_vnf_package_vnfd.return_value = fake_vnfd_data
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/vnfd'
+            % constants.UUID)
+        req.headers['Accept'] = 'text/plain'
+        req.method = 'GET'
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.OK, resp.status_code)
+        self.assertEqual('text/plain', resp.content_type)
+        self.assertEqual(fake_vnfd_data[list(fake_vnfd_data.keys())[0]],
+                         resp.text)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_get_vnf_package_vnfd_failed_with_invalid_status(
+            self, mock_vnf_by_id):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(onboarded=False)
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/vnfd'
+            % constants.UUID)
+        req.headers['Accept'] = 'application/zip'
+        req.method = 'GET'
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+
+    def test_get_vnf_package_vnfd_with_invalid_uuid(self):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/vnfd'
+            % constants.INVALID_UUID)
+        req.headers['Accept'] = 'application/zip'
+        req.method = 'GET'
+        exception = self.assertRaises(exc.HTTPNotFound,
+                                self.controller.get_vnf_package_vnfd,
+                                req, constants.INVALID_UUID)
+        self.assertEqual(
+            "Can not find requested vnf package: %s" % constants.INVALID_UUID,
+            exception.explanation)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_get_vnf_package_vnfd_with_non_existing_vnf_packagee(
+            self, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/vnfd'
+            % constants.UUID)
+        req.headers['Accept'] = 'application/zip'
+        req.method = 'GET'
+        mock_vnf_by_id.side_effect = exceptions.VnfPackageNotFound
+        self.assertRaises(exc.HTTPNotFound,
+                          self.controller.get_vnf_package_vnfd, req,
+                          constants.UUID)
+
+    @mock.patch.object(VNFPackageRPCAPI, "get_vnf_package_vnfd")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_get_vnf_package_vnfd_failed_with_internal_server_error(
+            self, mock_vnf_by_id, mock_get_vnf_package_vnfd):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(onboarded=True)
+        mock_get_vnf_package_vnfd.side_effect = exceptions.FailedToGetVnfdData
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/vnfd'
+            % constants.UUID)
+        req.headers['Accept'] = 'application/zip'
+        req.method = 'GET'
+        resp = req.get_response(self.app)
+        self.assertRaises(exc.HTTPInternalServerError,
+                          self.controller.get_vnf_package_vnfd,
+                          req, constants.UUID)
+        self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)

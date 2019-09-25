@@ -61,3 +61,12 @@ class VNFPackageRPCAPI(object):
         rpc_method = cctxt.cast if cast else cctxt.call
         return rpc_method(context, 'delete_vnf_package',
                           vnf_package=vnf_package)
+
+    def get_vnf_package_vnfd(self, context, vnf_package, cast=False):
+        serializer = objects_base.TackerObjectSerializer()
+        client = rpc.get_client(self.target, version_cap=None,
+                                serializer=serializer)
+        cctxt = client.prepare()
+        rpc_method = cctxt.cast if cast else cctxt.call
+        return rpc_method(context, 'get_vnf_package_vnfd',
+                          vnf_package=vnf_package)

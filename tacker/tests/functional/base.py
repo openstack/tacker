@@ -60,7 +60,9 @@ class SessionClient(adapter.Adapter):
 
     def _decode_json(self, response):
         body = response.text
-        if body:
+        if body and response.headers['Content-Type'] == 'text/plain':
+            return body
+        elif body:
             return jsonutils.loads(body)
         else:
             return ""
@@ -68,6 +70,8 @@ class SessionClient(adapter.Adapter):
     def do_request(self, url, method, **kwargs):
         kwargs.setdefault('authenticated', True)
         resp = self.request(url, method, **kwargs)
+        if resp.headers['Content-Type'] == 'application/zip':
+            return resp, resp.content
         body = self._decode_json(resp)
         return resp, body
 

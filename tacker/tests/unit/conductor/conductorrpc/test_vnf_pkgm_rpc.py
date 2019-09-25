@@ -79,3 +79,18 @@ class VnfPackageRPCTestCase(base.BaseTestCase):
                 self.context, 'delete_vnf_package',
                 vnf_package=vnf_package_obj)
         _test()
+
+    def test_get_vnf_package_vnfd(self):
+
+        @mock.patch.object(BackingOffClient, 'prepare')
+        def _test(prepare_mock):
+            prepare_mock.return_value = self.cctxt_mock
+            vnf_package_obj = vnf_package.VnfPackage(self.context,
+                                                     **fakes.VNF_DATA)
+            self.rpc_api.get_vnf_package_vnfd(self.context,
+                                            vnf_package_obj, cast=False)
+            prepare_mock.assert_called()
+            self.cctxt_mock.call.assert_called_once_with(
+                self.context, 'get_vnf_package_vnfd',
+                vnf_package=vnf_package_obj)
+        _test()

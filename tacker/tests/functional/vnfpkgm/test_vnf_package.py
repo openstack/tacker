@@ -13,14 +13,22 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import ddt
 import os
+import tempfile
 import time
+import zipfile
 
 from oslo_serialization import jsonutils
 
+import tacker.conf
 from tacker.tests.functional import base
 
 
+CONF = tacker.conf.CONF
+
+
+@ddt.ddt
 class VnfPackageTest(base.BaseTackerTest):
 
     VNF_PACKAGE_DELETE_TIMEOUT = 120
@@ -169,3 +177,68 @@ class VnfPackageTest(base.BaseTackerTest):
         self.assertEqual(expected_result, resp_body)
         self._delete_vnf_package(vnf_package['id'])
         self._wait_for_delete(vnf_package['id'])
+
+    def _create_and_onboard_vnf_package(self, file_name=None):
+        body = jsonutils.dumps({"userDefinedData": {"foo": "bar"}})
+        vnf_package = self._create_vnf_package(body)
+        if file_name is None:
+            file_name = "sample_vnf_package_csar.zip"
+        file_path = self._get_csar_file_path(file_name)
+        with open(file_path, 'rb') as file_object:
+            resp, resp_body = self.http_client.do_request(
+                '{base_path}/{id}/package_content'.format(
+                    id=vnf_package['id'],
+                    base_path=self.base_url),
+                "PUT", body=file_object, content_type='application/zip')
+        self.assertEqual(202, resp.status_code)
+        self._wait_for_onboard(vnf_package['id'])
+
+        return vnf_package['id']
+
+    def test_get_vnfd_from_onboarded_vnf_package_for_content_type_zip(self):
+        vnf_package_id = self._create_and_onboard_vnf_package()
+        self.addCleanup(self._delete_vnf_package, vnf_package_id)
+        resp, resp_body = self.http_client.do_request(
+            '{base_path}/{id}/vnfd'.format(id=vnf_package_id,
+                                           base_path=self.base_url),
+            "GET", content_type='application/zip')
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('application/zip', resp.headers['Content-Type'])
+        self.assert_resp_contents(resp)
+
+    def assert_resp_contents(self, resp):
+        expected_file_list = ['Definitions/helloworld3_top.vnfd.yaml',
+                              'Definitions/helloworld3_df_simple.yaml',
+                              'Definitions/etsi_nfv_sol001_vnfd_types.yaml',
+                              'Definitions/etsi_nfv_sol001_common_types.yaml',
+                              'Definitions/helloworld3_types.yaml',
+                              'TOSCA-Metadata/TOSCA.meta']
+
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        try:
+            tmp.write(resp.content)
+        finally:
+            # checking response.content is valid zip file
+            self.assertTrue(zipfile.is_zipfile(tmp))
+            with zipfile.ZipFile(tmp, 'r') as zipObj:
+                # Get list of files names in zip
+                actual_file_list = zipObj.namelist()
+            self.assertEqual(expected_file_list, actual_file_list)
+
+            tmp.close()
+
+    @ddt.data('text/plain', 'application/zip,text/plain')
+    def test_get_vnfd_from_onboarded_vnf_package_for_content_type_text(
+            self, accept_header):
+        # Uploading vnf package with single yaml file csar.
+        single_yaml_csar = "sample_vnfpkg_no_meta_single_vnfd.zip"
+        vnf_package_id = self._create_and_onboard_vnf_package(
+            single_yaml_csar)
+        self.addCleanup(self._delete_vnf_package, vnf_package_id)
+        resp, resp_body = self.http_client.do_request(
+            '{base_path}/{id}/vnfd'.format(id=vnf_package_id,
+                                           base_path=self.base_url),
+            "GET", content_type=accept_header)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('text/plain', resp.headers['Content-Type'])
+        self.assertIsNotNone(resp.text)

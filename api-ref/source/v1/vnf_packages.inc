@@ -305,3 +305,59 @@ Response Example
 
 .. literalinclude:: samples/vnf_packages/vnf-packages-patch-response.json
    :language: javascript
+
+Read VNFD of an individual VNF package
+======================================
+
+.. rest_method::  GET /vnfpkgm/v1/vnf_packages/{vnf_package_id}/vnfd
+
+Read VNFD of an on-boarded VNF package.
+
+The VNFD can be implemented as a single file or as a collection of multiple
+files. If the VNFD is implemented in the form of multiple files, a ZIP file
+embedding these files shall be returned. If the VNFD is implemented as a
+single file, either that file or a ZIP file embedding that file shall be
+returned. The selection of the format is controlled by the "Accept" HTTP
+header passed in the GET request.
+
+If the "Accept" header contains only "text/plain" and the VNFD is implemented
+as a single file, the file shall be returned; otherwise, an error message shall
+be returned.
+If the "Accept" header contains only "application/zip", the single file or
+the multiple files that make up the VNFD shall be returned embedded in a ZIP
+file.
+If the "Accept" header contains both "text/plain" and "application/zip", it
+is up to the NFVO to choose the format to return for a single-file VNFD; for a
+multi-file VNFD, a ZIP file shall be returned.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 200
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 401
+  - 403
+  - 404
+  - 406
+  - 409
+  - 500
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters.yaml
+
+  - vnf_package_id: vnf_package_id_path
+  - Accept: content_type
+
+Response
+--------
+
+.. rest_parameters:: parameters.yaml
+
+  - Content-Type: content_type

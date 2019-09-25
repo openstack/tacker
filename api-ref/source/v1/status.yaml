@@ -46,6 +46,11 @@
 405:
   default: |
     Method is not valid for this endpoint.
+406:
+  default: |
+    Not Acceptable, the requested resource is only capable of generating
+    content not acceptable according to the 'Accept' headers sent in the
+    request.
 409:
  default: |
     This operation conflicted with another operation on this resource.

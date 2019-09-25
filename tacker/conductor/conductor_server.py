@@ -16,17 +16,21 @@
 import datetime
 import functools
 import inspect
+import io
 import os
 import shutil
 import sys
 
+from glance_store import exceptions as store_exceptions
 from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import periodic_task
 from oslo_service import service
+from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import timeutils
 from sqlalchemy.orm import exc as orm_exc
+import yaml
 
 from tacker.common import csar_utils
 from tacker.common import exceptions
@@ -254,6 +258,79 @@ class Conductor(manager.Manager):
             _delete_csar(context, vnf_package)
 
         vnf_package.destroy(context)
+
+    def get_vnf_package_vnfd(self, context, vnf_package):
+        csar_path = os.path.join(CONF.vnf_package.vnf_package_csar_path,
+                                 vnf_package.id)
+        if not os.path.isdir(csar_path):
+            location = vnf_package.location_glance_store
+            try:
+                zip_path = glance_store.load_csar(vnf_package.id, location)
+                csar_utils.extract_csar_zip_file(zip_path, csar_path)
+            except (store_exceptions.GlanceStoreException) as e:
+                exc_msg = encodeutils.exception_to_unicode(e)
+                msg = (_("Exception raised from glance store can be "
+                         "unrecoverable if it is not related to connection"
+                         " error. Error: %s.") % exc_msg)
+                raise exceptions.FailedToGetVnfdData(error=msg)
+        try:
+            return self._read_vnfd_files(csar_path)
+        except Exception as e:
+            exc_msg = encodeutils.exception_to_unicode(e)
+            msg = (_("Exception raised while reading csar file"
+                     " Error: %s.") % exc_msg)
+            raise exceptions.FailedToGetVnfdData(error=msg)
+
+    def _read_vnfd_files(self, csar_path):
+        """Creating a dictionary with file path as key and file data as value.
+
+        It will contain YAML files representing the VNFD, and information
+        necessary to navigate the ZIP file and to identify the file that is
+        the entry point for parsing the VNFD such as TOSCA-meta is included.
+        """
+
+        def _add_recursively_imported_files(imported_yamls, file_path_and_data,
+                                            dir_of_parent_definition_file=''):
+            for file in imported_yamls:
+                file_path = os.path.join(
+                    csar_path, dir_of_parent_definition_file, file)
+                file_data = yaml.safe_load(io.open(file_path))
+                dest_file_path = os.path.abspath(file_path).split(
+                    csar_path + '/')[-1]
+                file_path_and_data[dest_file_path] = yaml.dump(file_data)
+
+                if file_data.get('imports'):
+                    dir_of_parent_definition_file = '/'.join(
+                        file_path.split('/')[:-1])
+                    _add_recursively_imported_files(
+                        file_data['imports'], file_path_and_data,
+                        dir_of_parent_definition_file)
+
+        file_path_and_data = {}
+        if 'TOSCA-Metadata' in os.listdir(csar_path) and os.path.isdir(
+                os.path.join(csar_path, 'TOSCA-Metadata')):
+            # This is CSAR containing a TOSCA-Metadata directory, which
+            # includes the TOSCA.meta metadata file providing an entry
+            # information for processing a CSAR file.
+            tosca_meta_data = yaml.safe_load(io.open(os.path.join(
+                csar_path, 'TOSCA-Metadata', 'TOSCA.meta')))
+            file_path_and_data['TOSCA-Metadata/TOSCA.meta'] = yaml.dump(
+                tosca_meta_data)
+            entry_defination_file = tosca_meta_data['Entry-Definitions']
+            _add_recursively_imported_files([entry_defination_file],
+                                            file_path_and_data)
+        else:
+            # This is a CSAR without a TOSCA-Metadata directory and containing
+            # a single yaml file with a .yml or .yaml extension at the root of
+            # the archive.
+            root_yaml_file = sorted(
+                os.listdir(csar_path),
+                key=lambda item: item.endswith(('yaml', '.yml')))[-1]
+            src_path = os.path.join(csar_path, root_yaml_file)
+            file_data = yaml.safe_load(io.open(src_path))
+            file_path_and_data[root_yaml_file] = yaml.dump(file_data)
+
+        return file_path_and_data
 
     @periodic_task.periodic_task(spacing=CONF.vnf_package_delete_interval)
     def _run_cleanup_vnf_packages(self, context):
