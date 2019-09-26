@@ -169,6 +169,9 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                                 'openstack.OpenStack.scale_wait',
                                 return_value=uuidutils.generate_uuid()).start()
 
+        self.heal_wait = mock.patch('tacker.vnfm.infra_drivers.openstack.'
+                                    'openstack.OpenStack.heal_wait').start()
+
         def _fake_spawn(func, *args, **kwargs):
             func(*args, **kwargs)
 

@@ -80,6 +80,10 @@ class VNFDeleteWaitFailed(exceptions.TackerException):
     message = _('VNF Delete %(reason)s')
 
 
+class VNFHealWaitFailed(exceptions.TackerException):
+    message = _('VNF Heal %(reason)s')
+
+
 class VNFDeleteFailed(exceptions.TackerException):
     message = _('%(reason)s')
 
