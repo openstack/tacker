@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tacker VERSION\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2018-09-21 05:31+0000\n"
+"POT-Creation-Date: 2019-09-21 00:11+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -685,13 +685,6 @@ msgid "Resource body required"
 msgstr "Se necesita cuerpo de recurso"
 
 msgid ""
-"Resource cleanup for vnf is not completed within {wait} seconds as deletion "
-"of Stack {stack} is not completed"
-msgstr ""
-"Eliminado de recursos no ha sido completado en {wait} segundos como "
-"eliminado de pila {stack} no ha sido completado"
-
-msgid ""
 "Resource creation is not completed within {wait} seconds as creation of "
 "stack {stack} is not completed"
 msgstr ""
@@ -824,9 +817,6 @@ msgstr "El número de sort_keys y sort_dirs debe ser igual"
 msgid "The path for API extensions"
 msgstr "La vía de acceso para ampliaciones de API"
 
-msgid "The policy file to use"
-msgstr "El fichero de reglas a usar"
-
 msgid "The port to bind to"
 msgstr "El puerto al que enlazar"
 
@@ -886,6 +876,10 @@ msgstr "Error no correlacionado"
 msgid "Unrecognized attribute(s) '%s'"
 msgstr "Atributo(s) no reconocido(s) '%s'"
 
+#, python-format
+msgid "Unrecognized read_deleted value '%s'"
+msgstr "Valor de read_deleted no reconocido '%s'"
+
 msgid "Unsupported Content-Type"
 msgstr "Tipo de contenido no soportado"
 
@@ -935,14 +929,6 @@ msgstr "Fallo la configuración de VNF"
 #, python-format
 msgid "VNF scaling failed for stack %(stack)s with error %(error)s"
 msgstr "Fallo escalado de VNF para pila %(stack)s con error %(error)s"
-
-#, python-format
-msgid ""
-"VNF scaling failed to complete within %{wait}s seconds while waiting for the "
-"stack %(stack)s to be scaled."
-msgstr ""
-"Fallo para completar escalado de VNF en %{wait}s segundos mientras esperaba "
-"a que la pila %(stack)s escalara."
 
 #, python-format
 msgid "VNFD %(vnfd_id)s could not be found"
@@ -1028,10 +1014,6 @@ msgstr ""
 msgid "heat-translator failed: - %(error_msg_details)s"
 msgstr "heat-translator fallo: - %(error_msg_details)s"
 
-#, python-format
-msgid "invalid service type %(service_type)s"
-msgstr "Tipo de servicio invalido %(service_type)s"
-
 msgid "port number which drivers use to trigger"
 msgstr "Numero de puerto que los driver usan para notificar"
 
@@ -1045,6 +1027,3 @@ msgstr "Tipos de servicio no especificados"
 #, python-format
 msgid "tosca-parser failed: - %(error_msg_details)s"
 msgstr "tosca-parser falló: - %(error_msg_details)s"
-
-msgid "user_data and/or user_data_format not provided"
-msgstr "user_data y/o user_data_format no proporcionado"
