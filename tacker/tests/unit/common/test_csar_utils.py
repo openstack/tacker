@@ -21,6 +21,7 @@ from tacker.common import csar_utils
 from tacker.common import exceptions
 from tacker import context
 from tacker.tests import constants
+from tacker.tests import utils
 
 
 class TestCSARUtils(testtools.TestCase):
@@ -112,8 +113,8 @@ class TestCSARUtils(testtools.TestCase):
         exc = self.assertRaises(exceptions.InvalidCSAR,
                                 csar_utils.load_csar_data,
                                 self.context, constants.UUID, file_path)
-        msg = ('Node property "sw_image_data" is missing for artifact'
-               ' type tosca.artifacts.nfv.SwImage for node VDU1.')
+        msg = ('Node property "sw_image_data" is missing for '
+               'artifact sw_image for node VDU1.')
         self.assertEqual(msg, exc.format_message())
 
     @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
@@ -136,8 +137,8 @@ class TestCSARUtils(testtools.TestCase):
         exc = self.assertRaises(exceptions.InvalidCSAR,
                                 csar_utils.load_csar_data,
                                 self.context, constants.UUID, file_path)
-        msg = ('Node property "sw_image_data" is missing for artifact'
-               ' type tosca.artifacts.nfv.SwImage for node VDU1.')
+        msg = ('Node property "sw_image_data" is missing for'
+               ' artifact sw_image for node VDU1.')
         self.assertEqual(msg, exc.format_message())
 
     @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
@@ -175,3 +176,47 @@ class TestCSARUtils(testtools.TestCase):
             self.context, constants.UUID, file_path)
         self.assertIsNone(flavours[0].get('instantiation_levels'))
         self.assertEqual(vnf_data['descriptor_version'], '1.0')
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_with_artifacts_short_notation_without_sw_image_data(
+            self, mock_extract_csar_zip_file):
+        file_path = "./tacker/tests/etc/samples/etsi/nfv/" \
+                    "csar_short_notation_for_artifacts_without_sw_image_data"
+        zip_name, uniqueid = utils.create_csar_with_unique_vnfd_id(file_path)
+        exc = self.assertRaises(exceptions.InvalidCSAR,
+                                csar_utils.load_csar_data,
+                                self.context, constants.UUID, zip_name)
+        msg = ('Node property "sw_image_data" is missing for'
+               ' artifact sw_image for node VDU1.')
+        self.assertEqual(msg, exc.format_message())
+        os.remove(zip_name)
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_with_artifacts_short_notation(
+            self, mock_extract_csar_zip_file):
+        file_path = "./tacker/tests/etc/samples/etsi/nfv/" \
+                    "csar_with_short_notation_for_artifacts"
+        zip_name, uniqueid = utils.create_csar_with_unique_vnfd_id(file_path)
+
+        vnf_data, flavours = csar_utils.load_csar_data(
+            self.context, constants.UUID, zip_name)
+        self.assertEqual(vnf_data['descriptor_version'], '1.0')
+        self.assertEqual(vnf_data['vnfm_info'], ['Tacker'])
+        self.assertEqual(flavours[0]['flavour_id'], 'simple')
+        self.assertIsNotNone(flavours[0]['sw_images'])
+        os.remove(zip_name)
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_with_multiple_sw_image_data_with_short_notation(
+            self, mock_extract_csar_zip_file):
+
+        file_path = "./tacker/tests/etc/samples/etsi/nfv/" \
+                    "csar_multiple_sw_image_data_with_short_notation"
+        zip_name, uniqueid = utils.create_csar_with_unique_vnfd_id(file_path)
+        exc = self.assertRaises(exceptions.InvalidCSAR,
+                                csar_utils.load_csar_data,
+                                self.context, constants.UUID, zip_name)
+        msg = ('artifacts of type "tosca.artifacts.nfv.SwImage"'
+               ' is added more than one time for node VDU1.')
+        self.assertEqual(msg, exc.format_message())
+        os.remove(zip_name)

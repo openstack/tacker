@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes `bug 1850755`_ which adds short notation support for artifacts.
+
+    .. _bug 1850755: https://bugs.launchpad.net/tacker/+bug/1850755
