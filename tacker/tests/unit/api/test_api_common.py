@@ -204,7 +204,7 @@ class SortingEmulatedHelperTestcase(base.BaseTestCase):
 
     def test_sort_emulate_class(self):
         sort = common.SortingEmulatedHelper(self.request, ["sort_key"])
-        self.assertEqual([('sort_key', True)], sort.sort_dict)
+        self.assertEqual([('sort_key', True)], list(sort.sort_dict))
 
     def test_update_fields(self):
         sort = common.SortingEmulatedHelper(self.request, ["sort_key"])
