@@ -2,16 +2,17 @@
 # Tom Cocozzello <tjcocozz@us.ibm.com>, 2015. #zanata
 # Andreas Jaeger <jaegerandi@gmail.com>, 2016. #zanata
 # Frank Kloeker <eumel@arcor.de>, 2018. #zanata
+# Andreas Jaeger <jaegerandi@gmail.com>, 2019. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: tacker VERSION\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2019-09-21 00:11+0000\n"
+"POT-Creation-Date: 2019-10-01 06:40+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2018-10-02 08:47+0000\n"
-"Last-Translator: Frank Kloeker <eumel@arcor.de>\n"
+"PO-Revision-Date: 2019-09-27 08:48+0000\n"
+"Last-Translator: Andreas Jaeger <jaegerandi@gmail.com>\n"
 "Language-Team: German\n"
 "Language: de\n"
 "X-Generator: Zanata 4.3.3\n"
@@ -242,6 +243,9 @@ msgstr "Verfügbare Befehle"
 msgid "Bad %(resource)s request: %(msg)s"
 msgstr "Fehlerhafte %(resource)s Anfrage: %(msg)s"
 
+msgid "Bad Request - Invalid Parameters"
+msgstr "Fehlerhafte Anfrage - Ungültige Parameter"
+
 #, python-format
 msgid "Barbican must be enabled for VIM %(vim_id)s"
 msgstr "Barbican muss für VIM %(vim_id)s aktiviert sein"
@@ -252,6 +256,11 @@ msgstr "Bulk-Vorgang wird nicht unterstützt"
 msgid "CA certificate file to use to verify connecting clients"
 msgstr ""
 "CA-Zertifikatsdatei, die zum Überprüfen verbindender Clients verwendet wird"
+
+#, python-format
+msgid "Cannot call %(method)s on orphaned %(objtype)s object"
+msgstr ""
+"%(method)s kann nicht für verwaistes %(objtype)s-Objekt aufgerufen werden"
 
 msgid "Cannot create resource for another tenant"
 msgstr "Ressource kann nicht für einen anderen Mandanten erstellt werden"
@@ -347,6 +356,10 @@ msgstr ""
 "tacker/, ~/, /etc/tacker/, /etc/) und die Option '--config-file' gefunden "
 "werden!"
 
+#, python-format
+msgid "Empty list is not allowed for service list. '%s'"
+msgstr "Eine leere Liste ist für die Serviceliste nicht erlaubt. '%s'"
+
 msgid "Enable SSL on the API server"
 msgstr "Aktivieren Sie SSL auf dem API-Server"
 
@@ -361,6 +374,10 @@ msgid ""
 msgstr ""
 "Fehler beim Ausgeben von %(cmd)s zum Auffinden des Ressourcentyps %(type)s "
 "nach Ressourcenname %(name)s"
+
+#, python-format
+msgid "Error: cooperative_iter exception %s"
+msgstr "Fehler: cooperative_iter-Ausnahme %s"
 
 #, python-format
 msgid "Extension with alias %s does not exist"
@@ -397,6 +414,9 @@ msgstr ""
 
 msgid "Flavor Extra Specs"
 msgstr "Varianten Extra-Spezifikationen"
+
+msgid "Forbidden"
+msgstr "Verboten"
 
 #, python-format
 msgid "Found duplicate extension: %(alias)s"
@@ -512,12 +532,22 @@ msgid "Invalid data format for nameserver: '%s'"
 msgstr "Ungültiges Datenformat für Nameserver: '%s'"
 
 #, python-format
+msgid "Invalid data format for service list: '%s'"
+msgstr "Ungültiges Datenformat für die Serviceliste: ' %s'"
+
+#, python-format
 msgid "Invalid format: %s"
 msgstr "Ungültiges Format: %s"
 
 #, python-format
 msgid "Invalid input for %(attr)s. Reason: %(reason)s."
 msgstr "Ungültige Eingabe für %(attr)s. Grund: %(reason)s."
+
+#, python-format
+msgid ""
+"Invalid input for field/attribute %(path)s. Value: %(value)s. %(message)s"
+msgstr ""
+"Ungültige Eingabe für Feld/Attribut %(path)s. Wert: %(value)s. %(message)s"
 
 #, python-format
 msgid "Invalid input for operation: %(error_message)s."
@@ -625,6 +655,10 @@ msgid "NS %(ns_id)s could not be found"
 msgstr "NS %(ns_id)s konnte nicht gefunden werden"
 
 #, python-format
+msgid "NS %(ns_id)s in use"
+msgstr "NS %(ns_id)s wird benutzt"
+
+#, python-format
 msgid "NS %(ns_id)s is still in use"
 msgstr "NS %(ns_id)s wird noch verwendet"
 
@@ -674,8 +708,21 @@ msgstr ""
 msgid "Number of seconds to keep retrying to listen"
 msgstr "Anzahl der Sekunden, in denen erneut versucht wird, zu hören"
 
+msgid "Number of seconds to wait between packets"
+msgstr "Anzahl der Sekunden,die zwischen Paketen gewartet werden soll"
+
+msgid "Number of seconds to wait for a response"
+msgstr "Anzahl der Sekunden, die auf eine Antwort gewartet werden sollen"
+
 msgid "Number of separate worker processes for service"
 msgstr "Anzahl der separaten Worker-Prozesse für den Dienst"
+
+msgid "Number of times to retry"
+msgstr "Anzahl der Wiederholungen"
+
+#, python-format
+msgid "Object action %(action)s failed because: %(reason)s"
+msgstr "Objektaktion %(action)s ist fehlgeschlagen, weil: %(reason)s"
 
 #, python-format
 msgid "Param values %(param_value)s is not in dict format."
@@ -691,6 +738,12 @@ msgstr "Parameter YAML nicht wohlgeformt - %(error_msg_details)s"
 #, python-format
 msgid "Parameter input values missing for the key '%(key)s'"
 msgstr "Parametereingabewerte fehlen für den Schlüssel '%(key)s'"
+
+msgid "Password for alarm monitoring"
+msgstr "Passwort für die Alarmüberwachung"
+
+msgid "Password to login openwrt"
+msgstr "Passwort für die Anmeldung openwrt"
 
 msgid "Please provide one network for all vdus"
 msgstr "Bitte stellen Sie ein Netzwerk für alle vdus bereit"
@@ -715,6 +768,9 @@ msgstr "Die Richtlinie lässt nicht zu, dass %(action)s ausgeführt werden."
 
 msgid "Private key file to use when starting the server securely"
 msgstr "Private Schlüsseldatei zum sicheren Starten des Servers"
+
+msgid "Project name for alarm monitoring"
+msgstr "Projektname für die Alarmüberwachung"
 
 msgid ""
 "Range of seconds to randomly delay when starting the periodic task scheduler "
@@ -751,6 +807,10 @@ msgstr "Ressourcentyp %(type)s wird von VIM nicht unterstützt"
 
 msgid "Resources required"
 msgstr "Ressourcen benötigt"
+
+msgid "Running without keystone AuthN requires that tenant_id is specified"
+msgstr ""
+"Zum Ausführen ohne Keystone-Authentifizierung muss 'tenant_id' angegeben sein"
 
 #, python-format
 msgid "SFC %(sfc_id)s is still in use"
@@ -884,6 +944,22 @@ msgid "The port to bind to"
 msgstr "Der Port zum Binden"
 
 #, python-format
+msgid ""
+"The request returned a 413 Request Entity Too Large. This generally means "
+"that rate limiting or a quota threshold was breached.\n"
+"\n"
+"The response body:\n"
+"%(body)s"
+msgstr ""
+"Die Anforderung hat eine Nachricht vom Typ '413 - Anforderungsentität zu "
+"groß' zurückgegeben. Dies weist im Allgemeinen darauf hin, dass die "
+"Geschwindigkeitsbegrenzung oder ein Kontingentschwellenwert überschritten "
+"wurde.\n"
+"\n"
+"Der Antworttext:\n"
+"%(body)s"
+
+#, python-format
 msgid "The requested content type %s is invalid."
 msgstr "Der angeforderte Inhaltstyp %s ist ungültig."
 
@@ -921,10 +997,28 @@ msgid "Unable to find key file for VIM %(vim_id)s"
 msgstr "Die Schlüsseldatei für VIM %(vim_id)s konnte nicht gefunden werden"
 
 #, python-format
+msgid ""
+"Unable to identify a target field from: %s. Match should be in the form "
+"%%(<field_name>)s"
+msgstr ""
+"Das Zielfeld konnte nicht identifiziert werden: %s. Match sollte in der Form "
+"%%(<field_name>)s sein"
+
+#, python-format
 msgid "Unable to load %(app_name)s from configuration file %(config_path)s."
 msgstr ""
 "%(app_name)s konnte nicht aus der Konfigurationsdatei %(config_path)s "
 "geladen werden."
+
+#, python-format
+msgid ""
+"Unexpected API Error. Please report this at http://bugs.launchpad.net/"
+"tacker/ and attach the Tacker API log if possible.\n"
+"%s"
+msgstr ""
+"Unerwarteter API-Fehler. Melden Sie ihn unter http://bugs.launchpad.net/"
+"tacker/ und hängen Sie das Tacker-API-Protokoll an, falls möglich.\n"
+"%s"
 
 msgid "Unknown API version specified"
 msgstr "Unbekannte API-Version angegeben"
@@ -968,6 +1062,9 @@ msgstr "Der Benutzer ist nicht berechtigt, den Schlüsselmanager zu verwenden."
 msgid "User name for alarm monitoring"
 msgstr "Benutzername für die Alarmüberwachung"
 
+msgid "User name to login openwrt"
+msgstr "Benutzername zum Anmelden openwrt"
+
 #, python-format
 msgid "VIM %(vim_id)s is still in use by VNF"
 msgstr "VIM %(vim_id)s wird weiterhin von VNF verwendet"
@@ -980,8 +1077,16 @@ msgid "VIM from VNF %(vnf_id)s could not be found"
 msgstr "VIM von VNF %(vnf_id)s konnte nicht gefunden werden"
 
 #, python-format
+msgid "VIM type %(vim_name)s is not supported as an infra driver"
+msgstr "Der VIM-Typ %(vim_name)s wird nicht als Infra-Treiber unterstützt"
+
+#, python-format
 msgid "VNF %(vnf_id)s could not be found"
 msgstr "VNF %(vnf_id)s konnte nicht gefunden werden"
+
+#, python-format
+msgid "VNF %(vnf_id)s is not in Active state: %(message)s"
+msgstr "VNF %(vnf_id)s befindet sich nicht im aktiven Status: %(message)s"
 
 #, python-format
 msgid "VNF %(vnf_id)s is still in use"
@@ -1047,6 +1152,13 @@ msgstr ""
 "Erstellen/Löschen von Stapeln"
 
 msgid ""
+"When signal occurred within cool down window, no events generated from heat, "
+"so ignore it"
+msgstr ""
+"Wenn das Signal im Abkühlfenster auftrat, wurden keine Ereignisse durch Heat "
+"erzeugt, also ignoriere es"
+
+msgid ""
 "Where to store Tacker state files. This directory must be writable by the "
 "agent."
 msgstr ""
@@ -1061,6 +1173,13 @@ msgstr "Sie müssen __call__ implementieren"
 
 msgid "You must provide a revision or relative delta"
 msgstr "Sie müssen eine Revision oder ein relatives Delta angeben"
+
+msgid "already created"
+msgstr "bereits erstellt"
+
+#, python-format
+msgid "attribute %s not lazy-loadable"
+msgstr "Attribut %s kann nicht über Lazy-Loading geladen werden."
 
 #, python-format
 msgid ""

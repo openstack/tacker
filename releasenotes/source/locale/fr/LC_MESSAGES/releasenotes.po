@@ -1,0 +1,48 @@
+# Gérald LONLAS <g.lonlas@gmail.com>, 2016. #zanata
+msgid ""
+msgstr ""
+"Project-Id-Version: tacker\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-10-01 06:40+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2016-10-22 06:40+0000\n"
+"Last-Translator: Gérald LONLAS <g.lonlas@gmail.com>\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"X-Generator: Zanata 4.3.3\n"
+"Plural-Forms: nplurals=2; plural=(n > 1)\n"
+
+msgid "0.4.0"
+msgstr "0.4.0"
+
+msgid "0.5.0"
+msgstr "0.5.0"
+
+msgid "Bug Fixes"
+msgstr "Corrections de bugs"
+
+msgid "Contents:"
+msgstr "Contenu :"
+
+msgid "Current Series Release Notes"
+msgstr "Note de la release actuelle"
+
+msgid "Deprecation Notes"
+msgstr "Notes dépréciées "
+
+msgid "Known Issues"
+msgstr "Problèmes connus"
+
+msgid "New Features"
+msgstr "Nouvelles fonctionnalités"
+
+msgid "Newton Series Release Notes"
+msgstr "Note de release pour Newton"
+
+msgid "Other Notes"
+msgstr "Autres notes"
+
+msgid "Tacker Release Notes"
+msgstr "Note de release pour Tracker"
