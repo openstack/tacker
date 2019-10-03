@@ -20,7 +20,6 @@ from oslo_utils import excutils
 from oslo_utils import uuidutils
 import six
 from six.moves import http_client
-from six.moves import urllib
 import webob
 import zipfile
 from zipfile import ZipFile
@@ -30,6 +29,7 @@ from tacker.api.schemas import vnf_packages
 from tacker.api import validation
 from tacker.api.views import vnf_packages as vnf_packages_view
 from tacker.common import exceptions
+from tacker.common import utils
 from tacker.conductor.conductorrpc import vnf_pkgm_rpc
 from tacker.glance_store import store as glance_store
 from tacker.objects import fields
@@ -339,18 +339,12 @@ class VnfPkgmController(wsgi.Controller):
         context = request.environ['tacker.context']
         context.can(vnf_package_policies.VNFPKGM % 'upload_from_uri')
 
-        vnf_package = self._get_vnf_package(id, request)
-
         url = body['addressInformation']
-        try:
-            data_iter = urllib.request.urlopen(url)
-        except Exception:
-            data_iter = None
-            msg = _("Failed to open URL %s")
-            raise webob.exc.HTTPBadRequest(explanation=msg % url)
-        finally:
-            if hasattr(data_iter, 'close'):
-                data_iter.close()
+        if not utils.is_valid_url(url):
+            msg = _("Vnf package url '%s' is invalid") % url
+            raise webob.exc.HTTPBadRequest(explanation=msg)
+
+        vnf_package = self._get_vnf_package(id, request)
 
         if vnf_package.onboarding_state != \
                 fields.PackageOnboardingStateType.CREATED:

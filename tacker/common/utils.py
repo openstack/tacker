@@ -39,6 +39,7 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
 from six.moves import urllib
+from six.moves.urllib import parse as urlparse
 from stevedore import driver
 try:
     from eventlet import sleep
@@ -417,6 +418,19 @@ def flatten_dict(data, prefix=''):
 def deepgetattr(obj, attr):
     """Recurses through an attribute chain to get the ultimate value."""
     return reduce(getattr, attr.split('.'), obj)
+
+
+def is_valid_url(url):
+    url_parts = urlparse.urlparse(url)
+
+    if not (url_parts.scheme and url_parts.netloc and url_parts.path):
+        return False
+
+    schemes = ['http', 'https', 'ftp']
+    if url_parts.scheme not in schemes:
+        return False
+
+    return True
 
 
 class CooperativeReader(object):

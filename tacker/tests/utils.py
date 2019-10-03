@@ -12,12 +12,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import base64
+import http.server
 import os
+import threading
+
+from oslo_utils import uuidutils
+import socketserver
 import tempfile
 import yaml
 import zipfile
-
-from oslo_utils import uuidutils
 
 
 def read_file(input_file):
@@ -99,3 +103,51 @@ def create_csar_with_unique_vnfd_id(csar_dir):
 
     zcsar.close()
     return tempname, unique_id
+
+
+class AuthHandler(http.server.SimpleHTTPRequestHandler):
+    '''Main class to present webpages and authentication.'''
+
+    def do_AUTHHEAD(self):
+        self.send_response(401)
+        self.send_header('WWW-Authenticate', 'Basic realm=\"Test\"')
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+
+    def do_GET(self):
+        '''Present frontpage with user authentication.'''
+        global key
+        if 'Authorization' not in self.headers:
+            http.server.SimpleHTTPRequestHandler.do_GET(self)
+        elif self.headers.get('Authorization') is None:
+            self.do_AUTHHEAD()
+            self.wfile.write(bytes('no auth header received'))
+        elif self.headers.get('Authorization') == 'Basic ' + base64.b64encode(
+                b"username:password").decode("utf-8"):
+            http.server.SimpleHTTPRequestHandler.do_GET(self)
+        else:
+            self.do_AUTHHEAD()
+            self.wfile.write(bytes(self.headers.get('Authorization')))
+            self.wfile.write(bytes('not authenticated'))
+
+
+class StaticHttpFileHandler(object):
+
+    def __init__(self, static_files_path):
+        if os.path.isabs(static_files_path):
+            web_dir = static_files_path
+        else:
+            web_dir = os.path.join(os.path.dirname(__file__),
+                static_files_path)
+        os.chdir(web_dir)
+        server_address = ('127.0.0.1', 0)
+        self.httpd = socketserver.TCPServer(server_address, AuthHandler)
+        self.port = self.httpd.socket.getsockname()[1]
+
+        thread = threading.Thread(target=self.httpd.serve_forever)
+        thread.daemon = True
+        thread.start()
+
+    def stop(self):
+        self.httpd.shutdown()
+        self.httpd.server_close()

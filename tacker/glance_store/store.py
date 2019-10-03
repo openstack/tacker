@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import base64
 import os
 
 import glance_store
@@ -41,13 +42,18 @@ def get_csar_data_iter(body):
     try:
         if isinstance(body, dict):
             url = body['address_information']
-            data_iter = urllib.request.urlopen(url)
+            req = urllib.request.Request(url)
+            if body['user_name'] is not None or body['password'] is not None:
+                _add_basic_auth(req, body['user_name'], body['password'])
+            data_iter = urllib.request.urlopen(req)
         else:
             data_iter = body
 
         return data_iter
-    except Exception:
-        LOG.warn("Failed to open csar URL: %s", url)
+    except Exception as e:
+        error = encodeutils.exception_to_unicode(e)
+        LOG.warn("Failed to open csar URL: %(url)s due to error: %(error)s",
+                 {"url": url, "error": error})
         raise exceptions.VNFPackageURLInvalid(url=url)
 
 
@@ -137,3 +143,14 @@ def _get_csar_chunks(package_uuid, location, offset, chunk_size):
         LOG.exception("Failed to get csar data from glance store %(location)s"
          "for package %(uuid)s", {"location": location, "uuid": package_uuid})
         raise exceptions.VnfPackageLocationInvalid(location=location)
+
+
+def _add_basic_auth(request, username, password):
+    """A helper function to add basic authentication.
+
+    This function adds basic authentication information to a six.moves.urllib
+    request.
+    """
+    auth_str = base64.encodestring(('%s:%s' % (
+        username, password)).encode()).decode().strip()
+    request.add_header('Authorization', 'Basic %s' % auth_str)

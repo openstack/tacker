@@ -20,6 +20,8 @@ import sys
 
 from glance_store import exceptions as store_exceptions
 import mock
+from six.moves import urllib
+import six.moves.urllib.error as urlerr
 import yaml
 
 from tacker.common import coordination
@@ -484,3 +486,21 @@ class TestConductor(SqlTestCase):
         self.assertIn("Config option 'vnf_package_csar_path' is not configured"
                       " correctly. VNF package CSAR path directory %s doesn't"
                       " exist", mock_log_error.call_args[0][0])
+
+    @mock.patch.object(urllib.request, 'urlopen')
+    def test_upload_vnf_package_from_uri_with_invalid_auth(self,
+                                                           mock_url_open):
+        address_information = "http://localhost/test.zip"
+        user_name = "username"
+        password = "password"
+        mock_url_open.side_effect = urlerr.HTTPError(
+            url='', code=401, msg='HTTP Error 401 Unauthorized', hdrs={},
+            fp=None)
+        self.assertRaises(exceptions.VNFPackageURLInvalid,
+                          self.conductor.upload_vnf_package_from_uri,
+                          self.context,
+                          self.vnf_package,
+                          address_information,
+                          user_name=user_name,
+                          password=password)
+        self.assertEqual('CREATED', self.vnf_package.onboarding_state)

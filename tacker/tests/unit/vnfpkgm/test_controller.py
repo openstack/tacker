@@ -589,7 +589,7 @@ class TestController(base.TestCase):
                                          mock_vnf_by_id,
                                          mock_upload_vnf_package_from_uri,
                                          mock_url_open):
-        body = {"addressInformation": "http://test_data.zip"}
+        body = {"addressInformation": "http://localhost/test_data.zip"}
         updates = {'onboarding_state': 'CREATED',
                    'operational_state': 'DISABLED'}
         vnf_package_dict = fakes.fake_vnf_package(updates)
@@ -606,7 +606,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
 
     def test_upload_vnf_package_from_uri_with_invalid_uuid(self):
-        body = {"addressInformation": "http://test_data.zip"}
+        body = {"addressInformation": "http://localhost/test_data.zip"}
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content/upload_from_uri'
             % constants.INVALID_UUID)
@@ -619,7 +619,7 @@ class TestController(base.TestCase):
     def test_upload_vnf_package_from_uri_without_vnf_pack(self,
                                                           mock_vnf_by_id,
                                                           mock_url_open):
-        body = {"addressInformation": "http://test_data.zip"}
+        body = {"addressInformation": "http://localhost/test_data.zip"}
         msg = _("Can not find requested vnf package: %s") % constants.UUID
         mock_vnf_by_id.side_effect = exc.HTTPNotFound(explanation=msg)
         req = fake_request.HTTPRequest.blank(
@@ -634,7 +634,7 @@ class TestController(base.TestCase):
     def test_upload_vnf_package_from_uri_with_invalid_status(self,
                                                              mock_vnf_by_id,
                                                              mock_url_open):
-        body = {"addressInformation": "http://test.zip"}
+        body = {"addressInformation": "http://localhost/test_data.zip"}
         vnf_obj = fakes.return_vnfpkg_obj()
         vnf_obj.__setattr__('onboarding_state', 'ONBOARDED')
         mock_vnf_by_id.return_value = vnf_obj
@@ -645,11 +645,10 @@ class TestController(base.TestCase):
                           self.controller.upload_vnf_package_from_uri,
                           req, constants.UUID, body=body)
 
-    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
-    def test_upload_vnf_package_from_uri_with_invalid_url(
-            self, mock_vnf_by_id):
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
-        body = {"addressInformation": "http://test_data.zip"}
+    @ddt.data("http://test_data.zip", "xyz://github.com/abc/xyz.git",
+              "xyz://github.com/abc/xyz")
+    def test_upload_vnf_package_from_uri_with_invalid_url(self, invalid_url):
+        body = {"addressInformation": invalid_url}
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content/upload_from_uri'
             % constants.UUID)
