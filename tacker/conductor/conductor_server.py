@@ -112,7 +112,8 @@ def revert_upload_vnf_package(function):
                                                  *args, **kwargs)
                 context = keyed_args['context']
                 vnf_package = keyed_args['vnf_package']
-                if not isinstance(exp, exceptions.UploadFailedToGlanceStore):
+                if not (isinstance(exp, exceptions.UploadFailedToGlanceStore)
+                        or isinstance(exp, exceptions.VNFPackageURLInvalid)):
                     # Delete the csar file from the glance store.
                     glance_store.delete_csar(context, vnf_package.id,
                              vnf_package.location_glance_store)
@@ -265,7 +266,10 @@ class Conductor(manager.Manager):
     def upload_vnf_package_from_uri(self, context, vnf_package,
                                     address_information, user_name=None,
                                     password=None):
-        body = {"address_information": address_information}
+
+        body = {"address_information": address_information,
+                "user_name": user_name,
+                "password": password}
         (location, size, checksum, multihash,
          loc_meta) = glance_store.store_csar(context, vnf_package.id, body)
 

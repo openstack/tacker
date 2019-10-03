@@ -175,6 +175,61 @@ class VnfPackageTest(base.BaseTackerTest):
 
         return vnf_package['id']
 
+    def test_upload_from_uri_without_auth_and_delete(self):
+        csar_dir = self._get_csar_dir_path("sample_vnfpkg_no_meta_single_vnfd")
+        file_path, vnfd_id = utils.create_csar_with_unique_vnfd_id(csar_dir)
+        self.addCleanup(os.remove, file_path)
+
+        cls_obj = utils.StaticHttpFileHandler(os.path.dirname(file_path))
+        self.addCleanup(cls_obj.stop)
+
+        body = jsonutils.dumps({"userDefinedData": {"foo": "bar"}})
+        vnf_package = self._create_vnf_package(body)
+        csar_file_uri = 'http://localhost:{port}/{filename}'.format(
+            port=cls_obj.port, filename=os.path.basename(file_path))
+
+        body = jsonutils.dumps({"addressInformation": csar_file_uri})
+        resp, resp_body = self.http_client.do_request(
+            '{base_path}/{id}/package_content/upload_from_uri'.format(
+                id=vnf_package['id'],
+                base_path=self.base_url),
+            "POST", body=body)
+        self.assertEqual(202, resp.status_code)
+
+        self._wait_for_onboard(vnf_package['id'])
+
+        self._disable_operational_state(vnf_package['id'])
+        self._delete_vnf_package(vnf_package['id'])
+        self._wait_for_delete(vnf_package['id'])
+
+    def test_upload_from_uri_with_auth_and_delete(self):
+        csar_dir = self._get_csar_dir_path("sample_vnfpkg_no_meta_single_vnfd")
+        file_path, vnfd_id = utils.create_csar_with_unique_vnfd_id(csar_dir)
+        self.addCleanup(os.remove, file_path)
+
+        cls_obj = utils.StaticHttpFileHandler(os.path.dirname(file_path))
+        self.addCleanup(cls_obj.stop)
+
+        body = jsonutils.dumps({"userDefinedData": {"foo": "bar"}})
+        vnf_package = self._create_vnf_package(body)
+        csar_file_uri = 'http://localhost:{port}/{filename}'.format(
+            port=cls_obj.port, filename=os.path.basename(file_path))
+        body = jsonutils.dumps({"addressInformation": csar_file_uri,
+                                "userName": "username",
+                                "password": "password"})
+        resp, resp_body = self.http_client.do_request(
+            '{base_path}/{id}/package_content/upload_from_uri'.format(
+                id=vnf_package['id'],
+                base_path=self.base_url),
+            "POST", body=body)
+        self.assertEqual(202, resp.status_code)
+
+        self._wait_for_onboard(vnf_package['id'])
+
+        self._disable_operational_state(vnf_package['id'])
+        self._delete_vnf_package(vnf_package['id'])
+        self._wait_for_delete(vnf_package['id'])
+
     def test_patch_in_onboarded_state(self):
         user_data = jsonutils.dumps(
             {"userDefinedData": {"key1": "val1", "key2": "val2",

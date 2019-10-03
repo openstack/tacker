@@ -90,3 +90,24 @@ class TestSnakeToCamelCase(testtools.TestCase):
         actual_val = utils.convert_snakecase_to_camelcase(data)
         expected_val = ["snake_case_value1", "snake_case_value2"]
         self.assertEqual(expected_val, actual_val)
+
+
+class TestValidateUrl(testtools.TestCase):
+    def test_valid_url(self):
+        result = utils.is_valid_url("https://10.10.10.10/test.zip")
+        self.assertTrue(result)
+
+    def test_no_scheme(self):
+        result = utils.is_valid_url("//10.10.10.10/test.zip")
+        self.assertFalse(result)
+
+    def test_invalid_scheme(self):
+        result = utils.is_valid_url("invalid://10.10.10.10/test.zip")
+        self.assertFalse(result)
+
+    def test_no_path_in_url(self):
+        # The specified url `https://10.10.10.10` is valid but in context with
+        # the functionality implemented, expecting csar file in `path` as
+        # mandatory parameter.
+        result = utils.is_valid_url("https://10.10.10.10")
+        self.assertFalse(result)
