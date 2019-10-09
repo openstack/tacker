@@ -18,6 +18,7 @@ import mock
 
 from tacker import context
 from tacker.extensions import vnfm
+from tacker.tests.common import helpers
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import client
@@ -76,7 +77,7 @@ class TestOpenStack(base.FixturedTestCase):
                                    vnf_dict, self.instance_uuid, None)
         self.mock_log.debug.assert_called_with('outputs %s',
                                          fd_utils.get_dummy_stack()['outputs'])
-        self.assertEqual('{"VDU1": "192.168.120.216"}',
+        self.assertEqual(helpers.compact_byte('{"VDU1": "192.168.120.216"}'),
                          vnf_dict['mgmt_ip_address'])
 
     def test_create_wait_without_mgmt_ips(self):
@@ -103,7 +104,8 @@ class TestOpenStack(base.FixturedTestCase):
         vnf_dict = utils.get_dummy_vnf(scaling_group=True)
         self.openstack.create_wait(None, None, vnf_dict, self.instance_uuid,
                                    None)
-        self.assertEqual('{"vdu1": ["test1"]}', vnf_dict['mgmt_ip_address'])
+        self.assertEqual(helpers.compact_byte('{"vdu1": ["test1"]}'),
+                         vnf_dict['mgmt_ip_address'])
 
     def test_create_wait_failed_with_stack_retries_0(self):
         self._response_in_wait_until_stack_ready(["CREATE_IN_PROGRESS"])
@@ -154,7 +156,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.openstack.update_wait(None, None, vnf_dict, None)
         self.mock_log.debug.assert_called_with('outputs %s',
                                     fd_utils.get_dummy_stack()['outputs'])
-        self.assertEqual('{"VDU1": "192.168.120.216"}',
+        self.assertEqual(helpers.compact_byte('{"VDU1": "192.168.120.216"}'),
                          vnf_dict['mgmt_ip_address'])
 
     def test_heal_wait(self):
@@ -165,7 +167,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.openstack.heal_wait(None, None, vnf_dict, None)
         self.mock_log.debug.assert_called_with('outputs %s',
                                     fd_utils.get_dummy_stack()['outputs'])
-        self.assertEqual('{"VDU1": "192.168.120.216"}',
+        self.assertEqual(helpers.compact_byte('{"VDU1": "192.168.120.216"}'),
                          vnf_dict['mgmt_ip_address'])
 
     def test_heal_wait_without_mgmt_ips(self):
@@ -249,7 +251,8 @@ class TestOpenStack(base.FixturedTestCase):
                                      region_name=None,
                                      last_event_id=uuidsentinel.
                                             non_last_event_id)
-        self.assertEqual('{"vdu1": ["test1"]}', mgmt_ip)
+        self.assertEqual(helpers.compact_byte('{"vdu1": ["test1"]}'),
+                         mgmt_ip)
 
     @ddt.data("SIGNAL_COMPLETE", "CREATE_COMPLETE")
     def test_scale_wait_with_same_last_event_id(self, resource_status):
@@ -260,7 +263,8 @@ class TestOpenStack(base.FixturedTestCase):
                                 policy=fd_utils.get_dummy_policy_dict(),
                                 region_name=None,
                                 last_event_id=fd_utils.get_dummy_event()['id'])
-        self.assertEqual('{"vdu1": ["test1"]}', mgmt_ip)
+        self.assertEqual(helpers.compact_byte('{"vdu1": ["test1"]}'),
+                         mgmt_ip)
 
     @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack.LOG')
     def test_scale_wait_failed_with_exception(self, mock_log):
@@ -312,4 +316,4 @@ class TestOpenStack(base.FixturedTestCase):
                         'window, no events generated from heat, '
                         'so ignore it')
         self.mock_log.warning.assert_called_once_with(error_reason)
-        self.assertEqual('{"vdu1": ["test1"]}', mgmt_ip)
+        self.assertEqual(b'{"vdu1": ["test1"]}', mgmt_ip)
