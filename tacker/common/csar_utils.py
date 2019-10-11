@@ -236,9 +236,11 @@ def _validate_sw_image_data_for_artifacts(tosca):
 
 def _get_data_from_csar(tosca, context, id):
     for tp in tosca.nested_tosca_templates_with_topology:
-        levels = _get_instantiation_levels_from_policy(tp.tpl.get("policies"))
-        for policy_tpl in tp.tpl.get("policies"):
-            _validate_instantiation_levels(policy_tpl, levels)
+        policies = tp.tpl.get("policies")
+        if policies:
+            levels = _get_instantiation_levels_from_policy(policies)
+            for policy_tpl in policies:
+                _validate_instantiation_levels(policy_tpl, levels)
 
     _validate_sw_image_data_for_artifacts(tosca)
     vnf_data = _get_vnf_data(tosca.nodetemplates)
