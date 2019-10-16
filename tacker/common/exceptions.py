@@ -249,3 +249,8 @@ class LimitExceeded(TackerException):
         self.retry_after = (int(kwargs['retry']) if kwargs.get('retry')
                             else None)
         super(LimitExceeded, self).__init__(*args, **kwargs)
+
+
+class UserDataUpdateCreateFailed(TackerException):
+    msg_fmt = _("User data for VNF package  %(id)s cannot be updated "
+                "or created after %(retries)d retries.")

@@ -19,6 +19,7 @@ Schema for vnf packages create API.
 """
 
 from tacker.api.validation import parameter_types
+from tacker.objects.fields import PackageOperationalStateType
 
 create = {
     'type': 'object',
@@ -47,4 +48,22 @@ upload_from_uri = {
     },
     'required': ['addressInformation'],
     'additionalProperties': False,
+}
+
+"""
+Schema for vnf packages update API.
+
+"""
+patch = {
+    'type': 'object',
+    'properties': {
+        'operationalState': {
+            'type': 'string',
+            'enum': list(PackageOperationalStateType.ALL),
+        },
+        'userDefinedData': parameter_types.keyvalue_pairs,
+    },
+    'anyOf': [{'required': ['operationalState']},
+              {'required': ['userDefinedData']}],
+    'additionalProperties': False
 }

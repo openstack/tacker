@@ -498,6 +498,19 @@ tenant_id_opt:
   in: body
   required: false
   type: string
+update_operational_state:
+  description: |
+    New value of the operational state of the on-boarded instance of the VNF
+    package. Valid values are "ENABLED" and "DISABLED". See note.
+  in: body
+  required: false
+  type: string
+update_user_defined_data:
+  description: |
+    User defined data to be updated. For existing keys, the value is replaced.
+  in: body
+  required: false
+  type: object
 updated_at:
   description: |
     The date and time when the resource was updated.
@@ -506,6 +519,19 @@ updated_at:
   in: body
   required: true
   type: string
+updated_operational_state:
+  description: |
+    Updated value of the operational state of the on-boarded instance of
+    the VNF package.
+  in: body
+  required: false
+  type: string
+updated_user_defined_data:
+  description: |
+    Updated value of user defined data.
+  in: body
+  required: false
+  type: object
 usageState:
   description: |
     Usage state of the VNF package.
