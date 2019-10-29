@@ -162,11 +162,19 @@ If you are using keystone v2 then,
 
 ..
 
-6). Create 'tacker' directory in '/var/log'.
+6). Create 'tacker' directory in '/var/log', and create directories for vnf
+    package and zip csar file(for glance store).
 
 .. code-block:: console
 
    sudo mkdir /var/log/tacker
+   sudo mkdir -p /var/lib/tacker/vnfpackages
+   sudo mkdir -p /var/lib/tacker/csar_files
+
+.. note::
+
+   In case of multi node deployment, we recommend to configure
+   /var/lib/tacker/csar_files on a shared storage.
 
 ..
 
