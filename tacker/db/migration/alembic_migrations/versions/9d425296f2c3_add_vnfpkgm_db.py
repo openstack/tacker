@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""empty message
+"""add db tables for vnf packages
 
 Revision ID: 9d425296f2c3
 Revises: cd04a8335c18
