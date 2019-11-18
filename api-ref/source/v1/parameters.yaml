@@ -7,6 +7,20 @@ content_type:
   in: header
   required: true
   type: string
+fetch_content_type:
+  description: |
+    The fetched VNF Package will be returned with Content-Type set
+    as `application/zip` in the response header.
+  in: header
+  required: true
+  type: string
+range:
+  description: |
+    The byte range of VNF Package to be downloaded is specified in the Range
+    header.
+  in: header
+  required: false
+  type: string
 
 # variables in path
 alias_path:

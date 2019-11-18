@@ -289,30 +289,9 @@ class VnfPackageTest(base.BaseTackerTest):
         expected_result = [package1]
         self.assertEqual(expected_result, body)
 
-    def _create_and_onboard_vnf_package(self, file_name=None):
-        body = jsonutils.dumps({"userDefinedData": {"foo": "bar"}})
-        vnf_package = self._create_vnf_package(body)
-        if file_name is None:
-            file_name = "sample_vnf_package_csar.zip"
-        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                    '../../etc/samples/' + file_name))
-        with open(file_path, 'rb') as file_object:
-            resp, resp_body = self.http_client.do_request(
-                '{base_path}/{id}/package_content'.format(
-                    id=vnf_package['id'],
-                    base_path=self.base_url),
-                "PUT", body=file_object, content_type='application/zip')
-        self.assertEqual(202, resp.status_code)
-        self._wait_for_onboard(vnf_package['id'])
-
-        return vnf_package['id']
-
     def test_get_vnfd_from_onboarded_vnf_package_for_content_type_zip(self):
-        vnf_package_id = self._create_and_onboard_vnf_package()
-        self.addCleanup(self._delete_vnf_package, vnf_package_id)
-        self.addCleanup(self._disable_operational_state, vnf_package_id)
         resp, resp_body = self.http_client.do_request(
-            '{base_path}/{id}/vnfd'.format(id=vnf_package_id,
+            '{base_path}/{id}/vnfd'.format(id=self.package_id1,
                                            base_path=self.base_url),
             "GET", content_type='application/zip')
         self.assertEqual(200, resp.status_code)
@@ -344,9 +323,9 @@ class VnfPackageTest(base.BaseTackerTest):
     def test_get_vnfd_from_onboarded_vnf_package_for_content_type_text(
             self, accept_header):
         # Uploading vnf package with single yaml file csar.
-        single_yaml_csar = "sample_vnfpkg_no_meta_single_vnfd.zip"
-        vnf_package_id = self._create_and_onboard_vnf_package(
-            single_yaml_csar)
+        single_yaml_csar_dir = "sample_vnfpkg_no_meta_single_vnfd"
+        vnf_package_id = self._create_and_upload_vnf(
+            single_yaml_csar_dir)
         self.addCleanup(self._delete_vnf_package, vnf_package_id)
         self.addCleanup(self._disable_operational_state, vnf_package_id)
         resp, resp_body = self.http_client.do_request(
@@ -356,3 +335,62 @@ class VnfPackageTest(base.BaseTackerTest):
         self.assertEqual(200, resp.status_code)
         self.assertEqual('text/plain', resp.headers['Content-Type'])
         self.assertIsNotNone(resp.text)
+
+    def test_fetch_vnf_package_content_partial_download_using_range(self):
+        """Test partial download using 'Range' requests for csar zip"""
+        # test for success on satisfiable Range request.
+        range_ = 'bytes=3-8'
+        headers = {'Range': range_}
+        response = self.http_client.do_request(
+            '{base_path}/{id}/package_content'.format(
+                id=self.package_id1, base_path=self.base_url),
+            "GET", body={}, headers=headers)
+        self.assertEqual(206, response[0].status_code)
+        self.assertEqual(
+            '\x04\x14\x00\x00\x00\x00', response[0].content.decode(
+                'utf-8', 'ignore'))
+        self.assertEqual('6', response[0].headers['Content-Length'])
+
+    def test_fetch_vnf_package_content_full_download(self):
+        """Test full download for csar zip"""
+        response = self.http_client.do_request(
+            '{base_path}/{id}/package_content'.format(
+                id=self.package_id1, base_path=self.base_url),
+            "GET", body={}, headers={})
+        self.assertEqual(200, response[0].status_code)
+        self.assertEqual('12802866', response[0].headers['Content-Length'])
+
+    def test_fetch_vnf_package_content_combined_download(self):
+        """Combine two partial downloads using 'Range' requests for csar zip"""
+
+        zip_file_path = tempfile.NamedTemporaryFile(delete=True)
+        zipf = zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_STORED)
+
+        # Partial download 1
+        range_ = 'bytes=0-10'
+        headers = {'Range': range_}
+        response_1 = self.http_client.do_request(
+            '{base_path}/{id}/package_content'.format(
+                id=self.package_id1, base_path=self.base_url),
+            "GET", body={}, headers=headers)
+        size_1 = int(response_1[0].headers['Content-Length'])
+        data = response_1[0].content
+        file_path = self._get_csar_dir_path("data.txt")
+        zipf.writestr(file_path, data)
+
+        # Partial download 2
+        range_ = 'bytes=11-12802866'
+        headers = {'Range': range_}
+        response_2 = self.http_client.do_request(
+            '{base_path}/{id}/package_content'.format(
+                id=self.package_id1, base_path=self.base_url),
+            "GET", body={}, headers=headers)
+
+        data = response_2[0].content
+        zipf.writestr(file_path, data)
+        zipf.close()
+        size_2 = int(response_2[0].headers['Content-Length'])
+        total_size = size_1 + size_2
+        self.assertEqual(True, zipfile.is_zipfile(zip_file_path))
+        self.assertEqual(12802866, total_size)
+        zip_file_path.close()

@@ -141,6 +141,7 @@ class VnfPackage(model_base.BASE, models.SoftDeleteMixin,
     algorithm = sa.Column(sa.String(64), nullable=True)
     hash = sa.Column(sa.String(128), nullable=True)
     location_glance_store = sa.Column(sa.Text(), nullable=True)
+    size = sa.Column(sa.BigInteger, nullable=False, default=0)
 
     _metadata = orm.relationship(
         VnfPackageUserData,

@@ -286,6 +286,10 @@ class VNFPackageURLInvalid(Invalid):
     message = _("Failed to open URL %(url)s")
 
 
+class VnfPackageLocationInvalid(Invalid):
+    message = _("Failed to find location: %(location)")
+
+
 class InvalidZipFile(Invalid):
     message = _("Invalid zip file : %(path)s")
 
@@ -297,6 +301,10 @@ class UploadFailedToGlanceStore(Invalid):
 
 class FailedToGetVnfdData(Invalid):
     message = _("Failed to get csar zip file from glance store: %(error)s")
+
+
+class FailedToGetVnfPackageDetails(Invalid):
+    message = _("Failed to get vnf package details: %(error)s")
 
 
 class InvalidCSAR(Invalid):

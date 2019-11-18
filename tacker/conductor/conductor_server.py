@@ -265,7 +265,6 @@ class Conductor(manager.Manager):
     def upload_vnf_package_from_uri(self, context, vnf_package,
                                     address_information, user_name=None,
                                     password=None):
-
         body = {"address_information": address_information}
         (location, size, checksum, multihash,
          loc_meta) = glance_store.store_csar(context, vnf_package.id, body)
@@ -276,7 +275,7 @@ class Conductor(manager.Manager):
         vnf_package.algorithm = CONF.vnf_package.hashing_algorithm
         vnf_package.hash = multihash
         vnf_package.location_glance_store = location
-
+        vnf_package.size = size
         vnf_package.save()
 
         zip_path = glance_store.load_csar(vnf_package.id, location)

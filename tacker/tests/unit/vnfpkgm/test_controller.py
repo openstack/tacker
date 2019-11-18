@@ -526,7 +526,7 @@ class TestController(base.TestCase):
         vnf_package_obj = objects.VnfPackage(**vnf_package_dict)
         mock_vnf_by_id.return_value = vnf_package_obj
         mock_vnf_pack_save.return_value = vnf_package_obj
-        mock_glance_store.return_value = 'location', 'size', 'checksum',\
+        mock_glance_store.return_value = 'location', 0, 'checksum',\
                                          'multihash', 'loc_meta'
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content'
@@ -919,3 +919,27 @@ class TestController(base.TestCase):
                           self.controller.get_vnf_package_vnfd,
                           req, constants.UUID)
         self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
+
+    def test_fetch_vnf_package_content_valid_range(self):
+        request = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content/')
+        request.headers["Range"] = 'bytes=10-99'
+        range_ = self.controller._get_range_from_request(request, 120)
+        self.assertEqual(10, range_.start)
+        self.assertEqual(100, range_.end)  # non-inclusive
+
+    def test_fetch_vnf_package_content_invalid_range(self):
+        request = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content/')
+        request.headers["Range"] = 'bytes=150-'
+        self.assertRaises(exc.HTTPRequestRangeNotSatisfiable,
+                          self.controller._get_range_from_request,
+                          request, 120)
+
+    def test_fetch_vnf_package_content_invalid_multiple_range(self):
+        request = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content/')
+        request.headers["Range"] = 'bytes=10-20,21-30'
+        self.assertRaises(exc.HTTPBadRequest,
+                          self.controller._get_range_from_request, request,
+                          120)

@@ -64,7 +64,8 @@ class VnfpkgmAPIRouter(wsgi.Router):
                 methods, controller, default_resource)
 
         # Allowed methods on /vnf_packages/{id}/package_content resource
-        methods = {"PUT": "upload_vnf_package_content"}
+        methods = {"PUT": "upload_vnf_package_content",
+                   "GET": "fetch_vnf_package_content"}
         self._setup_route(mapper, "/vnf_packages/{id}/package_content",
                 methods, controller, default_resource)
 

@@ -46,6 +46,7 @@ class TestVnfPackage(SqlTestCase):
         self.assertEqual('CREATED', vnfpkgm.onboarding_state)
         self.assertEqual('NOT_IN_USE', vnfpkgm.usage_state)
         self.assertEqual('DISABLED', vnfpkgm.operational_state)
+        self.assertEqual(0, vnfpkgm.size)
 
     def test_create_without_user_define_data(self):
         vnf_pack = fakes.vnf_package_data
@@ -177,3 +178,11 @@ class TestVnfPackage(SqlTestCase):
         vnfpkgm_list = objects.VnfPackagesList.get_by_filters(
             self.context, filters=filters)
         self.assertEqual(1, len(vnfpkgm_list))
+
+    def test_obj_make_compatible(self):
+        data = {'id': self.vnf_package.id}
+        vnf_package_obj = objects.VnfPackage(context=self.context, **data)
+        fake_vnf_package_obj = objects.VnfPackage(context=self.context, **data)
+        obj_primitive = fake_vnf_package_obj.obj_to_primitive('1.0')
+        obj = vnf_package_obj.obj_from_primitive(obj_primitive)
+        self.assertIn('size', obj.fields)

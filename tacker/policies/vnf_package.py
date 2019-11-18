@@ -63,6 +63,17 @@ rules = [
             }
         ]),
     policy.DocumentedRuleDefault(
+        name=VNFPKGM % 'fetch_package_content',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="fetch the contents of an on-boarded VNF Package",
+        operations=[
+            {
+                'method': 'GET',
+                'path': '/vnf_packages/{vnf_package_id}/'
+                        'package_content'
+            }
+        ]),
+    policy.DocumentedRuleDefault(
         name=VNFPKGM % 'upload_package_content',
         check_str=base.RULE_ADMIN_OR_OWNER,
         description="upload a vnf package content.",
