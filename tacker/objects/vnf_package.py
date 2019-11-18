@@ -18,6 +18,7 @@ from oslo_serialization import jsonutils as json
 from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
+from oslo_utils import versionutils
 from oslo_versionedobjects import base as ovoo_base
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
@@ -305,8 +306,8 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
     COMPLEX_ATTRIBUTES.extend(
         vnf_software_image.VnfSoftwareImage.COMPLEX_ATTRIBUTES)
 
-    # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Added 'size' to persist size of VnfPackage.
+    VERSION = '1.1'
 
     fields = {
         'id': fields.UUIDField(nullable=False),
@@ -323,7 +324,18 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
         'vnf_deployment_flavours': fields.ObjectField(
             'VnfDeploymentFlavoursList', nullable=True),
         'vnfd': fields.ObjectField('VnfPackageVnfd', nullable=True),
+        'size': fields.IntegerField(nullable=False, default=0),
     }
+
+    def __init__(self, context=None, **kwargs):
+        super(VnfPackage, self).__init__(context, **kwargs)
+        self.obj_set_defaults()
+
+    def obj_make_compatible(self, primitive, target_version):
+        super(VnfPackage, self).obj_make_compatible(primitive, target_version)
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1) and 'size' in primitive:
+            del primitive['size']
 
     @staticmethod
     def _from_db_object(context, vnf_package, db_vnf_package,

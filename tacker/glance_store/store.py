@@ -54,7 +54,6 @@ def get_csar_data_iter(body):
 def store_csar(context, package_uuid, body):
 
     data_iter = get_csar_data_iter(body)
-
     try:
         # store CSAR file in glance_store
         (location, size, checksum, multihash,
@@ -91,16 +90,21 @@ def delete_csar(context, package_uuid, location):
                  {"uuid": package_uuid})
 
 
+def get_csar_size(package_uuid, location):
+
+    try:
+        return glance_store.backend.get_size_from_backend(location)
+    except Exception:
+        LOG.exception("Failed to get csar data from glance store %(location)s"
+         "for package %(uuid)s", {"location": location, "uuid": package_uuid})
+        raise exceptions.VnfPackageLocationInvalid(location=location)
+
+
 def load_csar(package_uuid, location):
     zip_path = os.path.join(CONF.vnf_package.vnf_package_csar_path,
                             package_uuid + ".zip")
-
-    try:
-        resp, size = glance_store.backend.get_from_backend(location)
-    except Exception:
-        LOG.info("Failed to get csar data from glance store %(location)s for "
-                 "package %(uuid)s",
-                 {"location": location, "uuid": package_uuid})
+    resp, size = _get_csar_chunks(
+        package_uuid, location, offset=0, chunk_size=None)
 
     try:
         temp_data = open(zip_path, 'wb')
@@ -115,3 +119,21 @@ def load_csar(package_uuid, location):
                        'error': encodeutils.exception_to_unicode(exp)})
 
     return zip_path
+
+
+def load_csar_iter(package_uuid, location, offset=0, chunk_size=None):
+    resp, size = _get_csar_chunks(
+        package_uuid, location, offset=offset, chunk_size=chunk_size)
+    return resp, size
+
+
+def _get_csar_chunks(package_uuid, location, offset, chunk_size):
+    try:
+        resp, size = glance_store.backend.get_from_backend(location,
+                                                       offset=offset,
+                                                       chunk_size=chunk_size)
+        return resp, size
+    except Exception:
+        LOG.exception("Failed to get csar data from glance store %(location)s"
+         "for package %(uuid)s", {"location": location, "uuid": package_uuid})
+        raise exceptions.VnfPackageLocationInvalid(location=location)

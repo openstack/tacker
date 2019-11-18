@@ -108,7 +108,7 @@ class TestConductor(SqlTestCase):
         mock_load_csar_data.return_value = (mock.ANY, mock.ANY)
         mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a' \
                                       '-4c31-9e6d-ab21b87dcfff.zip'
-        mock_store.return_value = 'location', 'size', 'checksum',\
+        mock_store.return_value = 'location', 0, 'checksum',\
                                   'multihash', 'loc_meta'
         self.conductor.upload_vnf_package_from_uri(self.context,
                                                    self.vnf_package,

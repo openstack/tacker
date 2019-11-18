@@ -361,3 +361,50 @@ Response
 .. rest_parameters:: parameters.yaml
 
   - Content-Type: content_type
+
+Fetch an on-boarded VNF package with HTTP_RANGE
+================================================
+
+.. rest_method::  GET /vnfpkgm/v1/vnf_packages/{vnf_package_id}/package_content
+
+Fetch an on-boarded VNF package with HTTP_RANGE.
+
+The GET method fetches the content of a VNF package identified by
+the VNF package identifier allocated by the NFVO.
+
+The 'HTTP_RANGE' header is inspected for a valid value.
+If it is present and valid, then the package content within
+the range is fetched. If not present the entire content is
+fetched.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 200
+  - 206
+
+.. rest_status_code:: error status.yaml
+
+  - 403
+  - 404
+  - 409
+  - 416
+  - 500
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters.yaml
+
+  - vnf_package_id: vnf_package_id_path
+  - Accept: fetch_content_type
+  - Range: range
+
+Response
+--------
+
+.. rest_parameters:: parameters.yaml
+
+  - Content-Type: fetch_content_type

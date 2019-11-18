@@ -173,6 +173,123 @@ class VnfPkgmController(wsgi.Controller):
 
     @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,
+                           http_client.CONFLICT,
+                           http_client.REQUESTED_RANGE_NOT_SATISFIABLE))
+    def fetch_vnf_package_content(self, request, id):
+        context = request.environ['tacker.context']
+        context.can(vnf_package_policies.VNFPKGM % 'fetch_package_content')
+
+        vnf_package = self._get_vnf_package(id, request)
+
+        if vnf_package.onboarding_state != \
+           fields.PackageOnboardingStateType.ONBOARDED:
+            msg = _("VNF Package %(id)s onboarding state "
+                    "is not %(onboarding)s")
+            raise webob.exc.HTTPConflict(explanation=msg % {"id": id,
+                    "onboarding": fields.PackageOnboardingStateType.ONBOARDED})
+
+        if vnf_package.size == 0:
+
+            try:
+                zip_file_size = glance_store.get_csar_size(id,
+                    vnf_package.location_glance_store)
+                vnf_package.size = zip_file_size
+                vnf_package.save()
+            except exceptions.VnfPackageLocationInvalid:
+                msg = _("Vnf package not present at location")
+                raise webob.exc.HTTPNotFound(explanation=msg)
+
+        else:
+            zip_file_size = vnf_package.size
+
+        range_val = self._get_range_from_request(request, zip_file_size)
+
+        return self._download(
+            request.response, range_val, id, vnf_package.location_glance_store,
+            zip_file_size)
+
+    def _download(self, response, range_val, uuid, location, zip_file_size):
+        offset, chunk_size = 0, None
+        if range_val:
+            if isinstance(range_val, webob.byterange.Range):
+                response_end = zip_file_size - 1
+                # NOTE(sameert): webob parsing is zero-indexed.
+                # i.e.,to download first 5 bytes of a 10 byte image,
+                # request should be "bytes=0-4" and the response would be
+                # "bytes 0-4/10".
+                # Range if validated, will never have 'start' object as None.
+                if range_val.start >= 0:
+                    offset = range_val.start
+                else:
+                    # NOTE(sameert): Negative start values needs to be
+                    # processed to allow suffix-length for Range request
+                    # like "bytes=-2" as per rfc7233.
+                    if abs(range_val.start) < zip_file_size:
+                        offset = zip_file_size + range_val.start
+
+                if range_val.end is not None and range_val.end < zip_file_size:
+                    chunk_size = range_val.end - offset
+                    response_end = range_val.end - 1
+                else:
+                    chunk_size = zip_file_size - offset
+
+            response.status_int = 206
+
+        response.headers['Content-Type'] = 'application/zip'
+
+        response.app_iter = self._get_csar_zip_data(uuid,
+            location, offset, chunk_size)
+        # NOTE(sameert): In case of a full zip download, when
+        # chunk_size was none, reset it to zip.size to set the
+        # response header's Content-Length.
+        if chunk_size is not None:
+            response.headers['Content-Range'] = 'bytes %s-%s/%s'\
+                                                % (offset,
+                                                    response_end,
+                                                    zip_file_size)
+        else:
+            chunk_size = zip_file_size
+        response.headers['Content-Length'] = six.text_type(chunk_size)
+        return response
+
+    def _get_csar_zip_data(self, uuid, location, offset=0, chunk_size=None):
+        try:
+            resp, size = glance_store.load_csar_iter(
+                uuid, location, offset=offset, chunk_size=chunk_size)
+        except exceptions.VnfPackageLocationInvalid:
+            msg = _("Vnf package not present at location")
+            raise webob.exc.HTTPServerError(explanation=msg)
+        return resp
+
+    def _get_range_from_request(self, request, zip_file_size):
+        range_str = request._headers.environ.get('HTTP_RANGE')
+        if range_str is not None:
+            # NOTE(sameert): We do not support multi range requests.
+            if ',' in range_str:
+                msg = _("Requests with multiple ranges are not supported in "
+                       "Tacker. You may make multiple single-range requests "
+                       "instead.")
+                raise webob.exc.HTTPBadRequest(explanation=msg)
+
+            range_ = webob.byterange.Range.parse(range_str)
+            if range_ is None:
+                range_err_msg = _("The byte range passed in the 'Range' header"
+                 "did not match any available byte range in the VNF package"
+                 "file")
+                raise webob.exc.HTTPRequestRangeNotSatisfiable(
+                    explanation=range_err_msg)
+            # NOTE(sameert): Ensure that a range like bytes=4- for an zip
+            # size of 3 is invalidated as per rfc7233.
+            if range_.start >= zip_file_size:
+                msg = _("Invalid start position in Range header. "
+                       "Start position MUST be in the inclusive range"
+                       "[0, %s].") % (zip_file_size - 1)
+                raise webob.exc.HTTPRequestRangeNotSatisfiable(
+                    explanation=msg)
+            return range_
+
+    @wsgi.response(http_client.ACCEPTED)
+    @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,
                            http_client.CONFLICT))
     def upload_vnf_package_content(self, request, id, body):
         context = request.environ['tacker.context']
@@ -207,7 +324,7 @@ class VnfPkgmController(wsgi.Controller):
         vnf_package.algorithm = CONF.vnf_package.hashing_algorithm
         vnf_package.hash = multihash
         vnf_package.location_glance_store = location
-
+        vnf_package.size = size
         vnf_package.save()
 
         # process vnf_package
