@@ -492,8 +492,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return vnf_db
 
     def _update_vnf_status_db(self, context, vnf_id, current_statuses,
-                              new_status):
-        vnf_db = self._get_vnf_db(context, vnf_id, current_statuses)
+                              new_status, vnf_db=None):
+        if not vnf_db:
+            vnf_db = self._get_vnf_db(context, vnf_id, current_statuses)
         if self.check_vnf_status_legality(vnf_db, vnf_id):
             vnf_db.update({'status': new_status})
         return vnf_db
@@ -508,7 +509,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
     def check_vnf_status_legality(vnf_db, vnf_id):
         if vnf_db.status == constants.PENDING_DELETE:
             error_reason = _("Operation on PENDING_DELETE VNF "
-                             "is not permited. Please contact your "
+                             "is not permitted. Please contact your "
                              "Administrator.")
             raise vnfm.VNFDeleteFailed(reason=error_reason)
         if(vnf_db.status in [constants.PENDING_UPDATE,
@@ -585,13 +586,25 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 ns_db.NS.vnf_ids.like("%" + vnf_id + "%")).first()
 
             if not force_delete:
-                if (nss_db is not None and nss_db.status not in
-                        [constants.PENDING_DELETE, constants.ERROR]):
-                    raise vnfm.VNFInUse(vnf_id=vnf_id)
+                # If vnf is deleted by NFVO, then vnf_id would
+                # exist in the nss_db otherwise it should be queried from
+                # vnf db table.
+                if nss_db is not None:
+                    if nss_db.status not in [constants.PENDING_DELETE,
+                                             constants.ERROR]:
+                        raise vnfm.VNFInUse(vnf_id=vnf_id)
+                else:
+                    vnf_db = self._get_vnf_db(context, vnf_id,
+                                              _ACTIVE_UPDATE_ERROR_DEAD)
+                    if (vnf_db is not None and vnf_db.status == constants.
+                            PENDING_CREATE):
+                        raise vnfm.VNFInUse(
+                            message="Operation on PENDING_CREATE VNF is not "
+                                    "permitted.")
 
-                vnf_db = self._update_vnf_status_db(
-                    context, vnf_id, _ACTIVE_UPDATE_ERROR_DEAD,
-                    constants.PENDING_DELETE)
+                    vnf_db = self._update_vnf_status_db(
+                        context, vnf_id, _ACTIVE_UPDATE_ERROR_DEAD,
+                        constants.PENDING_DELETE, vnf_db=vnf_db)
             else:
                 vnf_db = self._update_vnf_status_db_no_check(context,
                     vnf_id, _ACTIVE_UPDATE_ERROR_DEAD,

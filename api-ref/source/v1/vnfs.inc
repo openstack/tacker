@@ -266,6 +266,11 @@ Delete VNF
 
 Deletes a given VNF.
 
+.. note::
+    Non-admin users are not allowed to delete a VNF in ``PENDING_CREATE`` and
+    ``PENDING_DELETE`` status. In this case, it would return 409 error. Admin
+    users can delete a VNF in any status with force flag true.
+
 Response Codes
 --------------
 
@@ -286,6 +291,15 @@ Request Parameters
 .. rest_parameters:: parameters.yaml
 
   - vnf_id: vnf_id_path
+  - attributes: vnf_force_delete_flag
+
+Request Example
+---------------
+
+Admin user can request to delete VNF forcefully.
+
+.. literalinclude:: samples/vnfs/vnfs-delete-request.json
+   :language: javascript
 
 List VNF resources
 ==================

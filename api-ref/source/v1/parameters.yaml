@@ -731,6 +731,12 @@ vnf_error_reason:
   in: body
   required: true
   type: string
+vnf_force_delete_flag:
+  description: |
+    VNF attributes object with ``force`` key which can contain true/false value.
+  in: body
+  required: false
+  type: object
 vnf_heat_template:
   description: |
     Heat template which is translated from the VNFD template.
