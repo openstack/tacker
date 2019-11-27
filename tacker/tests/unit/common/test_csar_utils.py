@@ -162,3 +162,14 @@ class TestCSARUtils(testtools.TestCase):
         csar_utils.delete_csar_data(constants.UUID)
         mock_rmtree.assert_called()
         mock_remove.assert_called()
+
+    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    def test_load_csar_data_without_policies(
+            self, mock_extract_csar_zip_file):
+        file_path = os.path.join(
+            self.base_path, "../../etc/samples/"
+                            "csar_without_policies.zip")
+        vnf_data, flavours = csar_utils.load_csar_data(
+            self.context, constants.UUID, file_path)
+        self.assertIsNone(flavours[0].get('instantiation_levels'))
+        self.assertEqual(vnf_data['descriptor_version'], '1.0')
