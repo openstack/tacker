@@ -572,7 +572,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         if not f:
             LOG.warning('Unable to decode VIM auth')
             raise nfvo.VimNotFoundException(vim_id=vim_id)
-        return f.decrypt(cred)
+        return f.decrypt(cred).decode('utf-8')
 
     @staticmethod
     def _find_vim_key(vim_id):
