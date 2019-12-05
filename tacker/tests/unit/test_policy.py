@@ -530,7 +530,7 @@ class TackerPolicyTestCase(base.BaseTestCase):
                                                expected_rules):
         policy._set_rules(json.dumps(input_rules))
         # verify deprecated policy has been removed
-        for pol in input_rules.keys():
+        for pol in input_rules:
             self.assertNotIn(pol, common_policy._rules)
         # verify deprecated policy was correctly translated. Iterate
         # over items for compatibility with unittest2 in python 2.6

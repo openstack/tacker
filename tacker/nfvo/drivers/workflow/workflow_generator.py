@@ -143,7 +143,7 @@ class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
                 delayed_tasks.append(wait_task)
 
         previous_task = None
-        for vnffg_name in vnffg_ids.keys():
+        for vnffg_name in vnffg_ids:
             task = 'delete_vnffg_%s' % vnffg_name
             if previous_task:
                 wait_tasks = delayed_tasks + [previous_task]
@@ -257,7 +257,7 @@ class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
         ns_dict = {'vnfd_details': {}}
         vnf_ids = ast.literal_eval(ns['vnf_ids'])
         self.definition[self.wf_identifier]['input'] = []
-        for vnf in vnf_ids.keys():
+        for vnf in vnf_ids:
             vnf_key = 'vnf_id_' + vnf
             self.definition[self.wf_identifier]['input'].append(vnf_key)
             self.input_dict[vnf_key] = vnf_ids[vnf]
@@ -266,7 +266,7 @@ class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
 
         vnffg_ids = ast.literal_eval(ns.get('vnffg_ids'))
         if len(vnffg_ids):
-            for vnffg_name in vnffg_ids.keys():
+            for vnffg_name in vnffg_ids:
                 self.definition[self.wf_identifier]['input'].append(vnffg_name)
                 self.input_dict[vnffg_name] = vnffg_ids[vnffg_name]
                 ns_dict['vnffg_details'] = vnffg_ids

@@ -171,7 +171,7 @@ class Parser(object):
         memory_real_value = 0
 
         # Translate memory's byte size based on SCALAR_UNIT_DICT
-        if memory_unit in SCALAR_UNIT_DICT.keys():
+        if memory_unit in SCALAR_UNIT_DICT:
             memory_real_value = \
                 int(memory_value) * SCALAR_UNIT_DICT[memory_unit]
         return memory_real_value

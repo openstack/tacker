@@ -36,13 +36,13 @@ def _generate_associated_tables_map(inspector):
         for fk in fk_list:
             k = str(fk['referred_table'])
             v = str(fk['constrained_columns'][0])
-            if k not in assoc_map.keys():
+            if k not in assoc_map:
                 assoc_map[k] = {str(t): v}
             else:
                 assoc_map[k][str(t)] = v
     assoc_keys = assoc_map.keys()
     for k, v in assoc_map.items():
-        for k1 in v.keys():
+        for k1 in v:
             if k1 in assoc_keys:
                 del assoc_map[k][k1]
     return assoc_map
@@ -52,7 +52,7 @@ def _purge_resource_tables(t, meta, engine, time_line, assoc_map):
     table_load = sqlalchemy.Table(t, meta, autoload=True)
     table_del_query = table_load.delete().where(
         table_load.c.deleted_at <= time_line)
-    if t in assoc_map.keys():
+    if t in assoc_map:
         select_id_query = sqlalchemy.select([table_load.c.id]).where(
             table_load.c.deleted_at <= time_line)
         resource_ids = [i[0] for i in list(engine.execute(select_id_query))]
@@ -93,7 +93,7 @@ def purge_deleted(tacker_config, table_name, age, granularity='days'):
         msg = _("'%s' - age should be a positive integer") % age
         raise exceptions.InvalidInput(error_message=msg)
 
-    if granularity not in GRANULARITY.keys():
+    if granularity not in GRANULARITY:
         msg = _("'%s' granularity should be days, hours, minutes, "
                 "or seconds") % granularity
         raise exceptions.InvalidInput(error_message=msg)

@@ -460,7 +460,7 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
             self.id = updates['id']
 
         for key in ['vnf_deployment_flavours']:
-            if key in updates.keys():
+            if key in updates:
                 updates.pop(key)
 
         user_data = updates.pop('user_data', None)
@@ -487,7 +487,7 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
     def save(self):
         updates = self.tacker_obj_get_changes()
         for key in ['vnf_deployment_flavours']:
-            if key in updates.keys():
+            if key in updates:
                 updates.pop(key)
 
         db_vnf_package = _vnf_package_update(self._context,

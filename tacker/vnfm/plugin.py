@@ -702,7 +702,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         def _validate_scaling_policy():
             type = policy['type']
 
-            if type not in constants.POLICY_ACTIONS.keys():
+            if type not in constants.POLICY_ACTIONS:
                 raise exceptions.VnfPolicyTypeInvalid(
                     type=type,
                     valid_types=constants.POLICY_ACTIONS.keys(),

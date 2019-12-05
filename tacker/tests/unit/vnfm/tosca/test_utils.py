@@ -91,22 +91,22 @@ class TestToscaUtils(testtools.TestCase):
                     nt.type_definition.is_derived_from(toscautils.PLACEMENT)):
                 invalidNodes += 1
 
-            if nt.type in toscautils.delpropmap.keys():
+            if nt.type in toscautils.delpropmap:
                 for prop in toscautils.delpropmap[nt.type]:
                     for p in nt.get_properties_objects():
                         if prop == p.name:
                             deletedProperties += 1
 
             if nt.type in toscautils.convert_prop_values:
-                for prop in toscautils.convert_prop_values[nt.type].keys():
+                for prop in toscautils.convert_prop_values[nt.type]:
                     convertmap = toscautils.convert_prop_values[nt.type][prop]
                     for p in nt.get_properties_objects():
                         if (prop == p.name and
-                                p.value in convertmap.keys()):
+                                p.value in convertmap):
                             convertedValues += 1
 
             if nt.type in toscautils.convert_prop:
-                for prop in toscautils.convert_prop[nt.type].keys():
+                for prop in toscautils.convert_prop[nt.type]:
                     for p in nt.get_properties_objects():
                         if prop == p.name:
                             convertedProperties += 1

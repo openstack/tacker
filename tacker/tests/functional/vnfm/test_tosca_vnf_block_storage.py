@@ -72,7 +72,7 @@ class VnfBlockStorageTestToscaCreate(base.BaseTackerTest):
         # Verify anti spoofing settings
         stack_id = vnf_show_out['instance_id']
         template_dict = tosca_dict['topology_template']['node_templates']
-        for field in template_dict.keys():
+        for field in template_dict:
             prop_dict = template_dict[field]['properties']
             if prop_dict.get('anti_spoofing_protection'):
                 self.verify_antispoofing_in_stack(stack_id=stack_id,

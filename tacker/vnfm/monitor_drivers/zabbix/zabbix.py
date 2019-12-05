@@ -54,7 +54,6 @@ class VNFMonitorZabbix(abstract_driver.VNFMonitorAbstractDriver):
         return plugin_descript
 
     def monitor_get_config(self, plugin, context, vnf):
-
         """Return dict of monitor configuration data.
 
         :param plugin:
@@ -198,7 +197,7 @@ class VNFMonitorZabbix(abstract_driver.VNFMonitorAbstractDriver):
             temp_vdu_name = self.hostinfo[vdu]['appinfo']['app_name']
             temp_vdu_port = self.hostinfo[vdu]['appinfo']['app_port']
             for para in VNFMonitorZabbix.params:
-                for item in self.hostinfo[vdu]['parameters'][para].keys():
+                for item in self.hostinfo[vdu]['parameters'][para]:
                     action_list = copy.deepcopy(zapi.dACTION_LIST)
                     temp_item = self.hostinfo[vdu]['parameters'][para][item]
 
@@ -208,7 +207,7 @@ class VNFMonitorZabbix(abstract_driver.VNFMonitorAbstractDriver):
                             and ('ssh_password' != item):
 
                         if 'condition' \
-                                in temp_item.keys():
+                                in temp_item:
                             temp_con = temp_item['condition']
 
                         if len(temp_con) == 2:
@@ -239,9 +238,7 @@ class VNFMonitorZabbix(abstract_driver.VNFMonitorAbstractDriver):
                                             '*', str(temp_vdu_port))) \
                                     + str(
                                         zapi.COMP_VALUE[temp_comparrision])
-                        if 'actionname' in \
-                                temp_item.keys():
-
+                        if 'actionname' in temp_item:
                             trig_act_pa.append(temp_trigger_list[item][0])
                             response = self.create_trigger(trig_act_pa, vdu)
                             del trig_act_pa[:]
@@ -280,12 +277,11 @@ class VNFMonitorZabbix(abstract_driver.VNFMonitorAbstractDriver):
 
             for para in VNFMonitorZabbix.params:
                 if 'application' == para:
-                    for app_info in \
-                            temp_app.keys():
+                    for app_info in temp_app:
                         self.hostinfo[vdu]['appinfo'][app_info] = \
                             temp_app[app_info]
 
-                for item in (self.hostinfo[vdu]['parameters'][para].keys()):
+                for item in self.hostinfo[vdu]['parameters'][para]:
                     if ('app_name' != item) and ('app_port' != item) \
                             and ('ssh_username' != item) \
                             and ('ssh_password' != item):
@@ -392,9 +388,9 @@ class VNFMonitorZabbix(abstract_driver.VNFMonitorAbstractDriver):
         temp_vduname = self.kwargs['vdus'].keys()
         for node in temp_vduname:
             if 'application' in \
-                    self.kwargs['vdus'][node]['parameters'].keys() \
+                    self.kwargs['vdus'][node]['parameters'] \
                     and 'OS'\
-                    in self.kwargs['vdus'][node]['parameters'].keys():
+                    in self.kwargs['vdus'][node]['parameters']:
                 self.vduname.append(node)
                 self.hostinfo[node] = copy.deepcopy(zapi.dVDU_INFO)
                 self.set_zbx_info(node)
