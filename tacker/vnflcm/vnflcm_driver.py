@@ -264,8 +264,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                           encodeutils.exception_to_unicode(exp))
 
     def _delete_vnf_instance_resources(self, context, vnf_instance,
-                                       vim_connection_info,
-                                       terminate_vnf_req=None):
+            vim_connection_info, terminate_vnf_req=None,
+            update_instantiated_state=True):
 
         if vnf_instance.instantiated_vnf_info and \
                 vnf_instance.instantiated_vnf_info.instance_id:
@@ -285,9 +285,10 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 'delete', plugin=self, context=context,
                 vnf_id=instance_id, auth_attr=access_info)
 
-            vnf_instance.instantiation_state = \
-                fields.VnfInstanceState.NOT_INSTANTIATED
-            vnf_instance.save()
+            if update_instantiated_state:
+                vnf_instance.instantiation_state = \
+                    fields.VnfInstanceState.NOT_INSTANTIATED
+                vnf_instance.save()
 
             self._vnf_manager.invoke(vim_connection_info.vim_type,
                 'delete_wait', plugin=self, context=context,
@@ -304,3 +305,114 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     vnf_resource=vnf_resource)
 
             vnf_resource.destroy(context)
+
+    def _heal_vnf(self, context, vnf_instance, vim_connection_info,
+            heal_vnf_request):
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        try:
+            self._vnf_manager.invoke(
+                vim_connection_info.vim_type, 'heal_vnf',
+                context=context, vnf_instance=vnf_instance,
+                vim_connection_info=vim_connection_info,
+                heal_vnf_request=heal_vnf_request)
+        except Exception as exp:
+            with excutils.save_and_reraise_exception() as exc_ctxt:
+                exc_ctxt.reraise = False
+                LOG.error("Failed to heal vnf %(id)s in infra driver. "
+                          "Error: %(error)s", {"id": vnf_instance.id, "error":
+                          encodeutils.exception_to_unicode(exp)})
+                raise exceptions.VnfHealFailed(id=vnf_instance.id,
+                    error=encodeutils.exception_to_unicode(exp))
+
+        try:
+            self._vnf_manager.invoke(
+                vim_connection_info.vim_type, 'heal_vnf_wait',
+                context=context, vnf_instance=vnf_instance,
+                vim_connection_info=vim_connection_info)
+        except Exception as exp:
+            LOG.error("Failed to update vnf %(id)s resources for instance"
+                      "%(instance)s. Error: %(error)s",
+                      {'id': vnf_instance.id, 'instance':
+                      inst_vnf_info.instance_id, 'error':
+                      encodeutils.exception_to_unicode(exp)})
+
+        try:
+            self._vnf_manager.invoke(
+                vim_connection_info.vim_type, 'post_heal_vnf',
+                context=context, vnf_instance=vnf_instance,
+                vim_connection_info=vim_connection_info,
+                heal_vnf_request=heal_vnf_request)
+            self._vnf_instance_update(context, vnf_instance, task_state=None)
+        except Exception as exp:
+            with excutils.save_and_reraise_exception() as exc_ctxt:
+                exc_ctxt.reraise = False
+                LOG.error("Failed to store updated resources information for "
+                          "instance %(instance)s for vnf %(id)s. "
+                          "Error: %(error)s",
+                          {'id': vnf_instance.id, 'instance':
+                          inst_vnf_info.instance_id, 'error':
+                          encodeutils.exception_to_unicode(exp)})
+                raise exceptions.VnfHealFailed(id=vnf_instance.id,
+                    error=encodeutils.exception_to_unicode(exp))
+
+    def _respawn_vnf(self, context, vnf_instance, vim_connection_info,
+            heal_vnf_request):
+        try:
+            self._delete_vnf_instance_resources(context, vnf_instance,
+                vim_connection_info, update_instantiated_state=False)
+        except Exception as exc:
+            with excutils.save_and_reraise_exception() as exc_ctxt:
+                exc_ctxt.reraise = False
+                err_msg = ("Failed to delete vnf resources for vnf instance "
+                          "%(id)s before respawning. The vnf is in "
+                          "inconsistent state. Error: %(error)s")
+                LOG.error(err_msg % {"id": vnf_instance.id,
+                          "error": six.text_type(exc)})
+                raise exceptions.VnfHealFailed(id=vnf_instance.id,
+                    error=encodeutils.exception_to_unicode(exc))
+
+        # InstantiateVnfRequest is not stored in the db as it's mapped
+        # to InstantiatedVnfInfo version object. Convert InstantiatedVnfInfo
+        # version object to InstantiateVnfRequest so that vnf can be
+        # instantiated.
+
+        instantiate_vnf_request = objects.InstantiateVnfRequest.\
+            from_vnf_instance(vnf_instance)
+
+        try:
+            self._instantiate_vnf(context, vnf_instance, vim_connection_info,
+                                  instantiate_vnf_request)
+        except Exception as exc:
+            with excutils.save_and_reraise_exception() as exc_ctxt:
+                exc_ctxt.reraise = False
+                err_msg = ("Failed to instantiate vnf instance "
+                          "%(id)s after termination. The vnf is in "
+                          "inconsistent state. Error: %(error)s")
+                LOG.error(err_msg % {"id": vnf_instance.id,
+                          "error": six.text_type(exc)})
+                raise exceptions.VnfHealFailed(id=vnf_instance.id,
+                    error=encodeutils.exception_to_unicode(exc))
+
+        self._vnf_instance_update(context, vnf_instance,
+                    instantiation_state=fields.VnfInstanceState.INSTANTIATED,
+                    task_state=None)
+
+    @log.log
+    @revert_to_error_task_state
+    def heal_vnf(self, context, vnf_instance, heal_vnf_request):
+        LOG.info("Request received for healing vnf '%s'", vnf_instance.id)
+        vim_info = vnflcm_utils._get_vim(context,
+            vnf_instance.vim_connection_info)
+
+        vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
+            vim_info, context)
+
+        if not heal_vnf_request.vnfc_instance_id:
+            self._respawn_vnf(context, vnf_instance, vim_connection_info,
+                         heal_vnf_request)
+        else:
+            self._heal_vnf(context, vnf_instance, vim_connection_info,
+                      heal_vnf_request)
+
+        LOG.info("Request received for healing vnf '%s' is completed "
+                 "successfully", vnf_instance.id)

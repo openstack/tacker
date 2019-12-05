@@ -342,6 +342,21 @@ class TestConductor(SqlTestCase):
         mock_log.error.assert_called_once_with(expected_msg,
             vnf_package_vnfd.package_uuid)
 
+    def test_heal_vnf_instance(self):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = \
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        heal_vnf_req = objects.HealVnfRequest(cause="healing request")
+        self.conductor.heal(self.context, vnf_instance, heal_vnf_req)
+        self.vnflcm_driver.heal_vnf.assert_called_once_with(
+            self.context, mock.ANY, heal_vnf_req)
+
     @mock.patch.object(os, 'remove')
     @mock.patch.object(shutil, 'rmtree')
     @mock.patch.object(os.path, 'exists')

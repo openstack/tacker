@@ -59,7 +59,7 @@ class FakeDriverManager(mock.Mock):
             if self.fail_method_name and \
                     self.fail_method_name == 'create_wait':
                 raise InfraDriverException("create_wait failed")
-        if 'post_vnf_instantiation' in args:
+        elif 'post_vnf_instantiation' in args:
             pass
         if 'delete' in args:
             if self.fail_method_name and \
@@ -73,6 +73,18 @@ class FakeDriverManager(mock.Mock):
             if self.fail_method_name and \
                     self.fail_method_name == 'delete_vnf_resource':
                 raise InfraDriverException("delete_vnf_resource failed")
+        elif 'heal_vnf' in args:
+            if self.fail_method_name and \
+                    self.fail_method_name == 'heal_vnf':
+                raise InfraDriverException("heal_vnf failed")
+        elif 'heal_vnf_wait' in args:
+            if self.fail_method_name and \
+                    self.fail_method_name == 'heal_vnf_wait':
+                raise InfraDriverException("heal_vnf_wait failed")
+        elif 'post_heal_vnf' in args:
+            if self.fail_method_name and \
+                    self.fail_method_name == 'post_heal_vnf':
+                raise InfraDriverException("post_heal_vnf failed")
 
 
 class FakeVimClient(mock.Mock):
@@ -439,3 +451,259 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual("delete_vnf_resource failed", str(error))
         self.assertEqual(2, mock_vnf_instance_save.call_count)
         self.assertEqual(3, self._vnf_manager.invoke.call_count)
+
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.VnfResource, "create")
+    @mock.patch.object(objects.VnfResource, "destroy")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    def test_heal_vnf_without_vnfc_instance(self, mock_log, mock_save,
+            mock_vnf_resource_list, mock_resource_destroy,
+            mock_resource_create, mock_vim, mock_vnf_package_vnfd):
+        vnf_package_vnfd = fakes.return_vnf_package_vnfd()
+        vnf_package_id = vnf_package_vnfd.package_uuid
+        mock_vnf_package_vnfd.return_value = vnf_package_vnfd
+
+        fake_csar = os.path.join(self.temp_dir, vnf_package_id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
+                              group='vnf_package')
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        sample_vnf_package_zip = os.path.join(
+            base_path, "../../etc/samples/sample_vnf_package_csar.zip")
+        extracted_zip_path = fake_csar
+        zipfile.ZipFile(sample_vnf_package_zip, 'r').extractall(
+            extracted_zip_path)
+
+        mock_vnf_resource_list.return_value = [fakes.return_vnf_resource()]
+        # Heal as per SOL003 i.e. without vnfcInstanceId
+        heal_vnf_req = objects.HealVnfRequest()
+
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'openstack',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost/identity',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+
+        mock_vim.return_value = vim_obj
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.heal_vnf(self.context, vnf_instance, heal_vnf_req)
+        self.assertEqual(1, mock_save.call_count)
+        # vnf resource software images will be deleted during
+        # deleting vnf instance.
+        self.assertEqual(1, mock_resource_destroy.call_count)
+        # Vnf resource software images will be created during
+        # instantiation.
+        self.assertEqual(1, mock_resource_create.call_count)
+        # Invoke will be called 7 times, 3 for deleting the vnf
+        # resources  and 4 during instantiation.
+        self.assertEqual(7, self._vnf_manager.invoke.call_count)
+        expected_msg = ("Request received for healing vnf '%s' "
+                       "is completed successfully")
+        mock_log.info.assert_called_with(expected_msg,
+            vnf_instance.id)
+
+        shutil.rmtree(fake_csar)
+
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    def test_heal_vnf_without_vnfc_instance_infra_delete_fail(self, mock_log,
+            mock_save):
+        # Heal as per SOL003 i.e. without vnfcInstanceId
+        heal_vnf_req = objects.HealVnfRequest()
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        self._mock_vnf_manager(fail_method_name='delete')
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(exceptions.VnfHealFailed,
+            driver.heal_vnf, self.context, vnf_instance, heal_vnf_req)
+        self.assertEqual(1, mock_save.call_count)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
+        self.assertEqual(fields.VnfInstanceTaskState.ERROR,
+            vnf_instance.task_state)
+        expected_msg = ('Failed to delete vnf resources for vnf instance %s '
+                        'before respawning. The vnf is in inconsistent '
+                        'state. Error: delete failed')
+        mock_log.error.assert_called_with(expected_msg % vnf_instance.id)
+
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.VnfResource, "create")
+    @mock.patch.object(objects.VnfResource, "destroy")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    def test_heal_vnf_without_vnfc_instance_infra_instantiate_vnf_fail(self,
+            mock_log, mock_save, mock_vnf_resource_list,
+            mock_resource_destroy, mock_resource_create, mock_vim,
+            mock_vnf_package_vnfd):
+        vnf_package_vnfd = fakes.return_vnf_package_vnfd()
+        vnf_package_id = vnf_package_vnfd.package_uuid
+        mock_vnf_package_vnfd.return_value = vnf_package_vnfd
+
+        fake_csar = os.path.join(self.temp_dir, vnf_package_id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
+                              group='vnf_package')
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        sample_vnf_package_zip = os.path.join(
+            base_path, "../../etc/samples/sample_vnf_package_csar.zip")
+        extracted_zip_path = fake_csar
+        zipfile.ZipFile(sample_vnf_package_zip, 'r').extractall(
+            extracted_zip_path)
+
+        mock_vnf_resource_list.return_value = [fakes.return_vnf_resource()]
+        # Heal as per SOL003 i.e. without vnfcInstanceId
+        heal_vnf_req = objects.HealVnfRequest()
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        self._mock_vnf_manager(fail_method_name='instantiate_vnf')
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(exceptions.VnfHealFailed,
+            driver.heal_vnf, self.context, vnf_instance, heal_vnf_req)
+        self.assertEqual(1, mock_save.call_count)
+        # vnf resource software images will be deleted during
+        # deleting vnf instance.
+        self.assertEqual(1, mock_resource_destroy.call_count)
+        # Vnf resource software images will be created during
+        # instantiation.
+        self.assertEqual(1, mock_resource_create.call_count)
+
+        self.assertEqual(5, self._vnf_manager.invoke.call_count)
+        self.assertEqual(fields.VnfInstanceTaskState.ERROR,
+            vnf_instance.task_state)
+        expected_msg = ('Failed to instantiate vnf instance %s '
+                        'after termination. The vnf is in inconsistent '
+                        'state. Error: Vnf instantiation failed for vnf %s, '
+                        'error: instantiate_vnf failed')
+        mock_log.error.assert_called_with(expected_msg % (vnf_instance.id,
+            vnf_instance.id))
+
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    def test_heal_vnf_with_vnfc_instance(self, mock_log, mock_save):
+        heal_vnf_req = objects.HealVnfRequest(vnfc_instance_id=[
+            uuidsentinel.vnfc_instance_id_1])
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.HEALING)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.heal_vnf(self.context, vnf_instance, heal_vnf_req)
+        self.assertEqual(1, mock_save.call_count)
+        self.assertEqual(3, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(None, vnf_instance.task_state)
+        expected_msg = ("Request received for healing vnf '%s' "
+                       "is completed successfully")
+        mock_log.info.assert_called_with(expected_msg,
+            vnf_instance.id)
+
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    def test_heal_vnf_with_infra_heal_vnf_fail(self, mock_log, mock_save):
+        heal_vnf_req = objects.HealVnfRequest(vnfc_instance_id=[
+            uuidsentinel.vnfc_instance_id_1])
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.HEALING)
+
+        self._mock_vnf_manager(fail_method_name='heal_vnf')
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(exceptions.VnfHealFailed,
+            driver.heal_vnf, self.context, vnf_instance,
+            heal_vnf_req)
+        self.assertEqual(1, mock_save.call_count)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(fields.VnfInstanceTaskState.ERROR,
+            vnf_instance.task_state)
+        expected_msg = ("Failed to heal vnf %(id)s in infra driver. "
+                       "Error: %(error)s")
+        mock_log.error.assert_called_with(expected_msg,
+            {'id': vnf_instance.id, 'error': 'heal_vnf failed'})
+
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    def test_heal_vnf_with_infra_heal_vnf_wait_fail(self, mock_log,
+            mock_save):
+        heal_vnf_req = objects.HealVnfRequest(vnfc_instance_id=[
+            uuidsentinel.vnfc_instance_id_1])
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.HEALING)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        self._mock_vnf_manager(fail_method_name='heal_vnf_wait')
+        driver = vnflcm_driver.VnfLcmDriver()
+        # It won't raise any exception if infra driver raises
+        # heal_vnf_wait because there is a possibility the vnfc
+        # resources could go into inconsistent state so it would
+        # proceed further and call post_heal_vnf with a hope
+        # it will work and vnflcm can update the vnfc resources
+        # properly and hence the _vnf_manager.invoke.call_count
+        # should be 3 instead of 2.
+        driver.heal_vnf(self.context, vnf_instance, heal_vnf_req)
+        self.assertEqual(1, mock_save.call_count)
+        self.assertEqual(3, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(None, vnf_instance.task_state)
+        expected_msg = ('Failed to update vnf %(id)s resources for '
+                        'instance%(instance)s. Error: %(error)s')
+        mock_log.error.assert_called_with(expected_msg,
+            {'id': vnf_instance.id,
+             'instance': vnf_instance.instantiated_vnf_info.instance_id,
+             'error': 'heal_vnf_wait failed'})
+
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    def test_heal_vnf_with_infra_post_heal_vnf_fail(self, mock_log,
+            mock_save):
+        heal_vnf_req = objects.HealVnfRequest(vnfc_instance_id=[
+            uuidsentinel.vnfc_instance_id_1])
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.HEALING)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        self._mock_vnf_manager(fail_method_name='post_heal_vnf')
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(exceptions.VnfHealFailed,
+            driver.heal_vnf, self.context, vnf_instance, heal_vnf_req)
+        self.assertEqual(1, mock_save.call_count)
+        self.assertEqual(3, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(fields.VnfInstanceTaskState.ERROR,
+            vnf_instance.task_state)
+        expected_msg = ('Failed to store updated resources information for '
+                        'instance %(instance)s for vnf %(id)s. '
+                        'Error: %(error)s')
+        mock_log.error.assert_called_with(expected_msg,
+            {'instance': vnf_instance.instantiated_vnf_info.instance_id,
+             'id': vnf_instance.id,
+             'error': 'post_heal_vnf failed'})

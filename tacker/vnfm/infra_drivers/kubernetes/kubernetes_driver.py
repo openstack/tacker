@@ -567,3 +567,14 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
     def post_vnf_instantiation(self, context, vnf_instance,
                                vim_connection_info):
         raise NotImplementedError()
+
+    def heal_vnf(self, context, vnf_instance, vim_connection_info,
+                 heal_vnf_request):
+        raise NotImplementedError()
+
+    def heal_vnf_wait(self, context, vnf_instance, vim_connection_info):
+        raise NotImplementedError()
+
+    def post_heal_vnf(self, context, vnf_instance, vim_connection_info,
+                      heal_vnf_request):
+        raise NotImplementedError()

@@ -22,6 +22,176 @@ from tacker.objects import fields
 LOG = logging.getLogger(__name__)
 
 
+def _get_vim_connection_info(vnf_instance):
+    vim_connection_infos = []
+
+    for vim_conn_info in vnf_instance.vim_connection_info:
+        new_vim_conn_info = vim_conn_info.obj_clone()
+        vim_connection_infos.append(new_vim_conn_info)
+
+    return vim_connection_infos
+
+
+def _get_ext_managed_virtual_links(vnf_instantiated_info):
+    ext_managed_virtual_links = []
+
+    for ext_mng_vl_info in \
+            vnf_instantiated_info.ext_managed_virtual_link_info:
+        network_resource = ext_mng_vl_info.network_resource
+
+        ext_mng_vl_data = objects.ExtManagedVirtualLinkData(
+            id=ext_mng_vl_info.id,
+            vnf_virtual_link_desc_id=ext_mng_vl_info.vnf_virtual_link_desc_id,
+            resource_id=network_resource.resource_id)
+
+        ext_managed_virtual_links.append(ext_mng_vl_data)
+
+    return ext_managed_virtual_links
+
+
+def _get_cp_instance_id(ext_virtual_link_info_id, vnf_instantiated_info):
+    cp_instances = []
+
+    for vnf_vl_res_info in \
+            vnf_instantiated_info.vnf_virtual_link_resource_info:
+        if ext_virtual_link_info_id == \
+                vnf_vl_res_info.vnf_virtual_link_desc_id:
+            for vnf_link_port in vnf_vl_res_info.vnf_link_ports:
+                cp_instances.append(vnf_link_port.cp_instance_id)
+
+    return cp_instances
+
+
+def _get_cp_data_from_vnfc_resource_info(cp_instance_list,
+        vnf_instantiated_info):
+    vnfc_cp_infos = []
+
+    for vnfc_resource_info in vnf_instantiated_info.vnfc_resource_info:
+        for vnfc_cp_info in vnfc_resource_info.vnfc_cp_info:
+            if vnfc_cp_info.id in cp_instance_list:
+                vnfc_cp_infos.append(vnfc_cp_info)
+
+    return vnfc_cp_infos
+
+
+def _get_link_ports(vnfc_cp_info_list, vnf_instantiated_info):
+    ext_link_ports = []
+
+    for vnfc_cp_info in vnfc_cp_info_list:
+        for ext_vl_info in vnf_instantiated_info.ext_virtual_link_info:
+            for ext_vl_port in ext_vl_info.ext_link_ports:
+                if ext_vl_port.id != vnfc_cp_info.vnf_ext_cp_id:
+                    continue
+
+                resource_handle = ext_vl_port.resource_handle.obj_clone()
+
+                ext_link_port_data = objects.ExtLinkPortData(
+                    id=ext_vl_port.id,
+                    resource_handle=resource_handle)
+                ext_link_ports.append(ext_link_port_data)
+                break
+
+    return ext_link_ports
+
+
+def _get_cp_protocol_data_list(ext_cp_info):
+    cp_protocol_data_list = []
+
+    def _get_ip_addresses(ip_addresses):
+        ip_addresses = []
+        for ip_address in ip_addresses:
+            # TODO(nitin-uikey): How to determine num_dynamic_addresses
+            # back from InstantiatedVnfInfo->IpAddress.
+            ip_address_data = IpAddress(
+                type=ip_address.type,
+                subnet_id=ip_address.subnet_id,
+                fixed_addresses=ip_address.addresses)
+
+            ip_addresses.append(ip_address_data)
+
+        return ip_addresses
+
+    for cp_protocol_info in ext_cp_info.cp_protocol_info:
+        if cp_protocol_info.ip_over_ethernet:
+            ip_addresses = _get_ip_addresses(cp_protocol_info.
+                ip_over_ethernet.ip_addresses)
+
+            ip_over_ethernet_data = objects.IpOverEthernetAddressData(
+                mac_address=cp_protocol_info.ip_over_ethernet.mac_address,
+                ip_addresses=ip_addresses)
+        else:
+            ip_over_ethernet_data = None
+
+        cp_protocol_data = objects.CpProtocolData(
+            layer_protocol=cp_protocol_info.layer_protocol,
+            ip_over_ethernet=ip_over_ethernet_data)
+
+        cp_protocol_data_list.append(cp_protocol_data)
+
+    return cp_protocol_data_list
+
+
+def _get_cp_ids(vnfc_cp_info_list, vnf_instantiated_info):
+
+    ext_cps = []
+    for vnfc_cp_info in vnfc_cp_info_list:
+        for ext_cp_info in vnf_instantiated_info.ext_cp_info:
+            if ext_cp_info.cpd_id != vnfc_cp_info.cpd_id:
+                continue
+
+            ext_cp_configs = []
+            vnf_ext_cp_data = objects.VnfExtCpData()
+            vnf_ext_cp_data.cpd_id = ext_cp_info.cpd_id
+
+            cp_protocol_data_list = _get_cp_protocol_data_list(ext_cp_info)
+            # TODO(nitin-uikey) set cp_instance_id
+            # and prepare 1-N objects of VnfExtCpConfig
+            vnf_ext_cp_config = objects.VnfExtCpConfig(
+                link_port_id=vnfc_cp_info.vnf_ext_cp_id,
+                cp_protocol_data=cp_protocol_data_list)
+
+            ext_cp_configs.append(vnf_ext_cp_config)
+
+            vnf_ext_cp_data = objects.VnfExtCpData(
+                cpd_id=ext_cp_info.cpd_id,
+                cp_config=ext_cp_configs)
+            ext_cps.append(vnf_ext_cp_data)
+            break
+
+    return ext_cps
+
+
+def _get_ext_virtual_link_data(vnf_instantiated_info):
+
+    ext_virtual_links = []
+
+    for ext_vl_info in \
+            vnf_instantiated_info.ext_virtual_link_info:
+        resource_handle = ext_vl_info.resource_handle
+        ext_vl_data = objects.ExtVirtualLinkData(
+            id=ext_vl_info.id,
+            resource_id=resource_handle.resource_id)
+
+        # call vnf virtual link resource info
+        cp_instances = _get_cp_instance_id(ext_vl_info.id,
+            vnf_instantiated_info)
+
+        # get cp info from vnfcresources
+        vnfc_cp_infos = _get_cp_data_from_vnfc_resource_info(cp_instances,
+            vnf_instantiated_info)
+
+        ext_vl_data.ext_link_ports = _get_link_ports(vnfc_cp_infos,
+            vnf_instantiated_info)
+
+        # assign the data to extcp info and link port
+        ext_vl_data.ext_cps = _get_cp_ids(vnfc_cp_infos,
+            vnf_instantiated_info)
+
+        ext_virtual_links.append(ext_vl_data)
+
+    return ext_virtual_links
+
+
 @base.TackerObjectRegistry.register
 class InstantiateVnfRequest(base.TackerObject):
     # Version 1.0: Initial version
@@ -86,6 +256,38 @@ class InstantiateVnfRequest(base.TackerObject):
         vim_connection_info=vim_connection_info,
         ext_virtual_links=ext_virtual_links,
         additional_params=additional_params)
+
+    @classmethod
+    def from_vnf_instance(cls, vnf_instance):
+
+        vnf_instantiated_info = vnf_instance.instantiated_vnf_info
+
+        # Vim connection info
+        vim_connection_info = _get_vim_connection_info(vnf_instance)
+
+        # Flavour id
+        flavour_id = vnf_instantiated_info.flavour_id
+
+        # Instantiation level
+        instantiation_level_id = vnf_instantiated_info.instantiation_level_id
+
+        # Externally managed virtual links
+        ext_managed_virtual_links = _get_ext_managed_virtual_links(
+            vnf_instantiated_info)
+
+        # External virtual links
+        ext_virtual_links = _get_ext_virtual_link_data(vnf_instantiated_info)
+
+        additional_params = vnf_instantiated_info.additional_params
+
+        instantiate_vnf_request = cls(flavour_id=flavour_id,
+            instantiation_level_id=instantiation_level_id,
+            ext_managed_virtual_links=ext_managed_virtual_links,
+            vim_connection_info=vim_connection_info,
+            ext_virtual_links=ext_virtual_links,
+            additional_params=additional_params)
+
+        return instantiate_vnf_request
 
 
 @base.TackerObjectRegistry.register

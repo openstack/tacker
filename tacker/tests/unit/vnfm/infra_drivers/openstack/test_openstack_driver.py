@@ -22,6 +22,7 @@ import tempfile
 from tacker.common import exceptions
 from tacker import context
 from tacker.extensions import vnfm
+from tacker import objects
 from tacker.tests.common import helpers
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
@@ -76,6 +77,39 @@ class TestOpenStack(base.FixturedTestCase):
         json = {'resource': fd_utils.get_dummy_resource()}
         self.requests_mock.register_uri('GET', url, json=json,
                                         headers=self.json_headers)
+
+    def _response_in_stack_get(self, id, stack_status='CREATE_COMPLETE'):
+        # response for heat_client's stack_get()
+        url = self.heat_url + '/stacks/' + id
+
+        json = {'stack': fd_utils.get_dummy_stack(status=stack_status)}
+        self.requests_mock.register_uri('GET', url, json=json,
+                                        headers=self.json_headers)
+
+    def _response_in_stack_update(self, id):
+        # response for heat_client's stack_patch()
+        url = self.heat_url + '/stacks/' + id
+
+        self.requests_mock.register_uri('PATCH', url,
+                                        headers=self.json_headers)
+
+    def _response_resource_mark_unhealthy(self, id, resources,
+            raise_exception=False):
+        # response for heat_client's heatclient.resource_mark_unhealthy
+        if not resources:
+            return
+
+        class MyException(Exception):
+            pass
+
+        for resource in resources:
+            url = os.path.join(self.heat_url, 'stacks', id,
+                    'myStack/60f83b5e/resources', resource['resource_name'])
+            if raise_exception:
+                self.requests_mock.register_uri('PATCH', url,
+                    exc=MyException("Any stuff"))
+            else:
+                self.requests_mock.register_uri('PATCH', url)
 
     def test_create_wait(self):
         self._response_in_wait_until_stack_ready(["CREATE_IN_PROGRESS",
@@ -235,10 +269,16 @@ class TestOpenStack(base.FixturedTestCase):
                                     region_name=None)
         self.assertEqual(dummy_event['id'], event_id)
 
-    def _response_in_resource_get_list(self):
+    def _response_in_resource_get_list(self, stack_id=None,
+            resources=None):
         # response for heat_client's resource_get_list()
-        url = self.heat_url + '/stacks/' + self.stack_id + '/resources'
-        json = {'resources': [fd_utils.get_dummy_resource()]}
+
+        if stack_id:
+            url = self.heat_url + '/stacks/' + stack_id + '/resources'
+        else:
+            url = self.heat_url + '/stacks/' + self.stack_id + '/resources'
+        resources = resources or [fd_utils.get_dummy_resource()]
+        json = {'resources': resources}
         self.requests_mock.register_uri('GET', url, json=json,
                                         headers=self.json_headers)
 
@@ -763,3 +803,269 @@ class TestOpenStack(base.FixturedTestCase):
             vnf_instance.instantiated_vnf_info.
             ext_managed_virtual_link_info[0].vnf_link_ports[0].
             resource_handle.resource_id)
+
+    def test_heal_vnf_instance(self):
+        v_s_resource_info = fd_utils.get_virtual_storage_resource_info(
+            desc_id="storage1")
+
+        storage_resource_ids = [v_s_resource_info.id]
+        vnfc_resource_info = fd_utils.get_vnfc_resource_info(vdu_id="VDU_VNF",
+            storage_resource_ids=storage_resource_ids)
+
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info(
+            virtual_storage_resource_info=[v_s_resource_info],
+            vnfc_resource_info=[vnfc_resource_info])
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+
+        heal_vnf_request = objects.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info.id],
+            cause="healing request")
+
+        # Mock various heat APIs that will be called by heatclient
+        # during the process of heal_vnf.
+        resources = [{
+            'resource_name': vnfc_resource_info.vdu_id,
+            'resource_type': vnfc_resource_info.compute_resource.
+            vim_level_resource_type,
+            'physical_resource_id': vnfc_resource_info.compute_resource.
+            resource_id}, {
+            'resource_name': v_s_resource_info.virtual_storage_desc_id,
+            'resource_type': v_s_resource_info.storage_resource.
+            vim_level_resource_type,
+            'physical_resource_id': v_s_resource_info.storage_resource.
+            resource_id}]
+
+        self._response_in_stack_get(inst_vnf_info.instance_id)
+        self._response_in_resource_get_list(inst_vnf_info.instance_id,
+                resources=resources)
+        self._responses_in_stack_list(inst_vnf_info.instance_id,
+            resources=resources)
+        self._response_in_stack_update(inst_vnf_info.instance_id)
+        self._response_resource_mark_unhealthy(inst_vnf_info.instance_id,
+                resources=resources)
+
+        self.openstack.heal_vnf(
+            self.context, vnf_instance, vim_connection_info, heal_vnf_request)
+
+        history = self.requests_mock.request_history
+        patch_req = [req.url for req in history if req.method == 'PATCH']
+        # Total 3 times patch should be called, 2 for marking resources
+        # as unhealthy, and 1 for updating stack
+        self.assertEqual(3, len(patch_req))
+
+    def test_heal_vnf_instance_resource_mark_unhealthy_error(self):
+        vnfc_resource_info = fd_utils.get_vnfc_resource_info(vdu_id="VDU_VNF")
+
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info(
+            vnfc_resource_info=[vnfc_resource_info])
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+
+        heal_vnf_request = objects.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info.id],
+            cause="healing request")
+
+        # Mock various heat APIs that will be called by heatclient
+        # during the process of heal_vnf.
+        resources = [{
+            'resource_name': vnfc_resource_info.vdu_id,
+            'resource_type': vnfc_resource_info.compute_resource.
+            vim_level_resource_type,
+            'physical_resource_id': vnfc_resource_info.compute_resource.
+            resource_id}]
+
+        self._response_in_stack_get(inst_vnf_info.instance_id)
+        self._response_in_resource_get_list(inst_vnf_info.instance_id,
+                resources=resources)
+        self._responses_in_stack_list(inst_vnf_info.instance_id,
+            resources=resources)
+        self._response_resource_mark_unhealthy(inst_vnf_info.instance_id,
+                resources=resources, raise_exception=True)
+
+        result = self.assertRaises(exceptions.VnfHealFailed,
+                    self.openstack.heal_vnf, self.context, vnf_instance,
+                    vim_connection_info, heal_vnf_request)
+
+        expected_msg = ("Failed to mark stack '%(id)s' resource as unhealthy "
+            "for resource '%(resource_name)s'") % {
+            'id': inst_vnf_info.instance_id,
+            'resource_name': resources[0]['resource_name']}
+        self.assertIn(expected_msg, str(result))
+
+        history = self.requests_mock.request_history
+        patch_req = [req.url for req in history if req.method == 'PATCH']
+        # only one time patch method be called for marking vdu resource
+        # as unhealthy
+        self.assertEqual(1, len(patch_req))
+
+    def test_heal_vnf_instance_incorrect_stack_status(self):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+
+        heal_vnf_request = objects.HealVnfRequest(
+            vnfc_instance_id=[uuidsentinel.vnfc_resource_id],
+            cause="healing request")
+
+        # Mock various heat APIs that will be called by heatclient
+        # during the process of heal_vnf.
+        self._response_in_stack_get(inst_vnf_info.instance_id,
+                stack_status='UPDATE_IN_PROGRESS')
+
+        result = self.assertRaises(exceptions.VnfHealFailed,
+            self.openstack.heal_vnf, self.context, vnf_instance,
+            vim_connection_info, heal_vnf_request)
+
+        expected_msg = ("Healing of vnf instance %s is possible only when "
+                        "stack %s status is CREATE_COMPLETE,UPDATE_COMPLETE, "
+                        "current stack status is UPDATE_IN_PROGRESS")
+        self.assertIn(expected_msg % (vnf_instance.id,
+            inst_vnf_info.instance_id), str(result))
+
+    def test_heal_vnf_wait(self):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+
+        # Mock various heat APIs that will be called by heatclient
+        # during the process of heal_vnf_wait.
+        self._response_in_wait_until_stack_ready(["UPDATE_IN_PROGRESS",
+                                                 "UPDATE_COMPLETE"])
+
+        stack = self.openstack.heal_vnf_wait(
+            self.context, vnf_instance, vim_connection_info)
+        self.assertEqual('UPDATE_COMPLETE', stack.stack_status)
+
+    def test_heal_vnf_wait_fail(self):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+
+        # Mock various heat APIs that will be called by heatclient
+        # during the process of heal_vnf_wait.
+        self._response_in_wait_until_stack_ready(["UPDATE_IN_PROGRESS"])
+        self.openstack.STACK_RETRIES = 1
+        result = self.assertRaises(vnfm.VNFHealWaitFailed,
+            self.openstack.heal_vnf_wait, self.context, vnf_instance,
+            vim_connection_info)
+
+        expected_msg = ("VNF Heal action is not completed within 10 seconds "
+                       "on stack %s") % inst_vnf_info.instance_id
+        self.assertIn(expected_msg, str(result))
+
+    def test_post_heal_vnf(self):
+        v_s_resource_info = fd_utils.get_virtual_storage_resource_info(
+            desc_id="storage1")
+
+        storage_resource_ids = [v_s_resource_info.id]
+        vnfc_resource_info = fd_utils.get_vnfc_resource_info(vdu_id="VDU_VNF",
+            storage_resource_ids=storage_resource_ids)
+
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info(
+            virtual_storage_resource_info=[v_s_resource_info],
+            vnfc_resource_info=[vnfc_resource_info])
+
+        vnfc_resource_info.metadata['stack_id'] = inst_vnf_info.instance_id
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+
+        heal_vnf_request = objects.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info.id],
+            cause="healing request")
+
+        # Change the physical_resource_id of both the resources, so
+        # that we can check it's updated in vnf instance after
+        # post_heal_vnf call.
+        resources = [{
+            'resource_name': vnfc_resource_info.vdu_id,
+            'resource_type': vnfc_resource_info.compute_resource.
+            vim_level_resource_type,
+            'physical_resource_id': uuidsentinel.compute_resource_id_new}, {
+            'resource_name': v_s_resource_info.virtual_storage_desc_id,
+            'resource_type': v_s_resource_info.storage_resource.
+            vim_level_resource_type,
+            'physical_resource_id': uuidsentinel.storage_resource_id_new}]
+
+        # Mock various heat APIs that will be called by heatclient
+        # during the process of heal_vnf.
+        self._responses_in_stack_list(inst_vnf_info.instance_id,
+            resources=resources)
+
+        v_s_resource_info_old = v_s_resource_info.obj_clone()
+        vnfc_resource_info_old = vnfc_resource_info.obj_clone()
+
+        self.openstack.post_heal_vnf(self.context, vnf_instance,
+            vim_connection_info, heal_vnf_request)
+
+        vnfc_resource_info_new = vnf_instance.instantiated_vnf_info.\
+            vnfc_resource_info[0]
+        v_s_resource_info_new = vnf_instance.instantiated_vnf_info.\
+            virtual_storage_resource_info[0]
+
+        # Compare the resource_id, it should be updated with the new ones.
+        self.assertNotEqual(vnfc_resource_info_old.compute_resource.
+            resource_id, vnfc_resource_info_new.compute_resource.resource_id)
+        self.assertEqual(uuidsentinel.compute_resource_id_new,
+            vnfc_resource_info_new.compute_resource.resource_id)
+
+        self.assertNotEqual(v_s_resource_info_old.storage_resource.resource_id,
+                v_s_resource_info_new.storage_resource.resource_id)
+        self.assertEqual(uuidsentinel.storage_resource_id_new,
+            v_s_resource_info_new.storage_resource.resource_id)
+
+    def test_post_heal_vnf_fail(self):
+        vnfc_resource_info = fd_utils.get_vnfc_resource_info()
+
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info(
+            vnfc_resource_info=[vnfc_resource_info])
+
+        vnfc_resource_info.metadata['stack_id'] = uuidsentinel.stack_id
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+
+        heal_vnf_request = objects.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info.id],
+            cause="healing request")
+
+        # Change the physical_resource_id of both the resources, so
+        # that we can check it's updated in vnf instance after
+        # post_heal_vnf call.
+        resources = [{
+            'resource_name': vnfc_resource_info.vdu_id,
+            'resource_type': vnfc_resource_info.compute_resource.
+            vim_level_resource_type,
+            'physical_resource_id': uuidsentinel.compute_resource_id_new}]
+
+        # Mock various heat APIs that will be called by heatclient
+        # during the process of heal_vnf.
+        self._responses_in_stack_list(inst_vnf_info.instance_id,
+            resources=resources)
+
+        result = self.assertRaises(exceptions.VnfHealFailed,
+            self.openstack.post_heal_vnf, self.context, vnf_instance,
+            vim_connection_info, heal_vnf_request)
+
+        expected_msg = ("Heal Vnf failed for vnf %s, error: Failed to find "
+                        "stack_id %s") % (vnf_instance.id,
+                        uuidsentinel.stack_id)
+        self.assertEqual(expected_msg, str(result))

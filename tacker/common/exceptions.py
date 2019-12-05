@@ -266,6 +266,10 @@ class VnfPreInstantiationFailed(TackerException):
                 "%(error)s")
 
 
+class VnfHealFailed(TackerException):
+    message = _("Heal Vnf failed for vnf %(id)s, error: %(error)s")
+
+
 class OrphanedObjectError(TackerException):
     msg_fmt = _('Cannot call %(method)s on orphaned %(objtype)s object')
 

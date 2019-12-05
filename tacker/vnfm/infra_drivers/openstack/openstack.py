@@ -796,3 +796,160 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             resource_details[id].update({'child_stack': child_stack})
 
         return resource_details
+
+    def _get_vnfc_resources_from_heal_request(self, inst_vnf_info,
+                                              heal_vnf_request):
+        if not heal_vnf_request.vnfc_instance_id:
+            # include all vnfc resources
+            return [resource for resource in inst_vnf_info.vnfc_resource_info]
+
+        vnfc_resources = []
+        for vnfc_resource in inst_vnf_info.vnfc_resource_info:
+            if vnfc_resource.id in heal_vnf_request.vnfc_instance_id:
+                vnfc_resources.append(vnfc_resource)
+        return vnfc_resources
+
+    @log.log
+    def heal_vnf(self, context, vnf_instance, vim_connection_info,
+                 heal_vnf_request):
+        access_info = vim_connection_info.access_info
+        region_name = access_info.get('region')
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        heatclient = hc.HeatClient(access_info, region_name=region_name)
+
+        def _get_storage_resources(vnfc_resource):
+            # Prepare list of storage resources to be marked unhealthy
+            for storage_id in vnfc_resource.storage_resource_ids:
+                for storage_res_info in inst_vnf_info. \
+                        virtual_storage_resource_info:
+                    if storage_res_info.id == storage_id:
+                        yield storage_res_info.virtual_storage_desc_id, \
+                            storage_res_info.storage_resource.resource_id
+
+        def _get_vdu_resources(vnfc_resources):
+            # Prepare list of vdu resources to be marked unhealthy
+            vdu_resources = []
+            for vnfc_resource in vnfc_resources:
+                resource_details = {"resource_name": vnfc_resource.vdu_id,
+                        "physical_resource_id":
+                        vnfc_resource.compute_resource.resource_id}
+                vdu_resources.append(resource_details)
+
+                # Get storage resources
+                for resource_name, resource_id in \
+                        _get_storage_resources(vnfc_resource):
+                    resource_details = {"resource_name": resource_name,
+                        "physical_resource_id": resource_id}
+                    vdu_resources.append(resource_details)
+
+            return vdu_resources
+
+        def _prepare_stack_resources_for_updation(vdu_resources,
+                stack_resources):
+            for resource in vdu_resources:
+                for stack_uuid, resources in stack_resources.items():
+                    res_details = resources.get(resource['resource_name'])
+                    if res_details and res_details['physical_resource_id'] == \
+                            resource['physical_resource_id']:
+                                yield stack_uuid, resource['resource_name']
+
+        def _resource_mark_unhealthy():
+            vnfc_resources = self._get_vnfc_resources_from_heal_request(
+                inst_vnf_info, heal_vnf_request)
+
+            vdu_resources = _get_vdu_resources(vnfc_resources)
+            stack_resources = self._get_stack_resources(
+                inst_vnf_info.instance_id, heatclient)
+
+            cause = heal_vnf_request.cause or "Healing"
+            for stack_uuid, resource_name in \
+                    _prepare_stack_resources_for_updation(
+                        vdu_resources, stack_resources):
+                try:
+                    LOG.info("Marking resource %(resource)s as unhealthy for "
+                             "stack %(stack)s for vnf instance %(id)s",
+                             {"resource": resource_name,
+                              "stack": stack_uuid,
+                              "id": vnf_instance.id})
+
+                    heatclient.resource_mark_unhealthy(
+                        stack_id=stack_uuid,
+                        resource_name=resource_name, mark_unhealthy=True,
+                        resource_status_reason=cause)
+                except Exception as exp:
+                    msg = ("Failed to mark stack '%(stack_id)s' resource as "
+                           "unhealthy for resource '%(resource)s', "
+                           "Error: %(error)s")
+                    raise exceptions.VnfHealFailed(id=vnf_instance.id,
+                        error=msg % {"stack_id": inst_vnf_info.instance_id,
+                                     "resource": resource_name,
+                                     "error": str(exp)})
+
+        def _get_stack_status():
+            stack_statuses = ["CREATE_COMPLETE", "UPDATE_COMPLETE"]
+            stack = heatclient.get(inst_vnf_info.instance_id)
+            if stack.stack_status not in stack_statuses:
+                error = ("Healing of vnf instance %(id)s is possible only "
+                         "when stack %(stack_id)s status is %(statuses)s, "
+                         "current stack status is %(status)s")
+                raise exceptions.VnfHealFailed(id=vnf_instance.id,
+                    error=error % {"id": vnf_instance.id,
+                    "stack_id": inst_vnf_info.instance_id,
+                    "statuses": ",".join(stack_statuses),
+                    "status": stack.stack_status})
+
+        _get_stack_status()
+        _resource_mark_unhealthy()
+
+        LOG.info("Updating stack %(stack)s for vnf instance %(id)s",
+                {"stack": inst_vnf_info.instance_id, "id": vnf_instance.id})
+
+        heatclient.update(stack_id=inst_vnf_info.instance_id, existing=True)
+
+    @log.log
+    def heal_vnf_wait(self, context, vnf_instance, vim_connection_info):
+        """Check vnf is healed successfully"""
+
+        access_info = vim_connection_info.access_info
+        region_name = access_info.get('region')
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        stack = self._wait_until_stack_ready(inst_vnf_info.instance_id,
+            access_info, infra_cnst.STACK_UPDATE_IN_PROGRESS,
+            infra_cnst.STACK_UPDATE_COMPLETE, vnfm.VNFHealWaitFailed,
+            region_name=region_name)
+        return stack
+
+    def post_heal_vnf(self, context, vnf_instance, vim_connection_info,
+                      heal_vnf_request):
+        """Update resource_id for each vnfc resources
+
+        :param context: A RequestContext
+        :param vnf_instance: tacker.objects.VnfInstance to be healed
+        :vim_info: Credentials to initialize Vim connection
+        :heal_vnf_request: tacker.objects.HealVnfRequest object containing
+                           parameters passed in the heal request
+        """
+        access_info = vim_connection_info.access_info
+        region_name = access_info.get('region')
+
+        heatclient = hc.HeatClient(access_info, region_name)
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        stack_resources = self._get_stack_resources(inst_vnf_info.instance_id,
+                heatclient)
+
+        vnfc_resources = self._get_vnfc_resources_from_heal_request(
+            inst_vnf_info, heal_vnf_request)
+        for vnfc_res_info in vnfc_resources:
+            stack_id = vnfc_res_info.metadata.get("stack_id")
+            resources = stack_resources.get(stack_id)
+            if not resources:
+                # NOTE(tpatil): This could happen when heat child stacks
+                # and the stack_id stored in metadata of vnfc_res_info are
+                # not in sync. There is no point in syncing inconsistent
+                # resources information so exit with an error,
+                error = "Failed to find stack_id %s" % stack_id
+                raise exceptions.VnfHealFailed(id=vnf_instance.id,
+                                               error=error)
+
+            self._update_vnfc_resource_info(vnf_instance, vnfc_res_info,
+                    {stack_id: resources}, update_network_resource=False)

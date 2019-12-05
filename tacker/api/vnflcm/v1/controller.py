@@ -269,8 +269,40 @@ class VnfLcmController(wsgi.Controller):
         vnf_instance = self._get_vnf_instance(context, id)
         self._terminate(context, vnf_instance, body)
 
+    @check_vnf_state(action="heal",
+        instantiation_state=[fields.VnfInstanceState.INSTANTIATED],
+        task_state=[None])
+    def _heal(self, context, vnf_instance, request_body):
+        req_body = utils.convert_camelcase_to_snakecase(request_body)
+        heal_vnf_request = objects.HealVnfRequest(context=context, **req_body)
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        vnfc_resource_info_ids = [vnfc_resource_info.id for
+            vnfc_resource_info in inst_vnf_info.vnfc_resource_info]
+
+        for vnfc_id in heal_vnf_request.vnfc_instance_id:
+            # check if vnfc_id exists in vnfc_resource_info
+            if vnfc_id not in vnfc_resource_info_ids:
+                msg = _("Vnfc id %(vnfc_id)s not present in vnf instance "
+                        "%(id)s")
+                raise webob.exc.HTTPBadRequest(
+                    explanation=msg % {"vnfc_id": vnfc_id,
+                                       "id": vnf_instance.id})
+
+        vnf_instance.task_state = fields.VnfInstanceTaskState.HEALING
+        vnf_instance.save()
+
+        self.rpc_api.heal(context, vnf_instance, heal_vnf_request)
+
+    @wsgi.response(http_client.ACCEPTED)
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
+                           http_client.NOT_FOUND, http_client.CONFLICT))
+    @validation.schema(vnf_lcm.heal)
     def heal(self, request, id, body):
-        raise webob.exc.HTTPNotImplemented()
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'heal')
+
+        vnf_instance = self._get_vnf_instance(context, id)
+        self._heal(context, vnf_instance, body)
 
 
 def create_resource():

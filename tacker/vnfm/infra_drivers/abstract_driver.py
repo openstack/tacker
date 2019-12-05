@@ -102,3 +102,34 @@ class VnfAbstractDriver(extensions.PluginInterface):
     def post_vnf_instantiation(self, context, vnf_instance,
                                vim_connection_info):
         pass
+
+    @abc.abstractmethod
+    def heal_vnf(self, context, vnf_instance, vim_connection_info,
+                 heal_vnf_request):
+        """Heal vnf
+
+        :param context: A RequestContext
+        :param vnf_instance: tacker.objects.VnfInstance to be healed
+        :vim_info: Credentials to initialize Vim connection
+        :heal_vnf_request: tacker.objects.HealVnfRequest object containing
+                           parameters passed in the heal request
+        """
+        pass
+
+    @abc.abstractmethod
+    def heal_vnf_wait(self, context, vnf_instance, vim_connection_info):
+        """Check vnf is healed successfully"""
+        pass
+
+    @abc.abstractmethod
+    def post_heal_vnf(self, context, vnf_instance, vim_connection_info,
+                      heal_vnf_request):
+        """Update resource_id for each vnfc resources
+
+        :param context: A RequestContext
+        :param vnf_instance: tacker.objects.VnfInstance to be healed
+        :vim_info: Credentials to initialize Vim connection
+        :heal_vnf_request: tacker.objects.HealVnfRequest object containing
+                           parameters passed in the heal request
+        """
+        pass

@@ -438,6 +438,9 @@ class Conductor(manager.Manager):
             LOG.error("Failed to update usage_state of vnf package %s",
                       vnf_package.id)
 
+    def heal(self, context, vnf_instance, heal_vnf_request):
+        self.vnflcm_driver.heal_vnf(context, vnf_instance, heal_vnf_request)
+
 
 def init(args, **kwargs):
     CONF(args=args, project='tacker',

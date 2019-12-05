@@ -49,3 +49,14 @@ class VNFLcmRPCAPI(object):
         return rpc_method(context, 'terminate',
                           vnf_instance=vnf_instance,
                           terminate_vnf_req=terminate_vnf_req)
+
+    def heal(self, context, vnf_instance, heal_vnf_request, cast=True):
+        serializer = objects_base.TackerObjectSerializer()
+
+        client = rpc.get_client(self.target, version_cap=None,
+                                serializer=serializer)
+        cctxt = client.prepare()
+        rpc_method = cctxt.cast if cast else cctxt.call
+        return rpc_method(context, 'heal',
+                          vnf_instance=vnf_instance,
+                          heal_vnf_request=heal_vnf_request)

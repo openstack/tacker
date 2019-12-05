@@ -835,3 +835,140 @@ class TestController(base.TestCase):
                         "terminate while the vnf instance is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
             resp.json['conflictingRequest']['message'])
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "heal")
+    @ddt.data({'cause': 'healing'}, {})
+    def test_heal(self, body, mock_rpc_heal, mock_save,
+            mock_vnf_by_id):
+        vnf_instance_obj = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_by_id.return_value = vnf_instance_obj
+
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_rpc_heal.assert_called_once()
+
+    def test_heal_cause_max_length_exceeded(self):
+        body = {'cause': 'A' * 256}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_heal_incorrect_instantiated_state(self, mock_vnf_by_id):
+        vnf_instance_obj = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED)
+        mock_vnf_by_id.return_value = vnf_instance_obj
+
+        body = {}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+        expected_msg = ("Vnf instance %s in instantiation_state "
+                       "NOT_INSTANTIATED. Cannot heal while the vnf instance "
+                       "is in this state.")
+        self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
+                resp.json['conflictingRequest']['message'])
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_heal_incorrect_task_state(self, mock_vnf_by_id):
+        vnf_instance_obj = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.HEALING)
+        mock_vnf_by_id.return_value = vnf_instance_obj
+
+        body = {}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+        expected_msg = ("Vnf instance %s in task_state "
+                       "HEALING. Cannot heal while the vnf instance "
+                       "is in this state.")
+        self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
+                resp.json['conflictingRequest']['message'])
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_heal_with_invalid_vnfc_id(self, mock_vnf_by_id):
+        vnf_instance_obj = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_by_id.return_value = vnf_instance_obj
+
+        body = {'vnfcInstanceId': [uuidsentinel.vnfc_instance_id]}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+        expected_msg = "Vnfc id %s not present in vnf instance %s"
+        self.assertEqual(expected_msg % (uuidsentinel.vnfc_instance_id,
+            uuidsentinel.vnf_instance_id), resp.json['badRequest']['message'])
+
+    @ddt.data('HEAD', 'PUT', 'DELETE', 'PATCH', 'GET')
+    def test_heal_invalid_http_method(self, method):
+        body = {}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = method
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
+
+    @ddt.data({'attribute': 'cause', 'value': 123,
+               'expected_type': 'string'},
+              {'attribute': 'cause', 'value': True,
+               'expected_type': 'string'},
+              {'attribute': 'vnfcInstanceId', 'value': 123,
+               'expected_type': 'array'},
+              {'attribute': 'vnfcInstanceId', 'value': True,
+               'expected_type': 'array'},
+              )
+    @ddt.unpack
+    def test_heal_with_invalid_request_body(
+            self, attribute, value, expected_type):
+        body = {}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/29c770a3-02bc-4dfc-b4be-eb173ac00567/heal')
+        body.update({attribute: value})
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        exception = self.assertRaises(
+            exceptions.ValidationError, self.controller.heal,
+            req, body=body)
+        expected_message = \
+            ("Invalid input for field/attribute {attribute}. Value: {value}. "
+             "{value} is not of type '{expected_type}'".
+             format(value=value, attribute=attribute,
+                    expected_type=expected_type))
+
+        self.assertEqual(expected_message, exception.msg)

@@ -210,3 +210,19 @@ terminate = {
     'required': ['terminationType'],
     'additionalProperties': False,
 }
+
+heal = {
+    'type': 'object',
+    'properties': {
+        'cause': {'type': 'string', 'maxLength': 255},
+        'vnfcInstanceId': {
+            'type': 'array',
+            "items": {
+                "type": "string",
+                'format': 'uuid'
+            }
+        }
+
+    },
+    'additionalProperties': False,
+}

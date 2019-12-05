@@ -71,6 +71,13 @@ class VnflcmAPIRouter(wsgi.Router):
                 methods, controller, default_resource)
 
         # Allowed methods on
+        # /vnflcm/v1/vnf_instances/{vnfInstanceId}/heal resource
+        methods = {"POST": "heal"}
+        self._setup_route(mapper,
+                "/vnf_instances/{id}/heal",
+                methods, controller, default_resource)
+
+        # Allowed methods on
         # /vnflcm/v1/vnf_instances/{vnfInstanceId}/terminate resource
         methods = {"POST": "terminate"}
         self._setup_route(mapper,

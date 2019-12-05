@@ -93,3 +93,14 @@ class VnfNoop(abstract_driver.VnfAbstractDriver):
     def post_vnf_instantiation(self, context, vnf_instance,
                                vim_connection_info):
         pass
+
+    def heal_vnf(self, context, vnf_instance, vim_connection_info,
+                 heal_vnf_request):
+        pass
+
+    def heal_vnf_wait(self, context, vnf_instance, vim_connection_info):
+        pass
+
+    def post_heal_vnf(self, context, vnf_instance, vim_connection_info,
+                      heal_vnf_request):
+        pass

@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_utils import versionutils
+
 from tacker.objects import base
 from tacker.objects import fields
 
@@ -33,10 +35,20 @@ class HealVnfAdditionalParams(base.TackerObject):
 class HealVnfRequest(base.TackerObject):
 
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Added vnf_instance_id
+    VERSION = '1.1'
 
     fields = {
-        'cause': fields.StringField(),
+        'vnfc_instance_id': fields.ListOfStringsField(nullable=True,
+                                                      default=[]),
+        'cause': fields.StringField(nullable=True, default=None),
         'additional_params': fields.ListOfObjectsField(
-            'HealVnfAdditionalParams')
+            'HealVnfAdditionalParams', default=[])
     }
+
+    def obj_make_compatible(self, primitive, target_version):
+        super(HealVnfRequest, self).obj_make_compatible(primitive,
+                                                        target_version)
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1) and 'vnfc_instance_id' in primitive:
+            del primitive['vnfc_instance_id']

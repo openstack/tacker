@@ -65,6 +65,17 @@ rules = [
                 'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}/terminate'
             }
         ]
+    ),
+    policy.DocumentedRuleDefault(
+        name=VNFLCM % 'heal',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Heal a VNF instance.",
+        operations=[
+            {
+                'method': 'POST',
+                'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}/heal'
+            }
+        ]
     )
 ]
 
