@@ -1,4 +1,4 @@
-# Copyright (C) 2019 NTT DATA
+# Copyright (C) 2020 NTT DATA
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -13,17 +13,21 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import glance_store
 from oslo_config import cfg
 
-from tacker.conf import conductor
-from tacker.conf import coordination
-from tacker.conf import vnf_package
 
 CONF = cfg.CONF
-CONF.import_group('keystone_authtoken', 'keystonemiddleware.auth_token')
 
-vnf_package.register_opts(CONF)
-conductor.register_opts(CONF)
-coordination.register_opts(CONF)
-glance_store.register_opts(CONF)
+coordination_opts = [
+    cfg.StrOpt('backend_url',
+               default='file://$state_path',
+               help='The backend URL to use for distributed coordination.'),
+]
+
+
+def register_opts(conf):
+    conf.register_opts(coordination_opts, group='coordination')
+
+
+def list_opts():
+    return {'coordination': coordination_opts}

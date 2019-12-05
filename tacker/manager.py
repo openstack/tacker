@@ -40,6 +40,14 @@ class Manager(periodic_task.PeriodicTasks):
     def periodic_tasks(self, context, raise_on_error=False):
         self.run_periodic_tasks(context, raise_on_error=raise_on_error)
 
+    def start(self):
+        """Start service."""
+        pass
+
+    def stop(self):
+        """Stop service."""
+        pass
+
     def init_host(self):
         """Handle initialization if this is a standalone service.
 

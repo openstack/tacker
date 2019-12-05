@@ -270,6 +270,10 @@ class VnfHealFailed(TackerException):
     message = _("Heal Vnf failed for vnf %(id)s, error: %(error)s")
 
 
+class LockCreationFailed(TackerException):
+    message = _('Unable to create lock. Coordination backend not started.')
+
+
 class OrphanedObjectError(TackerException):
     msg_fmt = _('Cannot call %(method)s on orphaned %(objtype)s object')
 

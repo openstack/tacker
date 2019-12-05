@@ -152,6 +152,7 @@ class Service(n_rpc.Service):
         super(Service, self).__init__(host, topic, manager=self.manager)
 
     def start(self):
+        self.manager.start()
         self.manager.init_host()
         super(Service, self).start()
         if self.report_interval:
@@ -219,6 +220,7 @@ class Service(n_rpc.Service):
         self.stop()
 
     def stop(self):
+        self.manager.stop()
         super(Service, self).stop()
         for x in self.timers:
             try:

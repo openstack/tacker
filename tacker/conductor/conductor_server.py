@@ -33,6 +33,7 @@ from oslo_utils import timeutils
 from sqlalchemy.orm import exc as orm_exc
 import yaml
 
+from tacker.common import coordination
 from tacker.common import csar_utils
 from tacker.common import exceptions
 from tacker.common import safe_utils
@@ -143,6 +144,12 @@ class Conductor(manager.Manager):
         super(Conductor, self).__init__(host=self.conf.host)
         self.vnfm_plugin = plugin.VNFMPlugin()
         self.vnflcm_driver = vnflcm_driver.VnfLcmDriver()
+
+    def start(self):
+        coordination.COORDINATOR.start()
+
+    def stop(self):
+        coordination.COORDINATOR.stop()
 
     def init_host(self):
         glance_store.initialize_glance_store()
@@ -395,7 +402,18 @@ class Conductor(manager.Manager):
                             {'zip': csar_path, 'folder': csar_zip_temp_path,
                              'uuid': vnf_pack.id})
 
+    @coordination.synchronized('{vnf_instance[id]}')
     def instantiate(self, context, vnf_instance, instantiate_vnf):
+        # Check if vnf is already instantiated.
+        vnf_instance = objects.VnfInstance.get_by_id(context,
+            vnf_instance.id)
+        if vnf_instance.instantiation_state == \
+           fields.VnfInstanceState.INSTANTIATED:
+            LOG.error("Vnf instance %(id)s is already in %(state)s state.",
+                     {"id": vnf_instance.id,
+                     "state": vnf_instance.instantiation_state})
+            return
+
         self.vnflcm_driver.instantiate_vnf(context, vnf_instance,
                                            instantiate_vnf)
 
@@ -409,6 +427,7 @@ class Conductor(manager.Manager):
             LOG.error("Failed to update usage_state of vnf package %s",
                       vnf_package.id)
 
+    @coordination.synchronized('{vnf_package[id]}')
     def _update_package_usage_state(self, context, vnf_package):
         """Update vnf package usage state to IN_USE/NOT_IN_USE
 
@@ -424,7 +443,19 @@ class Conductor(manager.Manager):
 
         vnf_package.save()
 
+    @coordination.synchronized('{vnf_instance[id]}')
     def terminate(self, context, vnf_instance, terminate_vnf_req):
+        # Check if vnf is in instantiated state.
+        vnf_instance = objects.VnfInstance.get_by_id(context,
+            vnf_instance.id)
+        if vnf_instance.instantiation_state == \
+                fields.VnfInstanceState.NOT_INSTANTIATED:
+            LOG.error("Terminate action cannot be performed on vnf %(id)s "
+                      "which is in %(state)s state.",
+                      {"id": vnf_instance.id,
+                      "state": vnf_instance.instantiation_state})
+            return
+
         self.vnflcm_driver.terminate_vnf(context, vnf_instance,
             terminate_vnf_req)
 
@@ -438,7 +469,19 @@ class Conductor(manager.Manager):
             LOG.error("Failed to update usage_state of vnf package %s",
                       vnf_package.id)
 
+    @coordination.synchronized('{vnf_instance[id]}')
     def heal(self, context, vnf_instance, heal_vnf_request):
+        # Check if vnf is in instantiated state.
+        vnf_instance = objects.VnfInstance.get_by_id(context,
+            vnf_instance.id)
+        if vnf_instance.instantiation_state == \
+                fields.VnfInstanceState.NOT_INSTANTIATED:
+            LOG.error("Heal action cannot be performed on vnf %(id)s "
+                      "which is in %(state)s state.",
+                      {"id": vnf_instance.id,
+                      "state": vnf_instance.instantiation_state})
+            return
+
         self.vnflcm_driver.heal_vnf(context, vnf_instance, heal_vnf_request)
 
 

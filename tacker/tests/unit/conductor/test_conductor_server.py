@@ -22,6 +22,7 @@ from glance_store import exceptions as store_exceptions
 import mock
 import yaml
 
+from tacker.common import coordination
 from tacker.common import csar_utils
 from tacker.common import exceptions
 from tacker.conductor import conductor_server
@@ -197,8 +198,10 @@ class TestConductor(SqlTestCase):
 
         return vnf_pack_vnfd_obj
 
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
-    def test_instantiate_vnf_instance(self, mock_package_in_use):
+    def test_instantiate_vnf_instance(self, mock_package_in_use,
+            mock_get_lock):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -210,12 +213,36 @@ class TestConductor(SqlTestCase):
         self.conductor.instantiate(self.context, vnf_instance,
                                    instantiate_vnf_req)
         self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
-            self.context, vnf_instance, instantiate_vnf_req)
+            self.context, mock.ANY, instantiate_vnf_req)
         mock_package_in_use.assert_called_once()
 
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
+    @mock.patch('tacker.conductor.conductor_server.LOG')
+    def test_instantiate_vnf_instance_already_instantiated(self,
+            mock_log, mock_package_in_use, mock_get_lock):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        self.conductor.instantiate(self.context, vnf_instance,
+                                   instantiate_vnf_req)
+        self.vnflcm_driver.instantiate_vnf.assert_not_called()
+        mock_package_in_use.assert_not_called()
+        expected_log = 'Vnf instance %(id)s is already in %(state)s state.'
+        mock_log.error.assert_called_once_with(expected_log,
+            {'id': vnf_instance.id,
+             'state': fields.VnfInstanceState.INSTANTIATED})
+
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
     def test_instantiate_vnf_instance_with_vnf_package_in_use(self,
-            mock_vnf_package_in_use):
+            mock_vnf_package_in_use, mock_get_lock):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -227,13 +254,14 @@ class TestConductor(SqlTestCase):
         self.conductor.instantiate(self.context, vnf_instance,
                                    instantiate_vnf_req)
         self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
-            self.context, vnf_instance, instantiate_vnf_req)
+            self.context, mock.ANY, instantiate_vnf_req)
         mock_vnf_package_in_use.assert_called_once()
 
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
     @mock.patch('tacker.conductor.conductor_server.LOG')
     def test_instantiate_vnf_instance_failed_with_exception(
-            self, mock_log, mock_is_package_in_use):
+            self, mock_log, mock_is_package_in_use, mock_get_lock):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -245,14 +273,15 @@ class TestConductor(SqlTestCase):
         self.conductor.instantiate(self.context, vnf_instance,
                                    instantiate_vnf_req)
         self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
-            self.context, vnf_instance, instantiate_vnf_req)
+            self.context, mock.ANY, instantiate_vnf_req)
         mock_is_package_in_use.assert_called_once()
         expected_log = 'Failed to update usage_state of vnf package %s'
         mock_log.error.assert_called_once_with(expected_log,
             vnf_package_vnfd.package_uuid)
 
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
-    def test_terminate_vnf_instance(self, mock_package_in_use):
+    def test_terminate_vnf_instance(self, mock_package_in_use, mock_get_lock):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -270,12 +299,42 @@ class TestConductor(SqlTestCase):
                                  terminate_vnf_req)
 
         self.vnflcm_driver.terminate_vnf.assert_called_once_with(
-            self.context, vnf_instance, terminate_vnf_req)
+            self.context, mock.ANY, terminate_vnf_req)
         mock_package_in_use.assert_called_once()
 
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
+    @mock.patch('tacker.conductor.conductor_server.LOG')
+    def test_terminate_vnf_instance_already_not_instantiated(self,
+            mock_log, mock_package_in_use, mock_get_lock):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        mock_package_in_use.return_value = True
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.NOT_INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        vnf_instance.create()
+
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
+
+        self.conductor.terminate(self.context, vnf_instance,
+                                 terminate_vnf_req)
+
+        self.vnflcm_driver.terminate_vnf.assert_not_called()
+        mock_package_in_use.assert_not_called()
+        expected_log = ('Terminate action cannot be performed on vnf %(id)s '
+                       'which is in %(state)s state.')
+        mock_log.error.assert_called_once_with(expected_log,
+                {'id': vnf_instance.id,
+             'state': fields.VnfInstanceState.NOT_INSTANTIATED})
+
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
     def test_terminate_vnf_instance_with_usage_state_not_in_use(self,
-            mock_vnf_package_is_package_in_use):
+            mock_vnf_package_is_package_in_use, mock_get_lock):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -293,12 +352,13 @@ class TestConductor(SqlTestCase):
                                  terminate_vnf_req)
 
         self.vnflcm_driver.terminate_vnf.assert_called_once_with(
-            self.context, vnf_instance, terminate_vnf_req)
+            self.context, mock.ANY, terminate_vnf_req)
         mock_vnf_package_is_package_in_use.assert_called_once()
 
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
     def test_terminate_vnf_instance_with_usage_state_already_in_use(self,
-            mock_vnf_package_is_package_in_use):
+            mock_vnf_package_is_package_in_use, mock_get_lock):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -316,13 +376,14 @@ class TestConductor(SqlTestCase):
                                  terminate_vnf_req)
 
         self.vnflcm_driver.terminate_vnf.assert_called_once_with(
-            self.context, vnf_instance, terminate_vnf_req)
+            self.context, mock.ANY, terminate_vnf_req)
         mock_vnf_package_is_package_in_use.assert_called_once()
 
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
     @mock.patch('tacker.conductor.conductor_server.LOG')
     def test_terminate_vnf_instance_failed_to_update_usage_state(
-            self, mock_log, mock_is_package_in_use):
+            self, mock_log, mock_is_package_in_use, mock_get_lock):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -337,12 +398,13 @@ class TestConductor(SqlTestCase):
         self.conductor.terminate(self.context, vnf_instance,
                                  terminate_vnf_req)
         self.vnflcm_driver.terminate_vnf.assert_called_once_with(
-            self.context, vnf_instance, terminate_vnf_req)
+            self.context, mock.ANY, terminate_vnf_req)
         expected_msg = "Failed to update usage_state of vnf package %s"
         mock_log.error.assert_called_once_with(expected_msg,
             vnf_package_vnfd.package_uuid)
 
-    def test_heal_vnf_instance(self):
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    def test_heal_vnf_instance(self, mock_get_lock):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -356,6 +418,30 @@ class TestConductor(SqlTestCase):
         self.conductor.heal(self.context, vnf_instance, heal_vnf_req)
         self.vnflcm_driver.heal_vnf.assert_called_once_with(
             self.context, mock.ANY, heal_vnf_req)
+
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch('tacker.conductor.conductor_server.LOG')
+    def test_heal_vnf_instance_already_not_instantiated(self,
+            mock_log, mock_get_lock):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.NOT_INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+
+        heal_vnf_req = objects.HealVnfRequest(cause="healing request")
+        self.conductor.heal(self.context, vnf_instance, heal_vnf_req)
+
+        self.vnflcm_driver.heal_vnf.assert_not_called()
+        expected_log = ('Heal action cannot be performed on vnf %(id)s '
+                        'which is in %(state)s state.')
+        mock_log.error.assert_called_once_with(expected_log,
+            {'id': vnf_instance.id,
+             'state': fields.VnfInstanceState.NOT_INSTANTIATED})
 
     @mock.patch.object(os, 'remove')
     @mock.patch.object(shutil, 'rmtree')
