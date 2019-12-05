@@ -88,6 +88,17 @@ rules = [
             }
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name=VNFLCM % 'delete',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Delete an Individual VNF instance.",
+        operations=[
+            {
+                'method': 'DELETE',
+                'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}'
+            }
+        ]
+    ),
 ]
 
 

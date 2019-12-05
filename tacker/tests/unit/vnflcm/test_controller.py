@@ -1004,3 +1004,88 @@ class TestController(base.TestCase):
         req.method = method
         resp = req.get_response(self.app)
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
+
+    @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
+    @mock.patch.object(objects.vnf_instance, '_destroy_vnf_instance')
+    def test_delete(self, mock_destroy_vnf_instance, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % uuidsentinel.vnf_instance_id)
+        req.method = 'DELETE'
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance()
+        req.headers['Content-Type'] = 'application/json'
+
+        # Call delete API
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.NO_CONTENT, resp.status_code)
+        mock_destroy_vnf_instance.assert_called_once()
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_delete_with_non_existing_vnf_instance(self, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % uuidsentinel.vnf_instance_id)
+        req.method = 'DELETE'
+
+        mock_vnf_by_id.side_effect = exceptions.VnfInstanceNotFound
+
+        # Call delete API
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertEqual("Can not find requested vnf instance: %s" %
+            uuidsentinel.vnf_instance_id,
+            resp.json['itemNotFound']['message'])
+
+    def test_delete_with_invalid_uuid(self):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.INVALID_UUID)
+        req.method = 'DELETE'
+
+        # Call delete API
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertEqual("Can not find requested vnf instance: %s" %
+            constants.INVALID_UUID,
+            resp.json['itemNotFound']['message'])
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_delete_with_incorrect_instantiation_state(self, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % uuidsentinel.vnf_instance_id)
+        req.method = 'DELETE'
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_by_id.return_value = vnf_instance
+
+        # Call delete API
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+        expected_msg = ("Vnf instance %s in instantiation_state "
+                       "INSTANTIATED. Cannot delete while the vnf instance "
+                       "is in this state.")
+        self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
+                resp.json['conflictingRequest']['message'])
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_delete_with_incorrect_task_state(self, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % uuidsentinel.vnf_instance_id)
+        req.method = 'DELETE'
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.ERROR)
+        mock_vnf_by_id.return_value = vnf_instance
+
+        # Call delete API
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+        expected_msg = ("Vnf instance %s in task_state ERROR. "
+                       "Cannot delete while the vnf instance "
+                       "is in this state.")
+        self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
+                resp.json['conflictingRequest']['message'])

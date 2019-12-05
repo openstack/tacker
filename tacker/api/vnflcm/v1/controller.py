@@ -209,8 +209,20 @@ class VnfLcmController(wsgi.Controller):
         vnf_instances = objects.VnfInstanceList.get_all(context)
         return self._view_builder.index(vnf_instances)
 
+    @check_vnf_state(action="delete",
+        instantiation_state=[fields.VnfInstanceState.NOT_INSTANTIATED],
+        task_state=[None])
+    def _delete(self, context, vnf_instance):
+        vnf_instance.destroy(context)
+
+    @wsgi.response(http_client.NO_CONTENT)
+    @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,
+                           http_client.CONFLICT))
     def delete(self, request, id):
-        raise webob.exc.HTTPNotImplemented()
+        context = request.environ['tacker.context']
+
+        vnf_instance = self._get_vnf_instance(context, id)
+        self._delete(context, vnf_instance)
 
     @check_vnf_state(action="instantiate",
         instantiation_state=[fields.VnfInstanceState.NOT_INSTANTIATED],
