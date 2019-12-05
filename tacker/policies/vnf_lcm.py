@@ -43,7 +43,18 @@ rules = [
                 'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}/instantiate'
             }
         ]
-    )
+    ),
+    policy.DocumentedRuleDefault(
+        name=VNFLCM % 'show',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Query an Individual VNF instance.",
+        operations=[
+            {
+                'method': 'GET',
+                'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}'
+            }
+        ]
+    ),
 ]
 
 

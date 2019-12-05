@@ -26,13 +26,6 @@ class ViewBuilder(object):
             }
         }
 
-        instantiate_link = {
-            "instantiate": {
-                "href": '/vnflcm/v1/vnf_instances/%s/instantiate'
-                        % vnf_instance.id
-            }
-        }
-
         if (vnf_instance.instantiation_state ==
                 fields.VnfInstanceState.NOT_INSTANTIATED):
             instantiate_link = {
@@ -43,6 +36,21 @@ class ViewBuilder(object):
             }
 
             links.update(instantiate_link)
+
+        if (vnf_instance.instantiation_state ==
+                fields.VnfInstanceState.INSTANTIATED):
+            instantiated_state_links = {
+                "terminate": {
+                    "href": '/vnflcm/v1/vnf_instances/%s/terminate'
+                            % vnf_instance.id
+                },
+                "heal": {
+                    "href": '/vnflcm/v1/vnf_instances/%s/heal'
+                            % vnf_instance.id
+                }
+            }
+
+            links.update(instantiated_state_links)
 
         return {"_links": links}
 
@@ -57,4 +65,7 @@ class ViewBuilder(object):
         return vnf_instance_dict
 
     def create(self, vnf_instance):
+        return self._get_vnf_instance_info(vnf_instance)
+
+    def show(self, vnf_instance):
         return self._get_vnf_instance_info(vnf_instance)

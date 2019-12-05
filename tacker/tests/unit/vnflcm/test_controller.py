@@ -643,3 +643,55 @@ class TestController(base.TestCase):
         req.method = method
         resp = req.get_response(self.app)
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
+
+    @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
+    def test_show_vnf_not_instantiated(self, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % uuidsentinel.instance_id)
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance_model()
+        expected_result = fakes.fake_vnf_instance_response()
+        res_dict = self.controller.show(req, uuidsentinel.instance_id)
+        self.assertEqual(expected_result, res_dict)
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_show_vnf_instantiated(self, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % uuidsentinel.instance_id)
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        expected_result = fakes.fake_vnf_instance_response(
+            fields.VnfInstanceState.INSTANTIATED)
+        res_dict = self.controller.show(req, uuidsentinel.instance_id)
+        self.assertEqual(expected_result, res_dict)
+
+    @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
+    def test_show_with_non_existing_vnf_instance(self, mock_vnf_by_id):
+        mock_vnf_by_id.side_effect = exceptions.VnfInstanceNotFound
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % uuidsentinel.vnf_instance_id)
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertEqual("Can not find requested vnf instance: %s" %
+            uuidsentinel.vnf_instance_id,
+            resp.json['itemNotFound']['message'])
+
+    def test_show_with_invalid_uuid(self):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.INVALID_UUID)
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertEqual("Can not find requested vnf instance: %s" %
+            constants.INVALID_UUID, resp.json['itemNotFound']['message'])
+
+    @ddt.data('PATCH', 'HEAD', 'PUT', 'POST')
+    def test_show_invalid_http_method(self, http_method):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = http_method
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)

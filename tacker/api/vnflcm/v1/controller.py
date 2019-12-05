@@ -192,8 +192,15 @@ class VnfLcmController(wsgi.Controller):
         headers = {"location": self._get_vnf_instance_href(vnf_instance)}
         return wsgi.ResponseObject(result, headers=headers)
 
+    @wsgi.response(http_client.OK)
+    @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def show(self, request, id):
-        raise webob.exc.HTTPNotImplemented()
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'show')
+
+        vnf_instance = self._get_vnf_instance(context, id)
+
+        return self._view_builder.show(vnf_instance)
 
     def index(self, request):
         raise webob.exc.HTTPNotImplemented()
