@@ -22,6 +22,7 @@ import shutil
 import sys
 
 from glance_store import exceptions as store_exceptions
+from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
 from oslo_service import periodic_task
@@ -37,7 +38,6 @@ from tacker.common import exceptions
 from tacker.common import safe_utils
 from tacker.common import topics
 from tacker.common import utils
-import tacker.conf
 from tacker import context as t_context
 from tacker.db.common_services import common_services_db
 from tacker.db.nfvo import nfvo_db
@@ -50,9 +50,41 @@ from tacker.objects.vnf_package import VnfPackagesList
 from tacker.plugins.common import constants
 from tacker import service as tacker_service
 from tacker import version
+from tacker.vnflcm import vnflcm_driver
+from tacker.vnfm import plugin
 
+CONF = cfg.CONF
 
-CONF = tacker.conf.CONF
+# NOTE(tpatil): keystone_authtoken opts registered explicitly as conductor
+# service doesn't use the keystonemiddleware.authtoken middleware as it's
+# used by the tacker.service in the api-paste.ini
+OPTS = [cfg.StrOpt('user_domain_id',
+                   default='default',
+                   help='User Domain Id'),
+        cfg.StrOpt('project_domain_id',
+                   default='default',
+                   help='Project Domain Id'),
+        cfg.StrOpt('password',
+                   default='default',
+                   help='User Password'),
+        cfg.StrOpt('username',
+                   default='default',
+                   help='User Name'),
+        cfg.StrOpt('user_domain_name',
+                   default='default',
+                   help='Use Domain Name'),
+        cfg.StrOpt('project_name',
+                   default='default',
+                   help='Project Name'),
+        cfg.StrOpt('project_domain_name',
+                   default='default',
+                   help='Project Domain Name'),
+        cfg.StrOpt('auth_url',
+                   default='http://localhost/identity/v3',
+                   help='Keystone endpoint')]
+
+cfg.CONF.register_opts(OPTS, 'keystone_authtoken')
+
 LOG = logging.getLogger(__name__)
 
 
@@ -109,6 +141,8 @@ class Conductor(manager.Manager):
         else:
             self.conf = CONF
         super(Conductor, self).__init__(host=self.conf.host)
+        self.vnfm_plugin = plugin.VNFMPlugin()
+        self.vnflcm_driver = vnflcm_driver.VnfLcmDriver()
 
     def init_host(self):
         glance_store.initialize_glance_store()
@@ -360,6 +394,35 @@ class Conductor(manager.Manager):
                             " folder $(folder)s for vnf package %(uuid)s.",
                             {'zip': csar_path, 'folder': csar_zip_temp_path,
                              'uuid': vnf_pack.id})
+
+    def instantiate(self, context, vnf_instance, instantiate_vnf):
+        self.vnflcm_driver.instantiate_vnf(context, vnf_instance,
+                                           instantiate_vnf)
+
+        vnf_package_vnfd = objects.VnfPackageVnfd.get_by_id(context,
+                vnf_instance.vnfd_id)
+        vnf_package = objects.VnfPackage.get_by_id(context,
+                vnf_package_vnfd.package_uuid, expected_attrs=['vnfd'])
+        try:
+            self._update_package_usage_state(context, vnf_package)
+        except Exception:
+            LOG.error("Failed to update usage_state of vnf package %s",
+                      vnf_package.id)
+
+    def _update_package_usage_state(self, context, vnf_package):
+        """Update vnf package usage state to IN_USE/NOT_IN_USE
+
+        If vnf package is not used by any of the vnf instances, it's usage
+        state should be set to NOT_IN_USE otherwise it should be set to
+        IN_USE.
+        """
+        result = vnf_package.is_package_in_use(context)
+        if result:
+            vnf_package.usage_state = fields.PackageUsageStateType.IN_USE
+        else:
+            vnf_package.usage_state = fields.PackageUsageStateType.NOT_IN_USE
+
+        vnf_package.save()
 
 
 def init(args, **kwargs):

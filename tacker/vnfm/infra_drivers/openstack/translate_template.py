@@ -53,7 +53,7 @@ SCALING_POLICY = 'tosca.policies.tacker.Scaling'
 class TOSCAToHOT(object):
     """Convert TOSCA template to HOT template."""
 
-    def __init__(self, vnf, heatclient):
+    def __init__(self, vnf, heatclient, inst_req_info=None, grant_info=None):
         self.vnf = vnf
         self.heatclient = heatclient
         self.attributes = {}
@@ -65,18 +65,20 @@ class TOSCAToHOT(object):
         self.fields = None
         self.STACK_FLAVOR_EXTRA = cfg.CONF.openstack_vim.flavor_extra_specs
         self.appmonitoring_dict = None
+        self.grant_info = grant_info
+        self.inst_req_info = inst_req_info
 
     @log.log
     def generate_hot(self):
 
         self._get_vnfd()
         dev_attrs = self._update_fields()
-
         vnfd_dict = yamlparser.simple_ordered_parse(self.vnfd_yaml)
         LOG.debug('vnfd_dict %s', vnfd_dict)
         self._get_unsupported_resource_props(self.heatclient)
 
-        self._generate_hot_from_tosca(vnfd_dict, dev_attrs)
+        self._generate_hot_from_tosca(vnfd_dict, dev_attrs,
+                                      self.inst_req_info, self.grant_info)
         self.fields['template'] = self.heat_template_yaml
         if not self.vnf['attributes'].get('heat_template'):
             self.vnf['attributes']['heat_template'] = self.fields['template']
@@ -249,7 +251,9 @@ class TOSCAToHOT(object):
         self.unsupported_props = unsupported_resource_props
 
     @log.log
-    def _generate_hot_from_tosca(self, vnfd_dict, dev_attrs):
+    def _generate_hot_from_tosca(self, vnfd_dict, dev_attrs,
+                                 inst_req_info=None,
+                                 grant_info=None):
         parsed_params = {}
         if 'param_values' in dev_attrs and dev_attrs['param_values'] != "":
             try:
@@ -291,23 +295,28 @@ class TOSCAToHOT(object):
             self.vnf, tosca, metadata, unique_id=unique_id)
         monitoring_dict = toscautils.get_vdu_monitoring(tosca)
         mgmt_ports = toscautils.get_mgmt_ports(tosca)
-        nested_resource_name = toscautils.get_nested_resources_name(tosca)
-        sub_heat_tmpl_name = toscautils.get_sub_heat_tmpl_name(tosca)
         res_tpl = toscautils.get_resources_dict(tosca,
                                                 self.STACK_FLAVOR_EXTRA)
         toscautils.post_process_template(tosca)
         scaling_policy_names = toscautils.get_scaling_policy(tosca)
         try:
             translator = tosca_translator.TOSCATranslator(tosca, parsed_params)
+
             heat_template_yaml = translator.translate()
-            if nested_resource_name:
-                sub_heat_template_yaml =\
-                    translator.translate_to_yaml_files_dict(sub_heat_tmpl_name)
-                nested_resource_yaml =\
-                    sub_heat_template_yaml[nested_resource_name]
-                LOG.debug("nested_resource_yaml: %s", nested_resource_yaml)
-                self.nested_resources[nested_resource_name] =\
-                    nested_resource_yaml
+            nested_resource_names = toscautils.get_nested_resources_name(
+                heat_template_yaml)
+            if nested_resource_names:
+                for nested_resource_name in nested_resource_names:
+                    sub_heat_tmpl_name = \
+                        toscautils.get_sub_heat_tmpl_name(nested_resource_name)
+                    sub_heat_template_yaml =\
+                        translator.translate_to_yaml_files_dict(
+                            sub_heat_tmpl_name)
+                    nested_resource_yaml = \
+                        sub_heat_template_yaml[nested_resource_name]
+                    LOG.debug("nested_resource_yaml: %s", nested_resource_yaml)
+                    self.nested_resources[nested_resource_name] = \
+                        nested_resource_yaml
 
         except Exception as e:
             LOG.debug("heat-translator error: %s", str(e))
@@ -315,11 +324,13 @@ class TOSCAToHOT(object):
 
         if self.nested_resources:
             nested_tpl = toscautils.update_nested_scaling_resources(
-                self.nested_resources, mgmt_ports, metadata,
-                res_tpl, self.unsupported_props)
+                self.nested_resources,
+                mgmt_ports, metadata, res_tpl, self.unsupported_props,
+                grant_info=grant_info, inst_req_info=inst_req_info)
             self.fields['files'] = nested_tpl
-            self.vnf['attributes'][nested_resource_name] =\
-                nested_tpl[nested_resource_name]
+            for nested_resource_name in nested_tpl.keys():
+                self.vnf['attributes'][nested_resource_name] =\
+                    nested_tpl[nested_resource_name]
             mgmt_ports.clear()
 
         if scaling_policy_names:
@@ -327,11 +338,25 @@ class TOSCAToHOT(object):
                 heat_template_yaml, scaling_policy_names)
             self.vnf['attributes']['scaling_group_names'] =\
                 jsonutils.dump_as_bytes(scaling_group_dict)
-
         heat_template_yaml = toscautils.post_process_heat_template(
             heat_template_yaml, mgmt_ports, metadata, alarm_resources,
             res_tpl, block_storage_details, self.unsupported_props,
-            unique_id=unique_id)
+            unique_id=unique_id, inst_req_info=inst_req_info,
+            grant_info=grant_info, tosca=tosca)
+
+        try:
+            for nested_resource_name in self.nested_resources.keys():
+                self.nested_resources[nested_resource_name] = \
+                    toscautils.post_process_heat_template_for_scaling(
+                    self.nested_resources[nested_resource_name],
+                    mgmt_ports, metadata, alarm_resources,
+                    res_tpl, block_storage_details, self.unsupported_props,
+                    unique_id=unique_id, inst_req_info=inst_req_info,
+                    grant_info=grant_info, tosca=tosca)
+        except Exception as e:
+            LOG.debug("post_process_heat_template_for_scaling "
+                      "error: %s", str(e))
+            raise
 
         self.heat_template_yaml = heat_template_yaml
         self.monitoring_dict = monitoring_dict

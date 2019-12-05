@@ -19,6 +19,7 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovoo_base
 from sqlalchemy.orm import joinedload
+from sqlalchemy.sql import func
 
 from tacker._i18n import _
 from tacker.common import exceptions
@@ -238,7 +239,8 @@ def _make_vnf_packages_list(context, vnf_package_list, db_vnf_package_list,
 
 
 @base.TackerObjectRegistry.register
-class VnfPackage(base.TackerObject, base.TackerPersistentObject):
+class VnfPackage(base.TackerObject, base.TackerPersistentObject,
+                 base.TackerObjectDictCompat):
 
     # Version 1.0: Initial version
     VERSION = '1.0'
@@ -427,6 +429,23 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject):
         db_vnf_package = _vnf_package_update(self._context,
                                             self.id, updates)
         self._from_db_object(self._context, self, db_vnf_package)
+
+    @base.remotable
+    def is_package_in_use(self, context):
+        if self.onboarding_state == \
+                fields.PackageOnboardingStateType.ONBOARDED:
+            # check if vnf package is used by any vnf instances.
+            query = context.session.query(
+                func.count(models.VnfInstance.id)).\
+                filter_by(
+                instantiation_state=fields.VnfInstanceState.INSTANTIATED).\
+                filter_by(tenant_id=self.tenant_id).\
+                filter_by(vnfd_id=self.vnfd.vnfd_id).\
+                filter_by(deleted=False)
+            result = query.scalar()
+            return True if result > 0 else False
+        else:
+            return False
 
 
 @base.TackerObjectRegistry.register

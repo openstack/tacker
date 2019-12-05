@@ -1,0 +1,41 @@
+heat_template_version: 2013-05-23
+description: Scaling template
+parameters:
+  vdu1_flavor_id:
+    type: string
+  vl3_id:
+    type: string
+  vl4_id:
+    type: string
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      name: VDU1
+      networks:
+      - port:
+          get_resource: CP1
+      - port: neutron-port-uuid_CP2
+      - port:
+          get_resource: CP3
+      - port:
+          get_resource: CP4
+      flavor:
+          get_param: vdu1_flavor_id
+      image: glance-image-uuid_VDU1
+  CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: neutron-network-uuid_VL1
+      fixed_ips:
+      - subnet: neutron-subnet-uuid_CP1
+  CP3:
+    type: OS::Neutron::Port
+    properties:
+      network:
+        get_param: vl3_id
+  CP4:
+    type: OS::Neutron::Port
+    properties:
+      network:
+        get_param: vl4_id

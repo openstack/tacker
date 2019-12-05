@@ -32,18 +32,45 @@ from tacker import objects
 from tacker.objects import vnf_package
 from tacker.tests.unit.conductor import fakes
 from tacker.tests.unit.db.base import SqlTestCase
+from tacker.tests.unit.objects import fakes as fake_obj
+from tacker.tests.unit.vnflcm import fakes as vnflcm_fakes
 from tacker.tests import uuidsentinel
 
 CONF = tacker.conf.CONF
+
+
+class FakeVnfLcmDriver(mock.Mock):
+    pass
+
+
+class FakeVNFMPlugin(mock.Mock):
+    pass
 
 
 class TestConductor(SqlTestCase):
 
     def setUp(self):
         super(TestConductor, self).setUp()
+        self.addCleanup(mock.patch.stopall)
         self.context = context.get_admin_context()
+        self._mock_vnflcm_driver()
+        self._mock_vnfm_plugin()
         self.conductor = conductor_server.Conductor('host')
         self.vnf_package = self._create_vnf_package()
+
+    def _mock_vnfm_plugin(self):
+        self.vnfm_plugin = mock.Mock(wraps=FakeVNFMPlugin())
+        fake_vnfm_plugin = mock.Mock()
+        fake_vnfm_plugin.return_value = self.vnfm_plugin
+        self._mock(
+            'tacker.vnfm.plugin.VNFMPlugin', fake_vnfm_plugin)
+
+    def _mock_vnflcm_driver(self):
+        self.vnflcm_driver = mock.Mock(wraps=FakeVnfLcmDriver())
+        fake_vnflcm_driver = mock.Mock()
+        fake_vnflcm_driver.return_value = self.vnflcm_driver
+        self._mock(
+            'tacker.vnflcm.vnflcm_driver.VnfLcmDriver', fake_vnflcm_driver)
 
     def _create_vnf_package(self):
         vnfpkgm = vnf_package.VnfPackage(context=self.context,
@@ -152,6 +179,77 @@ class TestConductor(SqlTestCase):
                           self.conductor.get_vnf_package_vnfd, self.context,
                           self.vnf_package)
         shutil.rmtree(fake_csar)
+
+    def _create_and_upload_vnf_package(self):
+        vnf_package = objects.VnfPackage(context=self.context,
+                                         **fake_obj.vnf_package_data)
+        vnf_package.create()
+
+        vnf_pack_vnfd = fake_obj.get_vnf_package_vnfd_data(
+            vnf_package.id, uuidsentinel.vnfd_id)
+
+        vnf_pack_vnfd_obj = objects.VnfPackageVnfd(
+            context=self.context, **vnf_pack_vnfd)
+        vnf_pack_vnfd_obj.create()
+
+        vnf_package.onboarding_state = "ONBOARDED"
+        vnf_package.save()
+
+        return vnf_pack_vnfd_obj
+
+    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
+    def test_instantiate_vnf_instance(self, mock_package_in_use):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        mock_package_in_use.return_value = False
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        self.conductor.instantiate(self.context, vnf_instance,
+                                   instantiate_vnf_req)
+        self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
+            self.context, vnf_instance, instantiate_vnf_req)
+        mock_package_in_use.assert_called_once()
+
+    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
+    def test_instantiate_vnf_instance_with_vnf_package_in_use(self,
+            mock_vnf_package_in_use):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        mock_vnf_package_in_use.return_value = True
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        self.conductor.instantiate(self.context, vnf_instance,
+                                   instantiate_vnf_req)
+        self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
+            self.context, vnf_instance, instantiate_vnf_req)
+        mock_vnf_package_in_use.assert_called_once()
+
+    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
+    @mock.patch('tacker.conductor.conductor_server.LOG')
+    def test_instantiate_vnf_instance_failed_with_exception(
+            self, mock_log, mock_is_package_in_use):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        mock_is_package_in_use.side_effect = Exception
+        self.conductor.instantiate(self.context, vnf_instance,
+                                   instantiate_vnf_req)
+        self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
+            self.context, vnf_instance, instantiate_vnf_req)
+        mock_is_package_in_use.assert_called_once()
+        expected_log = 'Failed to update usage_state of vnf package %s'
+        mock_log.error.assert_called_once_with(expected_log,
+            vnf_package_vnfd.package_uuid)
 
     @mock.patch.object(os, 'remove')
     @mock.patch.object(shutil, 'rmtree')

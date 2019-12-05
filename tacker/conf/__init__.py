@@ -19,8 +19,8 @@ from oslo_config import cfg
 from tacker.conf import conductor
 from tacker.conf import vnf_package
 
-
 CONF = cfg.CONF
+CONF.import_group('keystone_authtoken', 'keystonemiddleware.auth_token')
 
 vnf_package.register_opts(CONF)
 conductor.register_opts(CONF)

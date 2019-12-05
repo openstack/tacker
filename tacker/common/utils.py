@@ -21,6 +21,7 @@
 import functools
 import inspect
 import logging as std_logging
+import math
 import os
 import random
 import re
@@ -36,6 +37,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
+from six.moves import urllib
 from stevedore import driver
 try:
     from eventlet import sleep
@@ -392,6 +394,14 @@ def convert_snakecase_to_camelcase(request_data):
     return request_data
 
 
+def is_url(url):
+    try:
+        urllib.request.urlopen(url)
+        return True
+    except Exception:
+        return False
+
+
 class CooperativeReader(object):
     """An eventlet thread friendly class for reading in image data.
 
@@ -516,3 +526,71 @@ class LimitingReader(object):
         if self.bytes_read > self.limit:
             raise self.exception_class()
         return result
+
+
+class MemoryUnit(object):
+
+    UNIT_SIZE_DEFAULT = 'B'
+    UNIT_SIZE_DICT = {'B': 1, 'kB': 1000, 'KiB': 1024, 'MB': 1000000,
+                      'MiB': 1048576, 'GB': 1000000000,
+                      'GiB': 1073741824, 'TB': 1000000000000,
+                      'TiB': 1099511627776}
+
+    @staticmethod
+    def convert_unit_size_to_num(size, unit=None):
+        """Convert given size to a number representing given unit.
+
+        If unit is None, convert to a number representing UNIT_SIZE_DEFAULT
+        :param size: unit size e.g. 1 TB
+        :param unit: unit to be converted to e.g GB
+        :return: converted number e.g. 1000 for 1 TB size and unit GB
+        """
+        if unit:
+            unit = MemoryUnit.validate_unit(unit)
+        else:
+            unit = MemoryUnit.UNIT_SIZE_DEFAULT
+            LOG.info(_('A memory unit is not provided for size; using the '
+                       'default unit %(default)s.') % {'default': 'B'})
+        regex = re.compile('(\d*)\s*(\w*)')
+        result = regex.match(str(size)).groups()
+        if result[1]:
+            unit_size = MemoryUnit.validate_unit(result[1])
+            converted = int(str_to_num(result[0]) *
+                            MemoryUnit.UNIT_SIZE_DICT[unit_size] *
+                            math.pow(MemoryUnit.UNIT_SIZE_DICT
+                                     [unit], -1))
+            LOG.info(_('Given size %(size)s is converted to %(num)s '
+                       '%(unit)s.') % {'size': size,
+                     'num': converted, 'unit': unit})
+        else:
+            converted = (str_to_num(result[0]))
+        return converted
+
+    @staticmethod
+    def validate_unit(unit):
+        if unit in MemoryUnit.UNIT_SIZE_DICT.keys():
+            return unit
+        else:
+            for key in MemoryUnit.UNIT_SIZE_DICT.keys():
+                if key.upper() == unit.upper():
+                    return key
+
+            msg = _('Provided unit "{0}" is not valid. The valid units are '
+                    '{1}').format(unit, MemoryUnit.UNIT_SIZE_DICT.keys())
+            LOG.error(msg)
+            raise ValueError(msg)
+
+
+def str_to_num(value):
+    """Convert a string representation of a number into a numeric type."""
+    if (isinstance(value, int) or
+            isinstance(value, float)):
+        return value
+
+    try:
+        return int(value)
+    except ValueError:
+        try:
+            return float(value)
+        except ValueError:
+            return None

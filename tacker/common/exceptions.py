@@ -215,6 +215,23 @@ class VnfInstanceNotFound(NotFound):
     message = _("No vnf instance with id %(id)s.")
 
 
+class VnfInstanceConflictState(Conflict):
+    message = _("Vnf instance %(uuid)s in %(attr)s %(state)s. Cannot "
+                "%(action)s while the vnf instance is in this state.")
+
+
+class FlavourNotFound(NotFound):
+    message = _("No flavour with id '%(flavour_id)s'.")
+
+
+class InstantiationLevelNotFound(NotFound):
+    message = _("No instantiation level with id '%(inst_level_id)s'.")
+
+
+class VimConnectionNotFound(NotFound):
+    message = _("No vim found with id '%(vim_id)s'.")
+
+
 class VnfResourceNotFound(NotFound):
     message = _("No vnf resource with id %(id)s.")
 
@@ -233,6 +250,20 @@ class VnfSoftwareImageNotFound(NotFound):
 
 class VnfInstantiatedInfoNotFound(NotFound):
     message = _("No vnf instantiated info for vnf id %(vnf_instance_id)s.")
+
+
+class VnfInstantiationFailed(TackerException):
+    message = _("Vnf instantiation failed for vnf %(id)s, error: %(error)s")
+
+
+class VnfInstantiationWaitFailed(TackerException):
+    message = _("Vnf instantiation wait failed for vnf %(id)s, "
+                "error: %(error)s")
+
+
+class VnfPreInstantiationFailed(TackerException):
+    message = _("Vnf '%(id)s' failed during pre-instantiation due to error: "
+                "%(error)s")
 
 
 class OrphanedObjectError(TackerException):

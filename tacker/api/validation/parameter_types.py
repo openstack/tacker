@@ -138,3 +138,36 @@ uuid = {
 name_allow_zero_min_length = {
     'type': 'string', 'minLength': 0, 'maxLength': 255
 }
+
+ip_address = {
+    'type': 'string',
+    'oneOf': [
+        {'format': 'ipv4'},
+        {'format': 'ipv6'}
+    ]
+}
+
+positive_integer = {
+    'type': ['integer', 'string'],
+    'pattern': '^[0-9]*$', 'minimum': 1, 'minLength': 1
+}
+
+identifier = {
+    'type': 'string', 'minLength': 1, 'maxLength': 255
+}
+
+identifier_in_vim = {
+    'type': 'string', 'minLength': 1, 'maxLength': 255
+}
+
+identifier_in_vnfd = {
+    'type': 'string', 'minLength': 1, 'maxLength': 255
+}
+
+identifier_in_vnf = {
+    'type': 'string', 'minLength': 1, 'maxLength': 255
+}
+
+mac_address_or_none = {
+    'type': 'string', 'format': 'mac_address_or_none'
+}

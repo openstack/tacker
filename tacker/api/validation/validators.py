@@ -20,9 +20,11 @@ Internal implementation of request Body validating middleware.
 
 import jsonschema
 from jsonschema import exceptions as jsonschema_exc
+import netaddr
 from oslo_utils import uuidutils
 import rfc3986
 import six
+import webob
 
 from tacker.common import exceptions as exception
 
@@ -36,6 +38,21 @@ def _validate_uri(instance):
 @jsonschema.FormatChecker.cls_checks('uuid')
 def _validate_uuid_format(instance):
     return uuidutils.is_uuid_like(instance)
+
+
+@jsonschema.FormatChecker.cls_checks('mac_address_or_none',
+        webob.exc.HTTPBadRequest)
+def validate_mac_address_or_none(instance):
+    """Validate instance is a MAC address"""
+
+    if instance is None:
+        return
+
+    if not netaddr.valid_mac(instance):
+        msg = _("'%s' is not a valid mac address")
+        raise webob.exc.HTTPBadRequest(explanation=msg % instance)
+
+    return True
 
 
 class FormatChecker(jsonschema.FormatChecker):
@@ -76,14 +93,14 @@ class FormatChecker(jsonschema.FormatChecker):
 class _SchemaValidator(object):
     """A validator class
 
-    This class is changed from Draft4Validator to validate minimum/maximum
+    This class is changed from Draft7Validator to validate minimum/maximum
     value of a string number(e.g. '10'). This changes can be removed when
     we tighten up the API definition and the XML conversion.
     Also FormatCheckers are added for checking data formats which would be
     passed through cinder api commonly.
 
     """
-    validator_org = jsonschema.Draft4Validator
+    validator_org = jsonschema.Draft7Validator
 
     def __init__(self, schema):
         validator_cls = jsonschema.validators.extend(self.validator_org,
@@ -95,7 +112,9 @@ class _SchemaValidator(object):
         try:
             self.validator.validate(*args, **kwargs)
         except jsonschema.ValidationError as ex:
-            if len(ex.path) > 0:
+            if isinstance(ex.cause, webob.exc.HTTPBadRequest):
+                detail = str(ex.cause)
+            elif len(ex.path) > 0:
                 detail = _("Invalid input for field/attribute %(path)s."
                            " Value: %(value)s. %(message)s") % {
                     'path': ex.path.pop(), 'value': ex.instance,

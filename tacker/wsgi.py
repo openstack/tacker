@@ -130,6 +130,12 @@ def expected_errors(errors):
                     # Handle an authorized exception, will be
                     # automatically converted to a HTTP 401.
                     raise
+                elif isinstance(exc, exception.Conflict):
+                    # Note(tpatil): Handle a conflict error, which
+                    # happens due to resources in wrong state.
+                    # ResourceExceptionHandler silently converts Conflict
+                    # to HTTPConflict
+                    raise
 
                 LOG.exception("Unexpected exception in API method")
                 msg = _('Unexpected API Error. Please report this at '
@@ -860,6 +866,9 @@ class ResourceExceptionHandler(object):
         elif isinstance(ex_value, exception.BadRequest):
             raise Fault(exception.ConvertedException(
                 code=ex_value.code,
+                explanation=ex_value.format_message()))
+        elif isinstance(ex_value, exception.Conflict):
+            raise Fault(webob.exc.HTTPConflict(
                 explanation=ex_value.format_message()))
         elif isinstance(ex_value, TypeError):
             exc_info = (ex_type, ex_value, ex_traceback)

@@ -1,0 +1,61 @@
+heat_template_version: 2013-05-23
+description: 'Template for test _generate_hot_from_tosca() with scaling.
+
+  '
+parameters: {}
+resources:
+  worker_instance:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      desired_capacity: 1
+      resource:
+        properties:
+          vdu1_flavor_id:
+            get_resource: VDU1_flavor
+          vl3_id: neutron-network-uuid_VL3
+          vl4_id:
+            get_resource: VL4
+        type: worker_instance.hot.yaml
+      min_size: 1
+      max_size: 3
+  worker_instance_scale_out:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: 1
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id:
+        get_resource: worker_instance
+  worker_instance_scale_in:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: -1
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id:
+        get_resource: worker_instance
+  VDU1_flavor:
+    type: OS::Nova::Flavor
+    properties:
+      disk: 1
+      ram: 512
+      vcpus: 1
+  VL4:
+    type: OS::Neutron::Net
+    properties:
+      qos_policy:
+        get_resource: VL4_qospolicy
+  VL4_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: VL4
+      cidr: 44.44.0.0/24
+  VL4_qospolicy:
+    type: OS::Neutron::QoSPolicy
+  VL4_bandwidth:
+    type: OS::Neutron::QoSBandwidthLimitRule
+    properties:
+      max_kbps: 1024.0
+      policy:
+        get_resource: VL4_qospolicy
+outputs: {}

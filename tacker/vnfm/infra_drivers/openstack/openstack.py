@@ -14,19 +14,26 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
 import time
 
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
+from oslo_utils import encodeutils
+from oslo_utils import excutils
 import yaml
 
 from tacker._i18n import _
+from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import utils
+from tacker.extensions import vnflcm
 from tacker.extensions import vnfm
+from tacker import objects
 from tacker.vnfm.infra_drivers import abstract_driver
 from tacker.vnfm.infra_drivers.openstack import constants as infra_cnst
+from tacker.vnfm.infra_drivers.openstack import glance_client as gc
 from tacker.vnfm.infra_drivers.openstack import heat_client as hc
 from tacker.vnfm.infra_drivers.openstack import translate_template
 from tacker.vnfm.infra_drivers.openstack import vdu
@@ -85,6 +92,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         super(OpenStack, self).__init__()
         self.STACK_RETRIES = cfg.CONF.openstack_vim.stack_retries
         self.STACK_RETRY_WAIT = cfg.CONF.openstack_vim.stack_retry_wait
+        self.IMAGE_RETRIES = 10
+        self.IMAGE_RETRY_WAIT = 10
 
     def get_type(self):
         return 'openstack'
@@ -96,13 +105,14 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         return 'Openstack infra driver'
 
     @log.log
-    def create(self, plugin, context, vnf, auth_attr):
+    def create(self, plugin, context, vnf, auth_attr,
+               inst_req_info=None, grant_info=None):
         LOG.debug('vnf %s', vnf)
-
         region_name = vnf.get('placement_attr', {}).get('region_name', None)
         heatclient = hc.HeatClient(auth_attr, region_name)
 
-        tth = translate_template.TOSCAToHOT(vnf, heatclient)
+        tth = translate_template.TOSCAToHOT(vnf, heatclient,
+                                            inst_req_info, grant_info)
         tth.generate_hot()
         stack = self._create_stack(heatclient, tth.vnf, tth.fields)
         return stack['stack']['id']
@@ -442,3 +452,347 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         except Exception:
             LOG.error("VNF '%s' failed to heal", vnf_dict['id'])
             raise vnfm.VNFHealFailed(vnf_id=vnf_dict['id'])
+
+    @log.log
+    def pre_instantiation_vnf(self, context, vnf_instance,
+                              vim_connection_info, vnf_software_images):
+        glance_client = gc.GlanceClient(vim_connection_info)
+        vnf_resources = {}
+
+        def _roll_back_images():
+            # Delete all previously created images for vnf
+            for key, resources in vnf_resources.items():
+                for vnf_resource in resources:
+                    try:
+                        glance_client.delete(vnf_resource.resource_identifier)
+                    except Exception:
+                        LOG.error("Failed to delete image %(uuid)s "
+                                  "for vnf %(id)s",
+                                  {"uuid": vnf_resource.resource_identifier,
+                                  "id": vnf_instance.id})
+
+        for node_name, vnf_sw_image in vnf_software_images.items():
+            name = vnf_sw_image.name
+            image_path = vnf_sw_image.image_path
+            is_url = utils.is_url(image_path)
+
+            if not is_url:
+                filename = image_path
+            else:
+                filename = None
+
+            try:
+                LOG.info("Creating image %(name)s for vnf %(id)s",
+                         {"name": name, "id": vnf_instance.id})
+
+                image_data = {"min_disk": vnf_sw_image.min_disk,
+                    "min_ram": vnf_sw_image.min_ram,
+                    "disk_format": vnf_sw_image.disk_format,
+                    "container_format": vnf_sw_image.container_format,
+                    "visibility": "private"}
+
+                if filename:
+                    image_data.update({"filename": filename})
+
+                image = glance_client.create(name, **image_data)
+
+                LOG.info("Image %(name)s created successfully for vnf %(id)s",
+                         {"name": name, "id": vnf_instance.id})
+            except Exception as exp:
+                with excutils.save_and_reraise_exception():
+                    exp.reraise = False
+                    LOG.error("Failed to create image %(name)s for vnf %(id)s"
+                              "due to error: %(error)s",
+                              {"name": name, "id": vnf_instance.id,
+                              "error": encodeutils.exception_to_unicode(exp)})
+
+                    # Delete previously created images
+                    _roll_back_images()
+
+                    raise exceptions.VnfPreInstantiationFailed(
+                        id=vnf_instance.id,
+                        error=encodeutils.exception_to_unicode(exp))
+            try:
+                if is_url:
+                    glance_client.import_image(image, image_path)
+
+                self._image_create_wait(image.id, vnf_sw_image.hash,
+                    glance_client, 'active', vnflcm.ImageCreateWaitFailed)
+
+                vnf_resource = objects.VnfResource(context=context,
+                    vnf_instance_id=vnf_instance.id,
+                    resource_name=name, resource_type="image",
+                    resource_status="CREATED", resource_identifier=image.id)
+                vnf_resources[node_name] = [vnf_resource]
+            except Exception as exp:
+                with excutils.save_and_reraise_exception():
+                    exp.reraise = False
+                    LOG.error("Image %(name)s not active for vnf %(id)s"
+                              "error: %(error)s",
+                              {"name": name, "id": vnf_instance.id,
+                              "error": encodeutils.exception_to_unicode(exp)})
+
+                    err_msg = "Failed to delete image %(uuid)s for vnf %(id)s"
+                    # Delete the image
+                    try:
+                        glance_client.delete(image.id)
+                    except Exception:
+                        LOG.error(err_msg, {"uuid": image.id,
+                                  "id": vnf_instance.id})
+
+                    # Delete all previously created images for vnf
+                    _roll_back_images()
+
+                    raise exceptions.VnfPreInstantiationFailed(
+                        id=vnf_instance.id,
+                        error=encodeutils.exception_to_unicode(exp))
+
+        return vnf_resources
+
+    def _image_create_wait(self, image_uuid, hash_value, glance_client,
+                           expected_status, exception_class):
+        retries = self.IMAGE_RETRIES
+
+        while retries > 0:
+            retries = retries - 1
+            image = glance_client.get(image_uuid)
+            status = image.status
+            if status == expected_status:
+                # NOTE(tpatil): If image is uploaded using import_image
+                # ,sdk doesn't validate checksum. So, verify checksum/hash
+                # for both scenarios upload from file and URL here.
+                if hash_value != image.hash_value:
+                    msg = 'Image %s checksum verification failed'
+                    raise Exception(msg % image_uuid)
+
+                LOG.debug('Image status: %(image_uuid)s %(status)s',
+                          {'image_uuid': image_uuid, 'status': status})
+                return True
+            time.sleep(self.IMAGE_RETRY_WAIT)
+            LOG.debug('Image %(image_uuid)s status: %(status)',
+                      {"image_uuid": image_uuid, "status": status})
+
+            if retries == 0 and image.status != expected_status:
+                error_reason = ("Image {image_uuid} could not get active "
+                                "within {wait} seconds").format(
+                    wait=(self.IMAGE_RETRIES *
+                          self.IMAGE_RETRY_WAIT),
+                    image_uuid=image_uuid)
+                raise exception_class(reason=error_reason)
+
+    @log.log
+    def delete_vnf_instance_resource(self, context, vnf_instance,
+            vim_connection_info, vnf_resource):
+        LOG.info("Deleting resource '%(name)s' of type ' %(type)s' for vnf"
+                 "%(id)s", {"type": vnf_resource.resource_type,
+                 "name": vnf_resource.resource_name,
+                 "id": vnf_instance.id})
+        glance_client = gc.GlanceClient(vim_connection_info)
+        try:
+            glance_client.delete(vnf_resource.resource_identifier)
+            LOG.info("Deleted resource '%(name)s' of type ' %(type)s' for vnf"
+                 "%(id)s", {"type": vnf_resource.resource_type,
+                 "name": vnf_resource.resource_name,
+                 "id": vnf_instance.id})
+        except Exception:
+            LOG.info("Failed to delete resource '%(name)s' of type"
+                    " %(type)s' for vnf %(id)s",
+                    {"type": vnf_resource.resource_type,
+                     "name": vnf_resource.resource_name,
+                     "id": vnf_instance.id})
+
+    def instantiate_vnf(self, context, vnf_instance, vnfd_dict,
+                        vim_connection_info, instantiate_vnf_req,
+                        grant_response):
+        access_info = vim_connection_info.access_info
+        region_name = access_info.get('region')
+        placement_attr = vnfd_dict.get('placement_attr', {})
+        placement_attr.update({'region_name': region_name})
+        vnfd_dict['placement_attr'] = placement_attr
+
+        instance_id = self.create(None, context, vnfd_dict,
+            access_info, inst_req_info=instantiate_vnf_req,
+            grant_info=grant_response)
+        vnfd_dict['instance_id'] = instance_id
+        return instance_id
+
+    @log.log
+    def post_vnf_instantiation(self, context, vnf_instance,
+            vim_connection_info):
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        access_info = vim_connection_info.access_info
+
+        heatclient = hc.HeatClient(access_info,
+            region_name=access_info.get('region'))
+        stack_resources = self._get_stack_resources(
+            inst_vnf_info.instance_id, heatclient)
+
+        self._update_vnfc_resources(vnf_instance, stack_resources)
+
+    def _update_resource_handle(self, vnf_instance, resource_handle,
+                                stack_resources, resource_name):
+        if not stack_resources:
+            LOG.warning("Failed to set resource handle for resource "
+                    "%(resource)s for vnf %(id)s", {"resource": resource_name,
+                        "id": vnf_instance.id})
+            return
+
+        resource_data = stack_resources.pop(resource_name, None)
+        if not resource_data:
+            LOG.warning("Failed to set resource handle for resource "
+                        "%(resource)s for vnf %(id)s",
+                        {"resource": resource_name, "id": vnf_instance.id})
+            return
+
+        resource_handle.resource_id = resource_data.get(
+            'physical_resource_id')
+        resource_handle.vim_level_resource_type = resource_data.get(
+            'resource_type')
+
+    def _update_vnfc_resource_info(self, vnf_instance, vnfc_res_info,
+            stack_resources, update_network_resource=True):
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+
+        def _pop_stack_resources(resource_name):
+            for stack_id, resources in stack_resources.items():
+                if resource_name in resources.keys():
+                    return stack_id, resources
+            return None, {}
+
+        def _populate_virtual_link_resource_info(vnf_virtual_link_desc_id,
+                                                 pop_resources):
+            vnf_virtual_link_resource_info = \
+                inst_vnf_info.vnf_virtual_link_resource_info
+            for vnf_vl_resource_info in vnf_virtual_link_resource_info:
+                if (vnf_vl_resource_info.vnf_virtual_link_desc_id !=
+                        vnf_virtual_link_desc_id):
+                            continue
+
+                vl_resource_data = pop_resources.pop(
+                    vnf_virtual_link_desc_id, None)
+                if not vl_resource_data:
+                    _, resources = _pop_stack_resources(
+                        vnf_virtual_link_desc_id)
+                    if not resources:
+                        # NOTE(tpatil): network_resource is already set
+                        # from the instantiatevnfrequest during instantiation.
+                        continue
+                    vl_resource_data = resources.get(
+                        vnf_virtual_link_desc_id)
+
+                resource_handle = vnf_vl_resource_info.network_resource
+                resource_handle.resource_id = \
+                    vl_resource_data.get('physical_resource_id')
+                resource_handle.vim_level_resource_type = \
+                    vl_resource_data.get('resource_type')
+
+        def _populate_virtual_link_port(vnfc_cp_info, pop_resources):
+            vnf_virtual_link_resource_info = \
+                inst_vnf_info.vnf_virtual_link_resource_info
+            for vnf_vl_resource_info in vnf_virtual_link_resource_info:
+                vl_link_port_found = False
+                for vl_link_port in vnf_vl_resource_info.vnf_link_ports:
+                    if vl_link_port.cp_instance_id == vnfc_cp_info.id:
+                        vl_link_port_found = True
+                        self._update_resource_handle(vnf_instance,
+                                vl_link_port.resource_handle, pop_resources,
+                                vnfc_cp_info.cpd_id)
+
+                if vl_link_port_found:
+                    yield vnf_vl_resource_info.vnf_virtual_link_desc_id
+
+        def _populate_virtual_storage(vnfc_resource_info, pop_resources):
+            virtual_storage_resource_info = inst_vnf_info. \
+                virtual_storage_resource_info
+            for storage_id in vnfc_resource_info.storage_resource_ids:
+                for vir_storage_res_info in virtual_storage_resource_info:
+                    if vir_storage_res_info.id == storage_id:
+                        self._update_resource_handle(vnf_instance,
+                                vir_storage_res_info.storage_resource,
+                                pop_resources,
+                                vir_storage_res_info.virtual_storage_desc_id)
+                        break
+
+        stack_id, pop_resources = _pop_stack_resources(
+            vnfc_res_info.vdu_id)
+
+        self._update_resource_handle(vnf_instance,
+                vnfc_res_info.compute_resource, pop_resources,
+                vnfc_res_info.vdu_id)
+
+        vnfc_res_info.metadata.update({"stack_id": stack_id})
+        _populate_virtual_storage(vnfc_res_info, pop_resources)
+
+        # Find out associated VLs, and CP used by vdu_id
+        virtual_links = set()
+        for vnfc_cp_info in vnfc_res_info.vnfc_cp_info:
+            for vl_desc_id in _populate_virtual_link_port(vnfc_cp_info,
+                    pop_resources):
+                virtual_links.add(vl_desc_id)
+
+        if update_network_resource:
+            for vl_desc_id in virtual_links:
+                _populate_virtual_link_resource_info(vl_desc_id,
+                                                     pop_resources)
+
+    def _update_ext_managed_virtual_link_ports(self, inst_vnf_info,
+            ext_managed_vl_info):
+        vnf_virtual_link_resource_info = \
+            inst_vnf_info.vnf_virtual_link_resource_info
+
+        def _update_link_port(vl_port):
+            for ext_vl_port in ext_managed_vl_info.vnf_link_ports:
+                if vl_port.id == ext_vl_port.id:
+                    # Update the resource_id
+                    ext_vl_port.resource_handle.resource_id =\
+                        vl_port.resource_handle.resource_id
+                    ext_vl_port.resource_handle.vim_level_resource_type =\
+                        vl_port.resource_handle.vim_level_resource_type
+                    break
+
+        for vnf_vl_resource_info in vnf_virtual_link_resource_info:
+            if (vnf_vl_resource_info.vnf_virtual_link_desc_id !=
+                    ext_managed_vl_info.vnf_virtual_link_desc_id):
+                        continue
+
+            for vl_port in vnf_vl_resource_info.vnf_link_ports:
+                _update_link_port(vl_port)
+
+    def _update_vnfc_resources(self, vnf_instance, stack_resources):
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        for vnfc_res_info in inst_vnf_info.vnfc_resource_info:
+            self._update_vnfc_resource_info(vnf_instance, vnfc_res_info,
+                    stack_resources)
+
+        # update vnf_link_ports of ext_managed_virtual_link_info using already
+        # populated vnf_link_ports from vnf_virtual_link_resource_info.
+        for ext_mng_vl_info in inst_vnf_info.ext_managed_virtual_link_info:
+            self._update_ext_managed_virtual_link_ports(inst_vnf_info,
+                ext_mng_vl_info)
+
+    def _get_stack_resources(self, stack_id, heatclient):
+        def _stack_ids(stack_id):
+            filters = {
+                "owner_id": stack_id,
+                "show_nested": True
+            }
+            yield stack_id
+            for stack in heatclient.stacks.list(**{"filters": filters}):
+                if stack.parent and stack.parent == stack_id:
+                    for x in _stack_ids(stack.id):
+                        yield x
+
+        resource_details = {}
+        for id in _stack_ids(stack_id):
+            resources = {}
+            child_stack = False if id == stack_id else True
+            for stack_resource in heatclient.resources.list(id):
+                resource_data = {"resource_type":
+                    stack_resource.resource_type,
+                    "physical_resource_id":
+                    stack_resource.physical_resource_id}
+                resources[stack_resource.resource_name] = resource_data
+            resource_details[id] = resources
+            resource_details[id].update({'child_stack': child_stack})
+
+        return resource_details

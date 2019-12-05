@@ -33,6 +33,17 @@ rules = [
             }
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name=VNFLCM % 'instantiate',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Instantiate vnf instance.",
+        operations=[
+            {
+                'method': 'POST',
+                'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}/instantiate'
+            }
+        ]
+    )
 ]
 
 

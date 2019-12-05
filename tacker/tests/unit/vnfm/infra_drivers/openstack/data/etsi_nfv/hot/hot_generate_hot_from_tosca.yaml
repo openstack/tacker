@@ -1,0 +1,65 @@
+heat_template_version: 2013-05-23
+description: 'Template for test _generate_hot_from_tosca().
+
+  '
+parameters: {}
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      networks:
+      - port:
+          get_resource: CP1
+      - port: neutron-port-uuid_CP2
+      - port:
+          get_resource: CP3
+      - port:
+          get_resource: CP4
+      flavor:
+        get_resource: VDU1_flavor
+      name: VDU1
+      image: glance-image-uuid_VDU1
+  VDU1_flavor:
+    type: OS::Nova::Flavor
+    properties:
+      disk: 1
+      ram: 512
+      vcpus: 1
+  CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: neutron-network-uuid_VL1
+      fixed_ips:
+        - subnet: neutron-subnet-uuid_CP1
+          ip_address: 1.1.1.1
+      mac_address: fa:16:3e:11:11:11
+  CP3:
+    type: OS::Neutron::Port
+    properties:
+      network: neutron-network-uuid_VL3
+  CP4:
+    type: OS::Neutron::Port
+    properties:
+      network:
+        get_resource: VL4
+  VL4:
+    type: OS::Neutron::Net
+    properties:
+      qos_policy:
+        get_resource: VL4_qospolicy
+  VL4_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      cidr: 44.44.0.0/24
+      network:
+        get_resource: VL4
+  VL4_qospolicy:
+    type: OS::Neutron::QoSPolicy
+  VL4_bandwidth:
+    type: OS::Neutron::QoSBandwidthLimitRule
+    properties:
+      policy:
+        get_resource: VL4_qospolicy
+      max_kbps: 1024.0
+outputs: {}

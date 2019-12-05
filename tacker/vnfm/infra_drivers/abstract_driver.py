@@ -73,3 +73,32 @@ class VnfAbstractDriver(extensions.PluginInterface):
     @abc.abstractmethod
     def heal_vdu(self, plugin, context, vnf_dict, heal_request_data):
         pass
+
+    @abc.abstractmethod
+    def pre_instantiation_vnf(self, context, vnf_instance,
+                              vim_connection_info, vnf_software_images):
+        """Create resources required for instantiating Vnf.
+
+        :param context: A RequestContext
+        :param vnf_instance: Object tacker.objects.VnfInstance
+        :vim_info: Credentials to initialize Vim connection
+        :vnf_software_images: Dict of key:value pair,
+          <VDU/Storage node name>:tacker.objects.VnfSoftwareImage.
+        """
+        pass
+
+    @abc.abstractmethod
+    def delete_vnf_instance_resource(self, context, vnf_instance,
+            vim_connection_info, vnf_resource):
+        pass
+
+    @abc.abstractmethod
+    def instantiate_vnf(self, context, vnf_instance, vnfd_dict,
+                        vim_connection_info, instantiate_vnf_req,
+                        grant_response):
+        pass
+
+    @abc.abstractmethod
+    def post_vnf_instantiation(self, context, vnf_instance,
+                               vim_connection_info):
+        pass

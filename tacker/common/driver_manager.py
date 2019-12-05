@@ -43,7 +43,6 @@ class DriverManager(object):
                 LOG.error(msg)
                 raise SystemExit(msg)
             drivers[type_] = ext
-
         self._drivers = dict((type_, ext.obj)
                              for (type_, ext) in drivers.items())
         LOG.info("Registered drivers from %(namespace)s: %(keys)s",

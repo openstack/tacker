@@ -44,6 +44,10 @@ BLOCKSTORAGE_ATTACHMENT = 'tosca.nodes.BlockStorageAttachment'
 TOSCA_BINDS_TO = 'tosca.relationships.network.BindsTo'
 VDU = 'tosca.nodes.nfv.VDU'
 IMAGE = 'tosca.artifacts.Deployment.Image.VM'
+ETSI_INST_LEVEL = 'tosca.policies.nfv.InstantiationLevels'
+ETSI_SCALING_ASPECT = 'tosca.policies.nfv.ScalingAspects'
+ETSI_SCALING_ASPECT_DELTA = 'tosca.policies.nfv.VduScalingAspectDeltas'
+ETSI_INITIAL_DELTA = 'tosca.policies.nfv.VduInitialDelta'
 HEAT_SOFTWARE_CONFIG = 'OS::Heat::SoftwareConfig'
 OS_RESOURCES = {
     'flavor': 'get_flavor_dict',
@@ -106,7 +110,7 @@ def updateimports(template):
     else:
         template['imports'] = [defsfile]
 
-    if 'nfv' in template['tosca_definitions_version']:
+    if 'nfv' in template.get('tosca_definitions_version', {}):
         nfvfile = path + 'tacker_nfv_defs.yaml'
 
         template['imports'].append(nfvfile)
@@ -482,7 +486,9 @@ def represent_odict(dump, tag, mapping, flow_style=None):
 @log.log
 def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
                                alarm_resources, res_tpl, vol_res={},
-                               unsupported_res_prop=None, unique_id=None):
+                               unsupported_res_prop=None, unique_id=None,
+                               inst_req_info=None, grant_info=None,
+                               tosca=None):
     #
     # TODO(bobh) - remove when heat-translator can support literal strings.
     #
@@ -547,12 +553,359 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
         add_volume_resources(heat_dict, vol_res)
     if unsupported_res_prop:
         convert_unsupported_res_prop(heat_dict, unsupported_res_prop)
+    if grant_info:
+        convert_grant_info(heat_dict, grant_info)
+    if inst_req_info:
+        convert_inst_req_info(heat_dict, inst_req_info, tosca)
+
+    if heat_dict.get('parameters') and heat_dict.get(
+            'parameters', {}).get('vnfm_info'):
+        heat_dict.get('parameters').get('vnfm_info').update(
+            {'type': 'comma_delimited_list'})
 
     yaml.SafeDumper.add_representer(OrderedDict,
     lambda dumper, value: represent_odict(dumper,
                                           u'tag:yaml.org,2002:map', value))
 
     return yaml.safe_dump(heat_dict)
+
+
+@log.log
+def post_process_heat_template_for_scaling(
+    heat_tpl, mgmt_ports, metadata,
+    alarm_resources, res_tpl, vol_res={},
+    unsupported_res_prop=None, unique_id=None,
+    inst_req_info=None, grant_info=None,
+        tosca=None):
+    heat_dict = yamlparser.simple_ordered_parse(heat_tpl)
+    if inst_req_info:
+        check_inst_req_info_for_scaling(heat_dict, inst_req_info)
+        convert_inst_req_info(heat_dict, inst_req_info, tosca)
+    if grant_info:
+        convert_grant_info(heat_dict, grant_info)
+
+    yaml.SafeDumper.add_representer(OrderedDict,
+    lambda dumper, value: represent_odict(dumper,
+                                          u'tag:yaml.org,2002:map', value))
+    return yaml.safe_dump(heat_dict)
+
+
+@log.log
+def check_inst_req_info_for_scaling(heat_dict, inst_req_info):
+    # Check whether fixed ip_address or mac_address is set in CP,
+    # because CP with fixed IP address cannot be scaled.
+    if not inst_req_info.ext_virtual_links:
+        return
+
+    def _get_mac_ip(exp_cp):
+        mac = None
+        ip = None
+        for cp_conf in ext_cp.cp_config:
+            if cp_conf.cp_protocol_data is None:
+                continue
+
+            for cp_protocol in cp_conf.cp_protocol_data:
+                if cp_protocol.ip_over_ethernet is None:
+                    continue
+
+                mac = cp_protocol.ip_over_ethernet.mac_address
+                for ip_address in \
+                        cp_protocol.ip_over_ethernet.ip_addresses:
+                    if ip_address.fixed_addresses:
+                        ip = ip_address.fixed_addresses
+
+        return mac, ip
+
+    for ext_vl in inst_req_info.ext_virtual_links:
+        ext_cps = ext_vl.ext_cps
+        for ext_cp in ext_cps:
+            if not ext_cp.cp_config:
+                continue
+
+            mac, ip = _get_mac_ip(ext_cp)
+
+            cp_resource = heat_dict['resources'].get(ext_cp.cpd_id)
+            if cp_resource is not None:
+                if mac or ip:
+                    raise vnfm.InvalidInstReqInfoForScaling()
+
+
+@log.log
+def convert_inst_req_info(heat_dict, inst_req_info, tosca):
+    # Case which extVls is defined.
+    ext_vl_infos = inst_req_info.ext_virtual_links
+    if ext_vl_infos is not None:
+        for ext_vl in ext_vl_infos:
+            _convert_ext_vls(heat_dict, ext_vl)
+
+    # Case which extMngVls is defined.
+    ext_mng_vl_infos = inst_req_info.ext_managed_virtual_links
+
+    if ext_mng_vl_infos is not None:
+        for ext_mng_vl in ext_mng_vl_infos:
+            _convert_ext_mng_vl(
+                heat_dict, ext_mng_vl.vnf_virtual_link_desc_id,
+                ext_mng_vl.resource_id)
+
+    # Check whether instLevelId is defined.
+    # Extract the initial number of scalable VDUs from the instantiation
+    # policy.
+    inst_level_id = inst_req_info.instantiation_level_id
+
+    # The format of dict required to calculate desired_capacity are
+    # shown below.
+    # { aspectId: { deltaId: deltaNum }}
+    aspect_delta_dict = {}
+    # { aspectId: [ vduId ]}
+    aspect_vdu_dict = {}
+    # { instLevelId: { aspectId: levelNum }}
+    inst_level_dict = {}
+    # { aspectId: deltaId }
+    aspect_id_dict = {}
+    # { vduId: initialDelta }
+    vdu_delta_dict = {}
+
+    tosca_policies = tosca.topology_template.policies
+    default_inst_level_id = _extract_policy_info(
+        tosca_policies, inst_level_dict,
+        aspect_delta_dict, aspect_id_dict,
+        aspect_vdu_dict, vdu_delta_dict)
+
+    if inst_level_id is not None:
+        # Case which instLevelId is defined.
+        _convert_desired_capacity(inst_level_id, inst_level_dict,
+                                  aspect_delta_dict, aspect_id_dict,
+                                  aspect_vdu_dict, vdu_delta_dict,
+                                  heat_dict)
+    elif inst_level_id is None and default_inst_level_id is not None:
+        # Case which instLevelId is not defined.
+        # In this case, use the default instLevelId.
+        _convert_desired_capacity(default_inst_level_id, inst_level_dict,
+                                  aspect_delta_dict, aspect_id_dict,
+                                  aspect_vdu_dict, vdu_delta_dict,
+                                  heat_dict)
+    else:
+        LOG.info('Because instLevelId is not defined and '
+                 'there is no default level in TOSCA, '
+                 'the conversion of desired_capacity is skipped.')
+
+
+@log.log
+def convert_grant_info(heat_dict, grant_info):
+    # Case which grant_info is defined.
+    if not grant_info:
+        return
+
+    for vdu_name, vnf_resources in grant_info.items():
+        _convert_grant_info_vdu(heat_dict, vdu_name, vnf_resources)
+
+
+def _convert_ext_vls(heat_dict, ext_vl):
+    ext_cps = ext_vl.ext_cps
+    vl_id = ext_vl.resource_id
+    defined_ext_link_ports = [ext_link_port.resource_handle.resource_id
+            for ext_link_port in ext_vl.ext_link_ports]
+
+    def _replace_external_network_port(link_port_id, cpd_id):
+        for ext_link_port in ext_vl.ext_link_ports:
+            if ext_link_port.id == link_port_id:
+                if heat_dict['resources'].get(cpd_id) is not None:
+                    _convert_ext_link_port(heat_dict, cpd_id,
+                            ext_link_port.resource_handle.resource_id)
+
+    for ext_cp in ext_cps:
+        cp_resource = heat_dict['resources'].get(ext_cp.cpd_id)
+
+        if cp_resource is None:
+            return
+        # Update CP network properties to NEUTRON NETWORK-UUID
+        # defined in extVls.
+        cp_resource['properties']['network'] = vl_id
+
+        # Check whether extLinkPorts is defined.
+        for cp_config in ext_cp.cp_config:
+            for cp_protocol in cp_config.cp_protocol_data:
+                # Update the following CP properties to the values defined
+                # in extVls.
+                # - subnet
+                # - ip_address
+                # - mac_address
+                ip_over_ethernet = cp_protocol.ip_over_ethernet
+                if ip_over_ethernet:
+                    if ip_over_ethernet.mac_address or\
+                            ip_over_ethernet.ip_addresses:
+                        if ip_over_ethernet.mac_address:
+                            cp_resource['properties']['mac_address'] =\
+                                ip_over_ethernet.mac_address
+                        if ip_over_ethernet.ip_addresses:
+                            _convert_fixed_ips_list(
+                                'ip_address',
+                                ip_over_ethernet.ip_addresses,
+                                cp_resource)
+                elif defined_ext_link_ports:
+                    _replace_external_network_port(cp_config.link_port_id,
+                            ext_cp.cpd_id)
+
+
+def _convert_fixed_ips_list(cp_key, cp_val, cp_resource):
+    for val in cp_val:
+        new_dict = {}
+        if val.fixed_addresses:
+            new_dict['ip_address'] = ''.join(val.fixed_addresses)
+        if val.subnet_id:
+            new_dict['subnet'] = val.subnet_id
+
+        fixed_ips_list = cp_resource['properties'].get('fixed_ips')
+
+        # Add if it doesn't exist yet.
+        if fixed_ips_list is None:
+            cp_resource['properties']['fixed_ips'] = [new_dict]
+        # Update if it already exists.
+        else:
+            for index, fixed_ips in enumerate(fixed_ips_list):
+                if fixed_ips.get(cp_key) is not None:
+                    fixed_ips_list[index] = new_dict
+                else:
+                    fixed_ips_list.append(new_dict)
+            sorted_list = sorted(fixed_ips_list)
+            cp_resource['properties']['fixed_ips'] = sorted_list
+
+
+def _convert_ext_link_port(heat_dict, cp_name, ext_link_port):
+    # Delete CP resource and update VDU's properties
+    # related to CP defined in extLinkPorts.
+    del heat_dict['resources'][cp_name]
+    for rsrc_info in heat_dict['resources'].values():
+        if rsrc_info['type'] == 'OS::Nova::Server':
+            vdu_networks = rsrc_info['properties']['networks']
+            for index, vdu_network in enumerate(vdu_networks):
+                if isinstance(vdu_network['port'], dict) and\
+                        vdu_network['port'].get('get_resource') == cp_name:
+                    new_dict = {'port': ext_link_port}
+                    rsrc_info['properties']['networks'][index] = new_dict
+
+
+def _convert_ext_mng_vl(heat_dict, vl_name, vl_id):
+    # Delete resources related to VL defined in extMngVLs.
+    if heat_dict['resources'].get(vl_name) is not None:
+        del heat_dict['resources'][vl_name]
+        del heat_dict['resources'][vl_name + '_subnet']
+        del heat_dict['resources'][vl_name + '_qospolicy']
+        del heat_dict['resources'][vl_name + '_bandwidth']
+
+    for rsrc_info in heat_dict['resources'].values():
+        # Update CP's properties related to VL defined in extMngVls.
+        if rsrc_info['type'] == 'OS::Neutron::Port':
+            cp_network = rsrc_info['properties']['network']
+            if isinstance(cp_network, dict) and\
+                    cp_network.get('get_resource') == vl_name:
+                rsrc_info['properties']['network'] = vl_id
+        # Update AutoScalingGroup's properties related to VL defined
+        # in extMngVls.
+        elif rsrc_info['type'] == 'OS::Heat::AutoScalingGroup':
+            asg_rsrc_props = \
+                rsrc_info['properties']['resource'].get('properties')
+            for vl_key, vl_val in asg_rsrc_props.items():
+                if vl_val.get('get_resource') == vl_name:
+                    asg_rsrc_props[vl_key] = vl_id
+
+
+def _extract_policy_info(tosca_policies, inst_level_dict,
+                         aspect_delta_dict, aspect_id_dict,
+                         aspect_vdu_dict, vdu_delta_dict):
+    default_inst_level_id = None
+    if tosca_policies is not []:
+        for p in tosca_policies:
+            if p.type == ETSI_SCALING_ASPECT_DELTA:
+                vdu_list = p.targets
+                aspect_id = p.properties['aspect']
+                deltas = p.properties['deltas']
+                delta_id_dict = {}
+                for delta_id, delta_val in deltas.items():
+                    delta_num = delta_val['number_of_instances']
+                    delta_id_dict[delta_id] = delta_num
+                aspect_delta_dict[aspect_id] = delta_id_dict
+                aspect_vdu_dict[aspect_id] = vdu_list
+
+            elif p.type == ETSI_INST_LEVEL:
+                inst_levels = p.properties['levels']
+                for level_id, inst_val in inst_levels.items():
+                    scale_info = inst_val['scale_info']
+                    aspect_level_dict = {}
+                    for aspect_id, scale_level in scale_info.items():
+                        aspect_level_dict[aspect_id] = \
+                            scale_level['scale_level']
+                    inst_level_dict[level_id] = aspect_level_dict
+                default_inst_level_id = p.properties.get('default_level')
+
+            # On TOSCA definitions, step_deltas is list and
+            # multiple description is possible,
+            # but only single description is supported.
+            # (first win)
+            # Like heat-translator.
+            elif p.type == ETSI_SCALING_ASPECT:
+                aspects = p.properties['aspects']
+                for aspect_id, aspect_val in aspects.items():
+                    delta_names = aspect_val['step_deltas']
+                    delta_name = delta_names[0]
+                    aspect_id_dict[aspect_id] = delta_name
+
+            elif p.type == ETSI_INITIAL_DELTA:
+                vdus = p.targets
+                initial_delta = \
+                    p.properties['initial_delta']['number_of_instances']
+                for vdu in vdus:
+                    vdu_delta_dict[vdu] = initial_delta
+    return default_inst_level_id
+
+
+def _convert_desired_capacity(inst_level_id, inst_level_dict,
+                              aspect_delta_dict, aspect_id_dict,
+                              aspect_vdu_dict, vdu_delta_dict,
+                              heat_dict):
+    al_dict = inst_level_dict.get(inst_level_id)
+    if al_dict is not None:
+        # Get level_num.
+        for aspect_id, level_num in al_dict.items():
+            delta_id = aspect_id_dict.get(aspect_id)
+
+            # Get delta_num.
+            if delta_id is not None:
+                delta_num = \
+                    aspect_delta_dict.get(aspect_id).get(delta_id)
+
+            # Get initial_delta.
+            vdus = aspect_vdu_dict.get(aspect_id)
+            initial_delta = None
+            for vdu in vdus:
+                initial_delta = vdu_delta_dict.get(vdu)
+
+            if initial_delta is not None:
+                # Calculate desired_capacity.
+                desired_capacity = initial_delta + delta_num * level_num
+                # Convert desired_capacity on HOT.
+                for rsrc_key, rsrc_info in heat_dict['resources'].items():
+                    if rsrc_info['type'] == 'OS::Heat::AutoScalingGroup' and \
+                            rsrc_key == aspect_id:
+                        rsrc_info['properties']['desired_capacity'] = \
+                            desired_capacity
+    else:
+        LOG.warning('Because target instLevelId is not defined in TOSCA, '
+                    'the conversion of desired_capacity is skipped.')
+        pass
+
+
+def _convert_grant_info_vdu(heat_dict, vdu_name, vnf_resources):
+    for vnf_resource in vnf_resources:
+        if vnf_resource.resource_type == "image":
+            # Update VDU's properties related to
+            # image defined in grant_info.
+            vdu_info = heat_dict.get('resources').get(vdu_name)
+            if vdu_info is not None:
+                vdu_props = vdu_info.get('properties')
+                if vdu_props.get('image') is None:
+                    vdu_props.update({'image':
+                        vnf_resource.resource_identifier})
 
 
 @log.log
@@ -821,34 +1174,41 @@ def get_scaling_group_dict(ht_template, scaling_policy_names):
     return scaling_group_dict
 
 
-def get_nested_resources_name(template):
-    for policy in template.policies:
-        if (policy.type_definition.is_derived_from(SCALING)):
-            nested_resource_name = policy.name + '_res.yaml'
-            return nested_resource_name
+def get_nested_resources_name(hot):
+    nested_resource_names = []
+    hot_yaml = yaml.safe_load(hot)
+    for r_key, r_val in hot_yaml.get('resources').items():
+        if r_val.get('type') == 'OS::Heat::AutoScalingGroup':
+            nested_resource_name = r_val.get('properties', {}).get(
+                'resource', {}).get('type', None)
+            nested_resource_names.append(nested_resource_name)
+    return nested_resource_names
 
 
-def get_sub_heat_tmpl_name(template):
-    for policy in template.policies:
-        if (policy.type_definition.is_derived_from(SCALING)):
-            sub_heat_tmpl_name = policy.name + '_' + \
-                uuidutils.generate_uuid() + '_res.yaml'
-            return sub_heat_tmpl_name
+def get_sub_heat_tmpl_name(tmpl_name):
+    return uuidutils.generate_uuid() + tmpl_name
 
 
 def update_nested_scaling_resources(nested_resources, mgmt_ports, metadata,
-                                    res_tpl, unsupported_res_prop=None):
+                                    res_tpl, unsupported_res_prop=None,
+                                    grant_info=None, inst_req_info=None):
     nested_tpl = dict()
-    if nested_resources:
-        nested_resource_name, nested_resources_yaml =\
-            list(nested_resources.items())[0]
+    for nested_resource_name, nested_resources_yaml in \
+            nested_resources.items():
         nested_resources_dict =\
             yamlparser.simple_ordered_parse(nested_resources_yaml)
         if metadata.get('vdus'):
             for vdu_name, metadata_dict in metadata['vdus'].items():
                 if nested_resources_dict['resources'].get(vdu_name):
-                    nested_resources_dict['resources'][vdu_name]['properties']['metadata'] = \
-                        metadata_dict
+                    vdu_dict = nested_resources_dict['resources'][vdu_name]
+                    vdu_dict['properties']['metadata'] = metadata_dict
+        convert_grant_info(nested_resources_dict, grant_info)
+
+        # Replace external virtual links if specified in the inst_req_info
+        if inst_req_info is not None:
+            for ext_vl in inst_req_info.ext_virtual_links:
+                _convert_ext_vls(nested_resources_dict, ext_vl)
+
         add_resources_tpl(nested_resources_dict, res_tpl)
         for res in nested_resources_dict["resources"].values():
             if not res['type'] == HEAT_SOFTWARE_CONFIG:
@@ -861,17 +1221,20 @@ def update_nested_scaling_resources(nested_resources, mgmt_ports, metadata,
             convert_unsupported_res_prop(nested_resources_dict,
                                          unsupported_res_prop)
 
-        for outputname, portname in mgmt_ports.items():
-            ipval = {'get_attr': [portname, 'fixed_ips', 0, 'ip_address']}
-            output = {outputname: {'value': ipval}}
-            if 'outputs' in nested_resources_dict:
-                nested_resources_dict['outputs'].update(output)
-            else:
-                nested_resources_dict['outputs'] = output
-            LOG.debug(_('Added output for %s'), outputname)
-            yaml.SafeDumper.add_representer(
-                OrderedDict, lambda dumper, value: represent_odict(
-                    dumper, u'tag:yaml.org,2002:map', value))
-            nested_tpl[nested_resource_name] =\
-                yaml.safe_dump(nested_resources_dict)
+        if mgmt_ports:
+            for outputname, portname in mgmt_ports.items():
+                ipval = {'get_attr': [portname, 'fixed_ips', 0, 'ip_address']}
+                output = {outputname: {'value': ipval}}
+                if 'outputs' in nested_resources_dict:
+                    nested_resources_dict['outputs'].update(output)
+                else:
+                    nested_resources_dict['outputs'] = output
+                LOG.debug(_('Added output for %s'), outputname)
+
+    yaml.SafeDumper.add_representer(
+        OrderedDict, lambda dumper, value: represent_odict(
+            dumper, u'tag:yaml.org,2002:map', value))
+    nested_tpl[nested_resource_name] =\
+        yaml.safe_dump(nested_resources_dict)
+
     return nested_tpl

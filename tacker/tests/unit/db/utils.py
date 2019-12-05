@@ -446,3 +446,28 @@ def get_dummy_ns_obj_2():
                    'attributes': {
                        'param_values': {'nsd': {'vl1_name': 'net_mgmt',
                                                 'vl2_name': 'net0'}}}}}
+
+
+def get_dummy_vnf_instance():
+    connection_info = get_dummy_vim_connection_info()
+    return {'created_at': '', 'deleted': False, 'deleted_at': None,
+            'id': 'fake_id', 'instantiated_vnf_info': None,
+            'instantiation_state': 'NOT_INSTANTIATED',
+            'tenant_id': 'fake_tenant_id', 'updated_at': '',
+            'vim_connection_info': [connection_info],
+            'vnf_instance_description': 'VNF Description',
+            'vnf_instance_name': 'test', 'vnf_product_name': 'Sample VNF',
+            'vnf_provider': 'Company', 'vnf_software_version': '1.0',
+            'vnfd_id': 'fake_vnfd_id', 'vnfd_version': '1.0'}
+
+
+def get_dummy_vim_connection_info():
+    return {'access_info': {
+        'auth_url': 'fake/url',
+        'cert_verify': 'False', 'password': 'admin',
+        'project_domain_name': 'Default',
+        'project_id': None, 'project_name': 'admin',
+        'user_domain_name': 'Default', 'username': 'admin'},
+        'created_at': '', 'deleted': False, 'deleted_at': '',
+        'id': 'fake_id', 'updated_at': '',
+        'vim_id': 'fake_vim_id', 'vim_type': 'openstack'}

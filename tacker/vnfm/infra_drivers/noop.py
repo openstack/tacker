@@ -76,3 +76,20 @@ class VnfNoop(abstract_driver.VnfAbstractDriver):
 
     def heal_vdu(self, plugin, context, vnf_dict, heal_request_data):
         pass
+
+    def pre_instantiation_vnf(self, context, vnf_instance,
+                              vim_connection_info, image_data):
+        pass
+
+    def delete_vnf_instance_resource(self, context, vnf_instance,
+            vim_connection_info, vnf_resource):
+        pass
+
+    def instantiate_vnf(self, context, vnf_instance, vnfd_dict,
+                        vim_connection_info, instantiate_vnf_req,
+                        grant_response):
+        pass
+
+    def post_vnf_instantiation(self, context, vnf_instance,
+                               vim_connection_info):
+        pass

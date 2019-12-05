@@ -56,11 +56,17 @@ class TestCase(base.BaseTestCase):
 
 class FixturedTestCase(TestCase):
     client_fixture_class = None
+    sdk_connection_fixure_class = None
 
     def setUp(self):
         super(FixturedTestCase, self).setUp()
-        if self.client_fixture_class:
+        if self.client_fixture_class or self.sdk_connection_fixure_class:
             self.requests_mock = self.useFixture(requests_mock_fixture.
                                                  Fixture())
-            fix = self.client_fixture_class(self.requests_mock)
-            self.cs = self.useFixture(fix).client
+        if self.client_fixture_class:
+            hc_fix = self.client_fixture_class(self.requests_mock)
+            self.cs = self.useFixture(hc_fix).client
+
+        if self.sdk_connection_fixure_class:
+            sdk_conn_fix = self.sdk_connection_fixure_class(self.requests_mock)
+            self.sdk_conn = self.useFixture(sdk_conn_fix).client

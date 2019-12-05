@@ -19,7 +19,161 @@ Schema for vnf lcm APIs.
 """
 
 from tacker.api.validation import parameter_types
+from tacker.objects import fields
 
+_extManagedVirtualLinkData = {
+    'type': 'array',
+    'items': {
+        'type': 'object',
+        'properties': {
+            'id': parameter_types.identifier,
+            'vnfVirtualLinkDescId': parameter_types.identifier_in_vnfd,
+            'resourceId': parameter_types.identifier_in_vim
+        },
+        'required': ['id', 'vnfVirtualLinkDescId', 'resourceId'],
+        'additionalProperties': False,
+    },
+}
+
+_ipaddresses = {
+    'type': 'array',
+    'items': {
+        'type': 'object',
+        'properties': {
+            'type': {'enum': fields.IpAddressType.ALL},
+            'subnetId': parameter_types.identifier_in_vim,
+            'fixedAddresses': {'type': 'array'}
+        },
+        'if': {'properties': {'type': {'const': fields.IpAddressType.IPV4}}},
+        'then': {
+            'properties': {
+                'fixedAddresses': {
+                    'type': 'array',
+                    'items': {'type': 'string', 'format': 'ipv4'}
+                }
+            }
+        },
+        'else': {
+            'properties': {
+                'fixedAddresses': {
+                    'type': 'array',
+                    'items': {'type': 'string', 'format': 'ipv6'}
+                }
+            }
+        },
+        'required': ['type', 'fixedAddresses'],
+        'additionalProperties': False
+    }
+}
+
+_ipOverEthernetAddressData = {
+    'type': 'object',
+    'properties': {
+        'macAddress': parameter_types.mac_address_or_none,
+        'ipAddresses': _ipaddresses,
+    },
+    'anyOf': [
+        {'required': ['macAddress']},
+        {'required': ['ipAddresses']}
+    ],
+    'additionalProperties': False
+}
+
+_cpProtocolData = {
+    'type': 'array',
+    'items': {
+        'type': 'object',
+        'properties': {
+            'layerProtocol': {'type': 'string',
+                              'enum': 'IP_OVER_ETHERNET'
+                              },
+            'ipOverEthernet': _ipOverEthernetAddressData,
+        },
+        'required': ['layerProtocol'],
+        'additionalProperties': False,
+    }
+}
+
+_vnfExtCpConfig = {
+    'type': 'array', 'minItems': 1, 'maxItems': 1,
+    'items': {
+        'type': 'object',
+        'properties': {
+            'cpInstanceId': parameter_types.identifier_in_vnf,
+            'linkPortId': parameter_types.identifier,
+            'cpProtocolData': _cpProtocolData,
+        },
+        'additionalProperties': False,
+    }
+}
+
+_vnfExtCpData = {
+    'type': 'array', 'minItems': 1,
+    'items': {
+        'type': 'object',
+        'properties': {
+            'cpdId': parameter_types.identifier_in_vnfd,
+            'cpConfig': _vnfExtCpConfig,
+        },
+        'required': ['cpdId', 'cpConfig'],
+        'additionalProperties': False,
+    },
+}
+
+_resourceHandle = {
+    'type': 'object',
+    'properties': {
+        'resourceId': parameter_types.identifier_in_vim,
+        'vimLevelResourceType': {'type': 'string', 'maxLength': 255},
+    },
+    'required': ['resourceId'],
+    'additionalProperties': False,
+}
+
+_extLinkPortData = {
+    'type': 'array',
+    'items': {
+        'type': 'object',
+        'properties': {
+            'id': parameter_types.identifier,
+            'resourceHandle': _resourceHandle,
+        },
+        'required': ['id', 'resourceHandle'],
+        'additionalProperties': False,
+    }
+}
+
+_extVirtualLinkData = {
+    'type': 'array',
+    'items': {
+        'type': 'object',
+        'properties': {
+            'id': parameter_types.identifier,
+            'resourceId': parameter_types.identifier_in_vim,
+            'extCps': _vnfExtCpData,
+            'extLinkPorts': _extLinkPortData,
+
+        },
+        'required': ['id', 'resourceId', 'extCps'],
+        'additionalProperties': False,
+    }
+}
+
+_vimConnectionInfo = {
+    'type': 'array',
+    'maxItems': 1,
+    'items': {
+        'type': 'object',
+        'properties': {
+            'id': parameter_types.identifier,
+            'vimId': parameter_types.identifier,
+            'vimType': {'type': 'string', 'minLength': 1, 'maxLength': 255},
+            'accessInfo': parameter_types.keyvalue_pairs,
+        },
+        'required': ['id', 'vimType'],
+        'additionalProperties': False,
+    }
+}
 
 create = {
     'type': 'object',
@@ -29,5 +183,19 @@ create = {
         'vnfInstanceDescription': parameter_types.description,
     },
     'required': ['vnfdId'],
+    'additionalProperties': False,
+}
+
+instantiate = {
+    'type': 'object',
+    'properties': {
+        'flavourId': {'type': 'string', 'maxLength': 255},
+        'instantiationLevelId': {'type': 'string', 'maxLength': 255},
+        'extVirtualLinks': _extVirtualLinkData,
+        'extManagedVirtualLinks': _extManagedVirtualLinkData,
+        'vimConnectionInfo': _vimConnectionInfo,
+        'additionalParams': parameter_types.keyvalue_pairs,
+    },
+    'required': ['flavourId'],
     'additionalProperties': False,
 }

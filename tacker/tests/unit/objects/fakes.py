@@ -220,8 +220,19 @@ ext_managed_virtual_link_info = {
     'vnf_link_ports': [vnf_link_ports],
 }
 
+vnfc_resource_info = {
+    'id': uuidsentinel.resource_info_id,
+    'vdu_id': 'vdu1',
+    'compute_resource': None,
+    'storage_resource_ids': [uuidsentinel.id1, uuidsentinel.id2],
+    'reservation_id': uuidsentinel.reservation_id,
+    'vnfc_cp_info': None,
+    'metadata': {'key': 'value'}
+
+}
+
 vnfc_cp_info = {
-    'id': uuidsentinel.cp_info,
+    'id': uuidsentinel.cp_instance_id,
     'cpd_id': uuidsentinel.cpd_id,
     'vnf_ext_cp_id': uuidsentinel.vnf_ext_cp_id,
     'cp_protocol_info': [cp_protocol_info],

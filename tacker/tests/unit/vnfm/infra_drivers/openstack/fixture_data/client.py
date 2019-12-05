@@ -18,10 +18,11 @@ from heatclient import client
 from keystoneauth1 import fixture
 from keystoneauth1 import loading
 from keystoneauth1 import session
-
+from openstack import connection
 
 IDENTITY_URL = 'http://identityserver:5000/v3'
 HEAT_URL = 'http://heat-api'
+GLANCE_URL = 'http://image-api/v2'
 
 
 class ClientFixture(fixtures.Fixture):
@@ -37,20 +38,44 @@ class ClientFixture(fixtures.Fixture):
         self.discovery = fixture.V2Discovery(href=self.identity_url)
         s = self.token.add_service('orchestration')
         s.add_endpoint(heat_url)
+        self.auth_url = '%s/tokens' % self.identity_url
 
     def setUp(self):
         super(ClientFixture, self).setUp()
-        auth_url = '%s/tokens' % self.identity_url
         headers = {'X-Content-Type': 'application/json'}
-        self.requests_mock.post(auth_url,
+        self.requests_mock.post(self.auth_url,
                       json=self.token, headers=headers)
         self.requests_mock.get(self.identity_url,
                       json=self.discovery, headers=headers)
         self.client = self.new_client()
 
-    def new_client(self):
+    def _set_session(self):
         self.session = session.Session()
         loader = loading.get_plugin_loader('password')
         self.session.auth = loader.load_from_options(
             auth_url=self.identity_url, username='xx', password='xx')
+
+    def new_client(self):
+        self._set_session()
         return client.Client("1", session=self.session)
+
+
+class SdkConnectionFixture(ClientFixture):
+    """Fixture class to access the apis via openstacksdk's Connection object.
+
+        This class is mocking the requests of glance api.
+    """
+
+    def __init__(self, requests_mock, glance_url=GLANCE_URL):
+        super(SdkConnectionFixture, self).__init__(requests_mock)
+        s = self.token.add_service('image')
+        s.add_endpoint(glance_url)
+
+    def new_client(self):
+        self._set_session()
+        conn = connection.Connection(
+            region_name=None,
+            session=self.session,
+            identity_interface='internal',
+            image_api_version='2')
+        return conn

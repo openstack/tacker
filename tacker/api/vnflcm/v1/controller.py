@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_utils import uuidutils
+
 import six
 from six.moves import http_client
 import webob
@@ -22,18 +24,140 @@ from tacker.api import validation
 from tacker.api.views import vnf_lcm as vnf_lcm_view
 from tacker.common import exceptions
 from tacker.common import utils
+from tacker.conductor.conductorrpc import vnf_lcm_rpc
+from tacker.extensions import nfvo
 from tacker import objects
 from tacker.objects import fields
 from tacker.policies import vnf_lcm as vnf_lcm_policies
+from tacker.vnfm import vim_client
 from tacker import wsgi
+
+
+def check_vnf_state(action, instantiation_state=None, task_state=(None,)):
+    """Decorator to check vnf states are valid for particular action.
+
+    If the vnf is in the wrong state, it will raise conflict exception.
+    """
+
+    if instantiation_state is not None and not \
+            isinstance(instantiation_state, set):
+        instantiation_state = set(instantiation_state)
+    if task_state is not None and not isinstance(task_state, set):
+        task_state = set(task_state)
+
+    def outer(f):
+        @six.wraps(f)
+        def inner(self, context, vnf_instance, *args, **kw):
+            if instantiation_state is not None and \
+                    vnf_instance.instantiation_state not in \
+                    instantiation_state:
+                raise exceptions.VnfInstanceConflictState(
+                    attr='instantiation_state',
+                    uuid=vnf_instance.id,
+                    state=vnf_instance.instantiation_state,
+                    action=action)
+            if (task_state is not None and
+                    vnf_instance.task_state not in task_state):
+                raise exceptions.VnfInstanceConflictState(
+                    attr='task_state',
+                    uuid=vnf_instance.id,
+                    state=vnf_instance.task_state,
+                    action=action)
+            return f(self, context, vnf_instance, *args, **kw)
+        return inner
+    return outer
 
 
 class VnfLcmController(wsgi.Controller):
 
     _view_builder_class = vnf_lcm_view.ViewBuilder
 
+    def __init__(self):
+        super(VnfLcmController, self).__init__()
+        self.rpc_api = vnf_lcm_rpc.VNFLcmRPCAPI()
+
     def _get_vnf_instance_href(self, vnf_instance):
         return '/vnflcm/v1/vnf_instances/%s' % vnf_instance.id
+
+    def _get_vnf_instance(self, context, id):
+        # check if id is of type uuid format
+        if not uuidutils.is_uuid_like(id):
+            msg = _("Can not find requested vnf instance: %s") % id
+            raise webob.exc.HTTPNotFound(explanation=msg)
+
+        try:
+            vnf_instance = objects.VnfInstance.get_by_id(context, id)
+        except exceptions.VnfInstanceNotFound:
+            msg = _("Can not find requested vnf instance: %s") % id
+            raise webob.exc.HTTPNotFound(explanation=msg)
+
+        return vnf_instance
+
+    def _validate_flavour_and_inst_level(self, context, req_body,
+                                         vnf_instance):
+        inst_levels = {}
+        flavour_list = []
+        vnf_package_vnfd = objects.VnfPackageVnfd.get_by_id(
+            context, vnf_instance.vnfd_id)
+        vnf_package = objects.VnfPackage.get_by_id(
+            context, vnf_package_vnfd.package_uuid)
+        deployment_flavour = vnf_package.vnf_deployment_flavours
+        for dep_flavour in deployment_flavour.objects:
+            flavour_list.append(dep_flavour.flavour_id)
+            if dep_flavour.instantiation_levels:
+                inst_levels.update({
+                    dep_flavour.flavour_id: dep_flavour.instantiation_levels})
+
+        if req_body['flavour_id'] not in flavour_list:
+            raise exceptions.FlavourNotFound(flavour_id=req_body['flavour_id'])
+
+        req_inst_level_id = req_body.get('instantiation_level_id')
+        if req_inst_level_id is None:
+            return
+
+        if not inst_levels:
+            raise exceptions.InstantiationLevelNotFound(
+                inst_level_id=req_inst_level_id)
+
+        for flavour, inst_level in inst_levels.items():
+            if flavour != req_body['flavour_id']:
+                continue
+
+            if req_inst_level_id in inst_level.get('levels').keys():
+                # Found instantiation level
+                return
+
+        raise exceptions.InstantiationLevelNotFound(
+            inst_level_id=req_body['instantiation_level_id'])
+
+    def _validate_vim_connection(self, context, instantiate_vnf_request):
+        if instantiate_vnf_request.vim_connection_info:
+            vim_id = instantiate_vnf_request.vim_connection_info[0].vim_id
+            access_info = \
+                instantiate_vnf_request.vim_connection_info[0].access_info
+            if access_info:
+                region_name = access_info.get('region')
+            else:
+                region_name = None
+        else:
+            vim_id = None
+            region_name = None
+
+        vim_client_obj = vim_client.VimClient()
+
+        try:
+            vim_client_obj.get_vim(
+                context, vim_id, region_name=region_name)
+        except nfvo.VimDefaultNotDefined as exp:
+            raise webob.exc.HTTPBadRequest(explanation=exp.message)
+        except nfvo.VimNotFoundException:
+            msg = _("VimConnection id is not found: %s")\
+                % vim_id
+            raise webob.exc.HTTPBadRequest(explanation=msg)
+        except nfvo.VimRegionNotFoundException:
+            msg = _("Region not found for the VimConnection: %s")\
+                % vim_id
+            raise webob.exc.HTTPBadRequest(explanation=msg)
 
     @wsgi.response(http_client.CREATED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN))
@@ -77,8 +201,42 @@ class VnfLcmController(wsgi.Controller):
     def delete(self, request, id):
         raise webob.exc.HTTPNotImplemented()
 
+    @check_vnf_state(action="instantiate",
+        instantiation_state=[fields.VnfInstanceState.NOT_INSTANTIATED],
+        task_state=[None])
+    def _instantiate(self, context, vnf_instance, request_body):
+        req_body = utils.convert_camelcase_to_snakecase(request_body)
+
+        try:
+            self._validate_flavour_and_inst_level(context, req_body,
+                                                  vnf_instance)
+        except exceptions.NotFound as ex:
+            raise webob.exc.HTTPBadRequest(explanation=six.text_type(ex))
+
+        instantiate_vnf_request = \
+            objects.InstantiateVnfRequest.obj_from_primitive(
+                req_body, context=context)
+
+        # validate the vim connection id passed through request is exist or not
+        self._validate_vim_connection(context, instantiate_vnf_request)
+
+        vnf_instance.task_state = fields.VnfInstanceTaskState.INSTANTIATING
+        vnf_instance.save()
+
+        self.rpc_api.instantiate(context, vnf_instance,
+                                 instantiate_vnf_request)
+
+    @wsgi.response(http_client.ACCEPTED)
+    @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,
+                           http_client.CONFLICT, http_client.BAD_REQUEST))
+    @validation.schema(vnf_lcm.instantiate)
     def instantiate(self, request, id, body):
-        raise webob.exc.HTTPNotImplemented()
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'instantiate')
+
+        vnf_instance = self._get_vnf_instance(context, id)
+
+        self._instantiate(context, vnf_instance, body)
 
     def terminate(self, request, id, body):
         raise webob.exc.HTTPNotImplemented()

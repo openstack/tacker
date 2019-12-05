@@ -14,8 +14,9 @@
 #    under the License.
 
 import codecs
-import mock
 import os
+
+import mock
 import yaml
 
 from oslo_serialization import jsonutils
@@ -96,8 +97,8 @@ class FakeHeatClient(mock.Mock):
 def _get_template(name):
     filename = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "data/", name)
-    f = codecs.open(filename, encoding='utf-8', errors='strict')
-    return f.read()
+    with codecs.open(filename, encoding='utf-8', errors='strict') as f:
+        return f.read()
 
 
 class TestOpenStack(base.TestCase):
@@ -119,6 +120,9 @@ class TestOpenStack(base.TestCase):
         self._cos_db_plugin = \
             common_services_db_plugin.CommonServicesPluginDb()
         self.addCleanup(mock.patch.stopall)
+        yaml.SafeLoader.add_constructor(
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+            lambda loader, node: dict(loader.construct_pairs(node)))
 
     def _mock_heat_client(self):
         self.heat_client = mock.Mock(wraps=FakeHeatClient())

@@ -29,6 +29,16 @@ class HeatClient(object):
         self.resource_types = self.heat.resource_types
         self.resources = self.heat.resources
 
+    def _stack_ids(self, stack_id):
+        filters = {"owner_id": stack_id,
+            "show_nested": True}
+
+        for stack in self.stacks.list(**{"filters": filters}):
+            yield stack.id
+            if stack.parent and stack.parent == stack_id:
+                for x in self._stack_ids(stack.id):
+                    yield x
+
     def create(self, fields):
         fields = fields.copy()
         fields.update({
@@ -52,6 +62,13 @@ class HeatClient(object):
 
     def get(self, stack_id):
         return self.stacks.get(stack_id)
+
+    def get_stack_nested_depth(self, stack_id):
+        stack_ids = self._stack_ids(stack_id)
+        if stack_ids:
+            return len(list(stack_ids))
+
+        return 0
 
     def update(self, stack_id, **kwargs):
         try:

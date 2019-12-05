@@ -199,6 +199,11 @@ class InvalidKubernetesInputParameter(exceptions.InvalidInput):
     message = _("Found unsupported keys for %(found_keys)s ")
 
 
+class InvalidInstReqInfoForScaling(exceptions.InvalidInput):
+    message = _("Scaling resource cannot be set to "
+                "fixed ip_address or mac_address.")
+
+
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("Invalid data format for service list: '%s'") % data

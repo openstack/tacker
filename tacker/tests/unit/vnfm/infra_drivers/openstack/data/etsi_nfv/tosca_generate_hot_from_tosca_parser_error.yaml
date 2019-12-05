@@ -1,0 +1,16 @@
+﻿tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: >
+  Template for test _generate_hot_from_tosca() the case of tosca-parser error.
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+
+node_types:
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VDU1
