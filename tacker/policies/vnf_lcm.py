@@ -1,4 +1,4 @@
-# Copyright (C) 2019 NTT DATA
+# Copyright (C) 2020 NTT DATA
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -14,16 +14,27 @@
 #    under the License.
 
 
-import itertools
+from oslo_policy import policy
 
 from tacker.policies import base
-from tacker.policies import vnf_lcm
-from tacker.policies import vnf_package
+
+
+VNFLCM = 'os_nfv_orchestration_api:vnf_instances:%s'
+
+rules = [
+    policy.DocumentedRuleDefault(
+        name=VNFLCM % 'create',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Creates vnf instance.",
+        operations=[
+            {
+                'method': 'POST',
+                'path': '/vnflcm/v1/vnf_instances'
+            }
+        ]
+    ),
+]
 
 
 def list_rules():
-    return itertools.chain(
-        base.list_rules(),
-        vnf_package.list_rules(),
-        vnf_lcm.list_rules(),
-    )
+    return rules

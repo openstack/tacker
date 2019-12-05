@@ -36,3 +36,57 @@ class TestChangeMemory(testtools.TestCase):
         actual_val = utils.change_memory_unit("1 GB", "MB")
         expected_val = 1024
         self.assertEqual(expected_val, actual_val)
+
+
+class TestCamelToSnakeCase(testtools.TestCase):
+    def test_convert_camelcase_to_snakecase_dict(self):
+        """Only the dict keys should be converted to snakecase"""
+        actual_val = utils.convert_camelcase_to_snakecase(
+            {"camelCaseKey": "camelCaseValue"})
+        expected_val = {"camel_case_key": "camelCaseValue"}
+        self.assertEqual(expected_val, actual_val)
+
+    def test_convert_camelcase_to_snakecase_list_with_dict_items(self):
+        """Only the dict keys from list should be converted to snakecase"""
+        data = [{"camelCaseKey": "camelCaseValue"}]
+        actual_val = utils.convert_camelcase_to_snakecase(data)
+        expected_val = [{"camel_case_key": "camelCaseValue"}]
+        self.assertEqual(expected_val, actual_val)
+
+    def test_convert_camelcase_to_snakecase_list_with_string_items(self):
+        """Conversion of camelcase to snakecase should be ignored.
+
+        For simple list with string items, the elements which are actual
+        values should be ignored during conversion
+        """
+        data = ["camelCaseValue1", "camelCaseValue2"]
+        actual_val = utils.convert_snakecase_to_camelcase(data)
+        expected_val = ["camelCaseValue1", "camelCaseValue2"]
+        self.assertEqual(expected_val, actual_val)
+
+
+class TestSnakeToCamelCase(testtools.TestCase):
+    def test_convert_snakecase_to_camelcase_dict(self):
+        """Only the dict keys from list should be converted to camelcase"""
+        actual_val = utils.convert_snakecase_to_camelcase(
+            {"snake_case_key": "snake_case_value"})
+        expected_val = {"snakeCaseKey": "snake_case_value"}
+        self.assertEqual(expected_val, actual_val)
+
+    def test_convert_snakecase_to_camelcase_list_with_dict_items(self):
+        """Only the dict keys from list should be converted to camelcase"""
+        data = [{"snake_case_key": "snake_case_value"}]
+        actual_val = utils.convert_snakecase_to_camelcase(data)
+        expected_val = [{"snakeCaseKey": "snake_case_value"}]
+        self.assertEqual(expected_val, actual_val)
+
+    def test_convert_snakecase_to_camelcase_list_with_string_items(self):
+        """Conversion of snakecase to camelcase should be ignored.
+
+        For simple list with string items, the elements which are actual
+        values should be ignored during conversion
+        """
+        data = ["snake_case_value1", "snake_case_value2"]
+        actual_val = utils.convert_snakecase_to_camelcase(data)
+        expected_val = ["snake_case_value1", "snake_case_value2"]
+        self.assertEqual(expected_val, actual_val)

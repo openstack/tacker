@@ -332,6 +332,66 @@ def chunkiter(fp, chunk_size=65536):
             break
 
 
+def convert_camelcase_to_snakecase(request_data):
+    """Converts dict keys or list of dict keys from camelCase to snake_case.
+
+    Returns a dict with keys or list with dict keys, in snake_case.
+
+    :param request_data: dict with keys or list with items, in camelCase.
+    """
+    def convert(name):
+        name_with_underscores = re.sub(
+            '(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2',
+                      name_with_underscores).lower()
+
+    if isinstance(request_data, dict):
+        new_dict = {}
+        for key, property_value in request_data.items():
+            property_value = convert_camelcase_to_snakecase(property_value)
+            underscore_joined = convert(key)
+            new_dict[underscore_joined] = property_value
+        return new_dict
+
+    if isinstance(request_data, list):
+        new_list = []
+        for property_value in request_data:
+            new_list.append(
+                convert_camelcase_to_snakecase(property_value))
+        return new_list
+
+    return request_data
+
+
+def convert_snakecase_to_camelcase(request_data):
+    """Converts dict keys or list of dict keys from snake_case to camelCase.
+
+    Returns a dict with keys or list with dict key, in camelCase.
+
+    :param request_data: dict with keys or list with items, in snake_case.
+    """
+    def convert(name):
+        return re.sub('_([a-z])',
+                      lambda match: match.group(1).upper(), name)
+
+    if isinstance(request_data, dict):
+        new_dict = {}
+        for key, property_value in request_data.items():
+            property_value = convert_snakecase_to_camelcase(property_value)
+            camelcase = convert(key)
+            new_dict[camelcase] = property_value
+        return new_dict
+
+    if isinstance(request_data, list):
+        new_list = []
+        for property_value in request_data:
+            new_list.append(
+                convert_snakecase_to_camelcase(property_value))
+        return new_list
+
+    return request_data
+
+
 class CooperativeReader(object):
     """An eventlet thread friendly class for reading in image data.
 

@@ -20,6 +20,7 @@ Internal implementation of request Body validating middleware.
 
 import jsonschema
 from jsonschema import exceptions as jsonschema_exc
+from oslo_utils import uuidutils
 import rfc3986
 import six
 
@@ -30,6 +31,11 @@ from tacker.common import exceptions as exception
 def _validate_uri(instance):
     return rfc3986.is_valid_uri(instance, require_scheme=True,
                                 require_authority=True)
+
+
+@jsonschema.FormatChecker.cls_checks('uuid')
+def _validate_uuid_format(instance):
+    return uuidutils.is_uuid_like(instance)
 
 
 class FormatChecker(jsonschema.FormatChecker):
