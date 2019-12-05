@@ -166,3 +166,14 @@ class IpAddressType(BaseTackerEnum):
 
 class IpAddressTypeField(BaseEnumField):
     AUTO_TYPE = IpAddressType()
+
+
+class VnfInstanceTerminationType(BaseTackerEnum):
+    FORCEFUL = 'FORCEFUL'
+    GRACEFUL = 'GRACEFUL'
+
+    ALL = (FORCEFUL, GRACEFUL)
+
+
+class VnfInstanceTerminationTypeField(BaseEnumField):
+    AUTO_TYPE = VnfInstanceTerminationType()

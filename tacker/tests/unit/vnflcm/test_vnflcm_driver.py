@@ -23,10 +23,12 @@ from tacker.common import exceptions
 from tacker.common import utils
 from tacker import context
 from tacker import objects
+from tacker.objects import fields
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.vnflcm import fakes
 from tacker.tests import uuidsentinel
 from tacker.vnflcm import vnflcm_driver
+from tacker.vnfm import vim_client
 
 
 class InfraDriverException(Exception):
@@ -256,7 +258,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual(expected_error % vnf_instance_obj.id, str(error))
         self.assertEqual("NOT_INSTANTIATED",
             vnf_instance_obj.instantiation_state)
-        self.assertEqual(1, mock_vnf_instance_save.call_count)
+        self.assertEqual(2, mock_vnf_instance_save.call_count)
         self.assertEqual(2, self._vnf_manager.invoke.call_count)
 
         shutil.rmtree(fake_csar)
@@ -298,8 +300,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual(expected_error % vnf_instance_obj.id, str(error))
         self.assertEqual("NOT_INSTANTIATED",
             vnf_instance_obj.instantiation_state)
-        self.assertEqual(1, mock_vnf_instance_save.call_count)
-        self.assertEqual(3, self._vnf_manager.invoke.call_count)
+        self.assertEqual(3, mock_vnf_instance_save.call_count)
+        self.assertEqual(5, self._vnf_manager.invoke.call_count)
 
         shutil.rmtree(fake_csar)
 
@@ -334,3 +336,106 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual(2, mock_create.call_count)
         self.assertEqual("INSTANTIATED", vnf_instance_obj.instantiation_state)
         shutil.rmtree(fake_csar)
+
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfResource, "destroy")
+    def test_terminate_vnf(self, mock_resource_destroy, mock_resource_list,
+            mock_vim, mock_vnf_instance_save):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+
+        mock_resource_list.return_value = [fakes.return_vnf_resource()]
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.FORCEFUL)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.terminate_vnf(self.context, vnf_instance, terminate_vnf_req)
+        self.assertEqual(2, mock_vnf_instance_save.call_count)
+        self.assertEqual(1, mock_resource_destroy.call_count)
+        self.assertEqual(3, self._vnf_manager.invoke.call_count)
+
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfResource, "destroy")
+    def test_terminate_vnf_graceful_no_timeout(self, mock_resource_destroy,
+            mock_resource_list, mock_vim, mock_vnf_instance_save):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+
+        mock_resource_list.return_value = [fakes.return_vnf_resource()]
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.terminate_vnf(self.context, vnf_instance, terminate_vnf_req)
+        self.assertEqual(2, mock_vnf_instance_save.call_count)
+        self.assertEqual(1, mock_resource_destroy.call_count)
+
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    def test_terminate_vnf_delete_instance_failed(self, mock_vim,
+            mock_vnf_instance_save):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
+            graceful_termination_timeout=10)
+
+        self._mock_vnf_manager(fail_method_name='delete')
+        driver = vnflcm_driver.VnfLcmDriver()
+        error = self.assertRaises(InfraDriverException, driver.terminate_vnf,
+            self.context, vnf_instance, terminate_vnf_req)
+        self.assertEqual("delete failed", str(error))
+        self.assertEqual(1, mock_vnf_instance_save.call_count)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
+
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    def test_terminate_vnf_delete_wait_instance_failed(self, mock_vim,
+            mock_vnf_instance_save):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.FORCEFUL)
+
+        self._mock_vnf_manager(fail_method_name='delete_wait')
+        driver = vnflcm_driver.VnfLcmDriver()
+        error = self.assertRaises(InfraDriverException, driver.terminate_vnf,
+            self.context, vnf_instance, terminate_vnf_req)
+        self.assertEqual("delete_wait failed", str(error))
+        self.assertEqual(2, mock_vnf_instance_save.call_count)
+        self.assertEqual(2, self._vnf_manager.invoke.call_count)
+
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    def test_terminate_vnf_delete_vnf_resource_failed(self, mock_resource_list,
+            mock_vim, mock_vnf_instance_save):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.FORCEFUL)
+
+        mock_resource_list.return_value = [fakes.return_vnf_resource()]
+        self._mock_vnf_manager(fail_method_name='delete_vnf_resource')
+        driver = vnflcm_driver.VnfLcmDriver()
+        error = self.assertRaises(InfraDriverException, driver.terminate_vnf,
+            self.context, vnf_instance, terminate_vnf_req)
+        self.assertEqual("delete_vnf_resource failed", str(error))
+        self.assertEqual(2, mock_vnf_instance_save.call_count)
+        self.assertEqual(3, self._vnf_manager.invoke.call_count)

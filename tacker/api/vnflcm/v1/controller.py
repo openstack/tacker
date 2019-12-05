@@ -245,8 +245,29 @@ class VnfLcmController(wsgi.Controller):
 
         self._instantiate(context, vnf_instance, body)
 
+    @check_vnf_state(action="terminate",
+        instantiation_state=[fields.VnfInstanceState.INSTANTIATED],
+        task_state=[None])
+    def _terminate(self, context, vnf_instance, request_body):
+        req_body = utils.convert_camelcase_to_snakecase(request_body)
+        terminate_vnf_req = \
+            objects.TerminateVnfRequest.obj_from_primitive(
+                req_body, context=context)
+
+        vnf_instance.task_state = fields.VnfInstanceTaskState.TERMINATING
+        vnf_instance.save()
+        self.rpc_api.terminate(context, vnf_instance, terminate_vnf_req)
+
+    @wsgi.response(http_client.ACCEPTED)
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
+                           http_client.NOT_FOUND, http_client.CONFLICT))
+    @validation.schema(vnf_lcm.terminate)
     def terminate(self, request, id, body):
-        raise webob.exc.HTTPNotImplemented()
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'terminate')
+
+        vnf_instance = self._get_vnf_instance(context, id)
+        self._terminate(context, vnf_instance, body)
 
     def heal(self, request, id, body):
         raise webob.exc.HTTPNotImplemented()

@@ -29,7 +29,7 @@ import tacker.conf
 from tacker import context
 from tacker.glance_store import store as glance_store
 from tacker import objects
-from tacker.objects import vnf_package
+from tacker.objects import fields
 from tacker.tests.unit.conductor import fakes
 from tacker.tests.unit.db.base import SqlTestCase
 from tacker.tests.unit.objects import fakes as fake_obj
@@ -73,8 +73,8 @@ class TestConductor(SqlTestCase):
             'tacker.vnflcm.vnflcm_driver.VnfLcmDriver', fake_vnflcm_driver)
 
     def _create_vnf_package(self):
-        vnfpkgm = vnf_package.VnfPackage(context=self.context,
-                                         **fakes.VNF_PACKAGE_DATA)
+        vnfpkgm = objects.VnfPackage(context=self.context,
+                                     **fakes.VNF_PACKAGE_DATA)
         vnfpkgm.create()
         return vnfpkgm
 
@@ -251,10 +251,101 @@ class TestConductor(SqlTestCase):
         mock_log.error.assert_called_once_with(expected_log,
             vnf_package_vnfd.package_uuid)
 
+    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
+    def test_terminate_vnf_instance(self, mock_package_in_use):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        mock_package_in_use.return_value = True
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        vnf_instance.create()
+
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
+
+        self.conductor.terminate(self.context, vnf_instance,
+                                 terminate_vnf_req)
+
+        self.vnflcm_driver.terminate_vnf.assert_called_once_with(
+            self.context, vnf_instance, terminate_vnf_req)
+        mock_package_in_use.assert_called_once()
+
+    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
+    def test_terminate_vnf_instance_with_usage_state_not_in_use(self,
+            mock_vnf_package_is_package_in_use):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        vnf_instance.create()
+
+        mock_vnf_package_is_package_in_use.return_value = False
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
+
+        self.conductor.terminate(self.context, vnf_instance,
+                                 terminate_vnf_req)
+
+        self.vnflcm_driver.terminate_vnf.assert_called_once_with(
+            self.context, vnf_instance, terminate_vnf_req)
+        mock_vnf_package_is_package_in_use.assert_called_once()
+
+    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
+    def test_terminate_vnf_instance_with_usage_state_already_in_use(self,
+            mock_vnf_package_is_package_in_use):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        vnf_instance.create()
+
+        mock_vnf_package_is_package_in_use.return_value = True
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
+
+        self.conductor.terminate(self.context, vnf_instance,
+                                 terminate_vnf_req)
+
+        self.vnflcm_driver.terminate_vnf.assert_called_once_with(
+            self.context, vnf_instance, terminate_vnf_req)
+        mock_vnf_package_is_package_in_use.assert_called_once()
+
+    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
+    @mock.patch('tacker.conductor.conductor_server.LOG')
+    def test_terminate_vnf_instance_failed_to_update_usage_state(
+            self, mock_log, mock_is_package_in_use):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
+        mock_is_package_in_use.side_effect = Exception
+        self.conductor.terminate(self.context, vnf_instance,
+                                 terminate_vnf_req)
+        self.vnflcm_driver.terminate_vnf.assert_called_once_with(
+            self.context, vnf_instance, terminate_vnf_req)
+        expected_msg = "Failed to update usage_state of vnf package %s"
+        mock_log.error.assert_called_once_with(expected_msg,
+            vnf_package_vnfd.package_uuid)
+
     @mock.patch.object(os, 'remove')
     @mock.patch.object(shutil, 'rmtree')
     @mock.patch.object(os.path, 'exists')
-    @mock.patch.object(vnf_package.VnfPackagesList, 'get_by_filters')
+    @mock.patch.object(objects.VnfPackagesList, 'get_by_filters')
     def test_run_cleanup_vnf_packages(self, mock_get_by_filter,
                                       mock_exists, mock_rmtree,
                                       mock_remove):

@@ -293,6 +293,17 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
 
         return data
 
+    def reinitialize(self):
+        # Reinitialize vnf to non instantiated state.
+        self.ext_cp_info = []
+        self.ext_virtual_link_info = []
+        self.ext_managed_virtual_link_info = []
+        self.vnfc_resource_info = []
+        self.vnf_virtual_link_resource_info = []
+        self.virtual_storage_resource_info = []
+        self.instance_id = None
+        self.vnf_state = fields.VnfOperationalStateType.STOPPED
+
 
 @base.TackerObjectRegistry.register
 class VnfExtCpInfo(base.TackerObject, base.TackerObjectDictCompat,

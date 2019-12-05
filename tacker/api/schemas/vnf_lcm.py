@@ -199,3 +199,14 @@ instantiate = {
     'required': ['flavourId'],
     'additionalProperties': False,
 }
+
+terminate = {
+    'type': 'object',
+    'properties': {
+        'terminationType': {'type': 'string',
+                            'enum': ['FORCEFUL', 'GRACEFUL']},
+        'gracefulTerminationTimeout': {'type': 'integer', 'minimum': 0}
+    },
+    'required': ['terminationType'],
+    'additionalProperties': False,
+}

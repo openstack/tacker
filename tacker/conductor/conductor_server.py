@@ -424,6 +424,20 @@ class Conductor(manager.Manager):
 
         vnf_package.save()
 
+    def terminate(self, context, vnf_instance, terminate_vnf_req):
+        self.vnflcm_driver.terminate_vnf(context, vnf_instance,
+            terminate_vnf_req)
+
+        vnf_package_vnfd = objects.VnfPackageVnfd.get_by_id(context,
+                vnf_instance.vnfd_id)
+        vnf_package = objects.VnfPackage.get_by_id(context,
+                vnf_package_vnfd.package_uuid, expected_attrs=['vnfd'])
+        try:
+            self._update_package_usage_state(context, vnf_package)
+        except Exception:
+            LOG.error("Failed to update usage_state of vnf package %s",
+                      vnf_package.id)
+
 
 def init(args, **kwargs):
     CONF(args=args, project='tacker',

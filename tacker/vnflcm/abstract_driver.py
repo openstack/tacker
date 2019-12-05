@@ -31,3 +31,14 @@ class VnfInstanceAbstractDriver(object):
         :return: None
         """
         pass
+
+    @abc.abstractmethod
+    def terminate_vnf(self, context, vnf_instance, terminate_vnf_req):
+        """terminate vnf request.
+
+        :param context: the request context
+        :param vnf_instance: object of VnfInstance
+        :param terminate_vnf_req: object of TerminateVnfRequest
+        :return: None
+        """
+        pass

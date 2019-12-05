@@ -14,6 +14,10 @@
 #    under the License.
 
 import copy
+import functools
+import inspect
+import six
+import time
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -24,6 +28,8 @@ from tacker.common import log
 
 from tacker.common import driver_manager
 from tacker.common import exceptions
+from tacker.common import safe_utils
+from tacker.common import utils
 from tacker import objects
 from tacker.objects import fields
 from tacker.vnflcm import abstract_driver
@@ -32,6 +38,84 @@ from tacker.vnflcm import utils as vnflcm_utils
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
+
+
+@utils.expects_func_args('vnf_instance')
+def rollback_vnf_instantiated_resources(function):
+    """Decorator to rollback resources created during vnf instantiation"""
+
+    def _rollback_vnf(vnflcm_driver, context, vnf_instance):
+        vim_info = vnflcm_utils._get_vim(context,
+                vnf_instance.vim_connection_info)
+
+        vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
+            vim_info, context)
+
+        LOG.info("Rollback vnf %s", vnf_instance.id)
+        try:
+            vnflcm_driver._delete_vnf_instance_resources(context, vnf_instance,
+                    vim_connection_info)
+
+            if vnf_instance.instantiated_vnf_info:
+                vnf_instance.instantiated_vnf_info.reinitialize()
+
+            vnflcm_driver._vnf_instance_update(context, vnf_instance,
+                    vim_connection_info=[], task_state=None)
+
+            LOG.info("Vnf %s rollback completed successfully", vnf_instance.id)
+        except Exception as ex:
+            LOG.error("Unable to rollback vnf instance "
+                      "%s due to error: %s", vnf_instance.id, ex)
+
+    @functools.wraps(function)
+    def decorated_function(self, context, *args, **kwargs):
+        try:
+            return function(self, context, *args, **kwargs)
+        except Exception as exp:
+            with excutils.save_and_reraise_exception():
+                wrapped_func = safe_utils.get_wrapped_function(function)
+                keyed_args = inspect.getcallargs(wrapped_func, self, context,
+                                                 *args, **kwargs)
+                vnf_instance = keyed_args['vnf_instance']
+                LOG.error("Failed to instantiate vnf %(id)s. Error: %(error)s",
+                          {"id": vnf_instance.id,
+                           "error": six.text_type(exp)})
+
+                _rollback_vnf(self, context, vnf_instance)
+
+    return decorated_function
+
+
+@utils.expects_func_args('vnf_instance')
+def revert_to_error_task_state(function):
+    """Decorator to revert task_state to error  on failure."""
+
+    @functools.wraps(function)
+    def decorated_function(self, context, *args, **kwargs):
+        try:
+            return function(self, context, *args, **kwargs)
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                wrapped_func = safe_utils.get_wrapped_function(function)
+                keyed_args = inspect.getcallargs(wrapped_func, self, context,
+                                                 *args, **kwargs)
+                vnf_instance = keyed_args['vnf_instance']
+                previous_task_state = vnf_instance.task_state
+                try:
+                    self._vnf_instance_update(context, vnf_instance,
+                        task_state=fields.VnfInstanceTaskState.ERROR)
+                    LOG.info("Successfully reverted task state from "
+                             "%(state)s to %(error)s on failure for vnf "
+                             "instance %(id)s.",
+                             {"state": previous_task_state,
+                              "id": vnf_instance.id,
+                              "error": fields.VnfInstanceTaskState.ERROR})
+                except Exception as e:
+                    LOG.warning("Failed to revert task state for vnf "
+                                "instance %(id)s. Error: %(error)s",
+                                {"id": vnf_instance.id, "error": e})
+
+    return decorated_function
 
 
 class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
@@ -130,6 +214,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 vim_connection_info=vim_connection_info)
 
     @log.log
+    @rollback_vnf_instantiated_resources
     def instantiate_vnf(self, context, vnf_instance, instantiate_vnf_req):
 
         vim_connection_info_list = vnflcm_utils.\
@@ -151,3 +236,71 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         self._vnf_instance_update(context, vnf_instance,
                     instantiation_state=fields.VnfInstanceState.INSTANTIATED,
                     task_state=None)
+
+    @log.log
+    @revert_to_error_task_state
+    def terminate_vnf(self, context, vnf_instance, terminate_vnf_req):
+
+        vim_info = vnflcm_utils._get_vim(context,
+            vnf_instance.vim_connection_info)
+
+        vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
+            vim_info, context)
+
+        LOG.info("Terminating vnf %s", vnf_instance.id)
+        try:
+            self._delete_vnf_instance_resources(context, vnf_instance,
+                    vim_connection_info, terminate_vnf_req=terminate_vnf_req)
+
+            vnf_instance.instantiated_vnf_info.reinitialize()
+            self._vnf_instance_update(context, vnf_instance,
+                vim_connection_info=[], task_state=None)
+
+            LOG.info("Vnf terminated %s successfully", vnf_instance.id)
+        except Exception as exp:
+            with excutils.save_and_reraise_exception():
+                LOG.error("Unable to terminate vnf '%s' instance. "
+                          "Error: %s", vnf_instance.id,
+                          encodeutils.exception_to_unicode(exp))
+
+    def _delete_vnf_instance_resources(self, context, vnf_instance,
+                                       vim_connection_info,
+                                       terminate_vnf_req=None):
+
+        if vnf_instance.instantiated_vnf_info and \
+                vnf_instance.instantiated_vnf_info.instance_id:
+
+            instance_id = vnf_instance.instantiated_vnf_info.instance_id
+            access_info = vim_connection_info.access_info
+
+            LOG.info("Deleting stack %(instance)s for vnf %(id)s ",
+                    {"instance": instance_id, "id": vnf_instance.id})
+
+            if terminate_vnf_req:
+                if (terminate_vnf_req.termination_type == 'GRACEFUL' and
+                        terminate_vnf_req.graceful_termination_timeout > 0):
+                    time.sleep(terminate_vnf_req.graceful_termination_timeout)
+
+            self._vnf_manager.invoke(vim_connection_info.vim_type,
+                'delete', plugin=self, context=context,
+                vnf_id=instance_id, auth_attr=access_info)
+
+            vnf_instance.instantiation_state = \
+                fields.VnfInstanceState.NOT_INSTANTIATED
+            vnf_instance.save()
+
+            self._vnf_manager.invoke(vim_connection_info.vim_type,
+                'delete_wait', plugin=self, context=context,
+                vnf_id=instance_id, auth_attr=access_info)
+
+        vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
+            context, vnf_instance.id)
+
+        for vnf_resource in vnf_resources:
+            self._vnf_manager.invoke(vim_connection_info.vim_type,
+                    'delete_vnf_instance_resource',
+                    context=context, vnf_instance=vnf_instance,
+                    vim_connection_info=vim_connection_info,
+                    vnf_resource=vnf_resource)
+
+            vnf_resource.destroy(context)
