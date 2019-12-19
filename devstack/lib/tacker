@@ -336,32 +336,41 @@ function openstack_image_create {
 
 function tacker_check_and_download_images {
     local image_url
-    image_url[0]='http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img'
-    # Customized image of OpenWRT 15.05.1 that can fix the continuously respawning OpenWRT-based VNFs
-    image_url[1]='https://anda.ssu.ac.kr/~openwrt/openwrt-x86-kvm_guest-combined-ext4.img.gz'
+    image_url[0]="http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img"
+    # Customized image of OpenWRT 15.05.1 that can fix the continuously
+    # respawning OpenWRT-based VNFs.
+    image_url[1]="$TACKER_DIR/samples/images/openwrt-x86-kvm_guest-combined-ext4.img.gz"
 
-    local image_fname image_name glance_name gz_pattern
+    local image_fname image_name glance_name
+    local gz_pattern="\.gz$"
     local length=${#image_url[@]}
     local index=0
     while [ $index -lt $length ]
     do
         image_fname=`basename "${image_url[$index]}"`
         glance_name=${image_fname%.*}
-        if [[ $glance_name =~ 'openwrt' ]]; then
-            glance_name='OpenWRT'
+        if [[ $glance_name =~ "openwrt" ]]; then
+            glance_name="OpenWRT"
         fi
         image_name=`openstack image list | grep "$glance_name" | awk '{print $4}'`
         if [[ $image_name == "" ]]; then
             if [[ ! -f $FILES/$image_fname || "$(stat -c "%s" $FILES/$image_fname)" = "0" ]]; then
-                {
-                    wget --progress=dot:giga -c ${image_url[$index]} -O $FILES/$image_fname
-                    gz_pattern="\.gz$"
-                    if [[ $image_fname =~ $gz_pattern ]]; then
-                        new_image_fname=${image_fname%.*}
-                        gunzip -c $FILES/$image_fname > $FILES/$new_image_fname
-                        image_fname=$new_image_fname
-                    fi
-                }
+                if [[ -f ${image_url[$index]} ]]; then
+                    cp ${image_url[$index]} $FILES/$image_fname
+                else
+                    {
+                        wget --progress=dot:giga -c ${image_url[$index]} -O $FILES/$image_fname
+                    }||{
+                        echo "WARNING: download image ${image_url[$index]} failed"
+                        index=$(($index+1))
+                        continue
+                    }
+                fi
+                if [[ $image_fname =~ $gz_pattern ]]; then
+                    new_image_fname=${image_fname%.*}
+                    gunzip -c $FILES/$image_fname > $FILES/$new_image_fname
+                    image_fname=$new_image_fname
+                fi
             fi
             {
                 openstack_image_create $FILES/$image_fname $glance_name

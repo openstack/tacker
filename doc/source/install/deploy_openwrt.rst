@@ -21,11 +21,12 @@ Deploying OpenWRT as VNF
 Once tacker is installed successfully, follow the steps given below to get
 started with deploying OpenWRT as VNF.
 
-1.Ensure Glance already contains OpenWRT image. Normally, Tacker tries
-to add OpenWRT image to Glance while installing via devstack. By running
-**openstack image list** to check OpenWRT image if exists. If not, download
-the customized image of OpenWRT 15.05.1 [#f1]_. Unzip the file by using
-the command below:
+1. Ensure Glance already contains OpenWRT image.
+
+Normally, Tacker tries to add OpenWRT image to Glance while installing
+via devstack. By running **openstack image list** to check OpenWRT image
+if exists. If not, download the customized image of OpenWRT 15.05.1
+[#f1]_. Unzip the file by using the command below:
 
 .. code-block:: console
 
@@ -43,7 +44,9 @@ And then upload this image into Glance by using the command specified below:
                                   --public
 ..
 
-2.The below example shows how to create the OpenWRT-based Firewall VNF.
+2. Configure OpenWRT
+
+The example below shows how to create the OpenWRT-based Firewall VNF.
 First, we have a yaml template which contains the configuration of
 OpenWRT as shown below:
 
@@ -240,14 +243,14 @@ firewall rules which defined in VNFD into OpenWRT instance by using SSH
 protocol. We can run**cat /etc/config/firewall** to confirm the firewall
 rules if inject succeed.
 
-3.Create a sample vnfd:
+3. Create a sample vnfd
 
 .. code-block:: console
 
     openstack vnf descriptor create --vnfd-file tosca-vnfd-openwrt.yaml <VNFD_NAME>
 ..
 
-4.Create a VNF:
+4. Create a VNF
 
 .. code-block:: console
 
@@ -255,7 +258,7 @@ rules if inject succeed.
                       --config-file tosca-config-openwrt-firewall.yaml <NAME>
 ..
 
-5.Check the status:
+5. Check the status
 
 .. code-block:: console
 
@@ -272,12 +275,15 @@ same to check if the rules are injected successful: **cat /etc/config/network**
 to check vrouter, **cat /etc/config/dhcp** to check DHCP and DNS, and
 **cat /etc/config/qos** to check the QoS rules.
 
-6.Notes
-6.1.OpenWRT user and password
+6. Notes
+
+6.1. OpenWRT user and password
+
 The user account is 'root' and password is '', which means there is no
 password for root account.
 
-6.2.Procedure to customize the OpenWRT image
+6.2. Procedure to customize the OpenWRT image
+
 The OpenWRT is modified based on KVM OpenWRT 15.05.1 to be suitable forTacker.
 The procedure is following as below:
 
@@ -310,7 +316,7 @@ The procedure is following as below:
 
 .. rubric:: Footnotes
 
-.. [#] https://anda.ssu.ac.kr/~openwrt/openwrt-x86-kvm_guest-combined-ext4.img.gz
+.. [#] https://github.com/openstack/tacker/blob/master/samples/images/openwrt-x86-kvm_guest-combined-ext4.img.gz
 .. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
 .. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml
 .. [#] https://github.com/openstack/tacker/blob/master/tacker/vnfm/mgmt_drivers/openwrt/openwrt.py
