@@ -90,5 +90,5 @@ class TestVnfPackage(SqlTestCase):
         vnf_pack_list_obj = objects.VnfPackagesList(self.context)
         result = vnf_package._make_vnf_packages_list(
             self.context, vnf_pack_list_obj, response, None)
-        self.assertTrue(isinstance(result, objects.VnfPackagesList))
+        self.assertIsInstance(result, objects.VnfPackagesList)
         self.assertTrue(result.objects[0].id)

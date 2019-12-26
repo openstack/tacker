@@ -122,7 +122,7 @@ class TestVnfPackage(SqlTestCase):
     def test_get_all(self):
         result = objects.VnfPackagesList.get_all(self.context,
                                                  expected_attrs=None)
-        self.assertTrue(result.objects, list)
+        self.assertIsInstance(result.objects, list)
         self.assertTrue(result.objects)
 
     def test_get_by_id_with_flavours(self):
