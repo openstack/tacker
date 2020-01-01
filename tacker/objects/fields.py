@@ -23,6 +23,7 @@ StringField = fields.StringField
 ListOfObjectsField = fields.ListOfObjectsField
 ListOfStringsField = fields.ListOfStringsField
 DictOfStringsField = fields.DictOfStringsField
+DictOfNullableStringsField = fields.DictOfNullableStringsField
 DateTimeField = fields.DateTimeField
 BooleanField = fields.BooleanField
 BaseEnumField = fields.BaseEnumField
@@ -119,3 +120,49 @@ class UUID(fields.UUID):
 
 class UUIDField(fields.AutoTypedField):
     AUTO_TYPE = UUID()
+
+
+class VnfInstanceState(BaseTackerEnum):
+    INSTANTIATED = 'INSTANTIATED'
+    NOT_INSTANTIATED = 'NOT_INSTANTIATED'
+
+    ALL = (INSTANTIATED, NOT_INSTANTIATED)
+
+
+class VnfInstanceStateField(BaseEnumField):
+    AUTO_TYPE = VnfInstanceState()
+
+
+class VnfInstanceTaskState(BaseTackerEnum):
+    INSTANTIATING = 'INSTANTIATING'
+    HEALING = 'HEALING'
+    TERMINATING = 'TERMINATING'
+    ERROR = 'ERROR'
+
+    ALL = (INSTANTIATING, HEALING, TERMINATING, ERROR)
+
+
+class VnfInstanceTaskStateField(BaseEnumField):
+    AUTO_TYPE = VnfInstanceTaskState()
+
+
+class VnfOperationalStateType(BaseTackerEnum):
+    STARTED = 'STARTED'
+    STOPPED = 'STOPPED'
+
+    ALL = (STARTED, STOPPED)
+
+
+class VnfOperationalStateTypeField(BaseEnumField):
+    AUTO_TYPE = VnfOperationalStateType()
+
+
+class IpAddressType(BaseTackerEnum):
+    IPV4 = 'IPV4'
+    IPV6 = 'IPV6'
+
+    ALL = (IPV4, IPV6)
+
+
+class IpAddressTypeField(BaseEnumField):
+    AUTO_TYPE = IpAddressType()

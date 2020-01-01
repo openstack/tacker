@@ -211,12 +211,24 @@ class VnfPackageVnfdIdDuplicate(TackerException):
     message = _("Vnf package with vnfd id %(vnfd_id)s already exists.")
 
 
+class VnfInstanceNotFound(NotFound):
+    message = _("No vnf instance with id %(id)s.")
+
+
+class VnfResourceNotFound(NotFound):
+    message = _("No vnf resource with id %(id)s.")
+
+
 class VnfDeploymentFlavourNotFound(NotFound):
     message = _("No vnf deployment flavour with id %(id)s.")
 
 
 class VnfSoftwareImageNotFound(NotFound):
     message = _("No vnf software image  with id %(id)s.")
+
+
+class VnfInstantiatedInfoNotFound(NotFound):
+    message = _("No vnf instantiated info for vnf id %(vnf_instance_id)s.")
 
 
 class OrphanedObjectError(TackerException):

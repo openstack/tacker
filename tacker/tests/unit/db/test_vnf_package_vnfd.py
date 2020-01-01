@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from tacker.common import exceptions
 from tacker import context
 from tacker.objects import vnf_package
 from tacker.objects import vnf_package_vnfd
@@ -27,36 +26,26 @@ class TestVnfPackageVnfd(SqlTestCase):
         super(TestVnfPackageVnfd, self).setUp()
         self.context = context.get_admin_context()
 
-    def test_create(self):
+    def test_vnf_package_vnfd_create(self):
         vnf_pack = vnf_package.VnfPackage(context=self.context,
                                           **fakes.vnf_package_data)
         vnf_pack.create()
-        vnf_pack_vnfd_obj = vnf_package_vnfd.VnfPackageVnfd(
-            context=self.context, **fakes.vnf_pack_vnfd_data(vnf_pack.id))
-        vnf_pack_vnfd_obj.create()
-        self.assertTrue(vnf_pack_vnfd_obj.id)
-
-    def test_create_with_id(self):
-        vnf_pack = vnf_package.VnfPackage(context=self.context,
-                                          **fakes.vnf_package_data)
-        vnf_pack.create()
-        vnf_pack_vnfd = {'id': uuidsentinel.id}
-
-        vnf_pack_vnfd_obj = vnf_package_vnfd.VnfPackageVnfd(
-            context=self.context, **vnf_pack_vnfd)
-        self.assertRaises(
-            exceptions.ObjectActionError,
-            vnf_pack_vnfd_obj.create)
-
-    def test_get_by_id(self):
-        vnf_pack = vnf_package.VnfPackage(context=self.context,
-                                          **fakes.vnf_package_data)
-        vnf_pack.create()
-        vnf_pack_vnfd_obj = vnf_package_vnfd.VnfPackageVnfd(
-            context=self.context, **fakes.vnf_pack_vnfd_data(vnf_pack.id))
-        vnf_pack_vnfd_obj.create()
-        vnf_package_vnfd_obj = vnf_package_vnfd.VnfPackageVnfd()
-        result = vnf_package_vnfd_obj.get_by_id(
-            self.context, vnf_pack_vnfd_obj.vnfd_id)
+        vnf_pack_vnfd_data = fakes.vnf_pack_vnfd_data(vnf_pack.id)
+        vnf_pack_vnfd_data.update({'id': uuidsentinel.id})
+        result = vnf_package_vnfd._vnf_package_vnfd_create(
+            self.context, vnf_pack_vnfd_data)
+        self.assertTrue(result.id)
         self.assertEqual('test_provider', result.vnf_provider)
-        self.assertEqual('test_version', result.vnf_software_version)
+
+    def test_vnf_package_vnfd_get_by_id(self):
+        vnf_pack = vnf_package.VnfPackage(context=self.context,
+                                          **fakes.vnf_package_data)
+        vnf_pack.create()
+
+        vnf_pack_vnfd_obj = vnf_package_vnfd.VnfPackageVnfd(
+            context=self.context, **fakes.vnf_pack_vnfd_data(vnf_pack.id))
+        vnf_pack_vnfd_obj.create()
+        result = vnf_package_vnfd._vnf_package_vnfd_get_by_id(
+            self.context, vnf_pack_vnfd_obj.vnfd_id)
+        self.assertEqual(vnf_pack_vnfd_obj.id, result.id)
+        self.assertEqual(vnf_pack_vnfd_obj.vnf_provider, result.vnf_provider)

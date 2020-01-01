@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 import datetime
 
 import oslo_messaging as messaging
@@ -51,6 +52,10 @@ class TackerObject(ovoo_base.VersionedObject):
     # from one another.
     OBJ_SERIAL_NAMESPACE = 'tacker_object'
     OBJ_PROJECT_NAMESPACE = 'tacker'
+
+    def __init__(self, context=None, **kwargs):
+        super(TackerObject, self).__init__(context, **kwargs)
+        self.obj_set_defaults()
 
     def tacker_obj_get_changes(self):
         """Returns a dict of changed fields with tz unaware datetimes.
@@ -117,6 +122,15 @@ class TackerObject(ovoo_base.VersionedObject):
             self._changed_fields -= set(fields)
         else:
             self._changed_fields.clear()
+
+    @contextlib.contextmanager
+    def obj_alternate_context(self, context):
+        original_context = self._context
+        self._context = context
+        try:
+            yield
+        finally:
+            self._context = original_context
 
 
 class TackerObjectSerializer(messaging.NoOpSerializer):

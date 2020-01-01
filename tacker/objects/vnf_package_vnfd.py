@@ -16,7 +16,9 @@ from oslo_db import exception as db_exc
 from oslo_utils import uuidutils
 
 from tacker.common import exceptions
+import tacker.context
 from tacker.db import api as db_api
+from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
 from tacker.objects import base
 from tacker.objects import fields
@@ -35,6 +37,26 @@ def _vnf_package_vnfd_create(context, values):
                 vnfd_id=values.get('vnfd_id'))
 
     return vnf_package_vnfd
+
+
+@db_api.context_manager.reader
+def _vnf_package_vnfd_get_by_id(context, vnfd_id):
+
+    query = api.model_query(context, models.VnfPackageVnfd,
+                            read_deleted="no", project_only=False). \
+        filter_by(vnfd_id=vnfd_id).\
+        join((models.VnfPackage, models.VnfPackage.id ==
+            models.VnfPackageVnfd.package_uuid))
+
+    if tacker.context.is_user_context(context):
+        query = query.filter(models.VnfPackage.tenant_id == context.project_id)
+
+    result = query.first()
+
+    if not result:
+        raise exceptions.VnfPackageVnfdNotFound(id=vnfd_id)
+
+    return result
 
 
 @base.TackerObjectRegistry.register
@@ -85,3 +107,8 @@ class VnfPackageVnfd(base.TackerObject, base.TackerObjectDictCompat,
     @classmethod
     def obj_from_db_obj(cls, context, db_obj):
         return cls._from_db_object(context, cls(), db_obj)
+
+    @base.remotable_classmethod
+    def get_by_id(cls, context, id):
+        db_vnf_package_vnfd = _vnf_package_vnfd_get_by_id(context, id)
+        return cls._from_db_object(context, cls(), db_vnf_package_vnfd)

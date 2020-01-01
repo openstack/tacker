@@ -29,3 +29,7 @@ def register_all():
     __import__('tacker.objects.vnf_package_vnfd')
     __import__('tacker.objects.vnf_deployment_flavour')
     __import__('tacker.objects.vnf_software_image')
+    __import__('tacker.objects.vnf_instance')
+    __import__('tacker.objects.vnf_instantiated_info')
+    __import__('tacker.objects.vim_connection')
+    __import__('tacker.objects.vnf_resources')
