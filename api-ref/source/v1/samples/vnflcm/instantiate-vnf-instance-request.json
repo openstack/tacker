@@ -1,0 +1,68 @@
+{
+  "flavourId": "simple",
+  "extVirtualLinks": [
+    {
+      "id": "ext-vl-uuid-VL1"
+      "resourceId": "991a1e07-e8a2-4e1b-b77d-3937177a5b7f",
+      "extCps": [
+        {
+          "cpdId": "CP2",
+          "cpConfig": [
+            {
+              "linkPortId": "1d868d02-ecd4-4402-8e6b-54e77ebdcc28",
+              "cpProtocolData": [
+                {
+                  "layerProtocol": "IP_OVER_ETHERNET"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "extLinkPorts": [
+        {
+          "id": "1d868d02-ecd4-4402-8e6b-54e77ebdcc28",
+          "resourceHandle": {
+            "resourceId": "109f5049-b51e-409a-9a99-d740ba5f3acb",
+            "vimLevelResourceType": "LINKPORT"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ext-vl-uuid-VL1",
+      "resourceId": "991a1e07-e8a2-4e1b-b77d-3937177a5b7f",
+      "extCps": [
+        {
+          "cpdId": "CP1",
+          "cpConfig": [
+            {
+              "cpProtocolData": [
+                {
+                  "layerProtocol": "IP_OVER_ETHERNET",
+                  "ipOverEthernet": {
+                     "macAddress": "fa:16:3e:22:17:05"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "extManagedVirtualLinks": [
+    {
+      "id": "extMngVLnk-uuid_VL3",
+      "vnfVirtualLinkDescId": "VL4",
+      "resourceId": "991a1e07-e8a2-4e1b-b77d-3937177a5b7f"
+    }
+  ],
+  "vimConnectionInfo": [
+    {
+      "id": "8a3adb69-0784-43c7-833e-aab0b6ab4470",
+      "vimId": "c576eb55-5bec-4881-a573-5b0f3a05c370",
+      "vimType": "openstack"
+    }
+  ]
+}
