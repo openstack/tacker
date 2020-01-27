@@ -149,12 +149,16 @@ function start_tacker {
     local service_port=$TACKER_PORT
     local service_protocol=$TACKER_PROTOCOL
 
-    # Start tacker conductor
-    run_process tacker-conductor "$TACKER_BIN_DIR/tacker-conductor $cfg_file_options"
     # Start the Tacker service
-    sudo cp $TACKER_DIR/etc/systemd/system/tacker.service /etc/systemd/system/devstack@tacker.service
+    sudo cp $TACKER_DIR/etc/systemd/system/tacker.service $SYSTEMD_DIR/devstack@tacker.service
+    iniset -sudo $SYSTEMD_DIR/devstack@tacker.service "Service" "User" $STACK_USER
     sudo systemctl enable devstack@tacker.service
     sudo systemctl restart devstack@tacker.service
+    # Start the Tacker conductor service
+    sudo cp $TACKER_DIR/etc/systemd/system/tacker-conductor.service $SYSTEMD_DIR/devstack@tacker-conductor.service
+    iniset -sudo $SYSTEMD_DIR/devstack@tacker-conductor.service "Service" "User" $STACK_USER
+    sudo systemctl enable devstack@tacker-conductor.service
+    sudo systemctl restart devstack@tacker-conductor.service
     echo "Waiting for Tacker to start..."
     if ! timeout $SERVICE_TIMEOUT sh -c "while ! wget --no-proxy -q -O- $service_protocol://$TACKER_HOST:$service_port; do sleep 1; done"; then
         die $LINENO "Tacker did not start"
