@@ -12,7 +12,6 @@
 #    under the License.
 
 import time
-import yaml
 
 from oslo_config import cfg
 from oslo_serialization import jsonutils
@@ -20,7 +19,6 @@ from oslo_serialization import jsonutils
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
-from tacker.tests.utils import read_file
 
 
 CONF = cfg.CONF
@@ -29,24 +27,10 @@ CONF = cfg.CONF
 class VnfTestToscaScale(base.BaseTackerTest):
 
     def test_vnf_tosca_scale(self):
-        input_yaml = read_file('sample-tosca-scale-all.yaml')
-        tosca_dict = yaml.safe_load(input_yaml)
-        vnfd_name = 'test_tosca_vnf_scale_all'
-        tosca_arg = {'vnfd': {'name': vnfd_name,
-                              'attributes': {'vnfd': tosca_dict}}}
-
-        # Create vnfd with tosca template
-        vnfd_instance = self.client.create_vnfd(body=tosca_arg)
-        self.assertIsNotNone(vnfd_instance)
-
-        # Create vnf with vnfd_id
-        vnfd_id = vnfd_instance['vnfd']['id']
         vnf_name = 'test_tosca_vnf_scale_all'
-        vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
-        vnf_instance = self.client.create_vnf(body=vnf_arg)
-
-        self.validate_vnf_instance(vnfd_instance, vnf_instance)
-
+        vnfd_file = 'sample-tosca-scale-all.yaml'
+        vnfd_instance, vnf_instance, tosca_dict = self.vnfd_and_vnf_create(
+            vnfd_file, vnf_name)
         vnf_id = vnf_instance['vnf']['id']
 
         # TODO(kanagaraj-manickam) once load-balancer support is enabled,
@@ -101,7 +85,6 @@ class VnfTestToscaScale(base.BaseTackerTest):
         except Exception:
             assert False, "vnf Delete failed"
 
-        # Delete vnfd_instance
-        self.addCleanup(self.client.delete_vnfd, vnfd_id)
+        # Wait for delete vnf_instance
         self.addCleanup(self.wait_until_vnf_delete, vnf_id,
                         constants.VNF_CIRROS_DELETE_TIMEOUT)
