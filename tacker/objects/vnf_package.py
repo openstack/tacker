@@ -216,7 +216,7 @@ def _destroy_vnf_package(context, package_uuid):
         update(updated_values, synchronize_session=False)
     api.model_query(context, models.VnfPackageVnfd). \
         filter_by(package_uuid=package_uuid). \
-        update(updated_values, synchronize_session=False)
+        soft_delete(synchronize_session=False)
     api.model_query(context, models.VnfPackage).\
         filter_by(id=package_uuid). \
         update(updated_values, synchronize_session=False)

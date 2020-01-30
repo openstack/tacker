@@ -14,7 +14,9 @@
 #    under the License.
 
 from oslo_db.sqlalchemy import models
+from oslo_utils import timeutils
 import sqlalchemy as sa
+from sqlalchemy import DateTime
 from sqlalchemy import orm
 
 from tacker.db import model_base
@@ -96,11 +98,27 @@ class VnfDeploymentFlavour(model_base.BASE, models.SoftDeleteMixin,
                                       'VnfSoftwareImage.deleted == 0)')
 
 
-class VnfPackageVnfd(model_base.BASE, models.SoftDeleteMixin,
+class VnfPackageVnfdSoftDeleteMixin(object):
+    deleted_at = sa.Column(DateTime)
+    deleted = sa.Column(sa.String(36), default='0')
+
+    def soft_delete(self, session):
+        """Mark this object as deleted."""
+        self.deleted = self.id
+        self.deleted_at = timeutils.utcnow()
+        self.save(session=session)
+
+
+class VnfPackageVnfd(model_base.BASE, VnfPackageVnfdSoftDeleteMixin,
                   models.TimestampMixin, models_v1.HasId):
     """Contains all info about vnf packages VNFD."""
 
     __tablename__ = 'vnf_package_vnfd'
+    __table_args__ = (
+        sa.schema.UniqueConstraint("vnfd_id", "deleted",
+            name="uniq_vnf_package_vnfd0vnfd_id0deleted"),
+    )
+
     package_uuid = sa.Column(sa.String(36),
                              sa.ForeignKey('vnf_packages.id'),
                              nullable=False)
