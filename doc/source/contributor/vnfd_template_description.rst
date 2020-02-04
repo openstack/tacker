@@ -110,10 +110,15 @@ a VNFD, **flavor** setting will take precedence.
 
 Monitoring the VDU
 """"""""""""""""""
-A VDU can be monitored by pinging it on port 22 for 3 times at an interval of
-2 seconds every 20 seconds. Number of retries be 6 and timeout of 2 seconds.
-It can be re-spawned in case ping fails. This is described under
-**monitoring_policy**.
+
+A VDU can be monitored by pinging it. The following VNFD pings VDU1 with
+3 ECHO packet counts, 0.2 second intervals and 2 second timeout options
+per monitoring trigger. Ping is attempted up to 6 times unless it
+returns an exit code 0. On VDU2, Tacker tries to open
+http://<VDU2_mgmt_ip>:80 with 2 second timeout and 6 retries. Both VDUs
+have 20 second delay time from creation or respawning to start
+monitoring. The VDUs can be re-spawned in case of failure. See
+:doc:`monitor-api` for more information.
 
 ::
 
@@ -123,15 +128,27 @@ It can be re-spawned in case ping fails. This is described under
         properties:
           monitoring_policy:
             name: ping
-              parameters:
-                monitoring_delay: 20
-                count: 3
-                interval: 2
-                timeout: 2
-                actions:
-                  failure: respawn
-                retry: 6
-                port: 22
+            parameters:
+              monitoring_delay: 20
+              count: 3
+              interval: 0.2
+              timeout: 2
+              retry: 6
+            actions:
+              failure: respawn
+
+      VDU2:
+        type: tosca.nodes.nfv.VDU.Tacker
+        properties:
+          monitoring_policy:
+            name: http-ping
+            parameters:
+              monitoring_delay: 20
+              timeout: 2
+              retry: 6
+              port: 80
+            actions:
+              failure: respawn
 
 Providing user data
 """""""""""""""""""

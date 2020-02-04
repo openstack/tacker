@@ -25,12 +25,14 @@ from tacker.vnfm.monitor_drivers import abstract_driver
 
 LOG = logging.getLogger(__name__)
 OPTS = [
-    cfg.StrOpt('count', default='1',
+    cfg.IntOpt('count', default=5,
                help=_('Number of ICMP packets to send')),
-    cfg.StrOpt('timeout', default='1',
+    cfg.FloatOpt('timeout', default=5,
                help=_('Number of seconds to wait for a response')),
-    cfg.StrOpt('interval', default='1',
-               help=_('Number of seconds to wait between packets'))
+    cfg.FloatOpt('interval', default=1,
+               help=_('Number of seconds to wait between packets')),
+    cfg.IntOpt('retry', default=1,
+               help=_('Number of ping retries'))
 ]
 cfg.CONF.register_opts(OPTS, 'monitor_ping')
 
@@ -53,12 +55,12 @@ class VNFMonitorPing(abstract_driver.VNFMonitorAbstractDriver):
         LOG.debug('monitor_url %s', vnf)
         return vnf.get('monitor_url', '')
 
-    def _is_pingable(self, mgmt_ip="", count=5, timeout=1, interval='0.2',
-                     **kwargs):
+    def _is_pingable(self, mgmt_ip="", count=None, timeout=None,
+                     interval=None, retry=None, **kwargs):
         """Checks whether an IP address is reachable by pinging.
 
         Use linux utils to execute the ping (ICMP ECHO) command.
-        Sends 5 packets with an interval of 0.2 seconds and timeout of 1
+        Sends 5 packets with an interval of 1 seconds and timeout of 1
         seconds. Runtime error implies unreachability else IP is pingable.
         :param ip: IP to check
         :return: bool - True or string 'failure' depending on pingability.
@@ -67,18 +69,28 @@ class VNFMonitorPing(abstract_driver.VNFMonitorAbstractDriver):
         if netaddr.valid_ipv6(mgmt_ip):
             cmd_ping = 'ping6'
 
+        if not count:
+            count = cfg.CONF.monitor_ping.count
+        if not timeout:
+            timeout = cfg.CONF.monitor_ping.timeout
+        if not interval:
+            interval = cfg.CONF.monitor_ping.interval
+        if not retry:
+            retry = cfg.CONF.monitor_ping.retry
+
         ping_cmd = [cmd_ping,
                     '-c', count,
                     '-W', timeout,
                     '-i', interval,
                     mgmt_ip]
 
-        try:
-            linux_utils.execute(ping_cmd, check_exit_code=True)
-            return True
-        except RuntimeError:
-            LOG.warning("Cannot ping ip address: %s", mgmt_ip)
-            return 'failure'
+        for retry_range in range(int(retry)):
+            try:
+                linux_utils.execute(ping_cmd, check_exit_code=True)
+                return True
+            except RuntimeError:
+                LOG.warning("Cannot ping ip address: %s", mgmt_ip)
+        return 'failure'
 
     @log.log
     def monitor_call(self, vnf, kwargs):

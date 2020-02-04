@@ -32,8 +32,8 @@ class TestVNFMonitorPing(testtools.TestCase):
         }
         mock_ping_cmd = ['ping',
                          '-c', 5,
-                         '-W', 1,
-                         '-i', '0.2',
+                         '-W', 5.0,
+                         '-i', 1.0,
                          'a.b.c.d']
         self.monitor_ping.monitor_call(test_vnf,
                                        test_kwargs)
@@ -59,3 +59,39 @@ class TestVNFMonitorPing(testtools.TestCase):
                                                          mock.ANY,
                                                          test_vnf)
         self.assertEqual('a.b.c.d', test_monitor_url)
+
+    @mock.patch('tacker.agent.linux.utils.execute')
+    def test_monitor_call_with_params(self, mock_utils_execute):
+        check_ping_counts = 2
+        check_ping_timeout = 5.0
+        check_ping_interval = 0.5
+        test_vnf = {}
+        test_kwargs = {
+            'mgmt_ip': 'a:b:c:d:e:f:1:2',
+            'count': check_ping_counts,
+            'timeout': check_ping_timeout,
+            'interval': check_ping_interval
+        }
+        mock_ping_cmd = ['ping6',
+                         '-c', check_ping_counts,
+                         '-W', check_ping_timeout,
+                         '-i', check_ping_interval,
+                         'a:b:c:d:e:f:1:2']
+        self.monitor_ping.monitor_call(test_vnf,
+                                       test_kwargs)
+        mock_utils_execute.assert_called_once_with(mock_ping_cmd,
+                                                   check_exit_code=True)
+
+    @mock.patch('tacker.agent.linux.utils.execute')
+    def test_monitor_call_for_counts(self, mock_utils_execute):
+        check_retury_counts = 5
+        mock_utils_execute.side_effect = RuntimeError()
+        test_vnf = {}
+        test_kwargs = {
+            'mgmt_ip': 'a:b:c:d:e:f:1:2',
+            'retry': check_retury_counts
+        }
+        self.monitor_ping.monitor_call(test_vnf,
+                                       test_kwargs)
+        self.assertEqual(check_retury_counts,
+                         mock_utils_execute.call_count)

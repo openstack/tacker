@@ -52,10 +52,13 @@ Following methods need to be overridden in the new driver:
     This method must return the url of vnf to monitor.
 
 ``def monitor_call(self, vnf, kwargs)``
-    This method must either return boolean value 'True', if VNF is healthy.
-    Otherwise it should return an event string like 'failure' or
-    'calls-capacity-reached' based on specific VNF health condition. More
-    details on these event is given in below section.
+    This method is called cyclically each time a monitoring is
+    triggered. **kwagrs** is a dict object given under **parameters** in
+    the target VDU template. This method must either return boolean
+    value 'True', if VNF is healthy. Otherwise it should return an event
+    string like 'failure' or 'calls-capacity-reached' based on specific
+    VNF health condition. More details on these event is given in below
+    section.
 
 Custom events
 --------------
@@ -67,13 +70,15 @@ For example:
 
 ::
 
-  vdu1:
-    monitoring_policy:
-      ping:
+  VDU1:
+    properties:
+      ...
+      monitoring_policy:
+        name: ping
         actions:
           failure: respawn
 
-In this  example, we have an event called 'failure'. So whenever monitor_call
+In this example, we have an event called 'failure'. So whenever monitor_call
 returns 'failure' tacker will respawn the VNF.
 
 
@@ -85,31 +90,32 @@ occurs.
 #. respawn
     In case of OpenStack VIM, when any VDU monitoring fails, it will delete
     the entire VNF and create a new one.
-#. log
 #. vdu_autoheal
     In case of OpenStack VIM, when any VDU monitoring fails, it will delete
     only that specific VDU resource and create a new one alone with it's
     dependent resources like CP.
+#. log
+#. log_and_kill
 
 How to write TOSCA template to monitor VNF entities
 ----------------------------------------------------
 
-In the vdus section, under vdu you can specify the monitors details with
-corresponding actions and parameters.The syntax for writing monitor policy
-is as follows:
+In the vdus section, you can specify the monitor details with
+corresponding actions and parameters. The syntax for writing monitor
+policy is as follows:
 
 ::
 
   vduN:
-    monitoring_policy:
-      <monitoring-driver-name>:
-        monitoring_params:
+    properties:
+      ...
+      monitoring_policy:
+        name: <monitoring-driver-name>:
+        parameters:
           <param-name>: <param-value>
           ...
         actions:
-          <event>: <action-name>
-          ...
-      ...
+          <event-name>: <action-name>
 
 
 Example Template
@@ -117,32 +123,32 @@ Example Template
 
 ::
 
-  vdu1:
-    monitoring_policy:
-      ping:
+  VDU1:
+    properties:
+      ...
+      monitoring_policy:
+        name: ping
         actions:
           failure: respawn
 
-  vdu2:
-    monitoring_policy:
-      http-ping:
-        monitoring_params:
+  VDU2:
+    properties:
+      ...
+      monitoring_policy:
+        name: http-ping
+        parameters:
           port: 8080
-          url: ping.cgi
-        actions:
-          failure: respawn
-
-    vdu_scaling_driver:
-      monitoring_params:
-        resource: cpu
-        threshold: 10000
-      actions:
-        max_foo_reached: scale_up
-        min_foo_reached: scale_down
-
-  vdu3:
-    monitoring_policy:
-      ping:
         actions:
           failure: vdu_autoheal
 
+  VDU3:
+    properties:
+      ...
+      monitoring_policy:
+        name: <your-driver-name>
+        parameters:
+          <param1>: <value1>
+          <param2>: <value2>
+        actions:
+          <event1>: <action>
+          <event2>: <action>
