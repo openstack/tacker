@@ -376,7 +376,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                       'so delete this vnf',
                       vnf_dict['id'])
             with excutils.save_and_reraise_exception():
-                self.delete_vnf(context, vnf_id)
+                self._delete_vnf(context, vnf_id, force_delete=True)
 
         vnf_dict['instance_id'] = instance_id
         return vnf_dict
@@ -621,15 +621,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         self.mgmt_delete_post(context, vnf_dict)
         self._delete_vnf_post(context, vnf_dict, e)
 
-    def delete_vnf(self, context, vnf_id, vnf=None):
+    def _delete_vnf(self, context, vnf_id, force_delete=False):
 
-        # Extract "force_delete" from request's body
-        force_delete = False
-        if vnf and vnf['vnf'].get('attributes').get('force'):
-            force_delete = vnf['vnf'].get('attributes').get('force')
-        if force_delete and not context.is_admin:
-            LOG.warning("force delete is admin only operation")
-            raise exceptions.AdminRequired(reason="Admin only operation")
         vnf_dict = self._delete_vnf_pre(context, vnf_id,
                                         force_delete=force_delete)
         driver_name, vim_auth = self._get_infra_driver(context, vnf_dict)
@@ -672,6 +665,18 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         else:
             self.spawn_n(self._delete_vnf_wait, context, vnf_dict, vim_auth,
                          driver_name)
+
+    def delete_vnf(self, context, vnf_id, vnf=None):
+
+        # Extract "force_delete" from request's body
+        force_delete = False
+        if vnf and vnf['vnf'].get('attributes').get('force'):
+            force_delete = vnf['vnf'].get('attributes').get('force')
+        if force_delete and not context.is_admin:
+            LOG.warning("force delete is admin only operation")
+            raise exceptions.AdminRequired(reason="Admin only operation")
+
+        self._delete_vnf(context, vnf_id, force_delete=force_delete)
 
     def _handle_vnf_scaling(self, context, policy):
         # validate

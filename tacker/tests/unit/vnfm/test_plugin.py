@@ -15,6 +15,7 @@
 
 from datetime import datetime
 
+import ddt
 import mock
 from mock import patch
 from oslo_utils import uuidutils
@@ -131,6 +132,7 @@ class TestVNFMPluginMonitor(db_base.SqlTestCase):
         self.assertEqual(1, len(hosting_vnfs))
 
 
+@ddt.ddt
 class TestVNFMPlugin(db_base.SqlTestCase):
     def setUp(self):
         super(TestVNFMPlugin, self).setUp()
@@ -254,7 +256,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         session.flush()
         return vnfd_attr
 
-    def _insert_dummy_vnf(self):
+    def _insert_dummy_vnf(self, status="ACTIVE"):
         session = self.context.session
         vnf_db = vnfm_db.VNF(
             id='6261579e-d6f3-49ad-8bc3-a9cb974778fe',
@@ -265,13 +267,13 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             vnfd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             placement_attr={'region': 'RegionOne'},
-            status='ACTIVE',
+            status=status,
             deleted_at=datetime.min)
         session.add(vnf_db)
         session.flush()
         return vnf_db
 
-    def _insert_dummy_pending_vnf(self, context):
+    def _insert_dummy_pending_vnf(self, context, status='PENDING_DELETE'):
         session = context.session
         vnf_db = vnfm_db.VNF(
             id='6261579e-d6f3-49ad-8bc3-a9cb974778fe',
@@ -282,7 +284,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             vnfd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             placement_attr={'region': 'RegionOne'},
-            status='PENDING_DELETE',
+            status=status,
             deleted_at=datetime.min)
         session.add(vnf_db)
         session.flush()
@@ -510,7 +512,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                           self.vnfm_plugin.create_vnf,
                           self.context, vnf_obj)
 
-    @patch('tacker.vnfm.plugin.VNFMPlugin.delete_vnf')
+    @patch('tacker.vnfm.plugin.VNFMPlugin._delete_vnf')
     def test_create_vnf_fail(self, mock_delete_vnf):
         self._insert_dummy_vnf_template()
         vnf_obj = utils.get_dummy_vnf_obj()
@@ -518,8 +520,9 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertRaises(vnfm.HeatClientException,
                           self.vnfm_plugin.create_vnf,
                           self.context, vnf_obj)
-        vnf_id = self.vnfm_plugin.delete_vnf.call_args[0][1]
-        mock_delete_vnf.assert_called_once_with(self.context, vnf_id)
+        vnf_id = self.vnfm_plugin._delete_vnf.call_args[0][1]
+        mock_delete_vnf.assert_called_once_with(self.context, vnf_id,
+                                                force_delete=True)
 
     def test_create_vnf_create_wait_failed_exception(self):
         self._insert_dummy_vnf_template()
@@ -610,9 +613,10 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                           self.context,
                           dummy_vnf_obj['id'])
 
-    def test_force_delete_vnf(self):
+    @ddt.data('PENDING_DELETE', 'PENDING_CREATE')
+    def test_force_delete_vnf(self, status):
         self._insert_dummy_vnf_template()
-        dummy_vnf_obj = self._insert_dummy_pending_vnf(self.context)
+        dummy_vnf_obj = self._insert_dummy_pending_vnf(self.context, status)
         vnfattr = {'vnf': {'attributes': {'force': True}}}
         self.vnfm_plugin.delete_vnf(self.context, dummy_vnf_obj[
             'id'], vnf=vnfattr)
@@ -624,7 +628,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_DELETE, res_id=mock.ANY,
             res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
-            tstamp=mock.ANY, details=mock.ANY)
+            tstamp=mock.ANY, details="VNF Delete Complete")
 
     def test_force_delete_vnf_non_admin(self):
         self._insert_dummy_vnf_template()
@@ -666,6 +670,14 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         mock_set_vnf_error_status_reason.assert_called_once_with(self.context,
                                                                  mock.ANY,
                                                                  mock.ANY)
+
+    def test_delete_vnf_failed_with_status_pending_create(self):
+        self._insert_dummy_vnf_template()
+        dummy_device_obj_with_pending_create_status = self. \
+            _insert_dummy_vnf(status="PENDING_CREATE")
+        self.assertRaises(vnfm.VNFInUse, self.vnfm_plugin.delete_vnf,
+                          self.context,
+                          dummy_device_obj_with_pending_create_status['id'])
 
     def _insert_dummy_ns_template(self):
         session = self.context.session
