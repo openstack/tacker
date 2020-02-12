@@ -161,6 +161,11 @@ Delete VNF Package
 
 Deletes a given VNF Package.
 
+**Preconditions**
+
+The vnf package ``operationalState`` value must be ``DISABLED`` and it's
+``usageState`` value must be ``NOT_IN_USE``.
+
 Response Codes
 --------------
 
@@ -173,6 +178,7 @@ Response Codes
   - 401
   - 403
   - 404
+  - 409
 
 Request Parameters
 ------------------

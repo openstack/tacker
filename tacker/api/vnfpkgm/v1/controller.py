@@ -102,7 +102,8 @@ class VnfPkgmController(wsgi.Controller):
         return self._view_builder.index(request, vnf_packages)
 
     @wsgi.response(http_client.NO_CONTENT)
-    @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
+    @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,
+                           http_client.CONFLICT))
     def delete(self, request, id):
         context = request.environ['tacker.context']
         context.can(vnf_package_policies.VNFPKGM % 'delete')
@@ -119,13 +120,18 @@ class VnfPkgmController(wsgi.Controller):
             msg = _("Can not find requested vnf package: %s") % id
             raise webob.exc.HTTPNotFound(explanation=msg)
 
-        if vnf_package.operational_state == \
-                fields.PackageUsageStateType.IN_USE:
-            msg = _("VNF Package %(id)s usage state is %(state)s")
+        if (vnf_package.operational_state ==
+                fields.PackageOperationalStateType.ENABLED or
+                vnf_package.usage_state ==
+                fields.PackageUsageStateType.IN_USE):
+            msg = _("VNF Package %(id)s cannot be deleted as it's "
+                    "operational state is %(operational_state)s and usage "
+                    "state is %(usage_state)s.")
             raise webob.exc.HTTPConflict(
                 explanation=msg % {
                     "id": id,
-                    "state": fields.PackageOperationalStateType.ENABLED})
+                    "operational_state": vnf_package.operational_state,
+                    "usage_state": vnf_package.usage_state})
 
         # Delete vnf_package
         self.rpc_api.delete_vnf_package(context, vnf_package)

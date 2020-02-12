@@ -22,6 +22,8 @@ from webob import exc
 from tacker.api.vnfpkgm.v1 import controller
 from tacker.conductor.conductorrpc.vnf_pkgm_rpc import VNFPackageRPCAPI
 from tacker.glance_store import store as glance_store
+from tacker import objects
+from tacker.objects import fields
 from tacker.objects import vnf_package
 from tacker.objects.vnf_package import VnfPackagesList
 from tacker.tests import constants
@@ -120,6 +122,30 @@ class TestController(base.TestCase):
             '/vnfpkgm/v1/vnf_packages/%s' % constants.INVALID_UUID)
         self.assertRaises(exc.HTTPNotFound, self.controller.delete,
                           req, constants.INVALID_UUID)
+
+    @mock.patch.object(objects.VnfPackage, "get_by_id")
+    def test_delete_with_operational_state_enabled(self, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnfpkgm/v1/vnf_packages/%s' % constants.UUID)
+        vnf_package_dict = fakes.fake_vnf_package()
+        vnf_package_dict['operational_state'] = \
+            fields.PackageOperationalStateType.ENABLED
+        vnf_package = objects.VnfPackage(**vnf_package_dict)
+        mock_vnf_by_id.return_value = vnf_package
+        self.assertRaises(exc.HTTPConflict, self.controller.delete,
+                          req, constants.UUID)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_delete_with_usage_state_in_use(self, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnfpkgm/v1/vnf_packages/%s' % constants.UUID)
+        vnf_package_dict = fakes.fake_vnf_package()
+        vnf_package_dict['usage_state'] = \
+            fields.PackageUsageStateType.IN_USE
+        vnf_package = objects.VnfPackage(**vnf_package_dict)
+        mock_vnf_by_id.return_value = vnf_package
+        self.assertRaises(exc.HTTPConflict, self.controller.delete,
+                          req, constants.UUID)
 
     @mock.patch.object(glance_store, 'store_csar')
     @mock.patch.object(VNFPackageRPCAPI, "upload_vnf_package_content")
