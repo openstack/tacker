@@ -30,9 +30,15 @@ def _get_template(name):
     return f.read()
 
 tosca_vnfd_openwrt = _get_template('test_tosca_openwrt.yaml')
+tosca_vnfd_openwrt_param = _get_template('test_tosca_openwrt_param.yaml')
 tosca_invalid_vnfd = _get_template('test_tosca_parser_failure.yaml')
 config_data = _get_template('config_data.yaml')
 update_config_data = _get_template('update_config_data.yaml')
+hot_data = _get_template('hot_data.yaml')
+param_data = _get_template('param_data.yaml')
+update_param_data = _get_template('update_param_data.yaml')
+update_invalid_param_data = _get_template('update_invalid_param_data.yaml')
+update_new_param_data = _get_template('update_new_param_data.yaml')
 vnffg_params = _get_template('vnffg_params.yaml')
 vnffg_multi_params = _get_template('vnffg_multi_params.yaml')
 vnffgd_template = yaml.safe_load(_get_template('vnffgd_template.yaml'))
@@ -129,6 +135,24 @@ def get_dummy_vnf_config_obj():
         'config': {'firewall': 'dummy_firewall_values'}}}}}}}
 
 
+def get_dummy_vnf_invalid_config_type_obj():
+    return {'vnf': {u'attributes': {u'config': 'dummy_config'}}}
+
+
+def get_dummy_vnf_invalid_param_content():
+    return {'vnf': {u'attributes': {u'param_values': {}}}}
+
+
+def get_dummy_vnf_param_obj():
+    return {'vnf': {u'attributes': {u'param_values':
+        {'flavor': 'm1.tiny',
+         'reservation_id': '99999999-3925-4c9e-9074-239a902b68d7'}}}}
+
+
+def get_dummy_vnf_invalid_param_type_obj():
+    return {'vnf': {u'attributes': {u'param_values': 'dummy_param'}}}
+
+
 def get_dummy_vnf(status='PENDING_CREATE', scaling_group=False,
                   instance_id=None):
     dummy_vnf = {'status': status, 'instance_id': instance_id, 'name':
@@ -172,8 +196,43 @@ def get_dummy_vnf_config_attr():
             'description': u'OpenWRT with services'}
 
 
+def get_dummy_vnf_param_attr():
+    return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
+        u'test_openwrt', 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+        'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+        'vnfd': {'service_types': [{'service_type': u'vnfd',
+            'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
+            'description': u'OpenWRT with services',
+            'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+            'mgmt_driver': u'openwrt',
+            'attributes': {u'vnfd': tosca_vnfd_openwrt_param},
+            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
+            'name': u'openwrt_services'},
+        'mgmt_url': None, 'service_context': [],
+        'attributes': {'heat_template': hot_data,
+                       'param_values': param_data},
+        'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
+        'description': u'OpenWRT with services'}
+
+
 def get_dummy_vnf_update_config():
     return {'vnf': {'attributes': {'config': update_config_data}}}
+
+
+def get_dummy_vnf_update_param():
+    return {'vnf': {'attributes': {'param_values': update_param_data}}}
+
+
+def get_dummy_vnf_update_new_param():
+    return {'vnf': {'attributes': {'param_values': update_new_param_data}}}
+
+
+def get_dummy_vnf_update_invalid_param():
+    return {'vnf': {'attributes': {'param_values': update_invalid_param_data}}}
+
+
+def get_dummy_vnf_update_empty_param():
+    return {'vnf': {'attributes': {'param_values': {}}}}
 
 
 def get_vim_obj():

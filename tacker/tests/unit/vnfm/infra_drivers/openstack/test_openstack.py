@@ -105,6 +105,7 @@ class TestOpenStack(base.TestCase):
     hot_param_template = _get_template('hot_openwrt_params.yaml')
     hot_ipparam_template = _get_template('hot_openwrt_ipparams.yaml')
     tosca_vnfd_openwrt = _get_template('test_tosca_openwrt.yaml')
+    tosca_vnfd_openwrt_param = _get_template('test_tosca_openwrt_param.yaml')
     config_data = _get_template('config_data.yaml')
 
     def setUp(self):
@@ -196,6 +197,40 @@ class TestOpenStack(base.TestCase):
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123', 'description':
                 u'OpenWRT with services'}
 
+    def _get_expected_vnf_update_param_obj(self):
+        return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
+            u'test_openwrt', 'tenant_id':
+        u'ad7ebc56538745a08ef7c5e97f8bd437', 'vnfd_id':
+        u'eb094833-995e-49f0-a047-dfb56aaf7c4e', 'vnfd': {
+            'service_types': [{'service_type': u'vnfd', 'id':
+            u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}], 'description':
+            u'OpenWRT with services', 'tenant_id':
+            u'ad7ebc56538745a08ef7c5e97f8bd437', 'mgmt_driver': u'openwrt',
+            'attributes': {u'vnfd': self.tosca_vnfd_openwrt_param},
+            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
+            u'openwrt_services'}, 'mgmt_url': None, 'service_context': [],
+            'attributes': {'heat_template': utils.hot_data,
+                           'param_values': utils.update_param_data},
+            'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123', 'description':
+                u'OpenWRT with services'}
+
+    def _get_expected_vnf_update_new_param_obj(self):
+        return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
+            u'test_openwrt', 'tenant_id':
+        u'ad7ebc56538745a08ef7c5e97f8bd437', 'vnfd_id':
+        u'eb094833-995e-49f0-a047-dfb56aaf7c4e', 'vnfd': {
+            'service_types': [{'service_type': u'vnfd', 'id':
+            u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}], 'description':
+            u'OpenWRT with services', 'tenant_id':
+            u'ad7ebc56538745a08ef7c5e97f8bd437', 'mgmt_driver': u'openwrt',
+            'attributes': {u'vnfd': self.tosca_vnfd_openwrt_param},
+            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
+            u'openwrt_services'}, 'mgmt_url': None, 'service_context': [],
+            'attributes': {'heat_template': utils.hot_data,
+                           'param_values': utils.update_new_param_data},
+            'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123', 'description':
+                u'OpenWRT with services'}
+
     def _get_expected_active_vnf(self):
         return {'status': 'ACTIVE',
                 'instance_id': None,
@@ -258,6 +293,51 @@ class TestOpenStack(base.TestCase):
                           mock.ANY)
         mock_log.error.assert_called_with(
             "VNF '%s' failed to heal", vnf_dict['id'])
+
+    def test_update_new_param(self):
+        vnf_obj = utils.get_dummy_vnf_param_attr()
+        vnf_param_obj = utils.get_dummy_vnf_update_new_param()
+        expected_vnf_update = self._get_expected_vnf_update_new_param_obj()
+        vnf_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
+        self.infra_driver.update(plugin=None, context=self.context,
+                                 vnf_id=vnf_id, vnf_dict=vnf_obj,
+                                 vnf=vnf_param_obj,
+                                 auth_attr=utils.get_vim_auth_obj())
+        expected_vnf_update['attributes']['param_values'] = yaml.safe_load(
+            expected_vnf_update['attributes']['param_values'])
+        vnf_obj['attributes']['param_values'] = yaml.safe_load(
+            vnf_obj['attributes']['param_values'])
+        self.assertEqual(expected_vnf_update, vnf_obj)
+
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack.LOG')
+    def test_update_invalid_param(self, mock_log):
+        vnf_obj = utils.get_dummy_vnf_param_attr()
+        vnf_param_obj = utils.get_dummy_vnf_update_invalid_param()
+        vnf_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
+        self.assertRaises(vnfm.VNFUpdateInvalidInput,
+                          self.infra_driver.update,
+                          plugin=None, context=self.context,
+                          vnf_id=vnf_id, vnf_dict=vnf_obj,
+                          vnf=vnf_param_obj,
+                          auth_attr=utils.get_vim_auth_obj())
+        log_msg = "at vnf_id {} because all parameters "\
+                  "match the existing one.".format(vnf_id)
+        mock_log.warning.assert_called_with(log_msg)
+
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack.LOG')
+    def test_update_empty_param(self, mock_log):
+        vnf_obj = utils.get_dummy_vnf_param_attr()
+        vnf_param_obj = utils.get_dummy_vnf_update_empty_param()
+        vnf_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
+        self.assertRaises(vnfm.VNFUpdateInvalidInput,
+                          self.infra_driver.update,
+                          plugin=None, context=self.context,
+                          vnf_id=vnf_id, vnf_dict=vnf_obj,
+                          vnf=vnf_param_obj,
+                          auth_attr=utils.get_vim_auth_obj())
+        log_msg = "at vnf_id {} because the target "\
+                  "yaml is empty.".format(vnf_id)
+        mock_log.warning.assert_called_with(log_msg)
 
     def _get_expected_fields_tosca(self, template):
         return {'stack_name':

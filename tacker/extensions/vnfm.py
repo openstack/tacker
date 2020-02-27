@@ -64,6 +64,10 @@ class VNFCreateFailed(exceptions.TackerException):
     message = _('creating VNF based on %(vnfd_id)s failed')
 
 
+class VNFUpdateInvalidInput(exceptions.TackerException):
+    message = _('VNF Update Invalid Input %(reason)s')
+
+
 class VNFUpdateWaitFailed(exceptions.TackerException):
     message = _('VNF Update %(reason)s')
 

@@ -115,6 +115,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
 
     Plugin which supports Tacker framework
     """
+
     OPTS_INFRA_DRIVER = [
         cfg.ListOpt(
             'infra_driver', default=['noop', 'openstack', 'kubernetes'],
@@ -532,6 +533,17 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 vnf_attributes['config'] = yaml.safe_dump(config)
             else:
                 raise vnfm.InvalidAPIAttributeType(atype=type(config))
+
+        if vnf_attributes.get('param_values'):
+            param = vnf_attributes['param_values']
+            if isinstance(param, dict):
+                # TODO(sripriya) remove this yaml dump once db supports storing
+                # json format of yaml files in a separate column instead of
+                #  key value string pairs in vnf attributes table
+                vnf_attributes['param_values'] = yaml.safe_dump(param)
+            else:
+                raise vnfm.InvalidAPIAttributeType(atype=type(param))
+
         vnf_dict = self._update_vnf_pre(context, vnf_id,
                                         constants.PENDING_UPDATE)
         driver_name, vim_auth = self._get_infra_driver(context, vnf_dict)
@@ -543,6 +555,13 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 driver_name, 'update', plugin=self, context=context,
                 vnf_id=instance_id, vnf_dict=vnf_dict,
                 vnf=vnf, auth_attr=vim_auth)
+        except vnfm.VNFUpdateInvalidInput:
+            with excutils.save_and_reraise_exception():
+                vnf_dict['status'] = constants.ACTIVE
+                self._update_vnf_post(context, vnf_id,
+                                      constants.ACTIVE,
+                                      vnf_dict, constants.PENDING_UPDATE,
+                                      constants.RES_EVT_UPDATE)
         except Exception as e:
             with excutils.save_and_reraise_exception():
                 vnf_dict['status'] = constants.ERROR

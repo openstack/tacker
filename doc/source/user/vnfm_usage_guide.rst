@@ -19,8 +19,8 @@ VNF Manager User Guide
 ======================
 
 Tacker VNF Manager (VNFM) component manages the life-cycle of a Virtual Network
-Function (VNF). VNFM takes care of deployment, monitoring, scaling and removal
-of VNFs on a Virtual Infrastructure Manager (VIM).
+Function (VNF). VNFM takes care of deployment, monitoring, updating, scaling
+and removal of VNFs on a Virtual Infrastructure Manager (VIM).
 
 
 Onboarding VNF
@@ -120,6 +120,19 @@ Status of various VNFM resources can be checked by following commands.
    openstack vnf show <VNF_ID>
    openstack vnf descriptor show <VNFD_ID>
 
+..
+
+Updating VNF
+============
+
+VNFs can be updated as shown below.
+--config, --config-file and --param-file can not be specified together.
+
+.. code-block:: console
+
+   openstack vnf set --config <CONFIG-DATA> <VNF_ID/NAME>
+   openstack vnf set --config-file <CONFIG-FILE-NAME> <VNF_ID/NAME>
+   openstack vnf set --param-file <PARAMETER-FILE-NAME> <VNF_ID/NAME>
 ..
 
 Deleting VNF and VNFD

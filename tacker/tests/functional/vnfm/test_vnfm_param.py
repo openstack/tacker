@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
 import unittest
 import yaml
 
@@ -85,6 +86,48 @@ class VnfmTestParam(base.BaseTackerTest):
 
         return vnf_instance, param_values_dict
 
+    def _test_vnf_update(self, vnf_instance, param_values):
+        # Update Vnf
+        vnf_id = vnf_instance['vnf']['id']
+        new_param_values = {'vnf': {'attributes': {
+                            'param_values': param_values}}}
+        self.client.update_vnf(vnf_id, new_param_values)
+        self.wait_until_vnf_active(
+            vnf_id,
+            constants.VNF_CIRROS_UPDATE_TIMEOUT,
+            constants.ACTIVE_SLEEP_TIME)
+
+        # Wait until the update on the heat side is completed,
+        # because vnf deletion will cause a conflict without waiting for this.
+        stack_id = self.client.show_vnf(vnf_id)['vnf']['instance_id']
+        start_time = int(time.time())
+        while True:
+            vdu_resource = self.get_vdu_resource(stack_id, "VDU1")
+            vdu_resource_dict = vdu_resource.to_dict()
+            vdu_resource_status = vdu_resource_dict['resource_status']
+            if ((int(time.time()) - start_time >
+                    constants.VNF_CIRROS_UPDATE_TIMEOUT) or
+                    (vdu_resource_status == 'UPDATE_COMPLETE')):
+                break
+            time.sleep(constants.ACTIVE_SLEEP_TIME)
+
+        self.verify_vnf_crud_events(
+            vnf_id, evt_constants.RES_EVT_UPDATE, evt_constants.PENDING_UPDATE)
+        self.verify_vnf_crud_events(
+            vnf_id, evt_constants.RES_EVT_UPDATE, evt_constants.ACTIVE)
+
+        # Verify vnf_param_values_dict is same as param values from vnf_show
+        vnf_instance = self.client.show_vnf(vnf_id)
+        vnf_param_values = vnf_instance['vnf']['attributes']['param_values']
+        vnf_param_values_dict = yaml.safe_load(vnf_param_values)
+
+        # Verify stack_parameters is same as parameters from stack_show
+        instance_id = vnf_instance['vnf']['instance_id']
+        stack_values = self.h_client.stacks.get(instance_id)
+        stack_parameters = stack_values.parameters
+
+        return vnf_param_values_dict, stack_parameters
+
     def _test_vnf_delete(self, vnf_instance):
         # Delete Vnf
         vnf_id = vnf_instance['vnf']['id']
@@ -126,11 +169,32 @@ class VnfmTestParam(base.BaseTackerTest):
     def _test_vnf_param_tosca_template(self, vnfd_file, vnfd_name,
                                        param_file, vnf_name):
         vnfd_instance = self._test_vnfd_create(vnfd_file, vnfd_name)
+
+        # Get vnfd_id
+        vnfd_id = vnfd_instance['vnfd']['id']
+
+        # Add vnfd delete to cleanup job so that if vnf_instance fails to
+        # create or update then it will be cleaned-up automatically
+        # in tearDown()
+        self.addCleanup(self.client.delete_vnfd, vnfd_id)
+
+        # Create vnf instance
         values_str = read_file(param_file)
         values_dict = yaml.safe_load(values_str)
         vnf_instance, param_values_dict = self._test_vnf_create(
             vnfd_instance, vnf_name, values_dict)
         self.assertEqual(values_dict, param_values_dict)
+
+        new_values_str = read_file('sample-tosca-vnf-update-values.yaml')
+        new_values_dict = yaml.safe_load(new_values_str)
+        vnf_param_values_dict, stack_parameters = self._test_vnf_update(
+            vnf_instance, new_values_dict)
+        for key, value in new_values_dict.items():
+            if vnf_param_values_dict.get(key):
+                self.assertEqual(value, vnf_param_values_dict[key])
+            if stack_parameters.get(key):
+                self.assertEqual(value, stack_parameters[key])
+
         self._test_vnf_delete(vnf_instance)
         vnf_id = vnf_instance['vnf']['id']
         self.verify_vnf_crud_events(
@@ -142,4 +206,3 @@ class VnfmTestParam(base.BaseTackerTest):
                                    constants.VNF_CIRROS_DELETE_TIMEOUT)
         self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE,
                                     evt_constants.PENDING_DELETE, cnt=2)
-        self.addCleanup(self.client.delete_vnfd, vnfd_instance['vnfd']['id'])
