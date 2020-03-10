@@ -49,7 +49,12 @@ class FakeDriverManager(mock.Mock):
 
 
 class FakeVNFMonitor(mock.Mock):
-    pass
+    def update_vnf_with_maintenance(self, vnf_dict, maintenance_vdus):
+        url = 'http://local:9890/v1.0/vnfs/%s/maintenance/%s' % (
+            vnf_dict['id'], vnf_dict['tenant_id'])
+        return {'url': url,
+                'vdus': {'ALL': 'ad7ebc56',
+                         'VDU1': '538745a0'}}
 
 
 class FakeGreenPool(mock.Mock):
@@ -57,6 +62,10 @@ class FakeGreenPool(mock.Mock):
 
 
 class FakeVimClient(mock.Mock):
+    pass
+
+
+class FakePlugin(mock.Mock):
     pass
 
 
@@ -143,6 +152,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._mock_vnf_monitor()
         self._mock_vnf_alarm_monitor()
         self._mock_vnf_reservation_monitor()
+        self._mock_vnf_maintenance_monitor()
+        self._mock_vnf_maintenance_plugin()
         self._insert_dummy_vim()
         self.vnfm_plugin = plugin.VNFMPlugin()
         mock.patch('tacker.db.common_services.common_services_db_plugin.'
@@ -218,6 +229,22 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._mock(
             'tacker.vnfm.monitor.VNFReservationAlarmMonitor',
             fake_vnf_reservation_monitor)
+
+    def _mock_vnf_maintenance_monitor(self):
+        self._vnf_maintenance_mon = mock.Mock(wraps=FakeVNFMonitor())
+        fake_vnf_maintenance_monitor = mock.Mock()
+        fake_vnf_maintenance_monitor.return_value = self._vnf_maintenance_mon
+        self._mock(
+            'tacker.vnfm.monitor.VNFMaintenanceAlarmMonitor',
+            fake_vnf_maintenance_monitor)
+
+    def _mock_vnf_maintenance_plugin(self):
+        self._vnf_maintenance_plugin = mock.Mock(wraps=FakePlugin())
+        fake_vnf_maintenance_plugin = mock.Mock()
+        fake_vnf_maintenance_plugin.return_value = self._vnf_maintenance_plugin
+        self._mock(
+            'tacker.plugins.fenix.FenixPlugin',
+            fake_vnf_maintenance_plugin)
 
     def _insert_dummy_vnf_template(self):
         session = self.context.session
@@ -1108,6 +1135,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             parameter='VDU1',
             cause=["Unable to reach while monitoring resource: 'VDU1'"])
         heal_request_data_obj = heal_vnf_request.HealVnfRequest(
+            stack_id=dummy_device_obj['instance_id'],
             cause='VNF monitoring fails.',
             additional_params=[additional_params_obj])
         result = self.vnfm_plugin.heal_vnf(self.context,

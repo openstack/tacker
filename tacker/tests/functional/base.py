@@ -191,6 +191,13 @@ class BaseTackerTest(base.BaseTestCase):
         auth_ses = session.Session(auth=auth, verify=verify)
         return glance_client.Client(session=auth_ses)
 
+    @classmethod
+    def aodh_http_client(cls):
+        auth_session = cls.get_auth_session()
+        return SessionClient(session=auth_session,
+                             service_type='alarming',
+                             region_name='RegionOne')
+
     def get_vdu_resource(self, stack_id, res_name):
         return self.h_client.resources.get(stack_id, res_name)
 

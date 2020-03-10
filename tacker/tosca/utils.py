@@ -19,6 +19,7 @@ import yaml
 
 from collections import OrderedDict
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 
 from tacker._i18n import _
@@ -93,11 +94,13 @@ deletenodes = (MONITORING, FAILURE, PLACEMENT)
 
 HEAT_RESOURCE_MAP = {
     "flavor": "OS::Nova::Flavor",
-    "image": "OS::Glance::WebImage"
+    "image": "OS::Glance::WebImage",
+    "maintenance": "OS::Aodh::EventAlarm"
 }
 
 SCALE_GROUP_RESOURCE = "OS::Heat::AutoScalingGroup"
 SCALE_POLICY_RESOURCE = "OS::Heat::ScalingPolicy"
+PLACEMENT_POLICY_RESOURCE = "OS::Nova::ServerGroup"
 
 
 @log.log
@@ -258,6 +261,12 @@ def pre_process_alarm_resources(vnf, template, vdu_metadata, unique_id=None):
                 'before_end_actions': {
                     'event_type': 'lease.event.before_end_lease'},
                 'end_actions': {'event_type': 'lease.event.end_lease'}}
+    maintenance_actions = _process_alarm_actions_for_maintenance(vnf)
+    if maintenance_actions:
+        alarm_actions.update(maintenance_actions)
+        alarm_resources['event_types'] = {}
+        alarm_resources['event_types'].update({
+            'ALL_maintenance': {'event_type': 'maintenance.scheduled'}})
     alarm_resources['query_metadata'] = query_metadata
     alarm_resources['alarm_actions'] = alarm_actions
     return alarm_resources
@@ -330,6 +339,22 @@ def _process_alarm_actions_for_reservation(vnf, policy):
     policy_actions.remove('properties')
     for action in policy_actions:
         alarm_url = vnf['attributes'].get(action)
+        if alarm_url:
+            LOG.debug('Alarm url in heat %s', alarm_url)
+            alarm_actions[action] = dict()
+            alarm_actions[action]['alarm_actions'] = [alarm_url]
+    return alarm_actions
+
+
+def _process_alarm_actions_for_maintenance(vnf):
+    # process alarm url here
+    alarm_actions = dict()
+    maintenance_props = vnf['attributes'].get('maintenance', '{}')
+    maintenance_props = jsonutils.loads(maintenance_props)
+    maintenance_url = vnf['attributes'].get('maintenance_url', '')
+    for vdu, access_key in maintenance_props.items():
+        action = '%s_maintenance' % vdu
+        alarm_url = '%s/%s' % (maintenance_url.rstrip('/'), access_key)
         if alarm_url:
             LOG.debug('Alarm url in heat %s', alarm_url)
             alarm_actions[action] = dict()
@@ -423,6 +448,8 @@ def add_resources_tpl(heat_dict, hot_res_tpl):
                 "properties": {}
             }
 
+            if res == "maintenance":
+                continue
             for prop, val in (vdu_dict).items():
                 # change from 'get_input' to 'get_param' to meet HOT template
                 if isinstance(val, dict):
@@ -517,6 +544,7 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
             if heat_dict['resources'].get(vdu_name):
                 heat_dict['resources'][vdu_name]['properties']['metadata'] =\
                     metadata_dict
+    add_resources_tpl(heat_dict, res_tpl)
 
     query_metadata = alarm_resources.get('query_metadata')
     alarm_actions = alarm_resources.get('alarm_actions')
@@ -532,16 +560,14 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
     if alarm_actions:
         for trigger_name, alarm_actions_dict in alarm_actions.items():
             if heat_dict['resources'].get(trigger_name):
-                heat_dict['resources'][trigger_name]['properties']. \
-                    update(alarm_actions_dict)
-
+                heat_dict['resources'][trigger_name]['properties'].update(
+                    alarm_actions_dict)
     if event_types:
         for trigger_name, event_type in event_types.items():
             if heat_dict['resources'].get(trigger_name):
                 heat_dict['resources'][trigger_name]['properties'].update(
                     event_type)
 
-    add_resources_tpl(heat_dict, res_tpl)
     for res in heat_dict["resources"].values():
         if not res['type'] == HEAT_SOFTWARE_CONFIG:
             continue
@@ -1038,6 +1064,15 @@ def findvdus(template):
     return vdus
 
 
+def find_maintenance_vdus(template):
+    maintenance_vdu_names = list()
+    vdus = findvdus(template)
+    for nt in vdus:
+        if nt.get_properties().get('maintenance'):
+            maintenance_vdu_names.append(nt.name)
+    return maintenance_vdu_names
+
+
 def get_flavor_dict(template, flavor_extra_input=None):
     flavor_dict = {}
     vdus = findvdus(template)
@@ -1150,6 +1185,27 @@ def get_resources_dict(template, flavor_extra_input=None):
         else:
             res_dict[res] = res_method(template)
     return res_dict
+
+
+def add_maintenance_resources(template, res_tpl):
+    res_dict = {}
+    maintenance_vdus = find_maintenance_vdus(template)
+    maintenance_vdus.append('ALL')
+    if maintenance_vdus:
+        for vdu_name in maintenance_vdus:
+            res_dict[vdu_name] = {}
+        res_tpl['maintenance'] = res_dict
+
+
+@log.log
+def get_policy_dict(template, policy_type):
+    policy_dict = dict()
+    for policy in template.policies:
+        if (policy.type_definition.is_derived_from(policy_type)):
+            policy_attrs = dict()
+            policy_attrs['targets'] = policy.targets
+            policy_dict[policy.name] = policy_attrs
+    return policy_dict
 
 
 @log.log

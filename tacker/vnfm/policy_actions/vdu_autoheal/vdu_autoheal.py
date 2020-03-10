@@ -34,6 +34,9 @@ class VNFActionVduAutoheal(abstract_action.AbstractPolicyAction):
 
     def execute_action(self, plugin, context, vnf_dict, args):
         vdu_name = args.get('vdu_name')
+        stack_id = args.get('stack_id', vnf_dict['instance_id'])
+        heat_tpl = args.get('heat_tpl', 'heat_template')
+        cause = args.get('cause', [])
         if vdu_name is None:
             LOG.error("VDU resource of vnf '%s' is not present for "
                       "autoheal." % vnf_dict['id'])
@@ -46,7 +49,7 @@ class VNFActionVduAutoheal(abstract_action.AbstractPolicyAction):
             """
             resource_list = [vdu_name]
             heat_template = yaml.safe_load(vnf_dict['attributes'].get(
-                'heat_template'))
+                heat_tpl))
             vdu_resources = heat_template['resources'].get(vdu_name)
             cp_resources = vdu_resources['properties'].get('networks')
             for resource in cp_resources:
@@ -54,17 +57,18 @@ class VNFActionVduAutoheal(abstract_action.AbstractPolicyAction):
 
             return resource_list
 
+        if not cause or type(cause) is not list:
+            cause = ["Unable to reach while monitoring resource: '%s'",
+                     "Failed to monitor VDU resource '%s'"]
         resource_list = _get_vdu_resources()
         additional_params = []
         for resource in resource_list:
-            additional_paramas_obj = objects.HealVnfAdditionalParams(
-                parameter=resource,
-                cause=["Unable to reach while monitoring resource: '%s'" %
-                      resource])
-            additional_params.append(additional_paramas_obj)
+            additional_params_obj = objects.HealVnfAdditionalParams(
+                parameter=resource, cause=[cause[0] % resource])
+            additional_params.append(additional_params_obj)
 
         heal_request_data_obj = objects.HealVnfRequest(
-            cause=("Failed to monitor VDU resource '%s'" % vdu_name),
-            additional_params=additional_params)
+            stack_id=stack_id,
+            cause=(cause[-1] % vdu_name), additional_params=additional_params)
 
         plugin.heal_vnf(context, vnf_dict['id'], heal_request_data_obj)

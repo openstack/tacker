@@ -32,6 +32,10 @@ class FakeCVNFMonitor(mock.Mock):
     pass
 
 
+class FakePlugin(mock.Mock):
+    pass
+
+
 class FakeK8SVimClient(mock.Mock):
     pass
 
@@ -44,6 +48,8 @@ class TestCVNFMPlugin(db_base.SqlTestCase):
         self._mock_vim_client()
         self._stub_get_vim()
         self._mock_vnf_monitor()
+        self._mock_vnf_maintenance_monitor()
+        self._mock_vnf_maintenance_plugin()
         self._insert_dummy_vim()
         self.vnfm_plugin = plugin.VNFMPlugin()
         mock.patch('tacker.db.common_services.common_services_db_plugin.'
@@ -107,6 +113,22 @@ class TestCVNFMPlugin(db_base.SqlTestCase):
         fake_vnf_monitor.return_value = self._vnf_monitor
         self._mock(
             'tacker.vnfm.monitor.VNFMonitor', fake_vnf_monitor)
+
+    def _mock_vnf_maintenance_monitor(self):
+        self._vnf_maintenance_mon = mock.Mock(wraps=FakeCVNFMonitor())
+        fake_vnf_maintenance_monitor = mock.Mock()
+        fake_vnf_maintenance_monitor.return_value = self._vnf_maintenance_mon
+        self._mock(
+            'tacker.vnfm.monitor.VNFMaintenanceAlarmMonitor',
+            fake_vnf_maintenance_monitor)
+
+    def _mock_vnf_maintenance_plugin(self):
+        self._vnf_maintenance_plugin = mock.Mock(wraps=FakePlugin())
+        fake_vnf_maintenance_plugin = mock.Mock()
+        fake_vnf_maintenance_plugin.return_value = self._vnf_maintenance_plugin
+        self._mock(
+            'tacker.plugins.fenix.FenixPlugin',
+            fake_vnf_maintenance_plugin)
 
     def _insert_dummy_vnf_template(self):
         session = self.context.session
