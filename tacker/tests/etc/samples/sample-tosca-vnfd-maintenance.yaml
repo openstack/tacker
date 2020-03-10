@@ -1,0 +1,51 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Maintenance VNF with Fenix
+
+metadata:
+  template_name: tosca-vnfd-maintenance
+
+topology_template:
+  node_templates:
+    VDU1:
+      capabilities:
+        nfv_compute:
+          properties:
+            disk_size: 15 GB
+            mem_size: 2048 MB
+            num_cpus: 2
+      properties:
+        availability_zone: nova
+        image: cirros-0.4.0-x86_64-disk
+        maintenance: true
+        mgmt_driver: noop
+      type: tosca.nodes.nfv.VDU.Tacker
+
+    CP11:
+      properties:
+        anti_spoofing_protection: false
+        management: true
+        order: 0
+      requirements:
+      - virtualLink:
+          node: VL1
+      - virtualBinding:
+          node: VDU1
+      type: tosca.nodes.nfv.CP.Tacker
+
+    VL1:
+      properties:
+        network_name: net_mgmt
+        vendor: Tacker
+      type: tosca.nodes.nfv.VL
+  policies:
+  - SP1:
+      properties:
+        cooldown: 120
+        default_instances: 3
+        increment: 1
+        max_instances: 3
+        min_instances: 1
+      targets:
+      - VDU1
+      type: tosca.policies.tacker.Scaling

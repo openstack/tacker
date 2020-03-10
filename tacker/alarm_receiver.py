@@ -52,6 +52,8 @@ class AlarmReceiver(wsgi.Middleware):
         if not self.handle_url(url):
             return
         prefix, info, params = self.handle_url(req.url)
+        resource = 'trigger' if info[4] != 'maintenance' else 'maintenance'
+        redirect = resource + 's'
         auth = cfg.CONF.keystone_authtoken
         alarm_auth = cfg.CONF.alarm_auth
         token = Token(username=alarm_auth.username,
@@ -66,19 +68,24 @@ class AlarmReceiver(wsgi.Middleware):
         # Change the body request
         if req.body:
             body_dict = dict()
-            body_dict['trigger'] = {}
-            body_dict['trigger'].setdefault('params', {})
+            body_dict[resource] = {}
+            body_dict[resource].setdefault('params', {})
             # Update params in the body request
             body_info = jsonutils.loads(req.body)
-            body_dict['trigger']['params']['data'] = body_info
-            body_dict['trigger']['params']['credential'] = info[6]
-            # Update policy and action
-            body_dict['trigger']['policy_name'] = info[4]
-            body_dict['trigger']['action_name'] = info[5]
+            body_dict[resource]['params']['credential'] = info[6]
+            if resource == 'maintenance':
+                body_info.update({
+                    'body': self._handle_maintenance_body(body_info)})
+                del body_info['reason_data']
+            else:
+                # Update policy and action
+                body_dict[resource]['policy_name'] = info[4]
+                body_dict[resource]['action_name'] = info[5]
+            body_dict[resource]['params']['data'] = body_info
             req.body = jsonutils.dump_as_bytes(body_dict)
             LOG.debug('Body alarm: %s', req.body)
         # Need to change url because of mandatory
-        req.environ['PATH_INFO'] = prefix + 'triggers'
+        req.environ['PATH_INFO'] = prefix + redirect
         req.environ['QUERY_STRING'] = ''
         LOG.debug('alarm url in receiver: %s', req.url)
 
@@ -98,3 +105,15 @@ class AlarmReceiver(wsgi.Middleware):
         prefix_url = '/%(collec)s/%(vnf_uuid)s/' % {'collec': p[2],
                                                     'vnf_uuid': p[3]}
         return prefix_url, p, params
+
+    def _handle_maintenance_body(self, body_info):
+        body = {}
+        traits_list = body_info['reason_data']['event']['traits']
+        if type(traits_list) is not list:
+            return
+        for key, t_type, val in traits_list:
+            if t_type == 1 and val and (val[0] == '[' or val[0] == '{'):
+                body[key] = eval(val)
+            else:
+                body[key] = val
+        return body

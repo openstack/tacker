@@ -21,6 +21,7 @@ import yaml
 import eventlet
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from oslo_utils import excutils
 from oslo_utils import uuidutils
 from toscaparser.tosca_template import ToscaTemplate
@@ -34,6 +35,7 @@ from tacker import context as t_context
 from tacker.db.vnfm import vnfm_db
 from tacker.extensions import vnfm
 from tacker.plugins.common import constants
+from tacker.plugins import fenix
 from tacker.tosca import utils as toscautils
 from tacker.vnfm.mgmt_drivers import constants as mgmt_constants
 from tacker.vnfm import monitor
@@ -147,7 +149,9 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         self._vnf_monitor = monitor.VNFMonitor(self.boot_wait)
         self._vnf_alarm_monitor = monitor.VNFAlarmMonitor()
         self._vnf_reservation_monitor = monitor.VNFReservationAlarmMonitor()
+        self._vnf_maintenance_monitor = monitor.VNFMaintenanceAlarmMonitor()
         self._vnf_app_monitor = monitor.VNFAppMonitor()
+        self._vnf_maintenance_plugin = fenix.FenixPlugin()
         self._init_monitoring()
 
     def _init_monitoring(self):
@@ -258,6 +262,13 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         vnfd_dict = yaml.safe_load(vnfd_yaml)
         if not (vnfd_dict and vnfd_dict.get('tosca_definitions_version')):
             return
+        try:
+            toscautils.updateimports(vnfd_dict)
+            tosca_vnfd = ToscaTemplate(a_file=False,
+                                  yaml_dict_tpl=vnfd_dict)
+        except Exception as e:
+            LOG.exception("tosca-parser error: %s", str(e))
+            raise vnfm.ToscaParserFailed(error_msg_details=str(e))
         polices = vnfd_dict['topology_template'].get('policies', [])
         for policy_dict in polices:
             name, policy = list(policy_dict.items())[0]
@@ -273,6 +284,13 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                         self, context, vnf_dict, policy)
                 vnf_dict['attributes']['reservation_policy'] = vnf_dict['id']
                 vnf_dict['attributes'].update(alarm_url)
+        maintenance_vdus = toscautils.find_maintenance_vdus(tosca_vnfd)
+        maintenance = \
+            self._vnf_maintenance_monitor.update_vnf_with_maintenance(
+                vnf_dict, maintenance_vdus)
+        vnf_dict['attributes'].update({
+            'maintenance': jsonutils.dumps(maintenance['vdus'])})
+        vnf_dict['attributes']['maintenance_url'] = maintenance['url']
 
     def add_vnf_to_appmonitor(self, context, vnf_dict):
         appmonitor = self._vnf_app_monitor.create_app_dict(context, vnf_dict)
@@ -281,6 +299,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     def config_vnf(self, context, vnf_dict):
         config = vnf_dict['attributes'].get('config')
         if not config:
+            self._vnf_maintenance_plugin.create_vnf_constraints(self, context,
+                                                                vnf_dict)
             return
         if isinstance(config, str):
             # TODO(dkushwaha) remove this load once db supports storing
@@ -367,6 +387,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         if driver_name == 'openstack':
             self.mgmt_create_pre(context, vnf_dict)
             self.add_alarm_url_to_vnf(context, vnf_dict)
+        vnf_dict['attributes']['maintenance_group'] = uuidutils.generate_uuid()
 
         try:
             instance_id = self._vnf_manager.invoke(
@@ -431,9 +452,9 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
 
             if 'app_monitoring_policy' in vnf_dict['attributes']:
                 self.add_vnf_to_appmonitor(context, vnf_dict)
-
             if vnf_dict['status'] is not constants.ERROR:
                 self.add_vnf_to_monitor(context, vnf_dict)
+
             self.config_vnf(context, vnf_dict)
         self.spawn_n(create_vnf_wait)
         return vnf_dict
@@ -466,15 +487,18 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             with excutils.save_and_reraise_exception():
                 new_status = constants.ERROR
                 self._vnf_monitor.delete_hosting_vnf(vnf_dict['id'])
+                self._vnf_maintenance_plugin.post(context, vnf_dict)
                 self.set_vnf_error_status_reason(context, vnf_dict['id'],
                                                  six.text_type(e))
         except exceptions.MgmtDriverException as e:
             LOG.error('VNF configuration failed')
             new_status = constants.ERROR
             self._vnf_monitor.delete_hosting_vnf(vnf_dict['id'])
+            self._vnf_maintenance_plugin.post(context, vnf_dict)
             self.set_vnf_error_status_reason(context, vnf_dict['id'],
                                              six.text_type(e))
 
+        del vnf_dict['heal_stack_id']
         vnf_dict['status'] = new_status
         self.mgmt_update_post(context, vnf_dict)
 
@@ -482,6 +506,9 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         evt_details = ("Ends the heal vnf request for VNF '%s'" %
                        vnf_dict['id'])
         self._vnf_monitor.update_hosting_vnf(vnf_dict, evt_details)
+        self._vnf_maintenance_plugin.update_vnf_instances(self, context,
+                                                          vnf_dict)
+        self._vnf_maintenance_plugin.post(context, vnf_dict)
         # _update_vnf_post() method updates vnf_status and mgmt_ip_address
         self._update_vnf_post(context, vnf_dict['id'],
                               new_status, vnf_dict,
@@ -521,6 +548,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         self._update_vnf_post(context, vnf_dict['id'], new_status,
                               vnf_dict, constants.PENDING_UPDATE,
                               constants.RES_EVT_UPDATE)
+        self._vnf_maintenance_plugin.create_vnf_constraints(self, context,
+                                                            vnf_dict)
 
     def update_vnf(self, context, vnf_id, vnf):
         vnf_attributes = vnf['vnf']['attributes']
@@ -591,6 +620,9 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         self._vnf_monitor.update_hosting_vnf(vnf_dict, evt_details)
 
         try:
+            vnf_dict['heal_stack_id'] = heal_request_data_obj.stack_id
+            self._vnf_maintenance_plugin.project_instance_pre(context,
+                                                              vnf_dict)
             self.mgmt_update_pre(context, vnf_dict)
             self._vnf_manager.invoke(
                 driver_name, 'heal_vdu', plugin=self,
@@ -604,6 +636,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                                                  vnf_dict['id'],
                                                  six.text_type(e))
                 self.mgmt_update_post(context, vnf_dict)
+                self._vnf_maintenance_plugin.post(context, vnf_dict)
                 self._update_vnf_post(context, vnf_id,
                                       constants.ERROR,
                                       vnf_dict, constants.PENDING_HEAL,
@@ -637,6 +670,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 self.set_vnf_error_status_reason(context, vnf_dict['id'],
                                                  vnf_dict['error_reason'])
 
+        self._vnf_maintenance_plugin.delete_vnf_constraints(self, context,
+                                                            vnf_dict)
         self.mgmt_delete_post(context, vnf_dict)
         self._delete_vnf_post(context, vnf_dict, e)
 
@@ -654,6 +689,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             mgmt_constants.KEY_KWARGS: {'vnf': vnf_dict},
         }
         try:
+            self._vnf_maintenance_plugin.project_instance_pre(context,
+                                                              vnf_dict)
             self.mgmt_delete_pre(context, vnf_dict)
             self.mgmt_call(context, vnf_dict, kwargs)
             if instance_id:
@@ -737,6 +774,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             LOG.debug("Policy %(policy)s vnf is at %(status)s",
                       {'policy': policy['name'],
                        'status': status})
+            self._vnf_maintenance_plugin.project_instance_pre(context,
+                                                              result)
             return result
 
         # post
@@ -750,6 +789,10 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             LOG.debug("Policy %(policy)s vnf is at %(status)s",
                       {'policy': policy['name'],
                        'status': new_status})
+            action = 'delete' if policy['action'] == 'in' else 'update'
+            self._vnf_maintenance_plugin.update_vnf_instances(self, context,
+                                                              result,
+                                                              action=action)
             return result
 
         # action
@@ -1040,3 +1083,20 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         else:
             raise vnfm.VNFInactive(vnf_id=vnf_id,
                                    message=_(' Cannot fetch details'))
+
+    def create_vnf_maintenance(self, context, vnf_id, maintenance):
+        _maintenance = self._vnf_maintenance_plugin.validate_maintenance(
+            maintenance.copy())
+        vnf = self.get_vnf(context, vnf_id)
+        _maintenance['vnf'] = vnf
+        self._vnf_maintenance_plugin.handle_maintenance(
+            self, context, _maintenance)
+        policy_action = _maintenance.get('policy_action', '')
+        if policy_action:
+            self._vnf_action.invoke(
+                policy_action['action'], 'execute_action', plugin=self,
+                context=context, vnf_dict=vnf, args=policy_action['args'])
+        else:
+            self._vnf_maintenance_plugin.request(self, context, vnf,
+                                                 _maintenance)
+        return maintenance['maintenance']

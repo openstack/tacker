@@ -1,0 +1,34 @@
+- event_type: 'maintenance.scheduled'
+  traits:
+    service:
+      fields: payload.service
+    allowed_actions:
+      fields: payload.allowed_actions
+    instance_ids:
+      fields: payload.instance_ids
+    reply_url:
+      fields: payload.reply_url
+    state:
+      fields: payload.state
+    session_id:
+      fields: payload.session_id
+    actions_at:
+      fields: payload.actions_at
+      type: datetime
+    project_id:
+      fields: payload.project_id
+    reply_at:
+      fields: payload.reply_at
+      type: datetime
+    metadata:
+      fields: payload.metadata
+- event_type: 'maintenance.host'
+  traits:
+    host:
+      fields: payload.host
+    project_id:
+      fields: payload.project_id
+    session_id:
+      fields: payload.session_id
+    state:
+      fields: payload.state

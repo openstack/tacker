@@ -255,3 +255,41 @@ class TestVNFReservationAlarmMonitor(testtools.TestCase):
         response = test_vnf_reservation_monitor.update_vnf_with_reservation(
             self.plugin, self.context, vnf, policy_dict)
         self.assertEqual(len(response.keys()), 3)
+
+
+class TestVNFMaintenanceAlarmMonitor(testtools.TestCase):
+
+    def setup(self):
+        super(TestVNFMaintenanceAlarmMonitor, self).setUp()
+
+    def test_process_alarm_for_vnf(self):
+        vnf = {'id': MOCK_VNF_ID}
+        trigger = {'params': {'data': {
+            'alarm_id': MOCK_VNF_ID, 'current': 'alarm'}}}
+        test_vnf_maintenance_monitor = monitor.VNFMaintenanceAlarmMonitor()
+        response = test_vnf_maintenance_monitor.process_alarm_for_vnf(
+            vnf, trigger)
+        self.assertEqual(response, True)
+
+    @mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                'CommonServicesPluginDb.create_event')
+    def test_update_vnf_with_alarm(self, mock_db_service):
+        mock_db_service.return_value = {
+            'event_type': 'MONITOR',
+            'resource_id': '9770fa22-747d-426e-9819-057a95cb778c',
+            'timestamp': '2018-10-30 06:01:45.628162',
+            'event_details': {'Alarm URL set successfully': {
+                'start_actions': 'alarm'}},
+            'resource_state': 'CREATE',
+            'id': '4583',
+            'resource_type': 'vnf'}
+        vnf = {
+            'id': MOCK_VNF_ID,
+            'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+            'status': 'insufficient_data'}
+        vdu_names = ['VDU1']
+        test_vnf_maintenance_monitor = monitor.VNFMaintenanceAlarmMonitor()
+        response = test_vnf_maintenance_monitor.update_vnf_with_maintenance(
+            vnf, vdu_names)
+        result_keys = len(response) + len(response.get('vdus', {}))
+        self.assertEqual(result_keys, 4)

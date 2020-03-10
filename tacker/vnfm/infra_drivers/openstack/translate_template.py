@@ -338,6 +338,10 @@ class TOSCAToHOT(object):
                 heat_template_yaml, scaling_policy_names)
             self.vnf['attributes']['scaling_group_names'] =\
                 jsonutils.dump_as_bytes(scaling_group_dict)
+
+        if self.vnf['attributes'].get('maintenance', None):
+            toscautils.add_maintenance_resources(tosca, res_tpl)
+
         heat_template_yaml = toscautils.post_process_heat_template(
             heat_template_yaml, mgmt_ports, metadata, alarm_resources,
             res_tpl, block_storage_details, self.unsupported_props,

@@ -36,11 +36,13 @@ class HealVnfRequest(base.TackerObject):
 
     # Version 1.0: Initial version
     # Version 1.1: Added vnf_instance_id
-    VERSION = '1.1'
+    # Version 1.2: Added stack_id for nested heat-template
+    VERSION = '1.2'
 
     fields = {
         'vnfc_instance_id': fields.ListOfStringsField(nullable=True,
                                                       default=[]),
+        'stack_id': fields.StringField(nullable=True, default=''),
         'cause': fields.StringField(nullable=True, default=None),
         'additional_params': fields.ListOfObjectsField(
             'HealVnfAdditionalParams', default=[])

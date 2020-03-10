@@ -278,6 +278,10 @@ node_types:
         type: tosca.datatypes.tacker.VduReservationMetadata
         required: false
 
+      maintenance:
+        type: boolean
+        required: false
+
   tosca.nodes.nfv.CP.Tacker:
     derived_from: tosca.nodes.nfv.CP
     properties:

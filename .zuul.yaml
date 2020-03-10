@@ -67,6 +67,7 @@
       - openstack/python-tackerclient
       - openstack/tacker
       - openstack/tacker-horizon
+      - x/fenix
     vars:
       devstack_localrc:
         CELLSV2_SETUP: singleconductor
@@ -93,6 +94,7 @@
           mistral: https://opendev.org/openstack/mistral
           tacker: https://opendev.org/openstack/tacker
           blazar: https://opendev.org/openstack/blazar
+          fenix: https://opendev.org/x/fenix
         devstack_services:
           # Core services enabled for this branch.
           # This list replaces the test-matrix.
