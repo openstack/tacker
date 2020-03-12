@@ -214,9 +214,8 @@ class Transformer(object):
         if tosca_kube_obj.labels:
             if 'selector' in update_label:
                 del update_label['selector']
-            labels = dict(tosca_kube_obj.labels.items() + update_label.items())
-        else:
-            labels = update_label
+            update_label.update(tosca_kube_obj.labels)
+        labels = update_label
 
         # Create and configure a spec section
         pod_template = client.V1PodTemplateSpec(
