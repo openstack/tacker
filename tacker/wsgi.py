@@ -1043,8 +1043,8 @@ class Resource(Application):
 
         if not response:
             resp_obj = None
-            if isinstance(action_result, (dict, str)) \
-                    or action_result is None:
+            if (isinstance(action_result, (dict, list, str)) or
+                    action_result is None):
                 resp_obj = ResponseObject(action_result)
             elif isinstance(action_result, ResponseObject):
                 resp_obj = action_result

@@ -69,3 +69,7 @@ class ViewBuilder(object):
 
     def show(self, vnf_instance):
         return self._get_vnf_instance_info(vnf_instance)
+
+    def index(self, vnf_instances):
+        return [self._get_vnf_instance_info(vnf_instance)
+                for vnf_instance in vnf_instances]

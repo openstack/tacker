@@ -76,7 +76,18 @@ rules = [
                 'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}/heal'
             }
         ]
-    )
+    ),
+    policy.DocumentedRuleDefault(
+        name=VNFLCM % 'index',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Query VNF instances.",
+        operations=[
+            {
+                'method': 'GET',
+                'path': '/vnflcm/v1/vnf_instances'
+            }
+        ]
+    ),
 ]
 
 

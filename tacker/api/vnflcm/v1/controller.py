@@ -202,8 +202,12 @@ class VnfLcmController(wsgi.Controller):
 
         return self._view_builder.show(vnf_instance)
 
+    @wsgi.response(http_client.OK)
+    @wsgi.expected_errors((http_client.FORBIDDEN))
     def index(self, request):
-        raise webob.exc.HTTPNotImplemented()
+        context = request.environ['tacker.context']
+        vnf_instances = objects.VnfInstanceList.get_all(context)
+        return self._view_builder.index(vnf_instances)
 
     def delete(self, request, id):
         raise webob.exc.HTTPNotImplemented()

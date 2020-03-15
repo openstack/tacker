@@ -972,3 +972,35 @@ class TestController(base.TestCase):
                     expected_type=expected_type))
 
         self.assertEqual(expected_message, exception.msg)
+
+    @mock.patch.object(objects.VnfInstanceList, "get_all")
+    def test_index(self, mock_vnf_list):
+        req = fake_request.HTTPRequest.blank('/vnf_instances')
+        vnf_instance_1 = fakes.return_vnf_instance()
+        vnf_instance_2 = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        mock_vnf_list.return_value = [vnf_instance_1, vnf_instance_2]
+        resp = self.controller.index(req)
+        expected_result = [fakes.fake_vnf_instance_response(),
+            fakes.fake_vnf_instance_response(
+            fields.VnfInstanceState.INSTANTIATED)]
+        self.assertEqual(expected_result, resp)
+
+    @mock.patch.object(objects.VnfInstanceList, "get_all")
+    def test_index_empty_response(self, mock_vnf_list):
+        req = fake_request.HTTPRequest.blank('/vnf_instances')
+
+        mock_vnf_list.return_value = []
+        resp = self.controller.index(req)
+        self.assertEqual([], resp)
+
+    @ddt.data('HEAD', 'PUT', 'DELETE', 'PATCH')
+    def test_index_invalid_http_method(self, method):
+        # Wrong HTTP method
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances')
+        req.headers['Content-Type'] = 'application/json'
+        req.method = method
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
