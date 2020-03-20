@@ -162,3 +162,63 @@ class VnfPackage(model_base.BASE, models.SoftDeleteMixin,
     @property
     def metadetails(self):
         return {m.key: m.value for m in self._metadata}
+
+
+class VnfInstance(model_base.BASE, models.SoftDeleteMixin,
+                models.TimestampMixin, models_v1.HasId):
+    """Represents a Vnf Instance."""
+
+    __tablename__ = 'vnf_instances'
+    vnf_instance_name = sa.Column(sa.String(255), nullable=True)
+    vnf_instance_description = sa.Column(sa.String(1024), nullable=True)
+    vnf_provider = sa.Column(sa.String(255), nullable=False)
+    vnf_product_name = sa.Column(sa.String(255), nullable=False)
+    vnf_software_version = sa.Column(sa.String(255), nullable=False)
+    vnfd_version = sa.Column(sa.String(255), nullable=False)
+    vnfd_id = sa.Column(types.Uuid, nullable=False)
+    instantiation_state = sa.Column(sa.String(255), nullable=False)
+    task_state = sa.Column(sa.String(255), nullable=True)
+    vim_connection_info = sa.Column(sa.JSON(), nullable=True)
+    tenant_id = sa.Column('tenant_id', sa.String(length=64), nullable=False)
+
+
+class VnfInstantiatedInfo(model_base.BASE, models.SoftDeleteMixin,
+                    models.TimestampMixin):
+    """Contain the details of VNF instance"""
+
+    __tablename__ = 'vnf_instantiated_info'
+    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
+    vnf_instance_id = sa.Column(sa.String,
+                           sa.ForeignKey('vnf_instances.id'),
+                           nullable=False)
+    flavour_id = sa.Column(sa.String(255), nullable=False)
+    ext_cp_info = sa.Column(sa.JSON(), nullable=False)
+    ext_virtual_link_info = sa.Column(sa.JSON(), nullable=True)
+    ext_managed_virtual_link_info = sa.Column(sa.JSON(), nullable=True)
+    vnfc_resource_info = sa.Column(sa.JSON(), nullable=True)
+    vnf_virtual_link_resource_info = sa.Column(sa.JSON(), nullable=True)
+    virtual_storage_resource_info = sa.Column(sa.JSON(), nullable=True)
+    vnf_state = sa.Column(sa.String(255), nullable=False)
+    instance_id = sa.Column(sa.String(255), nullable=True)
+    instantiation_level_id = sa.Column(sa.String(255), nullable=True)
+    additional_params = sa.Column(sa.JSON(), nullable=True)
+
+    vnf_instance = orm.relationship(VnfInstance,
+        backref=orm.backref('instantiated_vnf_info', uselist=False),
+        foreign_keys=vnf_instance_id,
+        primaryjoin='and_(VnfInstantiatedInfo.vnf_instance_id == '
+        'VnfInstance.id, VnfInstantiatedInfo.deleted == 0)')
+
+
+class VnfResource(model_base.BASE, models.SoftDeleteMixin,
+                models.TimestampMixin, models_v1.HasId):
+    """Resources belongs to the VNF"""
+
+    __tablename__ = 'vnf_resources'
+    vnf_instance_id = sa.Column(sa.String(36),
+                                sa.ForeignKey('vnf_instances.id'),
+                                nullable=False)
+    resource_name = sa.Column(sa.String(255), nullable=True)
+    resource_type = sa.Column(sa.String(255), nullable=False)
+    resource_identifier = sa.Column(sa.String(255), nullable=False)
+    resource_status = sa.Column(sa.String(255), nullable=False)
