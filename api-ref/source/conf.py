@@ -25,8 +25,6 @@
 import os
 import sys
 
-import openstackdocstheme
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -41,14 +39,13 @@ sys.path.insert(0, os.path.abspath('./'))
 
 extensions = [
     'os_api_ref',
+    'openstackdocstheme'
 ]
 
 html_theme = 'openstackdocs'
-html_theme_path = [openstackdocstheme.get_html_theme_path()]
 html_theme_options = {
     "sidebar_mode": "toc",
 }
-html_context = {'bug_project': 'tacker', 'bug_tag': 'api-ref'}
 
 # The suffix of source filenames.
 source_suffix = '.rst'
