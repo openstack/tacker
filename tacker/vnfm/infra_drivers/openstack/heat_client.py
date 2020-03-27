@@ -54,7 +54,11 @@ class HeatClient(object):
         return self.stacks.get(stack_id)
 
     def update(self, stack_id, **kwargs):
-        return self.stacks.update(stack_id, **kwargs)
+        try:
+            return self.stacks.update(stack_id, **kwargs)
+        except heatException.HTTPException:
+            type_, value, tb = sys.exc_info()
+            raise vnfm.HeatClientException(msg=value)
 
     def resource_attr_support(self, resource_name, property_name):
         resource = self.resource_types.get(resource_name)

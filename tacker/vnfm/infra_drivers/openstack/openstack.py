@@ -202,11 +202,52 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         heatclient = hc.HeatClient(auth_attr, region_name)
         heatclient.get(vnf_id)
 
+        update_param_yaml = vnf['vnf'].get('attributes', {}).get(
+            'param_values', '')
+        update_config_yaml = vnf['vnf'].get('attributes', {}).get(
+            'config', '')
+
+        if update_param_yaml:
+            # conversion param_values
+            param_yaml = vnf_dict.get('attributes', {}).get('param_values', '')
+            param_dict = yaml.safe_load(param_yaml)
+            update_param_dict = yaml.safe_load(update_param_yaml)
+
+            # check update values
+            update_values = {}
+            for key, value in update_param_dict.items():
+                if key not in param_dict or\
+                        update_param_dict[key] != param_dict[key]:
+                    update_values[key] = value
+
+            if not update_values:
+                error_reason = _("at vnf_id {} because all parameters "
+                                 "match the existing one.").format(vnf_id)
+                LOG.warning(error_reason)
+                raise vnfm.VNFUpdateInvalidInput(reason=error_reason)
+
+            # update vnf_dict
+            utils.deep_update(param_dict, update_param_dict)
+            new_param_yaml = yaml.safe_dump(param_dict)
+            vnf_dict.setdefault(
+                'attributes', {})['param_values'] = new_param_yaml
+
+            # run stack update
+            stack_update_param = {
+                'parameters': update_values,
+                'existing': True}
+            heatclient.update(vnf_id, **stack_update_param)
+
+        elif not update_param_yaml and not update_config_yaml:
+            error_reason = _("at vnf_id {} because the target "
+                             "yaml is empty.").format(vnf_id)
+            LOG.warning(error_reason)
+            raise vnfm.VNFUpdateInvalidInput(reason=error_reason)
+
         # update config attribute
         config_yaml = vnf_dict.get('attributes', {}).get('config', '')
-        update_yaml = vnf['vnf'].get('attributes', {}).get('config', '')
         LOG.debug('yaml orig %(orig)s update %(update)s',
-                  {'orig': config_yaml, 'update': update_yaml})
+                  {'orig': config_yaml, 'update': update_config_yaml})
 
         # If config_yaml is None, yaml.safe_load() will raise Attribute Error.
         # So set config_yaml to {}, if it is None.
@@ -214,7 +255,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             config_dict = {}
         else:
             config_dict = yaml.safe_load(config_yaml) or {}
-        update_dict = yaml.safe_load(update_yaml)
+        update_dict = yaml.safe_load(update_config_yaml)
         if not update_dict:
             return
 

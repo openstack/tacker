@@ -824,6 +824,57 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                                                         dummy_vnf_obj['id'],
                                                     'VNF Update failed')
 
+    def test_update_vnf_param(self):
+        self._insert_dummy_vnf_template()
+        dummy_device_obj = self._insert_dummy_vnf()
+        vnf_param_obj = utils.get_dummy_vnf_param_obj()
+        result = self.vnfm_plugin.update_vnf(self.context,
+                                             dummy_device_obj['id'],
+                                             vnf_param_obj)
+        self.assertIsNotNone(result)
+        self.assertEqual(dummy_device_obj['id'], result['id'])
+        self.assertIn('instance_id', result)
+        self.assertIn('status', result)
+        self.assertIn('attributes', result)
+        self.assertIn('mgmt_ip_address', result)
+        self.assertIn('updated_at', result)
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VNF,
+            tstamp=mock.ANY)
+
+    def test_update_vnf_invalid_config_type(self):
+        self._insert_dummy_vnf_template()
+        dummy_device_obj = self._insert_dummy_vnf()
+        vnf_param_obj = utils.get_dummy_vnf_invalid_config_type_obj()
+        self.assertRaises(vnfm.InvalidAPIAttributeType,
+                          self.vnfm_plugin.update_vnf,
+                          self.context,
+                          dummy_device_obj['id'],
+                          vnf_param_obj)
+
+    def test_update_vnf_invalid_param_type(self):
+        self._insert_dummy_vnf_template()
+        dummy_device_obj = self._insert_dummy_vnf()
+        vnf_param_obj = utils.get_dummy_vnf_invalid_param_type_obj()
+        self.assertRaises(vnfm.InvalidAPIAttributeType,
+                          self.vnfm_plugin.update_vnf,
+                          self.context,
+                          dummy_device_obj['id'],
+                          vnf_param_obj)
+
+    def test_update_vnf_invalid_param_content(self):
+        self.update.side_effect = vnfm.VNFUpdateInvalidInput(
+            reason='failed')
+        self._insert_dummy_vnf_template()
+        dummy_device_obj = self._insert_dummy_vnf()
+        vnf_param_obj = utils.get_dummy_vnf_invalid_param_content()
+        self.assertRaises(vnfm.VNFUpdateInvalidInput,
+                          self.vnfm_plugin.update_vnf,
+                          self.context,
+                          dummy_device_obj['id'],
+                          vnf_param_obj)
+
     def _get_dummy_scaling_policy(self, type):
         vnf_scale = {}
         vnf_scale['scale'] = {}

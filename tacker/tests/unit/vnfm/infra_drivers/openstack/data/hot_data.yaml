@@ -1,0 +1,27 @@
+heat_template_version: 2013-05-23
+description: 'OpenWRT with services
+
+'
+parameters:
+  flavor: {type: string, default: m1.tiny}
+  reservation_id: {type: string, default: 891cd152-3925-4c9e-9074-239a902b68d7}
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      networks:
+      - port: {get_resource: CP1}
+      image: OpenWRT
+      user_data_format: SOFTWARE_CONFIG
+      config_drive: false
+      flavor: {get_param: flavor}
+      scheduler_hints:
+        reservation: {get_param: reservation_id}
+  CP1:
+    type: OS::Neutron::Port
+    properties: {network: existing_network_1, port_security_enabled: false}
+
+outputs:
+  mgmt_ip-VDU1:
+    value:
+      get_attr: [CP1, fixed_ips, 0, ip_address]
