@@ -55,6 +55,28 @@ def validate_mac_address_or_none(instance):
     return True
 
 
+def _validate_query_parameter_without_value(parameter_name, instance):
+    """The query parameter is a flag without a value."""
+    if not (isinstance(instance, six.text_type) and len(instance)):
+        return True
+
+    msg = _("The parameter '%s' is a flag. It shouldn't contain any value.")
+    raise webob.exc.HTTPBadRequest(explanation=msg % parameter_name)
+
+
+@jsonschema.FormatChecker.cls_checks('all_fields',
+        webob.exc.HTTPBadRequest)
+def _validate_all_fields_query_parameter(instance):
+    return _validate_query_parameter_without_value('all_fields', instance)
+
+
+@jsonschema.FormatChecker.cls_checks('exclude_default',
+        webob.exc.HTTPBadRequest)
+def _validate_exclude_default_query_parameter(instance):
+    return _validate_query_parameter_without_value('exclude_default',
+            instance)
+
+
 class FormatChecker(jsonschema.FormatChecker):
     """A FormatChecker can output the message from cause exception
 

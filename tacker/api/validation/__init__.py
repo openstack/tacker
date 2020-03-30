@@ -22,6 +22,7 @@ import functools
 import webob
 
 from tacker.api.validation import validators
+from tacker.common import exceptions
 
 
 def schema(request_body_schema):
@@ -46,6 +47,45 @@ def schema(request_body_schema):
                     explanation=_("Malformed request body"))
 
             return func(*args, **kwargs)
+        return wrapper
+
+    return add_validator
+
+
+def query_schema(query_params_schema):
+    """Register a schema to validate request query parameters.
+
+    Registered schema will be used for validating request query params just
+    before API method executing.
+
+    :param query_params_schema: A dict, the JSON-Schema for validating the
+                                query parameters.
+    """
+
+    def add_validator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # NOTE(tpatil): The second argument of the method
+            # calling this method should always be 'request'.
+            if 'request' in kwargs:
+                req = kwargs['request']
+            else:
+                req = args[1]
+
+            try:
+                req.GET.dict_of_lists()
+            except UnicodeDecodeError:
+                msg = _('Query string is not UTF-8 encoded')
+                raise exceptions.ValidationError(msg)
+
+            query_opts = {}
+            query_opts.update(req.GET)
+            schema_validator = validators._SchemaValidator(
+                query_params_schema)
+            schema_validator.validate(query_opts)
+
+            return func(*args, **kwargs)
+
         return wrapper
 
     return add_validator
