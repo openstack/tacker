@@ -18,6 +18,7 @@ from oslo_versionedobjects import base as ovoo_base
 from sqlalchemy.orm import joinedload
 
 from tacker.common import exceptions
+from tacker.common import utils
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
@@ -79,6 +80,37 @@ def _vnf_sw_image_get_by_id(context, id):
 
 @base.TackerObjectRegistry.register
 class VnfSoftwareImage(base.TackerObject, base.TackerPersistentObject):
+
+    ALL_ATTRIBUTES = {
+        "softwareImages": {
+            'id': ('software_image_id', 'string', 'VnfSoftwareImage'),
+            'imagePath': ('image_path', 'string', 'VnfSoftwareImage'),
+            'diskFormat': ('disk_format', 'string', 'VnfSoftwareImage'),
+            'userMetadata/*': ('metadata', 'key_value_pair',
+            {"key_column": "key", "value_column": "value",
+             "model": "VnfSoftwareImageMetadata"}),
+            'size': ('size', 'number', 'VnfSoftwareImage'),
+            'createdAt': ('created_at', 'datetime', 'VnfSoftwareImage'),
+            'name': ('name', 'string', 'VnfSoftwareImage'),
+            'minDisk': ('min_disk', 'number', 'VnfSoftwareImage'),
+            'version': ('version', 'string', 'VnfSoftwareImage'),
+            'provider': ('provider', 'string', 'VnfSoftwareImage'),
+            'minRam': ('min_ram', 'number', 'VnfSoftwareImage'),
+            'containerFormat': ('container_format', 'string',
+                                'VnfSoftwareImage'),
+            "checksum": {
+                'hash': ('hash', 'string', 'VnfSoftwareImage'),
+                'algorithm': ('algorithm', 'string', 'VnfSoftwareImage')
+            }
+        }
+    }
+
+    FLATTEN_ATTRIBUTES = utils.flatten_dict(ALL_ATTRIBUTES.copy())
+    SIMPLE_ATTRIBUTES = ['id', 'imagePath', 'diskFormat', 'size',
+            'createdAt', 'name', 'minDisk', 'version', 'provider', 'minRam',
+            'containerFormat']
+    COMPLEX_ATTRIBUTES = ['softwareImages', 'softwareImages/userMetadata',
+        'softwareImages/checksum']
 
     # Version 1.0: Initial version
     VERSION = '1.0'
@@ -198,6 +230,64 @@ class VnfSoftwareImage(base.TackerObject, base.TackerPersistentObject):
         db_sw_image = _vnf_sw_image_get_by_id(context, id)
         return cls._from_db_object(context, cls(), db_sw_image,
                                    expected_attrs=expected_attrs)
+
+    def _get_user_metadata(self, include_fields=None):
+        # Need special handling for field containing key-value pair.
+        # If user requests softwareImages/userMetadata/key1 and if
+        # softwareImages/userMetadata contains key1=value1, key2=value2,
+        # it should return only keys that are requested in include_fields.
+        # If user requests only softwareImages/userMetadata, then in that
+        # case, it should return all key/value pairs. If any of the requested
+        # key is not present, then it will siliently ignore it.
+        key = 'softwareImages/userMetadata'
+        if key in include_fields or '%s/*' % key in \
+                include_fields:
+            return self.metadata
+        else:
+            # Check if user has requested specified keys from
+            # softwareImages/userMetadata.
+            key_list = []
+            special_key = '%s/' % key
+            for field in include_fields:
+                if field.startswith(special_key):
+                    key_list.append(field[len(special_key):])
+
+            data_resp = dict()
+            for key_req in key_list:
+                if key_req in self.metadata:
+                    data_resp[key_req] = self.metadata[key_req]
+
+            if len(key_list) > 0:
+                return data_resp
+
+    def to_dict(self, include_fields=None):
+        response = dict()
+        fields = ['softwareImages/%s' % attribute for attribute in
+            self.SIMPLE_ATTRIBUTES]
+        to_fields = set(fields).intersection(include_fields)
+        for field in to_fields:
+            display_field = field.split("/")[-1]
+            response[display_field] = getattr(self,
+                    self.FLATTEN_ATTRIBUTES[field][0])
+
+        # add checksum
+        to_fields = set([key for key in self.FLATTEN_ATTRIBUTES.keys()
+            if key.startswith('softwareImages/checksum')])
+        checksum = dict()
+        to_fields = to_fields.intersection(include_fields)
+        for field in to_fields:
+            display_field = field.split("/")[-1]
+            checksum[display_field] = getattr(self,
+                    self.FLATTEN_ATTRIBUTES[field][0])
+
+        if checksum:
+            response.update({"checksum": checksum})
+
+        user_metadata = self._get_user_metadata(include_fields)
+        if user_metadata is not None:
+            response.update({"userMetadata": user_metadata})
+
+        return response
 
 
 @base.TackerObjectRegistry.register

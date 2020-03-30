@@ -14,6 +14,7 @@
 #    under the License.
 
 
+from copy import deepcopy
 import datetime
 import io
 import iso8601
@@ -26,68 +27,186 @@ import zipfile
 
 from tacker.api.vnfpkgm.v1.router import VnfpkgmAPIRouter
 from tacker import context
-from tacker.db.db_sqlalchemy import models
+from tacker.objects import vnf_deployment_flavour as vnf_deployment_flavour_obj
 from tacker.objects import vnf_package as vnf_package_obj
+from tacker.objects import vnf_package_vnfd as vnf_package_vnfd_obj
+from tacker.objects import vnf_software_image as vnf_software_image_obj
 from tacker.tests import constants
 from tacker.tests import uuidsentinel
 from tacker import wsgi
 
 
-VNFPACKAGE_RESPONSE = {'_links': {
-    'packageContent': {
-        'href':
-            '/vnfpkgm/v1/vnf_packages/'
-            'f26f181d-7891-4720-b022-b074ec1733ef/package_content'},
-    'self': {
-        'href':
-            '/vnfpkgm/v1/vnf_packages/'
-            'f26f181d-7891-4720-b022-b074ec1733ef'},
-},
+VNFPACKAGE_RESPONSE = {
+    '_links': {
+        'packageContent': {
+            'href': '/vnfpkgm/v1/vnf_packages/'
+                    'f26f181d-7891-4720-b022-b074ec1733ef/package_content'},
+            'self': {
+                'href': '/vnfpkgm/v1/vnf_packages/'
+                        'f26f181d-7891-4720-b022-b074ec1733ef'}
+    },
+    'checksum': {
+        'algorithm': 'fake vnf package algorithm',
+        'hash': 'fake vnf package hash'
+    },
     'id': 'f26f181d-7891-4720-b022-b074ec1733ef',
-    'onboardingState': 'CREATED',
-    'operationalState': 'DISABLED',
+    'onboardingState': 'ONBOARDED',
+    'operationalState': 'ENABLED',
     'usageState': 'NOT_IN_USE',
-    'userDefinedData': {'abc': 'xyz'}
+    'vnfProductName': 'fake vnf product name',
+    'vnfProvider': 'fake vnf provider',
+    'vnfSoftwareVersion': 'fake vnf software version',
+    'vnfdId': uuidsentinel.vnfd_id,
+    'vnfdVersion': 'fake vnfd version',
+    'userDefinedData': {'key1': 'value1', 'key2': 'value2'},
+    'softwareImages': [{
+        'checksum': {'algorithm': 'fake-algorithm',
+                     'hash': 'fake software image hash'},
+        'containerFormat': 'bare',
+        'createdAt': datetime.datetime(1900, 1, 1, 1, 1, 1,
+                                       tzinfo=iso8601.UTC),
+        'diskFormat': 'qcow2',
+        'id': 'fake_software_image_id',
+        'imagePath': 'fake image path',
+        'minDisk': 1,
+        'minRam': 0,
+        'name': 'fake software image name',
+        'provider': 'fake provider',
+        'size': 1,
+        'userMetadata': {'key3': 'value3', 'key4': 'value4'},
+        'version': '11.22.33'
+    }],
 }
 
-VNFPACKAGE_INDEX_RESPONSE = {'vnf_packages': [{'_links': {
-    'packageContent': {
-        'href':
-            '/vnfpkgm/v1/vnf_packages/'
-            'f26f181d-7891-4720-b022-b074ec1733ef/package_content'},
-    'self': {
-        'href': '/vnfpkgm/v1/vnf_packages/'
-                'f26f181d-7891-4720-b022-b074ec1733ef'}},
-    'id': 'f26f181d-7891-4720-b022-b074ec1733ef',
-    'onboardingState': 'CREATED',
-    'operationalState': 'DISABLED',
-    'usageState': 'NOT_IN_USE',
-    'userDefinedData': {}}]
+VNFPACKAGE_INDEX_RESPONSE = {
+    'vnf_packages': [VNFPACKAGE_RESPONSE]
 }
 
 
-def fake_vnf_package(**updates):
-    vnf_package = {
-        'algorithm': None,
-        'deleted': False,
-        'deleted_at': None,
-        'updated_at': None,
+def index_response(remove_attrs=None, vnf_package_updates=None):
+    # Returns VNFPACKAGE_INDEX_RESPONSE
+    # parameter remove_attrs is a list of attribute names
+    # to be removed before returning the response
+    if not remove_attrs:
+        return VNFPACKAGE_INDEX_RESPONSE
+    vnf_package = deepcopy(VNFPACKAGE_RESPONSE)
+    for attr in remove_attrs:
+        vnf_package.pop(attr, None)
+    if vnf_package_updates:
+        vnf_package.update(vnf_package_updates)
+    return {'vnf_packages': [vnf_package]}
+
+
+def _fake_software_image(updates=None):
+    software_image = {
+        'id': uuidsentinel.software_image_id,
+        'disk_format': 'qcow2',
+        'min_ram': 0,
+        'min_disk': 1,
+        'container_format': 'bare',
+        'provider': 'fake provider',
+        'image_path': 'fake image path',
+        'software_image_id': 'fake_software_image_id',
+        'size': 1,
+        'name': 'fake software image name',
+        'hash': 'fake software image hash',
+        'version': '11.22.33',
+        'algorithm': 'fake-algorithm',
+        'metadata': {'key3': 'value3', 'key4': 'value4'},
         'created_at': datetime.datetime(1900, 1, 1, 1, 1, 1,
                                         tzinfo=iso8601.UTC),
-        'hash': None,
-        'location_glance_store': None,
-        'onboarding_state': 'CREATED',
-        'operational_state': 'DISABLED',
+    }
+    if updates:
+        software_image.update(updates)
+    return software_image
+
+
+def return_software_image(updates=None):
+    software_image = _fake_software_image(updates)
+    obj = vnf_software_image_obj.VnfSoftwareImage(**software_image)
+    return obj
+
+
+def _fake_deployment_flavour(updates=None):
+    deployment_flavour = {
+        'id': uuidsentinel.deployment_flavour_id,
+        'package_uuid': 'f26f181d-7891-4720-b022-b074ec1733ef',
+        'flavour_id': 'fake flavour id',
+        'flavour_description': 'fake flavour description',
+        'instantiation_levels': {"level1": 1, "level2": 2}
+    }
+    if updates:
+        deployment_flavour.update(updates)
+    return deployment_flavour
+
+
+def _return_deployment_flavour(deployment_flavour_updates=None,
+        software_image_updates=None):
+    flavour = _fake_deployment_flavour(deployment_flavour_updates)
+    obj = vnf_deployment_flavour_obj.VnfDeploymentFlavour(**flavour)
+
+    software_image = return_software_image(software_image_updates)
+    software_image_list = vnf_software_image_obj.VnfSoftwareImagesList()
+    software_image_list.objects = [software_image]
+
+    obj.software_images = software_image_list
+    return obj
+
+
+def _fake_vnfd(updates=None):
+    vnfd = {
+        'id': uuidsentinel.vnfd_unused_id,
+        'package_uuid': 'f26f181d-7891-4720-b022-b074ec1733ef',
+        'vnfd_id': uuidsentinel.vnfd_id,
+        'vnf_provider': 'fake vnf provider',
+        'vnf_product_name': 'fake vnf product name',
+        'vnfd_version': 'fake vnfd version',
+        'vnf_software_version': 'fake vnf software version'
+    }
+    if updates:
+        vnfd.update(updates)
+    return vnfd
+
+
+def _return_vnfd(updates=None):
+    vnfd = _fake_vnfd(updates)
+    return vnf_package_vnfd_obj.VnfPackageVnfd(**vnfd)
+
+
+def fake_vnf_package(updates=None):
+    vnf_package = {
+        'id': constants.UUID,
+        'hash': 'fake vnf package hash',
+        'algorithm': 'fake vnf package algorithm',
+        'location_glance_store': 'fake location',
+        'onboarding_state': 'ONBOARDED',
+        'operational_state': 'ENABLED',
         'tenant_id': uuidsentinel.tenant_id,
         'usage_state': 'NOT_IN_USE',
-        'user_data': {'abc': 'xyz'},
-        'id': constants.UUID,
+        'user_data': {'key1': 'value1', 'key2': 'value2'},
     }
-
     if updates:
         vnf_package.update(updates)
-
     return vnf_package
+
+
+def return_vnfpkg_obj(vnf_package_updates=None, vnfd_updates=None,
+        deployment_flavour_updates=None, software_image_updates=None):
+    vnf_package = fake_vnf_package(vnf_package_updates)
+    obj = vnf_package_obj.VnfPackage(**vnf_package)
+    obj.vnfd = _return_vnfd(vnfd_updates)
+
+    deployment_flavour = _return_deployment_flavour(
+        deployment_flavour_updates, software_image_updates)
+    flavour_list = vnf_deployment_flavour_obj.VnfDeploymentFlavoursList()
+    flavour_list.objects = [deployment_flavour]
+    obj.vnf_deployment_flavours = flavour_list
+    return obj
+
+
+def return_vnf_package_list():
+    vnf_package = return_vnfpkg_obj()
+    return [vnf_package]
 
 
 class InjectContext(wsgi.Middleware):
@@ -101,64 +220,6 @@ class InjectContext(wsgi.Middleware):
     def __call__(self, req):
         req.environ['tacker.context'] = self.context
         return self.application
-
-
-def fake_vnf_package_user_data(**updates):
-    vnf_package_user_data = {
-        'key': 'key',
-        'value': 'value',
-        'package_uuid': constants.UUID,
-        'id': constants.UUID,
-    }
-
-    if updates:
-        vnf_package_user_data.update(updates)
-
-    return vnf_package_user_data
-
-
-def return_vnf_package_user_data(**updates):
-    model_obj = models.VnfPackageUserData()
-    model_obj.update(fake_vnf_package_user_data(**updates))
-    return model_obj
-
-
-def return_vnf_package(onboarded=False, **updates):
-    model_obj = models.VnfPackage()
-    if 'user_data' in updates:
-        metadata = []
-        for key, value in updates.pop('user_data').items():
-            vnf_package_user_data = return_vnf_package_user_data(
-                **{'key': key, 'value': value})
-            metadata.extend([vnf_package_user_data])
-        model_obj._metadata = metadata
-
-    if onboarded:
-        updates = {'onboarding_state': 'ONBOARDED',
-                   'operational_state': 'ENABLED',
-                   'algorithm': 'test',
-                   'hash': 'test',
-                   'location_glance_store': 'file:test/path/pkg-uuid',
-                   'updated_at': datetime.datetime(
-                       1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)}
-        model_obj.update(fake_vnf_package(**updates))
-    else:
-        model_obj.update(fake_vnf_package(**updates))
-
-    return model_obj
-
-
-def return_vnfpkg_obj(onboarded=False, **updates):
-    vnf_package = vnf_package_obj.VnfPackage._from_db_object(
-        context, vnf_package_obj.VnfPackage(),
-        return_vnf_package(onboarded=onboarded, **updates),
-        expected_attrs=None)
-    return vnf_package
-
-
-def return_vnf_package_list():
-    vnf_package = return_vnfpkg_obj()
-    return [vnf_package]
 
 
 def wsgi_app_v1(fake_auth_context=None):

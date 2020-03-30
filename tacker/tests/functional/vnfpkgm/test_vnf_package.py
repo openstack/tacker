@@ -13,8 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from copy import deepcopy
 import ddt
 import os
+from six.moves import urllib
 import tempfile
 import time
 import zipfile
@@ -23,6 +25,7 @@ from oslo_serialization import jsonutils
 
 import tacker.conf
 from tacker.tests.functional import base
+from tacker.tests import utils
 
 
 CONF = tacker.conf.CONF
@@ -37,6 +40,25 @@ class VnfPackageTest(base.BaseTackerTest):
     def setUp(self):
         super(VnfPackageTest, self).setUp()
         self.base_url = "/vnfpkgm/v1/vnf_packages"
+        # Here we create and upload vnf package. Also get 'show' api response
+        # as reference data for attribute filter tests
+        self.package_id1 = self._create_and_upload_vnf("vnfpkgm1")
+        show_url = self.base_url + "/" + self.package_id1
+        resp, self.package1 = self.http_client.do_request(show_url, "GET")
+        self.assertEqual(200, resp.status_code)
+
+        self.package_id2 = self._create_and_upload_vnf("vnfpkgm2")
+        show_url = self.base_url + "/" + self.package_id2
+        resp, self.package2 = self.http_client.do_request(show_url, "GET")
+        self.assertEqual(200, resp.status_code)
+
+    def tearDown(self):
+        for package_id in [self.package_id1, self.package_id2]:
+            self._disable_operational_state(package_id)
+            self._delete_vnf_package(package_id)
+            self._wait_for_delete(package_id)
+
+        super(VnfPackageTest, self).tearDown()
 
     def _wait_for_delete(self, package_uuid):
         show_url = self.base_url + "/" + package_uuid
@@ -128,43 +150,58 @@ class VnfPackageTest(base.BaseTackerTest):
         self.assertIn(vnf_package_list[0], package_uuids)
         self.assertIn(vnf_package_list[1], package_uuids)
 
-    def _get_csar_file_path(self, file_name):
-        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                    '../../etc/samples/' + file_name))
-        return file_path
+    def _get_csar_dir_path(self, csar_name):
+        csar_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                   "../../etc/samples/etsi/nfv", csar_name))
+        return csar_dir
 
-    def test_upload_from_file_update_show_and_delete(self):
-        """This method tests multiple operations on vnf package.
+    def _create_and_upload_vnf(self, sample_name):
+        body = jsonutils.dumps({"userDefinedData": {"foo": "bar"}})
+        vnf_package = self._create_vnf_package(body)
+        csar_dir = self._get_csar_dir_path(sample_name)
+        file_path, vnfd_id = utils.create_csar_with_unique_vnfd_id(csar_dir)
+        self.addCleanup(os.remove, file_path)
 
-        - upload package from file
-        - update the package state to DISABLED.
-        - show the package
-        - delete the package
-        """
+        with open(file_path, 'rb') as file_object:
+            resp, resp_body = self.http_client.do_request(
+                '{base_path}/{id}/package_content'.format(
+                    id=vnf_package['id'],
+                    base_path=self.base_url),
+                "PUT", body=file_object, content_type='application/zip')
+
+        self.assertEqual(202, resp.status_code)
+
+        self._wait_for_onboard(vnf_package['id'])
+
+        return vnf_package['id']
+
+    def test_patch_in_onboarded_state(self):
         user_data = jsonutils.dumps(
             {"userDefinedData": {"key1": "val1", "key2": "val2",
                                  "key3": "val3"}})
         vnf_package = self._create_vnf_package(user_data)
-
-        file_path = self._get_csar_file_path("sample_vnf_package_csar.zip")
-        upload_url = "{base_path}/{id}/package_content".format(
-            base_path=self.base_url, id=vnf_package['id'])
-        with open(file_path, 'rb') as file_object:
-            resp, resp_body = self.http_client.do_request(upload_url,
-                "PUT", body=file_object, content_type='application/zip')
-
-        self.assertEqual(202, resp.status_code)
-        self._wait_for_onboard(vnf_package['id'])
 
         update_req_body = jsonutils.dumps(
             {"operationalState": "DISABLED",
              "userDefinedData": {"key1": "changed_val1",
                                  "key2": "val2", "new_key": "new_val"}})
 
-        operational_state = "DISABLED"
-        user_defined_data = {"key1": "changed_val1", "new_key": "new_val"}
-        expected_result = {"operationalState": operational_state,
-                           "userDefinedData": user_defined_data}
+        expected_result = {"operationalState": "DISABLED",
+                           "userDefinedData": {
+                               "key1": "changed_val1", "new_key": "new_val"}}
+
+        csar_dir = self._get_csar_dir_path("vnfpkgm1")
+        file_path, vnfd_id = utils.create_csar_with_unique_vnfd_id(csar_dir)
+        self.addCleanup(os.remove, file_path)
+        with open(file_path, 'rb') as file_object:
+            resp, resp_body = self.http_client.do_request(
+                '{base_path}/{id}/package_content'.format(
+                    id=vnf_package['id'],
+                    base_path=self.base_url),
+                "PUT", body=file_object, content_type='application/zip')
+
+        self.assertEqual(202, resp.status_code)
+        self._wait_for_onboard(vnf_package['id'])
 
         # Update vnf package which is onboarded
         resp, resp_body = self.http_client.do_request(
@@ -174,26 +211,91 @@ class VnfPackageTest(base.BaseTackerTest):
 
         self.assertEqual(200, resp.status_code)
         self.assertEqual(expected_result, resp_body)
-
-        # Show vnf package and verify whether the userDefinedData
-        # and operationalState parameters are updated correctly.
-        show_url = self.base_url + "/" + vnf_package['id']
-        resp, body = self.http_client.do_request(show_url, "GET")
-        self.assertEqual(200, resp.status_code)
-        self.assertEqual(operational_state, body['operationalState'])
-        expected_user_defined_data = {'key1': 'changed_val1', 'key2': 'val2',
-                                      'key3': 'val3', 'new_key': 'new_val'}
-        self.assertEqual(expected_user_defined_data, body['userDefinedData'])
-
         self._delete_vnf_package(vnf_package['id'])
         self._wait_for_delete(vnf_package['id'])
+
+    def test_index_attribute_filter(self):
+        filter_expr = {
+            'filter': "(gt,softwareImages/minDisk,7);"
+            "(eq,onboardingState,ONBOARDED);"
+            "(eq,softwareImages/checksum/algorithm,'sha-512')"
+        }
+        filter_url = self.base_url + "?" + urllib.parse.urlencode(filter_expr)
+        resp, body = self.http_client.do_request(filter_url, "GET")
+        package = deepcopy(self.package2)
+        for attr in ['softwareImages', 'checksum', 'userDefinedData']:
+            package.pop(attr, None)
+        expected_result = {'vnf_packages': [package]}
+        self.assertEqual(expected_result, body)
+
+    def test_index_attribute_selector_all_fields(self):
+        """Test for attribute selector 'all_fields'
+
+        We intentionally use attribute filter along with attribute selector.
+        It is because when these tests run with concurrency > 1, there will
+        be multiple sample packages present at a time. Hence attribute
+        selector will be applied on all of them. It will be difficult to
+        predict the expected result. Hence we are limiting the result set by
+        filtering one of the vnf package which was created for this speific
+        test.
+        """
+        filter_expr = {'filter': '(eq,id,%s)' % self.package_id1,
+            'all_fields': ''}
+        filter_url = self.base_url + "?" + urllib.parse.urlencode(filter_expr)
+        resp, body = self.http_client.do_request(filter_url, "GET")
+        expected_result = {'vnf_packages': [self.package1]}
+        self.assertEqual(expected_result, body)
+
+    def test_index_attribute_selector_exclude_default(self):
+        filter_expr = {'filter': '(eq,id,%s)' % self.package_id2,
+            'exclude_default': ''}
+        filter_url = self.base_url + "?" + urllib.parse.urlencode(filter_expr)
+        resp, body = self.http_client.do_request(filter_url, "GET")
+        package2 = deepcopy(self.package2)
+        for attr in ['softwareImages', 'checksum', 'userDefinedData']:
+            package2.pop(attr, None)
+        expected_result = {'vnf_packages': [package2]}
+        self.assertEqual(expected_result, body)
+
+    def test_index_attribute_selector_exclude_fields(self):
+        filter_expr = {'filter': '(eq,id,%s)' % self.package_id2,
+            'exclude_fields': 'checksum,softwareImages/checksum'}
+        filter_url = self.base_url + "?" + urllib.parse.urlencode(filter_expr)
+        resp, body = self.http_client.do_request(filter_url, "GET")
+        package2 = deepcopy(self.package2)
+        for software_image in package2['softwareImages']:
+            software_image.pop('checksum', None)
+        package2.pop('checksum', None)
+        expected_result = {'vnf_packages': [package2]}
+        self.assertEqual(expected_result, body)
+
+    def test_index_attribute_selector_fields(self):
+        filter_expr = {'filter': '(eq,id,%s)' % self.package_id1,
+            'fields': 'softwareImages/checksum/hash,'
+            'softwareImages/containerFormat,softwareImages/name,'
+            'userDefinedData'}
+        filter_url = self.base_url + "?" + urllib.parse.urlencode(filter_expr)
+        resp, body = self.http_client.do_request(filter_url, "GET")
+        package1 = deepcopy(self.package1)
+
+        # Prepare expected result
+        for software_image in package1['softwareImages']:
+            software_image['checksum'].pop('algorithm', None)
+            for attr in ['createdAt', 'diskFormat', 'id', 'imagePath',
+                    'minDisk', 'minRam', 'provider', 'size', 'userMetadata',
+                    'version']:
+                software_image.pop(attr, None)
+        package1.pop('checksum', None)
+        expected_result = {'vnf_packages': [package1]}
+        self.assertEqual(expected_result, body)
 
     def _create_and_onboard_vnf_package(self, file_name=None):
         body = jsonutils.dumps({"userDefinedData": {"foo": "bar"}})
         vnf_package = self._create_vnf_package(body)
         if file_name is None:
             file_name = "sample_vnf_package_csar.zip"
-        file_path = self._get_csar_file_path(file_name)
+        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                    '../../etc/samples/' + file_name))
         with open(file_path, 'rb') as file_object:
             resp, resp_body = self.http_client.do_request(
                 '{base_path}/{id}/package_content'.format(

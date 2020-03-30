@@ -19,6 +19,7 @@
 """Utilities and helper functions."""
 
 import functools
+from functools import reduce
 import inspect
 import logging as std_logging
 import math
@@ -400,6 +401,22 @@ def is_url(url):
         return True
     except Exception:
         return False
+
+
+def flatten_dict(data, prefix=''):
+    ret = {}
+    for key, val in data.items():
+        key = prefix + key
+        if isinstance(val, dict):
+            ret.update(flatten_dict(val, key + '/'))
+        else:
+            ret[key] = val
+    return ret
+
+
+def deepgetattr(obj, attr):
+    """Recurses through an attribute chain to get the ultimate value."""
+    return reduce(getattr, attr.split('.'), obj)
 
 
 class CooperativeReader(object):

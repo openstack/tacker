@@ -25,12 +25,14 @@ from sqlalchemy_filters import apply_filters
 
 from tacker._i18n import _
 from tacker.common import exceptions
+from tacker.common import utils
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
 from tacker import objects
 from tacker.objects import base
 from tacker.objects import fields
+from tacker.objects import vnf_software_image
 
 _NO_DATA_SENTINEL = object()
 
@@ -256,14 +258,62 @@ def _make_vnf_packages_list(context, vnf_package_list, db_vnf_package_list,
 class VnfPackage(base.TackerObject, base.TackerPersistentObject,
                  base.TackerObjectDictCompat):
 
+    # Key corresponds to the name of the parameter as defined
+    # in type VnfPkgInfo of SOL003 document and value will contain tuple
+    # of following values:-
+    # 1. Parameter that is mapped to version object
+    # 2. Data type of the field as per the data types supported by
+    # attribute-based filtering
+    # 3. DB model that's mapped to the version object.
+    # 4. Valid values for a given data type if any. This value is set
+    # especially for 'enum' data type.
+    ALL_ATTRIBUTES = {
+        'id': ('id', "string", 'VnfPackage'),
+        'onboardingState': ('onboarding_state', "enum", 'VnfPackage',
+            fields.PackageOnboardingStateTypeField().valid_values),
+        'operationalState': ('operational_state', 'enum', 'VnfPackage',
+            fields.PackageOperationalStateTypeField().valid_values),
+        'usageState': ('usage_state', 'enum', 'VnfPackage',
+            fields.PackageUsageStateTypeField().valid_values),
+        'vnfProvider': ('vnfd.vnf_provider', 'string', 'VnfPackageVnfd'),
+        'vnfProductName': ('vnfd.vnf_product_name', 'string',
+                           'VnfPackageVnfd'),
+        'vnfdId': ('vnfd.vnfd_id', 'string', 'VnfPackageVnfd'),
+        'vnfSoftwareVersion': ('vnfd.vnf_software_version', 'string',
+                               'VnfPackageVnfd'),
+        'vnfdVersion': ('vnfd.vnfd_version', 'string', 'VnfPackageVnfd'),
+        'userDefinedData/*': ('user_data', 'key_value_pair',
+            {"key_column": "key", "value_column": "value",
+             "model": "VnfPackageUserData"}),
+        "checksum": {
+            'algorithm': ('algorithm', 'string', 'VnfPackage'),
+            'hash': ('hash', 'string', 'VnfPackage'),
+        }
+    }
+
+    ALL_ATTRIBUTES.update(vnf_software_image.VnfSoftwareImage.ALL_ATTRIBUTES)
+
+    FLATTEN_ATTRIBUTES = utils.flatten_dict(ALL_ATTRIBUTES.copy())
+
+    simple_attributes = ['id', 'onboardingState', 'operationalState',
+                         'usageState']
+    simple_instantiated_attributes = ['vnfProvider', 'vnfProductName',
+                         'vnfdId', 'vnfSoftwareVersion', 'vnfdVersion']
+
+    COMPLEX_ATTRIBUTES = ["checksum", "userDefinedData"]
+    COMPLEX_ATTRIBUTES.extend(
+        vnf_software_image.VnfSoftwareImage.COMPLEX_ATTRIBUTES)
+
     # Version 1.0: Initial version
     VERSION = '1.0'
 
     fields = {
         'id': fields.UUIDField(nullable=False),
-        'onboarding_state': fields.StringField(nullable=False),
-        'operational_state': fields.StringField(nullable=False),
-        'usage_state': fields.StringField(nullable=False),
+        'onboarding_state': fields.PackageOnboardingStateTypeField(
+            nullable=False),
+        'operational_state': fields.PackageOperationalStateTypeField(
+            nullable=False),
+        'usage_state': fields.PackageUsageStateTypeField(nullable=False),
         'user_data': fields.DictOfStringsField(),
         'tenant_id': fields.StringField(nullable=False),
         'algorithm': fields.StringField(nullable=True),
@@ -277,8 +327,7 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
     @staticmethod
     def _from_db_object(context, vnf_package, db_vnf_package,
                         expected_attrs=None):
-        if expected_attrs is None:
-            expected_attrs = []
+        expected_attrs = expected_attrs or []
 
         vnf_package._context = context
 
@@ -303,7 +352,8 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
                                          expected_attrs=None):
         """Method to help with migration of extra attributes to objects."""
 
-        expected_attrs = expected_attrs or []
+        if expected_attrs is None:
+            expected_attrs = []
 
         if 'vnf_deployment_flavours' in expected_attrs:
             vnf_package._load_vnf_deployment_flavours(
@@ -459,6 +509,92 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
             return True if result > 0 else False
         else:
             return False
+
+    def _get_vnfd(self, include_fields=None):
+        response = dict()
+        to_fields = set(self.simple_instantiated_attributes).intersection(
+            include_fields)
+        for field in to_fields:
+            response[field] = utils.deepgetattr(self,
+                self.FLATTEN_ATTRIBUTES[field][0])
+        return response
+
+    def _get_checksum(self, include_fields=None):
+        response = dict()
+        to_fields = set([key for key in self.FLATTEN_ATTRIBUTES.keys()
+            if key.startswith('checksum')])
+        to_fields = to_fields.intersection(include_fields)
+        for field in to_fields:
+            display_field = field.split("/")[-1]
+            response[display_field] = getattr(self,
+                self.FLATTEN_ATTRIBUTES[field][0])
+        return {'checksum': response} if response else None
+
+    def _get_user_defined_data(self, include_fields=None):
+        # Need special handling for field containing key-value pair.
+        # If user requests userDefined/key1 and if userDefineData contains
+        # key1=value1, key2-value2, it should return only keys that are
+        # requested in include_fields. If user requests only userDefinedData,
+        # then in that case,it should return all key/value pairs. In case,
+        # if any of the requested key is not present, then it should
+        # siliently ignore it.
+        key = 'userDefinedData'
+        if key in include_fields or 'userDefinedData/*' in include_fields:
+            return {key: self.user_data}
+        else:
+            # Check if user has requested specified keys from
+            # userDefinedData.
+            data_resp = dict()
+            key_list = []
+            special_key = 'userDefinedData/'
+            for field in include_fields:
+                if field.startswith(special_key):
+                    key_list.append(field[len(special_key):])
+
+            for key_req in key_list:
+                if key_req in self.user_data:
+                    data_resp[key_req] = self.user_data[key_req]
+
+            if data_resp:
+                return {key: data_resp}
+
+    def _basic_vnf_package_info(self, include_fields=None):
+        response = dict()
+        to_fields = set(self.simple_attributes).intersection(include_fields)
+        for field in to_fields:
+            response[field] = getattr(self, self.FLATTEN_ATTRIBUTES[field][0])
+        return response
+
+    def to_dict(self, include_fields=None):
+        if not include_fields:
+            include_fields = set(self.FLATTEN_ATTRIBUTES.keys())
+
+        vnf_package_response = self._basic_vnf_package_info(
+            include_fields=include_fields)
+
+        user_defined_data = self._get_user_defined_data(
+            include_fields=include_fields)
+
+        if user_defined_data:
+            vnf_package_response.update(user_defined_data)
+
+        if (self.onboarding_state ==
+                fields.PackageOnboardingStateType.ONBOARDED):
+
+            software_images = self.vnf_deployment_flavours.to_dict(
+                include_fields=include_fields)
+            if software_images:
+                vnf_package_response.update(
+                    {'softwareImages': software_images})
+
+            vnf_package_response.update(self._get_vnfd(
+                include_fields=include_fields))
+
+            checksum = self._get_checksum(include_fields=include_fields)
+            if checksum:
+                vnf_package_response.update(checksum)
+
+        return vnf_package_response
 
 
 @base.TackerObjectRegistry.register
