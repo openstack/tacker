@@ -171,7 +171,9 @@ class TestVnfPackage(SqlTestCase):
             vnf_deployment_flavour_obj.obj_load_attr, 'algorithm')
 
     def test_vnf_package_list_by_filter(self):
-        filters = {'onboarding_state': 'CREATED'}
+        filters = {'field': 'onboarding_state', 'model': 'VnfPackage',
+                   'value': 'CREATED',
+                   'op': '=='}
         vnfpkgm_list = objects.VnfPackagesList.get_by_filters(
-            self.context, **filters)
+            self.context, filters=filters)
         self.assertEqual(1, len(vnfpkgm_list))

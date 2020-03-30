@@ -384,9 +384,11 @@ class Conductor(manager.Manager):
 
         time_duration = datetime.datetime.utcnow() - datetime.timedelta(
             seconds=CONF.vnf_package_delete_interval)
-        filters = {'deleted_at': time_duration}
+        filters = {'field': 'deleted_at', 'model': 'VnfPackage',
+                   'value': time_duration,
+                   'op': '>='}
         deleted_vnf_packages = VnfPackagesList.get_by_filters(
-            context.elevated(), read_deleted='only', **filters)
+            context.elevated(), read_deleted='only', filters=filters)
         for vnf_pack in deleted_vnf_packages:
             csar_zip_temp_path = (CONF.vnf_package.vnf_package_csar_path +
                                   vnf_pack.id)
