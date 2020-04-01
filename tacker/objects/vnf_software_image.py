@@ -207,7 +207,7 @@ class VnfSoftwareImage(base.TackerObject, base.TackerPersistentObject):
 
         for field in self.fields:
             if field in software_image and field not in self:
-                    setattr(self, field, getattr(software_image, field))
+                setattr(self, field, getattr(software_image, field))
 
     @base.remotable
     def create(self):

@@ -174,10 +174,9 @@ class VNFMonitor(object):
 
                 vdu_delay = params.get('monitoring_delay', vnf_delay)
 
-                if not timeutils.is_older_than(
-                    hosting_vnf['boot_at'],
-                        vdu_delay):
-                        continue
+                if not timeutils.is_older_than(hosting_vnf['boot_at'],
+                                               vdu_delay):
+                    continue
 
                 actions = policy[driver].get('actions', {})
                 params['mgmt_ip'] = mgmt_ips[vdu]

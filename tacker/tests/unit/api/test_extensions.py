@@ -106,20 +106,20 @@ class ResourceExtensionTest(base.BaseTestCase):
             return {'collection': 'value'}
 
     class DummySvcPlugin(wsgi.Controller):
-            def get_plugin_type(self):
-                return constants.DUMMY
+        def get_plugin_type(self):
+            return constants.DUMMY
 
-            def index(self, request, **kwargs):
-                return "resource index"
+        def index(self, request, **kwargs):
+            return "resource index"
 
-            def custom_member_action(self, request, **kwargs):
-                return {'member_action': 'value'}
+        def custom_member_action(self, request, **kwargs):
+            return {'member_action': 'value'}
 
-            def collection_action(self, request, **kwargs):
-                return {'collection': 'value'}
+        def collection_action(self, request, **kwargs):
+            return {'collection': 'value'}
 
-            def show(self, request, id):
-                return {'data': {'id': id}}
+        def show(self, request, id):
+            return {'data': {'id': id}}
 
     def test_exceptions_notimplemented(self):
         controller = self.ResourceExtensionController()

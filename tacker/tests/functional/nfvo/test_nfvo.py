@@ -54,7 +54,7 @@ class NsdTestCreate(base.BaseTackerTest):
         try:
             self.client.delete_nsd(nsd_id)
         except Exception:
-                assert False, "nsd Delete failed"
+            assert False, "nsd Delete failed"
 
     def _test_delete_vnfd(self, vnfd_id, timeout=constants.NS_DELETE_TIMEOUT):
         start_time = int(time.time())
@@ -76,12 +76,12 @@ class NsdTestCreate(base.BaseTackerTest):
                               sleep_interval):
         start_time = int(time.time())
         while True:
-                ns_result = self.client.show_ns(ns_id)
-                status = ns_result['ns']['status']
-                if (status == target_status) or (
-                        (int(time.time()) - start_time) > timeout):
-                    break
-                time.sleep(sleep_interval)
+            ns_result = self.client.show_ns(ns_id)
+            status = ns_result['ns']['status']
+            if (status == target_status) or (
+                    (int(time.time()) - start_time) > timeout):
+                break
+            time.sleep(sleep_interval)
 
         self.assertEqual(status, target_status,
                          "ns %(ns_id)s with status %(status)s is"
@@ -222,11 +222,11 @@ class NsdTestCreate(base.BaseTackerTest):
                               timeout=60, sleep_interval=2):
         start_time = int(time.time())
         while True:
-                server_info = self.novaclient().servers.get(server_id)
-                if (server_info.status == target_status) or (
-                        (int(time.time()) - start_time) > timeout):
-                    break
-                time.sleep(sleep_interval)
+            server_info = self.novaclient().servers.get(server_id)
+            if (server_info.status == target_status) or (
+                    (int(time.time()) - start_time) > timeout):
+                break
+            time.sleep(sleep_interval)
 
     def test_create_delete_ns_vnffg(self):
         net = self.neutronclient().list_networks()

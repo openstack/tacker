@@ -21,6 +21,8 @@ Create Date: 2016-05-28 07:13:07.125562
 
 """
 
+# flake8: noqa: E402
+
 # revision identifiers, used by Alembic.
 revision = 'f958f58e5daa'
 down_revision = 'acf941e54075'
@@ -43,8 +45,8 @@ def upgrade(active_plugins=None, options=None):
                   'devicetemplateattributes')
     for table in pk_id_tables:
         with migration.modify_foreign_keys_constraint(FK_MAP.get(table, [])):
-                op.alter_column(table, 'id', type_=types.Uuid,
-                nullable=False)
+            op.alter_column(table, 'id', type_=types.Uuid,
+                            nullable=False)
 
     fk_template_id_tables = ('devices', 'servicetypes',
                              'devicetemplateattributes')

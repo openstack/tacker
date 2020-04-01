@@ -567,7 +567,7 @@ class ResourceTest(base.BaseTestCase):
 
     @staticmethod
     def my_fault_body_function():
-            return 'off'
+        return 'off'
 
     class Controller(object):
         def index(self, request, index=None):

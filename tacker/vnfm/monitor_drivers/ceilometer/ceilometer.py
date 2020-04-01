@@ -37,6 +37,7 @@ cfg.CONF.register_opts(OPTS, group='ceilometer')
 def config_opts():
     return [('ceilometer', OPTS)]
 
+
 ALARM_INFO = (
     ALARM_ACTIONS, OK_ACTIONS, REPEAT_ACTIONS, ALARM,
     INSUFFICIENT_DATA_ACTIONS, DESCRIPTION, ENABLED, TIME_CONSTRAINTS,

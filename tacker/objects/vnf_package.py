@@ -69,7 +69,8 @@ def _add_user_defined_data(context, package_uuid, user_data,
 
 
 def _vnf_package_user_data_get_query(context, package_uuid, model):
-    return api.model_query(context, model, read_deleted="no", project_only=True).\
+    return api.model_query(context, model, read_deleted="no",
+                           project_only=True).\
         filter_by(package_uuid=package_uuid)
 
 

@@ -62,8 +62,6 @@ class WorkflowGenerator(workflow_generator.WorkflowGeneratorBase):
                     'retry': {
                         'count': 10,
                         'delay': 10,
-                        'break-on': '<% $.status_{0} = "ACTIVE" '
-                                    '%>'.format(node),
                         'break-on': '<% $.status_{0} = "ERROR"'
                                     ' %>'.format(node),
                         'continue-on': '<% $.status_{0} = "PENDING_CREATE" '

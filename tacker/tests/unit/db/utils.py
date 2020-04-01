@@ -29,6 +29,7 @@ def _get_template(name):
     f = codecs.open(filename, encoding='utf-8', errors='strict')
     return f.read()
 
+
 tosca_cvnf_vnfd = _get_template('test_tosca_cvnf.yaml')
 tosca_vnfd_openwrt = _get_template('test_tosca_openwrt.yaml')
 tosca_vnfd_openwrt_param = _get_template('test_tosca_openwrt_param.yaml')
@@ -164,24 +165,6 @@ def get_dummy_vnf_invalid_param_type_obj():
     return {'vnf': {u'attributes': {u'param_values': 'dummy_param'}}}
 
 
-def get_dummy_vnf_invalid_config_type_obj():
-    return {'vnf': {u'attributes': {u'config': 'dummy_config'}}}
-
-
-def get_dummy_vnf_invalid_param_content():
-    return {'vnf': {u'attributes': {u'param_values': {}}}}
-
-
-def get_dummy_vnf_param_obj():
-    return {'vnf': {u'attributes': {u'param_values':
-        {'flavor': 'm1.tiny',
-         'reservation_id': '99999999-3925-4c9e-9074-239a902b68d7'}}}}
-
-
-def get_dummy_vnf_invalid_param_type_obj():
-    return {'vnf': {u'attributes': {u'param_values': 'dummy_param'}}}
-
-
 def get_dummy_vnf(status='PENDING_CREATE', scaling_group=False,
                   instance_id=None):
     dummy_vnf = {'status': status, 'instance_id': instance_id, 'name':
@@ -246,22 +229,6 @@ def get_dummy_vnf_param_attr():
 
 def get_dummy_vnf_update_config():
     return {'vnf': {'attributes': {'config': update_config_data}}}
-
-
-def get_dummy_vnf_update_param():
-    return {'vnf': {'attributes': {'param_values': update_param_data}}}
-
-
-def get_dummy_vnf_update_new_param():
-    return {'vnf': {'attributes': {'param_values': update_new_param_data}}}
-
-
-def get_dummy_vnf_update_invalid_param():
-    return {'vnf': {'attributes': {'param_values': update_invalid_param_data}}}
-
-
-def get_dummy_vnf_update_empty_param():
-    return {'vnf': {'attributes': {'param_values': {}}}}
 
 
 def get_dummy_vnf_update_param():

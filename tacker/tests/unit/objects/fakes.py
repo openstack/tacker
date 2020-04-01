@@ -284,6 +284,7 @@ def get_instantiated_vnf_info():
     }
     return instantiated_vnf_info
 
+
 instantiated_vnf_info = {
     'ext_cp_info': [vnf_ext_cp_info],
     'flavour_id': uuidsentinel.flavour_id,

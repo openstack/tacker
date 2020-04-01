@@ -83,6 +83,7 @@ CONF.register_opts(socket_opts)
 def config_opts():
     return [(None, socket_opts)]
 
+
 LOG = logging.getLogger(__name__)
 
 
@@ -1038,7 +1039,7 @@ class Resource(Application):
                 action_result = self.dispatch(request, action, args)
         except Fault as ex:
             response = ex
-        except Exception as ex:
+        except Exception:
             raise Fault(webob.exc.HTTPInternalServerError())
 
         if not response:

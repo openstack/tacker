@@ -21,6 +21,8 @@ Create Date: 2019-06-03 08:37:05.095587
 
 """
 
+# flake8: noqa: E402
+
 # revision identifiers, used by Alembic.
 revision = '9d425296f2c3'
 down_revision = 'cd04a8335c18'

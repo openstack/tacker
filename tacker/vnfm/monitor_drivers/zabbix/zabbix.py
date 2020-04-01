@@ -90,14 +90,14 @@ class VNFMonitorZabbix(abstract_driver.VNFMonitorAbstractDriver):
             LOG.error('Cannot request error : %s', response['error']['data'])
 
     def create_graph(self, itemid, name, nodename):
-            temp_graph_api = copy.deepcopy(zapi.dGRAPH_CREATE_API)
-            gitems = [{'itemid': itemid, 'color': '00AA00'}]
-            temp_graph_api['auth'] = \
-                self.hostinfo[nodename]['zbx_info']['zabbix_token']
-            temp_graph_api['params']['gitems'] = gitems
-            temp_graph_api['params']['name'] = name
-            response = self.send_post(temp_graph_api)
-            VNFMonitorZabbix.check_error(response)
+        temp_graph_api = copy.deepcopy(zapi.dGRAPH_CREATE_API)
+        gitems = [{'itemid': itemid, 'color': '00AA00'}]
+        temp_graph_api['auth'] = \
+            self.hostinfo[nodename]['zbx_info']['zabbix_token']
+        temp_graph_api['params']['gitems'] = gitems
+        temp_graph_api['params']['name'] = name
+        response = self.send_post(temp_graph_api)
+        VNFMonitorZabbix.check_error(response)
 
     def create_action(self):
         for vdu in self.vduname:

@@ -320,14 +320,14 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         return client_type(session=sess)
 
     def _translate_ip_protocol(self, ip_proto):
-            if ip_proto == '1':
-                return 'icmp'
-            elif ip_proto == '6':
-                return 'tcp'
-            elif ip_proto == '17':
-                return 'udp'
-            else:
-                return None
+        if ip_proto == '1':
+            return 'icmp'
+        elif ip_proto == '6':
+            return 'tcp'
+        elif ip_proto == '17':
+            return 'udp'
+        else:
+            return None
 
     def _create_classifier_params(self, fc):
         classifier_params = {}
@@ -678,20 +678,20 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
     def _dissociate_classifier_from_chain(self, chain_id, fc_ids,
                                           neutronclient):
-            pc_info = neutronclient.port_chain_show(chain_id)
-            current_fc_list = pc_info['port_chain']['flow_classifiers']
-            for fc_id in fc_ids:
-                current_fc_list.remove(fc_id)
-            pc_id = neutronclient.port_chain_update(chain_id,
-                    {'flow_classifiers': current_fc_list})
-            if pc_id is None:
-                raise nfvo.UpdateClassifierException(
-                    message="Failed to update classifiers")
-            for fc_id in fc_ids:
-                try:
-                    neutronclient.flow_classifier_delete(fc_id)
-                except ValueError as e:
-                    raise e
+        pc_info = neutronclient.port_chain_show(chain_id)
+        current_fc_list = pc_info['port_chain']['flow_classifiers']
+        for fc_id in fc_ids:
+            current_fc_list.remove(fc_id)
+        pc_id = neutronclient.port_chain_update(chain_id,
+                {'flow_classifiers': current_fc_list})
+        if pc_id is None:
+            raise nfvo.UpdateClassifierException(
+                message="Failed to update classifiers")
+        for fc_id in fc_ids:
+            try:
+                neutronclient.flow_classifier_delete(fc_id)
+            except ValueError as e:
+                raise e
 
     def remove_and_delete_flow_classifiers(self, chain_id, fc_ids,
                                            auth_attr=None):

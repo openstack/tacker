@@ -348,9 +348,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return self._make_vnfd_dict(vnfd_db)
 
     def get_vnfds(self, context, filters, fields=None):
-        if 'template_source' in filters and \
-           filters['template_source'][0] == 'all':
-                filters.pop('template_source')
+        if ('template_source' in filters and
+                filters['template_source'][0] == 'all'):
+            filters.pop('template_source')
         return self._get_collection(context, VNFD,
                                     self._make_vnfd_dict,
                                     filters=filters, fields=fields)
@@ -419,10 +419,10 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                              deleted_at=datetime.min)
                 context.session.add(vnf_db)
                 for key, value in attributes.items():
-                        arg = VNFAttribute(
-                            id=uuidutils.generate_uuid(), vnf_id=vnf_id,
-                            key=key, value=value)
-                        context.session.add(arg)
+                    arg = VNFAttribute(
+                        id=uuidutils.generate_uuid(), vnf_id=vnf_id,
+                        key=key, value=value)
+                    context.session.add(arg)
         except DBDuplicateEntry as e:
             raise exceptions.DuplicateEntity(
                 _type="vnf",

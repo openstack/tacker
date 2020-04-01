@@ -94,7 +94,7 @@ def find_config_file(options, config_file):
     * Search for the configuration files via common cfg directories
     :retval Full path to config file, or None if no config file found
     """
-    fix_path = lambda p: os.path.abspath(os.path.expanduser(p))
+    fix_path = lambda p: os.path.abspath(os.path.expanduser(p))  # noqa: E731
     if options.get('config_file'):
         if os.path.exists(options['config_file']):
             return fix_path(options['config_file'])
@@ -568,7 +568,7 @@ class MemoryUnit(object):
             unit = MemoryUnit.UNIT_SIZE_DEFAULT
             LOG.info(_('A memory unit is not provided for size; using the '
                        'default unit %(default)s.') % {'default': 'B'})
-        regex = re.compile('(\d*)\s*(\w*)')
+        regex = re.compile(r'(\d*)\s*(\w*)')
         result = regex.match(str(size)).groups()
         if result[1]:
             unit_size = MemoryUnit.validate_unit(result[1])

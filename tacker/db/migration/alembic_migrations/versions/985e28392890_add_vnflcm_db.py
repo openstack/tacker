@@ -14,6 +14,8 @@
 #    under the License.
 #
 
+# flake8: noqa: E402
+
 """VNF instance management changes
 
 Revision ID: 985e28392890

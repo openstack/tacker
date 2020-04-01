@@ -26,8 +26,8 @@ Create Date: 2019-12-10 02:40:12.966027
 revision = '975e28392888'
 down_revision = 'abbef484b34c'
 
-from alembic import op
-import sqlalchemy as sa
+from alembic import op  # noqa: E402
+import sqlalchemy as sa  # noqa: E402
 
 
 def _migrate_duplicate_vnf_package_vnfd_id(table):

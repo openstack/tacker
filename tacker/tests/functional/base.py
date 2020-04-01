@@ -196,12 +196,12 @@ class BaseTackerTest(base.BaseTestCase):
                               sleep_interval):
         start_time = int(time.time())
         while True:
-                vnf_result = self.client.show_vnf(vnf_id)
-                status = vnf_result['vnf']['status']
-                if (status == target_status) or (
-                        (int(time.time()) - start_time) > timeout):
-                    break
-                time.sleep(sleep_interval)
+            vnf_result = self.client.show_vnf(vnf_id)
+            status = vnf_result['vnf']['status']
+            if (status == target_status) or (
+                    (int(time.time()) - start_time) > timeout):
+                break
+            time.sleep(sleep_interval)
 
         self.assertEqual(status, target_status,
                          "vnf %(vnf_id)s with status %(status)s is"

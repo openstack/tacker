@@ -316,7 +316,7 @@ class FieldCheck(policy.Check):
             attr = attributes.RESOURCE_ATTRIBUTE_MAP[resource][field]
             conv_func = attr['convert_to']
         except KeyError:
-            conv_func = lambda x: x
+            conv_func = lambda x: x  # noqa: E731
 
         self.field = field
         self.value = conv_func(value)

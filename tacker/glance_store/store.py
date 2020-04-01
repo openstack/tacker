@@ -97,7 +97,7 @@ def load_csar(package_uuid, location):
 
     try:
         resp, size = glance_store.backend.get_from_backend(location)
-    except Exception as exp:
+    except Exception:
         LOG.info("Failed to get csar data from glance store %(location)s for "
                  "package %(uuid)s",
                  {"location": location, "uuid": package_uuid})

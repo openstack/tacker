@@ -26,6 +26,7 @@ def requires_py2(testcase):
 def requires_py3(testcase):
     return testtools.skipUnless(six.PY3, "requires python 3.x")(testcase)
 
+
 if sys.version_info < (3,):
     def compact_byte(x):
         return x

@@ -349,7 +349,7 @@ def get_volumes(template):
         for prop_name, prop_value in block_properties.items():
             if prop_name == 'size':
                 prop_value = \
-                    re.compile('(\d+)\s*(\w+)').match(prop_value).groups()[0]
+                    re.compile(r'(\d+)\s*(\w+)').match(prop_value).groups()[0]
             volume_dict[node_name][prop_name] = prop_value
         del node_tpl[node_name]
     return volume_dict
@@ -447,14 +447,14 @@ def convert_unsupported_res_prop(heat_dict, unsupported_res_prop):
             unsupported_prop = set(prop_dict.keys()) & set(
                 unsupported_prop_dict.keys())
             for prop in unsupported_prop:
-                    # some properties are just punted to 'value_specs'
-                    # property if they are incompatible
-                    new_prop = unsupported_prop_dict[prop]
-                    if new_prop == 'value_specs':
-                        prop_dict.setdefault(new_prop, {})[
-                            prop] = prop_dict.pop(prop)
-                    else:
-                        prop_dict[new_prop] = prop_dict.pop(prop)
+                # some properties are just punted to 'value_specs'
+                # property if they are incompatible
+                new_prop = unsupported_prop_dict[prop]
+                if new_prop == 'value_specs':
+                    prop_dict.setdefault(new_prop, {})[
+                        prop] = prop_dict.pop(prop)
+                else:
+                    prop_dict[new_prop] = prop_dict.pop(prop)
 
 
 @log.log
@@ -1145,7 +1145,7 @@ def get_resources_dict(template, flavor_extra_input=None):
     res_dict = dict()
     for res, method in (OS_RESOURCES).items():
         res_method = getattr(sys.modules[__name__], method)
-        if res is 'flavor':
+        if res == 'flavor':
             res_dict[res] = res_method(template, flavor_extra_input)
         else:
             res_dict[res] = res_method(template)

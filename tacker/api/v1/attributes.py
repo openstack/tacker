@@ -545,8 +545,8 @@ def convert_to_list(data):
         return [data]
 
 
-HOSTNAME_PATTERN = ("(?=^.{1,254}$)(^(?:(?!\d+\.|-)[a-zA-Z0-9_\-]"
-                    "{1,63}(?<!-)\.?)+(?:[a-zA-Z]{2,})$)")
+HOSTNAME_PATTERN = (r"(?=^.{1,254}$)(^(?:(?!\d+\.|-)[a-zA-Z0-9_\-]"
+                    r"{1,63}(?<!-)\.?)+(?:[a-zA-Z]{2,})$)")
 
 HEX_ELEM = '[0-9A-Fa-f]'
 UUID_PATTERN = '-'.join([HEX_ELEM + '{8}', HEX_ELEM + '{4}',

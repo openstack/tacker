@@ -799,7 +799,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             for vnf_vl_resource_info in vnf_virtual_link_resource_info:
                 if (vnf_vl_resource_info.vnf_virtual_link_desc_id !=
                         vnf_virtual_link_desc_id):
-                            continue
+                    continue
 
                 vl_resource_data = pop_resources.pop(
                     vnf_virtual_link_desc_id, None)
@@ -886,7 +886,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         for vnf_vl_resource_info in vnf_virtual_link_resource_info:
             if (vnf_vl_resource_info.vnf_virtual_link_desc_id !=
                     ext_managed_vl_info.vnf_virtual_link_desc_id):
-                        continue
+                continue
 
             for vl_port in vnf_vl_resource_info.vnf_link_ports:
                 _update_link_port(vl_port)
@@ -982,9 +982,9 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             for resource in vdu_resources:
                 for stack_uuid, resources in stack_resources.items():
                     res_details = resources.get(resource['resource_name'])
-                    if res_details and res_details['physical_resource_id'] == \
-                            resource['physical_resource_id']:
-                                yield stack_uuid, resource['resource_name']
+                    if (res_details and res_details['physical_resource_id'] ==
+                            resource['physical_resource_id']):
+                        yield stack_uuid, resource['resource_name']
 
         def _resource_mark_unhealthy():
             vnfc_resources = self._get_vnfc_resources_from_heal_request(

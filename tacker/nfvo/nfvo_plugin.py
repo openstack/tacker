@@ -580,7 +580,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         LOG.debug('Attempting to open key file for vim id %s', vim_id)
         try:
             with open(key_file, 'r') as f:
-                    return f.read()
+                return f.read()
         except Exception:
             LOG.warning('VIM id invalid or key not found for  %s', vim_id)
             raise nfvo.VimKeyNotFoundException(vim_id=vim_id)

@@ -12,9 +12,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import pycodestyle
 import re
 
-import pep8
+from hacking import core
 
 """
 Guidelines for writing new hacking checks
@@ -35,16 +36,13 @@ log_translation = re.compile(
     r"(.)*LOG\.(audit|error|info|warn|warning|critical|exception)\(\s*('|\")")
 
 
-def validate_log_translations(logical_line, physical_line, filename):
+@core.flake8ext
+def validate_log_translations(physical_line, logical_line, filename):
     # Translations are not required in the test directory
     if "tacker/tests" in filename:
         return
-    if pep8.noqa(physical_line):
+    if pycodestyle.noqa(physical_line):
         return
     msg = "N320: Log messages require translations!"
     if log_translation.match(logical_line):
         yield (0, msg)
-
-
-def factory(register):
-    register(validate_log_translations)

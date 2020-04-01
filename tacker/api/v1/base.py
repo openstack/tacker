@@ -128,8 +128,8 @@ class Controller(object):
                     '%s:%s' % (self._plugin_handlers[self.SHOW], attr_name),
                     data,
                         might_not_exist=True):
-                        # this attribute is visible, check next one
-                        continue
+                    # this attribute is visible, check next one
+                    continue
             # if the code reaches this point then either the policy check
             # failed or the attribute was not visible in the first place
             attributes_to_exclude.append(attr_name)
@@ -511,7 +511,7 @@ class Controller(object):
 
         LOG.debug("Request body: %(body)s",
                   {'body': strutils.mask_password(body)})
-        prep_req_body = lambda x: Controller.prepare_request_body(
+        prep_req_body = lambda x: Controller.prepare_request_body(  # noqa
             context,
             x if resource in x else {resource: x},
             is_create,
@@ -540,9 +540,9 @@ class Controller(object):
                 if attr_vals['allow_post']:
                     if ('default' not in attr_vals and
                             attr not in res_dict):
-                            msg = _("Failed to parse request. Required "
-                                    "attribute '%s' not specified") % attr
-                            raise webob.exc.HTTPBadRequest(msg)
+                        msg = _("Failed to parse request. Required "
+                                "attribute '%s' not specified") % attr
+                        raise webob.exc.HTTPBadRequest(msg)
                     res_dict[attr] = res_dict.get(attr,
                                                   attr_vals.get('default'))
                 else:
@@ -572,8 +572,9 @@ class Controller(object):
                         and (attr == "vnfd_id") and is_create:
                     continue
                 # skip validating vnffgd_id when vnffgd_template is provided
-                if (resource == 'vnffg') and ('vnffgd_template' in body['vnffg'])\
-                        and (attr == 'vnffgd_id') and is_create:
+                if ((resource == 'vnffg')
+                        and ('vnffgd_template' in body['vnffg'])
+                        and (attr == 'vnffgd_id') and is_create):
                     continue
                 # skip validating nsd_id when nsd_template is provided
                 if (resource == 'ns') and ('nsd_template' in body['ns'])\
