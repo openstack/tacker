@@ -23,4 +23,4 @@ resources:
       network: net_mgmt
       port_security_enabled: false
 heat_template_version: 2013-05-23
-description: Tacker Scaling template
+description: Scaling template
