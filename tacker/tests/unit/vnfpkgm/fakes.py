@@ -78,9 +78,7 @@ VNFPACKAGE_RESPONSE = {
     }],
 }
 
-VNFPACKAGE_INDEX_RESPONSE = {
-    'vnf_packages': [VNFPACKAGE_RESPONSE]
-}
+VNFPACKAGE_INDEX_RESPONSE = [VNFPACKAGE_RESPONSE]
 
 
 def index_response(remove_attrs=None, vnf_package_updates=None):
@@ -94,7 +92,7 @@ def index_response(remove_attrs=None, vnf_package_updates=None):
         vnf_package.pop(attr, None)
     if vnf_package_updates:
         vnf_package.update(vnf_package_updates)
-    return {'vnf_packages': [vnf_package]}
+    return [vnf_package]
 
 
 def _fake_software_image(updates=None):

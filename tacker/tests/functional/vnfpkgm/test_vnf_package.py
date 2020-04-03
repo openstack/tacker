@@ -146,7 +146,7 @@ class VnfPackageTest(base.BaseTackerTest):
         resp, body = self.http_client.do_request(self.base_url, "GET")
         self.assertEqual(200, resp.status_code)
 
-        package_uuids = [obj['id'] for obj in body['vnf_packages']]
+        package_uuids = [obj['id'] for obj in body]
         self.assertIn(vnf_package_list[0], package_uuids)
         self.assertIn(vnf_package_list[1], package_uuids)
 
@@ -225,7 +225,7 @@ class VnfPackageTest(base.BaseTackerTest):
         package = deepcopy(self.package2)
         for attr in ['softwareImages', 'checksum', 'userDefinedData']:
             package.pop(attr, None)
-        expected_result = {'vnf_packages': [package]}
+        expected_result = [package]
         self.assertEqual(expected_result, body)
 
     def test_index_attribute_selector_all_fields(self):
@@ -243,7 +243,7 @@ class VnfPackageTest(base.BaseTackerTest):
             'all_fields': ''}
         filter_url = self.base_url + "?" + urllib.parse.urlencode(filter_expr)
         resp, body = self.http_client.do_request(filter_url, "GET")
-        expected_result = {'vnf_packages': [self.package1]}
+        expected_result = [self.package1]
         self.assertEqual(expected_result, body)
 
     def test_index_attribute_selector_exclude_default(self):
@@ -254,7 +254,7 @@ class VnfPackageTest(base.BaseTackerTest):
         package2 = deepcopy(self.package2)
         for attr in ['softwareImages', 'checksum', 'userDefinedData']:
             package2.pop(attr, None)
-        expected_result = {'vnf_packages': [package2]}
+        expected_result = [package2]
         self.assertEqual(expected_result, body)
 
     def test_index_attribute_selector_exclude_fields(self):
@@ -266,7 +266,7 @@ class VnfPackageTest(base.BaseTackerTest):
         for software_image in package2['softwareImages']:
             software_image.pop('checksum', None)
         package2.pop('checksum', None)
-        expected_result = {'vnf_packages': [package2]}
+        expected_result = [package2]
         self.assertEqual(expected_result, body)
 
     def test_index_attribute_selector_fields(self):
@@ -286,7 +286,7 @@ class VnfPackageTest(base.BaseTackerTest):
                     'version']:
                 software_image.pop(attr, None)
         package1.pop('checksum', None)
-        expected_result = {'vnf_packages': [package1]}
+        expected_result = [package1]
         self.assertEqual(expected_result, body)
 
     def _create_and_onboard_vnf_package(self, file_name=None):

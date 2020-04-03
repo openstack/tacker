@@ -118,5 +118,5 @@ class ViewBuilder(base.BaseViewBuilder):
 
             include_fields = set(self.FLATTEN_ATTRIBUTES.keys()) - \
                 exclude_fields
-        return {'vnf_packages': [self._get_vnf_package(vnf_package,
-            include_fields=include_fields)for vnf_package in vnf_packages]}
+        return [self._get_vnf_package(vnf_package,
+            include_fields=include_fields)for vnf_package in vnf_packages]

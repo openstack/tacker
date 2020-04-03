@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Includes the fix for `bug 1871054`_ which as per
+    `ETSI GS NFV-SOL 005 V2.6.1`_ table 9.4.2.3.2-2 should return list of vnf
+    packages in ``list`` instead of ``dictionary`` for
+    ``GET /vnfpkgm/v1/vnf_packages`` API.
+
+    .. note:: Users should use python-tackerclient version >= 1.0.1 to list
+              vnf packages otherwise it would break as this change is not
+              backward compatible.
+
+    .. _ETSI GS NFV-SOL 005 V2.6.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/005/02.06.01_60/gs_nfv-sol005v020601p.pdf
+    .. _bug 1871054 : https://bugs.launchpad.net/tacker/+bug/1871054
