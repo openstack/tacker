@@ -235,7 +235,6 @@ function configure_tacker {
     _tacker_setup_keystone $TACKER_CONF keystone_authtoken
 
     if [[ "${TACKER_MODE}" == "all" ]]; then
-        iniset "/$Q_PLUGIN_CONF_FILE" ml2 extension_drivers port_security
         iniset "/$Q_PLUGIN_CONF_FILE" ml2_type_flat flat_networks $PUBLIC_PHYSICAL_NETWORK,$MGMT_PHYS_NET
         iniset "/$Q_PLUGIN_CONF_FILE" ovs bridge_mappings $PUBLIC_PHYSICAL_NETWORK:$PUBLIC_BRIDGE,$MGMT_PHYS_NET:$BR_MGMT
 
@@ -432,8 +431,15 @@ function tacker_register_default_vim {
     echo "The content of VIM config file $VIM_CONFIG_FILE :"
     cat $VIM_CONFIG_FILE
     DEFAULT_VIM_NAME="VIM0"
+
+    # TODO(tpatil): Remove installing python-tackerclient using pip once
+    # a solution is available to install it using requirements.
+    pip_install python-tackerclient
+
     cat >> $TACKER_DIR/tools/test-setup-default-vim.sh <<EOF
+
 openstack --os-username nfv_user --os-project-name nfv --os-password devstack --os-auth-url ${KEYSTONE_SERVICE_URI} --os-project-domain-name Default --os-user-domain-name Default vim register --is-default --description "Default VIM" --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME
+
 EOF
     echo "The content of $TACKER_DIR/tools/test-setup-default-vim.sh"
     cat $TACKER_DIR/tools/test-setup-default-vim.sh
