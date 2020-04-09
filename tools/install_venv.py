@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2010 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration.
@@ -22,7 +22,6 @@
 """
 Installation script for Tacker's development virtualenv
 """
-from __future__ import print_function
 
 import os
 import sys
