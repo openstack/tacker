@@ -37,6 +37,12 @@
       - zuul: openstack-infra/devstack
     timeout: 9000
     required-projects:
+      - openstack/cinder
+      - openstack/glance
+      - openstack/keystone
+      - openstack/neutron
+      - openstack/nova
+      - openstack/placement
       - openstack/aodh
       - openstack/blazar
       - openstack/blazar-nova
@@ -57,15 +63,11 @@
       devstack_localrc:
         CELLSV2_SETUP: singleconductor
         Q_DVR_MODE: dvr
+        DATABASE_TYPE: mysql
+        Q_SERVICE_PLUGIN_CLASSES: router,neutron.services.metering.metering_plugin.MeteringPlugin,networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,neutron.services.qos.qos_plugin.QoSPlugin,qos
+        Q_ML2_PLUGIN_EXT_DRIVERS: port_security,qos
+        L2_AGENT_EXTENSIONS: qos
       test_matrix_configs: [neutron]
-      devstack_services:
-        horizon: false
-        swift: false
-        s-account: false
-        s-container: false
-        s-object: false
-        s-proxy: false
-        c-bak: false
       zuul_work_dir: src/opendev.org/openstack/tacker
     host-vars:
       controller:
@@ -79,16 +81,52 @@
           tacker: https://opendev.org/openstack/tacker
           blazar: https://opendev.org/openstack/blazar
         devstack_services:
+          # Core services enabled for this branch.
+          # This list replaces the test-matrix.
+          # Shared services
+          mysql: true
+          rabbit: true
+          tls-proxy: false
+          # Keystone services
+          key: true
+          # Glance services
+          g-api: true
+          # Nova services
+          n-api: true
+          n-api-meta: true
+          n-cond: true
+          n-cpu: true
+          n-novnc: true
+          n-sch: true
+          placement-api: true
+          # Neutron services
+          # We need to keep using the neutron-legacy based services for
+          # now until all issues with the new lib/neutron code are solved
+          q-agt: true
+          q-dhcp: true
+          q-l3: true
+          q-meta: true
+          q-metering: true
+          q-svc: true
+          q-qos: true
+          # Cinder services
+          c-api: true
+          c-sch: true
+          c-vol: true
+          cinder: true
+          # Tacker services
+          tacker: true
+          tacker-conductor: true
+          # Services we don't need.
+          # This section is not really needed, it's for readability.
           horizon: false
+          tempest: false
           swift: false
           s-account: false
           s-container: false
           s-object: false
           s-proxy: false
           c-bak: false
-          tacker: true
-          tacker-conductor: true
-          q-svc: true
         tox_install_siblings: false
         tox_envlist: dsvm-functional
     group-vars:
@@ -96,6 +134,7 @@
         devstack_localrc:
           CELLSV2_SETUP: singleconductor
           PHYSICAL_NETWORK: mgmtphysnet0
+          DATABASE_TYPE: mysql
         devstack_services:
           q-agt: true
           n-api: false
