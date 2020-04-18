@@ -87,7 +87,7 @@ def validate_head_file(config):
     if len(script.get_heads()) > 1:
         alembic_util.err(_('Timeline branches unable to generate timeline'))
 
-    head_path = os.path.join(script.versions, HEAD_FILENAME)
+    head_path = os.path.join(str(script.versions), HEAD_FILENAME)
     if (os.path.isfile(head_path) and
             open(head_path).read().strip() == script.get_current_head()):
         return
@@ -100,7 +100,7 @@ def update_head_file(config):
     if len(script.get_heads()) > 1:
         alembic_util.err(_('Timeline branches unable to generate timeline'))
 
-    head_path = os.path.join(script.versions, HEAD_FILENAME)
+    head_path = os.path.join(str(script.versions), HEAD_FILENAME)
     with open(head_path, 'w+') as f:
         f.write(script.get_current_head())
 

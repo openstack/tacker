@@ -13,13 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import ddt
 import importlib
 import json
-import mock
 import os
-import requests
 import tempfile
+from unittest import mock
+
+import ddt
+import requests
 import yaml
 
 from tacker.common import exceptions

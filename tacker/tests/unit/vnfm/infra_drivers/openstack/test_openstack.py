@@ -15,8 +15,7 @@
 
 import codecs
 import os
-
-import mock
+from unittest import mock
 import yaml
 
 from oslo_serialization import jsonutils

@@ -13,7 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
+from unittest import mock
+
 from oslo_config import cfg
 from oslo_config import fixture as config_fixture
 from requests_mock.contrib import fixture as requests_mock_fixture

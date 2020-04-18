@@ -13,8 +13,8 @@
 #
 
 from datetime import datetime
+from unittest import mock
 
-import mock
 from oslo_utils import uuidutils
 
 from tacker import context

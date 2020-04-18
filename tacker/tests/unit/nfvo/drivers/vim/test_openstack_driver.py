@@ -14,9 +14,9 @@
 #    under the License.
 
 import os
+from unittest import mock
 
 from keystoneauth1 import exceptions
-import mock
 from oslo_config import cfg
 
 from tacker import context as t_context

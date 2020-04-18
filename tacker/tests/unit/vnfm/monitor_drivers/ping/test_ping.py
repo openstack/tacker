@@ -12,8 +12,8 @@
 #    under the License.
 #
 
-import mock
 import testtools
+from unittest import mock
 
 from tacker.vnfm.monitor_drivers.ping import ping
 

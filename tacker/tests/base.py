@@ -21,11 +21,11 @@ import logging
 import os
 import os.path
 import sys
+from unittest import mock
 import weakref
 
 import eventlet.timeout
 import fixtures
-import mock
 from oslo_config import cfg
 from oslo_messaging import conffixture as messaging_conffixture
 import testtools

@@ -14,10 +14,10 @@
 #    under the License.
 
 from datetime import datetime
+from unittest import mock
+from unittest.mock import patch
 
 import ddt
-import mock
-from mock import patch
 from oslo_utils import uuidutils
 import yaml
 

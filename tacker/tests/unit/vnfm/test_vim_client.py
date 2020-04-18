@@ -10,8 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
 from sqlalchemy.orm import exc as orm_exc
+from unittest import mock
 
 from tacker.extensions import nfvo
 from tacker import manager

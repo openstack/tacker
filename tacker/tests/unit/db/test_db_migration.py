@@ -16,8 +16,8 @@
 # @author Mark McClain (DreamHost)
 
 import sys
+from unittest import mock
 
-import mock
 
 from tacker.db.migration import cli
 from tacker.tests import base

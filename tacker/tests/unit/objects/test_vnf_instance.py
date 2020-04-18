@@ -13,15 +13,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
+from unittest import mock
+
 from tacker.common import exceptions
 from tacker import context
+from tacker.db import api as sqlalchemy_api
 from tacker import objects
 from tacker.tests.unit.db.base import SqlTestCase
 from tacker.tests.unit.objects import fakes
 from tacker.tests import uuidsentinel
-
-from tacker.db import api as sqlalchemy_api
 
 get_engine = sqlalchemy_api.get_engine
 

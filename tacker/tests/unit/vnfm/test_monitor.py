@@ -12,7 +12,8 @@
 #    under the License.
 #
 
-import mock
+from unittest import mock
+
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 import testtools

@@ -14,10 +14,11 @@
 # limitations under the License.
 import os
 import shutil
+from unittest import mock
 
 import fixtures
-import mock
 from oslo_config import cfg
+
 from tacker.common import exceptions
 from tacker.common import utils
 from tacker import context

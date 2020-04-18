@@ -14,8 +14,8 @@
 # under the License.
 
 import sys
+from unittest import mock
 
-import mock
 from six import moves
 
 from tacker.tests import base

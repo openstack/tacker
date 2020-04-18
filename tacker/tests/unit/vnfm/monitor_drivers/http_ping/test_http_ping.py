@@ -12,7 +12,8 @@
 #    under the License.
 #
 
-import mock
+from unittest import mock
+
 import six.moves.urllib.error as urlerr
 import testtools
 

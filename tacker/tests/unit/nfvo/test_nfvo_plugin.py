@@ -15,11 +15,11 @@
 
 import codecs
 from datetime import datetime
-import mock
 import os
-from oslo_utils import uuidutils
+from unittest import mock
+from unittest.mock import patch
 
-from mock import patch
+from oslo_utils import uuidutils
 
 from tacker.common import exceptions
 from tacker import context

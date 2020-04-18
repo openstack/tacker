@@ -15,8 +15,9 @@
 
 """Test of Policy Engine For Tacker"""
 
+from unittest import mock
+
 import fixtures
-import mock
 import six
 
 from oslo_policy import policy as common_policy

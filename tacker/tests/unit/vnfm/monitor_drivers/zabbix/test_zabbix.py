@@ -12,9 +12,9 @@
 #    under the License.
 #
 
-import mock
 from tacker.vnfm.monitor_drivers.zabbix import zabbix
 import testtools
+from unittest import mock
 
 
 class TestVNFMonitorZabbix(testtools.TestCase):

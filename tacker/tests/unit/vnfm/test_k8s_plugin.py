@@ -14,10 +14,10 @@
 #    under the License.
 
 from datetime import datetime
-
-import mock
+from unittest import mock
 
 from oslo_utils import uuidutils
+
 from tacker import context
 from tacker.db.common_services import common_services_db_plugin
 from tacker.db.nfvo import nfvo_db

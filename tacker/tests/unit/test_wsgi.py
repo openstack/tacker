@@ -14,10 +14,11 @@
 #    under the License.
 
 import os
+from unittest import mock
+
 import oslo_i18n
 import socket
 
-import mock
 from oslo_config import cfg
 import six.moves.urllib.request as urllibrequest
 import testtools

@@ -14,12 +14,12 @@
 # limitations under the License.
 
 import os
-from oslo_config import cfg
 import shutil
 import sys
+from unittest import mock
 
 from glance_store import exceptions as store_exceptions
-import mock
+from oslo_config import cfg
 from six.moves import urllib
 import six.moves.urllib.error as urlerr
 import yaml

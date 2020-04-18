@@ -12,10 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
 import os
 import shutil
 import testtools
+from unittest import mock
 
 from tacker.common import csar_utils
 from tacker.common import exceptions

@@ -13,7 +13,7 @@
 #    under the License.
 
 
-import mock
+from unittest import mock
 
 import oslo_i18n
 
