@@ -48,6 +48,20 @@ class VnfPkgmController(wsgi.Controller):
         self.rpc_api = vnf_pkgm_rpc.VNFPackageRPCAPI()
         glance_store.initialize_glance_store()
 
+    def _get_vnf_package(self, id, request):
+        # check if id is of type uuid format
+        if not uuidutils.is_uuid_like(id):
+            msg = _("Can not find requested vnf package: %s") % id
+            raise webob.exc.HTTPNotFound(explanation=msg)
+
+        try:
+            vnf_package = vnf_package_obj.VnfPackage.get_by_id(
+                request.context, id)
+        except exceptions.VnfPackageNotFound:
+            msg = _("Can not find requested vnf package: %s") % id
+            raise webob.exc.HTTPNotFound(explanation=msg)
+        return vnf_package
+
     @wsgi.response(http_client.CREATED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN))
     @validation.schema(vnf_packages.create)
@@ -108,17 +122,7 @@ class VnfPkgmController(wsgi.Controller):
         context = request.environ['tacker.context']
         context.can(vnf_package_policies.VNFPKGM % 'delete')
 
-        # check if id is of type uuid format
-        if not uuidutils.is_uuid_like(id):
-            msg = _("Can not find requested vnf package: %s") % id
-            raise webob.exc.HTTPNotFound(explanation=msg)
-
-        try:
-            vnf_package = vnf_package_obj.VnfPackage.get_by_id(
-                request.context, id)
-        except exceptions.VnfPackageNotFound:
-            msg = _("Can not find requested vnf package: %s") % id
-            raise webob.exc.HTTPNotFound(explanation=msg)
+        vnf_package = self._get_vnf_package(id, request)
 
         if (vnf_package.operational_state ==
                 fields.PackageOperationalStateType.ENABLED or
@@ -143,17 +147,7 @@ class VnfPkgmController(wsgi.Controller):
         context = request.environ['tacker.context']
         context.can(vnf_package_policies.VNFPKGM % 'upload_package_content')
 
-        # check if id is of type uuid format
-        if not uuidutils.is_uuid_like(id):
-            msg = _("Can not find requested vnf package: %s") % id
-            raise webob.exc.HTTPNotFound(explanation=msg)
-
-        try:
-            vnf_package = vnf_package_obj.VnfPackage.get_by_id(
-                request.context, id)
-        except exceptions.VnfPackageNotFound:
-            msg = _("Can not find requested vnf package: %s") % id
-            raise webob.exc.HTTPNotFound(explanation=msg)
+        vnf_package = self._get_vnf_package(id, request)
 
         if vnf_package.onboarding_state != \
            fields.PackageOnboardingStateType.CREATED:
@@ -197,10 +191,7 @@ class VnfPkgmController(wsgi.Controller):
         context = request.environ['tacker.context']
         context.can(vnf_package_policies.VNFPKGM % 'upload_from_uri')
 
-        # check if id is of type uuid format
-        if not uuidutils.is_uuid_like(id):
-            msg = _("Can not find requested vnf package: %s") % id
-            raise webob.exc.HTTPNotFound(explanation=msg)
+        vnf_package = self._get_vnf_package(id, request)
 
         url = body['addressInformation']
         try:
@@ -212,13 +203,6 @@ class VnfPkgmController(wsgi.Controller):
         finally:
             if hasattr(data_iter, 'close'):
                 data_iter.close()
-
-        try:
-            vnf_package = vnf_package_obj.VnfPackage.get_by_id(
-                request.context, id)
-        except exceptions.VnfPackageNotFound:
-            msg = _("Can not find requested vnf package: %s") % id
-            raise webob.exc.HTTPNotFound(explanation=msg)
 
         if vnf_package.onboarding_state != \
                 fields.PackageOnboardingStateType.CREATED:
@@ -237,6 +221,59 @@ class VnfPkgmController(wsgi.Controller):
                                             body['addressInformation'],
                                             user_name=body.get('userName'),
                                             password=body.get('password'))
+
+    @wsgi.response(http_client.OK)
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
+                           http_client.NOT_FOUND, http_client.CONFLICT))
+    @validation.schema(vnf_packages.patch)
+    def patch(self, request, id, body):
+        context = request.environ['tacker.context']
+        context.can(vnf_package_policies.VNFPKGM % 'patch')
+
+        old_vnf_package = self._get_vnf_package(id, request)
+        vnf_package = old_vnf_package.obj_clone()
+
+        user_data = body.get('userDefinedData')
+        operational_state = body.get('operationalState')
+
+        if operational_state:
+            if vnf_package.onboarding_state == \
+                    fields.PackageOnboardingStateType.ONBOARDED:
+                if vnf_package.operational_state == operational_state:
+                    msg = _("VNF Package %(id)s is already in "
+                            "%(operationState)s operational state") % {
+                        "id": id,
+                        "operationState": vnf_package.operational_state}
+                    raise webob.exc.HTTPConflict(explanation=msg)
+                else:
+                    # update vnf_package operational state,
+                    # if vnf_package Onboarding State is ONBOARDED
+                    vnf_package.operational_state = operational_state
+            else:
+                if not user_data:
+                    msg = _("Updating operational state is not allowed for VNF"
+                            " Package %(id)s when onboarding state is not "
+                            "%(onboarded)s")
+                    raise webob.exc.HTTPBadRequest(
+                        explanation=msg % {"id": id, "onboarded": fields.
+                            PackageOnboardingStateType.ONBOARDED})
+        # update user data
+        if user_data:
+            for key, value in list(user_data.items()):
+                if vnf_package.user_data.get(key) == value:
+                    del user_data[key]
+
+            if not user_data:
+                msg = _("The userDefinedData provided in update request is as"
+                        " the existing userDefinedData of vnf package %(id)s."
+                        " Nothing to update.")
+                raise webob.exc.HTTPConflict(
+                    explanation=msg % {"id": id})
+            vnf_package.user_data = user_data
+
+        vnf_package.save()
+
+        return self._view_builder.patch(old_vnf_package, vnf_package)
 
 
 def create_resource():

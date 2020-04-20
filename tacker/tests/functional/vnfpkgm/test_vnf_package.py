@@ -119,7 +119,7 @@ class VnfPackageTest(base.BaseTackerTest):
         body = jsonutils.dumps({"userDefinedData": {"foo": "bar"}})
         vnf_package = self._create_vnf_package(body)
         file_path = self._get_csar_file_path("sample_vnf_package_csar.zip")
-        with open(file_path, 'r') as file_object:
+        with open(file_path, 'rb') as file_object:
             resp, resp_body = self.http_client.do_request(
                 '{base_path}/{id}/package_content'.format(
                     id=vnf_package['id'],
@@ -130,5 +130,42 @@ class VnfPackageTest(base.BaseTackerTest):
 
         self._wait_for_onboard(vnf_package['id'])
 
+        self._delete_vnf_package(vnf_package['id'])
+        self._wait_for_delete(vnf_package['id'])
+
+    def test_patch_in_onboarded_state(self):
+        user_data = jsonutils.dumps(
+            {"userDefinedData": {"key1": "val1", "key2": "val2",
+                                 "key3": "val3"}})
+        vnf_package = self._create_vnf_package(user_data)
+
+        update_req_body = jsonutils.dumps(
+            {"operationalState": "DISABLED",
+             "userDefinedData": {"key1": "changed_val1",
+                                 "key2": "val2", "new_key": "new_val"}})
+
+        expected_result = {"operationalState": "DISABLED",
+                           "userDefinedData": {
+                               "key1": "changed_val1", "new_key": "new_val"}}
+
+        file_path = self._get_csar_file_path("sample_vnf_package_csar.zip")
+        with open(file_path, 'rb') as file_object:
+            resp, resp_body = self.http_client.do_request(
+                '{base_path}/{id}/package_content'.format(
+                    id=vnf_package['id'],
+                    base_path=self.base_url),
+                "PUT", body=file_object, content_type='application/zip')
+
+        self.assertEqual(202, resp.status_code)
+        self._wait_for_onboard(vnf_package['id'])
+
+        # Update vnf package which is onboarded
+        resp, resp_body = self.http_client.do_request(
+            '{base_path}/{id}'.format(id=vnf_package['id'],
+                                      base_path=self.base_url),
+            "PATCH", content_type='application/json', body=update_req_body)
+
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(expected_result, resp_body)
         self._delete_vnf_package(vnf_package['id'])
         self._wait_for_delete(vnf_package['id'])

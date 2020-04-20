@@ -247,3 +247,61 @@ Request Parameters
   - addressInformation: addressInformation
   - userName: userName
   - password: password
+
+Update VNF Package Information
+==============================
+
+.. rest_method::  PATCH /vnfpkgm/v1/vnf_packages/{vnf_package_id}
+
+Updates the information of a VNF package.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 200
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 401
+  - 403
+  - 404
+  - 409
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters.yaml
+
+  - vnf_package_id: vnf_package_id_path
+  - operationalState: update_operational_state
+  - userDefinedData: update_user_defined_data
+
+.. note::
+    At least one of the "operationalState" or "userDefinedData" parameters
+    shall be present. If the VNF package is not on-boarded, the operation is
+    used only to update existing or add additional user defined data using the
+    "userDefinedData" attribute. If user passes existing user defined data
+    with exact same key/values pairs, then it would return 400 error.
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnf_packages/vnf-packages-patch-request.json
+   :language: javascript
+
+Response Parameters
+-------------------
+
+.. rest_parameters:: parameters.yaml
+
+  - operationalState: updated_operational_state
+  - userDefinedData: updated_user_defined_data
+
+Response Example
+----------------
+
+.. literalinclude:: samples/vnf_packages/vnf-packages-patch-response.json
+   :language: javascript

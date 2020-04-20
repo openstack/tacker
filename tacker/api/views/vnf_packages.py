@@ -92,6 +92,19 @@ class ViewBuilder(object):
 
         return vnf_package_response
 
+    def _get_modified_user_data(self, old_user_data, new_user_data):
+        # Checking for the new keys
+        user_data_response = {k: new_user_data[k] for k
+                              in set(new_user_data) - set(old_user_data)}
+
+        # Checking for updation in values of existing keys
+        for old_key, old_value in old_user_data.items():
+            if old_key in new_user_data.keys() and \
+                    new_user_data[old_key] != old_user_data[old_key]:
+                user_data_response[old_key] = new_user_data[old_key]
+
+        return user_data_response
+
     def create(self, request, vnf_package):
 
         return self._get_vnf_package(vnf_package)
@@ -103,3 +116,14 @@ class ViewBuilder(object):
     def index(self, request, vnf_packages):
         return {'vnf_packages': [self._get_vnf_package(
             vnf_package) for vnf_package in vnf_packages]}
+
+    def patch(self, vnf_package, new_vnf_package):
+        response = {}
+        if vnf_package.operational_state != new_vnf_package.operational_state:
+            response['operationalState'] = new_vnf_package.operational_state
+        if vnf_package.user_data != new_vnf_package.user_data:
+            updated_user_data = self._get_modified_user_data(
+                vnf_package.user_data, new_vnf_package.user_data)
+            response['userDefinedData'] = updated_user_data
+
+        return response

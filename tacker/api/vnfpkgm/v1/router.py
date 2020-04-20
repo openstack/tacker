@@ -58,7 +58,8 @@ class VnfpkgmAPIRouter(wsgi.Router):
                 methods, controller, default_resource)
 
         # Allowed methods on /vnf_packages/{id} resource
-        methods = {"DELETE": "delete", "GET": "show"}
+        methods = {"DELETE": "delete", "GET": "show",
+                   "PATCH": "patch"}
         self._setup_route(mapper, "/vnf_packages/{id}",
                 methods, controller, default_resource)
 

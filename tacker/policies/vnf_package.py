@@ -84,6 +84,17 @@ rules = [
                         'upload_from_uri'
             }
         ]),
+    policy.DocumentedRuleDefault(
+        name=VNFPKGM % 'patch',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="update information of vnf package.",
+        operations=[
+            {
+                'method': 'PATCH',
+                'path': '/vnf_packages/{vnf_package_id}'
+            }
+        ]),
+
 ]
 
 

@@ -158,7 +158,6 @@ class TestController(base.TestCase):
         file_path = "tacker/tests/etc/samples/test_data.zip"
         file_obj = open(file_path, "rb")
         mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
-        mock_vnf_pack_save.return_value = fakes.return_vnfpkg_obj()
         mock_glance_store.return_value = 'location', 'size', 'checksum',\
                                          'multihash', 'loc_meta'
         req = fake_request.HTTPRequest.blank(
@@ -224,7 +223,6 @@ class TestController(base.TestCase):
                                          mock_url_open):
         body = {"addressInformation": "http://test_data.zip"}
         mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
-        mock_vnf_pack_save.return_value = fakes.return_vnfpkg_obj()
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content/upload_from_uri'
             % constants.UUID)
@@ -274,11 +272,144 @@ class TestController(base.TestCase):
                           self.controller.upload_vnf_package_from_uri,
                           req, constants.UUID, body=body)
 
-    def test_upload_vnf_package_from_uri_with_invalid_url(self):
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_upload_vnf_package_from_uri_with_invalid_url(
+            self, mock_vnf_by_id):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
         body = {"addressInformation": "http://test_data.zip"}
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content/upload_from_uri'
             % constants.UUID)
         self.assertRaises(exc.HTTPBadRequest,
                           self.controller.upload_vnf_package_from_uri,
+                          req, constants.UUID, body=body)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    @mock.patch.object(vnf_package.VnfPackage, "save")
+    def test_patch(self, mock_save, mock_vnf_by_id):
+        update_onboarding_state = {'onboarding_state': 'ONBOARDED'}
+        mock_vnf_by_id.return_value = \
+            fakes.return_vnfpkg_obj(**update_onboarding_state)
+
+        req_body = {"operationalState": "ENABLED",
+                "userDefinedData": {"testKey1": "val01",
+                                    "testKey2": "val02", "testkey3": "val03"}}
+
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s'
+            % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'PATCH'
+        req.body = jsonutils.dump_as_bytes(req_body)
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.OK, resp.status_code)
+        self.assertEqual(req_body, jsonutils.loads(resp.body))
+
+    def test_patch_with_empty_body(self):
+        body = {}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s'
+            % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'PATCH'
+        req.body = jsonutils.dump_as_bytes(body)
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+
+    def test_patch_with_invalid_operational_state(self):
+        body = {"operationalState": "DISABLE"}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s'
+            % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'PATCH'
+        req.body = jsonutils.dump_as_bytes(body)
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    @mock.patch.object(vnf_package.VnfPackage, "save")
+    def test_patch_update_existing_user_data(self, mock_save, mock_vnf_by_id):
+        fake_obj = fakes.return_vnfpkg_obj(
+            **{'user_data': {"testKey1": "val01", "testKey2": "val02",
+                             "testKey3": "val03"}})
+        mock_vnf_by_id.return_value = fake_obj
+        req_body = {"userDefinedData": {"testKey1": "changed_val01",
+                                        "testKey2": "changed_val02",
+                                        "testKey3": "changed_val03"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s'
+            % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'PATCH'
+        req.body = jsonutils.dump_as_bytes(req_body)
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.OK, resp.status_code)
+        self.assertEqual(req_body, jsonutils.loads(resp.body))
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    @mock.patch.object(vnf_package.VnfPackage, "save")
+    def test_patch_failed_with_same_user_data(self, mock_save,
+                                              mock_vnf_by_id):
+        body = {"userDefinedData": {"testKey1": "val01",
+                                    "testKey2": "val02", "testkey3": "val03"}}
+        fake_obj = fakes.return_vnfpkg_obj(
+            **{'user_data': body["userDefinedData"]})
+        mock_vnf_by_id.return_value = fake_obj
+
+        req = fake_request.HTTPRequest.blank('/vnf_packages/%s'
+                                             % constants.UUID)
+        self.assertRaises(exc.HTTPConflict,
+                          self.controller.patch,
+                          req, constants.UUID, body=body)
+
+    def test_patch_with_invalid_uuid(self):
+        body = {"operationalState": "ENABLED"}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s'
+            % constants.INVALID_UUID)
+        exception = self.assertRaises(exc.HTTPNotFound,
+                                      self.controller.patch,
+                                      req, constants.INVALID_UUID, body=body)
+        self.assertEqual(
+            "Can not find requested vnf package: %s" % constants.INVALID_UUID,
+            exception.explanation)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_patch_with_non_existing_vnf_package(self, mock_vnf_by_id):
+        body = {"operationalState": "ENABLED"}
+        msg = _("Can not find requested vnf package: %s") % constants.UUID
+        mock_vnf_by_id.side_effect = exc.HTTPNotFound(explanation=msg)
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s' % constants.UUID)
+        exception = self.assertRaises(
+            exc.HTTPNotFound, self.controller.patch,
+            req, constants.UUID, body=body)
+        self.assertEqual(
+            "Can not find requested vnf package: %s" % constants.UUID,
+            exception.explanation)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_patch_failed_with_same_operational_state(self, mock_vnf_by_id):
+        update_operational_state = {'onboarding_state': 'ONBOARDED'}
+        vnf_obj = fakes.return_vnfpkg_obj(**update_operational_state)
+        mock_vnf_by_id.return_value = vnf_obj
+        body = {"operationalState": "DISABLED",
+                "userDefinedData": {"testKey1": "val01",
+                                    "testKey2": "val02", "testkey3": "val03"}}
+        req = fake_request.HTTPRequest.blank('/vnf_packages/%s'
+                                             % constants.UUID)
+        self.assertRaises(exc.HTTPConflict,
+                          self.controller.patch,
+                          req, constants.UUID, body=body)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_patch_not_in_onboarded_state(self, mock_vnf_by_id):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
+        body = {"operationalState": "DISABLED"}
+        req = fake_request.HTTPRequest.blank('/vnf_packages/%s'
+                                             % constants.UUID)
+        self.assertRaises(exc.HTTPBadRequest,
+                          self.controller.patch,
                           req, constants.UUID, body=body)

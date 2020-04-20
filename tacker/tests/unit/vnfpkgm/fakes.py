@@ -97,16 +97,43 @@ class InjectContext(wsgi.Middleware):
         return self.application
 
 
-def return_vnf_package():
-    model_obj = models.VnfPackage()
-    model_obj.update(fake_vnf_package())
+def fake_vnf_package_user_data(**updates):
+    vnf_package_user_data = {
+        'key': 'key',
+        'value': 'value',
+        'package_uuid': constants.UUID,
+        'id': constants.UUID,
+    }
+
+    if updates:
+        vnf_package_user_data.update(updates)
+
+    return vnf_package_user_data
+
+
+def return_vnf_package_user_data(**updates):
+    model_obj = models.VnfPackageUserData()
+    model_obj.update(fake_vnf_package_user_data(**updates))
     return model_obj
 
 
-def return_vnfpkg_obj():
+def return_vnf_package(**updates):
+    model_obj = models.VnfPackage()
+    if 'user_data' in updates:
+        metadata = []
+        for key, value in updates.pop('user_data').items():
+            vnf_package_user_data = return_vnf_package_user_data(
+                **{'key': key, 'value': value})
+            metadata.extend([vnf_package_user_data])
+        model_obj._metadata = metadata
+    model_obj.update(fake_vnf_package(**updates))
+    return model_obj
+
+
+def return_vnfpkg_obj(**updates):
     vnf_package = vnf_package_obj.VnfPackage._from_db_object(
         context, vnf_package_obj.VnfPackage(),
-        return_vnf_package(), expected_attrs=None)
+        return_vnf_package(**updates), expected_attrs=None)
     return vnf_package
 
 

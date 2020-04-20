@@ -12,7 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_db import exception as db_exc
 from oslo_log import log as logging
+from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovoo_base
@@ -37,17 +39,69 @@ LOG = logging.getLogger(__name__)
 def _add_user_defined_data(context, package_uuid, user_data,
                            max_retries=10):
     for attempt in range(max_retries):
-        with db_api.context_manager.writer.using(context):
+        try:
+            with db_api.context_manager.writer.using(context):
+                new_entries = []
+                for key, value in user_data.items():
+                    new_entries.append({"key": key,
+                                        "value": value,
+                                        "package_uuid": package_uuid})
+                if new_entries:
+                    context.session.execute(
+                        models.VnfPackageUserData.__table__.insert(None),
+                        new_entries)
 
-            new_entries = []
-            for key, value in user_data.items():
-                new_entries.append({"key": key,
-                                    "value": value,
-                                    "package_uuid": package_uuid})
-            if new_entries:
-                context.session.execute(
-                    models.VnfPackageUserData.__table__.insert(None),
-                    new_entries)
+                return user_data
+        except db_exc.DBDuplicateEntry:
+            # a concurrent transaction has been committed,
+            # try again unless this was the last attempt
+            with excutils.save_and_reraise_exception() as context:
+                if attempt < max_retries - 1:
+                    context.reraise = False
+                else:
+                    raise exceptions.UserDataUpdateCreateFailed(
+                        id=package_uuid, retries=max_retries)
+
+
+def _vnf_package_user_data_get_query(context, package_uuid, model):
+    return api.model_query(context, model, read_deleted="no", project_only=True).\
+        filter_by(package_uuid=package_uuid)
+
+
+@db_api.context_manager.writer
+def _update_user_defined_data(context, package_uuid, user_data):
+    model = models.VnfPackageUserData
+    user_data = user_data.copy()
+    session = context.session
+    with session.begin(subtransactions=True):
+        # Get existing user_data
+        db_user_data = _vnf_package_user_data_get_query(context, package_uuid,
+                                                        model).all()
+        save = []
+        skip = []
+        # We only want to send changed user_data.
+        for row in db_user_data:
+            if row.key in user_data:
+                value = user_data.pop(row.key)
+                if row.value != value:
+                    # ORM objects will not be saved until we do the bulk save
+                    row.value = value
+                    save.append(row)
+                    continue
+            skip.append(row)
+
+        # We also want to save non-existent user_data
+        save.extend(model(key=key, value=value, package_uuid=package_uuid)
+                    for key, value in user_data.items())
+        # Do a bulk save
+        if save:
+            session.bulk_save_objects(save, update_changed_only=True)
+
+        # Construct result dictionary with current user_data
+        save.extend(skip)
+        result = {row['key']: row['value'] for row in save}
+
+    return result
 
 
 @db_api.context_manager.reader
@@ -111,12 +165,20 @@ def _vnf_package_list_by_filters(context, read_deleted=None, **filters):
 
 
 @db_api.context_manager.writer
-def _vnf_package_update(context, package_uuid, values, columns_to_join=None):
-
-    vnf_package = _vnf_package_get_by_id(context, package_uuid,
-                                         columns_to_join=columns_to_join)
-    vnf_package.update(values)
+def _update_vnf_package_except_user_data(context, vnf_package):
     vnf_package.save(session=context.session)
+
+
+def _vnf_package_update(context, package_uuid, values, columns_to_join=None):
+    user_data = values.pop('user_data', None)
+    if user_data:
+        _update_user_defined_data(context, package_uuid, user_data)
+
+    vnf_package = _vnf_package_get_by_id(
+        context, package_uuid, columns_to_join=columns_to_join)
+    if values:
+        vnf_package.update(values)
+        _update_vnf_package_except_user_data(context, vnf_package)
 
     return vnf_package
 

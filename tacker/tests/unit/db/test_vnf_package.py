@@ -49,9 +49,10 @@ class TestVnfPackage(SqlTestCase):
         vnf_package_db = models.VnfPackage()
         vnf_package_db.update(fakes.fake_vnf_package())
         vnf_package_db.save(self.context.session)
+        expected_result = {'abc': 'xyz'}
         result = vnf_package._add_user_defined_data(
             self.context, vnf_package_db.id, vnf_package_db.user_data)
-        self.assertEqual(None, result)
+        self.assertEqual(expected_result, result)
 
     def test_vnf_package_get_by_id(self):
         result = vnf_package._vnf_package_get_by_id(
@@ -75,7 +76,7 @@ class TestVnfPackage(SqlTestCase):
         update = {'user_data': {'test': 'xyz'}}
         result = vnf_package._vnf_package_update(
             self.context, self.vnf_package.id, update)
-        self.assertEqual({'test': 'xyz'}, result.user_data)
+        self.assertEqual({'test': 'xyz', 'abc': 'xyz'}, result.metadetails)
 
     def test_destroy_vnf_package(self):
         vnf_package._destroy_vnf_package(self.context,
@@ -92,3 +93,27 @@ class TestVnfPackage(SqlTestCase):
             self.context, vnf_pack_list_obj, response, None)
         self.assertIsInstance(result, objects.VnfPackagesList)
         self.assertTrue(result.objects[0].id)
+
+    def test_patch_user_data_existing_key_with_same_value(self):
+        update = {'user_data': {'abc': 'xyz'}}
+        result = vnf_package._vnf_package_update(
+            self.context, self.vnf_package.id, update)
+        self.assertEqual({'abc': 'xyz'}, result.metadetails)
+
+    def test_patch_user_data_existing_key_new_value(self):
+        update = {'user_data': {'abc': 'val1'}}
+        result = vnf_package._vnf_package_update(
+            self.context, self.vnf_package.id, update)
+        self.assertEqual({'abc': 'val1'}, result.metadetails)
+
+    def test_patch_user_data_with_new_key_value(self):
+        update = {'user_data': {'test': '123'}}
+        result = vnf_package._vnf_package_update(
+            self.context, self.vnf_package.id, update)
+        self.assertEqual({'test': '123', 'abc': 'xyz'}, result.metadetails)
+
+    def test_patch_user_data_add_key_value_and_modify_value(self):
+        update = {'user_data': {'test': 'val1', 'abc': 'val2'}}
+        result = vnf_package._vnf_package_update(
+            self.context, self.vnf_package.id, update)
+        self.assertEqual({'test': 'val1', 'abc': 'val2'}, result.metadetails)
