@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_db import exception as db_exc
 from oslo_utils import uuidutils
 
 from tacker.common import exceptions
@@ -26,7 +27,12 @@ def _vnf_package_vnfd_create(context, values):
     vnf_package_vnfd = models.VnfPackageVnfd()
 
     vnf_package_vnfd.update(values)
-    vnf_package_vnfd.save(context.session)
+    try:
+        vnf_package_vnfd.save(context.session)
+    except db_exc.DBDuplicateEntry as e:
+        if 'vnfd_id' in e.columns:
+            raise exceptions.VnfPackageVnfdIdDuplicate(
+                vnfd_id=values.get('vnfd_id'))
 
     return vnf_package_vnfd
 

@@ -207,6 +207,10 @@ class VnfPackageNotFound(NotFound):
     message = _("No vnf package with id %(id)s.")
 
 
+class VnfPackageVnfdIdDuplicate(TackerException):
+    message = _("Vnf package with vnfd id %(vnfd_id)s already exists.")
+
+
 class VnfDeploymentFlavourNotFound(NotFound):
     message = _("No vnf deployment flavour with id %(id)s.")
 
