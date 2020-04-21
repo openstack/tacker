@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
+
 from keystoneauth1 import exceptions
 import mock
 from oslo_config import cfg
@@ -141,14 +143,15 @@ class TestOpenstack_Driver(base.TestCase):
         self.keystone.initialize_client.return_value = mock_ks_client
         fernet_attrs = {'encrypt.return_value': 'encrypted_password'}
         mock_fernet_obj = mock.Mock(**fernet_attrs)
-        mock_fernet_key = 'test_fernet_key'
+        mock_fernet_key = b'test_fernet_key'
         self.keystone.create_fernet_key.return_value = (mock_fernet_key,
                                                         mock_fernet_obj)
-        file_mock = mock.mock_open()
-        with mock.patch('six.moves.builtins.open', file_mock, create=True):
-            self.openstack_driver.register_vim(vim_obj)
+        self.openstack_driver.register_vim(vim_obj)
+        with open('/tmp/' + vim_obj['id'], 'r') as f:
+            # asserting that file has been written correctly.
+            self.assertEqual('test_fernet_key', f.read())
         mock_fernet_obj.encrypt.assert_called_once_with(mock.ANY)
-        file_mock().write.assert_called_once_with('test_fernet_key')
+        os.remove('/tmp/' + vim_obj['id'])
 
     @mock.patch('tacker.nfvo.drivers.vim.openstack_driver.os.remove')
     @mock.patch('tacker.nfvo.drivers.vim.openstack_driver.os.path'

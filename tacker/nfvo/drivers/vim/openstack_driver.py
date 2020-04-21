@@ -252,7 +252,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
             auth['key_type'] = 'fernet_key'
             key_file = os.path.join(CONF.vim_keys.openstack, vim_id)
             try:
-                with open(key_file, 'w') as f:
+                with open(key_file, 'wb') as f:
                     if six.PY2:
                         f.write(fernet_key.decode('utf-8'))
                     else:
