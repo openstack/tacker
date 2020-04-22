@@ -92,7 +92,9 @@ def _update_flavour_data_from_vnf(custom_defs, node_tpl, flavour):
             flavour.update(
                 {'flavour_description': vnf_properties[
                     'flavour_description']})
-        if 'flavour_id' in vnf_properties:
+
+        if 'flavour_id' in vnf_properties and isinstance(
+                vnf_properties['flavour_id'], str):
             flavour.update({'flavour_id': vnf_properties['flavour_id']})
 
 
@@ -115,36 +117,47 @@ def _get_software_image(custom_defs, nodetemplate_name, node_tpl):
 
 def _populate_flavour_data(tosca):
     flavours = []
-    for tp in tosca.nested_tosca_templates_with_topology:
-        sw_image_list = []
-
-        # Setting up flavour data
-        flavour_id = tp.substitution_mappings.properties.get('flavour_id')
-        if flavour_id:
-            flavour = {'flavour_id': flavour_id}
-        else:
-            flavour = {}
-        instantiation_levels = _get_instantiation_levels(tp.policies)
-        if instantiation_levels:
-            flavour.update({'instantiation_levels': instantiation_levels})
-        for template_name, node_tpl in tp.tpl.get('node_templates').items():
-            # check the flavour property in vnf data
-            _update_flavour_data_from_vnf(tp.custom_defs, node_tpl, flavour)
-
-            # Update the software image data
-            sw_image = _get_software_image(tp.custom_defs, template_name,
-                                           node_tpl)
-            if sw_image:
-                sw_image_list.append(sw_image)
-
-        # Add software images for flavour
-        if sw_image_list:
-            flavour.update({'sw_images': sw_image_list})
-
-        if flavour:
-            flavours.append(flavour)
+    if tosca.nested_tosca_templates_with_topology:
+        for tp in tosca.nested_tosca_templates_with_topology:
+            _get_flavour_data(tp, flavours)
+    else:
+        _get_flavour_data(tosca.topology_template, flavours)
 
     return flavours
+
+
+def _get_flavour_data(tp, flavours):
+    sw_image_list = []
+
+    # Setting up flavour data
+    flavour_id = tp.substitution_mappings.properties.get('flavour_id')
+    if flavour_id:
+        if isinstance(flavour_id, dict):
+            error_msg = "flavour_id should be string and given" \
+                        " {}".format(flavour_id)
+            raise exceptions.InvalidCSAR(error_msg)
+        flavour = {'flavour_id': flavour_id}
+    else:
+        flavour = {}
+    instantiation_levels = _get_instantiation_levels(tp.policies)
+    if instantiation_levels:
+        flavour.update({'instantiation_levels': instantiation_levels})
+    for template_name, node_tpl in tp.tpl.get('node_templates').items():
+        # check the flavour property in vnf data
+        _update_flavour_data_from_vnf(tp.custom_defs, node_tpl, flavour)
+
+        # Update the software image data
+        sw_image = _get_software_image(tp.custom_defs, template_name,
+                                       node_tpl)
+        if sw_image:
+            sw_image_list.append(sw_image)
+
+    # Add software images for flavour
+    if sw_image_list:
+        flavour.update({'sw_images': sw_image_list})
+
+    if flavour:
+        flavours.append(flavour)
 
 
 def _get_instantiation_levels_from_policy(tpl_policies):
