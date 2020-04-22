@@ -34,7 +34,7 @@ class TestCSARUtils(testtools.TestCase):
         return os.path.join(
             self.base_path, "../../etc/samples", file_name)
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data(self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path("sample_vnf_package_csar.zip")
         vnf_data, flavours = csar_utils.load_csar_data(
@@ -44,7 +44,7 @@ class TestCSARUtils(testtools.TestCase):
         self.assertEqual(flavours[0]['flavour_id'], 'simple')
         self.assertIsNotNone(flavours[0]['sw_images'])
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data_with_single_yaml(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path(
@@ -56,7 +56,7 @@ class TestCSARUtils(testtools.TestCase):
         self.assertEqual(flavours[0]['flavour_id'], 'simple')
         self.assertIsNotNone(flavours[0]['sw_images'])
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data_without_instantiation_level(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path(
@@ -68,7 +68,7 @@ class TestCSARUtils(testtools.TestCase):
                ' "tosca.policies.nfv.InstantiationLevels is not defined.')
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data_with_invalid_instantiation_level(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path(
@@ -81,7 +81,7 @@ class TestCSARUtils(testtools.TestCase):
                "defined levels %s") % ",".join(sorted(levels))
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data_with_invalid_default_instantiation_level(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path(
@@ -94,7 +94,7 @@ class TestCSARUtils(testtools.TestCase):
                "defined levels %s") % ",".join(sorted(levels))
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data_without_vnfd_info(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path(
@@ -104,7 +104,7 @@ class TestCSARUtils(testtools.TestCase):
                                 self.context, constants.UUID, file_path)
         self.assertEqual("VNF properties are mandatory", exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data_with_artifacts_and_without_sw_image_data(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path(
@@ -116,7 +116,7 @@ class TestCSARUtils(testtools.TestCase):
                ' type tosca.artifacts.nfv.SwImage for node VDU1.')
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data_with_multiple_sw_image_data(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path(
@@ -128,7 +128,7 @@ class TestCSARUtils(testtools.TestCase):
                ' is added more than one time for node VDU1.')
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_csar_with_missing_sw_image_data_in_main_template(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path(
@@ -140,7 +140,7 @@ class TestCSARUtils(testtools.TestCase):
                ' type tosca.artifacts.nfv.SwImage for node VDU1.')
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data_without_flavour_info(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path("csar_without_flavour_info.zip")
@@ -149,7 +149,7 @@ class TestCSARUtils(testtools.TestCase):
                                 self.context, constants.UUID, file_path)
         self.assertEqual("No VNF flavours are available", exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data_without_flavour_info_in_main_template(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path(
@@ -167,7 +167,7 @@ class TestCSARUtils(testtools.TestCase):
         mock_rmtree.assert_called()
         mock_remove.assert_called()
 
-    @mock.patch('tacker.common.csar_utils._extract_csar_zip_file')
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data_without_policies(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_file_path("csar_without_policies.zip")

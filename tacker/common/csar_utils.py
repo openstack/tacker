@@ -269,7 +269,7 @@ def _get_data_from_csar(tosca, context, id):
     return vnf_data, flavours
 
 
-def _extract_csar_zip_file(file_path, extract_path):
+def extract_csar_zip_file(file_path, extract_path):
     try:
         with zipfile.ZipFile(file_path, 'r') as zf:
             zf.extractall(extract_path)
@@ -287,7 +287,7 @@ def load_csar_data(context, package_uuid, zip_path):
 
     extract_zip_path = os.path.join(CONF.vnf_package.vnf_package_csar_path,
                                     package_uuid)
-    _extract_csar_zip_file(zip_path, extract_zip_path)
+    extract_csar_zip_file(zip_path, extract_zip_path)
 
     try:
         tosca = ToscaTemplate(zip_path, None, True)

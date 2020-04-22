@@ -13,13 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from io import BytesIO
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import uuidutils
+import six
 from six.moves import http_client
 from six.moves import urllib
 import webob
+import zipfile
+from zipfile import ZipFile
 
 from tacker._i18n import _
 from tacker.api.schemas import vnf_packages
@@ -274,6 +278,72 @@ class VnfPkgmController(wsgi.Controller):
         vnf_package.save()
 
         return self._view_builder.patch(old_vnf_package, vnf_package)
+
+    @wsgi.response(http_client.OK)
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
+                           http_client.NOT_FOUND, http_client.NOT_ACCEPTABLE,
+                           http_client.CONFLICT,
+                           http_client.INTERNAL_SERVER_ERROR))
+    def get_vnf_package_vnfd(self, request, id):
+        context = request.environ['tacker.context']
+        context.can(vnf_package_policies.VNFPKGM % 'get_vnf_package_vnfd')
+
+        valid_accept_headers = ['application/zip', 'text/plain']
+        accept_headers = request.headers['Accept'].split(',')
+        for header in accept_headers:
+            if header not in valid_accept_headers:
+                msg = _("Accept header %(accept)s is invalid, it should be one"
+                        " of these values: %(valid_values)s")
+                raise webob.exc.HTTPNotAcceptable(
+                    explanation=msg % {"accept": header,
+                                       "valid_values": ",".join(
+                                           valid_accept_headers)})
+
+        vnf_package = self._get_vnf_package(id, request)
+
+        if vnf_package.onboarding_state != \
+                fields.PackageOnboardingStateType.ONBOARDED:
+            msg = _("VNF Package %(id)s state is not "
+                    "%(onboarded)s")
+            raise webob.exc.HTTPConflict(explanation=msg % {"id": id,
+                    "onboarded": fields.PackageOnboardingStateType.ONBOARDED})
+
+        try:
+            vnfd_files_and_data = self.rpc_api.\
+                get_vnf_package_vnfd(context, vnf_package)
+        except exceptions.FailedToGetVnfdData as e:
+            LOG.error(e.msg)
+            raise webob.exc.HTTPInternalServerError(
+                explanation=six.text_type(e.msg))
+
+        if 'text/plain' in accept_headers:
+            # Checking for yaml files only. This is required when there is
+            # TOSCA.meta file along with single yaml file.
+            # In such case we need to return single yaml file.
+            file_list = list(vnfd_files_and_data.keys())
+            yaml_files = [file for file in file_list if file.endswith(
+                ('.yaml', '.yml'))]
+            if len(yaml_files) == 1:
+                request.response.headers['Content-Type'] = 'text/plain'
+                return vnfd_files_and_data[yaml_files[0]]
+            elif 'application/zip' in accept_headers:
+                request.response.headers['Content-Type'] = 'application/zip'
+                return self._create_vnfd_zip(vnfd_files_and_data)
+            else:
+                msg = _("VNFD is implemented as multiple yaml files,"
+                        " Accept header should be 'application/zip'.")
+                raise webob.exc.HTTPBadRequest(explanation=msg)
+        else:
+            request.response.headers['Content-Type'] = 'application/zip'
+            return self._create_vnfd_zip(vnfd_files_and_data)
+
+    def _create_vnfd_zip(self, vnfd_files_and_data):
+        buff = BytesIO()
+        with ZipFile(buff, 'w', zipfile.ZIP_DEFLATED) as zip_archive:
+            for file_path, file_data in vnfd_files_and_data.items():
+                zip_archive.writestr(file_path, file_data)
+
+        return buff.getvalue()
 
 
 def create_resource():

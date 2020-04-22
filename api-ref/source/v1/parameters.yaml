@@ -1,4 +1,12 @@
 # variables in header
+content_type:
+  description: |
+    If the VNFD is implemented in the form of multiple files, zip file will
+    be returned with Content-Type set as `application/zip` otherwise it will
+    be set to `text/plain` in the response header.
+  in: header
+  required: true
+  type: string
 
 # variables in path
 alias_path:

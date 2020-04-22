@@ -15,8 +15,14 @@
 
 
 import datetime
+import io
 import iso8601
+import os
+import shutil
+import tempfile
 import webob
+import yaml
+import zipfile
 
 from tacker.api.vnfpkgm.v1.router import VnfpkgmAPIRouter
 from tacker import context
@@ -117,7 +123,7 @@ def return_vnf_package_user_data(**updates):
     return model_obj
 
 
-def return_vnf_package(**updates):
+def return_vnf_package(onboarded=False, **updates):
     model_obj = models.VnfPackage()
     if 'user_data' in updates:
         metadata = []
@@ -126,14 +132,27 @@ def return_vnf_package(**updates):
                 **{'key': key, 'value': value})
             metadata.extend([vnf_package_user_data])
         model_obj._metadata = metadata
-    model_obj.update(fake_vnf_package(**updates))
+
+    if onboarded:
+        updates = {'onboarding_state': 'ONBOARDED',
+                   'operational_state': 'ENABLED',
+                   'algorithm': 'test',
+                   'hash': 'test',
+                   'location_glance_store': 'file:test/path/pkg-uuid',
+                   'updated_at': datetime.datetime(
+                       1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)}
+        model_obj.update(fake_vnf_package(**updates))
+    else:
+        model_obj.update(fake_vnf_package(**updates))
+
     return model_obj
 
 
-def return_vnfpkg_obj(**updates):
+def return_vnfpkg_obj(onboarded=False, **updates):
     vnf_package = vnf_package_obj.VnfPackage._from_db_object(
         context, vnf_package_obj.VnfPackage(),
-        return_vnf_package(**updates), expected_attrs=None)
+        return_vnf_package(onboarded=onboarded, **updates),
+        expected_attrs=None)
     return vnf_package
 
 
@@ -151,3 +170,29 @@ def wsgi_app_v1(fake_auth_context=None):
                                    uuidsentinel.project_id, is_admin=True)
     api_v1 = InjectContext(ctxt, inner_app_v1)
     return api_v1
+
+
+def return_vnfd_data(multiple_yaml_files=True):
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    sample_vnf_package_zip = os.path.join(
+        base_path, "../../etc/samples/sample_vnf_package_csar.zip")
+
+    csar_temp_dir = tempfile.mkdtemp()
+
+    with zipfile.ZipFile(sample_vnf_package_zip, 'r') as zf:
+        zf.extractall(csar_temp_dir)
+
+    file_names = ['Definitions/etsi_nfv_sol001_vnfd_types.yaml']
+    if multiple_yaml_files:
+        file_names.extend(['TOSCA-Metadata/TOSCA.meta',
+                           'Definitions/helloworld3_types.yaml',
+                           'Definitions/helloworld3_df_simple.yaml',
+                           'Definitions/helloworld3_top.vnfd.yaml',
+                           'Definitions/etsi_nfv_sol001_common_types.yaml'])
+    file_path_and_data = {}
+    for file_name in file_names:
+        file_path_and_data.update({file_name: yaml.dump(yaml.safe_load(
+            io.open(os.path.join(csar_temp_dir, file_name))))})
+
+    shutil.rmtree(csar_temp_dir)
+    return file_path_and_data
