@@ -1,4 +1,4 @@
-# Copyright (C) 2019 NTT DATA
+# Copyright (C) 2020 NTT DATA
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -13,17 +13,21 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+"""
+Schema for vnf lcm APIs.
 
-import itertools
+"""
 
-from tacker.policies import base
-from tacker.policies import vnf_lcm
-from tacker.policies import vnf_package
+from tacker.api.validation import parameter_types
 
 
-def list_rules():
-    return itertools.chain(
-        base.list_rules(),
-        vnf_package.list_rules(),
-        vnf_lcm.list_rules(),
-    )
+create = {
+    'type': 'object',
+    'properties': {
+        'vnfdId': parameter_types.uuid,
+        'vnfInstanceName': parameter_types.name_allow_zero_min_length,
+        'vnfInstanceDescription': parameter_types.description,
+    },
+    'required': ['vnfdId'],
+    'additionalProperties': False,
+}

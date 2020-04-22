@@ -219,6 +219,10 @@ class VnfResourceNotFound(NotFound):
     message = _("No vnf resource with id %(id)s.")
 
 
+class VnfPackageVnfdNotFound(NotFound):
+    message = _("No vnf package vnfd with vnfd_id %(id)s.")
+
+
 class VnfDeploymentFlavourNotFound(NotFound):
     message = _("No vnf deployment flavour with id %(id)s.")
 
