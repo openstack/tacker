@@ -14,12 +14,14 @@
 
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
+from oslo_serialization import jsonutils as json
 from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovoo_base
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
+from sqlalchemy_filters import apply_filters
 
 from tacker._i18n import _
 from tacker.common import exceptions
@@ -153,15 +155,27 @@ def _vnf_package_list(context, columns_to_join=None):
 
 
 @db_api.context_manager.reader
-def _vnf_package_list_by_filters(context, read_deleted=None, **filters):
+def _vnf_package_list_by_filters(context, read_deleted=None, filters=None):
     query = api.model_query(context, models.VnfPackage,
-                            read_deleted=read_deleted, project_only=True)
-    for key, value in filters.items():
-        filter_obj = getattr(models.VnfPackage, key)
-        if key == 'deleted_at':
-            query = query.filter(filter_obj >= value)
-        else:
-            query = query.filter(filter_obj == value)
+                            read_deleted=read_deleted,
+                            project_only=True).options(joinedload('_metadata'))
+
+    if filters:
+        # Need to join VnfDeploymentFlavour, VnfSoftwareImage and
+        # VnfSoftwareImageMetadata db table explicitly
+        # only when filters contains one of the column matching
+        # from VnfSoftwareImage or VnfSoftwareImageMetadata db table.
+        filter_data = json.dumps(filters)
+        if 'VnfSoftwareImageMetadata' in filter_data:
+            query = query.join(models.VnfDeploymentFlavour).join(
+                models.VnfSoftwareImage).join(
+                models.VnfSoftwareImageMetadata)
+        elif 'VnfSoftwareImage' in filter_data:
+            query = query.join(models.VnfDeploymentFlavour).join(
+                models.VnfSoftwareImage)
+
+        query = apply_filters(query, filters)
+
     return query.all()
 
 
@@ -224,7 +238,7 @@ def _destroy_vnf_package(context, package_uuid):
 
 
 def _make_vnf_packages_list(context, vnf_package_list, db_vnf_package_list,
-                            expected_attrs):
+                            expected_attrs=None):
     vnf_package_cls = VnfPackage
 
     vnf_package_list.objects = []
@@ -289,8 +303,7 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
                                          expected_attrs=None):
         """Method to help with migration of extra attributes to objects."""
 
-        if expected_attrs is None:
-            expected_attrs = []
+        expected_attrs = expected_attrs or []
 
         if 'vnf_deployment_flavours' in expected_attrs:
             vnf_package._load_vnf_deployment_flavours(
@@ -465,7 +478,8 @@ class VnfPackagesList(ovoo_base.ObjectListBase, base.TackerObject):
                                        expected_attrs)
 
     @base.remotable_classmethod
-    def get_by_filters(self, context, read_deleted=None, **filters):
-        return _vnf_package_list_by_filters(context,
+    def get_by_filters(cls, context, read_deleted=None, filters=None):
+        db_vnf_packages = _vnf_package_list_by_filters(context,
                                             read_deleted=read_deleted,
-                                            **filters)
+                                            filters=filters)
+        return _make_vnf_packages_list(context, cls(), db_vnf_packages)
