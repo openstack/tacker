@@ -67,3 +67,15 @@ patch = {
               {'required': ['userDefinedData']}],
     'additionalProperties': False
 }
+
+query_params_v1 = {
+    'type': 'object',
+    "properties": {
+        'filter': {'type': 'string', 'minLength': 1},
+        'exclude_fields': {'type': 'string', 'minLength': 1},
+        'fields': {'type': 'string', 'minLength': 1},
+        'all_fields': {'format': 'all_fields'},
+        'exclude_default': {'format': 'exclude_default'},
+    },
+    'additionalProperties': False,
+}

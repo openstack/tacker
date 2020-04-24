@@ -108,7 +108,8 @@ class VnfPkgmController(wsgi.Controller):
         return self._view_builder.show(request, vnf_package)
 
     @wsgi.response(http_client.OK)
-    @wsgi.expected_errors((http_client.FORBIDDEN))
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN))
+    @validation.query_schema(vnf_packages.query_params_v1)
     def index(self, request):
         context = request.environ['tacker.context']
         context.can(vnf_package_policies.VNFPKGM % 'index')
