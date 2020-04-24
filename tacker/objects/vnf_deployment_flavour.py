@@ -239,6 +239,16 @@ class VnfDeploymentFlavour(base.TackerObject, base.TackerPersistentObject):
                 objects.VnfSoftwareImage, db_sw_images)
             self.obj_reset_changes(['software_images'])
 
+    def to_dict(self, include_fields=None):
+        software_images = list()
+        for software_image in self.software_images:
+            sw_image_dict = software_image.to_dict(
+                include_fields=include_fields)
+            if sw_image_dict:
+                software_images.append(sw_image_dict)
+
+        return software_images
+
 
 @base.TackerObjectRegistry.register
 class VnfDeploymentFlavoursList(ovoo_base.ObjectListBase, base.TackerObject):
@@ -248,3 +258,12 @@ class VnfDeploymentFlavoursList(ovoo_base.ObjectListBase, base.TackerObject):
     fields = {
         'objects': fields.ListOfObjectsField('VnfDeploymentFlavour')
     }
+
+    def to_dict(self, include_fields=None):
+        software_images = list()
+        for deployment_flavour in self.objects:
+            images = deployment_flavour.to_dict(include_fields=include_fields)
+            if images:
+                software_images.extend(images)
+
+        return software_images

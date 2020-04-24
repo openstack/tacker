@@ -114,11 +114,37 @@ class VnfPkgmController(wsgi.Controller):
         context = request.environ['tacker.context']
         context.can(vnf_package_policies.VNFPKGM % 'index')
 
-        vnf_packages = vnf_package_obj.VnfPackagesList.get_all(
-            request.context,
-            expected_attrs=["vnf_deployment_flavours", "vnfd"])
+        search_opts = {}
+        search_opts.update(request.GET)
 
-        return self._view_builder.index(request, vnf_packages)
+        def _key_exists(key, validate_value=True):
+            try:
+                request.GET[key]
+            except KeyError:
+                return False
+
+            return True
+
+        all_fields = _key_exists('all_fields')
+        exclude_default = _key_exists('exclude_default')
+        fields = request.GET.get('fields')
+        exclude_fields = request.GET.get('exclude_fields')
+        filters = request.GET.get('filter')
+        if not (all_fields or fields or exclude_fields):
+            exclude_default = True
+
+        self._view_builder.validate_attribute_fields(all_fields=all_fields,
+            fields=fields, exclude_fields=exclude_fields,
+            exclude_default=exclude_default)
+
+        filters = self._view_builder.validate_filter(filters)
+
+        vnf_packages = vnf_package_obj.VnfPackagesList.get_by_filters(
+            request.context, read_deleted='no', filters=filters)
+
+        return self._view_builder.index(request, vnf_packages,
+                all_fields=all_fields, exclude_fields=exclude_fields,
+                fields=fields, exclude_default=exclude_default)
 
     @wsgi.response(http_client.NO_CONTENT)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,

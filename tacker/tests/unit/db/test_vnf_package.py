@@ -49,7 +49,7 @@ class TestVnfPackage(SqlTestCase):
         vnf_package_db = models.VnfPackage()
         vnf_package_db.update(fakes.fake_vnf_package())
         vnf_package_db.save(self.context.session)
-        expected_result = {'abc': 'xyz'}
+        expected_result = {'key1': 'value1', 'key2': 'value2'}
         result = vnf_package._add_user_defined_data(
             self.context, vnf_package_db.id, vnf_package_db.user_data)
         self.assertEqual(expected_result, result)
