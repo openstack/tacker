@@ -24,7 +24,7 @@ class ToscaKubeObject(object):
     def __init__(self, name=None, namespace=None, mapping_ports=None,
                  containers=None, network_name=None,
                  mgmt_connection_point=False, scaling_object=None,
-                 service_type=None, labels=None):
+                 service_type=None, labels=None, annotations=None):
         self._name = name
         self._namespace = namespace
         self._mapping_ports = mapping_ports
@@ -34,6 +34,7 @@ class ToscaKubeObject(object):
         self._scaling_object = scaling_object
         self._service_type = service_type
         self._labels = labels
+        self._annotations = annotations
 
     @property
     def name(self):
@@ -106,6 +107,14 @@ class ToscaKubeObject(object):
     @labels.setter
     def labels(self, labels):
         self._labels = labels
+
+    @property
+    def annotations(self):
+        return self._annotations
+
+    @annotations.setter
+    def annotations(self, annotations):
+        self._annotations = annotations
 
 
 class Container(object):

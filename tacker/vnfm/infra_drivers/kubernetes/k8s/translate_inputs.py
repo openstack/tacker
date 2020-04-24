@@ -14,6 +14,9 @@
 #    under the License.
 
 from oslo_config import cfg
+
+import json
+
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
@@ -25,7 +28,6 @@ from tacker.vnfm.infra_drivers.kubernetes.k8s import tosca_kube_object
 from toscaparser.functions import GetInput
 from toscaparser import tosca_template
 import toscaparser.utils.yamlparser
-
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -66,6 +68,7 @@ class Parser(object):
         try:
             parserd_params = None
             toscautils.updateimports(self.vnfd_dict)
+
             tosca = tosca_template.\
                 ToscaTemplate(parsed_params=parserd_params,
                               a_file=False,
@@ -82,8 +85,14 @@ class Parser(object):
             vdu_name = node_template.name
             tosca_kube_obj = self.tosca_to_kube_mapping(node_template)
 
-            # Find network name in which VDU is attached
-            tosca_kube_obj.network_name = self.find_networks(tosca, vdu_name)
+        # Find network name in which VDU is attached
+            network_names = self.find_networks(tosca, vdu_name)
+            if network_names:
+                annotations_pad = \
+                    json.dumps([{"name": "%s" % net}
+                               for net in network_names])
+                tosca_kube_obj.annotations =\
+                    {'k8s.v1.cni.cncf.io/networks': annotations_pad}
 
             # If connection_point is True, Tacker will manage its service ip
             tosca_kube_obj.mgmt_connection_point = \
@@ -94,6 +103,7 @@ class Parser(object):
             tosca_kube_obj.scaling_object = \
                 self.get_scaling_policy(tosca, vdu_name)
             tosca_kube_objects.append(tosca_kube_obj)
+
         return tosca_kube_objects
 
     @log.log
@@ -226,17 +236,8 @@ class Parser(object):
                     for key, value in tosca_props.items():
                         if key == 'network_name':
                             network_names.append(value)
-
-        if len(network_names) > 1:
-            # Currently, Kubernetes doesn't support multiple networks.
-            # If user provides more than one network, the error will raise.
-            # TODO(anyone): support Multus or multiple networking
-            LOG.debug("Kubernetes feature only support one network")
-            raise vnfm.InvalidKubernetesNetworkNumber
         if network_names:
-            return network_names[0]
-        else:
-            return None
+            return network_names
 
     @log.log
     def check_mgmt_cp(self, tosca, vdu_name):

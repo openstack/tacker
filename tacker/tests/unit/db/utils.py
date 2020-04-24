@@ -29,6 +29,7 @@ def _get_template(name):
     f = codecs.open(filename, encoding='utf-8', errors='strict')
     return f.read()
 
+tosca_cvnf_vnfd = _get_template('test_tosca_cvnf.yaml')
 tosca_vnfd_openwrt = _get_template('test_tosca_openwrt.yaml')
 tosca_vnfd_openwrt_param = _get_template('test_tosca_openwrt_param.yaml')
 tosca_invalid_vnfd = _get_template('test_tosca_parser_failure.yaml')
@@ -119,6 +120,16 @@ def get_dummy_inline_vnf_obj():
                     'vnfd_id': None}}
 
 
+def get_dummy_inline_cvnf_obj():
+    return {'vnf': {'description': 'dummy_inline_cvnf_description',
+                    'vnfd_template': yaml.safe_load(tosca_cvnf_vnfd),
+                    'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                    'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                    'name': 'dummy_cvnf',
+                    'attributes': {},
+                    'vnfd_id': None}}
+
+
 def get_dummy_vnf_obj():
     return {'vnf': {'description': 'dummy_vnf_description',
                     'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
@@ -133,6 +144,24 @@ def get_dummy_vnf_obj():
 def get_dummy_vnf_config_obj():
     return {'vnf': {u'attributes': {u'config': {'vdus': {'vdu1': {
         'config': {'firewall': 'dummy_firewall_values'}}}}}}}
+
+
+def get_dummy_vnf_invalid_config_type_obj():
+    return {'vnf': {u'attributes': {u'config': 'dummy_config'}}}
+
+
+def get_dummy_vnf_invalid_param_content():
+    return {'vnf': {u'attributes': {u'param_values': {}}}}
+
+
+def get_dummy_vnf_param_obj():
+    return {'vnf': {u'attributes': {u'param_values':
+        {'flavor': 'm1.tiny',
+         'reservation_id': '99999999-3925-4c9e-9074-239a902b68d7'}}}}
+
+
+def get_dummy_vnf_invalid_param_type_obj():
+    return {'vnf': {u'attributes': {u'param_values': 'dummy_param'}}}
 
 
 def get_dummy_vnf_invalid_config_type_obj():
@@ -217,6 +246,22 @@ def get_dummy_vnf_param_attr():
 
 def get_dummy_vnf_update_config():
     return {'vnf': {'attributes': {'config': update_config_data}}}
+
+
+def get_dummy_vnf_update_param():
+    return {'vnf': {'attributes': {'param_values': update_param_data}}}
+
+
+def get_dummy_vnf_update_new_param():
+    return {'vnf': {'attributes': {'param_values': update_new_param_data}}}
+
+
+def get_dummy_vnf_update_invalid_param():
+    return {'vnf': {'attributes': {'param_values': update_invalid_param_data}}}
+
+
+def get_dummy_vnf_update_empty_param():
+    return {'vnf': {'attributes': {'param_values': {}}}}
 
 
 def get_dummy_vnf_update_param():
