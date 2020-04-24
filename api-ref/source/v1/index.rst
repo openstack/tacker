@@ -20,3 +20,4 @@ NFV Orchestration API v1.0
 .. include:: nsds.inc
 .. include:: nss.inc
 .. include:: vnf_packages.inc
+.. include:: vnflcm.inc

@@ -1,0 +1,737 @@
+# variables in header
+
+vnf_instance_id:
+  description: |
+    Identifier of the VNF instance.
+  in: path
+  required: true
+  type: string
+
+# variables in body
+cause:
+  description: |
+    Indicates the reason why a healing procedure is required.
+  in: body
+  required: false
+  type: string
+cp_config:
+  description: |
+    List of instance data that need to be configured on the CP instances
+    created from the respective CPD.
+  in: body
+  required: false
+  type: array
+cp_instance_id:
+  description: |
+    Identifier of the external Connection Point instance to which this set of
+    configuration parameters is requested to be applied.
+
+    Shall be present if this instance has already been created.
+  in: body
+  required: false
+  type: string
+cp_protocol_data:
+  description: |
+    Parameters for configuring the network protocols on the link port that
+    connects the CP to a VL.
+  in: body
+  required: false
+  type: array
+cpd_id:
+  description: |
+    The identifier of the CPD in the VNFD.
+  in: body
+  required: true
+  type: string
+ext_cp_info:
+  description: |
+    Information about the external CPs exposed by the VNF instance.
+  in: body
+  required: true
+  type: array
+ext_cp_info_cp_protocol_info:
+  description: |
+    Network protocol information for this CP.
+  in: body
+  required: true
+  type: array
+ext_cp_info_cpd_id:
+  description: |
+    Identifier of the external CPD, VnfExtCpd, in the VNFD.
+    An identifier that is unique for the respective type within a VNF
+    instance, but that need not be globally unique. Representation: string of
+    variable length.
+  in: body
+  required: true
+  type: string
+ext_cp_info_ext_link_port_id:
+  description: |
+    Identifier of the "extLinkPortInfo" structure inside the "extVirtualLinkInfo"
+    structure. Shall be present if the CP is associated to a link port.
+  in: body
+  required: false
+  type: string
+ext_cp_info_id:
+  description: |
+    Identifier of the external CP instance and the related information instance.
+  in: body
+  required: true
+  type: string
+ext_cps:
+  description: |
+    External CPs of the VNF to be connected to this external VL.
+  in: body
+  required: true
+  type: array
+ext_link_port_id:
+  description: |
+    Identifier of this link port as provided by the entity that has created the
+    link port.
+  in: body
+  required: true
+  type: string
+ext_link_port_resource_handle:
+  description: |
+    Reference to the virtualised resource realizing this link port.
+  in: body
+  required: true
+  type: object
+ext_link_ports:
+  description: |
+    Externally provided link ports to be used to connect external connection
+    points to this external VL. If this attribute is not present, the VNFM
+    shall create the link ports on the external VL.
+  in: body
+  required: false
+  type: array
+ext_managed_virtual_link_data_id:
+  description: |
+    The identifier of the externally-managed internal VL instance. The
+    identifier is assigned by the NFV-MANO entity that manages this
+    VL instance.
+  in: body
+  required: true
+  type: string
+ext_managed_virtual_link_data_resource_id:
+  description: |
+    The identifier of the resource in the scope of the VIM or the
+    resource provider.
+  in: body
+  required: true
+  type: string
+ext_managed_virtual_link_info:
+  description: |
+    Information about the externally-managed internal VLs of the VNF instance.
+  in: body
+  required: false
+  type: array
+ext_managed_virtual_link_info_id:
+  description: |
+    Identifier of the externally-managed internal VL and the related
+    externally-managed VL information instance. The identifier is assigned
+    by the NFV-MANO entity that manages this VL instance.
+  in: body
+  required: true
+  type: string
+ext_managed_virtual_link_info_network_resource:
+  description: |
+    Reference to the VirtualNetwork resource.
+  in: body
+  required: true
+  type: object
+ext_managed_virtual_link_info_vnf_virtual_link_desc_id:
+  description: |
+    Identifier of the VNF Virtual Link Descriptor (VLD) in the VNFD.
+  in: body
+  required: true
+  type: string
+ext_managed_virtual_links:
+  description: |
+    List of information about internal VLs that are managed by the NFVO.
+  in: body
+  required: false
+  type: array
+ext_virtual_link_info:
+  description: |
+    Information about the external VLs the VNF instance is connected to.
+  in: body
+  required: false
+  type: array
+ext_virtual_link_info_ext_link_ports:
+  description: |
+    Link ports of this VL.
+  in: body
+  required: false
+  type: array
+ext_virtual_link_info_ext_link_ports_cp_instance_id:
+  description: |
+    Identifier of the external CP of the VNF connected to this link port.
+    There shall be at most one link port associated with any external
+    connection point instance.
+    The value refers to an "extCpInfo" item in the VnfInstance.
+  in: body
+  required: false
+  type: string
+ext_virtual_link_info_ext_link_ports_id:
+  description: |
+    Identifier of this link port as provided by the entity that
+    has created the link port.
+  in: body
+  required: true
+  type: string
+ext_virtual_link_info_id:
+  description: |
+    Identifier of the external VL and the related external VL information
+    instance. The identifier is assigned by the NFV-MANO entity that manages
+    this VL instance.
+  in: body
+  required: true
+  type: string
+ext_virtual_links:
+  description: |
+    Information about external VLs to connect the VNF to.
+  in: body
+  required: false
+  type: array
+ext_virtual_links_id:
+  description: |
+    The identifier of the external VL instance. The identifier is assigned
+    by the NFV-MANO entity that manages this VL instance.
+  in: body
+  required: true
+  type: string
+ext_virtual_links_resource_id:
+  description: |
+    The identifier of the resource in the scope of the VIM or the
+    resource provider.
+  in: body
+  required: true
+  type: string
+fixed_addresses:
+  description: |
+    Fixed addresses to assign (from the subnet defined by "subnetId"
+    if provided).
+  in: body
+  required: true
+  type: array
+flavour_id:
+  description: |
+    Identifier of the VNF deployment flavour to be instantiated.
+  in: body
+  required: true
+  type: string
+flavour_id_response:
+  description: |
+    Identifier of the VNF deployment flavour applied to this VNF instance.
+  in: body
+  required: true
+  type: string
+graceful_termination_timeout:
+  description: |
+    This attribute is only applicable in case of graceful termination.
+    It defines the time to wait for the VNF to be taken out of service
+    before shutting down the VNF and releasing the resources.
+
+    The unit is seconds.
+
+    If not given and the "terminationType" attribute is set to "GRACEFUL",
+    it is expected that the VNFM waits for the successful taking out of
+    service of the VNF, no matter how long it takes, before shutting down
+    the VNF and releasing the resources.
+  in: body
+  required: false
+  type: string
+instantiated_vnf_info:
+  description: |
+    Information specific to an instantiated VNF instance. This attribute shall
+    be present if the instantiateState attribute value is INSTANTIATED.
+  in: body
+  required: false
+  type: object
+instantiation_level_id:
+  description: |
+    Identifier of the instantiation level of the deployment flavour to be
+    instantiated. If not present, the default instantiation level as declared
+    in the VNFD is instantiated.
+  in: body
+  required: false
+  type: string
+ip_address_type:
+  description: |
+    The type of the IP addresses. Permitted values: IPV4, IPV6.
+  in: body
+  required: true
+  type: string
+ip_addresses:
+  description: |
+    List of IP addresses to assign to the CP instance. Each entry represents
+    IP address data for fixed or dynamic IP address assignment per subnet.
+
+    If this attribute is not present, no IP address shall be assigned.
+  in: body
+  required: false
+  type: array
+ip_addresses_cp_info:
+  description: |
+    Addresses assigned to the CP instance. Each entry represents IP
+    addresses assigned by fixed or dynamic IP address assignment per
+    subnet.
+  in: body
+  required: false
+  type: array
+ip_over_ethernet:
+  description: |
+    Network address data for IP over Ethernet to assign to the extCP instance.
+    Shall be present if layerProtocol is equal to "IP_OVER_ETHERNET", and
+    shall be absent otherwise.
+  in: body
+  required: false
+  type: object
+ip_over_ethernet_cp_info:
+  description: |
+    IP addresses over Ethernet to assign to the extCP instance. Shall be
+    present if layerProtocol is equal to "IP_OVER_ETHERNET", and shall
+    be absent otherwise.
+  in: body
+  required: false
+  type: object
+is_dynamic:
+  description: |
+    Indicates whether this set of addresses was assigned dynamically (true)
+    or based on address information provided as input from the API consumer
+    (false). Shall be present if "addresses" is present and shall be absent
+    otherwise.
+  in: body
+  required: false
+  type: boolean
+layer_protocol:
+  description: |
+    Identifier of layer(s) and protocol(s).
+
+    Permitted values: IP_OVER_ETHERNET
+  in: body
+  required: true
+  type: string
+layer_protocol_cp_info:
+  description: |
+    The identifier of layer(s) and protocol(s) associated to the network
+    address information.
+
+    Permitted values: IP_OVER_ETHERNET
+  in: body
+  required: true
+  type: string
+link_port_id:
+  description: |
+    Identifier of a pre-configured link port to which the external CP will
+    be associated. See note.
+  in: body
+  required: false
+  type: string
+mac_address:
+  description: |
+    MAC address. If this attribute is not present, it shall be chosen by the
+    VIM. At least one of "macAddress" or "ipAddresses" shall be present.
+  in: body
+  required: false
+  type: string
+mac_address_cp_info:
+  description: |
+    MAC address, if assigned.
+  in: body
+  required: false
+  type: string
+resource_handle:
+  description: |
+    Reference to the resource realizing this VL.
+  in: body
+  required: true
+  type: object
+resource_handle_resource_id:
+  description: |
+    Identifier of the resource in the scope of the VIM or the resource
+    provider.
+  in: body
+  required: true
+  type: string
+resource_handle_vim_level_resource_type:
+  description: |
+    Type of the resource in the scope of the VIM or the resource provider.
+    provider.
+  in: body
+  required: false
+  type: string
+subnet_id:
+  description: |
+    Subnet defined by the identifier of the subnet resource in the VIM.
+    In case this attribute is present, IP addresses from that subnet will be
+    assigned; otherwise, IP addresses not bound to a subnet will be assigned.
+  in: body
+  required: false
+  type: string
+termination_type:
+  description: |
+    Indicates whether forceful or graceful termination is requested.
+    Permitted values:
+
+    FORCEFUL: The VNFM will shut down the VNF and release the resources
+    immediately after accepting the request.
+
+    GRACEFUL: The VNFM will first arrange to take the VNF out of service
+    after accepting the request. Once the operation of taking the VNF out of
+    service finishes (irrespective of whether it has succeeded or failed) or
+    once the timer value specified in the "gracefulTerminationTimeout"
+    attribute expires, the VNFM will shut down the VNF and release the
+    resources.
+  in: body
+  required: true
+  type: string
+vim_connection_info_access_info:
+  description: |
+    Authentication credentials for accessing the VIM, and other access-related
+    information such as tenants or infrastructure resource groups (see note).
+    The applicable keys are dependent on the content of vimType.
+
+    If the VimConnectionInfo structure is part of an HTTP response payload
+    body, sensitive attributes that are children of this attributes
+    (such as passwords) shall not be included.
+
+    If the VimConnectionInfo structure is part of an HTTP request payload
+    body, sensitive attributes that are children of this attribute (such as
+    passwords) shall be present if they have not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+vim_connection_info_id:
+  description: |
+    The identifier of the VIM Connection. This identifier is managed by
+    the NFVO.
+  in: body
+  required: true
+  type: string
+vim_connection_info_vim_id:
+  description: |
+    The identifier of the VIM instance. This identifier is managed by
+    the NFVO.
+
+    Shall be present to address additional information about the VIM
+    if such information has been configured into the VNFM by means outside
+    the scope of the present document, and should be absent otherwise.
+  in: body
+  required: false
+  type: string
+vim_connection_info_vim_type:
+  description: |
+    Discriminator for the different types of the VIM information.
+
+    The value of this attribute determines the structure of the
+    "interfaceInfo" and "accessInfo" attributes, based on the type of the VIM.
+
+    The set of permitted values is expected to change over time as new
+    types or versions of VIMs become available.
+  in: body
+  required: false
+  type: string
+virtual_storage_resource_info:
+  description: |
+    Information about the virtualised storage resources used as storage for
+    the VNF instance.
+  in: body
+  required: false
+  type: array
+virtual_storage_resource_info_id:
+  description: |
+    Identifier of this VirtualStorageResourceInfo instance.
+  in: body
+  required: true
+  type: string
+virtual_storage_resource_info_storage_resource:
+  description: |
+    Reference to the VirtualStorage resource.
+  in: body
+  required: true
+  type: object
+virtual_storage_resource_info_virtual_storage_desc_id:
+  description: |
+    Identifier of the VirtualStorageDesc in the VNFD.
+  in: body
+  required: true
+  type: string
+vnf_instance_additional_params:
+  description: |
+    Additional input parameters for the flavour change
+    process, specific to the VNF being modified, as declared
+    in the VNFD as part of "ChangeVnfFlavourOpConfig".
+  in: body
+  required: true
+  type: string
+vnf_instance_create_request_description:
+  description: |
+    Human-readable description of the VNF instance to be created.
+  in: body
+  required: false
+  type: string
+vnf_instance_create_request_name:
+  description: |
+    Human-readable name of the VNF instance to be created.
+  in: body
+  required: false
+  type: string
+vnf_instance_create_request_vnfd_id:
+  description: |
+    Identifier that identifies the VNFD which defines the VNF instance to be created.
+  in: body
+  required: true
+  type: string
+vnf_instance_description:
+  description: |
+    Human-readable description of the VNF instance.
+  in: body
+  required: false
+  type: string
+vnf_instance_extensions:
+  description: |
+    description
+  in: body
+  required: false
+  type: string
+vnf_instance_id_response:
+  description: |
+    Identifier of the VNF instance.
+  in: body
+  required: true
+  type: string
+vnf_instance_instantiation_state:
+  description: |
+    The instantiation state of the VNF instance.
+
+    NOT_INSTANTIATED: The VNF instance is terminated or not instantiated.
+
+    INSTANTIATED: The VNF instance is instantiated.
+  in: body
+  required: true
+  type: string
+vnf_instance_links:
+  description: |
+    Links to resources related to this resource.
+  in: body
+  required: true
+  type: object
+vnf_instance_metadata:
+  description: |
+    Additional VNF-specific attributes that provide metadata describing
+    the VNF instance. These attributes represent values that are stored
+    persistently in the VnfInstance structure for consumption by functional
+    blocks that invoke the VNF lifecycle management interface. They are not
+    consumed by the VNFM, or the lifecycle management scripts.
+    Modifying the values of these attributes has no effect on the VNF
+    instance, it only affects the information represented in the VnfInstance
+    structure.
+  in: body
+  required: false
+  type: object
+vnf_instance_name:
+  description: |
+    Name of the VNF instance.
+  in: body
+  required: false
+  type: string
+vnf_instance_vim_connection_info:
+  description: |
+    Information about VIM connections to be used for managing the resources
+    for the VNF instance, or refer to external / externally-managed virtual links.
+
+    This attribute shall only be supported and may be present if VNF-related
+    resource management in direct mode is applicable.
+  in: body
+  required: false
+  type: array
+vnf_instance_vnf_product_name:
+  description: |
+    Name to identify the VNF Product. The value is copied from the VNFD.
+  in: body
+  required: true
+  type: string
+vnf_instance_vnf_provider:
+  description: |
+    Provider of the VNF and the VNFD. The value is copied from the VNFD.
+  in: body
+  required: true
+  type: string
+vnf_instance_vnf_software_version:
+  description: |
+    Software version of the VNF. The value is copied from the VNFD.
+  in: body
+  required: true
+  type: string
+vnf_instance_vnfd_id:
+  description: |
+    Identifier of the VNFD on which the VNF instance is based.
+  in: body
+  required: true
+  type: string
+vnf_instance_vnfd_version:
+  description: |
+    Identifies the version of the VNFD. The value is copied from the VNFD.
+  in: body
+  required: true
+  type: string
+vnf_link_port_cp_instance_id:
+  description: |
+    When the link port is used for external connectivity by the VNF, this
+    attribute represents the identifier associated with this link port.
+
+    When the link port is used for internal connectivity in the VNF, this
+    attribute represents the VNFC CP to be connected to this link port.
+
+    Shall be present when the link port is used for external connectivity
+    by the VNF.
+
+    May be present if used to reference a VNFC CP instance.
+    There shall be at most one link port associated with any external
+    connection point instance or internal connection point (i.e. VNFC CP)
+    instance.
+
+    The value refers to an "extCpInfo" item in the VnfInstance or a
+    "vnfcCpInfo" item of a "vnfcResouceInfo" item in the VnfInstance.
+  in: body
+  required: false
+  type: string
+vnf_link_port_id:
+  description: |
+    Identifier of this link port as provided by the entity that has created
+    the link port.
+  in: body
+  required: true
+  type: string
+vnf_link_port_resource_handle:
+  description: |
+    Reference to the virtualised network resource realizing this link port.
+  in: body
+  required: true
+  type: object
+vnf_link_ports:
+  description: |
+    Links ports of this VL.
+  in: body
+  required: false
+  type: array
+vnf_state:
+  description: |
+    State of the VNF instance.
+  in: body
+  required: false
+  type: string
+vnf_virtual_link_desc_id:
+  description: |
+    The identifier of the VLD in the VNFD for this VL.
+  in: body
+  required: true
+  type: string
+vnf_virtual_link_resource_info:
+  description: |
+    Information about the virtualised network
+    resources used by the VLs of the VNF instance.
+  in: body
+  required: false
+  type: array
+vnf_virtual_link_resource_info_id:
+  description: |
+    Identifier of this VnfVirtualLinkResourceInfo instance.
+  in: body
+  required: true
+  type: string
+vnf_virtual_link_resource_info_network_resource:
+  description: |
+    Reference to the VirtualNetwork resource.
+  in: body
+  required: true
+  type: object
+vnf_virtual_link_resource_info_vnf_virtual_link_desc_id:
+  description: |
+    Identifier of the VNF Virtual Link Descriptor (VLD) in the
+    VNFD.
+  in: body
+  required: true
+  type: string
+vnfc_cp_info_cp_protocol_info:
+  description: |
+    Network protocol information for this CP.
+  in: body
+  required: false
+  type: array
+vnfc_cp_info_cpd_id:
+  description: |
+    Identifier of the VDU CPD, cpdId, in the VNFD.
+  in: body
+  required: true
+  type: string
+vnfc_cp_info_id:
+  description: |
+    Identifier of this VNFC CP instance and the associated array entry.
+  in: body
+  required: true
+  type: string
+vnfc_cp_info_vnf_ext_cp_id:
+  description: |
+    When the VNFC CP is exposed as external CP of the VNF, the
+    identifier of this external VNF CP.
+  in: body
+  required: false
+  type: string
+vnfc_cp_info_vnf_link_port_id:
+  description: |
+    Identifier of the "vnfLinkPorts" structure in the
+    "VnfVirtualLinkResourceInfo" structure. Shall be present if the CP is
+    associated to a link port.
+  in: body
+  required: false
+  type: string
+vnfc_resource_info:
+  description: |
+    Information about the virtualised compute and storage resources used by
+    the VNFCs of the VNF instance.
+  in: body
+  required: false
+  type: array
+vnfc_resource_info_compute_resource:
+  description: |
+    Reference to the VirtualCompute resource.
+  in: body
+  required: true
+  type: object
+vnfc_resource_info_id:
+  description: |
+    Identifier of this VnfcResourceInfo instance.
+  in: body
+  required: true
+  type: string
+vnfc_resource_info_ids:
+  description: |
+    List of VNFC instances requiring a healing action.
+  in: body
+  required: false
+  type: array
+vnfc_resource_info_storage_resource_ids:
+  description: |
+    References to the VirtualStorage resources. The value refers to a
+    VirtualStorageResourceInfo item in the VnfInstance.
+  in: body
+  required: false
+  type: array
+vnfc_resource_info_vdu_id:
+  description: |
+    Reference to the applicable VDU in the VNFD.
+  in: body
+  required: true
+  type: string
+vnfc_resource_info_vnfc_cp_info:
+  description: |
+    CPs of the VNFC instance.
+    Shall be present when that particular CP
+    of the VNFC instance is associated to an external CP of the VNF
+    instance.
+    May be present otherwise.
+  in: body
+  required: false
+  type: array
