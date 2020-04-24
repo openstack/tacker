@@ -14,16 +14,20 @@
 #    under the License.
 
 import ddt
+import importlib
+import json
 import mock
 import os
 import requests
 import tempfile
+import yaml
 
 from tacker.common import exceptions
 from tacker import context
 from tacker.extensions import vnfm
 from tacker import objects
 from tacker.tests.common import helpers
+from tacker.tests import constants
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import client
@@ -46,6 +50,8 @@ class TestOpenStack(base.FixturedTestCase):
         self.glance_url = client.GLANCE_URL
         self.instance_uuid = uuidsentinel.instance_id
         self.stack_id = uuidsentinel.stack_id
+        self.auth_attr = None
+        self.plugin = None
         self.json_headers = {'content-type': 'application/json',
                              'location': 'http://heat-api/stacks/'
                              + self.instance_uuid + '/myStack/60f83b5e'}
@@ -110,6 +116,438 @@ class TestOpenStack(base.FixturedTestCase):
                     exc=MyException("Any stuff"))
             else:
                 self.requests_mock.register_uri('PATCH', url)
+
+    def _json_load(self, input_file):
+        json_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                    "../../../../etc/samples/lcm_instantiate_request/",
+                    str(input_file)))
+        with open(json_file) as f:
+            json_dict = json.load(f)
+        return json_dict
+
+    def _read_file(self):
+        yaml_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                    "../../../../etc/samples/",
+                    "hot_lcm_user_data.yaml"))
+        with open(yaml_file, 'r') as f:
+            yaml_file_dict = yaml.safe_load(f)
+        return yaml_file_dict
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_normal(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        vnf_resource = type('', (), {})
+        vnf_resource.resource_identifier = constants.INVALID_UUID
+        grant_info_test = {'vdu_name': {vnf_resource}}
+        self.openstack.create(self.plugin, self.context, vnf,
+                self.auth_attr, inst_req_info=inst_req_info_test,
+                vnf_package_path=vnf_package_path_test,
+                base_hot_dict=base_hot_dict_test,
+                grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_heat_stack(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict = None
+        vnf_package_path = None
+        self.openstack.create(self.plugin, self.context, vnf,
+                self.auth_attr, base_hot_dict, vnf_package_path)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_userdata_none(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        # delete lcm-operation-user-data from additionalParams
+        del test_json['additionalParams']['lcm-operation-user-data']
+
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        grant_info_test = None
+        self.assertRaises(vnfm.LCMUserDataFailed,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, base_hot_dict_test,
+                          vnf_package_path_test,
+                          inst_req_info=inst_req_info_test,
+                          grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_userdataclass_none(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        # delete lcm-operation-user-data-class from additionalParams
+        del test_json['additionalParams']['lcm-operation-user-data-class']
+
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        grant_info_test = None
+        self.assertRaises(vnfm.LCMUserDataFailed,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, base_hot_dict_test,
+                          vnf_package_path_test,
+                          inst_req_info=inst_req_info_test,
+                          grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_userdata_null(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        # set null to setlcm-operation-user-data from additionalParams
+        test_json['additionalParams']['lcm-operation-user-data'] = ''
+
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        grant_info_test = None
+        self.assertRaises(vnfm.LCMUserDataFailed,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, base_hot_dict_test,
+                          vnf_package_path_test,
+                          inst_req_info=inst_req_info_test,
+                          grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_userdataclass_null(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        # set null to setlcm-operation-user-data-class from additionalParams
+        test_json['additionalParams']['lcm-operation-user-data-class'] = ''
+
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        grant_info_test = None
+        self.assertRaises(vnfm.LCMUserDataFailed,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, base_hot_dict_test,
+                          vnf_package_path_test,
+                          inst_req_info=inst_req_info_test,
+                          grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_import_module_exception(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        grant_info_test = None
+        with mock.patch.object(importlib, 'import_module') as mock_importlib:
+            mock_importlib.side_effect = Exception('Test Exception')
+            self.assertRaises(vnfm.LCMUserDataFailed,
+                              self.openstack.create,
+                              self.plugin, self.context, vnf,
+                              self.auth_attr, base_hot_dict_test,
+                              vnf_package_path_test,
+                              inst_req_info=inst_req_info_test,
+                              grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_getattr_none(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        grant_info_test = None
+        with mock.patch.object(importlib, 'import_module') as mock_importlib:
+            mock_importlib.return_value = None
+            self.assertRaises(vnfm.LCMUserDataFailed,
+                              self.openstack.create,
+                              self.plugin, self.context, vnf,
+                              self.auth_attr, base_hot_dict_test,
+                              vnf_package_path_test,
+                              inst_req_info=inst_req_info_test,
+                              grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_missing_file(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_userdata_none"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        vnf_resource = type('', (), {})
+        vnf_resource.resource_identifier = constants.INVALID_UUID
+        grant_info_test = {'vdu_name': {vnf_resource}}
+        self.assertRaises(vnfm.LCMUserDataFailed,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, inst_req_info=inst_req_info_test,
+                          vnf_package_path=vnf_package_path_test,
+                          base_hot_dict=base_hot_dict_test,
+                          grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_return_none_dict(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_userdata_non_dict"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        test_json['additionalParams']['lcm-operation-user-data'] = \
+            'UserData/lcm_user_data_non_dict.py'
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        vnf_resource = type('', (), {})
+        vnf_resource.resource_identifier = constants.INVALID_UUID
+        grant_info_test = {'vdu_name': {vnf_resource}}
+        self.assertRaises(vnfm.LCMUserDataFailed,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, inst_req_info=inst_req_info_test,
+                          vnf_package_path=vnf_package_path_test,
+                          base_hot_dict=base_hot_dict_test,
+                          grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_none_base_hot_dict(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        base_hot_dict_test = None
+        vnf_package_path_test = None
+        grant_info_test = None
+        self.assertRaises(vnfm.LCMUserDataFailed,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, base_hot_dict_test,
+                          vnf_package_path_test,
+                          inst_req_info=inst_req_info_test,
+                          grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_invalid_user_data(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_userdata_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        # set dummy to setlcm-operation-user-data-class from additionalParams
+        test_json['additionalParams']['lcm-operation-user-data-class'] = \
+            'DummyUserData'
+
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        grant_info_test = None
+        self.assertRaises(vnfm.LCMUserDataFailed,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, base_hot_dict_test,
+                          vnf_package_path_test,
+                          inst_req_info=inst_req_info_test,
+                          grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_invalid_user_data_class(self,
+            mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_userdata_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        # set dummy to setlcm-operation-user-data-class from additionalParams
+        test_json['additionalParams']['lcm-operation-user-data-class'] = \
+            'DummyUserData'
+
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        grant_info_test = None
+        self.assertRaises(vnfm.LCMUserDataFailed,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, base_hot_dict_test,
+                          vnf_package_path_test,
+                          inst_req_info=inst_req_info_test,
+                          grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_lcm_user_data_and_user_data_class_no_value(self,
+            mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_userdata_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        # set null to setlcm-operation-user-data and
+        # lcm-operation-user-data-class from additionalParams
+        test_json['additionalParams']['lcm-operation-user-data'] = ''
+        test_json['additionalParams']['lcm-operation-user-data-class'] = ''
+
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = test_json['extVirtualLinks']
+        vnf_resource = type('', (), {})
+        vnf_resource.resource_identifier = constants.INVALID_UUID
+        grant_info_test = {'vdu_name': {vnf_resource}}
+        self.assertRaises(vnfm.LCMUserDataFailed,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, inst_req_info=inst_req_info_test,
+                          vnf_package_path=vnf_package_path_test,
+                          base_hot_dict=base_hot_dict_test,
+                          grant_info=grant_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_lcm_user_data_and_user_data_class_none(self,
+            mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_userdata_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        # delete lcm-operation-user-data and
+        # lcm-operation-user-data-class from additionalParams
+        del test_json['additionalParams']['lcm-operation-user-data']
+        del test_json['additionalParams']['lcm-operation-user-data-class']
+
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = test_json['extVirtualLinks']
+        base_hot_dict = None
+        self.assertRaises(BaseException,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, base_hot_dict,
+                          vnf_package_path=vnf_package_path_test,
+                          inst_req_info=inst_req_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_no_additionalparams(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_userdata_normal"))
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        inst_req_info_test = type('', (), {})
+        inst_req_info_test.additional_params = None
+        inst_req_info_test.ext_virtual_links = None
+        base_hot_dict = None
+        self.assertRaises(BaseException,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, base_hot_dict,
+                          vnf_package_path=vnf_package_path_test,
+                          inst_req_info=inst_req_info_test)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_instance_exception(self, mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_userdata_invalid_script"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        test_json['additionalParams']['lcm-operation-user-data'] = \
+            'UserData/lcm_user_data_invalid_script.py'
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        vnf_resource = type('', (), {})
+        vnf_resource.resource_identifier = constants.INVALID_UUID
+        grant_info_test = {'vdu_name': {vnf_resource}}
+        self.assertRaises(vnfm.LCMUserDataFailed,
+                          self.openstack.create,
+                          self.plugin, self.context, vnf,
+                          self.auth_attr, inst_req_info=inst_req_info_test,
+                          vnf_package_path=vnf_package_path_test,
+                          base_hot_dict=base_hot_dict_test,
+                          grant_info=grant_info_test)
 
     def test_create_wait(self):
         self._response_in_wait_until_stack_ready(["CREATE_IN_PROGRESS",

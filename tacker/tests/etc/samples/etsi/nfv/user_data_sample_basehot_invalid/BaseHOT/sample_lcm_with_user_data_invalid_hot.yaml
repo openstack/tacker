@@ -1,0 +1,32 @@
+heat_template_version: 2013-05-23
+description: 'Template for test _generate_hot_from_tosca().'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      # flavor:
+      #   get_resource: VDU1_flavor
+      name: VDU1
+      image: { get_param: [ nfv, VDU, VDU1, image ] }
+      networks:
+      - port:
+          get_resource: CP1
+
+  CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: [ nfv, CP, CP1, network ] }
+
+  VDU1_flavor:
+    type: OS::Nova::Flavor
+    properties:
+      ram: { get_param: [ nfv, VDU, VDU1, flavor, ram ] }
+      vcpus: { get_param: [ nfv, VDU, VDU1, flavor, vcpus ] }
+      disk: { get_param: [ nfv, VDU, VDU1, flavor, disk ] }
+
+outputs: {}
