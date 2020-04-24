@@ -1,0 +1,94 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: >
+  Template for test _generate_hot_from_tosca().
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - sample_lcm_with_user_data_types.yaml
+
+topology_template:
+  inputs:
+    descriptor_id:
+      type: string
+    descriptor_version:
+      type: string
+    provider:
+      type: string
+    product_name:
+      type: string
+    software_version:
+      type: string
+    vnfm_info:
+      type: list
+      entry_schema:
+        type: string
+    flavour_id:
+      type: string
+    flavour_description:
+      type: string
+
+  substitution_mappings:
+    node_type: ntt.nslab.VNF
+    properties:
+      flavour_id: simple
+    requirements:
+      virtual_link_external: [ CP1, virtual_link ]
+
+  node_templates:
+    VNF:
+      type: ntt.nslab.VNF
+      properties:
+        flavour_description: A simple flavour
+      interfaces:
+        Vnflcm:
+          instantiate: []
+          instantiate_start: []
+          instantiate_end: []
+          terminate: []
+          terminate_start: []
+          terminate_end: []
+          modify_information: []
+          modify_information_start: []
+          modify_information_end: []
+
+    VDU1:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VDU1
+        description: VDU1 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+        sw_image_data:
+          name: Software of VDU1
+          version: '0.4.0'
+          checksum:
+            algorithm: sha-512
+            hash: 6513f21e44aa3da349f248188a44bc304a3653a04122d8fb4535423c8e1d14cd6a153f735bb0982e2161b5b5186106570c17a9e58b64dd39390617cd5a350f78
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 1 GiB
+          size: 1 GiB
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: ../Files/images/cirros-0.4.0-x86_64-disk.img
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 512 MiB
+            virtual_cpu:
+              num_virtual_cpu: 1
+            virtual_local_storage:
+              - size_of_storage: 1 GiB
+
+    CP1:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 0
+      requirements:
+        - virtual_binding: VDU1

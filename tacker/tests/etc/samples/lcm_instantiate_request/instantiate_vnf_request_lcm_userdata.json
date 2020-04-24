@@ -1,0 +1,34 @@
+{
+    "flavourId": "simple",
+    "instantiationLevelId": "instantiation_level_1",
+    "extVirtualLinks": [
+        {
+            "id": "ext-vl-uuid-VL1",
+            "resourceId": "neutron-network-uuid_VL1",
+            "extCps": [
+                {
+                    "cpdId": "CP1",
+                    "cpConfig": [
+                        {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "vimConnectionInfo": [
+        {
+            "id": "vim-uuid",
+            "vimType": "openstack"
+        }
+    ],
+    "additionalParams":{
+        "lcm-operation-user-data":"./UserData/lcm_user_data.py",
+        "lcm-operation-user-data-class":"SampleUserData"
+    }
+}

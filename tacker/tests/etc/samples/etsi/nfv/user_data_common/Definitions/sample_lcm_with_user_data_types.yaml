@@ -1,0 +1,53 @@
+﻿tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: VNF type definition
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+
+node_types:
+  ntt.nslab.VNF:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id:
+        type: string
+        constraints: [ valid_values: [ eeeeeeee-ebca-4fa7-95ed-4840d70a1111 ] ]
+        default: eeeeeeee-ebca-4fa7-95ed-4840d70a1111
+      descriptor_version:
+        type: string
+        constraints: [ valid_values: [ '1.0' ] ]
+        default: '1.0'
+      provider:
+        type: string
+        constraints: [ valid_values: [ 'NTT NS lab' ] ]
+        default: 'NTT NS lab'
+      product_name:
+        type: string
+        constraints: [ valid_values: [ 'Sample VNF for LCM with user data' ] ]
+        default: 'Sample VNF for LCM with user data'
+      software_version:
+        type: string
+        constraints: [ valid_values: [ '1.0' ] ]
+        default: '1.0'
+      vnfm_info:
+        type: list
+        entry_schema:
+          type: string
+          constraints: [ valid_values: [ Tacker ] ]
+        default: [ Tacker ]
+      flavour_id:
+        type: string
+        constraints: [ valid_values: [ simple ] ]
+        default: simple
+      flavour_description:
+        type: string
+        default: "falvour"
+    requirements:
+      - virtual_link_external:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+      - virtual_link_internal:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+    interfaces:
+      Vnflcm:
+        type: tosca.interfaces.nfv.Vnflcm

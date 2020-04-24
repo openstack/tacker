@@ -108,6 +108,10 @@ class VNFNotFound(exceptions.NotFound):
     message = _('VNF %(vnf_id)s could not be found')
 
 
+class LCMUserDataFailed(exceptions.TackerException):
+    message = _('LCM user data %(reason)s')
+
+
 class ParamYAMLNotWellFormed(exceptions.InvalidInput):
     message = _("Parameter YAML not well formed - %(error_msg_details)s")
 

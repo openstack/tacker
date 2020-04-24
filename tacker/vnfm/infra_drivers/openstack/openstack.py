@@ -15,8 +15,13 @@
 #    under the License.
 
 
+import eventlet
+import importlib
+import os
+import sys
 import time
 
+from collections import OrderedDict
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
@@ -31,6 +36,7 @@ from tacker.common import utils
 from tacker.extensions import vnflcm
 from tacker.extensions import vnfm
 from tacker import objects
+from tacker.tosca.utils import represent_odict
 from tacker.vnfm.infra_drivers import abstract_driver
 from tacker.vnfm.infra_drivers.openstack import constants as infra_cnst
 from tacker.vnfm.infra_drivers.openstack import glance_client as gc
@@ -38,7 +44,9 @@ from tacker.vnfm.infra_drivers.openstack import heat_client as hc
 from tacker.vnfm.infra_drivers.openstack import translate_template
 from tacker.vnfm.infra_drivers.openstack import vdu
 from tacker.vnfm.infra_drivers import scale_driver
+from tacker.vnfm.lcm_user_data.constants import USER_DATA_TIMEOUT
 
+eventlet.monkey_patch(time=True)
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -106,16 +114,139 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
     @log.log
     def create(self, plugin, context, vnf, auth_attr,
+               base_hot_dict=None, vnf_package_path=None,
                inst_req_info=None, grant_info=None):
         LOG.debug('vnf %s', vnf)
         region_name = vnf.get('placement_attr', {}).get('region_name', None)
         heatclient = hc.HeatClient(auth_attr, region_name)
+        additional_param = None
+        if inst_req_info is not None:
+            additional_param = inst_req_info.additional_params
 
-        tth = translate_template.TOSCAToHOT(vnf, heatclient,
-                                            inst_req_info, grant_info)
-        tth.generate_hot()
-        stack = self._create_stack(heatclient, tth.vnf, tth.fields)
+        user_data_path = None
+        user_data_class = None
+        if additional_param is not None:
+            LOG.debug('additional_param: %s', additional_param)
+            user_data_path = additional_param.get(
+                'lcm-operation-user-data')
+            user_data_class = additional_param.get(
+                'lcm-operation-user-data-class')
+            LOG.debug('UserData path: %s', user_data_path)
+            LOG.debug('UserData class: %s', user_data_class)
+
+        if user_data_path is not None and user_data_class is not None:
+            LOG.info('Execute user data and create heat-stack.')
+            if base_hot_dict is None:
+                error_reason = _("failed to get Base HOT.")
+                raise vnfm.LCMUserDataFailed(reason=error_reason)
+
+            vnfd_str = vnf['vnfd']['attributes']['vnfd']
+            vnfd_dict = yaml.safe_load(vnfd_str)
+            LOG.debug('VNFD: %s', vnfd_dict)
+            LOG.debug('VNF package path: %s', vnf_package_path)
+            sys.path.append(vnf_package_path)
+            user_data_module = os.path.splitext(
+                user_data_path.lstrip('./'))[0].replace('/', '.')
+            LOG.debug('UserData module: %s', user_data_module)
+            LOG.debug('Append sys.path: %s', sys.path)
+            try:
+                module = importlib.import_module(user_data_module)
+                LOG.debug('Append sys.modules: %s', sys.modules)
+            except Exception:
+                self._delete_user_data_module(user_data_module)
+                error_reason = _(
+                    "failed to get UserData path based on "
+                    "lcm-operation-user-data from additionalParams.")
+                raise vnfm.LCMUserDataFailed(reason=error_reason)
+            finally:
+                sys.path.remove(vnf_package_path)
+                LOG.debug('Remove sys.path: %s', sys.path)
+
+            try:
+                klass = getattr(module, user_data_class)
+            except Exception:
+                self._delete_user_data_module(user_data_module)
+                error_reason = _(
+                    "failed to get UserData class based on "
+                    "lcm-operation-user-data-class from additionalParams.")
+                raise vnfm.LCMUserDataFailed(reason=error_reason)
+
+            # Set the timeout and execute the UserData script.
+            hot_param_dict = None
+            with eventlet.timeout.Timeout(USER_DATA_TIMEOUT, False):
+                try:
+                    hot_param_dict = klass.instantiate(
+                        base_hot_dict, vnfd_dict, inst_req_info, grant_info)
+                except Exception:
+                    raise
+                finally:
+                    self._delete_user_data_module(user_data_module)
+
+            if hot_param_dict is not None:
+                LOG.info('HOT input parameter: %s', hot_param_dict)
+            else:
+                error_reason = _(
+                    "fails due to timeout[sec]: %s") % USER_DATA_TIMEOUT
+                raise vnfm.LCMUserDataFailed(reason=error_reason)
+            if not isinstance(hot_param_dict, dict):
+                error_reason = _(
+                    "return value as HOT parameter from UserData "
+                    "is not in dict format.")
+                raise vnfm.LCMUserDataFailed(reason=error_reason)
+
+            # Create heat-stack with BaseHOT and parameters
+            stack = self._create_stack_with_user_data(
+                heatclient, vnf, base_hot_dict, hot_param_dict)
+
+        elif user_data_path is None and user_data_class is None:
+            LOG.info('Execute heat-translator and create heat-stack.')
+            tth = translate_template.TOSCAToHOT(vnf, heatclient,
+                                                inst_req_info, grant_info)
+            tth.generate_hot()
+            stack = self._create_stack(heatclient, tth.vnf, tth.fields)
+        else:
+            error_reason = _(
+                "failed to get lcm-operation-user-data or "
+                "lcm-operation-user-data-class from additionalParams.")
+            raise vnfm.LCMUserDataFailed(reason=error_reason)
+
         return stack['stack']['id']
+
+    @log.log
+    def _delete_user_data_module(self, user_data_module):
+        # Delete module recursively.
+        mp_list = user_data_module.split('.')
+        while True:
+            del_module = '.'.join(mp_list)
+            print(del_module)
+            if del_module in sys.modules:
+                del sys.modules[del_module]
+            if len(mp_list) == 1:
+                break
+            mp_list = mp_list[0:-1]
+        LOG.debug('Remove sys.modules: %s', sys.modules)
+
+    @log.log
+    def _create_stack_with_user_data(self, heatclient, vnf,
+                                     base_hot_dict, hot_param_dict):
+        fields = {}
+        fields['stack_name'] = ("vnflcm_" + vnf["id"])
+        fields['template'] = self._format_base_hot(base_hot_dict)
+        fields['parameters'] = hot_param_dict
+
+        LOG.debug('fields: %s', fields)
+        LOG.debug('template: %s', fields['template'])
+        stack = heatclient.create(fields)
+
+        return stack
+
+    @log.log
+    def _format_base_hot(self, base_hot_dict):
+        yaml.SafeDumper.add_representer(OrderedDict,
+        lambda dumper, value: represent_odict(dumper,
+                                              u'tag:yaml.org,2002:map', value))
+
+        return yaml.safe_dump(base_hot_dict)
 
     @log.log
     def _create_stack(self, heatclient, vnf, fields):
@@ -603,7 +734,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
     def instantiate_vnf(self, context, vnf_instance, vnfd_dict,
                         vim_connection_info, instantiate_vnf_req,
-                        grant_response):
+                        grant_response,
+                        base_hot_dict=None, vnf_package_path=None):
         access_info = vim_connection_info.access_info
         region_name = access_info.get('region')
         placement_attr = vnfd_dict.get('placement_attr', {})
@@ -611,7 +743,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         vnfd_dict['placement_attr'] = placement_attr
 
         instance_id = self.create(None, context, vnfd_dict,
-            access_info, inst_req_info=instantiate_vnf_req,
+            access_info, base_hot_dict, vnf_package_path,
+            inst_req_info=instantiate_vnf_req,
             grant_info=grant_response)
         vnfd_dict['instance_id'] = instance_id
         return instance_id

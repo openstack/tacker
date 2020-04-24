@@ -729,3 +729,28 @@ def _convert_desired_capacity(inst_level_id, vnfd_dict, vdu):
             desired_capacity = initial_delta + delta_num * level_num
 
     return desired_capacity
+
+
+def _get_vnf_package_path(context, vnfd_id):
+    vnf_package_id = _get_vnf_package_id(context, vnfd_id)
+    vnf_package_base_path = cfg.CONF.vnf_package.vnf_package_csar_path
+    vnf_package_path = vnf_package_base_path + '/' + vnf_package_id
+    return vnf_package_path
+
+
+def _get_base_hot_dict(context, vnfd_id):
+    vnf_package_id = _get_vnf_package_id(context, vnfd_id)
+    vnf_package_base_path = cfg.CONF.vnf_package.vnf_package_csar_path
+    vnf_package_csar_path = vnf_package_base_path + '/' + vnf_package_id
+    base_hot_dir = 'BaseHOT'
+    ext = [".yaml", ".yml"]
+
+    base_hot_path = vnf_package_csar_path + '/' + base_hot_dir
+    base_hot_dict = None
+    if os.path.exists(base_hot_path):
+        for file in os.listdir(base_hot_path):
+            if file.endswith(tuple(ext)):
+                source_file_path = os.path.join(base_hot_path, file)
+                base_hot_dict = yaml.safe_load(open(source_file_path))
+    LOG.debug("Loaded base hot: %s", base_hot_dict)
+    return base_hot_dict
