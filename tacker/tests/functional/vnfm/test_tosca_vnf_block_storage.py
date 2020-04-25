@@ -19,7 +19,6 @@ from oslo_config import cfg
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
-from tacker.tests.utils import read_file
 
 
 CONF = cfg.CONF
@@ -29,28 +28,17 @@ VNF_CIRROS_CREATE_TIMEOUT = 120
 class VnfBlockStorageTestToscaCreate(base.BaseTackerTest):
     def _test_create_vnf(self, vnfd_file, vnf_name,
                          template_source="onboarded"):
-        input_yaml = read_file(vnfd_file)
-        tosca_dict = yaml.safe_load(input_yaml)
-        tosca_arg = {'vnfd': {'name': vnf_name,
-                              'attributes': {'vnfd': tosca_dict}}}
 
         if template_source == "onboarded":
-            # Create vnfd with tosca template
-            vnfd_instance = self.client.create_vnfd(body=tosca_arg)
-            self.assertIsNotNone(vnfd_instance)
-
-            # Create vnf with vnfd_id
-            vnfd_id = vnfd_instance['vnfd']['id']
-            vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
-            vnf_instance = self.client.create_vnf(body=vnf_arg)
-            self.validate_vnf_instance(vnfd_instance, vnf_instance)
+            (vnfd_instance,
+             vnf_instance,
+             tosca_dict) = self.vnfd_and_vnf_create(vnfd_file, vnf_name)
 
         if template_source == 'inline':
-            # create vnf directly from template
-            vnf_arg = {'vnf': {'vnfd_template': tosca_dict, 'name': vnf_name}}
-            vnf_instance = self.client.create_vnf(body=vnf_arg)
-            vnfd_id = vnf_instance['vnf']['vnfd_id']
+            vnf_instance, tosca_dict = self.vnfd_and_vnf_create_inline(
+                vnfd_file, vnf_name)
 
+        vnfd_id = vnf_instance['vnf']['vnfd_id']
         vnf_id = vnf_instance['vnf']['id']
         self.wait_until_vnf_active(
             vnf_id,
@@ -97,12 +85,6 @@ class VnfBlockStorageTestToscaCreate(base.BaseTackerTest):
         self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE,
                                     evt_constants.PENDING_DELETE, cnt=2)
 
-    def _test_cleanup_vnfd(self, vnfd_id, vnf_id):
-        # Delete vnfd_instance
-        self.addCleanup(self.client.delete_vnfd, vnfd_id)
-        self.addCleanup(self.wait_until_vnf_delete, vnf_id,
-            constants.VNF_CIRROS_DELETE_TIMEOUT)
-
     def _test_create_delete_vnf_tosca(self, vnfd_file, vnf_name,
             template_source):
         vnfd_id, vnf_id = self._test_create_vnf(vnfd_file, vnf_name,
@@ -120,8 +102,6 @@ class VnfBlockStorageTestToscaCreate(base.BaseTackerTest):
                     .get_server_volumes(server_id)
                 self.assertTrue(len(server_volumes) > 0)
         self._test_delete_vnf(vnf_id)
-        if template_source == "onboarded":
-            self._test_cleanup_vnfd(vnfd_id, vnf_id)
 
     def test_create_delete_vnf_tosca_from_vnfd(self):
         self._test_create_delete_vnf_tosca(

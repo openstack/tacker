@@ -13,11 +13,8 @@
 #    under the License.
 #
 
-import yaml
-
 from tacker.tests import constants
 from tacker.tests.functional import base
-from tacker.tests.utils import read_file
 
 
 class VnfTestToscaFloatingIp(base.BaseTackerTest):
@@ -72,11 +69,9 @@ class VnfTestToscaFloatingIp(base.BaseTackerTest):
     def test_assign_floatingip_to_vdu(self):
         vnfd_file = 'sample_tosca_assign_floatingip_to_vdu.yaml'
         vnf_name = 'Assign Floating IP to VDU'
-        values_str = read_file(vnfd_file)
-        template = yaml.safe_load(values_str)
-        vnf_arg = {'vnf': {'vnfd_template': template, 'name': vnf_name}}
         self.connect_public_and_private_nw_with_router()
-        vnf_instance = self.client.create_vnf(body=vnf_arg)
+        vnfd_instance, vnf_instance, tosca_dict = self.vnfd_and_vnf_create(
+            vnfd_file, vnf_name)
         vnf_id = vnf_instance['vnf']['id']
         self.addCleanup(self.wait_until_vnf_delete, vnf_id,
                         constants.VNF_CIRROS_DELETE_TIMEOUT)

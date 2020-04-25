@@ -52,6 +52,7 @@ class VnfTestToscaVNFC(base.BaseTackerTest):
 
         # Create vnf with vnfd_id
         vnfd_id = vnfd_instance['vnfd']['id']
+        self.addCleanup(self.client.delete_vnfd, vnfd_id)
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name':
                            "test_tosca_vnfc"}}
         vnf_instance = self.client.create_vnf(body=vnf_arg)
@@ -111,6 +112,3 @@ class VnfTestToscaVNFC(base.BaseTackerTest):
                                    constants.VNF_CIRROS_DELETE_TIMEOUT)
         self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE,
                                     evt_constants.PENDING_DELETE, cnt=2)
-
-        # Delete vnfd_instance
-        self.addCleanup(self.client.delete_vnfd, vnfd_id)

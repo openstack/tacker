@@ -70,6 +70,8 @@ class VnfTestReservationMonitor(base.BaseTackerTest):
 
         # Create vnf with vnfd_id
         vnfd_id = vnfd_instance['vnfd']['id']
+        self.addCleanup(self.client.delete_vnfd, vnfd_id)
+
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
         vnf_instance = self.client.create_vnf(body=vnf_arg)
 
@@ -183,8 +185,7 @@ class VnfTestReservationMonitor(base.BaseTackerTest):
         except Exception:
             assert False, (
                 "Failed to delete vnf %s after the reservation test" % vnf_id)
-        # Delete vnfd_instance
-        self.addCleanup(self.client.delete_vnfd, vnfd_id)
+        # Wait for delete vnf_instance
         self.addCleanup(self.wait_until_vnf_delete, vnf_id,
                         constants.VNF_CIRROS_DELETE_TIMEOUT)
 

@@ -38,6 +38,8 @@ class VnfTestCreate(base.BaseTackerTest):
 
         # Create vnf with vnfd_id
         vnfd_id = vnfd_instance['vnfd']['id']
+        self.addCleanup(self.client.delete_vnfd, vnfd_id)
+
         vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
         if vim_id:
             vnf_arg['vnf']['vim_id'] = vim_id
@@ -90,9 +92,6 @@ class VnfTestCreate(base.BaseTackerTest):
                                    constants.VNF_CIRROS_DELETE_TIMEOUT)
         self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE,
                                     evt_constants.PENDING_DELETE, cnt=2)
-
-        # Delete vnfd_instance
-        self.addCleanup(self.client.delete_vnfd, vnfd_id)
 
     def test_create_delete_vnf_with_default_vim(self):
         self._test_create_delete_vnf(

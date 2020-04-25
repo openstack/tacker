@@ -19,7 +19,6 @@ from tacker.common import utils
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
-from tacker.tests.utils import read_file
 from tacker.tosca import utils as toscautils
 
 CONF = cfg.CONF
@@ -27,21 +26,10 @@ CONF = cfg.CONF
 
 class VnfTestToscaMultipleVDU(base.BaseTackerTest):
     def test_create_delete_tosca_vnf_with_multiple_vdus(self):
-        input_yaml = read_file('sample-tosca-vnfd-multi-vdu.yaml')
-        tosca_dict = yaml.safe_load(input_yaml)
-        vnfd_name = 'sample-tosca-vnfd-multi-vdu'
-        tosca_arg = {'vnfd': {'name': vnfd_name,
-                              'attributes': {'vnfd': tosca_dict}}}
-
-        # Create vnfd with tosca template
-        vnfd_instance = self.client.create_vnfd(body=tosca_arg)
-        self.assertIsNotNone(vnfd_instance)
-
-        # Create vnf with vnfd_id
-        vnfd_id = vnfd_instance['vnfd']['id']
-        vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name':
-                           "test_tosca_vnf_with_multiple_vdus"}}
-        vnf_instance = self.client.create_vnf(body=vnf_arg)
+        vnf_name = 'test_tosca_vnf_with_multiple_vdus'
+        vnfd_file = 'sample-tosca-vnfd-multi-vdu.yaml'
+        vnfd_instance, vnf_instance, tosca_dict = self.vnfd_and_vnf_create(
+            vnfd_file, vnf_name)
 
         vnf_id = vnf_instance['vnf']['id']
         self.wait_until_vnf_active(vnf_id,
@@ -63,11 +51,10 @@ class VnfTestToscaMultipleVDU(base.BaseTackerTest):
         self.assertIsNotNone(mgmt_ip_address)
         mgmt_dict = yaml.safe_load(str(mgmt_ip_address))
 
-        input_dict = yaml.safe_load(input_yaml)
-        toscautils.updateimports(input_dict)
+        toscautils.updateimports(tosca_dict)
 
         tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                          yaml_dict_tpl=input_dict)
+                          yaml_dict_tpl=tosca_dict)
 
         vdus = toscautils.findvdus(tosca)
 
@@ -86,6 +73,3 @@ class VnfTestToscaMultipleVDU(base.BaseTackerTest):
                                    constants.VNF_CIRROS_DELETE_TIMEOUT)
         self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE,
                                     evt_constants.PENDING_DELETE, cnt=2)
-
-        # Delete vnfd_instance
-        self.addCleanup(self.client.delete_vnfd, vnfd_id)

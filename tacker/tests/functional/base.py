@@ -245,8 +245,9 @@ class BaseTackerTest(base.BaseTestCase):
         self.assertIsNotNone(vnf_instance)
         self.assertIsNotNone(vnf_instance['vnf']['id'])
         self.assertIsNotNone(vnf_instance['vnf']['instance_id'])
-        self.assertEqual(vnf_instance['vnf']['vnfd_id'], vnfd_instance[
-            'vnfd']['id'])
+        if vnfd_instance:
+            self.assertEqual(vnf_instance['vnf']['vnfd_id'], vnfd_instance[
+                'vnfd']['id'])
 
     def verify_vnf_restart(self, vnfd_instance, vnf_instance):
         vnf_id = vnf_instance['vnf']['id']
@@ -353,3 +354,35 @@ class BaseTackerTest(base.BaseTestCase):
             self.assertEqual(v, actual_superset[k],
                              "Key %(key)s expected: %(exp)r, actual %(act)r" %
                              {'key': k, 'exp': v, 'act': actual_superset[k]})
+
+    def vnfd_and_vnf_create(self, vnfd_file, vnf_name):
+        input_yaml = read_file(vnfd_file)
+        tosca_dict = yaml.safe_load(input_yaml)
+        tosca_arg = {'vnfd': {'name': vnf_name,
+                              'attributes': {'vnfd': tosca_dict}}}
+
+        # Create vnfd with tosca template
+        vnfd_instance = self.client.create_vnfd(body=tosca_arg)
+        self.assertIsNotNone(vnfd_instance)
+
+        # Create vnf with vnfd_id
+        vnfd_id = vnfd_instance['vnfd']['id']
+        self.addCleanup(self.client.delete_vnfd, vnfd_id)
+
+        vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
+        vnf_instance = self.client.create_vnf(body=vnf_arg)
+        self.validate_vnf_instance(vnfd_instance, vnf_instance)
+
+        return vnfd_instance, vnf_instance, tosca_dict
+
+    def vnfd_and_vnf_create_inline(self, vnfd_file, vnf_name):
+        vnfd_instance = {}
+        input_yaml = read_file(vnfd_file)
+        tosca_dict = yaml.safe_load(input_yaml)
+
+        # create vnf directly from template
+        vnf_arg = {'vnf': {'vnfd_template': tosca_dict, 'name': vnf_name}}
+        vnf_instance = self.client.create_vnf(body=vnf_arg)
+        self.validate_vnf_instance(vnfd_instance, vnf_instance)
+
+        return vnf_instance, tosca_dict

@@ -12,39 +12,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import yaml
 
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
-from tacker.tests.utils import read_file
 
 
 class VnfTestPingMonitor(base.BaseTackerTest):
 
-    def _vnfd_and_vnf_create(self, vnfd_file, vnf_name):
-        input_yaml = read_file(vnfd_file)
-        tosca_dict = yaml.safe_load(input_yaml)
-        tosca_arg = {'vnfd': {'name': vnf_name,
-                              'attributes': {'vnfd': tosca_dict}}}
-
-        # Create vnfd with tosca template
-        vnfd_instance = self.client.create_vnfd(body=tosca_arg)
-        self.assertIsNotNone(vnfd_instance)
-
-        # Create vnf with vnfd_id
-        vnfd_id = vnfd_instance['vnfd']['id']
-        vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
-        vnf_instance = self.client.create_vnf(body=vnf_arg)
-
-        # Delete vnfd_instance
-        self.addCleanup(self.client.delete_vnfd, vnfd_id)
-
-        return vnfd_instance, vnf_instance
-
     def _test_vnf_with_monitoring(self, vnfd_file, vnf_name):
-        vnfd_instance, vnf_instance = self._vnfd_and_vnf_create(vnfd_file,
-                                                                vnf_name)
+        vnfd_instance, vnf_instance, tosca_dict = self.vnfd_and_vnf_create(
+            vnfd_file, vnf_name)
 
         # Verify vnf goes from ACTIVE->DEAD->ACTIVE states
         self.verify_vnf_restart(vnfd_instance, vnf_instance)
@@ -76,8 +54,8 @@ class VnfTestPingMonitor(base.BaseTackerTest):
 
     def _test_vnf_with_monitoring_vdu_autoheal_action(
             self, vnfd_file, vnf_name):
-        vnfd_instance, vnf_instance = self._vnfd_and_vnf_create(vnfd_file,
-                                                                vnf_name)
+        vnfd_instance, vnf_instance, tosca_dict = self.vnfd_and_vnf_create(
+            vnfd_file, vnf_name)
         vnf_id = vnf_instance['vnf']['id']
 
         self.verify_vnf_update(vnf_id)

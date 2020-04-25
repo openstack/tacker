@@ -18,29 +18,13 @@ from oslo_serialization import jsonutils
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
-from tacker.tests.utils import read_file
-
-import yaml
 
 
 class VnfTestAlarmMonitor(base.BaseTackerTest):
 
     def _test_vnf_tosca_alarm(self, vnfd_file, vnf_name):
-        input_yaml = read_file(vnfd_file)
-        tosca_dict = yaml.safe_load(input_yaml)
-        tosca_arg = {'vnfd': {'name': vnf_name,
-                              'attributes': {'vnfd': tosca_dict}}}
-
-        # Create vnfd with tosca template
-        vnfd_instance = self.client.create_vnfd(body=tosca_arg)
-        self.assertIsNotNone(vnfd_instance)
-
-        # Create vnf with vnfd_id
-        vnfd_id = vnfd_instance['vnfd']['id']
-        vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
-        vnf_instance = self.client.create_vnf(body=vnf_arg)
-
-        self.validate_vnf_instance(vnfd_instance, vnf_instance)
+        vnfd_instance, vnf_instance, tosca_dict = self.vnfd_and_vnf_create(
+            vnfd_file, vnf_name)
 
         vnf_id = vnf_instance['vnf']['id']
 
@@ -123,8 +107,7 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
         vnf_state_list = [evt_constants.ACTIVE, evt_constants.DEAD]
         self.verify_vnf_monitor_events(vnf_id, vnf_state_list)
 
-        # Delete vnfd_instance
-        self.addCleanup(self.client.delete_vnfd, vnfd_id)
+        # Wait for delete vnf_instance
         self.addCleanup(self.wait_until_vnf_delete, vnf_id,
                         constants.VNF_CIRROS_DELETE_TIMEOUT)
 
