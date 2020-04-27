@@ -334,7 +334,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
         else:
             raise nfvo.VnffgParamValueFormatError(
                 param_value=param_vattrs_dict)
-        for param_key in param_vattrs_dict.keys():
+        for param_key in param_vattrs_dict:
             if param_matched.get(param_key) is None:
                 LOG.warning("Param input %s not used.", param_key)
 
@@ -480,7 +480,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                                                 nfp_name, 'path')
         # Build physical port chain
         for element in logical_chain:
-            if element['forwarder'] not in vnf_mapping.keys():
+            if element['forwarder'] not in vnf_mapping:
                 raise nfvo.NfpForwarderNotFoundException(vnfd=element[
                                                          'forwarder'],
                                                          mapping=vnf_mapping)
@@ -607,7 +607,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
             else:
                 # if no VNF mapping, we need to abstractly look for instances
                 # that match VNFD
-                if vnf_mapping is None or vnfd not in vnf_mapping.keys():
+                if vnf_mapping is None or vnfd not in vnf_mapping:
                     # find suitable VNFs from vnfd_id
                     LOG.debug('Searching VNFS with id %s', vnfd_id)
                     vnf_list = vnfm_plugin.get_vnfs(context,

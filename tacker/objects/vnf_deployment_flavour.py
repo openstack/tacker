@@ -149,11 +149,11 @@ class VnfDeploymentFlavour(base.TackerObject, base.TackerPersistentObject):
             updates['id'] = uuidutils.generate_uuid()
             self.id = updates['id']
 
-        if 'software_images' in updates.keys():
+        if 'software_images' in updates:
             updates.pop('software_images')
 
         special_key = 'instantiation_levels'
-        if special_key in updates.keys():
+        if special_key in updates:
             updates[special_key] = jsonutils.dumps(updates.get(special_key))
 
         db_flavour = _vnf_deployment_flavour_create(self._context, updates)

@@ -764,7 +764,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         vnfd_dict = dict()
         for node_name, node_val in \
                 (nsd_dict['topology_template']['node_templates']).items():
-            if node_val.get('type') not in vnfds.keys():
+            if node_val.get('type') not in vnfds:
                 continue
             vnfd_name = vnfds[node_val.get('type')]
             if not vnfd_dict.get(vnfd_name):

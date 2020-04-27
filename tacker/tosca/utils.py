@@ -182,7 +182,7 @@ def get_vdu_applicationmonitoring(template):
     for node in node_list:
         nt = template[tpl_temp][n_temp][node]
         if nt['type'] == TACKERVDU:
-            if poly in nt['properties'].keys():
+            if poly in nt['properties']:
                 mon_policy = nt['properties'][poly]
                 if mon_policy != 'noop':
                     policy_dict['vdus'][node] = {}
@@ -951,7 +951,7 @@ def post_process_template(template):
             template.nodetemplates.remove(nt)
             continue
 
-        if nt.type in delpropmap.keys():
+        if nt.type in delpropmap:
             for prop in delpropmap[nt.type]:
                 for p in nt.get_properties_objects():
                     if prop == p.name:
@@ -959,16 +959,16 @@ def post_process_template(template):
 
         # change the property value first before the property key
         if nt.type in convert_prop_values:
-            for prop in convert_prop_values[nt.type].keys():
+            for prop in convert_prop_values[nt.type]:
                 for p in nt.get_properties_objects():
                     if (prop == p.name and
                             p.value in
-                            convert_prop_values[nt.type][prop].keys()):
+                            convert_prop_values[nt.type][prop]):
                         v = convert_prop_values[nt.type][prop][p.value]
                         p.value = v
 
         if nt.type in convert_prop:
-            for prop in convert_prop[nt.type].keys():
+            for prop in convert_prop[nt.type]:
                 for p in nt.get_properties_objects():
                     if prop == p.name:
                         schema_dict = {'type': p.type}
@@ -1128,9 +1128,9 @@ def get_image_dict(template):
             continue
         artifacts = vdu.entity_tpl["artifacts"]
         for name, artifact in (artifacts).items():
-            if ('type' in artifact.keys() and
+            if ('type' in artifact and
                artifact["type"] == IMAGE):
-                if 'file' not in artifact.keys():
+                if 'file' not in artifact:
                     raise vnfm.FilePathMissing()
                 image_dict[vdu.name] = {
                     "location": artifact["file"],

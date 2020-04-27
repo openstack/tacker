@@ -30,7 +30,7 @@ class VnfpkgmAPIRouter(wsgi.Router):
 
     def _setup_route(self, mapper, url, methods, controller, default_resource):
         all_methods = ['HEAD', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE']
-        missing_methods = [m for m in all_methods if m not in methods.keys()]
+        missing_methods = [m for m in all_methods if m not in methods]
         allowed_methods_str = ",".join(methods.keys())
 
         for method, action in methods.items():

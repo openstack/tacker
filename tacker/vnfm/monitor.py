@@ -163,13 +163,13 @@ class VNFMonitor(object):
         vnf_delay = hosting_vnf['monitoring_policy'].get(
             'monitoring_delay', self.boot_wait)
 
-        for vdu in vdupolicies.keys():
+        for vdu in vdupolicies:
             if hosting_vnf.get('dead') or (
                     hosting_vnf['vnf']['status']) == constants.PENDING_HEAL:
                 return
 
             policy = vdupolicies[vdu]
-            for driver in policy.keys():
+            for driver in policy:
                 params = policy[driver].get('monitoring_params', {})
 
                 vdu_delay = params.get('monitoring_delay', vnf_delay)

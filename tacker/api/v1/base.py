@@ -120,7 +120,7 @@ class Controller(object):
         to see them.
         """
         attributes_to_exclude = []
-        for attr_name in data.keys():
+        for attr_name in data:
             attr_data = self._attr_info.get(attr_name)
             if attr_data and attr_data['is_visible']:
                 if policy.check(

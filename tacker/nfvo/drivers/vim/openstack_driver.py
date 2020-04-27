@@ -271,7 +271,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         :param resource_name: name of resource to locate
         :return: ID of resource
         """
-        if resource_type in _VALID_RESOURCE_TYPES.keys():
+        if resource_type in _VALID_RESOURCE_TYPES:
             res_cmd_map = _VALID_RESOURCE_TYPES[resource_type]
             client_type = res_cmd_map['client']
             cmd = res_cmd_map['cmd']
