@@ -12,7 +12,7 @@
 
 import netaddr
 
-from mistral.actions import base
+from mistral_lib import actions
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -25,7 +25,7 @@ from tacker import context as t_context
 LOG = logging.getLogger(__name__)
 
 
-class PingVimAction(base.Action):
+class PingVimAction(actions.Action):
 
     def __init__(self, count, targetip, vim_id,
                  interval, timeout):
@@ -80,7 +80,7 @@ class PingVimAction(base.Action):
                           vim_id=self.vim_id,
                           status=status)
 
-    def run(self):
+    def run(self, action_ctx):
         servers = []
         try:
             rpc.init_action_rpc(cfg.CONF)
