@@ -622,7 +622,7 @@ def get_vnfd_dict(image_path=None):
                              'container_format':
                                  'fake container format',
                              'disk_format': 'fake disk format',
-                             'min_disk': '1''GiB',
+                             'min_disk': '1 ''GiB',
                              'name': 'fake name',
                              'size': 'fake size ' 'GiB',
                              'version': 'fake version'},

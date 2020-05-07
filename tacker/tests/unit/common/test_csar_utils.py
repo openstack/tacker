@@ -33,6 +33,9 @@ class TestCSARUtils(testtools.TestCase):
         super(TestCSARUtils, self).setUp()
         self.context = context.get_admin_context()
 
+    def _get_csar_file_path(self, file_name):
+        return os.path.join("./tacker/tests/etc/samples", file_name)
+
     @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data(self, mock_extract_csar_zip_file):
         file_path, _ = utils.create_csar_with_unique_vnfd_id(
@@ -441,3 +444,23 @@ class TestCSARUtils(testtools.TestCase):
                ' is added more than one time for node VDU1.')
         self.assertEqual(msg, exc.format_message())
         os.remove(zip_name)
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_with_unit_conversion(
+            self, mock_extract_csar_zip_file):
+        file_path, _ = utils.create_csar_with_unique_vnfd_id(
+            './tacker/tests/etc/samples/etsi/nfv/sample_vnfpkg_tosca_vnfd')
+        self.addCleanup(os.remove, file_path)
+        vnf_data, flavours, vnf_artifact = csar_utils.load_csar_data(
+            self.context, constants.UUID, file_path)
+        self.assertEqual(vnf_data['descriptor_version'], '1.0')
+        self.assertEqual(vnf_data['vnfm_info'], ['Tacker'])
+        self.assertEqual(flavours[0]['flavour_id'], 'simple')
+        self.assertIsNotNone(flavours[0]['sw_images'])
+        # 'size', 'min_disk' and 'min_ram' values from sample VNFD will
+        # be converted to Bytes
+        self.assertEqual(flavours[0]['sw_images'][0]['min_disk'], 1000000000)
+        self.assertEqual(flavours[0]['sw_images'][0]['size'], 1879048192)
+        self.assertEqual(flavours[0]['sw_images'][1]['min_disk'], 2000000000)
+        self.assertEqual(flavours[0]['sw_images'][1]['size'], 2000000000)
+        self.assertEqual(flavours[0]['sw_images'][1]['min_ram'], 8590458880)
