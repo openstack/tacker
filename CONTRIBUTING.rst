@@ -1,70 +1,19 @@
-============
-Contributing
-============
+The source repository for this project can be found at:
 
-The best way to join the community and get involved is to talk with others
-online or at a meetup and offer contributions. Here are some of the many
-ways you can contribute to the Tacker project:
+  https://opendev.org/openstack/tacker
 
-* Development and Code Reviews
-* Bug reporting/Bug fixes
-* Wiki and Documentation
-* Blueprints/Specifications
-* Testing
-* Deployment scripts
+Pull requests submitted through GitHub are not monitored.
 
-Before you start contributing take a look at the `Openstack Developers Guide`_.
+To start contributing to OpenStack, follow the steps in the contribution guide
+to set up and use Gerrit:
 
-.. _`Openstack Developers Guide`: https://docs.openstack.org/infra/manual/developers.html
+  https://docs.openstack.org/contributors/code-and-documentation/quick-start.html
 
-Freenode IRC (Chat)
--------------------
-You can find tacker guys in our publicly accessible channel on `freenode`_
-``#tacker``. All conversations are logged and stored for your
-convenience at `eavesdrop.openstack.org`_. For more information regarding
-OpenStack IRC channels please visit the `OpenStack IRC Wiki`_.
+Bugs should be filed on Launchpad:
 
-.. _`freenode`: https://freenode.net
-.. _`OpenStack IRC Wiki`: https://wiki.openstack.org/wiki/IRC
-.. _`eavesdrop.openstack.org`: http://eavesdrop.openstack.org/irclogs/%23tacker/
+  https://bugs.launchpad.net/tacker
 
-Launchpad
----------
-Like other OpenStack related projects, we utilize Launchpad for our bug
-and release tracking.
+For more specific information about contributing to this repository, see the
+Tacker contributor guide:
 
-* `Tacker Launchpad Project`_
-
-.. _`Tacker Launchpad Project`: https://launchpad.net/tacker
-
-.. note::
-
-    Bugs should be filed on Launchpad, not Github.
-
-Source Repository
------------------
-
-The official Tacker source code is available in following repositories:
-
-* **Tacker server:** https://opendev.org/openstack/tacker
-* **Tacker Python client:** https://opendev.org/openstack/python-tackerclient
-* **Tacker Horizon UI:** https://opendev.org/openstack/tacker-horizon
-
-The mirror repositories on Github:
-
-* **Tacker server:** https://github.com/openstack/tacker
-* **Tacker Python client:** https://github.com/openstack/python-tackerclient
-* **Tacker Horizon UI:** https://github.com/openstack/tacker-horizon
-
-Gerrit
-------
-Like other OpenStack related projects, we utilize the OpenStack Gerrit
-review system for all code reviews. If you're unfamiliar with using
-the OpenStack Gerrit review system, please review the `Gerrit Workflow`_
-wiki documentation.
-
-.. _`Gerrit Workflow`: https://docs.openstack.org/infra/manual/developers.html#development-workflow
-
-.. note::
-
-    Pull requests submitted through GitHub will be ignored.
+  https://docs.openstack.org/tacker/latest/contributor/contributing.html

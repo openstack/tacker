@@ -24,7 +24,7 @@ Developer Info
 .. toctree::
    :maxdepth: 1
 
-   dev-process.rst
+   contributing.rst
    development.environment.rst
    api_layer.rst
    api_extensions.rst
