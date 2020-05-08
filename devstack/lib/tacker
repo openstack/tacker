@@ -152,11 +152,13 @@ function start_tacker {
     # Start the Tacker service
     sudo cp $TACKER_DIR/etc/systemd/system/tacker.service $SYSTEMD_DIR/devstack@tacker.service
     iniset -sudo $SYSTEMD_DIR/devstack@tacker.service "Service" "User" $STACK_USER
+    iniset -sudo $SYSTEMD_DIR/devstack@tacker.service "Service" "ExecStart" "$TACKER_BIN_DIR/tacker-server $cfg_file_options"
     sudo systemctl enable devstack@tacker.service
     sudo systemctl restart devstack@tacker.service
     # Start the Tacker conductor service
     sudo cp $TACKER_DIR/etc/systemd/system/tacker-conductor.service $SYSTEMD_DIR/devstack@tacker-conductor.service
     iniset -sudo $SYSTEMD_DIR/devstack@tacker-conductor.service "Service" "User" $STACK_USER
+    iniset -sudo $SYSTEMD_DIR/devstack@tacker-conductor.service "Service" "ExecStart" "$TACKER_BIN_DIR/tacker-conductor $cfg_file_options"
     sudo systemctl enable devstack@tacker-conductor.service
     sudo systemctl restart devstack@tacker-conductor.service
     echo "Waiting for Tacker to start..."
