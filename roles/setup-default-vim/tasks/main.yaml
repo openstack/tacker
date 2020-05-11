@@ -14,6 +14,11 @@
   stat:
     path: "{{ zuul_work_dir }}/tools/test-setup-default-vim.sh"
   register: p
+- fail:
+    msg: >
+          {{ zuul_work_dir }}/tools/test-setup-default-vim.sh doesn't exists
+          or it doesn't have execute permission.
+  when:  p.stat.exists != True or p.stat.executable != True
 
 - name: Run tools/test-setup-default-vim.sh
   command: tools/test-setup-default-vim.sh
