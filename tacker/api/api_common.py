@@ -19,7 +19,6 @@ from oslo_config import cfg
 import oslo_i18n
 from oslo_log import log as logging
 from oslo_policy import policy as oslo_policy
-from six import iteritems
 from six.moves.urllib import parse as urllib_parse
 from webob import exc
 
@@ -41,7 +40,7 @@ def get_filters(request, attr_info, skips=None):
     """
     res = {}
     skips = skips or []
-    for key, values in iteritems(request.GET.dict_of_lists()):
+    for key, values in request.GET.dict_of_lists().items():
         if key in skips:
             continue
         values = [v for v in values if v]

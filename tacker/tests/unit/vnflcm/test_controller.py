@@ -138,14 +138,12 @@ class TestController(base.TestCase):
             expected_message = ("Invalid input for field/attribute "
                                 "{attribute}. Value: {value}. {value} is not "
                                 "of type 'string'".
-                 format(value=value, attribute=attribute,
-                        expected_type=expected_type))
+                 format(value=value, attribute=attribute))
         elif expected_type in ["name_allow_zero_min_length", "description"]:
             expected_message = ("Invalid input for field/attribute "
                                 "{attribute}. " "Value: {value}. {value} is "
                                 "not of type 'string'".
-                 format(value=value, attribute=attribute,
-                        expected_type=expected_type))
+                 format(value=value, attribute=attribute))
 
         self.assertEqual(expected_message, exception.msg)
 
