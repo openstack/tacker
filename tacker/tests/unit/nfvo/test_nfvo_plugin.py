@@ -29,8 +29,10 @@ from tacker.db.nfvo import ns_db
 from tacker.db.nfvo import vnffg_db
 from tacker.extensions import nfvo
 from tacker.manager import TackerManager
+from tacker.nfvo.drivers.vim import openstack_driver
 from tacker.nfvo import nfvo_plugin
 from tacker.plugins.common import constants
+from tacker.tests import constants as test_constants
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.db import utils
 from tacker.vnfm import vim_client
@@ -217,15 +219,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         super(TestNfvoPlugin, self).setUp()
         self.addCleanup(mock.patch.stopall)
         self.context = context.get_admin_context()
-        self._mock_driver_manager()
-        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
-                   side_effect=dummy_get_vim).start()
         self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
-        mock.patch('tacker.db.common_services.common_services_db_plugin.'
-                   'CommonServicesPluginDb.create_event'
-                   ).start()
-        self._cos_db_plugin =\
-            common_services_db_plugin.CommonServicesPluginDb()
 
     def _mock_driver_manager(self):
         self._driver_manager = mock.Mock(wraps=FakeDriverManager())
@@ -286,6 +280,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
     def test_create_vim(self):
         vim_dict = utils.get_vim_obj()
         vim_type = 'openstack'
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         res = self.nfvo_plugin.create_vim(self.context, vim_dict)
         self._cos_db_plugin.create_event.assert_any_call(
             self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
@@ -308,6 +311,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         vim_id = '6261579e-d6f3-49ad-8bc3-a9cb974778ff'
         self.context.tenant_id = 'ad7ebc56538745a08ef7c5e97f8bd437'
         vim_obj = self.nfvo_plugin._get_vim(self.context, vim_id)
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         self.nfvo_plugin.delete_vim(self.context, vim_id)
         self._driver_manager.invoke.assert_called_once_with(
             vim_type, 'deregister_vim',
@@ -327,6 +339,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         vim_project = vim_dict['vim']['vim_project']
         self._insert_dummy_vim()
         self.context.tenant_id = 'ad7ebc56538745a08ef7c5e97f8bd437'
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         res = self.nfvo_plugin.update_vim(self.context, vim_dict['vim']['id'],
                                           vim_dict)
         vim_obj = self.nfvo_plugin._get_vim(
@@ -359,6 +380,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.context.tenant_id = 'ad7ebc56538745a08ef7c5e97f8bd437'
         old_vim_obj = self.nfvo_plugin._get_vim(
             self.context, vim_dict['vim']['id'])
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         res = self.nfvo_plugin.update_vim(self.context, vim_dict['vim']['id'],
                                           vim_dict)
         vim_obj = self.nfvo_plugin._get_vim(
@@ -593,6 +623,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertEqual('example_vnffgd', result['name'])
 
     def test_create_vnffg_abstract_types(self):
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
@@ -617,6 +656,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
 
     @mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin.create_vnffgd')
     def test_create_vnffg_abstract_types_inline(self, mock_create_vnffgd):
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
@@ -644,6 +692,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                 correlation=mock.ANY)
 
     def test_create_vnffg_param_values(self):
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
@@ -667,6 +724,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                 correlation=mock.ANY)
 
     def test_create_vnffg_no_classifier(self):
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
@@ -710,6 +776,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                               self.context, vnffg_obj)
 
     def test_create_vnffg_vnf_mapping(self):
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
@@ -814,6 +889,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                               self.context, vnffg['id'], updated_vnffg)
 
     def test_update_vnffg_vnf_mapping(self):
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
@@ -849,6 +933,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                                                            auth_attr=mock.ANY)
 
     def test_update_vnffg_vnffgd_template(self):
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
@@ -880,6 +973,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                                                            auth_attr=mock.ANY)
 
     def test_update_vnffg_legacy_vnffgd_template(self):
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
@@ -895,6 +997,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
     def test_delete_vnffg(self):
         self._insert_dummy_vnffg_template()
         vnffg = self._insert_dummy_vnffg()
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
         self.nfvo_plugin.delete_vnffg(self.context, vnffg['id'])
         self._driver_manager.invoke.assert_called_with(mock.ANY, mock.ANY,
                                                        fc_id=mock.ANY,
@@ -1048,9 +1159,14 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertIn('updated_at', result)
 
     @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
-    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(vim_client.VimClient, 'get_vim',
+        return_value={"vim_type": "openstack"})
     @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
-    def test_create_ns(self, mock_get_by_name, mock_get_vimi, mock_auth_dict):
+    @mock.patch.object(openstack_driver.OpenStack_Driver, 'get_mistral_client')
+    @mock.patch.object(uuidutils, 'generate_uuid',
+        return_value=test_constants.UUID)
+    def test_create_ns(self, mock_uuid, mock_mistral_client,
+            mock_get_by_name, mock_get_vimi, mock_auth_dict):
         self._insert_dummy_ns_template()
         self._insert_dummy_vim()
         mock_auth_dict.return_value = {
@@ -1059,6 +1175,63 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             'project_domain_name': 'dummy_domain',
             'project_name': 'dummy_project'
         }
+
+        sample_yaml = 'std.create_ns' + test_constants.UUID + ':\n  '\
+            'input:\n  - ns\n  output:\n    mgmt_ip_address_VNF1: '\
+            '<% $.mgmt_ip_address_VNF1 %>\n    mgmt_ip_address_VNF2: '\
+            '<% $.mgmt_ip_address_VNF2 %>\n    status_VNF1: '\
+            '<% $.status_VNF1 %>\n    status_VNF2: '\
+            '<% $.status_VNF2 %>\n    vim_id_VNF1: <% $.vim_id_VNF1 %>\n'\
+            '    vim_id_VNF2: <% $.vim_id_VNF2 %>\n    vnf_id_VNF1: '\
+            '<% $.vnf_id_VNF1 %>\n    vnf_id_VNF2: <% $.vnf_id_VNF2 %>\n  '\
+            'tasks:\n    create_ns_VNF1:\n      action: tacker.create_vnf '\
+            'body=<% $.ns.VNF1 %>\n      input:\n        body: '\
+            '<% $.ns.VNF1 %>\n      on-success:\n      '\
+            '- wait_vnf_active_VNF1\n      publish:\n        '\
+            'mgmt_ip_address_VNF1: <% task(create_ns_VNF1).result.'\
+            'vnf.mgmt_ip_address %>\n        status_VNF1: <% '\
+            'task(create_ns_VNF1).result.vnf.status %>\n'\
+            '        vim_id_VNF1: <% task(create_ns_VNF1).'\
+            'result.vnf.vim_id %>\n        vnf_id_VNF1: <% '\
+            'task(create_ns_VNF1).result.vnf.id %>\n'\
+            '    create_ns_VNF2:\n      action: tacker.create_vnf '\
+            'body=<% $.ns.VNF2 %>\n      input:\n        '\
+            'body: <% $.ns.VNF2 %>\n      on-success:\n'\
+            '      - wait_vnf_active_VNF2\n      publish:\n        '\
+            'mgmt_ip_address_VNF2: <% task(create_ns_VNF2).result.vnf.'\
+            'mgmt_ip_address %>\n        status_VNF2: <% task(create_ns_VNF2)'\
+            '.result.vnf.status %>\n        vim_id_VNF2: <% '\
+            'task(create_ns_VNF2).result.vnf.vim_id %>\n'\
+            '        vnf_id_VNF2: <% task(create_ns_VNF2).result.vnf.id '\
+            '%>\n    delete_vnf_VNF1:\n      action: tacker.delete_vnf vnf'\
+            '=<% $.vnf_id_VNF1%>\n      input:\n        body:\n          '\
+            'vnf:\n            attributes:\n              force: false\n'\
+            '    delete_vnf_VNF2:\n      action: tacker.delete_vnf'\
+            ' vnf=<% $.vnf_id_VNF2%>\n      input:\n        body:\n'\
+            '          vnf:\n            attributes:\n              '\
+            'force: false\n    wait_vnf_active_VNF1:\n      action:'\
+            ' tacker.show_vnf vnf=<% $.vnf_id_VNF1 %>\n      on-success:\n'\
+            '      - delete_vnf_VNF1: <% $.status_VNF1="ERROR" %>\n      '\
+            'publish:\n        mgmt_ip_address_VNF1: \' <% '\
+            'task(wait_vnf_active_VNF1).result.vnf.mgmt_ip_address\n'\
+            '          %>\'\n        status_VNF1: <% '\
+            'task(wait_vnf_active_VNF1).result.vnf.status %>\n      '\
+            'retry:\n        break-on: <% $.status_VNF1 = "ERROR"'\
+            ' %>\n        continue-on: <% $.status_VNF1 = "PENDING_CREATE" '\
+            '%>\n        count: 10\n        delay: 10\n    '\
+            'wait_vnf_active_VNF2:\n      action: tacker.show_vnf vnf=<% '\
+            '$.vnf_id_VNF2 %>\n      on-success:\n      '\
+            '- delete_vnf_VNF2: <% $.status_VNF2="ERROR" %>\n      '\
+            'publish:\n        mgmt_ip_address_VNF2: \' <% '\
+            'task(wait_vnf_active_VNF2).result.vnf.mgmt_ip_address\n'\
+            '          %>\'\n        status_VNF2: '\
+            '<% task(wait_vnf_active_VNF2).result.vnf.status %>\n'\
+            '      retry:\n        break-on: <% $.status_VNF2 = '\
+            '"ERROR" %>\n        continue-on: '\
+            '<% $.status_VNF2 = "PENDING_CREATE" %>\n        '\
+            'count: 10\n        '\
+            'delay: 10\n  type: direct\nversion: \'2.0\'\n'
+
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
             mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
@@ -1072,11 +1245,16 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertEqual(ns_obj['ns']['name'], result['name'])
             self.assertIn('status', result)
             self.assertIn('tenant_id', result)
+            mock_mistral_client().workflows.create.\
+                assert_called_with(sample_yaml)
 
     @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
-    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(vim_client.VimClient, 'get_vim',
+        return_value={"vim_type": "openstack"})
     @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
-    def test_create_ns_empty_description(self, mock_get_by_name,
+    @mock.patch.object(openstack_driver.OpenStack_Driver, 'get_mistral_client')
+    def test_create_ns_empty_description(self, mock_mistral_client,
+                                         mock_get_by_name,
                                          mock_get_vimi, mock_auth_dict):
         self._insert_dummy_ns_template()
         self._insert_dummy_vim()
@@ -1100,10 +1278,12 @@ class TestNfvoPlugin(db_base.SqlTestCase):
 
     @mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin.create_nsd')
     @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
-    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(vim_client.VimClient, 'get_vim',
+        return_value={"vim_type": "openstack"})
     @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
-    def test_create_ns_inline(self, mock_get_by_name, mock_get_vimi,
-                              mock_auth_dict, mock_create_nsd):
+    @mock.patch.object(openstack_driver.OpenStack_Driver, 'get_mistral_client')
+    def test_create_ns_inline(self, mock_mistral_client, mock_get_by_name,
+                              mock_get_vimi, mock_auth_dict, mock_create_nsd):
         self._insert_dummy_ns_template_inline()
         self._insert_dummy_vim()
         mock_auth_dict.return_value = {
@@ -1131,10 +1311,15 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             mock_create_nsd.assert_called_once_with(mock.ANY, mock.ANY)
 
     @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
-    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(vim_client.VimClient, 'get_vim',
+        return_value={"vim_type": "openstack"})
     @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
+    @mock.patch('tacker.common.driver_manager.DriverManager.invoke',
+        side_effect=nfvo.NoTasksException(action='create',
+                                          resource='ns'))
     def test_create_ns_workflow_no_task_exception(
-            self, mock_get_by_name, mock_get_vimi, mock_auth_dict):
+            self, mock_mistral_client, mock_get_by_name,
+            mock_get_vimi, mock_auth_dict):
         self._insert_dummy_ns_template()
         self._insert_dummy_vim()
         mock_auth_dict.return_value = {

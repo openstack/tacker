@@ -119,7 +119,7 @@ python-subunit==1.0.0
 python-swiftclient==3.5.0
 python-tackerclient==0.8.0
 pytz==2018.3
-PyYAML==3.12
+PyYAML==5.1
 reno==2.7.0
 repoze.lru==0.7
 requests-oauthlib==0.8.0

@@ -731,6 +731,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         wg.task(**kwargs)
         if not wg.get_tasks():
             raise nfvo.NoTasksException(resource=resource, action=action)
+        yaml.SafeDumper.ignore_aliases = lambda self, data: True
         definition_yaml = yaml.safe_dump(wg.definition)
         workflow = mistral_client.workflows.create(definition_yaml)
         return {'id': workflow[0].id, 'input': wg.get_input_dict()}

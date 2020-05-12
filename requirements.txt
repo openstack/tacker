@@ -52,7 +52,7 @@ castellan>=0.16.0 # Apache-2.0
 kubernetes>=5.0.0 # Apache-2.0
 setuptools!=24.0.0,!=34.0.0,!=34.0.1,!=34.0.2,!=34.0.3,!=34.1.0,!=34.1.1,!=34.2.0,!=34.3.0,!=34.3.1,!=34.3.2,!=36.2.0,>=21.0.0 # PSF/ZPL
 tooz>=1.58.0 # Apache-2.0
-PyYAML>=3.12 # MIT
+PyYAML>=5.1 # MIT
 
 # Glance Store
 glance-store>=0.26.1 # Apache-2.0

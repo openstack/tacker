@@ -35,6 +35,7 @@ def prepare_and_create_workflow(mistral_client, vim_id, action,
                                 kwargs):
     wg = workflow_generator.WorkflowGenerator(vim_id, action)
     wg.task(**kwargs)
+    yaml.SafeDumper.ignore_aliases = lambda self, data: True
     definition_yaml = yaml.safe_dump(wg.definition, default_flow_style=False)
     LOG.debug('vim monitor workflow: %s', definition_yaml)
     workflow = mistral_client.workflows.create(definition_yaml)
