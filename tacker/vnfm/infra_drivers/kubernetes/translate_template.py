@@ -33,10 +33,10 @@ CONF = cfg.CONF
 class TOSCAToKubernetes(object):
 
     def __init__(self, vnf, core_v1_api_client,
-                 extension_api_client, scaling_api_client):
+                 app_v1_api_client, scaling_api_client):
         self.vnf = vnf
         self.core_v1_api_client = core_v1_api_client
-        self.extension_api_client = extension_api_client
+        self.app_v1_api_client = app_v1_api_client
         self.scaling_api_client = scaling_api_client
         self.attributes = {}
         self.vnfd_yaml = None
@@ -57,7 +57,7 @@ class TOSCAToKubernetes(object):
         tosca_kube_objects = self.generate_tosca_kube_objects()
         transformer = translate_outputs.Transformer(
             core_v1_api_client=self.core_v1_api_client,
-            extension_api_client=self.extension_api_client,
+            app_v1_api_client=self.app_v1_api_client,
             scaling_api_client=self.scaling_api_client)
         kubernetes_objects = transformer.transform(tosca_kube_objects)
         deployment_names = transformer.deploy(

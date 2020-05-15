@@ -67,6 +67,10 @@ class KubernetesHTTPAPI(object):
         k8s_client = self.get_k8s_client(auth_plugin=auth)
         return client.AutoscalingV1Api(api_client=k8s_client)
 
+    def get_app_v1_api_client(self, auth):
+        k8s_client = self.get_k8s_client(auth_plugin=auth)
+        return client.AppsV1Api(api_client=k8s_client)
+
     @staticmethod
     def create_ca_cert_tmp_file(ca_cert):
         file_descriptor, file_path = tempfile.mkstemp()

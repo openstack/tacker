@@ -92,14 +92,14 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         try:
             core_v1_api_client = self.kubernetes.get_core_v1_api_client(
                 auth=auth_cred)
-            extension_api_client = self.kubernetes.get_extension_api_client(
+            app_v1_api_client = self.kubernetes.get_app_v1_api_client(
                 auth=auth_cred)
             scaling_api_client = self.kubernetes.get_scaling_api_client(
                 auth=auth_cred)
             tosca_to_kubernetes = translate_template.TOSCAToKubernetes(
                 vnf=vnf,
                 core_v1_api_client=core_v1_api_client,
-                extension_api_client=extension_api_client,
+                app_v1_api_client=app_v1_api_client,
                 scaling_api_client=scaling_api_client)
             deployment_names = tosca_to_kubernetes.deploy_kubernetes_objects()
         except Exception as e:
@@ -272,7 +272,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         try:
             core_v1_api_client = self.kubernetes.get_core_v1_api_client(
                 auth=auth_cred)
-            extension_api_client = self.kubernetes.get_extension_api_client(
+            app_v1_api_client = self.kubernetes.get_app_v1_api_client(
                 auth=auth_cred)
             scaling_api_client = self.kubernetes.get_scaling_api_client(
                 auth=auth_cred)
@@ -321,7 +321,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     body = client.V1DeleteOptions(
                         propagation_policy='Foreground',
                         grace_period_seconds=5)
-                    extension_api_client.delete_namespaced_deployment(
+                    app_v1_api_client.delete_namespaced_deployment(
                         namespace=namespace,
                         name=deployment_name,
                         body=body)
@@ -350,7 +350,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         try:
             core_v1_api_client = self.kubernetes.get_core_v1_api_client(
                 auth=auth_cred)
-            extension_api_client = self.kubernetes.get_extension_api_client(
+            app_v1_api_client = self.kubernetes.get_app_v1_api_client(
                 auth=auth_cred)
             scaling_api_client = self.kubernetes.get_scaling_api_client(
                 auth=auth_cred)
@@ -386,7 +386,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     except Exception:
                         pass
                     try:
-                        extension_api_client.read_namespaced_deployment(
+                        app_v1_api_client.read_namespaced_deployment(
                             namespace=namespace,
                             name=deployment_name)
                         count = count + 1
@@ -416,7 +416,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         # initialize Kubernetes APIs
         auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
         try:
-            extension_api_client = self.kubernetes.get_extension_api_client(
+            app_v1_api_client = self.kubernetes.get_app_v1_api_client(
                 auth=auth_cred)
             scaling_api_client = self.kubernetes.get_scaling_api_client(
                 auth=auth_cred)
@@ -427,7 +427,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             for i in range(0, len(deployment_names), 2):
                 namespace = deployment_names[i]
                 deployment_name = deployment_names[i + 1]
-                deployment_info = extension_api_client.\
+                deployment_info = app_v1_api_client.\
                     read_namespaced_deployment(namespace=namespace,
                                                name=deployment_name)
                 scaling_info = scaling_api_client.\
@@ -454,7 +454,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                               {'number': replicas})
                     scale_replicas = replicas
                 deployment_info.spec.replicas = scale_replicas
-                extension_api_client.patch_namespaced_deployment_scale(
+                app_v1_api_client.patch_namespaced_deployment_scale(
                     namespace=namespace,
                     name=deployment_name,
                     body=deployment_info)
