@@ -18,7 +18,6 @@ import weakref
 
 from oslo_log import log as logging
 import six
-from six import iteritems
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import sql
 
@@ -92,7 +91,8 @@ class CommonDbMixin(object):
                 query_filter = (model.tenant_id == context.tenant_id)
 
         # Execute query hooks registered from mixins and plugins
-        for _name, hooks in iteritems(self._model_query_hooks.get(model, {})):
+        model_hooks = self._model_query_hooks.get(model, {})
+        for _name, hooks in model_hooks.items():
             query_hook = hooks.get('query')
             if isinstance(query_hook, six.string_types):
                 query_hook = getattr(self, query_hook, None)
@@ -139,12 +139,12 @@ class CommonDbMixin(object):
 
     def _apply_filters_to_query(self, query, model, filters):
         if filters:
-            for key, value in iteritems(filters):
+            for key, value in filters.items():
                 column = getattr(model, key, None)
                 if column:
                     query = query.filter(column.in_(value))
-            for _name, hooks in iteritems(
-                    self._model_query_hooks.get(model, {})):
+            model_hooks = self._model_query_hooks.get(model, {})
+            for _name, hooks in model_hooks.items():
                 result_filter = hooks.get('result_filters', None)
                 if isinstance(result_filter, six.string_types):
                     result_filter = getattr(self, result_filter, None)
@@ -207,8 +207,7 @@ class CommonDbMixin(object):
         the model passed as second parameter.
         """
         columns = [c.name for c in model.__table__.columns]
-        return dict((k, v) for (k, v) in
-                    iteritems(data) if k in columns)
+        return dict((k, v) for (k, v) in data.items() if k in columns)
 
     def _get_by_name(self, context, model, name):
         try:
