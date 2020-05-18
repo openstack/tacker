@@ -26,6 +26,7 @@ from tacker import objects
 from tacker.objects import fields
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.vnflcm import fakes
+from tacker.tests import utils as test_utils
 from tacker.tests import uuidsentinel
 from tacker.vnflcm import vnflcm_driver
 from tacker.vnfm import vim_client
@@ -127,24 +128,6 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                            'test_project'}, 'vim_type': 'openstack'}
         self.vim_client.get_vim.return_value = vim_obj
 
-    def _copy_csar_files(self, fake_csar_path, csar_file_name):
-        sample_vnf_package = os.path.join(
-            "./tacker/tests/etc/samples/etsi/nfv", csar_file_name)
-        shutil.copytree(sample_vnf_package, fake_csar_path)
-        common_files_path = os.path.join(
-            "./tacker/tests/etc/samples/etsi/nfv/common/")
-        tosca_definition_file_path = os.path.join(common_files_path,
-                                                  "Definitions/")
-        for (dpath, _, fnames) in os.walk(tosca_definition_file_path):
-            if not fnames:
-                continue
-            for fname in fnames:
-                src_file = os.path.join(dpath, fname)
-                shutil.copy(src_file, os.path.join(fake_csar_path,
-                                                   "Definitions"))
-        shutil.copytree(os.path.join(common_files_path, "Files/"),
-                        os.path.join(fake_csar_path, "Files/"))
-
     @mock.patch.object(objects.VnfResource, 'create')
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfInstance, "save")
@@ -162,7 +145,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
                               group='vnf_package')
-        self._copy_csar_files(fake_csar, "vnflcm4")
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
         driver.instantiate_vnf(self.context, vnf_instance_obj,
@@ -192,7 +175,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
                               group='vnf_package')
-        self._copy_csar_files(fake_csar, "vnflcm4")
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
         driver.instantiate_vnf(self.context, vnf_instance_obj,
@@ -222,7 +205,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
                               group='vnf_package')
-        self._copy_csar_files(fake_csar, "vnflcm4")
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
         driver.instantiate_vnf(self.context, vnf_instance_obj,
@@ -252,7 +235,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
                               group='vnf_package')
-        self._copy_csar_files(fake_csar, "vnflcm4")
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
         self._mock_vnf_manager(fail_method_name="instantiate_vnf")
         driver = vnflcm_driver.VnfLcmDriver()
         error = self.assertRaises(exceptions.VnfInstantiationFailed,
@@ -288,7 +271,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
                               group='vnf_package')
-        self._copy_csar_files(fake_csar, "vnflcm4")
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
         self._mock_vnf_manager(fail_method_name='create_wait')
         driver = vnflcm_driver.VnfLcmDriver()
         error = self.assertRaises(exceptions.VnfInstantiationWaitFailed,
@@ -322,7 +305,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
                               group='vnf_package')
-        self._copy_csar_files(
+        test_utils.copy_csar_files(
             fake_csar, "sample_vnf_package_csar_with_short_notation")
         self._mock_vnf_manager(vnf_resource_count=2)
         driver = vnflcm_driver.VnfLcmDriver()
@@ -452,7 +435,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
                               group='vnf_package')
-        self._copy_csar_files(fake_csar, "vnflcm4")
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
         mock_vnf_resource_list.return_value = [fakes.return_vnf_resource()]
         # Heal as per SOL003 i.e. without vnfcInstanceId
         heal_vnf_req = objects.HealVnfRequest()
@@ -536,7 +519,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
                               group='vnf_package')
-        self._copy_csar_files(fake_csar, "vnflcm4")
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
         mock_vnf_resource_list.return_value = [fakes.return_vnf_resource()]
         # Heal as per SOL003 i.e. without vnfcInstanceId
         heal_vnf_req = objects.HealVnfRequest()

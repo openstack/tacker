@@ -18,9 +18,11 @@ import os
 from oslo_config import cfg
 import shutil
 import tempfile
+import uuid
 import yaml
 import zipfile
 
+from tacker.tests import utils
 from tacker.tests import uuidsentinel
 
 
@@ -73,32 +75,27 @@ def make_vnfd_files_list(csar_path):
     return files_list
 
 
-def create_fake_csar_dir(vnf_package_id, single_yaml_csar=False):
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    csar_file = ('sample_vnfpkg_no_meta_single_vnfd.zip' if single_yaml_csar
-                 else 'sample_vnf_package_csar.zip')
-    sample_vnf_package_zip = os.path.join(base_path, "../../etc/samples",
-                                          csar_file)
-    tmpdir = tempfile.mkdtemp()
-    fake_csar = os.path.join('/tmp/', vnf_package_id)
-    os.rename(tmpdir, fake_csar)
-
-    with zipfile.ZipFile(sample_vnf_package_zip, 'r') as zf:
-        zf.extractall(fake_csar)
-    cfg.CONF.set_override('vnf_package_csar_path', '/tmp',
+def create_fake_csar_dir(vnf_package_id, temp_dir,
+                         csar_without_tosca_meta=False):
+    csar_dir = ('sample_vnfpkg_no_meta_single_vnfd' if csar_without_tosca_meta
+                else 'vnfpkgm1')
+    fake_csar = os.path.join(temp_dir, vnf_package_id)
+    cfg.CONF.set_override('vnf_package_csar_path', temp_dir,
                           group='vnf_package')
+    utils.copy_csar_files(fake_csar, csar_dir, csar_without_tosca_meta)
+
     return fake_csar
 
 
-def get_expected_vnfd_data():
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    sample_vnf_package_zip = os.path.join(
-        base_path, "../../etc/samples/sample_vnf_package_csar.zip")
-
-    csar_temp_dir = tempfile.mkdtemp()
-
-    with zipfile.ZipFile(sample_vnf_package_zip, 'r') as zf:
-        zf.extractall(csar_temp_dir)
+def get_expected_vnfd_data(zip_file=None):
+    if zip_file:
+        csar_temp_dir = tempfile.mkdtemp()
+        with zipfile.ZipFile(zip_file, 'r') as zf:
+            zf.extractall(csar_temp_dir)
+    else:
+        unique_name = str(uuid.uuid4())
+        csar_temp_dir = os.path.join('/tmp', unique_name)
+        utils.copy_csar_files(csar_temp_dir, 'vnfpkgm1', read_vnfd_only=True)
 
     file_names = ['TOSCA-Metadata/TOSCA.meta',
                   'Definitions/etsi_nfv_sol001_vnfd_types.yaml',
@@ -108,8 +105,9 @@ def get_expected_vnfd_data():
                   'Definitions/etsi_nfv_sol001_common_types.yaml']
     file_path_and_data = {}
     for file_name in file_names:
-        file_path_and_data.update({file_name: yaml.dump(yaml.safe_load(
-            io.open(os.path.join(csar_temp_dir, file_name))))})
+        with io.open(os.path.join(csar_temp_dir, file_name)) as f:
+            file_path_and_data.update({file_name: yaml.dump(yaml.safe_load(
+                f))})
 
     shutil.rmtree(csar_temp_dir)
     return file_path_and_data
