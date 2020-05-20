@@ -1011,12 +1011,6 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertEqual(import_image_url.call_count, 1)
         self.assertEqual(get_image_url.call_count, 10)
 
-    def _exception_response_in_import_image(self):
-        url = os.path.join(self.glance_url, 'images', uuidsentinel.image_id,
-                           'import')
-        return self.requests_mock.register_uri(
-            'POST', url, exc=requests.exceptions.ConnectTimeout)
-
     def _response_in_delete_image(self, resource_id, exception=False):
         # response for glance_client's delete()
         url = os.path.join(

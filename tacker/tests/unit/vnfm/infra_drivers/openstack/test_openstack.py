@@ -147,42 +147,6 @@ class TestOpenStack(base.TestCase):
                 'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                 'id': 'fb048660-dc1b-4f0f-bd89-b023666650ec'}
 
-    def _get_expected_fields(self):
-        return {'stack_name':
-                'test_openwrt_eb84260e-5ff7-4332-b032-50a14d6c1123',
-                'template': self.hot_template}
-
-    def _get_expected_fields_user_data(self):
-        return {'stack_name':
-                'test_userdata_18685f68-2b2a-4185-8566-74f54e548811',
-                'template': self.hot_param_template}
-
-    def _get_expected_fields_ipaddr_data(self):
-        return {'stack_name': 'test_ip_d1337add-d5a1-4fd4-9447-bb9243c8460b',
-                'template': self.hot_ipparam_template}
-
-    def _get_expected_vnf_wait_obj(self, param_values=''):
-        return {'status': 'PENDING_CREATE',
-                'instance_id': None,
-                'name': u'test_openwrt',
-                'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                'vnfd': {
-                    'service_types': [{
-                        'service_type': u'vnfd',
-                        'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
-                    'description': u'OpenWRT with services',
-                    'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                    'mgmt_driver': u'openwrt',
-                    'attributes': {u'vnfd': self.tosca_vnfd_openwrt},
-                    'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
-                    'name': u'OpenWRT'},
-                'mgmt_ip_address': '{"vdu1": "192.168.120.31"}',
-                'service_context': [],
-                'attributes': {u'param_values': param_values},
-                'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
-                'description': u'OpenWRT with services'}
-
     def _get_expected_vnf_update_obj(self):
         return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
             u'test_openwrt', 'tenant_id':
@@ -197,23 +161,6 @@ class TestOpenStack(base.TestCase):
             u'openwrt_services'}, 'mgmt_ip_address': None,
             'service_context': [],
             'attributes': {'config': utils.update_config_data},
-            'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123', 'description':
-                u'OpenWRT with services'}
-
-    def _get_expected_vnf_update_param_obj(self):
-        return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
-            u'test_openwrt', 'tenant_id':
-        u'ad7ebc56538745a08ef7c5e97f8bd437', 'vnfd_id':
-        u'eb094833-995e-49f0-a047-dfb56aaf7c4e', 'vnfd': {
-            'service_types': [{'service_type': u'vnfd', 'id':
-            u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}], 'description':
-            u'OpenWRT with services', 'tenant_id':
-            u'ad7ebc56538745a08ef7c5e97f8bd437', 'mgmt_driver': u'openwrt',
-            'attributes': {u'vnfd': self.tosca_vnfd_openwrt_param},
-            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
-            u'openwrt_services'}, 'mgmt_url': None, 'service_context': [],
-            'attributes': {'heat_template': utils.hot_data,
-                           'param_values': utils.update_param_data},
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123', 'description':
                 u'OpenWRT with services'}
 
