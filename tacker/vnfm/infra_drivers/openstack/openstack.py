@@ -700,7 +700,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                           {'image_uuid': image_uuid, 'status': status})
                 return True
             time.sleep(self.IMAGE_RETRY_WAIT)
-            LOG.debug('Image %(image_uuid)s status: %(status)',
+            LOG.debug('Image %(image_uuid)s status: %(status)s',
                       {"image_uuid": image_uuid, "status": status})
 
             if retries == 0 and image.status != expected_status:

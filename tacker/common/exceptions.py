@@ -287,7 +287,7 @@ class VNFPackageURLInvalid(Invalid):
 
 
 class VnfPackageLocationInvalid(Invalid):
-    message = _("Failed to find location: %(location)")
+    message = _("Failed to find location: %(location)s")
 
 
 class InvalidZipFile(Invalid):
