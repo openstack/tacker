@@ -338,7 +338,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 context=context, vnf_instance=vnf_instance,
                 vim_connection_info=vim_connection_info)
         except Exception as exp:
-            LOG.error("Failed to update vnf %(id)s resources for instance"
+            LOG.error("Failed to update vnf %(id)s resources for instance "
                       "%(instance)s. Error: %(error)s",
                       {'id': vnf_instance.id, 'instance':
                       inst_vnf_info.instance_id, 'error':

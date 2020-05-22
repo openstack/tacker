@@ -632,7 +632,7 @@ class TestAttributes(base.BaseTestCase):
 
         del dictionary['key2']
         msg = attributes._validate_dict(dictionary, constraints)
-        self.assertIsNone(msg, 'Field that was not required by the specs was'
+        self.assertIsNone(msg, 'Field that was not required by the specs was '
                                'required by the validator.')
 
     def test_validate_dict_required_keys(self):
