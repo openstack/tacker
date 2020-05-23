@@ -46,9 +46,11 @@ def _get_sw_image_artifact(artifacts):
         return
 
     for artifact_value in artifacts.values():
-        if 'type' in artifact_value:
-            if artifact_value['type'] == 'tosca.artifacts.nfv.SwImage':
+        if isinstance(artifact_value, dict):
+            if artifact_value.get('type') == 'tosca.artifacts.nfv.SwImage':
                 return artifact_value
+        elif isinstance(artifact_value, str):
+            return {'file': artifact_value}
 
 
 def _update_default_vnfd_data(node_value, node_type_value):
@@ -215,26 +217,30 @@ def _validate_instantiation_levels(policy, instantiation_levels):
 
 
 def _validate_sw_image_data_for_artifact(node_tpl, template_name):
-    artifact_type = []
+    artifact_names = []
     artifacts = node_tpl.get('artifacts')
-    if artifacts:
-        for key, value in artifacts.items():
+    if not artifacts:
+        return
+
+    for key, value in artifacts.items():
+        if isinstance(value, dict):
             if value.get('type') == 'tosca.artifacts.nfv.SwImage':
-                artifact_type.append(value.get('type'))
+                artifact_names.append(key)
+        elif isinstance(value, str):
+            artifact_names.append(key)
 
-        if len(artifact_type) > 1:
-            error_msg = ('artifacts of type "tosca.artifacts.nfv.SwImage"'
-                         ' is added more than one time for'
-                         ' node %(node)s.') % {'node': template_name}
+    if len(artifact_names) > 1:
+        error_msg = ('artifacts of type "tosca.artifacts.nfv.SwImage"'
+                     ' is added more than one time for'
+                     ' node %(node)s.') % {'node': template_name}
+        raise exceptions.InvalidCSAR(error_msg)
+
+    if artifact_names and node_tpl.get('properties'):
+        if not node_tpl.get('properties').get('sw_image_data'):
+            error_msg = ('Node property "sw_image_data" is missing for'
+                         ' artifact %(artifact_name)s for node %(node)s.') % {
+                'artifact_name': artifact_names[0], 'node': template_name}
             raise exceptions.InvalidCSAR(error_msg)
-
-        if artifact_type and node_tpl.get('properties'):
-            if not node_tpl.get('properties').get('sw_image_data'):
-                error_msg = ('Node property "sw_image_data" is missing for'
-                             ' artifact type %(type)s for '
-                             'node %(node)s.') % {
-                    'type': artifact_type[0], 'node': template_name}
-                raise exceptions.InvalidCSAR(error_msg)
 
 
 def _validate_sw_image_data_for_artifacts(tosca):
