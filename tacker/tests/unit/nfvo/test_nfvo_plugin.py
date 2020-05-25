@@ -448,18 +448,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         session.flush()
         return vnffg_template
 
-    def _insert_dummy_vnffg_str_param_template(self):
-        session = self.context.session
-        vnffg_template = vnffg_db.VnffgTemplate(
-            id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
-            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
-            name='fake_template',
-            description='fake_template_description',
-            template={u'vnffgd': utils.vnffgd_tosca_str_param_template})
-        session.add(vnffg_template)
-        session.flush()
-        return vnffg_template
-
     def _insert_dummy_vnffg_multi_param_template(self):
         session = self.context.session
         vnffg_template = vnffg_db.VnffgTemplate(

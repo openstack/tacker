@@ -245,17 +245,6 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         session.flush()
         return vnf_template
 
-    def _insert_dummy_vnfd_attributes(self, template):
-        session = self.context.session
-        vnfd_attr = vnfm_db.VNFDAttribute(
-            id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
-            vnfd_id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
-            key='vnfd',
-            value=template)
-        session.add(vnfd_attr)
-        session.flush()
-        return vnfd_attr
-
     def _insert_dummy_vnf(self, status="ACTIVE"):
         session = self.context.session
         vnf_db = vnfm_db.VNF(
