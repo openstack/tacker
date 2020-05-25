@@ -138,7 +138,7 @@ class VnfTestReservationMonitor(base.BaseTackerTest):
                     self.fail("Scaling-in should not contain "
                               "mgmt_ip_address")
                 except ValueError:
-                    assert True, ("Management Ip address list for VDU1"
+                    assert True, ("Management Ip address list for VDU1 "
                                   "contains null values.")
             elif scale_type == 'scaling-out':
                 self.assertEqual(vdu_count, len(json.loads(

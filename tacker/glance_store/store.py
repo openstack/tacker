@@ -101,7 +101,7 @@ def get_csar_size(package_uuid, location):
     try:
         return glance_store.backend.get_size_from_backend(location)
     except Exception:
-        LOG.exception("Failed to get csar data from glance store %(location)s"
+        LOG.exception("Failed to get csar data from glance store %(location)s "
          "for package %(uuid)s", {"location": location, "uuid": package_uuid})
         raise exceptions.VnfPackageLocationInvalid(location=location)
 
@@ -140,7 +140,7 @@ def _get_csar_chunks(package_uuid, location, offset, chunk_size):
                                                        chunk_size=chunk_size)
         return resp, size
     except Exception:
-        LOG.exception("Failed to get csar data from glance store %(location)s"
+        LOG.exception("Failed to get csar data from glance store %(location)s "
          "for package %(uuid)s", {"location": location, "uuid": package_uuid})
         raise exceptions.VnfPackageLocationInvalid(location=location)
 

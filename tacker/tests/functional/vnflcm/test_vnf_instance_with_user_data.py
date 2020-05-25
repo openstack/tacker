@@ -276,7 +276,7 @@ class VnfLcmWithUserDataTest(base.BaseTackerTest):
         # instantiation_state is set to NOT_INSTANTIATED after
         # gracefulTerminationTimeout seconds.
         if timeout and int(time.time()) - start_time < timeout:
-            self.fail("Vnf is terminated before graceful termination"
+            self.fail("Vnf is terminated before graceful termination "
                       "timeout period")
 
         # wait for status completion

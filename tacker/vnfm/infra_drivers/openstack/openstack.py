@@ -632,7 +632,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             except Exception as exp:
                 with excutils.save_and_reraise_exception():
                     exp.reraise = False
-                    LOG.error("Failed to create image %(name)s for vnf %(id)s"
+                    LOG.error("Failed to create image %(name)s for vnf %(id)s "
                               "due to error: %(error)s",
                               {"name": name, "id": vnf_instance.id,
                               "error": encodeutils.exception_to_unicode(exp)})
@@ -658,7 +658,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             except Exception as exp:
                 with excutils.save_and_reraise_exception():
                     exp.reraise = False
-                    LOG.error("Image %(name)s not active for vnf %(id)s"
+                    LOG.error("Image %(name)s not active for vnf %(id)s "
                               "error: %(error)s",
                               {"name": name, "id": vnf_instance.id,
                               "error": encodeutils.exception_to_unicode(exp)})
@@ -714,14 +714,14 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     @log.log
     def delete_vnf_instance_resource(self, context, vnf_instance,
             vim_connection_info, vnf_resource):
-        LOG.info("Deleting resource '%(name)s' of type ' %(type)s' for vnf"
+        LOG.info("Deleting resource '%(name)s' of type ' %(type)s' for vnf "
                  "%(id)s", {"type": vnf_resource.resource_type,
                  "name": vnf_resource.resource_name,
                  "id": vnf_instance.id})
         glance_client = gc.GlanceClient(vim_connection_info)
         try:
             glance_client.delete(vnf_resource.resource_identifier)
-            LOG.info("Deleted resource '%(name)s' of type ' %(type)s' for vnf"
+            LOG.info("Deleted resource '%(name)s' of type ' %(type)s' for vnf "
                  "%(id)s", {"type": vnf_resource.resource_type,
                  "name": vnf_resource.resource_name,
                  "id": vnf_instance.id})

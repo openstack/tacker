@@ -274,8 +274,8 @@ class VnfPkgmController(wsgi.Controller):
             range_ = webob.byterange.Range.parse(range_str)
             if range_ is None:
                 range_err_msg = _("The byte range passed in the 'Range' header"
-                 "did not match any available byte range in the VNF package"
-                 "file")
+                 " did not match any available byte range in the VNF package"
+                 " file")
                 raise webob.exc.HTTPRequestRangeNotSatisfiable(
                     explanation=range_err_msg)
             # NOTE(sameert): Ensure that a range like bytes=4- for an zip

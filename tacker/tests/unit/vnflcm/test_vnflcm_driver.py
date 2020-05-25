@@ -643,7 +643,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         self.assertEqual(None, vnf_instance.task_state)
         expected_msg = ('Failed to update vnf %(id)s resources for '
-                        'instance%(instance)s. Error: %(error)s')
+                        'instance %(instance)s. Error: %(error)s')
         mock_log.error.assert_called_with(expected_msg,
             {'id': vnf_instance.id,
              'instance': vnf_instance.instantiated_vnf_info.instance_id,
