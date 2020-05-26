@@ -34,7 +34,7 @@ Request Parameters
 
 .. rest_parameters:: parameters.yaml
 
-  - userDefinedData: userDefinedData
+  - userDefinedData: user_defined_data_opt
 
 Request Example
 ---------------
@@ -219,7 +219,7 @@ Request Parameters
 Upload VNF Package from uri
 ===========================
 
-.. rest_method::  POST /vnf_packages/{vnf_package_id}/package_content/upload_from_uri
+.. rest_method::  POST /vnfpkgm/v1/vnf_packages/{vnf_package_id}/package_content/upload_from_uri
 
 Upload a given VNF Package from content.
 
