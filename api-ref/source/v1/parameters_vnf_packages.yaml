@@ -1,0 +1,199 @@
+# variables in header
+content_type:
+  description: |
+    If the VNFD is implemented in the form of multiple files, zip file will
+    be returned with Content-Type set as `application/zip` otherwise it will
+    be set to `text/plain` in the response header.
+  in: header
+  required: true
+  type: string
+fetch_content_type:
+  description: |
+    The fetched VNF Package will be returned with Content-Type set
+    as `application/zip` in the response header.
+  in: header
+  required: true
+  type: string
+range:
+  description: |
+    The byte range of VNF Package to be downloaded is specified in the Range
+    header.
+  in: header
+  required: false
+  type: string
+
+# variables in path
+vnf_package_id_path:
+  description: |
+    The UUID of the VNF Package.
+  in: path
+  required: true
+  type: string
+
+# variables in query
+
+# variables in body
+address_information:
+  description: |
+    Address information of the VNF package content. The NFVO can use this address
+    to obtain the VNF package.
+  in: body
+  required: true
+  type: string
+onboarding_state:
+  description: |
+    On-boarding state of the VNF package.
+    The on-boarding state is represented by the "onboardingState" attribute in the "VnfPkgInfo"
+    information element with below values:
+    CREATED: The VNF Package information object is created.
+    UPLOADING: The VNF Package is being uploaded.
+    PROCESSING: The VNF Package is being processed, e.g. validation.
+    ONBOARDED: The VNF Package is successfully on-boarded.
+  in: body
+  required: true
+  type: string
+operational_state:
+  description: |
+    Operational state of the VNF package.
+    The operational state is represented by the "operationalState" attribute in the "VnfPkgInfo"
+    information element with below values:
+    ENABLED: The VNF Package is enabled.
+    DISABLED: The VNF Package is disabled.
+    If the value of the onboardingState attribute is not equal to "ONBOARDED", the value of
+    the operationalState attribute shall be equal to "DISABLED".
+  in: body
+  required: true
+  type: string
+password:
+  description: |
+    Password to be used for authentication. Shall be present if password is needed but
+    has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+software_images:
+  description: |
+    Information about VNF package artifacts that are software images.
+    This attribute shall not be present before the VNF package content is on-boarded.
+    Otherwise, this attribute shall be present unless it has been requested to be
+    excluded per attribute selector.
+  in: body
+  required: true
+  type: array
+update_operational_state:
+  description: |
+    New value of the operational state of the on-boarded instance of the VNF
+    package. Valid values are "ENABLED" and "DISABLED". See note.
+  in: body
+  required: false
+  type: string
+update_user_defined_data:
+  description: |
+    User defined data to be updated. For existing keys, the value is replaced.
+  in: body
+  required: false
+  type: object
+updated_operational_state:
+  description: |
+    Updated value of the operational state of the on-boarded instance of
+    the VNF package.
+  in: body
+  required: false
+  type: string
+updated_user_defined_data:
+  description: |
+    Updated value of user defined data.
+  in: body
+  required: false
+  type: object
+usage_state:
+  description: |
+    Usage state of the VNF package.
+    The usage state is represented by the "usageState" attribute in the "VnfPkgInfo" information
+    element with below values:
+    IN_USE: The VNF Package is in use.
+    NOT_IN_USE: The VNF Package is not in use.
+    If the value of the onboardingState attribute is not equal to "ONBOARDED", the value of
+    the usageState attribute shall be equal to "NOT_IN_USE".
+  in: body
+  required: true
+  type: string
+user_defined_data:
+  description: |
+    User defined data for the VNF package.
+  in: body
+  required: true
+  type: object
+user_defined_data_opt:
+  description: |
+    User defined data for the VNF package.
+  in: body
+  required: false
+  type: object
+user_name:
+  description: |
+    User name to be used for authentication. Shall be present if user name is needed
+    but has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+vnf_package_id:
+  description: |
+    Identifier of the VNF package. This identifier is allocated by the NFVO.
+  in: body
+  required: true
+  type: string
+vnf_pkg_content:
+  description: |
+    A VNF Package is a tar-archive containing all the information required for managing
+    the lifecycle of a VNF.
+    The "Content-Type" HTTP header should be set to "application/zip".
+  in: body
+  required: true
+  type: object
+vnf_pkg_links:
+  description: |
+    Links to resources related to this resource.
+  in: body
+  required: true
+  type: object
+vnf_pkg_vnfd_id:
+  description: |
+    This identifier, which is managed by the VNF provider, identifies the VNF package and the VNFD
+    in a globally unique way. It is copied from the VNFD of the onboarded VNF package. It shall be
+    present after the VNF package content has been on-boarded and absent otherwise.
+  in: body
+  required: true
+  type: string
+vnf_product_name:
+  description: |
+    Name to identify the VNF product. Invariant for the VNF product lifetime.
+    This information is copied from the VNFD. It shall be present after the VNF
+    package content has been on-boarded and absent otherwise.
+  in: body
+  required: true
+  type: string
+vnf_provider:
+  description: |
+    Provider of the VNF package and the VNFD. This information is copied from the VNFD.
+    It shall be present after the VNF package content has been on-boarded and absent otherwise.
+  in: body
+  required: true
+  type: string
+vnf_software_version:
+  description: |
+    Software version of the VNF. This is changed when there is any change to the software
+    included in the VNF package.
+    This information is copied from the VNFD. It shall be present after the VNF package
+    content has been on-boarded and absent otherwise.
+  in: body
+  required: true
+  type: string
+vnfd_version:
+  description: |
+    The version of the VNFD. This information is copied from the VNFD.
+    It shall be present after the VNF package content has been on-boarded
+    and absent otherwise.
+  in: body
+  required: true
+  type: string
