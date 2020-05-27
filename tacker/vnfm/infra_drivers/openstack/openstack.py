@@ -647,8 +647,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 if is_url:
                     glance_client.import_image(image, image_path)
 
-                self._image_create_wait(image.id, vnf_sw_image.hash,
-                    glance_client, 'active', vnflcm.ImageCreateWaitFailed)
+                self._image_create_wait(image.id, vnf_sw_image, glance_client,
+                    'active', vnflcm.ImageCreateWaitFailed)
 
                 vnf_resource = objects.VnfResource(context=context,
                     vnf_instance_id=vnf_instance.id,
@@ -680,7 +680,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
         return vnf_resources
 
-    def _image_create_wait(self, image_uuid, hash_value, glance_client,
+    def _image_create_wait(self, image_uuid, vnf_software_image, glance_client,
                            expected_status, exception_class):
         retries = self.IMAGE_RETRIES
 
@@ -692,9 +692,16 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 # NOTE(tpatil): If image is uploaded using import_image
                 # ,sdk doesn't validate checksum. So, verify checksum/hash
                 # for both scenarios upload from file and URL here.
-                if hash_value != image.hash_value:
-                    msg = 'Image %s checksum verification failed'
-                    raise Exception(msg % image_uuid)
+                if vnf_software_image.hash != image.hash_value:
+                    msg = ("Image %(image_uuid)s checksum verification failed."
+                           " Glance calculated checksum is %(hash_algo)s:"
+                           "%(hash_value)s. Checksum in VNFD is "
+                           "%(image_hash_algo)s:%(image_hash_value)s.")
+                    raise Exception(msg % {"image_uuid": image_uuid,
+                        "hash_algo": image.hash_algo,
+                        "hash_value": image.hash_value,
+                        "image_hash_algo": vnf_software_image.algorithm,
+                        "image_hash_value": vnf_software_image.hash})
 
                 LOG.debug('Image status: %(image_uuid)s %(status)s',
                           {'image_uuid': image_uuid, 'status': status})
