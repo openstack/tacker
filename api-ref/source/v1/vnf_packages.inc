@@ -194,6 +194,10 @@ Upload VNF Package from content
 
 Upload a given VNF Package from content.
 
+.. note::
+    Please refer `Hashing algorithm for software image checksum`_ section
+    for more information about software image checksum.
+
 Response Codes
 --------------
 
@@ -222,6 +226,10 @@ Upload VNF Package from uri
 .. rest_method::  POST /vnf_packages/{vnf_package_id}/package_content/upload_from_uri
 
 Upload a given VNF Package from content.
+
+.. note::
+    Please refer `Hashing algorithm for software image checksum`_ section
+    for more information about software image checksum.
 
 Response Codes
 --------------
@@ -408,3 +416,21 @@ Response
 .. rest_parameters:: parameters.yaml
 
   - Content-Type: fetch_content_type
+
+Reference
+---------
+
+.. _ETSI_GS_NFV_SOL_004 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/004/02.06.01_60/gs_NFV-SOL004v020601p.pdf
+
+Hashing algorithm for software image checksum
+=============================================
+
+While adding software images in VNF descriptors of VNF packages,
+it is recommended to use ``algorithm`` as defined in `ETSI_GS_NFV_SOL_004`_
+and it must also match with the ``hashing_algorithm`` config option
+set by ``Glance`` service otherwise it will fail to verify
+checksum during instantiation of VNF. The default ``hashing_algorithm``
+configured in ``Glance`` service is ``sha512`` and an operator can
+override the default with any of these algorithms sha3_384, sha224,
+md5, sha512, blake2b, sha3_512, blake2s, sha384, sha1, shake_256,
+sha256, shake_128 and sha3_256.
