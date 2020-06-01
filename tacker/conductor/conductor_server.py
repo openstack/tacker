@@ -16,7 +16,6 @@
 import datetime
 import functools
 import inspect
-import io
 import os
 import shutil
 import sys
@@ -338,7 +337,8 @@ class Conductor(manager.Manager):
             for file in imported_yamls:
                 file_path = os.path.join(
                     csar_path, dir_of_parent_definition_file, file)
-                file_data = yaml.safe_load(io.open(file_path))
+                with open(file_path) as f:
+                    file_data = yaml.safe_load(f)
                 dest_file_path = os.path.abspath(file_path).split(
                     csar_path + '/')[-1]
                 file_path_and_data[dest_file_path] = yaml.dump(file_data)
@@ -356,8 +356,9 @@ class Conductor(manager.Manager):
             # This is CSAR containing a TOSCA-Metadata directory, which
             # includes the TOSCA.meta metadata file providing an entry
             # information for processing a CSAR file.
-            tosca_meta_data = yaml.safe_load(io.open(os.path.join(
-                csar_path, 'TOSCA-Metadata', 'TOSCA.meta')))
+            with open(os.path.join(
+                    csar_path, 'TOSCA-Metadata', 'TOSCA.meta')) as f:
+                tosca_meta_data = yaml.safe_load(f)
             file_path_and_data['TOSCA-Metadata/TOSCA.meta'] = yaml.dump(
                 tosca_meta_data)
             entry_defination_file = tosca_meta_data['Entry-Definitions']
@@ -371,7 +372,8 @@ class Conductor(manager.Manager):
                 os.listdir(csar_path),
                 key=lambda item: item.endswith(('yaml', '.yml')))[-1]
             src_path = os.path.join(csar_path, root_yaml_file)
-            file_data = yaml.safe_load(io.open(src_path))
+            with open(src_path) as f:
+                file_data = yaml.safe_load(f)
             file_path_and_data[root_yaml_file] = yaml.dump(file_data)
 
         return file_path_and_data

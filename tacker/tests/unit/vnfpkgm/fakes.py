@@ -16,7 +16,6 @@
 
 from copy import deepcopy
 import datetime
-import io
 import iso8601
 import os
 import shutil
@@ -249,9 +248,9 @@ def return_vnfd_data(csar_without_tosca_meta=False):
                       'Definitions/etsi_nfv_sol001_vnfd_types.yaml']
     file_path_and_data = {}
     for file_name in file_names:
-        with io.open(os.path.join(csar_temp_dir, file_name)) as f:
-            file_path_and_data.update({file_name: yaml.dump(yaml.safe_load(
-                f))})
+        with open(os.path.join(csar_temp_dir, file_name)) as f:
+            file_path_and_data.update({file_name: yaml.dump(
+                yaml.safe_load(f))})
 
     shutil.rmtree(csar_temp_dir)
     return file_path_and_data
