@@ -1,0 +1,5 @@
+The subdirectories in this path are used to create csar zip files to cover
+different test scenarios in test_csar_utils.py module.
+
+* While execution of test cases it creates csar zip file with the use of
+ 'test_csar_utils_common' and '../common' directory.

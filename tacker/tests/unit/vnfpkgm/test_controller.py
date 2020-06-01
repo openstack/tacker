@@ -519,8 +519,6 @@ class TestController(base.TestCase):
                                         mock_vnf_by_id,
                                         mock_upload_vnf_package_content,
                                         mock_glance_store):
-        file_path = "tacker/tests/etc/samples/test_data.zip"
-        file_obj = open(file_path, "rb")
         updates = {'onboarding_state': 'CREATED',
                    'operational_state': 'DISABLED'}
         vnf_package_dict = fakes.fake_vnf_package(updates)
@@ -534,20 +532,19 @@ class TestController(base.TestCase):
             % constants.UUID)
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
-        req.body = jsonutils.dump_as_bytes(file_obj)
+        req.body = jsonutils.dump_as_bytes(mock.mock_open())
         resp = req.get_response(self.app)
         mock_glance_store.assert_called()
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
 
     def test_upload_vnf_package_content_with_invalid_uuid(self):
-        file_path = "tacker/tests/etc/samples/test_data.zip"
-        file_obj = open(file_path, "rb")
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content'
             % constants.INVALID_UUID)
         exception = self.assertRaises(exc.HTTPNotFound,
                                 self.controller.upload_vnf_package_content,
-                                req, constants.INVALID_UUID, body=file_obj)
+                                req, constants.INVALID_UUID,
+                                      body=mock.mock_open())
         self.assertEqual(
             "Can not find requested vnf package: %s" % constants.INVALID_UUID,
             exception.explanation)
@@ -555,15 +552,13 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_upload_vnf_package_content_without_vnf_pack(self,
                                                          mock_vnf_by_id):
-        file_path = "tacker/tests/etc/samples/test_data.zip"
-        file_obj = open(file_path, "rb")
         msg = _("Can not find requested vnf package: %s") % constants.UUID
         mock_vnf_by_id.side_effect = exc.HTTPNotFound(explanation=msg)
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content' % constants.UUID)
         exception = self.assertRaises(
             exc.HTTPNotFound, self.controller.upload_vnf_package_content,
-            req, constants.UUID, body=file_obj)
+            req, constants.UUID, body=mock.mock_open())
         self.assertEqual(
             "Can not find requested vnf package: %s" % constants.UUID,
             exception.explanation)
@@ -571,8 +566,6 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_upload_vnf_package_content_with_invalid_status(self,
                                                             mock_vnf_by_id):
-        file_path = "tacker/tests/etc/samples/test_data.zip"
-        file_obj = open(file_path, "rb")
         vnf_obj = fakes.return_vnfpkg_obj()
         vnf_obj.__setattr__('onboarding_state', 'ONBOARDED')
         mock_vnf_by_id.return_value = vnf_obj
@@ -580,7 +573,7 @@ class TestController(base.TestCase):
             '/vnf_packages/%s/package_content' % constants.UUID)
         self.assertRaises(exc.HTTPConflict,
                           self.controller.upload_vnf_package_content,
-                          req, constants.UUID, body=file_obj)
+                          req, constants.UUID, body=mock.mock_open())
 
     @mock.patch.object(urllib.request, 'urlopen')
     @mock.patch.object(VNFPackageRPCAPI, "upload_vnf_package_from_uri")
@@ -847,7 +840,7 @@ class TestController(base.TestCase):
                                   mock_vnf_by_id,
                                   mock_get_vnf_package_vnfd):
         mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
-        fake_vnfd_data = fakes.return_vnfd_data(multiple_yaml_files=False)
+        fake_vnfd_data = fakes.return_vnfd_data(csar_without_tosca_meta=True)
         mock_get_vnf_package_vnfd.return_value = fake_vnfd_data
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/vnfd'

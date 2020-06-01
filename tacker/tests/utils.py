@@ -15,6 +15,7 @@
 import base64
 import http.server
 import os
+import shutil
 import threading
 
 from oslo_utils import uuidutils
@@ -103,6 +104,46 @@ def create_csar_with_unique_vnfd_id(csar_dir):
 
     zcsar.close()
     return tempname, unique_id
+
+
+def copy_csar_files(fake_csar_path, csar_dir_name,
+                    csar_without_tosca_meta=False, read_vnfd_only=False):
+    """Copy csar directory to temporary directory
+
+    :param fake_csar_path: a temporary directory in which csar data will be
+                           copied.
+    :param csar_dir_name: the relative path of csar directory with respect to
+                          './tacker/tests/etc/samples/etsi/nfv' directory.
+                          for ex. 'vnfpkgm1'.
+    :param csar_without_tosca_meta: when set to 'True', it will only copy root
+                                    level yaml file and image file.
+    :param read_vnfd_only: when set to 'True', it won't copy the image file
+                           from source directory.
+    """
+    sample_vnf_package = os.path.join(
+        "./tacker/tests/etc/samples/etsi/nfv", csar_dir_name)
+    shutil.copytree(sample_vnf_package, fake_csar_path)
+    common_files_path = os.path.join(
+        "./tacker/tests/etc/samples/etsi/nfv/common/")
+
+    if not read_vnfd_only:
+        # Copying image file.
+        shutil.copytree(os.path.join(common_files_path, "Files/"),
+                        os.path.join(fake_csar_path, "Files/"))
+
+    if csar_without_tosca_meta:
+        return
+
+    # Copying common vnfd files.
+    tosca_definition_file_path = os.path.join(common_files_path,
+                                              "Definitions/")
+    for (dpath, _, fnames) in os.walk(tosca_definition_file_path):
+        if not fnames:
+            continue
+        for fname in fnames:
+            src_file = os.path.join(dpath, fname)
+            shutil.copy(src_file, os.path.join(fake_csar_path,
+                                               "Definitions"))
 
 
 class AuthHandler(http.server.SimpleHTTPRequestHandler):

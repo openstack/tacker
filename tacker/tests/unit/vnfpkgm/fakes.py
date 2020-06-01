@@ -20,10 +20,9 @@ import io
 import iso8601
 import os
 import shutil
-import tempfile
+import uuid
 import webob
 import yaml
-import zipfile
 
 from tacker.api.vnfpkgm.v1.router import VnfpkgmAPIRouter
 from tacker import context
@@ -32,6 +31,7 @@ from tacker.objects import vnf_package as vnf_package_obj
 from tacker.objects import vnf_package_vnfd as vnf_package_vnfd_obj
 from tacker.objects import vnf_software_image as vnf_software_image_obj
 from tacker.tests import constants
+from tacker.tests import utils
 from tacker.tests import uuidsentinel
 from tacker import wsgi
 
@@ -231,27 +231,27 @@ def wsgi_app_v1(fake_auth_context=None):
     return api_v1
 
 
-def return_vnfd_data(multiple_yaml_files=True):
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    sample_vnf_package_zip = os.path.join(
-        base_path, "../../etc/samples/sample_vnf_package_csar.zip")
-
-    csar_temp_dir = tempfile.mkdtemp()
-
-    with zipfile.ZipFile(sample_vnf_package_zip, 'r') as zf:
-        zf.extractall(csar_temp_dir)
-
-    file_names = ['Definitions/etsi_nfv_sol001_vnfd_types.yaml']
-    if multiple_yaml_files:
-        file_names.extend(['TOSCA-Metadata/TOSCA.meta',
-                           'Definitions/helloworld3_types.yaml',
-                           'Definitions/helloworld3_df_simple.yaml',
-                           'Definitions/helloworld3_top.vnfd.yaml',
-                           'Definitions/etsi_nfv_sol001_common_types.yaml'])
+def return_vnfd_data(csar_without_tosca_meta=False):
+    csar_dir = ('sample_vnfpkg_no_meta_single_vnfd'
+                if csar_without_tosca_meta else 'vnfpkgm1')
+    unique_name = str(uuid.uuid4())
+    csar_temp_dir = os.path.join('/tmp', unique_name)
+    utils.copy_csar_files(csar_temp_dir, csar_dir, csar_without_tosca_meta,
+                          read_vnfd_only=True)
+    if csar_without_tosca_meta:
+        file_names = ['vnfd_helloworld_single.yaml']
+    else:
+        file_names = ['TOSCA-Metadata/TOSCA.meta',
+                      'Definitions/helloworld3_types.yaml',
+                      'Definitions/helloworld3_df_simple.yaml',
+                      'Definitions/helloworld3_top.vnfd.yaml',
+                      'Definitions/etsi_nfv_sol001_common_types.yaml',
+                      'Definitions/etsi_nfv_sol001_vnfd_types.yaml']
     file_path_and_data = {}
     for file_name in file_names:
-        file_path_and_data.update({file_name: yaml.dump(yaml.safe_load(
-            io.open(os.path.join(csar_temp_dir, file_name))))})
+        with io.open(os.path.join(csar_temp_dir, file_name)) as f:
+            file_path_and_data.update({file_name: yaml.dump(yaml.safe_load(
+                f))})
 
     shutil.rmtree(csar_temp_dir)
     return file_path_and_data

@@ -18,6 +18,7 @@ import shutil
 import sys
 from unittest import mock
 
+import fixtures
 from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
 from six.moves import urllib
@@ -37,6 +38,7 @@ from tacker.tests.unit.conductor import fakes
 from tacker.tests.unit.db.base import SqlTestCase
 from tacker.tests.unit.objects import fakes as fake_obj
 from tacker.tests.unit.vnflcm import fakes as vnflcm_fakes
+from tacker.tests import utils
 from tacker.tests import uuidsentinel
 
 CONF = tacker.conf.CONF
@@ -60,6 +62,7 @@ class TestConductor(SqlTestCase):
         self._mock_vnfm_plugin()
         self.conductor = conductor_server.Conductor('host')
         self.vnf_package = self._create_vnf_package()
+        self.temp_dir = self.useFixture(fixtures.TempDir()).path
 
     def _mock_vnfm_plugin(self):
         self.vnfm_plugin = mock.Mock(wraps=FakeVNFMPlugin())
@@ -131,16 +134,17 @@ class TestConductor(SqlTestCase):
         mock_delete_csar.assert_called()
 
     def test_get_vnf_package_vnfd_with_tosca_meta_file_in_csar(self):
-        fake_csar = fakes.create_fake_csar_dir(self.vnf_package.id)
-        expected_data = fakes.get_expected_vnfd_data()
+        fake_csar = fakes.create_fake_csar_dir(self.vnf_package.id,
+                                               self.temp_dir)
         result = self.conductor.get_vnf_package_vnfd(self.context,
                                                      self.vnf_package)
+        expected_data = fakes.get_expected_vnfd_data()
         self.assertEqual(expected_data, result)
         shutil.rmtree(fake_csar)
 
     def test_get_vnf_package_vnfd_with_single_yaml_csar(self):
-        fake_csar = fakes.create_fake_csar_dir(self.vnf_package.id,
-                                               single_yaml_csar=True)
+        fake_csar = fakes.create_fake_csar_dir(
+            self.vnf_package.id, self.temp_dir, csar_without_tosca_meta=True)
         result = self.conductor.get_vnf_package_vnfd(self.context,
                                                      self.vnf_package)
         # only one key present in the result shows that it contains only one
@@ -151,19 +155,18 @@ class TestConductor(SqlTestCase):
     @mock.patch.object(glance_store, 'load_csar')
     def test_get_vnf_package_vnfd_download_from_glance_store(self,
                                                              mock_load_csar):
-        fake_csar = os.path.join('/tmp/', self.vnf_package.id)
-        cfg.CONF.set_override('vnf_package_csar_path', '/tmp',
+        fake_csar = os.path.join(self.temp_dir, self.vnf_package.id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
                               group='vnf_package')
-        # Scenario in which csar path is not present in the local storage.
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        sample_vnf_package = os.path.join(
-            base_path, "../../etc/samples/sample_vnf_package_csar.zip")
-        mock_load_csar.return_value = sample_vnf_package
-        expected_data = fakes.get_expected_vnfd_data()
+        fake_csar_zip, _ = utils.create_csar_with_unique_vnfd_id(
+            './tacker/tests/etc/samples/etsi/nfv/vnfpkgm1')
+        mock_load_csar.return_value = fake_csar_zip
+        expected_data = fakes.get_expected_vnfd_data(zip_file=fake_csar_zip)
         result = self.conductor.get_vnf_package_vnfd(self.context,
                                                      self.vnf_package)
         self.assertEqual(expected_data, result)
         shutil.rmtree(fake_csar)
+        os.remove(fake_csar_zip)
 
     @mock.patch.object(glance_store, 'load_csar')
     def test_get_vnf_package_vnfd_exception_from_glance_store(self,
@@ -176,7 +179,8 @@ class TestConductor(SqlTestCase):
     @mock.patch.object(conductor_server.Conductor, '_read_vnfd_files')
     def test_get_vnf_package_vnfd_exception_from_read_vnfd_files(
             self, mock_read_vnfd_files):
-        fake_csar = fakes.create_fake_csar_dir(self.vnf_package.id)
+        fake_csar = fakes.create_fake_csar_dir(self.vnf_package.id,
+                                               self.temp_dir)
         mock_read_vnfd_files.side_effect = yaml.YAMLError
         self.assertRaises(exceptions.FailedToGetVnfdData,
                           self.conductor.get_vnf_package_vnfd, self.context,
