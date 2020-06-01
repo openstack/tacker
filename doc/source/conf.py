@@ -70,7 +70,7 @@ add_function_parentheses = True
 add_module_names = True
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'native'
 
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['tacker.']
@@ -103,6 +103,7 @@ latex_documents = [
 #intersphinx_mapping = {'http://docs.python.org/': None}
 
 # -- Options for openstackdocstheme -------------------------------------------
-repository_name = 'openstack/tacker'
-bug_project = 'tacker'
-bug_tag = ''
+openstackdocs_repo_name = 'openstack/tacker'
+openstackdocs_auto_name = False
+openstackdocs_bug_project = 'tacker'
+openstackdocs_bug_tag = ''
