@@ -12,7 +12,6 @@
 
 """Fixtures for Tacker unit tests."""
 # NOTE(bhagyashris): This is needed for importing from fixtures.
-from __future__ import absolute_import
 
 import warnings
 
