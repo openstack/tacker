@@ -32,7 +32,7 @@ Response Codes
 Request Parameters
 ------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - userDefinedData: user_defined_data_opt
 
@@ -45,14 +45,14 @@ Request Example
 Response Parameters
 -------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - id: vnf_package_id
   - _links: vnf_pkg_links
-  - onboardingState: onboardingState
-  - operationalState: operationalState
-  - usageState: usageState
-  - userDefinedData: userDefinedData
+  - onboardingState: onboarding_state
+  - operationalState: operational_state
+  - usageState: usage_state
+  - userDefinedData: user_defined_data
 
 Response Example
 ----------------
@@ -82,7 +82,7 @@ Response Codes
 Response Parameters
 -------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - id: vnf_package_id
   - vnfdId: vnf_pkg_vnfd_id
@@ -91,10 +91,10 @@ Response Parameters
   - vnfSoftwareVersion: vnf_software_version
   - vnfdVersion: vnfd_version
   - softwareImages: software_images
-  - onboardingState: onboardingState
-  - operationalState: operationalState
-  - usageState: usageState
-  - userDefinedData: userDefinedData
+  - onboardingState: onboarding_state
+  - operationalState: operational_state
+  - usageState: usage_state
+  - userDefinedData: user_defined_data
   - _links: vnf_pkg_links
 
 Response Example
@@ -126,14 +126,14 @@ Response Codes
 Request Parameters
 ------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - vnf_package_id: vnf_package_id_path
 
 Response Parameters
 -------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - id: vnf_package_id
   - vnfdId: vnf_pkg_vnfd_id
@@ -142,10 +142,10 @@ Response Parameters
   - vnfSoftwareVersion: vnf_software_version
   - vnfdVersion: vnfd_version
   - softwareImages: software_images
-  - onboardingState: onboardingState
-  - operationalState: operationalState
-  - usageState: usageState
-  - userDefinedData: userDefinedData
+  - onboardingState: onboarding_state
+  - operationalState: operational_state
+  - usageState: usage_state
+  - userDefinedData: user_defined_data
   - _links: vnf_pkg_links
 
 Response Example
@@ -183,7 +183,7 @@ Response Codes
 Request Parameters
 ------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - vnf_package_id: vnf_package_id_path
 
@@ -215,7 +215,7 @@ Response Codes
 Request Parameters
 ------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - vnf_package_id: vnf_package_id_path
   - vnf_package_content: vnf_pkg_content
@@ -249,11 +249,11 @@ Response Codes
 Request Parameters
 ------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - vnf_package_id: vnf_package_id_path
-  - addressInformation: addressInformation
-  - userName: userName
+  - addressInformation: address_information
+  - userName: user_name
   - password: password
 
 Update VNF Package Information
@@ -281,7 +281,7 @@ Response Codes
 Request Parameters
 ------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - vnf_package_id: vnf_package_id_path
   - operationalState: update_operational_state
@@ -303,7 +303,7 @@ Request Example
 Response Parameters
 -------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - operationalState: updated_operational_state
   - userDefinedData: updated_user_defined_data
@@ -358,7 +358,7 @@ Response Codes
 Request Parameters
 ------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - vnf_package_id: vnf_package_id_path
   - Accept: content_type
@@ -366,7 +366,7 @@ Request Parameters
 Response
 --------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - Content-Type: content_type
 
@@ -404,7 +404,7 @@ Response Codes
 Request Parameters
 ------------------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - vnf_package_id: vnf_package_id_path
   - Accept: fetch_content_type
@@ -413,7 +413,7 @@ Request Parameters
 Response
 --------
 
-.. rest_parameters:: parameters.yaml
+.. rest_parameters:: parameters_vnf_packages.yaml
 
   - Content-Type: fetch_content_type
 
