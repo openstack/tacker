@@ -418,7 +418,7 @@ password:
     Password to be used for authentication. Shall be present if password is needed but
     has not been provisioned out of band.
   in: body
-  required: true
+  required: false
   type: string
 service_types:
   description: |
@@ -566,6 +566,12 @@ usageState:
   in: body
   required: true
   type: string
+user_defined_data_opt:
+  description: |
+    User defined data for the VNF package.
+  in: body
+  required: false
+  type: object
 userDefinedData:
   description: |
     User defined data for the VNF package.
@@ -577,7 +583,7 @@ userName:
     User name to be used for authentication. Shall be present if user name is needed
     but has not been provisioned out of band.
   in: body
-  required: true
+  required: false
   type: string
 version_href:
   description: |
