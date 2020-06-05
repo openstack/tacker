@@ -1,14 +1,17 @@
 - name: Copy files test setup default vim sh
   copy:
      remote_src=True
-     src=/opt/stack/tacker/tools/test-setup-default-vim.sh
+     src={{ devstack_base_dir }}/tacker/tools/test-setup-default-vim.sh
      dest={{ zuul_work_dir }}/tools/test-setup-default-vim.sh
+     mode=0755
+  when: inventory_hostname == "controller"
 
 - name: Copy test vim file
   copy:
      remote_src=True
-     src=/opt/stack/tacker/tacker/tests/etc/samples/local-vim.yaml
+     src={{ devstack_base_dir }}/tacker/tacker/tests/etc/samples/local-vim.yaml
      dest={{ zuul_work_dir }}/tacker/tests/etc/samples/local-vim.yaml
+  when: inventory_hostname == "controller"
 
 - name: Check if project's tools/test-setup-default-vim.sh exists
   stat:
@@ -20,10 +23,46 @@
           or it doesn't have execute permission.
   when:  p.stat.exists != True or p.stat.executable != True
 
+- name: Get stackenv from devstack environment
+  slurp:
+    src: "{{ devstack_base_dir }}/devstack/.stackenv"
+  register: stackenv
+
+- name: Set a keystone authentication uri
+  set_fact:
+    auth_uri: "{{
+              stackenv.content
+              | b64decode
+              | regex_replace('\n', ' ')
+              | regex_replace('^.*KEYSTONE_SERVICE_URI=([^ ]+).*$', '\\1')
+              }}"
+  when:
+    - p.stat.exists
+
+- name: Replace the keystone authentication uri in the test-setup-default-vim.sh and local-vim.yaml
+  replace:
+     path: "{{ item }}"
+     regexp: "http://127.0.0.1/identity"
+     replace: "{{ auth_uri }}"
+  with_items:
+     - "{{ zuul_work_dir }}/tools/test-setup-default-vim.sh"
+     - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-vim.yaml"
+  when:
+    - inventory_hostname == 'controller'
+    - p.stat.exists
+
+- name: Replace the config file path in the test-setup-default-vim.sh
+  replace:
+     path: "{{ zuul_work_dir }}/tools/test-setup-default-vim.sh"
+     regexp: '(?<=config-file )([^ ]+)(?= )'
+     replace: "{{ ansible_env.HOME }}/{{ zuul_work_dir }}/tacker/tests/etc/samples/local-vim.yaml"
+  when: inventory_hostname == 'controller'
+
 - name: Run tools/test-setup-default-vim.sh
   command: tools/test-setup-default-vim.sh
   args:
     chdir: "{{ zuul_work_dir }}"
   when:
+    - inventory_hostname == 'controller'
     - p.stat.exists
     - p.stat.executable
