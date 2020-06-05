@@ -87,7 +87,7 @@ add_module_names = False
 show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'native'
 
 # -- Options for man page output ----------------------------------------------
 
@@ -198,3 +198,8 @@ latex_documents = [
 
 # If false, no module index is generated.
 # latex_use_modindex = True
+
+# -- Options for openstackdocstheme -------------------------------------------
+openstackdocs_repo_name = 'openstack/tacker'
+openstackdocs_bug_project = 'tacker'
+openstackdocs_bug_tag = ''
