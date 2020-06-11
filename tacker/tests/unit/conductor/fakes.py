@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import io
 import os
 from oslo_config import cfg
 import shutil
@@ -105,9 +104,9 @@ def get_expected_vnfd_data(zip_file=None):
                   'Definitions/etsi_nfv_sol001_common_types.yaml']
     file_path_and_data = {}
     for file_name in file_names:
-        with io.open(os.path.join(csar_temp_dir, file_name)) as f:
-            file_path_and_data.update({file_name: yaml.dump(yaml.safe_load(
-                f))})
+        with open(os.path.join(csar_temp_dir, file_name)) as f:
+            file_path_and_data.update({file_name: yaml.dump(
+                yaml.safe_load(f))})
 
     shutil.rmtree(csar_temp_dir)
     return file_path_and_data

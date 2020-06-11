@@ -27,8 +27,8 @@ def _get_template(name):
     filename = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "../infra_drivers/openstack/data/", name)
-    f = codecs.open(filename, encoding='utf-8', errors='strict')
-    return f.read()
+    with codecs.open(filename, encoding='utf-8', errors='strict') as f:
+        return f.read()
 
 
 class TestToscaUtils(testtools.TestCase):
