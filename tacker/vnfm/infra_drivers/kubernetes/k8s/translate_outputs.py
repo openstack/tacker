@@ -33,10 +33,10 @@ DASH_CHARACTER = '_'
 class Transformer(object):
     """Transform TOSCA template to Kubernetes resources"""
 
-    def __init__(self, core_v1_api_client, extension_api_client,
+    def __init__(self, core_v1_api_client, app_v1_api_client,
                  scaling_api_client):
         self.core_v1_api_client = core_v1_api_client
-        self.extension_api_client = extension_api_client
+        self.app_v1_api_client = app_v1_api_client
         self.scaling_api_client = scaling_api_client
 
     def transform(self, tosca_kube_objects):
@@ -101,7 +101,7 @@ class Transformer(object):
                 LOG.debug('Successfully created ConfigMap %s',
                           k8s_object.metadata.name)
             elif object_type == 'Deployment':
-                self.extension_api_client.create_namespaced_deployment(
+                self.app_v1_api_client.create_namespaced_deployment(
                     namespace=namespace,
                     body=k8s_object)
                 LOG.debug('Successfully created Deployment %s',
@@ -221,15 +221,15 @@ class Transformer(object):
             metadata=client.V1ObjectMeta(
                 labels=labels, annotations=tosca_kube_obj.annotations),
             spec=client.V1PodSpec(containers=containers))
-
         # Create the specification of deployment
-        deployment_spec = client.ExtensionsV1beta1DeploymentSpec(
-            template=pod_template)
-        metadata = client.V1ObjectMeta(name=deployment_name)
+        label_selector = client.V1LabelSelector(match_labels=labels)
+        deployment_spec = client.V1DeploymentSpec(
+            template=pod_template, selector=label_selector)
+        metadata = client.V1ObjectMeta(name=deployment_name, labels=labels)
 
         # Instantiate the deployment object
-        deployment = client.ExtensionsV1beta1Deployment(
-            api_version="extensions/v1beta1",
+        deployment = client.V1Deployment(
+            api_version="apps/v1",
             kind="Deployment",
             metadata=metadata,
             spec=deployment_spec)
@@ -247,7 +247,7 @@ class Transformer(object):
 
             # Create target Deployment object
             target = client.V1CrossVersionObjectReference(
-                api_version="extensions/v1beta1",
+                api_version="apps/v1",
                 kind="Deployment",
                 name=deployment_name)
             # Create the specification of horizon pod auto-scaling
