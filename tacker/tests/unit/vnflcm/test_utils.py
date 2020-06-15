@@ -47,3 +47,13 @@ class VnfLcmUtilsTestCase(base.TestCase):
                                            extracted_path)
         self.assertEqual(expected_image_path,
                          vnf_software_images['VDU1'].image_path)
+
+    def test_get_param_data_with_flavour_description(self):
+        vnfd_dict = fakes.get_vnfd_dict()
+        vnfd_dict.update({'imports': []})
+        instantiate_vnf_req = fakes.get_instantiate_vnf_request_obj()
+        param_value = vnflcm_utils._get_param_data(vnfd_dict,
+                                                   instantiate_vnf_req)
+        expected_flavour_description = 'A simple flavor'
+        self.assertEqual(expected_flavour_description,
+                         param_value['flavour_description'])
