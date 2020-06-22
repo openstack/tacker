@@ -23,126 +23,129 @@ started with Tacker and validate the installation.
 
 
 Registering default OpenStack VIM
-=================================
-1. Get one account on the OpenStack VIM.
+---------------------------------
 
-In Tacker MANO system, the VNF can be on-boarded to one target OpenStack, which
-is also called VIM. Get one account on this OpenStack. For example, the below
-is the account information collected in file `vim_config.yaml` [1]_:
+#. Get one account on the OpenStack VIM
 
-.. code-block:: yaml
+   In Tacker MANO system, VNFs can be on-boarded to a target OpenStack which
+   is also called as VIM. Get one account on your OpenStack, such as ``admin``
+   if you deploy your OpenStack via devstack. Here is an example of a user
+   named as ``nfv_user`` and has a project ``nfv`` on OpenStack for
+   VIM configuration. It is described in ``vim_config.yaml`` [1]_:
 
-    auth_url: 'http://127.0.0.1/identity'
-    username: 'nfv_user'
-    password: 'mySecretPW'
-    project_name: 'nfv'
-    project_domain_name: 'Default'
-    user_domain_name: 'Default'
-    cert_verify: 'True'
-..
+   .. literalinclude:: ../../../samples/vim/vim_config.yaml
+       :language: yaml
 
-.. note::
+   .. note::
 
-    In Keystone, port `5000` is enabled for authentication service [2]_, so the
-    end users can use `auth_url: 'http://127.0.0.1:5000/v3'` instead  of
-    `auth_url: 'http://127.0.0.1/identity'` as above mention.
+       In Keystone, port ``5000`` is enabled for authentication service [2]_,
+       so the end users can use ``auth_url: 'http://127.0.0.1:5000/v3'`` instead
+       of ``auth_url: 'http://127.0.0.1/identity'`` as above mention.
 
-By default, cert_verify is set as `True`. To disable verifying SSL
-certificate, user can set cert_verify parameter to `False`.
+   By default, ``cert_verify`` is set as ``True``. To disable verifying SSL
+   certificate, user can set ``cert_verifyi`` parameter to ``False``.
 
-2. Register the VIM that will be used as a default VIM for VNF deployments.
-This will be required when the optional argument `--vim-id` is not provided by
-the user during VNF creation.
+#. Register VIM
 
-.. code-block:: console
+   Register the default VIM with the config file for VNF deployment.
+   This will be required when the optional argument ``--vim-id`` is not
+   provided by the user during VNF creation.
 
-   openstack vim register --config-file vim_config.yaml \
-          --description 'my first vim' --is-default hellovim
-..
+   .. code-block:: console
+
+       $ openstack vim register --config-file vim_config.yaml \
+              --description 'my first vim' --is-default hellovim
+
 
 Onboarding sample VNF
-=====================
+---------------------
 
-1. Create a `sample-vnfd.yaml` file with the following template:
+#. Create a ``sample-vnfd.yaml`` file with the following template
 
-.. code-block:: yaml
+   .. code-block:: yaml
 
-   tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+       tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
-   description: Demo example
+       description: Demo example
 
-   metadata:
-     template_name: sample-tosca-vnfd
+       metadata:
+         template_name: sample-tosca-vnfd
 
-   topology_template:
-     node_templates:
-       VDU1:
-         type: tosca.nodes.nfv.VDU.Tacker
-         capabilities:
-           nfv_compute:
+       topology_template:
+         node_templates:
+           VDU1:
+             type: tosca.nodes.nfv.VDU.Tacker
+             capabilities:
+               nfv_compute:
+                 properties:
+                   num_cpus: 1
+                   mem_size: 512 MB
+                   disk_size: 1 GB
              properties:
-               num_cpus: 1
-               mem_size: 512 MB
-               disk_size: 1 GB
-         properties:
-           image: cirros-0.4.0-x86_64-disk
-           availability_zone: nova
-           mgmt_driver: noop
-           config: |
-             param0: key1
-             param1: key2
+               image: cirros-0.4.0-x86_64-disk
+               availability_zone: nova
+               mgmt_driver: noop
+               config: |
+                 param0: key1
+                 param1: key2
 
-       CP1:
-         type: tosca.nodes.nfv.CP.Tacker
-         properties:
-           management: true
-           order: 0
-           anti_spoofing_protection: false
-         requirements:
-           - virtualLink:
-               node: VL1
-           - virtualBinding:
-               node: VDU1
+           CP1:
+             type: tosca.nodes.nfv.CP.Tacker
+             properties:
+               management: true
+               order: 0
+               anti_spoofing_protection: false
+             requirements:
+               - virtualLink:
+                   node: VL1
+               - virtualBinding:
+                   node: VDU1
 
-       VL1:
-         type: tosca.nodes.nfv.VL
-         properties:
-           network_name: net_mgmt
-           vendor: Tacker
-..
+           VL1:
+             type: tosca.nodes.nfv.VL
+             properties:
+               network_name: net_mgmt
+               vendor: Tacker
 
-.. note::
+   .. note::
 
-   You can find more sample tosca templates for VNFD at [3]_
+       You can find several samples of tosca template for VNFD at [3]_.
 
 
-2. Create a sample VNFD
+#. Create a sample VNFD
 
-.. code-block:: console
+   .. code-block:: console
 
-   openstack vnf descriptor create --vnfd-file sample-vnfd.yaml samplevnfd
-..
+      $ openstack vnf descriptor create --vnfd-file sample-vnfd.yaml samplevnfd
 
-3. Create a VNF
+#. Create a VNF
 
-.. code-block:: console
+   .. code-block:: console
 
-   openstack vnf create --vnfd-name samplevnfd samplevnf
-..
+      $ openstack vnf create --vnfd-name samplevnfd samplevnf
 
-4. Some basic Tacker commands
+#. Some basic Tacker commands
 
-.. code-block:: console
+   You can find each of VIM, VNFD and VNF created in previous steps by using
+   ``list`` subcommand.
 
-   openstack vim list
-   openstack vnf descriptor list
-   openstack vnf list
-   openstack vnf show samplevnf
-..
+   .. code-block:: console
+
+      $ openstack vim list
+      $ openstack vnf descriptor list
+      $ openstack vnf list
+
+   If you inspect attributes of the isntances, use ``show`` subcommand with
+   name or ID. For example, you can inspect the VNF named as ``samplevnf``
+   as below.
+
+   .. code-block:: console
+
+      $ openstack vnf show samplevnf
 
 References
-==========
+----------
 
-.. [1] https://github.com/longkb/tacker/blob/master/samples/vim/vim_config.yaml
+.. [1] https://opendev.org/openstack/tacker/src/branch/master/samples/vim/vim_config.yaml
 .. [2] https://docs.openstack.org/keystoneauth/latest/using-sessions.html#sessions-for-users
-.. [3] https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd
+.. [3] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd
