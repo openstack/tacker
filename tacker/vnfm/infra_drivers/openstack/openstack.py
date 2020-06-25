@@ -233,6 +233,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         fields['stack_name'] = ("vnflcm_" + vnf["id"])
         fields['template'] = self._format_base_hot(base_hot_dict)
         fields['parameters'] = hot_param_dict
+        fields['timeout_mins'] = (
+            self.STACK_RETRIES * self.STACK_RETRY_WAIT // 60)
 
         LOG.debug('fields: %s', fields)
         LOG.debug('template: %s', fields['template'])
@@ -256,6 +258,9 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 name += ('-RESPAWN-%s') % str(vnf['attributes'][
                     'failure_count'])
             fields['stack_name'] = name
+
+        fields['timeout_mins'] = (
+            self.STACK_RETRIES * self.STACK_RETRY_WAIT // 60)
 
         # service context is ignored
         LOG.debug('service_context: %s', vnf.get('service_context', []))

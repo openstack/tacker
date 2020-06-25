@@ -292,7 +292,8 @@ class TestOpenStack(base.TestCase):
     def _get_expected_fields_tosca(self, template):
         return {'stack_name':
                 'test_openwrt_eb84260e-5ff7-4332-b032-50a14d6c1123',
-                'template': _get_template(template)}
+                'template': _get_template(template),
+                'timeout_mins': 10}
 
     def _get_expected_tosca_vnf(self,
                                 tosca_tpl_name,
