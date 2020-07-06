@@ -315,6 +315,33 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual("INSTANTIATED", vnf_instance_obj.instantiation_state)
         shutil.rmtree(fake_csar)
 
+    @mock.patch.object(objects.VnfResource, 'create')
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.VnfInstance, "save")
+    def test_instantiate_vnf_with_single_vnfd(self, mock_vnf_instance_save,
+                             mock_vnf_package_vnfd, mock_create):
+        vnf_package_vnfd = fakes.return_vnf_package_vnfd()
+        vnf_package_id = vnf_package_vnfd.package_uuid
+        mock_vnf_package_vnfd.return_value = vnf_package_vnfd
+        instantiate_vnf_req_dict = fakes.get_dummy_instantiate_vnf_request()
+        instantiate_vnf_req_obj = \
+            objects.InstantiateVnfRequest.obj_from_primitive(
+                instantiate_vnf_req_dict, self.context)
+        vnf_instance_obj = fakes.return_vnf_instance()
+
+        fake_csar = os.path.join(self.temp_dir, vnf_package_id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
+                              group='vnf_package')
+        test_utils.copy_csar_files(
+            fake_csar, "sample_vnfpkg_no_meta_single_vnfd")
+        self._mock_vnf_manager(vnf_resource_count=2)
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.instantiate_vnf(self.context, vnf_instance_obj,
+                               instantiate_vnf_req_obj)
+        self.assertEqual(2, mock_create.call_count)
+        self.assertEqual("INSTANTIATED", vnf_instance_obj.instantiation_state)
+        shutil.rmtree(fake_csar)
+
     @mock.patch.object(objects.VnfInstance, "save")
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")

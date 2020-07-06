@@ -214,7 +214,7 @@ def _get_param_data(vnfd_dict, instantiate_vnf_req):
     input_attributes = vnfd_dict.get('topology_template', {}).get('inputs')
     if substitution_map is not None:
         subs_map_node_type = substitution_map.get('node_type')
-        import_paths = vnfd_dict.get('imports')
+        import_paths = vnfd_dict.get('imports', {})
         for imp_path in import_paths:
             with open(imp_path) as file_obj:
                 import_data = yaml.safe_load(file_obj)

@@ -756,6 +756,18 @@ node_types:
   ntt.nslab.VNF:
     derived_from: tosca.nodes.nfv.VNF
     properties:
+      id:
+        type: string
+        description: ID of this VNF
+        default: vnf_id
+      vendor:
+        type: string
+        description: name of the vendor who generate this VNF
+        default: vendor
+      version:
+        type: version
+        description: version of the software for this VNF
+        default: 1.0
       descriptor_id:
         type: string
         constraints: [ valid_values: [ b1bb0ce7-ebca-4fa7-95ed-4840d70a1177 ] ]
