@@ -1,0 +1,10 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: Tacker
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/sample_vnfd_top.yaml
+ETSI-Entry-Manifest: manifest.mf
+
+Name: Scripts/install.sh
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 27bbdb25d8f4ed6d07d6f6581b86515e8b2f0059b236ef7b6f50d6674b34f02a

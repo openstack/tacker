@@ -62,6 +62,8 @@ class SessionClient(adapter.Adapter):
         body = response.text
         if body and response.headers['Content-Type'] == 'text/plain':
             return body
+        elif body and response.headers['Content-Type'] == 'text/x-sh':
+            return body
         elif body:
             return jsonutils.loads(body)
         else:

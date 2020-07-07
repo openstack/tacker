@@ -1,0 +1,5 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml
+ETSI-Entry-Manifest: manifest.mf1

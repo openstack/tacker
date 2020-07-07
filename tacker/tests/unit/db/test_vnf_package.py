@@ -30,6 +30,7 @@ class TestVnfPackage(SqlTestCase):
         self.context = context.get_admin_context()
         self.vnf_package = self._create_vnf_package()
         self.vnf_deployment_flavour = self._create_vnf_deployment_flavour()
+        self.vnf_artifacts = self._create_vnf_artifacts()
 
     def _create_vnf_package(self):
         vnfpkgm = objects.VnfPackage(context=self.context,
@@ -45,6 +46,14 @@ class TestVnfPackage(SqlTestCase):
         vnf_deployment_flavour.create()
         return vnf_deployment_flavour
 
+    def _create_vnf_artifacts(self):
+        artifact_data = fake_data.vnf_artifacts
+        artifact_data.update({'package_uuid': self.vnf_package.id})
+        vnf_artifacts = objects.VnfPackageArtifactInfo(context=self.context,
+                                            **artifact_data)
+        vnf_artifacts.create()
+        return vnf_artifacts
+
     def test_add_user_defined_data(self):
         vnf_package_db = models.VnfPackage()
         vnf_package_db.update(fakes.fake_vnf_package())
@@ -57,9 +66,10 @@ class TestVnfPackage(SqlTestCase):
     def test_vnf_package_get_by_id(self):
         result = vnf_package._vnf_package_get_by_id(
             self.context, self.vnf_package.id,
-            columns_to_join=['vnf_deployment_flavours'])
+            columns_to_join=['vnf_deployment_flavours', 'vnf_artifacts'])
         self.assertEqual(self.vnf_package.id, result.id)
         self.assertTrue(result.vnf_deployment_flavours)
+        self.assertTrue(result.vnf_artifacts)
 
     def test_vnf_package_create(self):
         result = vnf_package._vnf_package_create(self.context,
@@ -68,7 +78,8 @@ class TestVnfPackage(SqlTestCase):
 
     def test_vnf_package_list(self):
         result = vnf_package._vnf_package_list(
-            self.context, columns_to_join=['vnf_deployment_flavours'])
+            self.context, columns_to_join=[
+                'vnf_deployment_flavours', 'vnf_artifacts'])
         self.assertTrue(isinstance(result, list))
         self.assertTrue(result)
 

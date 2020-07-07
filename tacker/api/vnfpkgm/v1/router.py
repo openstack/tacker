@@ -81,3 +81,10 @@ class VnfpkgmAPIRouter(wsgi.Router):
         self._setup_route(mapper,
                           "/vnf_packages/{id}/vnfd",
                           methods, controller, default_resource)
+
+        # Allowed methods on /vnf_packages/{id}/artifacts/{artifact_path}
+        methods = {"GET": "fetch_vnf_package_artifacts"}
+        self._setup_route(mapper,
+                          "/vnf_packages/{id}/artifacts/"
+                          "{artifact_path:.*?/*.*?}",
+                          methods, controller, default_resource)
