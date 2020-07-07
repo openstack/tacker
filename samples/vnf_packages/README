@@ -1,0 +1,10 @@
+The subdirectories in this path are used to create sample csar zip
+files to run the upload of VNF package and the VNF LCM instantiate.
+
+The creation is manual, so run the following command:
+
+    zip -r sample_vnf_pkg.zip TOSCA-Metadata Definitions Files
+
+Requires the zip command. If it is not installed, you need to
+install it in your environment.
+
