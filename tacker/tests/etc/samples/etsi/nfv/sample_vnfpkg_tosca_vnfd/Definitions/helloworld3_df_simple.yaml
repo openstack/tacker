@@ -1,0 +1,275 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: Simple deployment flavour for Sample VNF
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - helloworld3_types.yaml
+
+topology_template:
+  inputs:
+    descriptor_id:
+      type: string
+    descriptor_version:
+      type: string
+    provider:
+      type: string
+    product_name:
+      type: string
+    software_version:
+      type: string
+    vnfm_info:
+      type: list
+      entry_schema:
+        type: string
+    flavour_id:
+      type: string
+    flavour_description:
+      type: string
+
+  substitution_mappings:
+    node_type: company.provider.VNF
+    properties:
+      flavour_id: simple
+    requirements:
+      virtual_link_external: [ CP1, virtual_link ]
+
+  node_templates:
+    VNF:
+      type: company.provider.VNF
+      properties:
+        flavour_description: A simple flavour
+      interfaces:
+        Vnflcm:
+          # supporting only 'instantiate', 'terminate', 'modify'
+          # not supporting LCM script, supporting only default LCM
+          instantiate: []
+          instantiate_start: []
+          instantiate_end: []
+          terminate: []
+          terminate_start: []
+          terminate_end: []
+          modify_information: []
+          modify_information_start: []
+          modify_information_end: []
+          # change_flavour: []
+          # change_flavour_start: []
+          # change_flavour_end: []
+          # change_external_connectivity: []
+          # change_external_connectivity_start: []
+          # change_external_connectivity_end: []
+          # operate: []
+          # operate_start: []
+          # operate_end: []
+          # heal: []
+          # heal_start: []
+          # heal_end: []
+          # scale: []
+          # scale_start: []
+          # scale_end: []
+          # scale_to_level: []
+          # scale_to_level_start: []
+          # scale_to_level_end: []
+
+    VDU1:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VDU1
+        description: VDU1 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+        sw_image_data:
+          name: Software of VDU1
+          version: '0.4.0'
+          checksum:
+            algorithm: sha-256
+            hash: b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 1 GB
+          size: 1 GB
+
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: ../Files/images/cirros-0.4.0-x86_64-disk.img
+
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 512 MB
+            virtual_cpu:
+              num_virtual_cpu: 1
+            virtual_local_storage:
+              - size_of_storage: 1 GB
+
+    VDU2:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VDU2
+        description: VDU2 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 3
+
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 512 MB
+            virtual_cpu:
+              num_virtual_cpu: 1
+            virtual_local_storage:
+              - size_of_storage: 1 GB
+      requirements:
+        - virtual_storage: VirtualStorage
+
+    VirtualStorage:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 30 GB
+          rdma_enabled: true
+        sw_image_data:
+          name: VrtualStorage
+          version: '0.4.0'
+          checksum:
+            algorithm: sha-256
+            hash: b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 2 GB
+          min_ram: 8192 MB
+          size: 2 GB
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: ../Files/images/cirros-0.4.0-x86_64-disk.img
+
+    CP1:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 0
+        vnic_type: direct-physical
+      requirements:
+        - virtual_binding: VDU1
+        #- virtual_link: # the target node is determined in the NSD
+
+    CP2:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 1
+      requirements:
+        - virtual_binding: VDU1
+        - virtual_link: internalVL2
+
+    CP3:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 2
+      requirements:
+        - virtual_binding: VDU2
+        - virtual_link: internalVL2
+
+    internalVL2:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        description: Internal Virtual link in the VNF
+        vl_profile:
+          max_bitrate_requirements:
+            root: 1048576
+            leaf: 1048576
+          min_bitrate_requirements:
+            root: 1048576
+            leaf: 1048576
+          virtual_link_protocol_data:
+            - associated_layer_protocol: ipv4
+              l3_protocol_data:
+                ip_version: ipv4
+                cidr: 11.11.0.0/24
+
+  policies:
+    - scaling_aspects:
+        type: tosca.policies.nfv.ScalingAspects
+        properties:
+          aspects:
+            worker_instance:
+              name: worker_instance_aspect
+              description: worker_instance scaling aspect
+              max_scale_level: 2
+              step_deltas:
+                - delta_1
+
+    - VDU2_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ VDU2 ]
+
+    - VDU2_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: worker_instance
+          deltas:
+            delta_2:
+              number_of_instances: 1
+        targets: [ VDU2 ]
+
+    - instantiation_levels:
+        type: tosca.policies.nfv.InstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              description: Smallest size
+              scale_info:
+                worker_instance:
+                  scale_level: 0
+            instantiation_level_2:
+              description: Largest size
+              scale_info:
+                worker_instance:
+                  scale_level: 2
+          default_level: instantiation_level_1
+
+    - VDU1_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1
+            instantiation_level_2:
+              number_of_instances: 3
+        targets: [ VDU1 ]
+
+    - VDU2_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1
+            instantiation_level_2:
+              number_of_instances: 1
+        targets: [ VDU2 ]
+
+    - internalVL2_instantiation_levels:
+        type: tosca.policies.nfv.VirtualLinkInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              bitrate_requirements:
+                root: 1048576
+                leaf: 1048576
+            instantiation_level_2:
+              bitrate_requirements:
+                root: 1048576
+                leaf: 1048576
+        targets: [ internalVL2 ]

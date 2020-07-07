@@ -233,7 +233,26 @@ class Conductor(manager.Manager):
                 self._create_software_images(
                     context, sw_image, deploy_flavour.id)
 
-    def _onboard_vnf_package(self, context, vnf_package, vnf_data, flavours):
+    def _create_vnf_artifacts(self, context, package_uuid, artifact):
+        vnf_artifact = objects.VnfPackageArtifactInfo(context=context)
+        vnf_artifact.package_uuid = package_uuid
+        vnf_artifact.artifact_path = artifact['Source']
+        vnf_artifact.algorithm = artifact['Algorithm']
+        vnf_artifact.hash = artifact['Hash']
+        vnf_artifact._metadata = {}
+        vnf_artifact.create()
+
+    def _onboard_vnf_package(
+            self,
+            context,
+            vnf_package,
+            vnf_data,
+            flavours,
+            vnf_artifacts):
+        if vnf_artifacts:
+            for artifact in vnf_artifacts:
+                self._create_vnf_artifacts(context, vnf_package.id, artifact)
+
         package_vnfd = objects.VnfPackageVnfd(context=context)
         package_vnfd.package_uuid = vnf_package.id
 
@@ -251,9 +270,14 @@ class Conductor(manager.Manager):
     def upload_vnf_package_content(self, context, vnf_package):
         location = vnf_package.location_glance_store
         zip_path = glance_store.load_csar(vnf_package.id, location)
-        vnf_data, flavours = csar_utils.load_csar_data(
+        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
             context.elevated(), vnf_package.id, zip_path)
-        self._onboard_vnf_package(context, vnf_package, vnf_data, flavours)
+        self._onboard_vnf_package(
+            context,
+            vnf_package,
+            vnf_data,
+            flavours,
+            vnf_artifacts)
         vnf_package.onboarding_state = (
             fields.PackageOnboardingStateType.ONBOARDED)
         vnf_package.operational_state = (
@@ -282,10 +306,15 @@ class Conductor(manager.Manager):
         vnf_package.save()
 
         zip_path = glance_store.load_csar(vnf_package.id, location)
-        vnf_data, flavours = csar_utils.load_csar_data(
+        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
             context.elevated(), vnf_package.id, zip_path)
 
-        self._onboard_vnf_package(context, vnf_package, vnf_data, flavours)
+        self._onboard_vnf_package(
+            context,
+            vnf_package,
+            vnf_data,
+            flavours,
+            vnf_artifacts)
 
         vnf_package.onboarding_state = (
             fields.PackageOnboardingStateType.ONBOARDED)

@@ -81,6 +81,14 @@ vnf_deployment_flavour = {'flavour_id': 'simple',
                               2019, 8, 8, 0, 0, 0, tzinfo=iso8601.UTC),
                           }
 
+vnf_artifacts = {
+    'artifact_path': 'scripts/install.sh',
+    '_metadata': {},
+    'algorithm': 'sha-256',
+    'hash': 'd0e7828293355a07c2dccaaa765c80b507e60e6167067c950dc2e6b0da0dbd8b',
+    'created_at': datetime.datetime(2020, 6, 29, 0, 0, 0, tzinfo=iso8601.UTC),
+}
+
 
 def get_vnf_package_vnfd_data(vnf_package_id, vnfd_id):
     return {
@@ -167,6 +175,17 @@ def vnf_pack_vnfd_data(vnf_pack_id):
         'vnf_product_name': 'test_product_name',
         'vnf_software_version': 'test_version',
         'vnfd_version': 'test_vnfd_version',
+    }
+
+
+def vnf_pack_artifact_data(vnf_pack_id):
+    return {
+        'package_uuid': vnf_pack_id,
+        'artifact_path': 'scripts/install.sh',
+        'algorithm': 'sha-256',
+        'hash': 'd0e7828293355a07c2dccaaa765c80b507e'
+                '60e6167067c950dc2e6b0da0dbd8b',
+        '_metadata': {}
     }
 
 

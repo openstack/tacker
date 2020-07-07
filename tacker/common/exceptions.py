@@ -248,6 +248,10 @@ class VnfSoftwareImageNotFound(NotFound):
     message = _("No vnf software image  with id %(id)s.")
 
 
+class VnfArtifactNotFound(NotFound):
+    message = _("No vnf artifact with id %(id)s.")
+
+
 class VnfInstantiatedInfoNotFound(NotFound):
     message = _("No vnf instantiated info for vnf id %(vnf_instance_id)s.")
 
@@ -301,6 +305,10 @@ class UploadFailedToGlanceStore(Invalid):
 
 class FailedToGetVnfdData(Invalid):
     message = _("Failed to get csar zip file from glance store: %(error)s")
+
+
+class FailedToGetVnfArtifact(Invalid):
+    message = _("Failed to get artifact file from glance store: %(error)s")
 
 
 class FailedToGetVnfPackageDetails(Invalid):

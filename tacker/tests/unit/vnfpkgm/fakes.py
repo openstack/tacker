@@ -25,6 +25,7 @@ import yaml
 
 from tacker.api.vnfpkgm.v1.router import VnfpkgmAPIRouter
 from tacker import context
+from tacker.objects import vnf_artifact as vnf_artifact_obj
 from tacker.objects import vnf_deployment_flavour as vnf_deployment_flavour_obj
 from tacker.objects import vnf_package as vnf_package_obj
 from tacker.objects import vnf_package_vnfd as vnf_package_vnfd_obj
@@ -74,6 +75,15 @@ VNFPACKAGE_RESPONSE = {
         'size': 1,
         'userMetadata': {'key3': 'value3', 'key4': 'value4'},
         'version': '11.22.33'
+    }],
+    'additionalArtifacts': [{
+        'artifactPath': 'Scripts/install.sh',
+        'metadata': {},
+        'checksum': {
+            'algorithm': 'SHA-256',
+            'hash': '27bbdb25d8f4ed6d07d6f6581b86515e8b2f005'
+                    '9b236ef7b6f50d6674b34f02a'
+        }
     }],
 }
 
@@ -170,6 +180,32 @@ def _return_vnfd(updates=None):
     return vnf_package_vnfd_obj.VnfPackageVnfd(**vnfd)
 
 
+def _fake_artifact(updates=None):
+    artifact = {
+        'id': uuidsentinel.vnf_artifact_id,
+        'package_uuid': 'f26f181d-7891-4720-b022-b074ec1733ef',
+        'artifact_path': 'Scripts/install.sh',
+        'metadata': {},
+        'algorithm': 'SHA-256',
+        'hash': '27bbdb25d8f4ed6d07d6f6581b86515e8b2f0059b236ef'
+                '7b6f50d6674b34f02a'}
+    if updates:
+        artifact.update(updates)
+    return artifact
+
+
+def _return_artifact(update=None):
+    artifact = _fake_artifact(update)
+    return vnf_artifact_obj.VnfPackageArtifactInfo(**artifact)
+
+
+def _return_artifact_list(update=None):
+    artifact_obj = _return_artifact(update)
+    artifact_list = vnf_artifact_obj.VnfPackageArtifactInfoList()
+    artifact_list.objects = [artifact_obj]
+    return artifact_list
+
+
 def fake_vnf_package(updates=None):
     vnf_package = {
         'id': constants.UUID,
@@ -187,8 +223,12 @@ def fake_vnf_package(updates=None):
     return vnf_package
 
 
-def return_vnfpkg_obj(vnf_package_updates=None, vnfd_updates=None,
-        deployment_flavour_updates=None, software_image_updates=None):
+def return_vnfpkg_obj(
+        vnf_package_updates=None,
+        vnfd_updates=None,
+        deployment_flavour_updates=None,
+        software_image_updates=None,
+        vnf_artifact_updates=None):
     vnf_package = fake_vnf_package(vnf_package_updates)
     obj = vnf_package_obj.VnfPackage(**vnf_package)
     obj.vnfd = _return_vnfd(vnfd_updates)
@@ -198,6 +238,7 @@ def return_vnfpkg_obj(vnf_package_updates=None, vnfd_updates=None,
     flavour_list = vnf_deployment_flavour_obj.VnfDeploymentFlavoursList()
     flavour_list.objects = [deployment_flavour]
     obj.vnf_deployment_flavours = flavour_list
+    obj.vnf_artifacts = _return_artifact_list(vnf_artifact_updates)
     return obj
 
 
@@ -235,8 +276,9 @@ def return_vnfd_data(csar_without_tosca_meta=False):
                 if csar_without_tosca_meta else 'vnfpkgm1')
     unique_name = str(uuid.uuid4())
     csar_temp_dir = os.path.join('/tmp', unique_name)
-    utils.copy_csar_files(csar_temp_dir, csar_dir, csar_without_tosca_meta,
-                          read_vnfd_only=True)
+    utils.copy_artifact_files(
+        csar_temp_dir, csar_dir, csar_without_tosca_meta,
+        read_vnfd_only=True)
     if csar_without_tosca_meta:
         file_names = ['vnfd_helloworld_single.yaml']
     else:

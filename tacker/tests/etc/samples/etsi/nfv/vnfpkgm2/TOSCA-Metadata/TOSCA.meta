@@ -1,7 +1,8 @@
 TOSCA-Meta-File-Version: 1.0
-Created-by: Hiroyuki JO
+Created-by: dummy_user
 CSAR-Version: 1.1
 Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml
+ETSI-Entry-Manifest: manifest.mf
 
 Name: Files/images/cirros-0.4.0-x86_64-disk.img
 Content-type: application/x-iso9066-image

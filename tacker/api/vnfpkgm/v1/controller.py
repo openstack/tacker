@@ -13,9 +13,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
 from io import BytesIO
+import mimetypes
+import os
+
+from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import uuidutils
 import six
@@ -28,6 +34,7 @@ from tacker._i18n import _
 from tacker.api.schemas import vnf_packages
 from tacker.api import validation
 from tacker.api.views import vnf_packages as vnf_packages_view
+from tacker.common import csar_utils
 from tacker.common import exceptions
 from tacker.common import utils
 from tacker.conductor.conductorrpc import vnf_pkgm_rpc
@@ -99,8 +106,8 @@ class VnfPkgmController(wsgi.Controller):
 
         try:
             vnf_package = vnf_package_obj.VnfPackage.get_by_id(
-                request.context, id,
-                expected_attrs=["vnf_deployment_flavours", "vnfd"])
+                request.context, id, expected_attrs=[
+                    "vnf_deployment_flavours", "vnfd", "vnf_artifacts"])
         except exceptions.VnfPackageNotFound:
             msg = _("Can not find requested vnf package: %s") % id
             raise webob.exc.HTTPNotFound(explanation=msg)
@@ -474,6 +481,134 @@ class VnfPkgmController(wsgi.Controller):
         else:
             request.response.headers['Content-Type'] = 'application/zip'
             return self._create_vnfd_zip(vnfd_files_and_data)
+
+    @wsgi.response(http_client.OK)
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
+                           http_client.NOT_FOUND, http_client.CONFLICT,
+                           http_client.REQUESTED_RANGE_NOT_SATISFIABLE))
+    def fetch_vnf_package_artifacts(self, request, id, artifact_path):
+        context = request.environ['tacker.context']
+        # get policy
+        context.can(vnf_package_policies.VNFPKGM % 'fetch_artifact')
+
+        # get vnf_package
+        if not uuidutils.is_uuid_like(id):
+            msg = _("Can not find requested vnf package: %s") % id
+            raise webob.exc.HTTPNotFound(explanation=msg)
+
+        try:
+            vnf_package = vnf_package_obj.VnfPackage.get_by_id(
+                request.context, id,
+                expected_attrs=["vnf_artifacts"])
+        except exceptions.VnfPackageNotFound:
+            msg = _("Can not find requested vnf package: %s") % id
+            raise webob.exc.HTTPNotFound(explanation=msg)
+
+        if vnf_package.onboarding_state != \
+                fields.PackageOnboardingStateType.ONBOARDED:
+            msg = _("VNF Package %(id)s state is not "
+                    "%(onboarded)s")
+            raise webob.exc.HTTPConflict(explanation=msg % {"id": id,
+                    "onboarded": fields.PackageOnboardingStateType.ONBOARDED})
+
+        offset, chunk_size = 0, None
+
+        # get all artifact's path
+        artifact_file_paths = []
+        for item in vnf_package.vnf_artifacts:
+            artifact_file_paths.append(item.artifact_path)
+
+        if artifact_path in artifact_file_paths:
+            # get file's size
+            csar_path = self._get_csar_path(vnf_package)
+            absolute_artifact_path = os.path.join(csar_path, artifact_path)
+            if not os.path.isfile(absolute_artifact_path):
+                msg = _(
+                    "This type of path(url) '%s' is currently not supported") \
+                    % artifact_path
+                raise webob.exc.HTTPBadRequest(explanation=msg)
+            artifact_size = os.path.getsize(absolute_artifact_path)
+            range_val = self._get_range_from_request(request, artifact_size)
+            # range_val exists
+            if range_val:
+                if isinstance(range_val, webob.byterange.Range):
+                    # get the position of the last byte in the artifact file
+                    response_end = artifact_size - 1
+                    if range_val.start >= 0:
+                        offset = range_val.start
+                    else:
+                        if abs(range_val.start) < artifact_size:
+                            offset = artifact_size + range_val.start
+                    if range_val.end is not None and \
+                            range_val.end < artifact_size:
+                        chunk_size = range_val.end - offset
+                        response_end = range_val.end - 1
+                    else:
+                        chunk_size = artifact_size - offset
+                request.response.status_int = 206
+            # range_val does not exist, download the whole content of file
+            else:
+                offset = 0
+                chunk_size = artifact_size
+
+            # get file's mineType;
+            mime_type = mimetypes.guess_type(artifact_path.split('/')[-1])[0]
+            if mime_type:
+                request.response.headers['Content-Type'] = mime_type
+            else:
+                request.response.headers['Content-Type'] = \
+                    'application/octet-stream'
+            try:
+                artifact_data = self._download_vnf_artifact(
+                    absolute_artifact_path, offset, chunk_size)
+            except exceptions.FailedToGetVnfArtifact as e:
+                LOG.error(e.msg)
+                raise webob.exc.HTTPInternalServerError(
+                    explanation=e.msg)
+            request.response.text = artifact_data.decode('utf-8')
+            if request.response.status_int == 206:
+                request.response.headers['Content-Range'] = 'bytes %s-%s/%s' \
+                                                            % (offset,
+                                                               response_end,
+                                                               artifact_size)
+            else:
+                chunk_size = artifact_size
+
+            request.response.headers['Content-Length'] = chunk_size
+            return request.response
+        else:
+            msg = _("Not Found Artifact File.")
+            raise webob.exc.HTTPNotFound(explanation=msg)
+
+    def _get_csar_path(self, vnf_package):
+        csar_path = os.path.join(CONF.vnf_package.vnf_package_csar_path,
+                                 vnf_package.id)
+
+        if not os.path.isdir(csar_path):
+            location = vnf_package.location_glance_store
+            try:
+                zip_path = glance_store.load_csar(vnf_package.id, location)
+                csar_utils.extract_csar_zip_file(zip_path, csar_path)
+            except (store_exceptions.GlanceStoreException) as e:
+                exc_msg = encodeutils.exception_to_unicode(e)
+                msg = (_("Exception raised from glance store can be "
+                         "unrecoverable if it is not related to connection"
+                         " error. Error: %s.") % exc_msg)
+                raise exceptions.FailedToGetVnfArtifact(error=msg)
+        return csar_path
+
+    def _download_vnf_artifact(self, artifact_file_path, offset=0,
+            chunk_size=None):
+        try:
+            with open(artifact_file_path, 'rb') as f:
+                f.seek(offset, 1)
+                vnf_artifact_data = f.read(chunk_size)
+                return vnf_artifact_data
+        except Exception as e:
+            exc_msg = encodeutils.exception_to_unicode(e)
+            msg = (_("Exception raised while reading artifact file"
+                     " Error: %s.") % exc_msg)
+            raise exceptions.FailedToGetVnfArtifact(error=msg)
 
     def _create_vnfd_zip(self, vnfd_files_and_data):
         buff = BytesIO()
