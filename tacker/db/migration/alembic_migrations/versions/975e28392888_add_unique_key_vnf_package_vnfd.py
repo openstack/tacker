@@ -28,6 +28,7 @@ down_revision = 'abbef484b34c'
 
 from alembic import op  # noqa: E402
 import sqlalchemy as sa  # noqa: E402
+from sqlalchemy.engine import reflection  # noqa: E402
 
 
 def _migrate_duplicate_vnf_package_vnfd_id(table):
@@ -56,6 +57,17 @@ def _migrate_duplicate_vnf_package_vnfd_id(table):
 
 
 def upgrade(active_plugins=None, options=None):
+    check_constraints = (reflection.Inspector.from_engine(op.get_bind())
+                         .get_check_constraints('vnf_package_vnfd'))
+    for constraint in check_constraints:
+        if '`deleted`' in constraint['sqltext']:
+            op.drop_constraint(
+                constraint_name=constraint['name'],
+                table_name='vnf_package_vnfd',
+                type_="check"
+            )
+            break
+
     op.alter_column('vnf_package_vnfd',
                     'deleted',
                     type_=sa.String(36), default="0")
