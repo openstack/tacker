@@ -29,7 +29,7 @@ Horizon are installed. Refer the list below for installation of
 these OpenStack projects on different Operating Systems.
 
 * https://docs.openstack.org/keystone/latest/install/index.html
-* https://docs.openstack.org/mistral/latest/install/index.html
+* https://docs.openstack.org/mistral/latest/admin/install/index.html
 * https://docs.openstack.org/barbican/latest/install/install.html
 * https://docs.openstack.org/horizon/latest/install/index.html
 
