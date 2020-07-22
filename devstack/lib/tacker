@@ -436,25 +436,10 @@ function tacker_register_default_vim {
     sed -e "s|^auth_url:.*$|auth_url: \'${KEYSTONE_SERVICE_URI}\'|" -i $VIM_CONFIG_FILE
     echo "The content of VIM config file $VIM_CONFIG_FILE :"
     cat $VIM_CONFIG_FILE
-    DEFAULT_VIM_NAME="VIM0"
 
     # TODO(tpatil): Remove installing python-tackerclient using pip once
     # a solution is available to install it using requirements.
     pip_install python-tackerclient
-
-    cat >> $TACKER_DIR/tools/test-setup-default-vim.sh <<EOF
-
-openstack --os-username nfv_user --os-project-name nfv --os-password devstack --os-auth-url ${KEYSTONE_SERVICE_URI} --os-project-domain-name Default --os-user-domain-name Default vim register --is-default --description "Default VIM" --config-file $VIM_CONFIG_FILE $DEFAULT_VIM_NAME
-
-EOF
-    echo "The content of $TACKER_DIR/tools/test-setup-default-vim.sh"
-    cat $TACKER_DIR/tools/test-setup-default-vim.sh
-
-    echo "Update tacker/tests/etc/samples/local-vim.yaml for functional testing"
-    functional_vim_file="$TACKER_DIR/tacker/tests/etc/samples/local-vim.yaml"
-    sed -e "s|^auth_url:.*$|auth_url: \'${KEYSTONE_SERVICE_URI}\'|" -i $functional_vim_file
-    echo "The content of functional VIM config file $functional_vim_file :"
-    cat $functional_vim_file
 
     echo "Set up target openstack vim resources ..."
     openstack --os-cloud=devstack-admin quota set \
