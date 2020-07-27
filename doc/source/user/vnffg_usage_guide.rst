@@ -25,7 +25,7 @@ decides which traffic should go through them.
 
 Similar to how VNFs are described by VNFDs, VNFFGs are described by VNF
 Forwarding Graph Descriptors (VNFFGD). Please see the `devref guide
-<https://github.com/openstack/tacker/blob/master/doc/source/contributor
+<https://opendev.org/openstack/tacker/src/branch/master/doc/source/contributor
 /vnffgd_template_description.rst>`_ on VNFFGD to learn more about
 how a VNFFGD is defined.
 
@@ -43,7 +43,7 @@ in order to use Tacker VNFFG.  Networking-sfc also requires at least OVS 2.5
 .0, so also ensure that is installed.  See the full `Networking-sfc guide
 <https://docs.openstack.org/networking-sfc/latest/>`_.
 
-A simple example of a service chain would be one that forces all traffice
+A simple example of a service chain would be one that forces all traffic
 from HTTP client to HTTP server to go through VNFs that was created by
 VNFFG.
 
@@ -111,7 +111,7 @@ applies to an OpenStack VIM.
 
 Two "network_dst_port_id" and "ip_dst_prefix" parameters must be set when you
 want to create VNFFG with "symmetrical" feature. If you want to create VNFFG
-without "symmetrical", you can ommit "network_dst_port_id" and "ip_dst_prefix".
+without "symmetrical", you can omit "network_dst_port_id" and "ip_dst_prefix".
 
 .. code-block:: yaml
 
@@ -401,7 +401,7 @@ derived from the following VNFFGD template.
            constituent_vnfs: [VNFD3]
          members: [Forwarding_path1]
 
-By using the below VNFFGD template we can update the exisitng VNFFG.
+By using the below VNFFGD template we can update the existing VNFFG.
 
 .. code-block:: yaml
 
@@ -484,7 +484,7 @@ Known Issues and Limitations
 - NSH attributes not yet supported
 - n-sfc Bug: https://bugs.launchpad.net/networking-sfc/+bug/1746686
 
-.. _VNF1: https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd1.yaml
-.. _VNF2: https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd2.yaml
+.. _VNF1: https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd1.yaml
+.. _VNF2: https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd2.yaml
 .. _SFC_PROXY: https://tools.ietf.org/html/rfc8300
 .. _SFC_ENCAPSULATION: https://docs.openstack.org/networking-sfc/latest/contributor/ietf_sfc_encapsulation.html

@@ -319,7 +319,7 @@ After installation, user should check kuryr.conf configuration.
 
 To use CustomResourceDefinition, user needs to add CRD.
 User can make a additional network using yaml file like below.
-Create yaml file  like below and register it.
+Create yaml file like below and register it.
 
 .. code-block:: console
 
@@ -410,7 +410,7 @@ Known Issues and Limitations
 
 References
 ==========
-.. [#first] https://github.com/openstack/tacker/blob/master/doc/source/install/kubernetes_vim_installation.rst
+.. [#first] https://opendev.org/openstack/tacker/src/branch/master/doc/source/install/kubernetes_vim_installation.rst
 .. [#second] https://kubernetes.io/docs/concepts/workloads/pods/init-containers
 .. [#third] https://kubernetes.io/docs/concepts/workloads/pods/pod-overview
 .. [#fourth] https://kubernetes.io/docs/concepts/workloads/controllers/deployment

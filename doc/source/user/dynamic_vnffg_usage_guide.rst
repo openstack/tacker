@@ -292,9 +292,9 @@ mitigated.
 .. [#f1] https://www.openstack.org/videos/vancouver-2018/dynamic-sfc-from-tacker-to-incept-specific-traffic-of-vm-1
 .. [#f2] https://github.com/dangtrinhnt/DynamicSFCDemo/blob/master/DynamicSFC_OpenStackSummit2018Vancouver.pdf
 .. [#f3] https://docs.openstack.org/devstack/latest/
-.. [#f4] https://github.com/openstack/tacker/blob/master/devstack/local.conf.example
+.. [#f4] https://opendev.org/openstack/tacker/src/branch/master/devstack/local.conf.example
 .. [#f5] https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-zabbix-to-securely-monitor-remote-servers-on-ubuntu-16-04
 .. [#f6] https://blog.rapid7.com/2017/02/14/how-to-install-suricata-nids-on-ubuntu-linux/
 .. [#f7] https://docs.openstack.org/tacker/latest/install/deploy_openwrt.html
-.. [#f8] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
-.. [#f9] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml
+.. [#f8] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
+.. [#f9] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml

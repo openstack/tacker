@@ -273,7 +273,7 @@ composed of a Forwarding Path and a VNFFG. A full VNFFGD is shown below:
 
 .. [#f1] http://docs.oasis-open.org/tosca/tosca-nfv/v1.0/tosca-nfv-v1.0.html
 .. [#f2] https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnffgd
-.. [#f3] https://github.com/openstack/tacker/blob/master/tacker/tosca/lib/tacker_nfv_defs.yaml
-.. [#f4] https://github.com/openstack/tacker/blob/master/tacker/tosca/lib/tacker_nfv_defs.yaml
+.. [#f3] https://opendev.org/openstack/tacker/src/branch/master/tacker/tosca/lib/tacker_nfv_defs.yaml
+.. [#f4] https://opendev.org/openstack/tacker/src/branch/master/tacker/tosca/lib/tacker_nfv_defs.yaml
 .. [#f5] http://docs.oasis-open.org/tosca/tosca-nfv/v1.0/csd03/tosca-nfv-v1.0-csd03.html#_Toc447714727
 .. [#f6] https://docs.openstack.org/tacker/latest/user/vnffg_usage_guide.html

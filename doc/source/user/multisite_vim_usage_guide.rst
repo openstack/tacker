@@ -17,7 +17,7 @@
 Multisite VIM Usage
 ===================
 
-A single Tacker controller node can be used to manage multiple Openstack sites
+A single Tacker controller node can be used to manage multiple OpenStack sites
 without having the need to deploy Tacker server on each of these sites. Tacker
 allows users to deploy VNFs in multiple OpenStack sites using the multisite VIM
 feature. OpenStack versions starting from Kilo are supported with this feature.
@@ -69,7 +69,7 @@ remote OpenStack site.
 .. note::
 
     In Keystone, port `5000` is enabled for authentication service [1]_, so the
-    end users can use `auth_url: 'http://127.0.0.1:5000/v3` instead  of
+    end users can use `auth_url: 'http://127.0.0.1:5000/v3` instead of
     `auth_url: 'http://127.0.0.1/identity'` as above mention.
 
 Default VIM configuration
@@ -130,7 +130,7 @@ be used to deploy VNF on the default site. We can create default vim
 by specifying --is-default option with vim-register command.
 
 User can optionally provide --vim-region-name during vnf creation to deploy the
-VNF in a specify region  within that VIM.
+VNF in a specify region within that VIM.
 
 Updating a VIM
 ~~~~~~~~~~~~~~
@@ -165,7 +165,7 @@ To delete a VIM :
 
 Features
 ~~~~~~~~
-* Tacker support multi-tenancy, that means a VIM regisetered by one tenant can
+* Tacker support multi-tenancy, that means a VIM registered by one tenant can
   not be shared with other.
 * Pluggable driver module framework allowing Tacker to interact with multiple
   VIM types.

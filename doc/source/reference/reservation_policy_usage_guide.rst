@@ -407,7 +407,7 @@ When reservation resource type is physical:host
 
 ..
 
-2. Replace the flavor with reservation in tosca-tempate given for reservation
+2. Replace the flavor with reservation in tosca-template given for reservation
 policy as below:
 Ref:
 ``samples/tosca-templates/vnfd/tosca-vnfd-host-reservation.yaml``

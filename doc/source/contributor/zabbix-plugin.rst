@@ -28,7 +28,7 @@ settings. You do not have to do a lot of work or complex settings.
 
 Zabbix-Agent must be installed in the VNF. And you need to set it up. The
 necessary settings must be made in /etc/zabbix/zabbix_agentd.conf in the
-VNF. Installation and The setting method is as follows.
+VNF. Installation and the setting method is as follows.
 
 .. code-block:: console
 
@@ -139,7 +139,7 @@ recommended to use USER_DATA parameter.
 
 If we enter Zabbix-related information in the template, you will
 get a Token according to the internal workflow of Zabbix-plugin.
-It it used to configure varitous monitoring functions.
+It it used to configure various monitoring functions.
 
 .. code-block:: console
 

@@ -76,7 +76,7 @@ Important guidelines to follow:
 * Testcases in tox environment may be executed in parallel.
   The order in which the testcases are executed may vary
   between two environments.
-* The code added should  meet pep8 standards. This can be verified with
+* The code added should meet pep8 standards. This can be verified with
   following command and ensuring the code does not return any errors.
 
 .. code-block:: console
@@ -123,4 +123,4 @@ Committing testcase and opening a review:
 Sample testcase:
 ================
 * Check sample tests under following directory:
-  https://github.com/openstack/tacker/blob/master/tacker/tests/functional/
+  https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/

@@ -19,7 +19,7 @@ Orchestrating VNFs with attached Volumes
 
 To support persistent volumes to VNF, TOSCA NFV profile supports new type
 of nodes. Tacker has now feature of parsing of those new nodes and creation
-of cinder volumes  which are attached to the VDUs.
+of cinder volumes which are attached to the VDUs.
 
 
 Prerequisites
