@@ -21,305 +21,141 @@ Deploying OpenWRT as VNF
 Once tacker is installed successfully, follow the steps given below to get
 started with deploying OpenWRT as VNF.
 
-1. Ensure Glance already contains OpenWRT image.
+#. Ensure Glance already contains OpenWRT image.
 
-Normally, Tacker tries to add OpenWRT image to Glance while installing
-via devstack. By running **openstack image list** to check OpenWRT image
-if exists. If not, download the customized image of OpenWRT 15.05.1
-[#f1]_. Unzip the file by using the command below:
+   Normally, Tacker tries to add OpenWRT image to Glance while installing
+   via devstack. By running ``openstack image list`` to check OpenWRT image
+   if exists.
 
-.. code-block:: console
+   .. code-block:: console
+       :emphasize-lines: 5
 
-   gunzip openwrt-x86-kvm_guest-combined-ext4.img.gz
+       $ openstack image list
+       +--------------------------------------+--------------------------+--------+
+       | ID                                   | Name                     | Status |
+       +--------------------------------------+--------------------------+--------+
+       | 8cc2aaa8-5218-49e7-9a57-ddb97dc68d98 | OpenWRT                  | active |
+       | 32f875b0-9e24-4971-b82d-84d6ec620136 | cirros-0.4.0-x86_64-disk | active |
+       | ab0abeb8-f73c-467b-9743-b17083c02093 | cirros-0.5.1-x86_64-disk | active |
+       +--------------------------------------+--------------------------+--------+
 
-..
+   If not, you can get the customized image of OpenWRT 15.05.1 in your tacker repository,
+   or download the image from [#f1]_. Unzip the file by using the command below:
 
-And then upload this image into Glance by using the command specified below:
+   .. code-block:: console
 
-.. code-block:: console
+      $ cd /path/to/tacker/samples/images/
+      $ gunzip openwrt-x86-kvm_guest-combined-ext4.img.gz
 
-   openstack image create OpenWRT --disk-format qcow2 \
-                                  --container-format bare \
-                                  --file /path_to_image/openwrt-x86-kvm_guest-combined-ext4.img \
-                                  --public
-..
+   Then upload the image into Glance by using command below:
 
-2. Configure OpenWRT
+   .. code-block:: console
 
-The example below shows how to create the OpenWRT-based Firewall VNF.
-First, we have a yaml template which contains the configuration of
-OpenWRT as shown below:
+      $ openstack image create OpenWRT --disk-format qcow2 \
+            --container-format bare \
+            --file /path/to/openwrt-x86-kvm_guest-combined-ext4.img \
+            --public
 
-*tosca-vnfd-openwrt.yaml* [#f2]_
+#. Configure OpenWRT
 
-.. code-block:: yaml
+   The example below shows how to create the OpenWRT-based Firewall VNF.
+   First, we have a yaml template which contains the configuration of
+   OpenWRT as shown below:
 
-   tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+   *tosca-vnfd-openwrt.yaml* [#f2]_
 
-   description: OpenWRT with services
+   .. literalinclude:: ../../../samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
+       :language: yaml
 
-   metadata:
-     template_name: OpenWRT
 
-   topology_template:
-     node_templates:
+   We also have another configuration yaml template with some firewall rules of
+   OpenWRT.
 
-       VDU1:
-         type: tosca.nodes.nfv.VDU.Tacker
-         capabilities:
-           nfv_compute:
-             properties:
-               num_cpus: 1
-               mem_size: 512 MB
-               disk_size: 1 GB
-         properties:
-           image: OpenWRT
-           config: |
-             param0: key1
-             param1: key2
-           mgmt_driver: openwrt
-           monitoring_policy:
-             name: ping
-             parameters:
-               count: 3
-               interval: 10
-             actions:
-               failure: respawn
+   *tosca-config-openwrt-firewall.yaml* [#f3]_
 
-        CP1:
-         type: tosca.nodes.nfv.CP.Tacker
-         properties:
-           management: true
-           order: 0
-           anti_spoofing_protection: false
-         requirements:
-           - virtualLink:
-              node: VL1
-           - virtualBinding:
-               node: VDU1
+   .. literalinclude:: ../../../samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml
+       :language: yaml
 
-        CP2:
-         type: tosca.nodes.nfv.CP.Tacker
-         properties:
-           order: 1
-           anti_spoofing_protection: false
-         requirements:
-           - virtualLink:
-               node: VL2
-           - virtualBinding:
-               node: VDU1
+   In this template file, we specify the ``mgmt_driver: openwrt`` which means
+   this VNFD is managed by openwrt driver [#f4]_. This driver can inject
+   firewall rules which defined in VNFD into OpenWRT instance by using SSH
+   protocol. We can run ``cat /etc/config/firewall`` to confirm the firewall
+   rules if inject succeed.
 
-        CP3:
-         type: tosca.nodes.nfv.CP.Tacker
-         properties:
-           order: 2
-           anti_spoofing_protection: false
-         requirements:
-           - virtualLink:
-               node: VL3
-           - virtualBinding:
-               node: VDU1
+#. Create a sample vnfd
 
-        VL1:
-         type: tosca.nodes.nfv.VL
-         properties:
-           network_name: net_mgmt
-           vendor: Tacker
+   .. code-block:: console
 
-        VL2:
-         type: tosca.nodes.nfv.VL
-         properties:
-           network_name: net0
-           vendor: Tacker
+       $ openstack vnf descriptor create \
+           --vnfd-file tosca-vnfd-openwrt.yaml <VNFD_NAME>
 
-        VL3:
-         type: tosca.nodes.nfv.VL
-         properties:
-           network_name: net1
-           vendor: Tacker firewall
+#. Create a VNF
 
-..
+   .. code-block:: console
 
-We also have another configuration yaml template with some firewall rules of
-OpenWRT.
+      $ openstack vnf create --vnfd-name <VNFD_NAME> \
+            --config-file tosca-config-openwrt-firewall.yaml <NAME>
 
-*tosca-config-openwrt-firewall.yaml* [#f3]_
+#. Check the status
 
-.. code-block:: yaml
+   .. code-block:: console
 
-   vdus:
-     VDU1:
-       config:
-         firewall: |
-           package firewall
-           config defaults
-               option syn_flood '1'
-               option input 'ACCEPT'
-               option output 'ACCEPT'
-               option forward 'REJECT'
-           config zone
-               option name 'lan'
-               list network 'lan'
-               option input 'ACCEPT'
-               option output 'ACCEPT'
-               option forward 'ACCEPT'
-           config zone
-               option name 'wan'
-               list network 'wan'
-               list network 'wan6'
-               option input 'REJECT'
-               option output 'ACCEPT'
-               option forward 'REJECT'
-               option masq '1'
-               option mtu_fix '1'
-           config forwarding
-               option src 'lan'
-               option dest 'wan'
-           config rule
-               option name 'Allow-DHCP-Renew'
-               option src 'wan'
-               option proto 'udp'
-               option dest_port '68'
-               option target 'ACCEPT'
-               option family 'ipv4'
-           config rule
-               option name 'Allow-Ping'
-               option src 'wan'
-               option proto 'icmp'
-               option icmp_type 'echo-request'
-               option family 'ipv4'
-               option target 'ACCEPT'
-           config rule
-               option name 'Allow-IGMP'
-               option src 'wan'
-               option proto 'igmp'
-               option family 'ipv4'
-               option target 'ACCEPT'
-           config rule
-               option name 'Allow-DHCPv6'
-               option src 'wan'
-               option proto 'udp'
-               option src_ip 'fe80::/10'
-               option src_port '547'
-               option dest_ip 'fe80::/10'
-               option dest_port '546'
-               option family 'ipv6'
-               option target 'ACCEPT'
-           config rule
-               option name 'Allow-MLD'
-               option src 'wan'
-               option proto 'icmp'
-               option src_ip 'fe80::/10'
-               list icmp_type '130/0'
-               list icmp_type '131/0'
-               list icmp_type '132/0'
-               list icmp_type '143/0'
-               option family 'ipv6'
-               option target 'ACCEPT'
-           config rule
-               option name 'Allow-ICMPv6-Input'
-               option src 'wan'
-               option proto 'icmp'
-               list icmp_type 'echo-request'
-               list icmp_type 'echo-reply'
-               list icmp_type 'destination-unreachable'
-               list icmp_type 'packet-too-big'
-               list icmp_type 'time-exceeded'
-               list icmp_type 'bad-header'
-               list icmp_type 'unknown-header-type'
-               list icmp_type 'router-solicitation'
-               list icmp_type 'neighbour-solicitation'
-               list icmp_type 'router-advertisement'
-               list icmp_type 'neighbour-advertisement'
-               option limit '190/sec'
-               option family 'ipv6'
-               option target 'REJECT'
+       $ openstack vnf list
+       $ openstack vnf show <VNF_ID>
 
-..
+   We can replace the firewall rules configuration file with
+   tosca-config-openwrt-vrouter.yaml [#f5]_, tosca-config-openwrt-dnsmasq.yaml
+   [#f6]_, or tosca-config-openwrt-qos.yaml [#f7]_ to deploy the router, DHCP,
+   DNS, or QoS VNFs. The openwrt VNFM management driver will do the same way to
+   inject the desired service rules into the OpenWRT instance. You can also do the
+   same to check if the rules are injected successful: **cat /etc/config/network**
+   to check vrouter, **cat /etc/config/dhcp** to check DHCP and DNS, and
+   **cat /etc/config/qos** to check the QoS rules.
 
-In this template file, we specify the **mgmt_driver: openwrt** which means
-this VNFD is managed by openwrt driver [#f4]_. This driver can inject
-firewall rules which defined in VNFD into OpenWRT instance by using SSH
-protocol. We can run**cat /etc/config/firewall** to confirm the firewall
-rules if inject succeed.
+#. Notes
 
-3. Create a sample vnfd
+   #. OpenWRT user and password
 
-.. code-block:: console
+      The user account is 'root' and password is '', which means there is no
+      password for root account.
 
-    openstack vnf descriptor create --vnfd-file tosca-vnfd-openwrt.yaml <VNFD_NAME>
-..
+   #. Procedure to customize the OpenWRT image
 
-4. Create a VNF
+      The OpenWRT is modified based on KVM OpenWRT 15.05.1 to be suitable
+      for Tacker. The procedure is following as below:
 
-.. code-block:: console
+      .. code-block:: console
 
-    openstack vnf create --vnfd-name <VNFD_NAME> \
-                      --config-file tosca-config-openwrt-firewall.yaml <NAME>
-..
+          $ cd ~
+          $ wget https://archive.openwrt.org/chaos_calmer/15.05.1/x86/kvm_guest/openwrt-15.05.1-x86-kvm_guest-combined-ext4.img.gz \
+                  -O openwrt-x86-kvm_guest-combined-ext4.img.gz
+          $ gunzip openwrt-x86-kvm_guest-combined-ext4.img.gz
 
-5. Check the status
+          $ mkdir -p imgroot
 
-.. code-block:: console
+          $ sudo kpartx -av openwrt-x86-kvm_guest-combined-ext4.img
 
-    openstack vnf list
-    openstack vnf show <VNF_ID>
-..
+          # Replace the loopXp2 with the result of above command, e.g., loop0p2
+          $ sudo mount -o loop /dev/mapper/loopXp2 imgroot
+          $ sudo chroot imgroot /bin/ash
 
-We can replace the firewall rules configuration file with
-tosca-config-openwrt-vrouter.yaml [#f5]_, tosca-config-openwrt-dnsmasq.yaml
-[#f6]_, or tosca-config-openwrt-qos.yaml [#f7]_ to deploy the router, DHCP,
-DNS, or QoS VNFs. The openwrt VNFM management driver will do the same way to
-inject the desired service rules into the OpenWRT instance. You can also do the
-same to check if the rules are injected successful: **cat /etc/config/network**
-to check vrouter, **cat /etc/config/dhcp** to check DHCP and DNS, and
-**cat /etc/config/qos** to check the QoS rules.
+          # Set password of this image to blank, type follow command and then enter two times
+          $ passwd
 
-6. Notes
+          # Set DHCP for the network of OpenWRT so that the VNF can be ping
+          $ uci set network.lan.proto=dhcp; uci commit
+          $ exit
 
-6.1. OpenWRT user and password
+          $ sudo umount imgroot
+          $ sudo kpartx -dv openwrt-x86-kvm_guest-combined-ext4.img
 
-The user account is 'root' and password is '', which means there is no
-password for root account.
-
-6.2. Procedure to customize the OpenWRT image
-
-The OpenWRT is modified based on KVM OpenWRT 15.05.1 to be suitable forTacker.
-The procedure is following as below:
-
-.. code-block:: console
-
-    cd ~
-    wget https://archive.openwrt.org/chaos_calmer/15.05.1/x86/kvm_guest/openwrt-15.05.1-x86-kvm_guest-combined-ext4.img.gz \
-            -O openwrt-x86-kvm_guest-combined-ext4.img.gz
-    gunzip openwrt-x86-kvm_guest-combined-ext4.img.gz
-
-    mkdir -p imgroot
-
-    sudo kpartx -av openwrt-x86-kvm_guest-combined-ext4.img
-
-    # Replace the loopXp2 with the result of above command, e.g., loop0p2
-    sudo mount -o loop /dev/mapper/loopXp2 imgroot
-    sudo chroot imgroot /bin/ash
-
-    # Set password of this image to blank, type follow command and then enter two times
-    passwd
-
-    # Set DHCP for the network of OpenWRT so that the VNF can be ping
-    uci set network.lan.proto=dhcp; uci commit
-    exit
-
-    sudo umount imgroot
-    sudo kpartx -dv openwrt-x86-kvm_guest-combined-ext4.img
-
-..
 
 .. rubric:: Footnotes
 
-.. [#] https://github.com/openstack/tacker/blob/master/samples/images/openwrt-x86-kvm_guest-combined-ext4.img.gz
-.. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
-.. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml
-.. [#] https://github.com/openstack/tacker/blob/master/tacker/vnfm/mgmt_drivers/openwrt/openwrt.py
-.. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-vrouter.yaml
-.. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-dnsmasq.yaml
-.. [#] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-config-openwrt-qos.yaml
+.. [#] https://opendev.org/openstack/tacker/src/branch/master/samples/images/openwrt-x86-kvm_guest-combined-ext4.img.gz
+.. [#] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
+.. [#] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml
+.. [#] https://opendev.org/openstack/tacker/src/branch/master/tacker/vnfm/mgmt_drivers/openwrt/openwrt.py
+.. [#] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-config-openwrt-vrouter.yaml
+.. [#] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-config-openwrt-dnsmasq.yaml
+.. [#] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-config-openwrt-qos.yaml

@@ -21,369 +21,310 @@ Manual Installation
 
 This document describes how to install and run Tacker manually.
 
+.. note::
+
+   User is supposed to install on Ubuntu. Some examples are invalid on other
+   distirbutions. For example, you should replace ``/usr/local/bin/`` with
+   ``/usr/bin/`` on CentOS.
+
 Pre-requisites
-==============
+--------------
 
-1). Ensure that OpenStack components Keystone, Mistral, Barbican and
-Horizon are installed. Refer the list below for installation of
-these OpenStack projects on different Operating Systems.
+#. Install required components.
 
-* https://docs.openstack.org/keystone/latest/install/index.html
-* https://docs.openstack.org/mistral/latest/admin/install/index.html
-* https://docs.openstack.org/barbican/latest/install/install.html
-* https://docs.openstack.org/horizon/latest/install/index.html
+   Ensure that OpenStack components, Keystone, Mistral, Barbican and
+   Horizon are installed. Refer the list below for installation of
+   these OpenStack projects on different Operating Systems.
 
-2). one admin-openrc.sh file is generated. one sample admin-openrc.sh file
-is like the below:
+   * https://docs.openstack.org/keystone/latest/install/index.html
+   * https://docs.openstack.org/mistral/latest/admin/install/index.html
+   * https://docs.openstack.org/barbican/latest/install/install.html
+   * https://docs.openstack.org/horizon/latest/install/index.html
 
-.. code-block:: ini
+#. Create ``admin-openrc.sh`` for env variables.
 
-    export OS_PROJECT_DOMAIN_NAME=Default
-    export OS_USER_DOMAIN_NAME=Default
-    export OS_PROJECT_NAME=admin
-    export OS_TENANT_NAME=admin
-    export OS_USERNAME=admin
-    export OS_PASSWORD=KTskN5eUMTpeHLKorRcZBBbH0AM96wdvgQhwENxY
-    export OS_AUTH_URL=http://localhost:5000/identity
-    export OS_INTERFACE=internal
-    export OS_IDENTITY_API_VERSION=3
-    export OS_REGION_NAME=RegionOne
+   .. code-block:: shell
 
-
-Installing Tacker server
-========================
-
-.. note::
-
-   The paths we are using for configuration files in these steps are with reference to
-   Ubuntu Operating System. The paths may vary for other Operating Systems.
-
-   The branch_name which is used in commands, specify the branch_name as
-   "stable/<branch>" for any stable branch installation.
-   For eg: stable/ocata, stable/newton. If unspecified the default will be
-   "master" branch.
+       export OS_PROJECT_DOMAIN_NAME=Default
+       export OS_USER_DOMAIN_NAME=Default
+       export OS_PROJECT_NAME=admin
+       export OS_TENANT_NAME=admin
+       export OS_USERNAME=admin
+       export OS_PASSWORD=KTskN5eUMTpeHLKorRcZBBbH0AM96wdvgQhwENxY
+       export OS_AUTH_URL=http://localhost:5000/identity
+       export OS_INTERFACE=internal
+       export OS_IDENTITY_API_VERSION=3
+       export OS_REGION_NAME=RegionOne
 
 
-1). Create MySQL database and user.
-
-.. code-block:: console
-
-   mysql -uroot -p
-   CREATE DATABASE tacker;
-   GRANT ALL PRIVILEGES ON tacker.* TO 'tacker'@'localhost' \
-       IDENTIFIED BY '<TACKERDB_PASSWORD>';
-   GRANT ALL PRIVILEGES ON tacker.* TO 'tacker'@'%' \
-       IDENTIFIED BY '<TACKERDB_PASSWORD>';
-   exit;
-..
+Installing Tacker Server
+------------------------
 
 .. note::
 
-   Replace ``TACKERDB_PASSWORD`` with your password.
+   The ``<branch_name>`` in command examples is replaced with specific branch
+   name, such as ``stable/ussuri``.
 
-2). Create users, roles and endpoints:
+#. Create MySQL database and user.
 
-a). Source the admin credentials to gain access to admin-only CLI commands:
+   .. code-block:: console
 
-.. code-block:: console
+       $ mysql -uroot -p
 
-   . admin-openrc.sh
-..
+   Create database ``tacker`` and grant provileges for ``tacker`` user with
+   password ``<TACKERDB_PASSWORD>`` on all tables.
 
-b). Create tacker user with admin privileges.
+   .. code-block::
 
-.. note::
+       CREATE DATABASE tacker;
+       GRANT ALL PRIVILEGES ON tacker.* TO 'tacker'@'localhost' \
+           IDENTIFIED BY '<TACKERDB_PASSWORD>';
+       GRANT ALL PRIVILEGES ON tacker.* TO 'tacker'@'%' \
+           IDENTIFIED BY '<TACKERDB_PASSWORD>';
+       exit;
 
-   Project_name can be "service" or "services" depending on your
-   OpenStack distribution.
-..
+#. Create OpenStack user, role and endpoint.
 
-.. code-block:: console
+   #. Set admin credentials to gain access to admin-only CLI commands.
 
-   openstack user create --domain default --password <PASSWORD> tacker
-   openstack role add --project service --user tacker admin
-..
+      .. code-block:: console
 
-c). Create tacker service.
+         $ . admin-openrc.sh
 
-.. code-block:: console
+   #. Create ``tacker`` user with admin privileges.
 
-   openstack service create --name tacker \
-       --description "Tacker Project" nfv-orchestration
-..
+      .. code-block:: console
 
-d). Provide an endpoint to tacker service.
+         $ openstack user create --domain default --password <PASSWORD> tacker
+         $ openstack role add --project service --user tacker admin
 
-If you are using keystone v3 then,
+      .. note::
 
-.. code-block:: console
+          Project name can be ``service`` or ``services`` depending on your
+          OpenStack distribution.
 
-   openstack endpoint create --region RegionOne nfv-orchestration \
-              public http://<TACKER_NODE_IP>:9890/
-   openstack endpoint create --region RegionOne nfv-orchestration \
-              internal http://<TACKER_NODE_IP>:9890/
-   openstack endpoint create --region RegionOne nfv-orchestration \
-              admin http://<TACKER_NODE_IP>:9890/
-..
+   #. Create ``tacker`` service.
 
-If you are using keystone v2 then,
+      .. code-block:: console
 
-.. code-block:: console
+         $ openstack service create --name tacker \
+             --description "Tacker Project" nfv-orchestration
 
-   openstack endpoint create --region RegionOne \
-        --publicurl 'http://<TACKER_NODE_IP>:9890/' \
-        --adminurl 'http://<TACKER_NODE_IP>:9890/' \
-        --internalurl 'http://<TACKER_NODE_IP>:9890/' <SERVICE-ID>
-..
+   #. Provide an endpoint to tacker service.
 
-3). Clone tacker repository.
+      For keystone v3:
 
-.. code-block:: console
+      .. code-block:: console
 
-   cd ~/
-   git clone https://github.com/openstack/tacker -b <branch_name>
-..
+         $ openstack endpoint create --region RegionOne nfv-orchestration \
+                    public http://<TACKER_NODE_IP>:9890/
+         $ openstack endpoint create --region RegionOne nfv-orchestration \
+                    internal http://<TACKER_NODE_IP>:9890/
+         $ openstack endpoint create --region RegionOne nfv-orchestration \
+                    admin http://<TACKER_NODE_IP>:9890/
 
-4). Install all requirements.
+      Or keystone v2:
 
-.. code-block:: console
+      .. code-block:: console
 
-   cd tacker
-   sudo pip install -r requirements.txt
-..
+         $ openstack endpoint create --region RegionOne \
+              --publicurl 'http://<TACKER_NODE_IP>:9890/' \
+              --adminurl 'http://<TACKER_NODE_IP>:9890/' \
+              --internalurl 'http://<TACKER_NODE_IP>:9890/' <SERVICE-ID>
 
+#. Clone tacker repository.
 
-5). Install tacker.
+   You can use ``-b`` for specific release optionally.
 
-.. code-block:: console
+   .. code-block:: console
 
-   sudo python setup.py install
-..
+      $ cd ${HOME}
+      $ git clone https://opendev.org/openstack/tacker.git -b <branch_name>
 
-..
+#. Install required packages and tacker itself.
 
-6). Create 'tacker' directory in '/var/log', and create directories for vnf
-    package and zip csar file(for glance store).
+   .. code-block:: console
 
-.. code-block:: console
+      $ cd ${HOME}/tacker
+      $ sudo pip3 install -r requirements.txt
+      $ sudo python3 setup.py install
 
-   sudo mkdir /var/log/tacker
-   sudo mkdir -p /var/lib/tacker/vnfpackages
-   sudo mkdir -p /var/lib/tacker/csar_files
+#. Create directories for tacker.
 
-.. note::
+   Directories log, VNF packages and csar files are required.
 
-   In case of multi node deployment, we recommend to configure
-   /var/lib/tacker/csar_files on a shared storage.
+   .. code-block:: console
 
-..
+      $ sudo mkdir -p /var/log/tacker \
+          /var/lib/tacker/vnfpackages \
+          /var/lib/tacker/csar_files
 
-7). Generate the tacker.conf.sample using tools/generate_config_file_sample.sh
-    or 'tox -e config-gen' command. Rename the "tacker.conf.sample" file at
-    "etc/tacker/" to tacker.conf. Then edit it to ensure the below entries:
+   .. note::
 
-.. note::
+      In case of multi node deployment, we recommend to configure
+      ``/var/lib/tacker/csar_files`` on a shared storage.
 
-   Ignore any warnings generated while using the
-   "generate_config_file_sample.sh".
+#. Generate the ``tacker.conf.sample`` using
+   ``tools/generate_config_file_sample.sh`` or ``tox -e config-gen`` command.
+   Rename the ``tacker.conf.sample`` file at ``etc/tacker/`` to
+   ``tacker.conf``. Then edit it to ensure the below entries:
 
-..
+   .. note::
 
-.. note::
+      Ignore any warnings generated while using the
+      "generate_config_file_sample.sh".
 
-   project_name can be "service" or "services" depending on your
-   OpenStack distribution in the keystone_authtoken section.
-..
+   .. note::
 
-.. note::
+      project_name can be "service" or "services" depending on your
+      OpenStack distribution in the keystone_authtoken section.
 
-   The path of tacker-rootwrap varies according to the operating system,
-   e.g. it is /usr/bin/tacker-rootwrap for CentOS, therefore the configuration for
-   [agent] should be like:
+   .. note::
+
+      The path of tacker-rootwrap varies according to the operating system,
+      e.g. it is /usr/bin/tacker-rootwrap for CentOS, therefore the configuration for
+      [agent] should be like:
+
+      .. code-block:: ini
+
+         [agent]
+         root_helper = sudo /usr/bin/tacker-rootwrap /usr/local/etc/tacker/rootwrap.conf
 
    .. code-block:: ini
 
+      [DEFAULT]
+      auth_strategy = keystone
+      policy_file = /usr/local/etc/tacker/policy.json
+      debug = True
+      use_syslog = False
+      bind_host = <TACKER_NODE_IP>
+      bind_port = 9890
+      service_plugins = nfvo,vnfm
+
+      state_path = /var/lib/tacker
+      ...
+
+      [nfvo_vim]
+      vim_drivers = openstack
+
+      [keystone_authtoken]
+      memcached_servers = 11211
+      region_name = RegionOne
+      auth_type = password
+      project_domain_name = <DOMAIN_NAME>
+      user_domain_name = <DOMAIN_NAME>
+      username = <TACKER_USER_NAME>
+      project_name = service
+      password = <TACKER_SERVICE_USER_PASSWORD>
+      auth_url = http://<KEYSTONE_IP>:5000
+      www_authenticate_uri = http://<KEYSTONE_IP>:5000
+      ...
+
       [agent]
-      root_helper = sudo /usr/bin/tacker-rootwrap /usr/local/etc/tacker/rootwrap.conf
-   ..
-..
+      root_helper = sudo /usr/local/bin/tacker-rootwrap /usr/local/etc/tacker/rootwrap.conf
+      ...
 
-.. code-block:: ini
+      [database]
+      connection = mysql+pymysql://tacker:<TACKERDB_PASSWORD>@<MYSQL_IP>:3306/tacker?charset=utf8
+      ...
 
-   [DEFAULT]
-   auth_strategy = keystone
-   policy_file = /usr/local/etc/tacker/policy.json
-   debug = True
-   use_syslog = False
-   bind_host = <TACKER_NODE_IP>
-   bind_port = 9890
-   service_plugins = nfvo,vnfm
+      [tacker]
+      monitor_driver = ping,http_ping
 
-   state_path = /var/lib/tacker
-   ...
+#. Copy the ``tacker.conf`` to ``/usr/local/etc/tacker/`` directory.
 
-   [nfvo_vim]
-   vim_drivers = openstack
+   .. code-block:: console
 
-   [keystone_authtoken]
-   memcached_servers = 11211
-   region_name = RegionOne
-   auth_type = password
-   project_domain_name = <DOMAIN_NAME>
-   user_domain_name = <DOMAIN_NAME>
-   username = <TACKER_USER_NAME>
-   project_name = service
-   password = <TACKER_SERVICE_USER_PASSWORD>
-   auth_url = http://<KEYSTONE_IP>:5000
-   www_authenticate_uri = http://<KEYSTONE_IP>:5000
-   ...
+      $ sudo su
+      $ cp etc/tacker/tacker.conf /usr/local/etc/tacker/
 
-   [agent]
-   root_helper = sudo /usr/local/bin/tacker-rootwrap /usr/local/etc/tacker/rootwrap.conf
-   ...
-
-   [database]
-   connection = mysql+pymysql://tacker:<TACKERDB_PASSWORD>@<MYSQL_IP>:3306/tacker?charset=utf8
-   ...
-
-   [tacker]
-   monitor_driver = ping,http_ping
-
-..
-
-8). Copy the tacker.conf file to "/usr/local/etc/tacker/" directory
-
-.. code-block:: console
-
-   sudo su
-   cp etc/tacker/tacker.conf /usr/local/etc/tacker/
-
-..
-
-9). Populate Tacker database:
-
-.. note::
-
-   The path of tacker-db-manage varies according to the operating system,
-   e.g. it is /usr/bin/tacker-bin-manage for CentOS
-
-..
-
-.. code-block:: console
-
-   /usr/local/bin/tacker-db-manage --config-file /usr/local/etc/tacker/tacker.conf upgrade head
-
-..
-
-10). To support systemd, copy tacker.service and tacker-conductor.service file to
-     "/etc/systemd/system/" directory, and restart systemctl daemon.
-
-.. code-block:: console
-
-   sudo su
-   cp etc/systemd/system/tacker.service /etc/systemd/system/
-   cp etc/systemd/system/tacker-conductor.service /etc/systemd/system/
-   systemctl daemon-reload
-
-..
-
-.. note::
-
-   Needs systemd support.
-   By default Ubuntu16.04 onward is supported.
-..
+#. Populate Tacker database.
 
 
-Install Tacker client
-=====================
+   .. code-block:: console
 
-1). Clone tacker-client repository.
+      $ /usr/local/bin/tacker-db-manage \
+          --config-file /usr/local/etc/tacker/tacker.conf \
+          upgrade head
 
-.. code-block:: console
+#. To make tacker be controlled from systemd, copy ``tacker.service`` and
+   ``tacker-conductor.service`` file to ``/etc/systemd/system/`` directory,
+   and restart ``systemctl`` daemon.
 
-   cd ~/
-   git clone https://github.com/openstack/python-tackerclient -b <branch_name>
-..
+   .. code-block:: console
 
-2). Install tacker-client.
+      $ sudo su
+      $ cp etc/systemd/system/tacker.service /etc/systemd/system/
+      $ cp etc/systemd/system/tacker-conductor.service /etc/systemd/system/
+      $ systemctl daemon-reload
 
-.. code-block:: console
+Install Tacker Client
+---------------------
 
-   cd python-tackerclient
-   sudo python setup.py install
-..
+#. Clone ``tacker-client`` repository.
+
+   .. code-block:: console
+
+      $ cd ~/
+      $ git clone https://opendev.org/openstack/python-tackerclient.git -b <branch_name>
+
+#. Install ``tacker-client``.
+
+   .. code-block:: console
+
+      $ cd ${HOME}/python-tackerclient
+      $ sudo python3 setup.py install
 
 Install Tacker horizon
-======================
+----------------------
 
+#. Clone ``tacker-horizon`` repository.
 
-1). Clone tacker-horizon repository.
+   .. code-block:: console
 
-.. code-block:: console
+      $ cd ~/
+      $ git clone https://opendev.org/openstack/tacker-horizon.git -b <branch_name>
 
-   cd ~/
-   git clone https://github.com/openstack/tacker-horizon -b <branch_name>
-..
+#. Install horizon module.
 
-2). Install horizon module.
+   .. code-block:: console
 
-.. code-block:: console
+      $ cd ${HOME}/tacker-horizon
+      $ sudo python3 setup.py install
 
-   cd tacker-horizon
-   sudo python setup.py install
-..
+#. Enable tacker horizon in dashboard.
 
-3). Enable tacker horizon in dashboard.
+   .. code-block:: console
 
-.. code-block:: console
+      $ sudo cp tacker_horizon/enabled/* \
+          /usr/share/openstack-dashboard/openstack_dashboard/enabled/
 
-   sudo cp tacker_horizon/enabled/* \
-       /usr/share/openstack-dashboard/openstack_dashboard/enabled/
-..
+#. Restart Apache server.
 
-4). Restart Apache server.
+   .. code-block:: console
 
-.. code-block:: console
-
-   sudo service apache2 restart
-..
+      $ sudo service apache2 restart
 
 Starting Tacker server
-======================
+----------------------
 
-1).Open a new console and launch tacker-server. A separate terminal is
+Open a new console and launch ``tacker-server``. A separate terminal is
 required because the console will be locked by a running process.
-
-.. note::
-
-   The path of tacker-server varies according to the operating system,
-   e.g. it is /usr/bin/tacker-server for CentOS
-
-..
 
 .. code-block:: console
 
-   sudo python /usr/local/bin/tacker-server \
+   $ sudo python3 /usr/local/bin/tacker-server \
        --config-file /usr/local/etc/tacker/tacker.conf \
        --log-file /var/log/tacker/tacker.log
-..
 
 Starting Tacker conductor
-=========================
+-------------------------
 
-1).Open a new console and launch tacker-conductor. A separate terminal is
+Open a new console and launch tacker-conductor. A separate terminal is
 required because the console will be locked by a running process.
-
-.. note::
-
-   The path of tacker-conductor varies according to the operating system,
-   e.g. it is /usr/bin/tacker-conductor for CentOS
-
-..
 
 .. code-block:: console
 
-   sudo python /usr/local/bin/tacker-conductor \
+   $ sudo python /usr/local/bin/tacker-conductor \
        --config-file /usr/local/etc/tacker/tacker.conf \
        --log-file /var/log/tacker/tacker-conductor.log
-..
