@@ -41,11 +41,11 @@ class HeatClient(object):
 
     def create(self, fields):
         fields = fields.copy()
-        fields.update({
-            'timeout_mins': 10,
-            'disable_rollback': True})
+        fields['disable_rollback'] = True
         if 'password' in fields.get('template', {}):
             fields['password'] = fields['template']['password']
+
+        fields.setdefault('timeout_mins')
 
         try:
             return self.stacks.create(**fields)
