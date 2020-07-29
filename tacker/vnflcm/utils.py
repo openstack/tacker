@@ -214,6 +214,16 @@ def _get_param_data(vnfd_dict, instantiate_vnf_req):
     input_attributes = vnfd_dict.get('topology_template', {}).get('inputs')
     if substitution_map is not None:
         subs_map_node_type = substitution_map.get('node_type')
+        # Get properties in lower-level VNFD for top-level VNFD
+        node_templates = vnfd_dict.get('topology_template',
+                                    {}).get('node_templates', {})
+        for node in node_templates.values():
+            if node.get('type') == subs_map_node_type:
+                node_property = node.get('properties', {})
+                if node_property:
+                    param_value.update(node_property)
+        # Import `_type.yaml` file and get default properties.
+        # If new value provided in additional_param, the property is updated.
         import_paths = vnfd_dict.get('imports', {})
         for imp_path in import_paths:
             with open(imp_path) as file_obj:
@@ -223,12 +233,16 @@ def _get_param_data(vnfd_dict, instantiate_vnf_req):
                 for key, value in imp_node_type.items():
                     if key == subs_map_node_type:
                         properties = value.get('properties')
-                        for key, prop in properties.items():
-                            if additional_param.get(key):
-                                param_value.update({
-                                    key: additional_param.get(key)})
-                            else:
-                                param_value.update({key: prop.get('default')})
+                        if properties:
+                            for key, prop in properties.items():
+                                if additional_param.get(key):
+                                    param_value.update({
+                                        key: additional_param.get(key)})
+                                # If the parameter is provided in lower-level
+                                # VNFD, use it. Otherwise use the default.
+                                elif not param_value.get(key):
+                                    param_value.update(
+                                        {key: prop.get('default')})
 
     for input_attr, value in input_attributes.items():
         if additional_param.get(input_attr):
