@@ -11,7 +11,7 @@ Overview
 --------
 
 OpenStack Tacker supports capturing resource event information when the
-tacker resources undergo  create, update, delete, scale and monitor
+tacker resources undergo create, update, delete, scale and monitor
 operations. This information becomes useful to an admin for audit purposes.
 
 Tacker Resources supporting Events

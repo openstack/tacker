@@ -17,7 +17,7 @@
 VDU Placement policy
 ====================
 
-Openstack nova server groups can be used to control the affinity and
+OpenStack nova server groups can be used to control the affinity and
 anti-affinity scheduling policy for a group of VDU's. Below placement
 policies are supported::
 
@@ -144,7 +144,7 @@ Deploying placement TOSCA template using Tacker
 
 Once OpenStack/Devstack along with Tacker has been successfully installed,
 deploy a sample placement policy template from location given below:
-https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnfd/tosca-placement-policy-anti-affinity.yaml
+https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-placement-policy-anti-affinity.yaml
 
 Refer the 'Getting Started' link below on how to create a VNFD and deploy a
 VNF:

@@ -265,7 +265,7 @@ References
 ----------
 
 .. [#first] https://github.com/openstack-dev/devstack/blob/master/doc/source/networking.rst#shared-guest-interface
-.. [#second] https://github.com/openstack/tacker/blob/master/doc/source/install/devstack.rst
-.. [#third] https://github.com/openstack/tacker/blob/master/devstack/local.conf.kubernetes
+.. [#second] https://opendev.org/openstack/tacker/src/branch/master/doc/source/install/devstack.rst
+.. [#third] https://opendev.org/openstack/tacker/src/branch/master/devstack/local.conf.kubernetes
 .. [#fourth] https://github.com/openstack/kuryr-kubernetes/blob/master/doc/source/installation/testing_connectivity.rst
 .. [#fifth] https://kubernetes.io/docs/admin/authentication

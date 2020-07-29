@@ -488,9 +488,9 @@ Reference
 
 .. [#f1] https://www.etsi.org/deliver/etsi_gs/NFV-IFA/001_099/014/02.01.01_60/gs_NFV-IFA014v020101p.pdf
 .. [#f2] https://wiki.onap.org/display/DW/ONAP+Release+1+modeling+specification?preview=%2F13599755%2F13599839%2FNSD+Specification.pdf
-.. [#f3] https://github.com/openstack/tacker/blob/master/tacker/nfvo/drivers/workflow/workflow_generator.py
+.. [#f3] https://opendev.org/openstack/tacker/src/branch/master/tacker/nfvo/drivers/workflow/workflow_generator.py
 .. [#f4] https://docs.openstack.org/tacker/latest/install/deploy_openwrt.html
 .. [#f5] https://docs.openstack.org/tacker/latest/user/vnffg_usage_guide.html
 .. [#f6] https://docs.openstack.org/tacker/latest/user/vnffg_usage_guide_advanced.html
-.. [#f7] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/nsd/sample-tosca-vnfd1.yaml
-.. [#f8] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/nsd/sample-tosca-vnfd2.yaml
+.. [#f7] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/nsd/sample-tosca-vnfd1.yaml
+.. [#f8] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/nsd/sample-tosca-vnfd2.yaml

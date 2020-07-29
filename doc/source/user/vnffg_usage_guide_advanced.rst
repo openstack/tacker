@@ -235,9 +235,9 @@ If user delete VNFFG1, the VNFFG2 is not affected because the port pair group
 .. rubric:: Footnotes
 
 .. [#f1] https://docs.openstack.org/tacker/latest/user/vnffg_usage_guide.html
-.. [#f2] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffgd-sample.yaml
-.. [#f3] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffgd-sample-VNF1.yaml
+.. [#f2] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnffgd/tosca-vnffgd-sample.yaml
+.. [#f3] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnffgd/tosca-vnffgd-sample-VNF1.yaml
 .. [#f4] https://docs.openstack.org/tacker/latest/user/vnffg_usage_guide.html
-.. [#f5] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd1.yaml
-.. [#f6] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd2.yaml
-.. [#f7] https://github.com/openstack/tacker/blob/master/samples/tosca-templates/vnffgd
+.. [#f5] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd1.yaml
+.. [#f6] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnffgd/tosca-vnffg-vnfd2.yaml
+.. [#f7] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnffgd

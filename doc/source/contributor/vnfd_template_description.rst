@@ -65,7 +65,7 @@ network function.
     flavor describing physical properties for the VDU to be spawned, monitoring
     policies for the VDU, providing user data in form of custom commands to the
     VDU. A complete list of VDU properties currently supported by Tacker are
-    listed `here <https://github.com/openstack/tacker/blob/master/tacker/tosca/
+    listed `here <https://opendev.org/openstack/tacker/src/branch/master/tacker/tosca/
     lib/tacker_nfv_defs.yaml>`_ under **properties** section of
     **tosca.nodes.nfv.VDU.Tacker** field
 
@@ -170,7 +170,7 @@ Configuring a VDU
 """""""""""""""""
 A VDU can be configured as a specific Network Function under **config**
 section in VNFD template. A sample template configuring a VDU as a firewall
-can be viewed in a `sample file <https://github.com/openstack/tacker/blob/
+can be viewed in a `sample file <https://opendev.org/openstack/tacker/src/branch/
 master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml>`_.
 
 Specifying external image
