@@ -10,14 +10,14 @@ Server Gateway Interface (WSGI) - defined in `PEP 333 <https://legacy.python.org
 Startup
 -------
 
-Tackers's WSGI server is started from the `server module <https://opendev.org/openstack/tacker/tree/tacker/service.py>`_
+Tackers's WSGI server is started from the `server module <https://opendev.org/openstack/tacker/src/branch/master/tacker/service.py>`_
 and the entry point `serve_wsgi` is called to build an instance of the
 `TackerApiService`_, which is then returned to the server module,
 which spawns a `Eventlet`_ `GreenPool`_ that will run the WSGI
 application and respond to requests from clients.
 
 
-.. _TackerApiService: https://opendev.org/openstack/tacker/tree/tacker/service.py
+.. _TackerApiService: https://opendev.org/openstack/tacker/src/branch/master/tacker/service.py
 
 .. _Eventlet: https://eventlet.net/
 
@@ -39,17 +39,17 @@ Tacker, which contains several methods that map VNFM resources (such as
 vnfd, vnf) to URLs, and the controller for each resource.
 
 
-.. _config.py: http://opendev.org/openstack/tacker/tree/tacker/common/config.py
+.. _config.py: https://opendev.org/openstack/tacker/src/branch/master/tacker/common/config.py
 
-.. _api-paste.ini: http://opendev.org/openstack/tacker/tree/etc/tacker/api-paste.ini
+.. _api-paste.ini: https://opendev.org/openstack/tacker/src/branch/master/etc/tacker/api-paste.ini
 
-.. _APIRouter: https://opendev.org/openstack/tacker/tree/tacker/api/v1/router.py
+.. _APIRouter: https://opendev.org/openstack/tacker/src/branch/master/tacker/api/v1/router.py
 
-.. _Paste: http://pythonpaste.org/
+.. _Paste: https://pythonpaste.readthedocs.io/
 
-.. _Deploy: http://pythonpaste.org/deploy/
+.. _Deploy: https://pastedeploy.readthedocs.io/
 
-.. _Paste INI file format: http://pythonpaste.org/deploy/#applications
+.. _Paste INI file format: https://pastedeploy.readthedocs.io/#applications
 
 Further reading
 ---------------
