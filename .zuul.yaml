@@ -1,10 +1,10 @@
 - nodeset:
-    name: openstack-2-nodes
+    name: openstack-2-nodes-focal
     nodes:
       - name: controller
-        label: ubuntu-bionic
+        label: ubuntu-focal
       - name: compute1
-        label: ubuntu-bionic
+        label: ubuntu-focal
     groups:
       # Nodes running the compute service
       - name: compute
@@ -29,7 +29,7 @@
     parent: devstack
     description: |
       Base multinodes job for devstack-based functional tests
-    nodeset: openstack-2-nodes
+    nodeset: openstack-2-nodes-focal
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
     post-run: playbooks/devstack/post.yaml
