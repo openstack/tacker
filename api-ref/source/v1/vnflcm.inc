@@ -569,3 +569,192 @@ Response Example
 
 .. literalinclude:: samples/vnflcm/list-vnf-instance-response.json
    :language: javascript
+
+Create a new subscription
+=========================
+
+.. rest_method::  POST /vnflcm/v1/subscriptions
+
+The POST method creates a new subscription.
+
+As the result of successfully executing this method, a new "Individual subscription" resource
+shall have been created. This method shall not trigger any notification.
+
+Creation of two "Individual subscription" resources with the same callbackURI and the same filter can result in
+performance degradation and will provide duplicates of notifications to the NFVO, and might make sense only in very
+rare use cases. Consequently, the VNFM may either allow creating an "Individual subscription" resource if another
+Individual subscription resource with the same filter and callbackUri already exists (in which case it shall return the
+201 Created response code), or may decide to not create a duplicate "Individual subscription" resource (in which case
+it shall return a "303 See Other" response code referencing the existing "Individual subscription" resource with the same
+filter and callbackUri).
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 201
+
+.. rest_status_code:: error status.yaml
+
+  - 303
+  - 400
+  - 401
+  - 403
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - filter: filter
+  - notificationTypes: filter_notification_types
+  - operationTypes: filter_operation_types
+  - callbackUri : callback_uri
+  - authentication: authentication
+  - authType: authentication_auth_type
+  - paramsBasic: authentication_params_basic
+  - userName: authentication_params_basic_user_name
+  - password: authentication_params_basic_password
+  - paramsOauth2ClientCredentials: authentication_params_oauth2_client_credentials
+  - clientId: authentication_params_oauth2_client_credentials_client_id
+  - clientPassword: authentication_params_oauth2_client_credentials_client_password
+  - tokenEndpoint: authentication_params_oauth2_client_credentials_token_endpoint
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnflcm/create-subscription-request.json
+   :language: javascript
+
+Response Parameters
+-------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - id: subscription_id_response
+  - filter: filter
+  - notificationTypes: filter_notification_types
+  - operationTypes: filter_operation_types
+  - callbackUri: callback_uri
+  - _links: vnf_instance_links
+
+Response Example
+----------------
+
+.. literalinclude:: samples/vnflcm/create-subscription-response.json
+   :language: javascript
+
+Delete a subscription
+=========================
+
+.. rest_method::  DELETE /vnflcm/v1/subscriptions/{subscriptionId}
+
+The DELETE method terminates an individual subscription.
+
+As the result of successfully executing this method, the "Individual subscription" resource shall not exist any longer.
+This means that no notifications for that subscription shall be sent to the formerly-subscribed API consumer.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 204
+
+.. rest_status_code:: error status.yaml
+
+  - 401
+  - 403
+  - 404
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - subscriptionId: subscription_id
+
+Show subscription
+=================
+
+.. rest_method::  GET /vnflcm/v1/subscriptions/{subscriptionId}
+
+The GET method retrieves information about a subscription by reading an "Individual subscription" resource.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 200
+
+.. rest_status_code:: error status.yaml
+
+  - 401
+  - 403
+  - 404
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - subscriptionId: subscription_id
+
+Response Parameters
+-------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - id: subscription_id_response
+  - filter: filter
+  - notificationTypes: filter_notification_types
+  - operationTypes: filter_operation_types
+  - callbackUri: callback_uri
+  - _links: vnf_instance_links
+
+Response Example
+----------------
+
+.. literalinclude:: samples/vnflcm/show-subscription-response.json
+   :language: javascript
+
+List subscription
+=================
+
+.. rest_method::  GET /vnflcm/v1/subscriptions
+
+The GET method queries the list of active subscriptions of the functional block that invokes the method.
+It can be used e.g. for resynchronization after error situations.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 200
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 401
+  - 403
+
+Response Parameters
+-------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - id: subscription_id_response
+  - filter: filter
+  - notificationTypes: filter_notification_types
+  - operationTypes: filter_operation_types
+  - callbackUri: callback_uri
+  - _links: vnf_instance_links
+
+Response Example
+----------------
+
+.. literalinclude:: samples/vnflcm/list-subscription-response.json
+   :language: javascript

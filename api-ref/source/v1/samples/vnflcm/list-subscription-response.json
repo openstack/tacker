@@ -1,0 +1,36 @@
+[
+  {
+    "id": "76057f8e65ab37fb82d9382dfc3f3c8b",
+    "filter": {
+      "notificationTypes": [
+        "VnfLcmOperationOccurrenceNotification"
+      ]
+    },
+    "callbackUri": "http://sample1.com/notification",
+    "_links": {
+      "self": {
+        "href": "https://sample1.com/vnflcm/v1/subscriptions/76057f8e65ab37fb82d9382dfc3f3c8b"
+      }
+    }
+  },
+  {
+    "id": "4845ac30eab62a0b0b4edc00fbb930ee",
+    "filter": {
+      "notificationTypes": [
+        "VnfLcmOperationOccurrenceNotification",
+        "VnfIdentifierCreationNotification",
+        "VnfIdentifierDeletionNotification"
+      ],
+      "notificationTypes": [
+        "SCALE",
+        "HEAL"
+      ]
+    },
+    "callbackUri": "http://sample2.com/notification",
+    "_links": {
+      "self": {
+        "href": "https://sample2.com/vnflcm/v1/subscriptions/4845ac30eab62a0b0b4edc00fbb930ee"
+      }
+    }
+  }
+]

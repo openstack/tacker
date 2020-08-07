@@ -227,3 +227,14 @@ heal = {
     },
     'additionalProperties': False,
 }
+
+register_subscription = {
+    'type': 'object',
+    'properties': {
+        'filter': parameter_types.keyvalue_pairs,
+        'callbackUri': {'type': 'string', 'maxLength': 255},
+        'authentication': parameter_types.keyvalue_pairs,
+    },
+    'required': ['callbackUri'],
+    'additionalProperties': False,
+}
