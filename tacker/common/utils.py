@@ -340,6 +340,9 @@ def convert_camelcase_to_snakecase(request_data):
     """Converts dict keys or list of dict keys from camelCase to snake_case.
 
     Returns a dict with keys or list with dict keys, in snake_case.
+    This method takes care only keys in a `dict` or `dicts in a list`.
+    For simple list with string items, the elements which are actual values
+    are ignored during conversion.
 
     :param request_data: dict with keys or list with items, in camelCase.
     """
@@ -371,6 +374,9 @@ def convert_snakecase_to_camelcase(request_data):
     """Converts dict keys or list of dict keys from snake_case to camelCase.
 
     Returns a dict with keys or list with dict key, in camelCase.
+    This method takes care only keys in a `dict` or `dicts in a list`.
+    For simple list with string items, the elements which are actual values
+    are ignored during conversion.
 
     :param request_data: dict with keys or list with items, in snake_case.
     """
