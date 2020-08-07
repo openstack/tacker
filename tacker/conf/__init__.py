@@ -18,12 +18,14 @@ from oslo_config import cfg
 
 from tacker.conf import conductor
 from tacker.conf import coordination
+from tacker.conf import vnf_lcm
 from tacker.conf import vnf_package
 
 CONF = cfg.CONF
 CONF.import_group('keystone_authtoken', 'keystonemiddleware.auth_token')
 
 vnf_package.register_opts(CONF)
+vnf_lcm.register_opts(CONF)
 conductor.register_opts(CONF)
 coordination.register_opts(CONF)
 glance_store.register_opts(CONF)

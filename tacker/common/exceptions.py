@@ -345,3 +345,7 @@ class LimitExceeded(TackerException):
 class UserDataUpdateCreateFailed(TackerException):
     msg_fmt = _("User data for VNF package  %(id)s cannot be updated "
                 "or created after %(retries)d retries.")
+
+
+class SeeOther(TackerException):
+    code = 303

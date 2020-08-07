@@ -13,10 +13,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import json
+
+from oslo_log import log as logging
+
 from tacker.api import views as base
 from tacker.common import utils
+import tacker.conf
 from tacker.objects import fields
 from tacker.objects import vnf_instance as _vnf_instance
+
+CONF = tacker.conf.CONF
+
+LOG = logging.getLogger(__name__)
 
 
 class ViewBuilder(base.BaseViewBuilder):
@@ -108,3 +117,113 @@ class ViewBuilder(base.BaseViewBuilder):
     def index(self, vnf_instances):
         return [self._get_vnf_instance_info(vnf_instance)
                 for vnf_instance in vnf_instances]
+
+    def _get_subscription_links(self, vnf_lcm_subscription):
+        if isinstance(vnf_lcm_subscription.id, str):
+            decode_id = vnf_lcm_subscription.id
+        else:
+            decode_id = vnf_lcm_subscription.id.decode()
+        return {
+            "_links": {
+                "self": {
+                    "href": '%(endpoint)s/vnflcm/v1/subscriptions/%(id)s' %
+                    {
+                        "endpoint": CONF.vnf_lcm.endpoint_url,
+                        "id": decode_id}}}}
+
+    def _basic_subscription_info(self, vnf_lcm_subscription, filter=None):
+        if not filter:
+            if 'filter' in vnf_lcm_subscription:
+                filter_dict = json.loads(vnf_lcm_subscription.filter)
+                return {
+                    'id': vnf_lcm_subscription.id.decode(),
+                    'filter': filter_dict,
+                    'callbackUri': vnf_lcm_subscription.callback_uri.decode(),
+                }
+            return {
+                'id': vnf_lcm_subscription.id.decode(),
+                'callbackUri': vnf_lcm_subscription.callback_uri.decode(),
+            }
+        else:
+            return {
+                'id': vnf_lcm_subscription.id,
+                'filter': filter,
+                'callbackUri': vnf_lcm_subscription.callback_uri,
+            }
+
+    def _subscription_filter(
+            self,
+            subscription_data,
+            nextpage_opaque_marker,
+            paging):
+        # filter processing
+        lcmsubscription = []
+
+        # last_flg is True if nextpage_opaque_marker is set
+        last_flg = False
+
+        start_num = CONF.vnf_lcm.subscription_num * (paging - 1)
+        # Subscription_data counter for comparing
+        # subscription_data and start_num
+        wk_counter = 0
+        for cnt, line in enumerate(subscription_data):
+            LOG.debug("cnt %d,line %s" % (cnt, line))
+
+            if start_num > wk_counter:
+                wk_counter = wk_counter + 1
+            else:
+                if (CONF.vnf_lcm.subscription_num > len(
+                        lcmsubscription) and nextpage_opaque_marker):
+                    # add lcmsubscription
+                    vnf_subscription_res = self._basic_subscription_info(
+                        line)
+                    links = self._get_subscription_links(line)
+                    vnf_subscription_res.update(links)
+                    lcmsubscription.append(vnf_subscription_res)
+                    if CONF.vnf_lcm.subscription_num == len(
+                            lcmsubscription):
+                        if cnt == len(subscription_data) - 1:
+                            last_flg = True
+                        break
+                elif not nextpage_opaque_marker:
+                    # add lcmsubscription
+                    vnf_subscription_res = self._basic_subscription_info(
+                        line)
+                    links = self._get_subscription_links(line)
+                    vnf_subscription_res.update(links)
+                    lcmsubscription.append(vnf_subscription_res)
+                    if CONF.vnf_lcm.subscription_num < len(
+                            lcmsubscription):
+                        return 400, False
+            if cnt == len(subscription_data) - 1:
+                last_flg = True
+
+        LOG.debug("len(lcmsubscription) %s" % len(lcmsubscription))
+        LOG.debug(
+            "CONF.vnf_lcm.subscription_num %s" %
+            CONF.vnf_lcm.subscription_num)
+
+        return lcmsubscription, last_flg
+
+    def _get_vnf_lcm_subscription(self, vnf_lcm_subscription, filter=None):
+        vnf_lcm_subscription_response = self._basic_subscription_info(
+            vnf_lcm_subscription, filter)
+
+        links = self._get_subscription_links(vnf_lcm_subscription)
+        vnf_lcm_subscription_response.update(links)
+
+        return vnf_lcm_subscription_response
+
+    def subscription_create(self, vnf_lcm_subscription, filter):
+        return self._get_vnf_lcm_subscription(vnf_lcm_subscription, filter)
+
+    def subscription_list(
+            self,
+            vnf_lcm_subscriptions,
+            nextpage_opaque_marker,
+            paging):
+        return self._subscription_filter(
+            vnf_lcm_subscriptions, nextpage_opaque_marker, paging)
+
+    def subscription_show(self, vnf_lcm_subscriptions):
+        return self._get_vnf_lcm_subscription(vnf_lcm_subscriptions)

@@ -1,0 +1,8 @@
+{
+  "filter": {
+    "notificationTypes": [
+      "VnfLcmOperationOccurrenceNotification"
+    ]
+  },
+  "callbackUri": "http://sample1.com/notification"
+}

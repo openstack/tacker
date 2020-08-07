@@ -1,4 +1,11 @@
 # variables in header
+
+subscription_id:
+  description: |
+    Identifier of the subscription.
+  in: path
+  required: true
+  type: string
 vnf_instance_id:
   description: |
     Identifier of the VNF instance.
@@ -7,6 +14,104 @@ vnf_instance_id:
   type: string
 
 # variables in body
+authentication:
+  description: |
+    Authentication parameters to configure the use of
+    Authorization when sending notifications
+    corresponding to this subscription.
+    This attribute shall only be present if the subscriber
+    requires authorization of notifications.
+  in: body
+  required: false
+  type: object
+authentication_auth_type:
+  description: |
+    Defines the types of Authentication/Authorization which
+    the API consumer is willing to accept when receiving a
+    notification.
+    Permitted values:
+
+    BASIC: In every HTTP request to the
+    notification endpoint, use HTTP Basic
+    authentication with the client credentials.
+
+    OAUTH2_CLIENT_CREDENTIALS: In every
+    HTTP request to the notification endpoint, use
+    an OAuth 2.0 bearer token, obtained using the
+    client credentials grant type.
+
+    TLS_CERT: Every HTTP request to the
+    notification endpoint is sent over a mutually
+    authenticated TLS session, i.e. not only the
+    server is authenticated, but also the client is
+    authenticated during the TLS tunnel setup.
+  in: body
+  required: true
+  type: string
+authentication_params_basic:
+  description: |
+    Parameters for authentication/authorization using BASIC.
+    Shall be present if authType is "BASIC" and the
+    contained information has not been provisioned out of
+    band. Shall be absent otherwise.
+  in: body
+  required: false
+  type: object
+authentication_params_basic_password:
+  description: |
+    Password to be used in HTTP Basic authentication.
+    Shall be present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+authentication_params_basic_user_name:
+  description: |
+    Username to be used in HTTP Basic authentication.
+    Shall be present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+authentication_params_oauth2_client_credentials:
+  description: |
+    Parameters for authentication/authorization using
+    OAUTH2_CLIENT_CREDENTIALS.
+    Shall be present if authType is
+    "OAUTH2_CLIENT_CREDENTIALS" and the contained
+    information has not been provisioned out of band.
+    Shall be absent otherwise.
+  in: body
+  required: false
+  type: object
+authentication_params_oauth2_client_credentials_client_id:
+  description: |
+    Client identifier to be used in the access token request
+    of the OAuth 2.0 client credentials grant type. Shall be
+    present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+authentication_params_oauth2_client_credentials_client_password:
+  description: |
+    Client password to be used in the access token request
+    of the OAuth 2.0 client credentials grant type. Shall be
+    present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+authentication_params_oauth2_client_credentials_token_endpoint:
+  description: |
+    The token endpoint from which the access token can be
+    obtained. Shall be present if it has not been provisioned
+    out of band.
+  in: body
+  required: false
+  type: string
+callback_uri:
+  description: |
+    The URI of the endpoint to send the notification to.
+  in: body
+  required: true
+  type: string
 cause:
   description: |
     Indicates the reason why a healing procedure is required.
@@ -222,6 +327,40 @@ ext_virtual_links_resource_id:
   in: body
   required: true
   type: string
+filter:
+  description: |
+    Filter settings for this subscription, to define the
+    subset of all notifications this subscription relates
+    to. A particular notification is sent to the subscriber
+    if the filter matches, or if there is no filter.
+  in: body
+  required: false
+  type: object
+filter_notification_types:
+  description: |
+    Match particular notification types.
+    Permitted values:
+
+    VnfLcmOperationOccurrenceNotification
+
+    VnfIdentifierCreationNotification
+
+    VnfIdentifierDeletionNotification
+  in: body
+  required: false
+  type: string
+filter_operation_types:
+  description: |
+    Match particular VNF lifecycle operation types for
+    the notification of type
+    VnfLcmOperationOccurrenceNotification.
+    May be present if the "notificationTypes" attribute
+    contains the value
+    "VnfLcmOperationOccurrenceNotification", and
+    shall be absent otherwise.
+  in: body
+  required: false
+  type: string
 fixed_addresses:
   description: |
     Fixed addresses to assign (from the subnet defined by "subnetId"
@@ -407,6 +546,12 @@ subnet_id:
     assigned; otherwise, IP addresses not bound to a subnet will be assigned.
   in: body
   required: false
+  type: string
+subscription_id_response:
+  description: |
+    Identifier of this subscription resource.
+  in: body
+  required: true
   type: string
 termination_type:
   description: |
