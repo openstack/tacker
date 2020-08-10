@@ -31,8 +31,16 @@ from tacker.common import exceptions as exception
 
 @jsonschema.FormatChecker.cls_checks('uri')
 def _validate_uri(instance):
-    return rfc3986.is_valid_uri(instance, require_scheme=True,
-                                require_authority=True)
+    uri = rfc3986.uri_reference(instance)
+    validator = rfc3986.validators.Validator().require_presence_of(
+        'scheme', 'host',
+    ).check_validity_of(
+        'scheme', 'userinfo', 'host', 'path', 'query', 'fragment',)
+    try:
+        validator.validate(uri)
+    except rfc3986.exceptions.RFC3986Exception:
+        return False
+    return True
 
 
 @jsonschema.FormatChecker.cls_checks('uuid')
