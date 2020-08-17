@@ -437,6 +437,7 @@ Response Parameters
   - vnfProductName: vnf_instance_vnf_product_name
   - vnfSoftwareVersion: vnf_instance_vnf_software_version
   - vnfdVersion: vnf_instance_vnfd_version
+  - vnfPkgId: vnf_instance_vnf_pkg_id
   - vimConnectionInfo: vnf_instance_vim_connection_info
   - id: vim_connection_info_id
   - vimId: vim_connection_info_vim_id
