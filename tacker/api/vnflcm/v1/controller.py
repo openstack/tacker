@@ -199,7 +199,6 @@ class VnfLcmController(wsgi.Controller):
     def show(self, request, id):
         context = request.environ['tacker.context']
         context.can(vnf_lcm_policies.VNFLCM % 'show')
-
         vnf_instance = self._get_vnf_instance(context, id)
 
         return self._view_builder.show(vnf_instance)
