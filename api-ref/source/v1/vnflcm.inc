@@ -62,6 +62,7 @@ Response Parameters
   - vnfProductName: vnf_instance_vnf_product_name
   - vnfSoftwareVersion: vnf_instance_vnf_software_version
   - vnfdVersion: vnf_instance_vnfd_version
+  - vnfPkgId: vnf_instance_vnf_pkg_id
   - instantiationState: vnf_instance_instantiation_state
   - _links: vnf_instance_links
 

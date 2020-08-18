@@ -185,6 +185,7 @@ class VnfLcmController(wsgi.Controller):
             vnf_product_name=vnfd.vnf_product_name,
             vnf_software_version=vnfd.vnf_software_version,
             vnfd_version=vnfd.vnfd_version,
+            vnf_pkg_id=vnfd.package_uuid,
             tenant_id=request.context.project_id)
 
         vnf_instance.create()
