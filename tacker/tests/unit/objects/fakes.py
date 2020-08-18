@@ -111,7 +111,8 @@ def get_vnf_instance_data(vnfd_id):
         "vnf_provider": "test vnf provider",
         "vnfd_id": vnfd_id,
         "vnfd_version": "1.0",
-        "tenant_id": uuidsentinel.tenant_id
+        "tenant_id": uuidsentinel.tenant_id,
+        "vnf_pkg_id": uuidsentinel.vnf_pkg_id
     }
 
 
@@ -126,7 +127,8 @@ def get_vnf_instance_data_with_id(vnfd_id):
         "vnf_provider": "test vnf provider",
         "vnfd_id": vnfd_id,
         "vnfd_version": "1.0",
-        "tenant_id": uuidsentinel.tenant_id
+        "tenant_id": uuidsentinel.tenant_id,
+        "vnf_pkg_id": uuidsentinel.vnf_pkg_id
     }
 
 
@@ -148,6 +150,7 @@ def fake_vnf_instance_model_dict(**updates):
         'vim_connection_info': [],
         'tenant_id': '33f8dbdae36142eebf214c1869eb4e4c',
         'id': constants.UUID,
+        'vnf_pkg_id': uuidsentinel.vnf_pkg_id
     }
 
     if updates:
@@ -342,7 +345,8 @@ def vnf_instance_model_object(vnf_instance):
         'vnfd_version': vnf_instance.vnfd_version,
         'vim_connection_info': vnf_instance.vim_connection_info,
         'tenant_id': vnf_instance.tenant_id,
-        'created_at': vnf_instance.created_at
+        'created_at': vnf_instance.created_at,
+        'vnf_pkg_id': vnf_instance.vnf_pkg_id
     }
 
     vnf_instance_db_obj = models.VnfInstance()

@@ -138,7 +138,8 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
             'VimConnectionInfo', nullable=True, default=[]),
         'tenant_id': fields.StringField(nullable=False),
         'instantiated_vnf_info': fields.ObjectField('InstantiatedVnfInfo',
-                                                nullable=True, default=None)
+                                                nullable=True, default=None),
+        'vnf_pkg_id': fields.StringField(nullable=False)
     }
 
     def __init__(self, context=None, **kwargs):
@@ -243,6 +244,7 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
             'vnf_provider': self.vnf_provider,
             'vnf_product_name': self.vnf_product_name,
             'vnf_software_version': self.vnf_software_version,
+            'vnf_pkg_id': self.vnf_pkg_id,
             'vnfd_version': self.vnfd_version}
 
         if (self.instantiation_state == fields.VnfInstanceState.INSTANTIATED

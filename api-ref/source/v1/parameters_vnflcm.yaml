@@ -546,6 +546,15 @@ vnf_instance_vim_connection_info:
   in: body
   required: false
   type: array
+vnf_instance_vnf_pkg_id:
+  description: |
+    Identifier of information held by the NFVO about the specific VNF package
+    on which the VNF is based.
+    This identifier is allocated by the NFVO
+    and can be modified with the PATCH method.
+  in: body
+  required: true
+  type: string
 vnf_instance_vnf_product_name:
   description: |
     Name to identify the VNF Product. The value is copied from the VNFD.

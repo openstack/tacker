@@ -21,13 +21,14 @@ from webob import exc
 
 from tacker.api.vnflcm.v1 import controller
 from tacker.common import exceptions
-from tacker.conductor.conductorrpc.vnf_lcm_rpc import VNFLcmRPCAPI
+import tacker.conductor.conductorrpc.vnf_lcm_rpc as vnf_lcm_rpc
 from tacker.extensions import nfvo
 from tacker import objects
 from tacker.objects import fields
 from tacker.tests import constants
 from tacker.tests.unit import base
 from tacker.tests.unit import fake_request
+import tacker.tests.unit.nfvo.test_nfvo_plugin as nfvo_plugin
 from tacker.tests.unit.vnflcm import fakes
 from tacker.tests import uuidsentinel
 from tacker.vnfm import vim_client
@@ -38,20 +39,40 @@ class TestController(base.TestCase):
 
     def setUp(self):
         super(TestController, self).setUp()
+        self.patcher = mock.patch(
+            'tacker.manager.TackerManager.get_service_plugins',
+            return_value={'VNFM': nfvo_plugin.FakeVNFMPlugin()})
+        self.mock_manager = self.patcher.start()
         self.controller = controller.VnfLcmController()
+
+    def tearDown(self):
+        self.mock_manager.stop()
+        super(TestController, self).tearDown()
 
     @property
     def app(self):
         return fakes.wsgi_app_v1()
 
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
     @mock.patch.object(objects.vnf_instance, '_vnf_instance_create')
-    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd, 'get_by_id')
     def test_create_without_name_and_description(
-            self, mock_get_by_id, mock_vnf_instance_create):
-        mock_get_by_id.return_value = fakes.return_vnf_package_vnfd()
+            self, mock_get_by_id_package_vnfd,
+            mock_vnf_instance_create, mock_package_save,
+            mock_get_by_id_package, mock_get_vim):
 
-        updates = {'vnf_instance_description': None,
-            'vnf_instance_name': None}
+        mock_get_by_id_package_vnfd.return_value = \
+            fakes.return_vnf_package_vnfd()
+        mock_get_by_id_package.return_value = \
+            fakes.return_vnf_package_with_deployment_flavour()
+
+        updates = {'vnfd_id': uuidsentinel.vnfd_id,
+                'vnf_instance_description': None,
+                'vnf_instance_name': None,
+                'vnf_pkg_id': uuidsentinel.vnf_pkg_id}
+
         mock_vnf_instance_create.return_value =\
             fakes.return_vnf_instance_model(**updates)
 
@@ -59,6 +80,7 @@ class TestController(base.TestCase):
         body = {'vnfdId': uuidsentinel.vnfd_id}
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
+        req.headers['Version'] = '2.6.1'
         req.method = 'POST'
 
         # Call create API
@@ -67,20 +89,34 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.CREATED, resp.status_code)
 
         updates = {'vnfInstanceDescription': None, 'vnfInstanceName': None}
-        expected_vnf = fakes.fake_vnf_instance_response(**updates)
+        expected_vnf = fakes.fake_vnf_instance_response(
+            instantiated_state=fields.VnfInstanceState.NOT_INSTANTIATED,
+            **updates)
         location_header = ('http://localhost/vnflcm/v1/vnf_instances/%s'
             % resp.json['id'])
 
         self.assertEqual(expected_vnf, resp.json)
         self.assertEqual(location_header, resp.headers['location'])
 
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
     @mock.patch.object(objects.vnf_instance, '_vnf_instance_create')
-    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd, 'get_by_id')
     def test_create_with_name_and_description(
-            self, mock_get_by_id, mock_vnf_instance_create):
-        mock_get_by_id.return_value = fakes.return_vnf_package_vnfd()
-        updates = {'vnf_instance_description': 'SampleVnf Description',
-                   'vnf_instance_name': 'SampleVnf'}
+            self, mock_get_by_id_package_vnfd,
+            mock_vnf_instance_create, mock_package_save,
+            mock_get_by_id_package, mock_get_vim):
+        mock_get_by_id_package_vnfd.return_value = \
+            fakes.return_vnf_package_vnfd()
+        mock_get_by_id_package.return_value = \
+            fakes.return_vnf_package_with_deployment_flavour()
+
+        updates = {'vnfd_id': uuidsentinel.vnfd_id,
+                'vnf_instance_description': 'SampleVnf Description',
+                'vnf_instance_name': 'SampleVnf',
+                'vnf_pkg_id': uuidsentinel.vnf_pkg_id}
+
         mock_vnf_instance_create.return_value =\
             fakes.return_vnf_instance_model(**updates)
 
@@ -90,6 +126,7 @@ class TestController(base.TestCase):
         req = fake_request.HTTPRequest.blank('/vnf_instances')
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
+        req.headers['Version'] = '2.6.1'
         req.method = 'POST'
 
         # Call Create API
@@ -98,12 +135,53 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.CREATED, resp.status_code)
         updates = {"vnfInstanceName": "SampleVnf",
             "vnfInstanceDescription": "SampleVnf Description"}
-        expected_vnf = fakes.fake_vnf_instance_response(**updates)
+        expected_vnf = fakes.fake_vnf_instance_response(
+            instantiated_state=fields.VnfInstanceState.NOT_INSTANTIATED,
+            **updates)
         location_header = ('http://localhost/vnflcm/v1/vnf_instances/%s'
             % resp.json['id'])
 
         self.assertEqual(expected_vnf, resp.json)
         self.assertEqual(location_header, resp.headers['location'])
+
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
+    @mock.patch.object(objects.vnf_instance, '_vnf_instance_create')
+    @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd, 'get_by_id')
+    def test_create_without_name_and_description_with_v241(
+            self, mock_get_by_id_package_vnfd,
+            mock_vnf_instance_create, mock_package_save,
+            mock_get_by_id_package, mock_get_vim):
+        mock_get_by_id_package_vnfd.return_value = \
+            fakes.return_vnf_package_vnfd()
+        mock_get_by_id_package.return_value = \
+            fakes.return_vnf_package_with_deployment_flavour()
+
+        updates = {'vnfd_id': uuidsentinel.vnfd_id,
+                'vnf_instance_description': None,
+                'vnf_instance_name': None,
+                'vnf_pkg_id': uuidsentinel.vnf_pkg_id}
+
+        mock_vnf_instance_create.return_value =\
+            fakes.return_vnf_instance_model(**updates)
+
+        req = fake_request.HTTPRequest.blank('/vnf_instances')
+        body = {'vnfdId': uuidsentinel.vnfd_id}
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.headers['Version'] = ''
+        req.method = 'POST'
+
+        # Call create API
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.CREATED, resp.status_code)
+
+        updates = {'vnfInstanceDescription': None, 'vnfInstanceName': None}
+        expected_vnf = fakes.fake_vnf_instance_response(**updates)
+
+        self.assertEqual(expected_vnf, resp.json)
 
     @ddt.data(
         {'attribute': 'vnfdId', 'value': True,
@@ -130,6 +208,7 @@ class TestController(base.TestCase):
         body.update({attribute: value})
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
+        req.headers['Version'] = '2.6.1'
         req.method = 'POST'
         exception = self.assertRaises(
             exceptions.ValidationError, self.controller.create,
@@ -154,6 +233,7 @@ class TestController(base.TestCase):
         req = fake_request.HTTPRequest.blank('/vnf_instances')
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
+        req.headers['Version'] = '2.6.1'
         req.method = 'POST'
         self.assertRaises(exc.HTTPBadRequest, self.controller.create, req,
                           body=body)
@@ -202,7 +282,7 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.VnfInstance, "save")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfPackage, "get_by_id")
-    @mock.patch.object(VNFLcmRPCAPI, "instantiate")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "instantiate")
     def test_instantiate_with_deployment_flavour(
             self, mock_instantiate, mock_vnf_package_get_by_id,
             mock_vnf_package_vnfd_get_by_id, mock_save,
@@ -259,7 +339,7 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.VnfInstance, "save")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfPackage, "get_by_id")
-    @mock.patch.object(VNFLcmRPCAPI, "instantiate")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "instantiate")
     def test_instantiate_with_instantiation_level(
             self, mock_instantiate, mock_vnf_package_get_by_id,
             mock_vnf_package_vnfd_get_by_id, mock_save,
@@ -290,7 +370,7 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.VnfInstance, "save")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfPackage, "get_by_id")
-    @mock.patch.object(VNFLcmRPCAPI, "instantiate")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "instantiate")
     def test_instantiate_with_no_inst_level_in_flavour(
             self, mock_instantiate, mock_vnf_package_get_by_id,
             mock_vnf_package_vnfd_get_by_id, mock_save,
@@ -323,7 +403,7 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfPackage, "get_by_id")
-    @mock.patch.object(VNFLcmRPCAPI, "instantiate")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "instantiate")
     def test_instantiate_with_non_existing_instantiation_level(
             self, mock_instantiate, mock_vnf_package_get_by_id,
             mock_vnf_package_vnfd_get_by_id,
@@ -355,7 +435,7 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.VnfInstance, "save")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfPackage, "get_by_id")
-    @mock.patch.object(VNFLcmRPCAPI, "instantiate")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "instantiate")
     def test_instantiate_with_vim_connection(
             self, mock_instantiate, mock_vnf_package_get_by_id,
             mock_vnf_package_vnfd_get_by_id, mock_save,
@@ -696,7 +776,7 @@ class TestController(base.TestCase):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(VNFLcmRPCAPI, "terminate")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "terminate")
     @ddt.data({'terminationType': 'FORCEFUL'},
               {'terminationType': 'GRACEFUL'},
               {'terminationType': 'GRACEFUL',
@@ -836,7 +916,7 @@ class TestController(base.TestCase):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(VNFLcmRPCAPI, "heal")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "heal")
     @ddt.data({'cause': 'healing'}, {})
     def test_heal(self, body, mock_rpc_heal, mock_save,
             mock_vnf_by_id):
