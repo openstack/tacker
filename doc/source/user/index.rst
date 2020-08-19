@@ -30,6 +30,18 @@ Getting Started
 User Guide
 ----------
 
+Overview
+^^^^^^^^
+
+.. toctree::
+   :maxdepth: 1
+
+   introduction
+   architecture
+
+Use cases
+^^^^^^^^^
+
 .. toctree::
    :maxdepth: 1
 

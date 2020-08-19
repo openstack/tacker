@@ -1,0 +1,81 @@
+@startuml
+
+'# Components
+component "tacker-client" as client
+
+frame "tacker-server" {
+    component server {
+        component "VNF Lifecycle\nManagement" as lcm
+        component "VNF Package\nManagement" as vnfpkgm
+    }
+}
+
+frame "tacker-conductor" {
+    component "mgmt-driver" as mgmt {
+        'component Noop as noop
+        component OpenWRT as wrt
+    }
+    component "monitor-driver" as monitor {
+        component Ping as ping
+        component Zabbix as zabbix
+    }
+    component conductor {
+        component "Conductor Server" as cond
+        component "VNF Lifecycle Driver" as lcm_driver
+    }
+    component "infra-driver" as infra {
+        component "OpenStack Driver" as os_driver
+        component "Kubernetes Driver" as ks_driver
+    }
+}
+
+database "tacker DB" as db {
+    component "DB Interface" as db_if
+    component "MariaDB" as maria
+    db_if <-right-> maria
+}
+
+cloud "NFV infrastructures" {
+    node "OpenStack" as os {
+        node "VNF (VM)" as vm
+    }
+    node "Kubernetes" as ks {
+        node "VNF (Container)" as container
+    }
+}
+
+'# Relationships
+client <-down-> lcm
+client <-down-> vnfpkgm
+
+lcm <-down-> db_if
+vnfpkgm <-down-> db_if
+
+lcm <-down-> cond
+cond <-down-> lcm_driver
+vnfpkgm <-down-> cond
+
+cond <-down-> db_if
+lcm_driver <-down-> db_if
+
+lcm_driver <-down-> os_driver
+os_driver <-down-> os
+lcm_driver <-down-> ks_driver
+ks_driver <-down-> ks
+
+lcm_driver <-[hidden]down-> mgmt
+lcm_driver <-[hidden]down-> monitor
+'cond <-down-> mgmt
+'cond <-down-> monitor
+/'
+'cond <-right-> noop
+cond <-right-> wrt
+wrt <-down-> vm
+cond <-down-> ping
+ping <-down-> vm
+cond <-down-> zabbix
+zabbix <-down-> vm
+mgmt <-[hidden]down-> monitor
+'/
+
+@enduml

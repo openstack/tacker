@@ -1,0 +1,61 @@
+@startuml
+'left to right direction
+
+'# Components
+package python-tackerclient {
+    agent "tacker-client" as client
+}
+
+package tacker {
+    frame "tacker-server" {
+        agent "server" as server
+    }
+    frame "tacker-conductor" {
+        agent conductor
+        agent "infra-driver" as infra
+        agent "vim-driver" as vim
+
+        agent "mgmt-driver" as mgmt
+        agent "monitor-driver" as monitor
+        agent "policy-driver" as policy
+        'mgmt <-[hidden]-> monitor
+    }
+    database "tacker DB" as db
+}
+
+cloud "NFV infrastructures" {
+    node "OpenStack" as os {
+        node "VNF (VM)" as vm
+    }
+    node "Kubernetes" as ks {
+        node "VNF (Container)" as container
+    }
+    vm -[hidden]right- ks
+}
+
+
+'# Relationships
+client <-down-> server
+server <-down-> conductor
+
+conductor <-down-> infra
+conductor <-down-> vim
+conductor <-down-> mgmt
+conductor <-down-> monitor
+conductor <-down-> policy
+
+server <-left-> db
+conductor <-up-> db
+infra <-up-> db
+vim <-up-> db
+
+infra <-down-> ks
+infra <-down-> os
+vim <-down-> ks
+vim <-down-> os
+
+mgmt <-down-> vm
+monitor <-down-> vm
+policy <-down-> vm
+
+@enduml

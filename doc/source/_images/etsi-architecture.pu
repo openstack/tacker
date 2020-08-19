@@ -1,0 +1,35 @@
+@startuml
+
+'# Components
+agent "OSS/BSS" as oss
+agent "EM/VNF" as vnf
+agent NFVI as nfvi
+
+frame "MANO components" {
+    agent "NFVO\n(Tacker)" as nfvo
+    agent "VNFM\n(Tacker)" as vnfm
+    agent VIM as vim
+}
+
+agent "NFVO\n(Tacker)" as nfvo
+agent "VNFM\n(Tacker)" as vnfm
+agent VIM as vim
+
+frame "NFV descriptors (SOL001)" {
+    file "VNFD\n(SOL004)" as vnfd
+    file "NSD\n(SOL007)" as nsd
+}
+
+'# vnfd -[hidden]- nsd
+
+'# Relationships
+oss .down. vnf
+vnf .down. nfvi
+
+nfvo -down- vnfm : Or-Vnfm (SOL003)
+vnfm .down. vim
+
+oss -right- nfvo : Os-Ma-Nfvo (SOL005)
+vnf -right- vnfm : Ve-Vnfm-em (SOL002)\nVe-Vnfm-nfv (SOL003)
+
+@enduml
