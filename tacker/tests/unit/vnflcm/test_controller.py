@@ -15,6 +15,7 @@
 from unittest import mock
 
 import ddt
+
 from oslo_serialization import jsonutils
 from six.moves import http_client
 import urllib
@@ -23,11 +24,15 @@ from webob import exc
 from tacker.api.vnflcm.v1 import controller
 from tacker.common import exceptions
 from tacker.conductor.conductorrpc.vnf_lcm_rpc import VNFLcmRPCAPI
+from tacker import context
+import tacker.db.vnfm.vnfm_db
 from tacker.extensions import nfvo
+from tacker.manager import TackerManager
 from tacker import objects
 from tacker.objects import fields
 from tacker.tests import constants
 from tacker.tests.unit import base
+from tacker.tests.unit.db import utils
 from tacker.tests.unit import fake_request
 import tacker.tests.unit.nfvo.test_nfvo_plugin as nfvo_plugin
 from tacker.tests.unit.vnflcm import fakes
@@ -72,6 +77,13 @@ class TestController(base.TestCase):
             'placement_attr': {'region': 'TestRegionOne'},
             'tenant': 'test'
         }
+        self.context = context.get_admin_context()
+
+        with mock.patch.object(tacker.db.vnfm.vnfm_db.VNFMPluginDb, 'get_vnfs',
+                               return_value=[]):
+            with mock.patch.object(TackerManager, 'get_service_plugins',
+                    return_value={'VNFM': FakeVNFMPlugin()}):
+                self.controller = controller.VnfLcmController()
 
     def tearDown(self):
         self.mock_manager.stop()
@@ -80,6 +92,17 @@ class TestController(base.TestCase):
     @property
     def app(self):
         return fakes.wsgi_app_v1()
+
+    def _get_dummy_vnf(self, vnf_id=None, status=None):
+        vnf_dict = utils.get_dummy_vnf()
+
+        if status:
+            vnf_dict['status'] = status
+
+        if vnf_id:
+            vnf_dict['id'] = vnf_id
+
+        return vnf_dict
 
     @mock.patch.object(objects.VnfInstance, 'save')
     @mock.patch.object(vim_client.VimClient, "get_vim")
@@ -125,7 +148,7 @@ class TestController(base.TestCase):
             instantiated_state=fields.VnfInstanceState.NOT_INSTANTIATED,
             **updates)
         location_header = ('http://localhost/vnflcm/v1/vnf_instances/%s'
-            % resp.json['id'])
+                           % resp.json['id'])
 
         self.assertEqual(expected_vnf, resp.json)
         self.assertEqual(location_header, resp.headers['location'])
@@ -171,12 +194,10 @@ class TestController(base.TestCase):
 
         self.assertEqual(http_client.CREATED, resp.status_code)
         updates = {"vnfInstanceName": "SampleVnf",
-            "vnfInstanceDescription": "SampleVnf Description"}
-        expected_vnf = fakes.fake_vnf_instance_response(
-            instantiated_state=fields.VnfInstanceState.NOT_INSTANTIATED,
-            **updates)
+                   "vnfInstanceDescription": "SampleVnf Description"}
+        expected_vnf = fakes.fake_vnf_instance_response(**updates)
         location_header = ('http://localhost/vnflcm/v1/vnf_instances/%s'
-            % resp.json['id'])
+                           % resp.json['id'])
 
         self.assertEqual(expected_vnf, resp.json)
         self.assertEqual(location_header, resp.headers['location'])
@@ -265,12 +286,12 @@ class TestController(base.TestCase):
             expected_message = ("Invalid input for field/attribute "
                                 "{attribute}. Value: {value}. {value} is not "
                                 "of type 'string'".
-                 format(value=value, attribute=attribute))
+                                format(value=value, attribute=attribute))
         elif expected_type in ["name_allow_zero_min_length", "description"]:
             expected_message = ("Invalid input for field/attribute "
                                 "{attribute}. " "Value: {value}. {value} is "
                                 "not of type 'string'".
-                 format(value=value, attribute=attribute))
+                                format(value=value, attribute=attribute))
         elif expected_type == 'object':
             expected_message = ("Invalid input for field/attribute "
                                 "{attribute}. " "Value: {value}. {value} is "
@@ -338,6 +359,12 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._notification_process')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     @mock.patch.object(objects.VnfInstance, "save")
@@ -347,7 +374,9 @@ class TestController(base.TestCase):
     def test_instantiate_with_deployment_flavour(
             self, mock_instantiate, mock_vnf_package_get_by_id,
             mock_vnf_package_vnfd_get_by_id, mock_save,
-            mock_vnf_instance_get_by_id, mock_get_vim):
+            mock_vnf_instance_get_by_id, mock_get_vim,
+            mock_get_vnf, mock_insta_notfi_process,
+            mock_get_service_plugins):
 
         mock_vnf_instance_get_by_id.return_value =\
             fakes.return_vnf_instance_model()
@@ -355,6 +384,10 @@ class TestController(base.TestCase):
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
             fakes.return_vnf_package_with_deployment_flavour()
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(
+                vnf_id=mock_vnf_instance_get_by_id.return_value.id,
+                status='INACTIVE')
 
         body = {"flavourId": "simple"}
         req = fake_request.HTTPRequest.blank(
@@ -368,12 +401,18 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_instantiate.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfPackage, "get_by_id")
     def test_instantiate_with_non_existing_deployment_flavour(
-            self, mock_vnf_package_get_by_id, mock_vnf_package_vnfd_get_by_id,
-            mock_vnf_instance_get_by_id):
+            self, mock_vnf_package_get_by_id,
+            mock_vnf_package_vnfd_get_by_id,
+            mock_vnf_instance_get_by_id, mock_get_vnf,
+            mock_get_service_plugins):
 
         mock_vnf_instance_get_by_id.return_value =\
             fakes.return_vnf_instance_model()
@@ -381,6 +420,10 @@ class TestController(base.TestCase):
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
             fakes.return_vnf_package_with_deployment_flavour()
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(
+                vnf_id=mock_vnf_instance_get_by_id.return_value.id,
+                status='INACTIVE')
 
         body = {"flavourId": "invalid"}
         req = fake_request.HTTPRequest.blank(
@@ -393,8 +436,15 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("No flavour with id 'invalid'.",
-            resp.json['badRequest']['message'])
+                         resp.json['badRequest']['message'])
+        mock_get_vnf.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._notification_process')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     @mock.patch.object(objects.VnfInstance, "save")
@@ -404,7 +454,9 @@ class TestController(base.TestCase):
     def test_instantiate_with_instantiation_level(
             self, mock_instantiate, mock_vnf_package_get_by_id,
             mock_vnf_package_vnfd_get_by_id, mock_save,
-            mock_vnf_instance_get_by_id, mock_get_vim):
+            mock_vnf_instance_get_by_id, mock_get_vim,
+            mock_get_vnf, mock_insta_notif_process,
+            mock_get_service_plugins):
 
         mock_vnf_instance_get_by_id.return_value =\
             fakes.return_vnf_instance_model()
@@ -412,6 +464,10 @@ class TestController(base.TestCase):
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
             fakes.return_vnf_package_with_deployment_flavour()
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(
+                vnf_id=mock_vnf_instance_get_by_id.return_value.id,
+                status='INACTIVE')
 
         body = {"flavourId": "simple",
                 "instantiationLevelId": "instantiation_level_1"}
@@ -425,7 +481,13 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_instantiate.assert_called_once()
+        mock_get_vnf.assert_called_once()
+        mock_insta_notif_process.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     @mock.patch.object(objects.VnfInstance, "save")
@@ -435,7 +497,8 @@ class TestController(base.TestCase):
     def test_instantiate_with_no_inst_level_in_flavour(
             self, mock_instantiate, mock_vnf_package_get_by_id,
             mock_vnf_package_vnfd_get_by_id, mock_save,
-            mock_vnf_instance_get_by_id, mock_get_vim):
+            mock_vnf_instance_get_by_id, mock_get_vim,
+            mock_get_vnf, mock_get_service_plugins):
 
         mock_vnf_instance_get_by_id.return_value =\
             fakes.return_vnf_instance_model()
@@ -444,6 +507,10 @@ class TestController(base.TestCase):
         vnf_package = fakes.return_vnf_package_with_deployment_flavour()
         vnf_package.vnf_deployment_flavours[0].instantiation_levels = None
         mock_vnf_package_get_by_id.return_value = vnf_package
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(
+                vnf_id=mock_vnf_instance_get_by_id.return_value.id,
+                status='INACTIVE')
 
         # No instantiation level in deployment flavour but it's passed in the
         # request
@@ -459,8 +526,14 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("No instantiation level with id "
-            "'instantiation_level_1'.", resp.json['badRequest']['message'])
+                         "'instantiation_level_1'.",
+                         resp.json['badRequest']['message'])
+        mock_get_vnf.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfPackage, "get_by_id")
@@ -468,7 +541,8 @@ class TestController(base.TestCase):
     def test_instantiate_with_non_existing_instantiation_level(
             self, mock_instantiate, mock_vnf_package_get_by_id,
             mock_vnf_package_vnfd_get_by_id,
-            mock_vnf_instance_get_by_id):
+            mock_vnf_instance_get_by_id, mock_get_vnf,
+            mock_get_service_plugins):
 
         mock_vnf_instance_get_by_id.return_value =\
             fakes.return_vnf_instance_model()
@@ -476,6 +550,10 @@ class TestController(base.TestCase):
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
             fakes.return_vnf_package_with_deployment_flavour()
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(
+                vnf_id=mock_vnf_instance_get_by_id.return_value.id,
+                status='INACTIVE')
 
         body = {"flavourId": "simple",
                 "instantiationLevelId": "non-existing"}
@@ -489,8 +567,15 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("No instantiation level with id 'non-existing'.",
-            resp.json['badRequest']['message'])
+                         resp.json['badRequest']['message'])
+        mock_get_vnf.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.VnfLcmController.'
+                '_notification_process')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     @mock.patch.object(objects.VnfInstance, "save")
@@ -500,7 +585,9 @@ class TestController(base.TestCase):
     def test_instantiate_with_vim_connection(
             self, mock_instantiate, mock_vnf_package_get_by_id,
             mock_vnf_package_vnfd_get_by_id, mock_save,
-            mock_vnf_instance_get_by_id, mock_get_vim):
+            mock_vnf_instance_get_by_id, mock_get_vim,
+            mock_get_vnf, mock_insta_notif_process,
+            mock_get_service_plugins):
 
         mock_vnf_instance_get_by_id.return_value =\
             fakes.return_vnf_instance_model()
@@ -508,6 +595,10 @@ class TestController(base.TestCase):
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
             fakes.return_vnf_package_with_deployment_flavour()
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(
+                vnf_id=mock_vnf_instance_get_by_id.return_value.id,
+                status='INACTIVE')
 
         body = {"flavourId": "simple",
                 "vimConnectionInfo": [
@@ -526,14 +617,22 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_instantiate.assert_called_once()
+        mock_get_vnf.assert_called_once()
+        mock_insta_notif_process.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfPackage, "get_by_id")
     def test_instantiate_with_non_existing_vim(
-            self, mock_vnf_package_get_by_id, mock_vnf_package_vnfd_get_by_id,
-            mock_vnf_instance_get_by_id, mock_get_vim):
+            self, mock_vnf_package_get_by_id,
+            mock_vnf_package_vnfd_get_by_id,
+            mock_vnf_instance_get_by_id, mock_get_vim,
+            mock_get_vnf, mock_get_service_plugins):
 
         mock_vnf_instance_get_by_id.return_value =\
             fakes.return_vnf_instance_model()
@@ -542,6 +641,10 @@ class TestController(base.TestCase):
         mock_vnf_package_get_by_id.return_value = \
             fakes.return_vnf_package_with_deployment_flavour()
         mock_get_vim.side_effect = nfvo.VimNotFoundException
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(
+                vnf_id=mock_vnf_instance_get_by_id.return_value.id,
+                status='INACTIVE')
 
         body = {"flavourId": "simple",
                 "vimConnectionInfo": [
@@ -559,15 +662,23 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("VimConnection id is not found: %s" %
-                uuidsentinel.vim_id, resp.json['badRequest']['message'])
+                         uuidsentinel.vim_id,
+                         resp.json['badRequest']['message'])
+        mock_get_vnf.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfPackage, "get_by_id")
     def test_instantiate_with_non_existing_region_vim(
-            self, mock_vnf_package_get_by_id, mock_vnf_package_vnfd_get_by_id,
-            mock_vnf_instance_get_by_id, mock_get_vim):
+            self, mock_vnf_package_get_by_id,
+            mock_vnf_package_vnfd_get_by_id,
+            mock_vnf_instance_get_by_id, mock_get_vim,
+            mock_get_vnf, mock_get_service_plugins):
 
         mock_vnf_instance_get_by_id.return_value =\
             fakes.return_vnf_instance_model()
@@ -576,6 +687,10 @@ class TestController(base.TestCase):
         mock_vnf_package_get_by_id.return_value = \
             fakes.return_vnf_package_with_deployment_flavour()
         mock_get_vim.side_effect = nfvo.VimRegionNotFoundException
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(
+                vnf_id=mock_vnf_instance_get_by_id.return_value.id,
+                status='INACTIVE')
 
         body = {"flavourId": "simple",
                 "vimConnectionInfo": [
@@ -594,15 +709,23 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("Region not found for the VimConnection: %s" %
-                uuidsentinel.vim_id, resp.json['badRequest']['message'])
+                         uuidsentinel.vim_id,
+                         resp.json['badRequest']['message'])
+        mock_get_vnf.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfPackage, "get_by_id")
     def test_instantiate_with_default_vim_not_configured(
-            self, mock_vnf_package_get_by_id, mock_vnf_package_vnfd_get_by_id,
-            mock_vnf_instance_get_by_id, mock_get_vim):
+            self, mock_vnf_package_get_by_id,
+            mock_vnf_package_vnfd_get_by_id,
+            mock_vnf_instance_get_by_id, mock_get_vim,
+            mock_get_vnf, mock_get_service_plugins):
 
         mock_vnf_instance_get_by_id.return_value =\
             fakes.return_vnf_instance_model()
@@ -611,6 +734,10 @@ class TestController(base.TestCase):
         mock_vnf_package_get_by_id.return_value = \
             fakes.return_vnf_package_with_deployment_flavour()
         mock_get_vim.side_effect = nfvo.VimDefaultNotDefined
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(
+                vnf_id=mock_vnf_instance_get_by_id.return_value.id,
+                status='INACTIVE')
 
         body = {"flavourId": "simple"}
         req = fake_request.HTTPRequest.blank(
@@ -623,10 +750,16 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("Default VIM is not defined.",
-            resp.json['badRequest']['message'])
+                         resp.json['badRequest']['message'])
+        mock_get_vnf.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
-    def test_instantiate_incorrect_instantiation_state(self, mock_vnf_by_id):
+    def test_instantiate_incorrect_instantiation_state(self, mock_vnf_by_id,
+            mock_get_vnf, mock_get_service_plugins):
         vnf_instance = fakes.return_vnf_instance_model()
         vnf_instance.instantiation_state = 'INSTANTIATED'
         mock_vnf_by_id.return_value = vnf_instance
@@ -642,8 +775,13 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.CONFLICT, resp.status_code)
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
-    def test_instantiate_incorrect_task_state(self, mock_vnf_by_id):
+    def test_instantiate_incorrect_task_state(self, mock_vnf_by_id,
+            mock_get_vnf, mock_get_service_plugins):
         vnf_instance = fakes.return_vnf_instance_model(
             task_state=fields.VnfInstanceTaskState.INSTANTIATING)
         mock_vnf_by_id.return_value = vnf_instance
@@ -661,7 +799,7 @@ class TestController(base.TestCase):
         expected_msg = ("Vnf instance %s in task_state INSTANTIATING. Cannot "
                         "instantiate while the vnf instance is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-            resp.json['conflictingRequest']['message'])
+                         resp.json['conflictingRequest']['message'])
 
     @ddt.data({'attribute': 'flavourId', 'value': 123,
                'expected_type': 'string'},
@@ -713,7 +851,7 @@ class TestController(base.TestCase):
 
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("'flavourId' is a required property",
-            resp.json['badRequest']['message'])
+                         resp.json['badRequest']['message'])
 
     def test_instantiate_invalid_request_parameter(self):
         body = {"flavourId": "simple"}
@@ -749,12 +887,17 @@ class TestController(base.TestCase):
 
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
         self.assertEqual(
-            "Can not find requested vnf instance: %s" % constants.INVALID_UUID,
+            "Can not find requested vnf: %s" % constants.INVALID_UUID,
             resp.json['itemNotFound']['message'])
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_instantiate_with_non_existing_vnf_instance(
-            self, mock_vnf_by_id):
+            self, mock_vnf_by_id, mock_get_vnf,
+            mock_get_service_plugins):
         mock_vnf_by_id.side_effect = exceptions.VnfInstanceNotFound
         body = {"flavourId": "simple"}
         req = fake_request.HTTPRequest.blank(
@@ -770,6 +913,7 @@ class TestController(base.TestCase):
         self.assertEqual("Can not find requested vnf instance: %s" %
                          uuidsentinel.vnf_instance_id,
                          resp.json['itemNotFound']['message'])
+        mock_get_vnf.assert_called_once()
 
     @ddt.data('HEAD', 'PUT', 'DELETE', 'PATCH', 'GET')
     def test_instantiate_invalid_http_method(self, method):
@@ -813,17 +957,21 @@ class TestController(base.TestCase):
 
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
         self.assertEqual("Can not find requested vnf instance: %s" %
-            uuidsentinel.vnf_instance_id,
-            resp.json['itemNotFound']['message'])
+                         uuidsentinel.vnf_instance_id,
+                         resp.json['itemNotFound']['message'])
 
-    def test_show_with_invalid_uuid(self):
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    def test_show_with_invalid_uuid(self,
+            mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s' % constants.INVALID_UUID)
 
         resp = req.get_response(self.app)
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
         self.assertEqual("Can not find requested vnf instance: %s" %
-            constants.INVALID_UUID, resp.json['itemNotFound']['message'])
+                         constants.INVALID_UUID,
+                         resp.json['itemNotFound']['message'])
 
     @ddt.data('PATCH', 'HEAD', 'PUT', 'POST')
     def test_show_invalid_http_method(self, http_method):
@@ -835,6 +983,12 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._notification_process')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfInstance, "save")
     @mock.patch.object(VNFLcmRPCAPI, "terminate")
@@ -842,10 +996,15 @@ class TestController(base.TestCase):
               {'terminationType': 'GRACEFUL'},
               {'terminationType': 'GRACEFUL',
                'gracefulTerminationTimeout': 10})
-    def test_terminate(self, body, mock_terminate, mock_save, mock_get_by_id):
+    def test_terminate(self, body, mock_terminate, mock_save,
+                       mock_get_by_id, mock_get_vnf,
+                       mock_notification_process,
+                       mock_get_service_plugins):
         vnf_instance_obj = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
         mock_get_by_id.return_value = vnf_instance_obj
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
 
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s/terminate' % uuidsentinel.vnf_instance_id)
@@ -856,7 +1015,11 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_terminate.assert_called_once()
+        mock_get_vnf.assert_called_once()
+        mock_notification_process.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data(
         {'attribute': 'terminationType', 'value': "TEST",
          'expected_type': 'enum'},
@@ -869,9 +1032,10 @@ class TestController(base.TestCase):
         {'attribute': 'gracefulTerminationTimeout', 'value': "test",
          'expected_type': 'integer'}
     )
-    @ddt.unpack
     def test_terminate_with_invalid_request_body(
-            self, attribute, value, expected_type):
+            self, values, mock_get_service_plugins):
+        attribute = values['attribute']
+        value = values['value']
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s/terminate' % uuidsentinel.vnf_instance_id)
         body = {'terminationType': 'GRACEFUL',
@@ -882,7 +1046,8 @@ class TestController(base.TestCase):
         req.method = 'POST'
 
         expected_message = ("Invalid input for field/attribute {attribute}. "
-             "Value: {value}.".format(value=value, attribute=attribute))
+                            "Value: {value}.".
+                            format(value=value, attribute=attribute))
 
         exception = self.assertRaises(exceptions.ValidationError,
                                       self.controller.terminate,
@@ -901,7 +1066,7 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("'terminationType' is a required property",
-            resp.json['badRequest']['message'])
+                         resp.json['badRequest']['message'])
 
     @ddt.data('GET', 'HEAD', 'PUT', 'DELETE', 'PATCH')
     def test_terminate_invalid_http_method(self, method):
@@ -916,8 +1081,13 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
-    def test_terminate_non_existing_vnf_instance(self, mock_vnf_by_id):
+    def test_terminate_non_existing_vnf_instance(self, mock_vnf_by_id,
+            mock_get_vnf, mock_get_service_plugins):
         body = {'terminationType': 'GRACEFUL',
                 'gracefulTerminationTimeout': 10}
         mock_vnf_by_id.side_effect = exceptions.VnfInstanceNotFound
@@ -931,11 +1101,17 @@ class TestController(base.TestCase):
 
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
         self.assertEqual("Can not find requested vnf instance: %s" %
-            uuidsentinel.vnf_instance_id,
-            resp.json['itemNotFound']['message'])
+                         uuidsentinel.vnf_instance_id,
+                         resp.json['itemNotFound']['message'])
+        mock_get_vnf.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
-    def test_terminate_incorrect_instantiation_state(self, mock_vnf_by_id):
+    def test_terminate_incorrect_instantiation_state(self, mock_vnf_by_id,
+            mock_get_vnf, mock_get_service_plugins):
         mock_vnf_by_id.return_value = fakes.return_vnf_instance()
         body = {"terminationType": "FORCEFUL"}
         req = fake_request.HTTPRequest.blank(
@@ -951,10 +1127,16 @@ class TestController(base.TestCase):
                         "NOT_INSTANTIATED. Cannot terminate while the vnf "
                         "instance is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-            resp.json['conflictingRequest']['message'])
+                         resp.json['conflictingRequest']['message'])
+        mock_get_vnf.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.VnfInstance, "get_by_id")
-    def test_terminate_incorrect_task_state(self, mock_vnf_by_id):
+    def test_terminate_incorrect_task_state(self, mock_vnf_by_id,
+            mock_get_vnf, mock_get_service_plugins):
         vnf_instance = fakes.return_vnf_instance(
             instantiated_state=fields.VnfInstanceState.INSTANTIATED,
             task_state=fields.VnfInstanceTaskState.TERMINATING)
@@ -973,17 +1155,28 @@ class TestController(base.TestCase):
         expected_msg = ("Vnf instance %s in task_state TERMINATING. Cannot "
                         "terminate while the vnf instance is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-            resp.json['conflictingRequest']['message'])
+                         resp.json['conflictingRequest']['message'])
+        mock_get_vnf.assert_called_once()
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._notification_process')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfInstance, "save")
     @mock.patch.object(VNFLcmRPCAPI, "heal")
     @ddt.data({'cause': 'healing'}, {})
     def test_heal(self, body, mock_rpc_heal, mock_save,
-            mock_vnf_by_id):
+                  mock_vnf_by_id, mock_get_vnf,
+                  mock_heal_notif_process,
+                  mock_get_service_plugins):
         vnf_instance_obj = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
         mock_vnf_by_id.return_value = vnf_instance_obj
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
 
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
@@ -1007,8 +1200,15 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._notification_process')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.VnfInstance, "get_by_id")
-    def test_heal_incorrect_instantiated_state(self, mock_vnf_by_id):
+    def test_heal_incorrect_instantiated_state(self, mock_vnf_by_id,
+            mock_get_vnf, mock_notif, mock_get_service_plugins):
         vnf_instance_obj = fakes.return_vnf_instance(
             fields.VnfInstanceState.NOT_INSTANTIATED)
         mock_vnf_by_id.return_value = vnf_instance_obj
@@ -1023,13 +1223,20 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.CONFLICT, resp.status_code)
         expected_msg = ("Vnf instance %s in instantiation_state "
-                       "NOT_INSTANTIATED. Cannot heal while the vnf instance "
-                       "is in this state.")
+                        "NOT_INSTANTIATED. Cannot heal while the vnf instance "
+                        "is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-                resp.json['conflictingRequest']['message'])
+                         resp.json['conflictingRequest']['message'])
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._notification_process')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.VnfInstance, "get_by_id")
-    def test_heal_incorrect_task_state(self, mock_vnf_by_id):
+    def test_heal_incorrect_task_state(self, mock_vnf_by_id, mock_get_vnf,
+            mock_notif, mock_get_service_plugins):
         vnf_instance_obj = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED,
             task_state=fields.VnfInstanceTaskState.HEALING)
@@ -1045,16 +1252,25 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.CONFLICT, resp.status_code)
         expected_msg = ("Vnf instance %s in task_state "
-                       "HEALING. Cannot heal while the vnf instance "
-                       "is in this state.")
+                        "HEALING. Cannot heal while the vnf instance "
+                        "is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-                resp.json['conflictingRequest']['message'])
+                         resp.json['conflictingRequest']['message'])
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._notification_process')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.VnfInstance, "get_by_id")
-    def test_heal_with_invalid_vnfc_id(self, mock_vnf_by_id):
+    def test_heal_with_invalid_vnfc_id(self, mock_vnf_by_id,
+            mock_get_vnf, mock_notif, mock_get_service_plugins):
         vnf_instance_obj = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
         mock_vnf_by_id.return_value = vnf_instance_obj
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
 
         body = {'vnfcInstanceId': [uuidsentinel.vnfc_instance_id]}
         req = fake_request.HTTPRequest.blank(
@@ -1067,7 +1283,8 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         expected_msg = "Vnfc id %s not present in vnf instance %s"
         self.assertEqual(expected_msg % (uuidsentinel.vnfc_instance_id,
-            uuidsentinel.vnf_instance_id), resp.json['badRequest']['message'])
+                         uuidsentinel.vnf_instance_id),
+                         resp.json['badRequest']['message'])
 
     @ddt.data('HEAD', 'PUT', 'DELETE', 'PATCH', 'GET')
     def test_heal_invalid_http_method(self, method):
@@ -1171,8 +1388,8 @@ class TestController(base.TestCase):
 
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
         self.assertEqual("Can not find requested vnf instance: %s" %
-            uuidsentinel.vnf_instance_id,
-            resp.json['itemNotFound']['message'])
+                         uuidsentinel.vnf_instance_id,
+                         resp.json['itemNotFound']['message'])
 
     def test_delete_with_invalid_uuid(self):
         req = fake_request.HTTPRequest.blank(
@@ -1184,8 +1401,8 @@ class TestController(base.TestCase):
 
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
         self.assertEqual("Can not find requested vnf instance: %s" %
-            constants.INVALID_UUID,
-            resp.json['itemNotFound']['message'])
+                         constants.INVALID_UUID,
+                         resp.json['itemNotFound']['message'])
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_delete_with_incorrect_instantiation_state(self, mock_vnf_by_id):
@@ -1202,10 +1419,10 @@ class TestController(base.TestCase):
 
         self.assertEqual(http_client.CONFLICT, resp.status_code)
         expected_msg = ("Vnf instance %s in instantiation_state "
-                       "INSTANTIATED. Cannot delete while the vnf instance "
-                       "is in this state.")
+                        "INSTANTIATED. Cannot delete while the vnf instance "
+                        "is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-                resp.json['conflictingRequest']['message'])
+                         resp.json['conflictingRequest']['message'])
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_delete_with_incorrect_task_state(self, mock_vnf_by_id):
@@ -1223,10 +1440,10 @@ class TestController(base.TestCase):
 
         self.assertEqual(http_client.CONFLICT, resp.status_code)
         expected_msg = ("Vnf instance %s in task_state ERROR. "
-                       "Cannot delete while the vnf instance "
-                       "is in this state.")
+                        "Cannot delete while the vnf instance "
+                        "is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-                resp.json['conflictingRequest']['message'])
+                         resp.json['conflictingRequest']['message'])
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
     @ddt.data(

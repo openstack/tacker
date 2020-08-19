@@ -14,6 +14,149 @@ vnf_instance_id:
   type: string
 
 # variables in body
+added_storage_resource_ids:
+  description: |
+    References to VirtualStorage resources that
+    have been added.
+    Each value refers to a
+    VirtualStorageResourceInfo item in the
+    VnfInstance that was added to the VNFC.
+    It shall be provided if at least one storage
+    resource was added to the VNFC.
+  in: body
+  required: false
+  type: array
+affected_virtual_links:
+  description: |
+    Information about VL instances that were affected during
+    the lifecycle operation.
+  in: body
+  required: false
+  type: array
+affected_virtual_links_change_type:
+  description: |
+    Signals the type of change.
+    Permitted values:
+
+    ADDED
+
+    REMOVED
+
+    MODIFIED
+
+    TEMPORARY
+
+    LINK_PORT_ADDED
+
+    LINK_PORT_REMOVED
+
+    For a temporary resource, an
+    AffectedVirtualLink structure exists as long as
+    the temporary resource exists.
+  in: body
+  required: true
+  type: string
+affected_virtual_links_id:
+  description: |
+    Identifier of the virtual link instance, identifying
+    the applicable "vnfVirtualLinkResourceInfo"
+    entry in the "VnfInstance" data type.
+  in: body
+  required: true
+  type: string
+affected_virtual_storages:
+  description: |
+    Information about virtualised storage instances that were
+    affected during the lifecycle operation.
+  in: body
+  required: false
+  type: array
+affected_virtual_storages_change_type:
+  description: |
+    Signals the type of change.
+    Permitted values:
+
+    ADDED
+
+    REMOVED
+
+    MODIFIED
+
+    TEMPORARY
+
+    For a temporary resource, an
+    AffectedVirtualStorage structure exists as long
+    as the temporary resource exists.
+  in: body
+  required: true
+  type: string
+affected_virtual_storages_id:
+  description: |
+    Identifier of the storage instance, identifying the
+    applicable "virtualStorageResourceInfo" entry
+    in the "VnfInstance" data type.
+  in: body
+  required: true
+  type: string
+affected_virtual_storages_virtual_storage_desc_id:
+  description: |
+    Identifier of the related VirtualStorage
+    descriptor in the VNFD.
+  in: body
+  required: true
+  type: string
+affected_vnfc_cp_ids:
+  description: |
+    Identifiers of CP(s) of the VNFC instance that
+    were affected by the change.
+    Shall be present for those affected CPs of the
+    VNFC instance that are associated to an
+    external CP of the VNF instance.
+    May be present for further affected CPs of the
+    VNFC instance.
+  in: body
+  required: false
+  type: array
+affected_vnfcs:
+  description: |
+    Information about VNFC instances that were affected
+    during the lifecycle operation.
+  in: body
+  required: false
+  type: array
+affected_vnfcs_change_type:
+  description: |
+    Signals the type of change
+    Permitted values:
+
+    ADDED
+
+    REMOVED
+
+    MODIFIED
+
+    TEMPORARY
+
+    For a temporary resource, an AffectedVnfc
+    structure exists as long as the temporary
+    resource exists.
+  in: body
+  required: true
+  type: string
+affected_vnfcs_id:
+  description: |
+    Identifier of the Vnfc instance, identifying the
+    applicable "vnfcResourceInfo" entry in the
+    "VnfInstance" data type.
+  in: body
+  required: true
+  type: string
+affected_vnfcs_vdu_id:
+  description: |
+    Identifier of the related VDU in the VNFD.
+  in: body
+  required: true
+  type: string
 authentication:
   description: |
     Authentication parameters to configure the use of
@@ -118,6 +261,83 @@ cause:
   in: body
   required: false
   type: string
+changed_info:
+  description: |
+    Information about the changed VNF instance information,
+    including VNF configurable properties, if applicable.
+  in: body
+  required: false
+  type: object
+changed_info_metadata:
+  description: |
+    If present, this attribute signals modifications of the
+    "metadata" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vim_connection_info:
+  description: |
+    If present, this attribute signals modifications of certain
+    entries in the "vimConnectionInfo" attribute array in "VnfInstance".
+  in: body
+  required: false
+  type: array
+changed_info_vnf_instance_description:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfInstanceDescription" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnf_instance_name:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfInstanceName" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnf_pkg_id:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfPkgId" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnf_product_name:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfProductName" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnf_provider:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfProvider" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnf_sotware_version:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfSoftwareVersion" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnfd_id:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfdId" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnfd_version:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfdVersion" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
 cp_config:
   description: |
     List of instance data that need to be configured on the CP instances
@@ -146,6 +366,41 @@ cpd_id:
     The identifier of the CPD in the VNFD.
   in: body
   required: true
+  type: string
+error:
+  description: |
+    If "operationState" is "FAILED_TEMP" or "FAILED" or
+    "operationState" is "PROCESSING" or "ROLLING_BACK"
+    and previous value of "operationState" was
+    "FAILED_TEMP", this attribute shall be present and
+    contain error information, unless it has been requested to
+    be excluded via an attribute selector.
+  in: body
+  required: false
+  type: object
+error_detail:
+  description: |
+    A human-readable explanation specific to this occurrence
+    of the problem.
+  in: body
+  required: true
+  type: string
+error_status:
+  description: |
+    The HTTP status code for this occurrence of the problem.
+  in: body
+  required: true
+  type: string
+error_title:
+  description: |
+    A URI reference according to IETF RFC 3986 that
+    identifies the problem type. It is encouraged that the URI
+    provides human-readable documentation for the problem
+    (e.g. using HTML) when dereferenced. When this
+    member is not present, its value is assumed to be
+    "about:blank".
+  in: body
+  required: false
   type: string
 ext_cp_info:
   description: |
@@ -449,6 +704,16 @@ ip_over_ethernet_cp_info:
   in: body
   required: false
   type: object
+is_automatic_invocation:
+  description: |
+    Set to true if this VNF LCM operation occurrence has
+    been triggered by an automated procedure inside the
+    VNFM (i.e. ScaleVnf triggered by autoscale,
+    or HealVnf triggered by auto-heal).
+    Set to false otherwise.
+  in: body
+  required: true
+  type: boolean
 is_dynamic:
   description: |
     Indicates whether this set of addresses was assigned dynamically (true)
@@ -495,6 +760,86 @@ mac_address_cp_info:
   in: body
   required: false
   type: string
+notification_id:
+  description: |
+    Identifier of this notification. If a notification is sent
+    multiple times due to multiple subscriptions, the "id"
+    attribute of all these notifications shall have the same
+    value.
+  in: body
+  required: true
+  type: string
+notification_operation:
+  description: |
+    The lifecycle management operation.
+  in: body
+  required: true
+  type: string
+notification_operation_state:
+  description: |
+    The state of the VNF LCM operation occurrence.
+  in: body
+  required: true
+  type: string
+notification_status:
+  description: |
+    Indicates whether this notification reports about the start
+    of a lifecycle operation or the result of a lifecycle
+    operation.
+    Permitted values:
+
+    START: Informs about the start of the VNF LCM
+    operation occurrence.
+
+    RESULT: Informs about the final or intermediate
+    result of the VNF LCM operation occurrence.
+  in: body
+  required: true
+  type: string
+notification_subscription_id:
+  description: |
+    Identifier of the subscription that this notification relates to.
+  in: body
+  required: true
+  type: string
+notification_time_tamp:
+  description: |
+    Date-time of the generation of the notification.
+  in: body
+  required: true
+  type: string
+notification_type:
+  description: |
+    Discriminator for the different notification types.
+  in: body
+  required: true
+  type: string
+notification_vnf_instance_id:
+  description: |
+    The identifier of the VNF instance affected.
+  in: body
+  required: true
+  type: string
+notification_vnf_lcm_op_occ_id:
+  description: |
+    The identifier of the VNF lifecycle management
+    operation occurrence associated to the notification.
+  in: body
+  required: true
+  type: string
+removed_storage_resource_ids:
+  description: |
+    References to VirtualStorage resources that
+    have been removed.
+    The value contains the identifier of a
+    VirtualStorageResourceInfo item that has been
+    removed from the VNFC, and might no longer
+    exist in the VnfInstance.
+    It shall be provided if at least one storage
+    resource was removed from the VNFC.
+  in: body
+  required: false
+  type: array
 resource_handle:
   description: |
     Reference to the resource realizing this VL.
@@ -593,6 +938,30 @@ vim_connection_info_access_info:
     passwords) shall be present if they have not been provisioned out of band.
   in: body
   required: false
+  type: string
+vim_connection_info_access_info_password:
+  description: |
+    The password to use for access.
+  in: body
+  required: true
+  type: string
+vim_connection_info_access_info_region:
+  description: |
+    The OpenStack region to use for the VIM connection.
+  in: body
+  required: true
+  type: string
+vim_connection_info_access_info_tenant:
+  description: |
+    The OpenStack tenant to use for the VIM connection.
+  in: body
+  required: true
+  type: string
+vim_connection_info_access_info_username:
+  description: |
+    The username to use for access.
+  in: body
+  required: true
   type: string
 vim_connection_info_id:
   description: |

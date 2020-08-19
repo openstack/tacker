@@ -12,29 +12,38 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+import copy
 import datetime
 import functools
 import inspect
+import json
 import os
+import requests
 import shutil
 import sys
+import time
+import traceback
+
 
 from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
+from oslo_serialization import jsonutils
 from oslo_service import periodic_task
 from oslo_service import service
 from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import timeutils
+from oslo_utils import uuidutils
+from sqlalchemy import exc as sqlexc
 from sqlalchemy.orm import exc as orm_exc
 import yaml
 
 from tacker.common import coordination
 from tacker.common import csar_utils
 from tacker.common import exceptions
+from tacker.common import log
 from tacker.common import safe_utils
 from tacker.common import topics
 from tacker.common import utils
@@ -50,6 +59,7 @@ from tacker.objects.vnf_package import VnfPackagesList
 from tacker.plugins.common import constants
 from tacker import service as tacker_service
 from tacker import version
+from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnflcm import vnflcm_driver
 from tacker.vnfm import plugin
 
@@ -115,7 +125,7 @@ def revert_upload_vnf_package(function):
                         or isinstance(exp, exceptions.VNFPackageURLInvalid)):
                     # Delete the csar file from the glance store.
                     glance_store.delete_csar(context, vnf_package.id,
-                             vnf_package.location_glance_store)
+                            vnf_package.location_glance_store)
 
                     csar_utils.delete_csar_data(vnf_package.id)
 
@@ -407,6 +417,22 @@ class Conductor(manager.Manager):
 
         return file_path_and_data
 
+    @coordination.synchronized('{vnf_package[id]}')
+    def _update_package_usage_state(self, context, vnf_package):
+        """Update vnf package usage state to IN_USE/NOT_IN_USE
+
+        If vnf package is not used by any of the vnf instances, it's usage
+        state should be set to NOT_IN_USE otherwise it should be set to
+        IN_USE.
+        """
+        result = vnf_package.is_package_in_use(context)
+        if result:
+            vnf_package.usage_state = fields.PackageUsageStateType.IN_USE
+        else:
+            vnf_package.usage_state = fields.PackageUsageStateType.NOT_IN_USE
+
+        vnf_package.save()
+
     @periodic_task.periodic_task(spacing=CONF.vnf_package_delete_interval)
     def _run_cleanup_vnf_packages(self, context):
         """Delete orphan extracted csar zip and files from extracted path
@@ -438,87 +464,399 @@ class Conductor(manager.Manager):
                             {'zip': csar_path, 'folder': csar_zip_temp_path,
                              'uuid': vnf_pack.id})
 
-    @coordination.synchronized('{vnf_instance[id]}')
-    def instantiate(self, context, vnf_instance, instantiate_vnf):
-        # Check if vnf is already instantiated.
-        vnf_instance = objects.VnfInstance.get_by_id(context,
-            vnf_instance.id)
-        if vnf_instance.instantiation_state == \
-           fields.VnfInstanceState.INSTANTIATED:
-            LOG.error("Vnf instance %(id)s is already in %(state)s state.",
-                     {"id": vnf_instance.id,
-                     "state": vnf_instance.instantiation_state})
-            return
-
-        self.vnflcm_driver.instantiate_vnf(context, vnf_instance,
-                                           instantiate_vnf)
-
-        vnf_package_vnfd = objects.VnfPackageVnfd.get_by_id(context,
-                vnf_instance.vnfd_id)
-        vnf_package = objects.VnfPackage.get_by_id(context,
-                vnf_package_vnfd.package_uuid, expected_attrs=['vnfd'])
+    @log.log
+    def _get_vnf_notify(self, context, id):
         try:
-            self._update_package_usage_state(context, vnf_package)
-        except Exception:
-            LOG.error("Failed to update usage_state of vnf package %s",
-                      vnf_package.id)
+            vnf_notif = objects.VnfLcmOpOcc.get_by_id(context, id)
+        except exceptions.VnfInstanceNotFound:
+            error_msg = _("Can not find requested vnf instance: %s") % id
+            raise exceptions.NotificationProcessingError(error=error_msg)
+        except (sqlexc.SQLAlchemyError, Exception):
+            error_msg = _("Can not find requested vnf instance: %s") % id
+            raise exceptions.NotificationProcessingError(error=error_msg)
 
-    @coordination.synchronized('{vnf_package[id]}')
-    def _update_package_usage_state(self, context, vnf_package):
-        """Update vnf package usage state to IN_USE/NOT_IN_USE
+        return vnf_notif
 
-        If vnf package is not used by any of the vnf instances, it's usage
-        state should be set to NOT_IN_USE otherwise it should be set to
-        IN_USE.
-        """
-        result = vnf_package.is_package_in_use(context)
-        if result:
-            vnf_package.usage_state = fields.PackageUsageStateType.IN_USE
+    def _send_lcm_op_occ_notification(
+            self,
+            context,
+            vnf_lcm_op_occs_id,
+            old_vnf_instance,
+            vnf_instance,
+            request_obj,
+            **kwargs):
+
+        operation = kwargs.get('operation',
+                    fields.LcmOccsOperationType.INSTANTIATE)
+        operation_state = kwargs.get('operation_state',
+                    fields.LcmOccsOperationState.PROCESSING)
+        evacuate_end_list = kwargs.get('evacuate_end_list', None)
+        is_automatic_invocation = \
+            kwargs.get('is_automatic_invocation', False)
+        error = kwargs.get('error', None)
+
+        if old_vnf_instance:
+            vnf_instance_id = old_vnf_instance.id
         else:
-            vnf_package.usage_state = fields.PackageUsageStateType.NOT_IN_USE
+            vnf_instance_id = vnf_instance.id
 
-        vnf_package.save()
-
-    @coordination.synchronized('{vnf_instance[id]}')
-    def terminate(self, context, vnf_instance, terminate_vnf_req):
-        # Check if vnf is in instantiated state.
-        vnf_instance = objects.VnfInstance.get_by_id(context,
-            vnf_instance.id)
-        if vnf_instance.instantiation_state == \
-                fields.VnfInstanceState.NOT_INSTANTIATED:
-            LOG.error("Terminate action cannot be performed on vnf %(id)s "
-                      "which is in %(state)s state.",
-                      {"id": vnf_instance.id,
-                      "state": vnf_instance.instantiation_state})
-            return
-
-        self.vnflcm_driver.terminate_vnf(context, vnf_instance,
-            terminate_vnf_req)
-
-        vnf_package_vnfd = objects.VnfPackageVnfd.get_by_id(context,
-                vnf_instance.vnfd_id)
-        vnf_package = objects.VnfPackage.get_by_id(context,
-                vnf_package_vnfd.package_uuid, expected_attrs=['vnfd'])
         try:
-            self._update_package_usage_state(context, vnf_package)
+            LOG.debug("Update vnf lcm %s %s",
+                      (vnf_lcm_op_occs_id,
+                      operation_state))
+            vnf_notif = self._get_vnf_notify(context, vnf_lcm_op_occs_id)
+            vnf_notif.operation_state = operation_state
+            if operation_state == fields.LcmOccsOperationState.FAILED_TEMP:
+                error_details = objects.ProblemDetails(
+                    context=context,
+                    status=500,
+                    details=error
+                )
+                vnf_notif.error = error_details
+            vnf_notif.save()
         except Exception:
-            LOG.error("Failed to update usage_state of vnf package %s",
-                      vnf_package.id)
+            error_msg = (
+                "Failed to update operation state of vnf instance %s" %
+                vnf_instance_id)
+            LOG.error(error_msg)
+            raise exceptions.NotificationProcessingError(error=error_msg)
+
+        # send notification
+        try:
+            notification_data = {
+                'notificationType':
+                    fields.LcmOccsNotificationType.VNF_OP_OCC_NOTIFICATION,
+                'notificationStatus': fields.LcmOccsNotificationStatus.START,
+                'operationState': operation_state,
+                'vnfInstanceId': vnf_instance_id,
+                'operation': operation,
+                'isAutomaticInvocation': is_automatic_invocation,
+                'vnfLcmOpOccId': vnf_lcm_op_occs_id,
+                '_links': {
+                    'vnfInstance': {
+                        'href':
+                            '/vnflcm/v1/vnf_instances/%s'
+                            % vnf_instance_id},
+                    'vnfLcmOpOcc': {
+                        'href':
+                            '/vnflcmv1/vnf_lcm_op_occs/%s'
+                            % vnf_lcm_op_occs_id}}}
+
+            if(operation_state == fields.LcmOccsOperationState.COMPLETED or
+               operation_state == fields.LcmOccsOperationState.FAILED_TEMP):
+                affected_resources = vnflcm_utils._get_affected_resources(
+                    old_vnf_instance=old_vnf_instance,
+                    new_vnf_instance=vnf_instance,
+                    extra_list=evacuate_end_list)
+                affected_resources_snake_case = \
+                    utils.convert_camelcase_to_snakecase(affected_resources)
+                resource_change_obj = \
+                    jsonutils.dumps(affected_resources_snake_case)
+                changed_resource = objects.ResourceChanges.obj_from_primitive(
+                    resource_change_obj, context)
+                vnf_notif.resource_changes = changed_resource
+                vnf_notif.save()
+                notification_data['affectedVnfcs'] = \
+                    affected_resources.get('affectedVnfcs', [])
+                notification_data['affectedVirtualLinks'] = \
+                    affected_resources.get('affectedVirtualLinks', [])
+                notification_data['affectedVirtualStorages'] = \
+                    affected_resources.get('affectedVirtualStorages', [])
+                notification_data['notificationStatus'] = \
+                    fields.LcmOccsNotificationStatus.RESULT
+
+                if operation_state == fields.LcmOccsOperationState.FAILED_TEMP:
+                    notification_data['error'] = error
+
+            # send notification
+            self.send_notification(context, notification_data)
+        except Exception as ex:
+            LOG.error(
+                "Failed to send notification {}. Details: {}".format(
+                    vnf_lcm_op_occs_id, str(ex)))
+
+    def send_notification(self, context, notification):
+        try:
+            LOG.debug("send_notification start notification[%s]"
+                      % notification)
+            if (notification.get('notificationType') ==
+                    'VnfLcmOperationOccurrenceNotification'):
+                vnf_lcm_subscriptions = \
+                    objects.LccnSubscriptionRequest.vnf_lcm_subscriptions_get(
+                        context,
+                        operation_type=notification.get('operation'),
+                        notification_type=notification.get('notificationType')
+                    )
+            else:
+                vnf_lcm_subscriptions = \
+                    objects.LccnSubscriptionRequest.vnf_lcm_subscriptions_get(
+                        context,
+                        notification_type=notification.get('notificationType')
+                    )
+            if not vnf_lcm_subscriptions:
+                LOG.warn(
+                    "vnf_lcm_subscription not found id[%s]" %
+                    notification.get('vnfInstanceId'))
+                return -1
+
+            notification['id'] = uuidutils.generate_uuid()
+
+            # Notification shipping
+            for line in vnf_lcm_subscriptions:
+                notification['subscriptionId'] = line.id.decode()
+                if (notification.get('notificationType') ==
+                        'VnfLcmOperationOccurrenceNotification'):
+                    notification['_links'] = {}
+                    notification['_links']['subscription'] = {}
+                    notification['_links']['subscription']['href'] = \
+                        CONF.vnf_lcm.endpoint_url + \
+                        "/vnflcm/v1/subscriptions/" + line.id.decode()
+                else:
+                    notification['links'] = {}
+                    notification['links']['subscription'] = {}
+                    notification['links']['subscription']['href'] = \
+                        CONF.vnf_lcm.endpoint_url + \
+                        "/vnflcm/v1/subscriptions/" + line.id.decode()
+                notification['timeStamp'] = datetime.datetime.utcnow(
+                ).isoformat()
+                try:
+                    for num in range(CONF.vnf_lcm.retry_num):
+                        LOG.warn("send notify[%s]" % json.dumps(notification))
+                        response = requests.post(
+                            line.callback_uri.decode(),
+                            data=json.dumps(notification))
+                        if response.status_code == 204:
+                            LOG.info(
+                                "send success notify[%s]" %
+                                json.dumps(notification))
+                            break
+                        else:
+                            LOG.warning(
+                                "Notification failed id[%s] status[%s] \
+                                    callback_uri[%s]" %
+                                (notification['id'],
+                                response.status_code,
+                                line.callback_uri.decode()))
+                            LOG.debug(
+                                "retry_wait %s" %
+                                CONF.vnf_lcm.retry_wait)
+                            time.sleep(CONF.vnf_lcm.retry_wait)
+                            if num == CONF.vnf_lcm.retry_num:
+                                LOG.warn("Number of retries \
+                                    exceeded retry count")
+
+                            continue
+                except Exception as e:
+                    LOG.warn("send error[%s]" % str(e))
+                    LOG.warn(traceback.format_exc())
+                    continue
+
+        except Exception as e:
+            LOG.warn("Internal Sever Error[%s]" % str(e))
+            LOG.warn(traceback.format_exc())
+            return -2
+        return 0
 
     @coordination.synchronized('{vnf_instance[id]}')
-    def heal(self, context, vnf_instance, heal_vnf_request):
-        # Check if vnf is in instantiated state.
-        vnf_instance = objects.VnfInstance.get_by_id(context,
-            vnf_instance.id)
-        if vnf_instance.instantiation_state == \
-                fields.VnfInstanceState.NOT_INSTANTIATED:
-            LOG.error("Heal action cannot be performed on vnf %(id)s "
-                      "which is in %(state)s state.",
-                      {"id": vnf_instance.id,
-                      "state": vnf_instance.instantiation_state})
-            return
+    def instantiate(
+            self,
+            context,
+            vnf_instance,
+            instantiate_vnf,
+            vnf_lcm_op_occs_id):
 
-        self.vnflcm_driver.heal_vnf(context, vnf_instance, heal_vnf_request)
+        try:
+            # Update vnf_lcm_op_occs table and send notification "PROCESSING"
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=None,
+                vnf_instance=vnf_instance,
+                request_obj=instantiate_vnf
+            )
+
+            # Check if vnf is already instantiated.
+            vnf_instance = objects.VnfInstance.get_by_id(context,
+                                                         vnf_instance.id)
+            if vnf_instance.instantiation_state == \
+                    fields.VnfInstanceState.INSTANTIATED:
+                LOG.error("Vnf instance %(id)s is already in %(state)s state.",
+                          {"id": vnf_instance.id,
+                           "state": vnf_instance.instantiation_state})
+                return
+
+            self.vnflcm_driver.instantiate_vnf(context, vnf_instance,
+                                               instantiate_vnf)
+
+            vnf_package_vnfd = objects.VnfPackageVnfd.get_by_id(
+                context, vnf_instance.vnfd_id)
+            vnf_package = objects.VnfPackage.get_by_id(
+                context, vnf_package_vnfd.package_uuid,
+                expected_attrs=['vnfd'])
+            try:
+                self._update_package_usage_state(context, vnf_package)
+            except Exception:
+                with excutils.save_and_reraise_exception():
+                    LOG.error("Failed to update usage_state of vnf package %s",
+                              vnf_package.id)
+
+            # Update vnf_lcm_op_occs table and send notification "COMPLETED"
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=None,
+                vnf_instance=vnf_instance,
+                request_obj=instantiate_vnf,
+                operation_state=fields.LcmOccsOperationState.COMPLETED
+            )
+
+        except Exception as ex:
+            # Update vnf_lcm_op_occs table and send notification "FAILED_TEMP"
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=None,
+                vnf_instance=vnf_instance,
+                request_obj=instantiate_vnf,
+                operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
+                error=str(ex)
+            )
+
+    @coordination.synchronized('{vnf_instance[id]}')
+    def terminate(self, context, vnf_lcm_op_occs_id,
+                  vnf_instance, terminate_vnf_req, vnf_dict):
+        try:
+            # Check if vnf is in instantiated state.
+            vnf_instance = objects.VnfInstance.get_by_id(context,
+                                                         vnf_instance.id)
+            if vnf_instance.instantiation_state == \
+                    fields.VnfInstanceState.NOT_INSTANTIATED:
+                LOG.error("Terminate action cannot be performed on vnf %(id)s "
+                          "which is in %(state)s state.",
+                          {"id": vnf_instance.id,
+                           "state": vnf_instance.instantiation_state})
+                return
+
+            old_vnf_instance = copy.deepcopy(vnf_instance)
+
+            # Update vnf_lcm_op_occs table and send notification "PROCESSING"
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=old_vnf_instance,
+                vnf_instance=None,
+                request_obj=terminate_vnf_req,
+                operation=fields.LcmOccsOperationType.TERMINATE
+            )
+
+            self.vnflcm_driver.terminate_vnf(context, vnf_instance,
+                                             terminate_vnf_req,
+                                             vnf_lcm_op_occs_id)
+
+            vnf_package_vnfd = \
+                objects.VnfPackageVnfd.get_by_id(context, vnf_instance.vnfd_id)
+            vnf_package = \
+                objects.VnfPackage.get_by_id(context,
+                                             vnf_package_vnfd.package_uuid,
+                                             expected_attrs=['vnfd'])
+            try:
+                self._update_package_usage_state(context, vnf_package)
+            except Exception:
+                with excutils.save_and_reraise_exception():
+                    LOG.error("Failed to update usage_state of vnf package %s",
+                              vnf_package.id)
+
+            # Update vnf_lcm_op_occs table and send notification "COMPLETED"
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=old_vnf_instance,
+                vnf_instance=None,
+                request_obj=terminate_vnf_req,
+                operation=fields.LcmOccsOperationType.TERMINATE,
+                operation_state=fields.LcmOccsOperationState.COMPLETED
+            )
+
+        except Exception as exc:
+            # Update vnf_lcm_op_occs table and send notification "FAILED_TEMP"
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=old_vnf_instance,
+                vnf_instance=None,
+                request_obj=terminate_vnf_req,
+                operation=fields.LcmOccsOperationType.TERMINATE,
+                operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
+                error=str(exc)
+            )
+
+    @coordination.synchronized('{vnf_instance[id]}')
+    def heal(self,
+             context,
+             vnf_instance,
+             vnf_dict,
+             heal_vnf_request,
+             vnf_lcm_op_occs_id):
+
+        try:
+            evacuate_end_list = []
+
+            # Check if vnf is in instantiated state.
+            vnf_instance = objects.VnfInstance.get_by_id(context,
+                                                         vnf_instance.id)
+            if vnf_instance.instantiation_state == \
+                    fields.VnfInstanceState.NOT_INSTANTIATED:
+                LOG.error("Heal action cannot be performed on vnf %(id)s "
+                          "which is in %(state)s state.",
+                          {"id": vnf_instance.id,
+                           "state": vnf_instance.instantiation_state})
+                return
+
+            old_vnf_instance = copy.deepcopy(vnf_instance)
+
+            # Update vnf_lcm_op_occs table and send notification "PROCESSING"
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=old_vnf_instance,
+                vnf_instance=vnf_instance,
+                request_obj=heal_vnf_request,
+                operation=fields.LcmOccsOperationType.HEAL
+            )
+
+            heal_result = \
+                self.vnflcm_driver.heal_vnf(context, vnf_instance, vnf_dict,
+                                            heal_vnf_request,
+                                            vnf_lcm_op_occs_id)
+
+            # update vnf_lcm_op_occs and send notification "COMPLETED"
+            if heal_result:
+                evacuate_end_list = heal_result.get('evacuate_end_list')
+
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=old_vnf_instance,
+                vnf_instance=vnf_instance,
+                request_obj=heal_vnf_request,
+                operation=fields.LcmOccsOperationType.HEAL,
+                operation_state=fields.LcmOccsOperationState.COMPLETED,
+                evacuate_end_list=evacuate_end_list
+            )
+        except Exception as ex:
+
+            # update vnf_lcm_op_occs and send notification "FAILED_TEMP"
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=old_vnf_instance,
+                vnf_instance=vnf_instance,
+                request_obj=heal_vnf_request,
+                operation=fields.LcmOccsOperationType.HEAL,
+                operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
+                evacuate_end_list=evacuate_end_list,
+                error=str(ex)
+            )
 
 
 def init(args, **kwargs):

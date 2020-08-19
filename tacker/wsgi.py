@@ -28,6 +28,8 @@ import time
 import eventlet.wsgi
 # eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
 from oslo_config import cfg
+import tacker.conf
+
 import oslo_i18n as i18n
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
@@ -75,7 +77,7 @@ socket_opts = [
                       "the server securely")),
 ]
 
-CONF = cfg.CONF
+CONF = tacker.conf.CONF
 CONF.register_opts(socket_opts)
 
 

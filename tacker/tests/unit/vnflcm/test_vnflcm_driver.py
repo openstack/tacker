@@ -12,13 +12,13 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import fixtures
 import os
 import shutil
 from unittest import mock
 
-import fixtures
 from oslo_config import cfg
-
 from tacker.common import exceptions
 from tacker.common import utils
 from tacker import context
@@ -30,6 +30,14 @@ from tacker.tests import utils as test_utils
 from tacker.tests import uuidsentinel
 from tacker.vnflcm import vnflcm_driver
 from tacker.vnfm import vim_client
+
+
+OPTS_INFRA_DRIVER = [
+    cfg.ListOpt(
+        'infra_driver', default=['noop', 'openstack', 'kubernetes'],
+        help=_('Hosting vnf drivers tacker plugin will use')),
+]
+cfg.CONF.register_opts(OPTS_INFRA_DRIVER, 'tacker')
 
 
 class InfraDriverException(Exception):
@@ -256,7 +264,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfInstance, "save")
     def test_instantiate_vnf_infra_fails_to_wait_after_instantiate(
-            self, mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create):
+            self, mock_vnf_instance_save, mock_vnf_package_vnfd,
+            mock_create):
         vnf_package_vnfd = fakes.return_vnf_package_vnfd()
         vnf_package_id = vnf_package_vnfd.package_uuid
         mock_vnf_package_vnfd.return_value = vnf_package_vnfd

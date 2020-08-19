@@ -13,13 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+import iso8601
+
 import os
-from oslo_config import cfg
 import shutil
 import tempfile
 import uuid
 import yaml
 import zipfile
+
+from oslo_config import cfg
 
 from tacker.tests import utils
 from tacker.tests import uuidsentinel
@@ -84,6 +88,40 @@ def create_fake_csar_dir(vnf_package_id, temp_dir,
     utils.copy_csar_files(fake_csar, csar_dir, csar_without_tosca_meta)
 
     return fake_csar
+
+
+def get_vnf_package_vnfd():
+    return {
+        "id": uuidsentinel.vnfd_id,
+        "vnf_provider": "test vnf provider",
+        "vnf_product_name": "Sample VNF",
+        "vnf_software_version": "1.0",
+        "vnfd_version": "1.0",
+        "name": 'Sample VNF Instance',
+    }
+
+
+def get_lcm_op_occs_data():
+    return {
+        "tenant_id": uuidsentinel.tenant_id,
+        'operation_state': 'PROCESSING',
+        'state_entered_time':
+        datetime.datetime(1900, 1, 1, 1, 1, 1,
+        tzinfo=iso8601.UTC),
+        'start_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
+        tzinfo=iso8601.UTC),
+        'operation': 'MODIFY_INFO',
+        'is_automatic_invocation': 0,
+        'is_cancel_pending': 0,
+    }
+
+
+def get_vnf_lcm_subscriptions():
+    subscription_id = uuidsentinel.subscription_id
+    return {
+        "id": subscription_id.encode(),
+        "callback_uri": b'http://localhost:9890/'
+    }
 
 
 def get_expected_vnfd_data(zip_file=None):

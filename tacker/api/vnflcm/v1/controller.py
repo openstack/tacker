@@ -15,18 +15,21 @@
 
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
+from oslo_utils import encodeutils
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 import ast
+import functools
 import json
 import re
 import traceback
 
 import six
 from six.moves import http_client
+from six.moves.urllib import parse
 import webob
 
-from urllib import parse
 
 from tacker._i18n import _
 from tacker.api.schemas import vnf_lcm
@@ -37,10 +40,12 @@ from tacker.common import utils
 from tacker.conductor.conductorrpc import vnf_lcm_rpc
 import tacker.conf
 from tacker.extensions import nfvo
+from tacker.extensions import vnfm
 from tacker import manager
 from tacker import objects
 from tacker.objects import fields
 from tacker.objects import vnf_lcm_subscriptions as subscription_obj
+from tacker.plugins.common import constants
 from tacker.policies import vnf_lcm as vnf_lcm_policies
 from tacker.vnfm import vim_client
 from tacker import wsgi
@@ -63,7 +68,7 @@ def check_vnf_state(action, instantiation_state=None, task_state=(None,)):
         task_state = set(task_state)
 
     def outer(f):
-        @six.wraps(f)
+        @functools.wraps(f)
         def inner(self, context, vnf_instance, *args, **kw):
             if instantiation_state is not None and \
                     vnf_instance.instantiation_state not in \
@@ -81,6 +86,31 @@ def check_vnf_state(action, instantiation_state=None, task_state=(None,)):
                     state=vnf_instance.task_state,
                     action=action)
             return f(self, context, vnf_instance, *args, **kw)
+        return inner
+    return outer
+
+
+def check_vnf_status(action, status=None):
+    """Decorator to check vnf status are valid for particular action.
+
+    If the vnf is in the wrong state, it will raise conflict exception.
+    """
+
+    if status is not None and not isinstance(status, set):
+        status = set(status)
+
+    def outer(f):
+        @functools.wraps(f)
+        def inner(self, context, vnf_instance, vnf, *args, **kw):
+            if status is not None and \
+                    vnf['status'] not in \
+                    status:
+                raise exceptions.VnfConflictState(
+                    attr='status',
+                    uuid=vnf['id'],
+                    state=vnf['status'],
+                    action=action)
+            return f(self, context, vnf_instance, vnf, *args, **kw)
         return inner
     return outer
 
@@ -117,6 +147,9 @@ class VnfLcmController(wsgi.Controller):
     def _get_vnf_instance_href(self, vnf_instance):
         return '/vnflcm/v1/vnf_instances/%s' % vnf_instance.id
 
+    def _get_vnf_lcm_op_occs_href(self, vnf_lcm_op_occs_id):
+        return '/vnflcm/v1/vnf_lcm_op_occs/%s' % vnf_lcm_op_occs_id
+
     def _get_vnf_instance(self, context, id):
         # check if id is of type uuid format
         if not uuidutils.is_uuid_like(id):
@@ -130,6 +163,24 @@ class VnfLcmController(wsgi.Controller):
             raise webob.exc.HTTPNotFound(explanation=msg)
 
         return vnf_instance
+
+    def _get_vnf(self, context, id):
+        # check if id is of type uuid format
+        if not uuidutils.is_uuid_like(id):
+            msg = _("Can not find requested vnf: %s") % id
+            raise webob.exc.HTTPNotFound(explanation=msg)
+
+        try:
+            vnf = self._vnfm_plugin.get_vnf(context, id)
+        except vnfm.VNFNotFound:
+            msg = _("Can not find requested vnf: %s") % id
+            raise webob.exc.HTTPNotFound(explanation=msg)
+        except Exception as exc:
+            msg = _("Encountered error while fetching vnf: %s") % id
+            LOG.debug("{}: {}".format(msg, six.text_type(exc)))
+            raise webob.exc.HTTPInternalServerError(explanation=six.
+                                                    text_type(exc))
+        return vnf
 
     def _validate_flavour_and_inst_level(self, context, req_body,
                                          vnf_instance):
@@ -197,6 +248,65 @@ class VnfLcmController(wsgi.Controller):
                 % vim_id
             raise webob.exc.HTTPBadRequest(explanation=msg)
 
+    def _notification_process(self, context, vnf_instance,
+                              lcm_operation, request, is_auto=False):
+        vnf_lcm_op_occs_id = uuidutils.generate_uuid()
+        error_point = 0
+        if lcm_operation == fields.LcmOccsOperationType.HEAL:
+            request_dict = {
+                'vnfc_instance_id': request.vnfc_instance_id,
+                'cause': request.cause
+            }
+            operation_params = str(request_dict)
+        else:
+            # lcm is instantiation by default
+            operation_params = str(request.additional_params)
+        try:
+            # call create lcm op occs here
+            LOG.debug('Create LCM OP OCCS')
+            vnf_lcm_op_occs = objects.VnfLcmOpOcc(
+                context=context,
+                id=vnf_lcm_op_occs_id,
+                operation_state=fields.LcmOccsOperationState.STARTING,
+                start_time=timeutils.utcnow(),
+                state_entered_time=timeutils.utcnow(),
+                vnf_instance_id=vnf_instance.id,
+                is_cancel_pending=is_auto,
+                operation=lcm_operation,
+                is_automatic_invocation=is_auto,
+                operation_params=operation_params,
+                error_point=error_point)
+            vnf_lcm_op_occs.create()
+        except Exception:
+            msg = _("Failed to create LCM occurrence")
+            raise webob.exc.HTTPInternalServerError(explanation=msg)
+
+        vnf_lcm_url = self._get_vnf_lcm_op_occs_href(vnf_lcm_op_occs_id)
+        notification = {
+            'notificationType':
+                fields.LcmOccsNotificationType.VNF_OP_OCC_NOTIFICATION,
+            'notificationStatus': fields.LcmOccsNotificationStatus.START,
+            'operationState': fields.LcmOccsOperationState.STARTING,
+            'vnfInstanceId': vnf_instance.id,
+            'operation': lcm_operation,
+            'isAutomaticInvocation': is_auto,
+            'vnfLcmOpOccId': vnf_lcm_op_occs_id,
+            '_links': {
+                'vnfInstance': {
+                    'href': self._get_vnf_instance_href(vnf_instance)},
+                'vnfLcmOpOcc': {
+                    'href': vnf_lcm_url}}}
+
+        # call send notification
+        try:
+            self.rpc_api.send_notification(context, notification)
+        except Exception as ex:
+            LOG.error(
+                "Encoutered problem sending notification {}".format(
+                    encodeutils.exception_to_unicode(ex)))
+
+        return vnf_lcm_op_occs_id
+
     @wsgi.response(http_client.CREATED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN))
     @validation.schema(vnf_lcm.create)
@@ -247,6 +357,18 @@ class VnfLcmController(wsgi.Controller):
 
         # add default vim to vim_connection_info
         setattr(vnf_instance, 'vim_connection_info', [vim_con_info])
+
+        # create notification data
+        notification = {
+            'notificationType':
+                fields.LcmOccsNotificationType.VNF_ID_CREATION_NOTIFICATION,
+            'vnfInstanceId': vnf_instance.id,
+            'links': {
+                'vnfInstance': {
+                    'href': self._get_vnf_instance_href(vnf_instance)}}}
+
+        # call send nootification
+        self.rpc_api.send_notification(context, notification)
         vnf_instance.save()
 
         result = self._view_builder.create(vnf_instance)
@@ -291,10 +413,21 @@ class VnfLcmController(wsgi.Controller):
         vnf_instance = self._get_vnf_instance(context, id)
         self._delete(context, vnf_instance)
 
+        notification = {
+            "notificationType": "VnfIdentifierDeletionNotification",
+            "vnfInstanceId": vnf_instance.id,
+            "links": {
+                "vnfInstance":
+                    "href:{apiRoot}/vnflcm/v1/vnf_instances/{vnfInstanceId}"}}
+        # send notification
+        self.rpc_api.send_notification(context, notification)
+
     @check_vnf_state(action="instantiate",
         instantiation_state=[fields.VnfInstanceState.NOT_INSTANTIATED],
         task_state=[None])
-    def _instantiate(self, context, vnf_instance, request_body):
+    @check_vnf_status(action="instantiate",
+        status=[constants.INACTIVE])
+    def _instantiate(self, context, vnf_instance, vnf, request_body):
         req_body = utils.convert_camelcase_to_snakecase(request_body)
 
         try:
@@ -313,8 +446,13 @@ class VnfLcmController(wsgi.Controller):
         vnf_instance.task_state = fields.VnfInstanceTaskState.INSTANTIATING
         vnf_instance.save()
 
-        self.rpc_api.instantiate(context, vnf_instance,
-                                 instantiate_vnf_request)
+        # lcm op process
+        vnf_lcm_op_occs_id = \
+            self._notification_process(context, vnf_instance,
+                                       fields.LcmOccsOperationType.INSTANTIATE,
+                                       instantiate_vnf_request)
+        self.rpc_api.instantiate(context, vnf_instance, vnf,
+                                 instantiate_vnf_request, vnf_lcm_op_occs_id)
 
     @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,
@@ -324,14 +462,15 @@ class VnfLcmController(wsgi.Controller):
         context = request.environ['tacker.context']
         context.can(vnf_lcm_policies.VNFLCM % 'instantiate')
 
+        vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
 
-        self._instantiate(context, vnf_instance, body)
+        self._instantiate(context, vnf_instance, vnf, body)
 
     @check_vnf_state(action="terminate",
         instantiation_state=[fields.VnfInstanceState.INSTANTIATED],
         task_state=[None])
-    def _terminate(self, context, vnf_instance, request_body):
+    def _terminate(self, context, vnf_instance, request_body, vnf):
         req_body = utils.convert_camelcase_to_snakecase(request_body)
         terminate_vnf_req = \
             objects.TerminateVnfRequest.obj_from_primitive(
@@ -339,7 +478,15 @@ class VnfLcmController(wsgi.Controller):
 
         vnf_instance.task_state = fields.VnfInstanceTaskState.TERMINATING
         vnf_instance.save()
-        self.rpc_api.terminate(context, vnf_instance, terminate_vnf_req)
+
+        # lcm op process
+        vnf_lcm_op_occs_id = \
+            self._notification_process(context, vnf_instance,
+                                       fields.LcmOccsOperationType.TERMINATE,
+                                       terminate_vnf_req)
+
+        self.rpc_api.terminate(context, vnf_instance, vnf,
+                               terminate_vnf_req, vnf_lcm_op_occs_id)
 
     @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
@@ -349,13 +496,16 @@ class VnfLcmController(wsgi.Controller):
         context = request.environ['tacker.context']
         context.can(vnf_lcm_policies.VNFLCM % 'terminate')
 
+        vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
-        self._terminate(context, vnf_instance, body)
+        self._terminate(context, vnf_instance, body, vnf)
 
     @check_vnf_state(action="heal",
         instantiation_state=[fields.VnfInstanceState.INSTANTIATED],
         task_state=[None])
-    def _heal(self, context, vnf_instance, request_body):
+    @check_vnf_status(action="heal",
+        status=[constants.ACTIVE])
+    def _heal(self, context, vnf_instance, vnf_dict, request_body):
         req_body = utils.convert_camelcase_to_snakecase(request_body)
         heal_vnf_request = objects.HealVnfRequest(context=context, **req_body)
         inst_vnf_info = vnf_instance.instantiated_vnf_info
@@ -374,7 +524,14 @@ class VnfLcmController(wsgi.Controller):
         vnf_instance.task_state = fields.VnfInstanceTaskState.HEALING
         vnf_instance.save()
 
-        self.rpc_api.heal(context, vnf_instance, heal_vnf_request)
+        # call notification process
+        vnf_lcm_op_occs_id = \
+            self._notification_process(context, vnf_instance,
+                                       fields.LcmOccsOperationType.HEAL,
+                                       heal_vnf_request)
+
+        self.rpc_api.heal(context, vnf_instance, vnf_dict, heal_vnf_request,
+                          vnf_lcm_op_occs_id)
 
     @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
@@ -384,8 +541,9 @@ class VnfLcmController(wsgi.Controller):
         context = request.environ['tacker.context']
         context.can(vnf_lcm_policies.VNFLCM % 'heal')
 
+        vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
-        self._heal(context, vnf_instance, body)
+        self._heal(context, vnf_instance, vnf, body)
 
     @wsgi.response(http_client.CREATED)
     @validation.schema(vnf_lcm.register_subscription)
