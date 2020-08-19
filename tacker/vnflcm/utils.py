@@ -76,6 +76,211 @@ def _get_vnfd_dict(context, vnfd_id, flavour_id):
     return vnfd_dict
 
 
+def _build_affected_resources(vnf_instance,
+     change_type=fields.ResourceChangeType.ADDED):
+    '''build affected resources from vnf_instance instantiated info '''
+
+    affected_resources = {}
+    instantiated_vnf_info = vnf_instance.instantiated_vnf_info
+    if hasattr(instantiated_vnf_info, 'instance_id'):
+        if instantiated_vnf_info.instance_id:
+
+            affected_resources['affectedVnfcs'] = []
+            affected_resources['affectedVirtualLinks'] = []
+            affected_resources['affectedVirtualStorages'] = []
+
+            # build AffectedVnfc
+            vnfc_resource_info = \
+                instantiated_vnf_info.vnfc_resource_info
+            for vnfc_resource in vnfc_resource_info:
+                data = {}
+                data['id'] = vnfc_resource.id
+                data['vduId'] = vnfc_resource.vdu_id
+                data['changeType'] = change_type
+                data['computeResource'] = \
+                    vnfc_resource.compute_resource.to_dict()
+                data['metadata'] = vnfc_resource.metadata
+                affected_resources['affectedVnfcs'].append(data)
+
+            # build AffectedVirtualLink
+            vnf_virtual_link = \
+                instantiated_vnf_info.vnf_virtual_link_resource_info
+            for vnf_vl_info in vnf_virtual_link:
+                data = {}
+                data['id'] = vnf_vl_info.id
+                data['vnfVirtualLinkDescId'] = \
+                    vnf_vl_info.vnf_virtual_link_desc_id
+                data['changeType'] = change_type
+                data['networkResource'] = \
+                    vnf_vl_info.network_resource.to_dict()
+                data['metadata'] = {}
+                affected_resources['affectedVirtualLinks'].append(data)
+
+            # build affectedVirtualStorages
+            virtual_storage = \
+                instantiated_vnf_info.virtual_storage_resource_info
+            for vnf_storage_info in virtual_storage:
+                data = {}
+                data['id'] = vnf_storage_info.id
+                data['virtualStorageDescId'] = \
+                    vnf_storage_info.virtual_storage_desc_id
+                data['changeType'] = change_type
+                data['storageResource'] = \
+                    vnf_storage_info.storage_resource.to_dict()
+                data['metadata'] = {}
+                affected_resources['affectedVirtualStorages'].append(data)
+
+    return utils.convert_snakecase_to_camelcase(affected_resources)
+
+
+def _get_affected_resources(old_vnf_instance=None,
+                new_vnf_instance=None, extra_list=None):
+    '''get_affected_resources
+
+    returns affected resources in new_vnf_instance not present
+    in old_vnf_instance.
+    if extra_list (list of physical resource ids) is present,
+        included to affected resources
+    '''
+    def _get_affected_cpids(affected_vnfc, vnf_instance):
+        affected_cpids = []
+        instantiated_vnf_info = vnf_instance.instantiated_vnf_info
+        for vnfc_resource in instantiated_vnf_info.vnfc_resource_info:
+            if vnfc_resource.id == affected_vnfc['id']:
+                for vnfc_cp in vnfc_resource.vnfc_cp_info:
+                    if vnfc_cp.cpd_id:
+                        affected_cpids.append(vnfc_cp.cpd_id)
+                    if vnfc_cp.vnf_ext_cp_id:
+                        affected_cpids.append(vnfc_cp.vnf_ext_cp_id)
+        return affected_cpids
+
+    def _get_added_storageids(affected_vnfc, vnf_instance):
+        affected_storage_ids = []
+        instantiated_vnf_info = vnf_instance.instantiated_vnf_info
+        for vnfc_resource in instantiated_vnf_info.vnfc_resource_info:
+            if vnfc_resource.id == affected_vnfc['id']:
+                for storage_resource_id in vnfc_resource.storage_resource_ids:
+                    virtual_storage = \
+                        instantiated_vnf_info.virtual_storage_resource_info
+                    for virt_storage_res_info in virtual_storage:
+                        if virt_storage_res_info.id == storage_resource_id:
+                            affected_storage_ids.append(
+                                virt_storage_res_info.virtual_storage_desc_id)
+        return affected_storage_ids
+
+    def diff_list(old_list, new_list):
+        diff = []
+        for item in new_list:
+            if item not in old_list:
+                diff.append(item)
+        return diff
+
+    affected_resources = {}
+    affected_resources['affectedVnfcs'] = []
+    affected_resources['affectedVirtualLinks'] = []
+    affected_resources['affectedVirtualStorages'] = []
+
+    if not old_vnf_instance:
+        affected_resources = _build_affected_resources(
+            new_vnf_instance, fields.ResourceChangeType.ADDED)
+        # add affected cpids and add added storageids
+        for affected_vnfc in affected_resources['affectedVnfcs']:
+            affected_vnfc['affectedVnfcCpIds'] = _get_affected_cpids(
+                affected_vnfc, new_vnf_instance)
+            affected_vnfc['addedStorageResourceIds'] = _get_added_storageids(
+                affected_vnfc, new_vnf_instance)
+
+    elif not new_vnf_instance:
+        affected_resources = _build_affected_resources(old_vnf_instance,
+                                            fields.ResourceChangeType.REMOVED)
+        # add affected cpids and add remove storageids
+        for affected_vnfc in affected_resources['affectedVnfcs']:
+            affected_vnfc['affectedVnfcCpIds'] = _get_affected_cpids(
+                affected_vnfc, old_vnf_instance)
+            affected_vnfc['removedStorageResourceIds'] = _get_added_storageids(
+                affected_vnfc, old_vnf_instance)
+    elif old_vnf_instance and new_vnf_instance:
+        old_affected_resources = _build_affected_resources(old_vnf_instance)
+        new_affected_resources = _build_affected_resources(new_vnf_instance,
+                                            fields.ResourceChangeType.MODIFIED)
+
+        # get resource_ids
+        old_vnfc_resource_ids = []
+        for vnfc_resource in old_affected_resources.get('affectedVnfcs', []):
+            old_vnfc_resource_ids.append(
+                vnfc_resource['computeResource']['resourceId'])
+
+        # remove extra_list items in old_vnfc_resource_ids
+        # so that this items will be considered new
+        if extra_list:
+            for item in extra_list:
+                if item in old_vnfc_resource_ids:
+                    index = old_vnfc_resource_ids.index(item)
+                    old_vnfc_resource_ids.pop(index)
+
+        new_vnfc_resource_ids = []
+        for vnfc_resource in new_affected_resources.get('affectedVnfcs', []):
+            resource_id = vnfc_resource['computeResource']['resourceId']
+            new_vnfc_resource_ids.append(resource_id)
+
+        old_vnf_vl_resource_ids = []
+        for vnf_vl_info in old_affected_resources.get(
+                'affectedVirtualLinks', []):
+            resource_id = vnf_vl_info['networkResource']['resourceId']
+            old_vnf_vl_resource_ids.append(resource_id)
+
+        new_vnf_vl_resource_ids = []
+        for vnf_vl_info in new_affected_resources.get(
+                'affectedVirtualLinks', []):
+            resource_id = vnf_vl_info['networkResource']['resourceId']
+            new_vnf_vl_resource_ids.append(resource_id)
+
+        old_vnf_storage_resource_ids = []
+        for vnf_storage_info in old_affected_resources.get(
+                'affectedVirtualStorages', []):
+            resource_id = vnf_storage_info['storageResource']['resourceId']
+            old_vnf_storage_resource_ids.append(resource_id)
+
+        new_vnf_storage_resource_ids = []
+        for vnf_storage_info in new_affected_resources.get(
+                'affectedVirtualStorages', []):
+            resource_id = vnf_storage_info['storageResource']['resourceId']
+            new_vnf_storage_resource_ids.append(resource_id)
+
+        # get difference between resource_ids
+        vnfc_resource_ids = diff_list(old_vnfc_resource_ids,
+                                      new_vnfc_resource_ids)
+        vnf_vl_resource_ids = diff_list(old_vnf_vl_resource_ids,
+                                        new_vnf_vl_resource_ids)
+        vnf_storage_resource_ids = diff_list(old_vnf_storage_resource_ids,
+                                             new_vnf_storage_resource_ids)
+
+        # return new affected resources
+        for affected_vls in new_affected_resources['affectedVirtualLinks']:
+            if (affected_vls['networkResource']
+                    ['resourceId'] in vnf_vl_resource_ids):
+                affected_resources['affectedVirtualLinks'].append(affected_vls)
+
+        affected_storages = new_affected_resources['affectedVirtualStorages']
+        for affected_storage in affected_storages:
+            if (affected_storage['storageResource']
+                    ['resourceId'] in vnf_storage_resource_ids):
+                affected_resources['affectedVirtualStorages'].append(
+                    affected_storage)
+
+        for affected_vnfc in new_affected_resources['affectedVnfcs']:
+            if (affected_vnfc['computeResource']
+                    ['resourceId'] in vnfc_resource_ids):
+
+                # update affected affectedVnfcCpIds
+                affected_vnfc['affectedVnfcCpIds'] = _get_affected_cpids(
+                    affected_vnfc, new_vnf_instance)
+
+                affected_resources['affectedVnfcs'].append(affected_vnfc)
+
+    return affected_resources
+
+
 def _get_vnf_package_id(context, vnfd_id):
     vnf_package = objects.VnfPackageVnfd.get_by_id(context, vnfd_id)
     return vnf_package.package_uuid

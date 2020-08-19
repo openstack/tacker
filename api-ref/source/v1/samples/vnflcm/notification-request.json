@@ -1,0 +1,100 @@
+{
+  "id": "fb864bd0-25f3-4180-b591-2910086c0013",
+  "notificationType": "VnfLcmOperationOccurrenceNotification",
+  "subscriptionId": "c25ae285-e245-4898-9df7-0527841efdc4",
+  "timeStamp": "2020-08-02T06:50:50.883373",
+  "notificationStatus": "RESULT",
+  "operationState": "COMPLETED",
+  "vnfInstanceId": "0b7b95a9-21d5-4ac4-80c8-9ae9f7323787",
+  "operation": "INSTANTIATE",
+  "isAutomaticInvocation": false,
+  "vnfLcmOpOccId": "1266b5b4-84d3-4c3a-acbf-aa515fada6b0",
+  "affectedVnfcs": [
+    {
+      "id": "36e24439-829c-4803-a413-385cd658d544",
+      "vduId": "VDU1",
+      "changeType": "ADDED",
+      "computeResource": {
+        "vimConnectionId": null,
+        "resourceId": "e0510ba9-3a53-4fcf-9dcc-58dea5c048b0",
+        "vimLevelResourceType": "OS::Nova::Server"
+      },
+      "metadata": {
+        "stackId": "f0faec36-721a-4245-8f50-4a19edec757a"
+      },
+      "affectedVnfcCpIds": [
+        "VDU1_CP0",
+        "VDU1_CP1"
+      ],
+      "addedStorageResourceIds": []
+    },
+    {
+      "id": "51f930d7-f8b9-4a7f-8b02-18c47ec31340",
+      "vduId": "VDU2",
+      "changeType": "ADDED",
+      "computeResource": {
+        "vimConnectionId": null,
+        "resourceId": "",
+        "vimLevelResourceType": null
+      },
+      "metadata": {},
+      "affectedVnfcCpIds": [
+        "VDU2_CP0",
+        "VDU2_CP1"
+      ],
+      "addedStorageResourceIds": []
+    },
+    {
+      "id": "52e4253a-7c9e-4161-bb74-0642d5072271",
+      "vduId": "VDU3",
+      "changeType": "ADDED",
+      "computeResource": {
+        "vimConnectionId": null,
+        "resourceId": "",
+        "vimLevelResourceType": null
+      },
+      "metadata": {},
+      "affectedVnfcCpIds": [
+        "VDU3_CP0",
+        "VDU3_CP1"
+      ],
+      "addedStorageResourceIds": []
+    }
+  ],
+  "affectedVirtualLinks": [
+    {
+      "id": "9836f7f2-5af4-4df5-a89f-933479448ef7",
+      "vnfVirtualLinkDescId": "internalNW1",
+      "changeType": "ADDED",
+      "networkResource": {
+        "vimConnectionId": null,
+        "resourceId": "400692e5-b2db-478e-acb1-b77a92635ec6",
+        "vimLevelResourceType": "OS::Neutron::Net"
+      },
+      "metadata": {}
+    },
+    {
+      "id": "8d6c4a5f-cbd1-4fd8-b240-867ed1d48385",
+      "vnfVirtualLinkDescId": "internalNW2",
+      "changeType": "ADDED",
+      "networkResource": {
+        "vimConnectionId": null,
+        "resourceId": "",
+        "vimLevelResourceType": null
+      },
+      "metadata": {}
+    }
+  ],
+  "affectedVirtualStorages": [],
+  "_links": {
+    "vnfInstance": {
+      "href": "http://sample.com/vnflcm/v1/vnf_instances/0b7b95a9-21d5-4ac4-80c8-9ae9f7323787"
+    },
+    "subscription": {
+      "href": "http://sample.com/vnflcm/v1/subscriptions/c25ae285-e245-4898-9df7-0527841efdc4"
+    },
+    "vnfLcmOpOcc": {
+      "href": "http://sample.com/vnflcmv1/vnf_lcm_op_occs/1266b5b4-84d3-4c3a-acbf-aa515fada6b0"
+    }
+  }
+}

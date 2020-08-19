@@ -14,7 +14,6 @@
 #    under the License.
 
 import oslo_messaging
-
 from tacker.common import rpc
 from tacker.common import topics
 from tacker.objects import base as objects_base
@@ -28,7 +27,9 @@ class VNFLcmRPCAPI(object):
         fanout=False,
         version='1.0')
 
-    def instantiate(self, context, vnf_instance, instantiate_vnf, cast=True):
+    def instantiate(self, context, vnf_instance, vnf,
+                    instantiate_vnf, vnf_lcm_op_occs_id,
+                    cast=True):
         serializer = objects_base.TackerObjectSerializer()
 
         client = rpc.get_client(self.target, version_cap=None,
@@ -37,9 +38,13 @@ class VNFLcmRPCAPI(object):
         rpc_method = cctxt.cast if cast else cctxt.call
         return rpc_method(context, 'instantiate',
                           vnf_instance=vnf_instance,
-                          instantiate_vnf=instantiate_vnf)
+                          vnf_dict=vnf,
+                          instantiate_vnf=instantiate_vnf,
+                          vnf_lcm_op_occs_id=vnf_lcm_op_occs_id)
 
-    def terminate(self, context, vnf_instance, terminate_vnf_req, cast=True):
+    def terminate(self, context, vnf_instance, vnf,
+                terminate_vnf_req, vnf_lcm_op_occs_id,
+                cast=True):
         serializer = objects_base.TackerObjectSerializer()
 
         client = rpc.get_client(self.target, version_cap=None,
@@ -47,10 +52,13 @@ class VNFLcmRPCAPI(object):
         cctxt = client.prepare()
         rpc_method = cctxt.cast if cast else cctxt.call
         return rpc_method(context, 'terminate',
+                          vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
                           vnf_instance=vnf_instance,
-                          terminate_vnf_req=terminate_vnf_req)
+                          terminate_vnf_req=terminate_vnf_req,
+                          vnf_dict=vnf)
 
-    def heal(self, context, vnf_instance, heal_vnf_request, cast=True):
+    def heal(self, context, vnf_instance, vnf_dict, heal_vnf_request,
+             vnf_lcm_op_occs_id, cast=True):
         serializer = objects_base.TackerObjectSerializer()
 
         client = rpc.get_client(self.target, version_cap=None,
@@ -59,4 +67,16 @@ class VNFLcmRPCAPI(object):
         rpc_method = cctxt.cast if cast else cctxt.call
         return rpc_method(context, 'heal',
                           vnf_instance=vnf_instance,
-                          heal_vnf_request=heal_vnf_request)
+                          vnf_dict=vnf_dict,
+                          heal_vnf_request=heal_vnf_request,
+                          vnf_lcm_op_occs_id=vnf_lcm_op_occs_id)
+
+    def send_notification(self, context, notification, cast=True):
+        serializer = objects_base.TackerObjectSerializer()
+
+        client = rpc.get_client(self.target, version_cap=None,
+                                serializer=serializer)
+        cctxt = client.prepare()
+        rpc_method = cctxt.cast if cast else cctxt.call
+        return rpc_method(context, 'send_notification',
+                          notification=notification)

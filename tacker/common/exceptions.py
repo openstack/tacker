@@ -232,6 +232,11 @@ class VnfInstanceConflictState(Conflict):
                 "%(action)s while the vnf instance is in this state.")
 
 
+class VnfConflictState(Conflict):
+    message = _("Vnf %(uuid)s in %(attr)s %(state)s. Cannot "
+                "%(action)s while the vnf is in this state.")
+
+
 class FlavourNotFound(NotFound):
     message = _("No flavour with id '%(flavour_id)s'.")
 
@@ -340,6 +345,10 @@ class LimitExceeded(TackerException):
         self.retry_after = (int(kwargs['retry']) if kwargs.get('retry')
                             else None)
         super(LimitExceeded, self).__init__(*args, **kwargs)
+
+
+class NotificationProcessingError(TackerException):
+    message = _("Notification Processing Failed: %(error)s")
 
 
 class UserDataUpdateCreateFailed(TackerException):

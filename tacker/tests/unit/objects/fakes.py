@@ -178,6 +178,21 @@ def get_vnf_instance_data_with_id(vnfd_id):
     }
 
 
+def get_lcm_op_occs_data(vnf_instance_id):
+    return {
+        "tenant_id": uuidsentinel.tenant_id,
+        'operation_state': 'PROCESSING',
+        'state_entered_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
+                                            tzinfo=iso8601.UTC),
+        'start_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
+                                        tzinfo=iso8601.UTC),
+        'vnf_instance_id': vnf_instance_id,
+        'operation': 'MODIFY_INFO',
+        'is_automatic_invocation': 0,
+        'is_cancel_pending': 0,
+    }
+
+
 def fake_vnf_instance_model_dict(**updates):
     vnf_instance = {
         'deleted': False,
@@ -401,3 +416,17 @@ def vnf_instance_model_object(vnf_instance):
     vnf_instance_db_obj = models.VnfInstance()
     vnf_instance_db_obj.update(instance_dict)
     return vnf_instance_db_obj
+
+
+def get_changed_info_data():
+    return {
+        "vnf_instance_name": "",
+        "vnf_instance_description": "",
+        "vnf_configurable_properties": {"test": "test_value"},
+        "vnfc_info_modifications_delete_ids": ["test1"],
+        "vnfd_id": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
+        "vnf_provider": "NEC",
+        "vnf_product_name": "MME",
+        "vnf_software_version": "1.0",
+        "vnfd_version": "MME_1.0"
+    }
