@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: curry-probe-test001
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      selector: curry-probe-test001
+  template:
+    metadata:
+      labels:
+        selector: curry-probe-test001
+        app: webserver
+    spec:
+      containers:
+      - name: nginx-liveness-probe
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          protocol: TCP
+      - image: celebdor/kuryr-demo
+        imagePullPolicy: IfNotPresent
+        name: kuryr-demo-readiness-probe
+        ports:
+        - containerPort: 8080
+          protocol: TCP

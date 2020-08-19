@@ -120,7 +120,10 @@ keyvalue_pairs = {
     'type': 'object',
     'patternProperties': {
         '^[a-zA-Z0-9-_:. /]{1,255}$': {
-            'type': 'string', 'maxLength': 255
+            'anyOf': [
+                {'type': 'array'},
+                {'type': 'string', 'maxLength': 255}
+            ]
         }
     },
     'additionalProperties': False

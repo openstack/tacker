@@ -13,10 +13,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
+import re
+import toscaparser.utils.yamlparser
+from urllib.parse import urlparse
+import urllib.request as urllib2
+import yaml
+
 from kubernetes import client
 from oslo_config import cfg
 from oslo_log import log as logging
-import toscaparser.utils.yamlparser
+from tacker.common import exceptions
+
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -28,16 +36,85 @@ WHITE_SPACE_CHARACTER = ' '
 NON_WHITE_SPACE_CHARACTER = ''
 HYPHEN_CHARACTER = '-'
 DASH_CHARACTER = '_'
+# Due to the dependency of k8s resource creation, according to the design,
+# other resources (resources not mentioned in self.RESOURCE_CREATION_SORT)
+# will be created after the NetworkPolicy resource. This number is a flag
+# to ensure that when multiple resources are to be created, the order of
+# other resources is after NetworkPolicy and before Service.
+OTHER_RESOURCE_SORT_POSITION = 8
 
 
 class Transformer(object):
     """Transform TOSCA template to Kubernetes resources"""
 
     def __init__(self, core_v1_api_client, app_v1_api_client,
-                 scaling_api_client):
+                 scaling_api_client, k8s_client_dict):
+        # the old param used when creating vnf with TOSCA template
         self.core_v1_api_client = core_v1_api_client
         self.app_v1_api_client = app_v1_api_client
         self.scaling_api_client = scaling_api_client
+        # the new param used when instantiating vnf with addtionalParams
+        self.k8s_client_dict = k8s_client_dict
+        self.RESOURCE_CREATION_ORDER = [
+            'StorageClass',
+            'PersistentVolume',
+            'PriorityClass',
+            'Namespace',
+            'LimitRange',
+            'ResourceQuota',
+            'HorizontalPodAutoscaler',
+            'NetworkPolicy',
+            'Service',
+            'Endpoints',
+            'PersistentVolumeClaim',
+            'ConfigMap',
+            'Secret',
+            'StatefulSet',
+            'Job',
+            'Deployment',
+            'DaemonSet',
+            'Pod'
+        ]
+        self.method_value = {
+            "Pod": 'create_namespaced_pod',
+            "Service": 'create_namespaced_service',
+            "ConfigMap": 'create_namespaced_config_map',
+            "Secret": 'create_namespaced_secret',
+            "PersistentVolumeClaim":
+                'create_namespaced_persistent_volume_claim',
+            "LimitRange": 'create_namespaced_limit_range',
+            "PodTemplate": 'create_namespaced_pod_template',
+            "Binding": 'create_namespaced_binding',
+            "Namespace": 'create_namespace',
+            "Node": 'create_node',
+            "PersistentVolume": 'create_persistent_volume',
+            "ResourceQuota": 'create_namespaced_resource_quota',
+            "ServiceAccount": 'create_namespaced_service_account',
+            "APIService": 'create_api_service',
+            "DaemonSet": 'create_namespaced_daemon_set',
+            "Deployment": 'create_namespaced_deployment',
+            "ReplicaSet": 'create_namespaced_replica_set',
+            "StatefulSet": 'create_namespaced_stateful_set',
+            "ControllerRevision": 'create_namespaced_controller_revision',
+            "TokenReview": 'create_token_review',
+            "LocalSubjectAccessReview": 'create_namespaced_local_'
+                                        'subject_access_review',
+            "SelfSubjectAccessReview": 'create_self_subject_access_review',
+            "SelfSubjectRulesReview": 'create_self_subject_rules_review',
+            "SubjectAccessReview": 'create_subject_access_review',
+            "HorizontalPodAutoscaler": 'create_namespaced_horizontal_'
+                                       'pod_autoscaler',
+            "Job": 'create_namespaced_job',
+            "Lease": 'create_namespaced_lease',
+            "NetworkPolicy": 'create_namespaced_network_policy',
+            "ClusterRole": 'create_cluster_role',
+            "ClusterRoleBinding": 'create_cluster_role_binding',
+            "Role": 'create_namespaced_role',
+            "RoleBinding": 'create_namespaced_role_binding',
+            "PriorityClass": 'create_priority_class',
+            "StorageClass": 'create_storage_class',
+            "VolumeAttachment": 'create_volume_attachment',
+        }
 
     def transform(self, tosca_kube_objects):
         """transform function translates from tosca_kube_object to
@@ -76,11 +153,192 @@ class Transformer(object):
                 kubernetes_objects['objects'].append(hpa_object)
 
             # translate to Service object
-            service_object = self.init_service(tosca_kube_obj=tosca_kube_obj,
-                                               kube_obj_name=new_kube_obj_name)
+            service_object = self.init_service(
+                tosca_kube_obj=tosca_kube_obj,
+                kube_obj_name=new_kube_obj_name)
             kubernetes_objects['objects'].append(service_object)
 
         return kubernetes_objects
+
+    def _create_k8s_object(self, kind, file_content_dict):
+        # must_param referring K8s official object page
+        # *e.g:https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Service.md
+        # initiating k8s object, you need to
+        # give the must param an empty value.
+        must_param = {
+            'RuntimeRawExtension': '(raw="")',
+            'V1LocalSubjectAccessReview': '(spec="")',
+            'V1HTTPGetAction': '(port="")',
+            'V1DeploymentSpec': '(selector="", template="")',
+            'V1PodSpec': '(containers="")',
+            'V1ConfigMapKeySelector': '(key="")',
+            'V1Container': '(name="")',
+            'V1EnvVar': '(name="")',
+            'V1SecretKeySelector': '(key="")',
+            'V1ContainerPort': '(container_port="")',
+            'V1VolumeMount': '(mount_path="", name="")',
+            'V1PodCondition': '(status="", type="")',
+            'V1ContainerStatus': '('
+                                 'image="", image_id="", '
+                                 'name="", ready="", '
+                                 'restart_count="")',
+            'V1ServicePort': '(port="")',
+            'V1TypedLocalObjectReference': '(kind="", name="")',
+            'V1LabelSelectorRequirement': '(key="", operator="")',
+            'V1PersistentVolumeClaimCondition': '(status="", type="")',
+            'V1AWSElasticBlockStoreVolumeSource': '(volume_id="")',
+            'V1AzureDiskVolumeSource': '(disk_name="", disk_uri="")',
+            'V1AzureFileVolumeSource': '(secret_name="", share_name="")',
+            'V1CephFSVolumeSource': '(monitors=[])',
+            'V1CinderVolumeSource': '(volume_id="")',
+            'V1KeyToPath': '(key="", path="")',
+            'V1CSIVolumeSource': '(driver="")',
+            'V1DownwardAPIVolumeFile': '(path="")',
+            'V1ObjectFieldSelector': '(field_path="")',
+            'V1ResourceFieldSelector': '(resource="")',
+            'V1FlexVolumeSource': '(driver="")',
+            'V1GCEPersistentDiskVolumeSource': '(pd_name="")',
+            'V1GitRepoVolumeSource': '(repository="")',
+            'V1GlusterfsVolumeSource': '(endpoints="", path="")',
+            'V1HostPathVolumeSource': '(path="")',
+            'V1ISCSIVolumeSource': '(iqn="", lun=0, target_portal="")',
+            'V1Volume': '(name="")',
+            'V1NFSVolumeSource': '(path="", server="")',
+            'V1PersistentVolumeClaimVolumeSource': '(claim_name="")',
+            'V1PhotonPersistentDiskVolumeSource': '(pd_id="")',
+            'V1PortworxVolumeSource': '(volume_id="")',
+            'V1ProjectedVolumeSource': '(sources=[])',
+            'V1ServiceAccountTokenProjection': '(path="")',
+            'V1QuobyteVolumeSource': '(registry="", volume="")',
+            'V1RBDVolumeSource': '(image="", monitors=[])',
+            'V1ScaleIOVolumeSource': '('
+                                     'gateway="", secret_ref="", '
+                                     'system="")',
+            'V1VsphereVirtualDiskVolumeSource': '(volume_path="")',
+            'V1LimitRangeSpec': '(limits=[])',
+            'V1Binding': '(target="")',
+            'V1ComponentCondition': '(status="", type="")',
+            'V1NamespaceCondition': '(status="", type="")',
+            'V1ConfigMapNodeConfigSource': '(kubelet_config_key="", '
+                                           'name="", namespace="")',
+            'V1Taint': '(effect="", key="")',
+            'V1NodeAddress': '(address="", type="")',
+            'V1NodeCondition': '(status="", type="")',
+            'V1DaemonEndpoint': '(port=0)',
+            'V1ContainerImage': '(names=[])',
+            'V1NodeSystemInfo': '(architecture="", boot_id="", '
+                                'container_runtime_version="",'
+                                'kernel_version="", '
+                                'kube_proxy_version="", '
+                                'kubelet_version="",'
+                                'machine_id="", operating_system="", '
+                                'os_image="", system_uuid="")',
+            'V1AttachedVolume': '(device_path="", name="")',
+            'V1ScopedResourceSelectorRequirement':
+                '(operator="", scope_name="")',
+            'V1APIServiceSpec': '(group_priority_minimum=0, '
+                                'service="", version_priority=0)',
+            'V1APIServiceCondition': '(status="", type="")',
+            'V1DaemonSetSpec': '(selector="", template="")',
+            'V1ReplicaSetSpec': '(selector="")',
+            'V1StatefulSetSpec': '(selector="", '
+                                 'service_name="", template="")',
+            'V1StatefulSetCondition': '(status="", type="")',
+            'V1StatefulSetStatus': '(replicas="")',
+            'V1ControllerRevision': '(revision=0)',
+            'V1TokenReview': '(spec="")',
+            'V1SubjectAccessReviewStatus': '(allowed=True)',
+            'V1SelfSubjectAccessReview': '(spec="")',
+            'V1SelfSubjectRulesReview': '(spec="")',
+            'V1SubjectRulesReviewStatus': '(incomplete=True, '
+                                          'non_resource_rules=[], '
+                                          'resource_rules=[])',
+            'V1NonResourceRule': '(verbs=[])',
+            'V1SubjectAccessReview': '(spec="")',
+            'V1HorizontalPodAutoscalerSpec':
+                '(max_replicas=0, scale_target_ref="")',
+            'V1CrossVersionObjectReference': '(kind="", name="")',
+            'V1HorizontalPodAutoscalerStatus':
+                '(current_replicas=0, desired_replicas=0)',
+            'V1JobSpec': '(template="")',
+            'V1NetworkPolicySpec': '(pod_selector="")',
+            'V1PolicyRule': '(verbs=[])',
+            'V1ClusterRoleBinding': '(role_ref="")',
+            'V1RoleRef': '(api_group="", kind="", name="")',
+            'V1Subject': '(kind="", name="")',
+            'V1RoleBinding': '(role_ref="")',
+            'V1PriorityClass': '(value=0)',
+            'V1StorageClass': '(provisioner="")',
+            'V1TopologySelectorLabelRequirement': '(key="", values=[])',
+            'V1VolumeAttachment': '(spec="")',
+            'V1VolumeAttachmentSpec':
+                '(attacher="", node_name="", source="")',
+            'V1VolumeAttachmentStatus': '(attached=True)',
+        }
+        whole_kind = 'V1' + kind
+        if whole_kind in must_param.keys():
+            k8s_obj = eval('client.V1' + kind + must_param.get(whole_kind))
+        else:
+            k8s_obj = eval('client.V1' + kind + '()')
+        self._init_k8s_obj(k8s_obj, file_content_dict, must_param)
+        return k8s_obj
+
+    def get_k8s_objs_from_yaml(self, artifact_files, vnf_package_path):
+        k8s_objs = []
+        for artifact_file in artifact_files:
+            if ((urlparse(artifact_file).scheme == 'file') or
+                    (bool(urlparse(artifact_file).scheme) and
+                     bool(urlparse(artifact_file).netloc))):
+                file_content = urllib2.urlopen(artifact_file).read()
+            else:
+                artifact_file_path = os.path.join(
+                    vnf_package_path, artifact_file)
+                with open(artifact_file_path, 'r') as f:
+                    file_content = f.read()
+            file_content_dicts = list(yaml.safe_load_all(file_content))
+            for file_content_dict in file_content_dicts:
+                k8s_obj = {}
+                kind = file_content_dict.get('kind', '')
+                try:
+                    k8s_obj['object'] = self._create_k8s_object(
+                        kind, file_content_dict)
+                except Exception as e:
+                    if isinstance(e, client.rest.ApiException):
+                        msg = \
+                            _('{kind} create failure. Reason={reason}'.format(
+                                kind=file_content_dict.get('kind', ''),
+                                reason=e.body))
+                    else:
+                        msg = \
+                            _('{kind} create failure. Reason={reason}'.format(
+                                kind=file_content_dict.get('kind', ''),
+                                reason=e))
+                    LOG.error(msg)
+                    raise exceptions.InitApiFalse(error=msg)
+                if not file_content_dict.get('metadata', ''):
+                    k8s_obj['namespace'] = ''
+                elif file_content_dict.get('metadata', '').\
+                        get('namespace', ''):
+                    k8s_obj['namespace'] = \
+                        file_content_dict.get('metadata', '').get(
+                            'namespace', '')
+                else:
+                    k8s_obj['namespace'] = ''
+                k8s_objs.append(k8s_obj)
+        return k8s_objs
+
+    def _select_k8s_client_and_api(
+            self, kind, namespace, api_version, body):
+        k8s_client_obj = self.k8s_client_dict[api_version]
+        if 'namespaced' in self.method_value[kind]:
+            response = getattr(k8s_client_obj, self.method_value.get(kind))(
+                namespace=namespace, body=body
+            )
+        else:
+            response = getattr(k8s_client_obj, self.method_value.get(kind))(
+                body=body
+            )
+        return response
 
     def deploy(self, kubernetes_objects):
         """Deploy Kubernetes objects on Kubernetes VIM and return
@@ -107,7 +365,7 @@ class Transformer(object):
                 LOG.debug('Successfully created Deployment %s',
                           k8s_object.metadata.name)
             elif object_type == 'HorizontalPodAutoscaler':
-                self.scaling_api_client.\
+                self.scaling_api_client. \
                     create_namespaced_horizontal_pod_autoscaler(
                         namespace=namespace,
                         body=k8s_object)
@@ -126,6 +384,107 @@ class Transformer(object):
         # for tracking resources pattern:
         # namespace1,deployment1,namespace2,deployment2,namespace3,deployment3
         return ",".join(deployment_names)
+
+    def deploy_k8s(self, kubernetes_objects):
+        """Deploy kubernetes
+
+        Deploy Kubernetes objects on Kubernetes VIM and
+        return a list name of services
+        """
+        kubernetes_objects = self._sort_k8s_obj(kubernetes_objects)
+        new_k8s_objs = list()
+        for kubernetes_object in kubernetes_objects:
+            namespace = kubernetes_object.get('namespace', '')
+            kind = kubernetes_object.get('object', '').kind
+            api_version = kubernetes_object.get('object', '').api_version
+            body = kubernetes_object.get('object', '')
+            if kubernetes_object.get('object', '').metadata:
+                name = kubernetes_object.get('object', '').metadata.name
+            else:
+                name = ''
+            try:
+                LOG.debug("{kind} begin create.".format(kind=kind))
+                self._select_k8s_client_and_api(
+                    kind, namespace, api_version, body)
+                kubernetes_object['status'] = 'Creating'
+            except Exception as e:
+                if isinstance(e, client.rest.ApiException):
+                    kubernetes_object['status'] = 'creating_failed'
+                    msg = '''The request to create a resource failed.
+                    namespace: {namespace}, name: {name},kind: {kind},
+                    Reason: {exception}'''.format(
+                        namespace=namespace, name=name, kind=kind,
+                        exception=e.body
+                    )
+                else:
+                    kubernetes_object['status'] = 'creating_failed'
+                    msg = '''The request to create a resource failed.
+                    namespace: {namespace}, name: {name},kind: {kind},
+                    Reason: {exception}'''.format(
+                        namespace=namespace, name=name, kind=kind,
+                        exception=e
+                    )
+                LOG.error(msg)
+                raise exceptions.CreateApiFalse(error=msg)
+            new_k8s_objs.append(kubernetes_object)
+        return new_k8s_objs
+
+    def _get_lower_case_name(self, name):
+        name = name.strip()
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+    def _init_k8s_obj(self, obj, content, must_param):
+        for key, value in content.items():
+            param_value = self._get_lower_case_name(key)
+            if hasattr(obj, param_value) and \
+                    not isinstance(value, dict) and \
+                    not isinstance(value, list):
+                setattr(obj, param_value, value)
+            elif isinstance(value, dict):
+                obj_name = obj.openapi_types.get(param_value)
+                if obj_name == 'dict(str, str)':
+                    setattr(obj, param_value, value)
+                else:
+                    if obj_name in must_param.keys():
+                        rely_obj = eval('client.' + obj_name +
+                                       must_param.get(obj_name))
+                    else:
+                        rely_obj = eval('client.' + obj_name + '()')
+                    self._init_k8s_obj(rely_obj, value, must_param)
+                    setattr(obj, param_value, rely_obj)
+            elif isinstance(value, list):
+                obj_name = obj.openapi_types.get(param_value)
+                if obj_name == 'list[str]':
+                    setattr(obj, param_value, value)
+                else:
+                    rely_objs = []
+                    rely_obj_name = \
+                        re.findall(r".*\[([^\[\]]*)\].*", obj_name)[0]
+                    for v in value:
+                        if rely_obj_name in must_param.keys():
+                            rely_obj = eval('client.' + rely_obj_name +
+                                           must_param.get(rely_obj_name))
+                        else:
+                            rely_obj = \
+                                eval('client.' + rely_obj_name + '()')
+                        self._init_k8s_obj(rely_obj, v, must_param)
+                        rely_objs.append(rely_obj)
+                    setattr(obj, param_value, rely_objs)
+
+    def _sort_k8s_obj(self, k8s_objs):
+        pos = 0
+        objs = k8s_objs
+        sorted_k8s_objs = list()
+        for sort_index, kind in enumerate(self.RESOURCE_CREATION_ORDER):
+            for obj_index, obj in enumerate(objs):
+                if obj["object"].kind == kind:
+                    sorted_k8s_objs.append(objs.pop(obj_index))
+            if sort_index == OTHER_RESOURCE_SORT_POSITION:
+                pos = len(sorted_k8s_objs)
+        for obj in objs:
+            sorted_k8s_objs.insert(pos, obj)
+
+        return sorted_k8s_objs
 
     # config_labels configures label
     def config_labels(self, deployment_name=None, scaling_name=None):

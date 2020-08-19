@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: curry-endpoint-test001
+spec:
+  containers:
+  - image: celebdor/kuryr-demo
+    imagePullPolicy: IfNotPresent
+    name: web-server
+    ports:
+    - containerPort: 8080
