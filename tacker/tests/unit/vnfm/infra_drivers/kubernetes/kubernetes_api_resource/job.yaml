@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  labels:
+    run: curryjob
+  name: curryjob
+spec:
+  completions: 5
+  parallelism: 2
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        run: curryjob
+    spec:
+      containers:
+      - command: ["sh", "-c"]
+        args:
+        - echo CURRY
+        image: celebdor/kuryr-demo
+        name: curryjob
+        resources:
+          limits: {}
+          requests: {}
+      restartPolicy: OnFailure
+status: {}

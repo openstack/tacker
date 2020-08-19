@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: PodTemplate
+metadata:
+  name: curry-test001
+  namespace: curryns
+template:
+  metadata:
+    labels:
+      app: webserver
+      scaling_name: SP1
+  spec:
+    containers:
+    - env:
+      - name: param0
+        valueFrom:
+          configMapKeyRef:
+            key: param0
+            name: curry-test001
+      - name: param1
+        valueFrom:
+          configMapKeyRef:
+            key: param1
+            name: curry-test001
+      image: celebdor/kuryr-demo
+      imagePullPolicy: IfNotPresent
+      name: web-server
+      ports:
+      - containerPort: 8080
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512M
+        requests:
+          cpu: 500m
+          memory: 512M
+      volumeMounts:
+      - name: curry-claim-volume
+        mountPath: /data
+    volumes:
+    - name: curry-claim-volume
+      persistentVolumeClaim:
+        claimName: curry-pv-claim
+    terminationGracePeriodSeconds: 0

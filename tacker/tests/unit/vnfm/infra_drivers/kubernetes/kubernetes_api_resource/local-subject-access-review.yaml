@@ -1,0 +1,11 @@
+apiVersion: authorization.k8s.io/v1
+kind: LocalSubjectAccessReview
+metadata:
+  namespace: curry-ns
+spec:
+  user: curry-sa
+  resourceAttributes:
+    group: apps
+    resource: deployments
+    verb: create
+    namespace: curry-ns

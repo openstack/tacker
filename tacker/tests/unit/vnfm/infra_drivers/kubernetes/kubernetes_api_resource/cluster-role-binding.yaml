@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: curry-cluster-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: curry-cluster-role
+subjects:
+- apiGroup: ""
+  kind: ServiceAccount
+  name: curry-cluster-sa
+  namespace: default

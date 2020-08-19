@@ -207,8 +207,8 @@ class InstantiateVnfRequest(base.TackerObject):
             'VimConnectionInfo', nullable=True, default=[]),
         'ext_virtual_links': fields.ListOfObjectsField(
             'ExtVirtualLinkData', nullable=True, default=[]),
-        'additional_params': fields.DictOfStringsField(nullable=True,
-            default={}),
+        'additional_params': fields.DictOfNullableField(nullable=True,
+            default={})
     }
 
     @classmethod

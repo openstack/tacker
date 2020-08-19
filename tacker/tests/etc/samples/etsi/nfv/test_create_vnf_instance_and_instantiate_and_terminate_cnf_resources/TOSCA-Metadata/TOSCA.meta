@@ -1,0 +1,139 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml
+
+Name: Files/kubernetes/bindings.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 98df24e1d96ea034dbe14d3288c207e14cf2a674d67d251d351b49cd36e98c46
+
+Name: Files/kubernetes/clusterrole_clusterrolebinding_SA.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: f808fee02df7230a0e3026f97d745569aba6653a78b043c89bf82d0ba95833bd
+
+Name: Files/kubernetes/config-map.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: c6d71870559226244c47618ff4bfd59e9835c471dea2da84a136434f8f77ada0
+
+Name: Files/kubernetes/controller-revision.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 4042352e0de6aa0ad28d44354bd8e0d62fc8e753c8f52b7edf69d2a7a25d8f8d
+
+Name: Files/kubernetes/daemon-set.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: c0750df79c9ba2824b032b6a485764486b014021aa6dade5ef61f1c10569412f
+
+Name: Files/kubernetes/deployment.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 6a40dfb06764394fb604ae807d1198bc2e2ee8aece3b9483dfde48e53f316a58
+
+Name: Files/kubernetes/horizontal-pod-autoscaler.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: aa95058d04ef61159712e7c567220b3f5c275251d78b0000bc04575f23c55894
+
+Name: Files/kubernetes/job.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: be7239275d10915eec462634247daf3b7f6a95b22c4027c614b2359688565931
+
+Name: Files/kubernetes/limit-range.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 0cd1b42e0993471fed8b0876dcef8122b292aedf430a5ced6a028660a6aede9e
+
+Name: Files/kubernetes/local-subject-access-review.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 01c4348cd59dd69667b92c76910043e067a69950078bea9479fc0a7bb09ff0e7
+
+Name: Files/kubernetes/multiple_yaml_lease.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 03999b641569b3480c8d667b632c85c01ee707a93125343eee71b096181fa8c3
+
+Name: Files/kubernetes/multiple_yaml_network-policy.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 98f8f8a055afe8e8ddfb26b02d938a457226e0a1afa03ef69623a734aec49295
+
+Name: Files/kubernetes/multiple_yaml_priority-class.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 2b5aa46d52f29f0c5d82375a727ef15795d33f5c55c09fc7c3a8774ee713db1f
+
+Name: Files/kubernetes/namespace.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: c2af464e4b1646da9d2e6ccfdc44cf744753459a001c3469135d04dbb56bb293
+
+Name: Files/kubernetes/persistent-volume-0.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: a1e8fe505cb32672eb6d96c9b2e3178a6e0828aa41082c096f9fe29dc64f39f4
+
+Name: Files/kubernetes/persistent-volume-1.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 934bb29d10c75053c244c9acb1cb259c4a5616dbe931a02da8072322aa76cabc
+
+Name: Files/kubernetes/pod-template.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 5d4d3d399e04cdba1f9c691ac7e690e295ff02b7c935abae873b68a83a858c50
+
+Name: Files/kubernetes/pod.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: a708dcf5ba4d3a7c675f18b71484a32b7e4446e80e57dcc3035b8a921c3f659d
+
+Name: Files/kubernetes/replicaset_service_secret.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 8ed52e5e167890efd7fba29c748f717dff01d68b60ff9a06af178cbafdfdc765
+
+Name: Files/kubernetes/resource-quota.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 0cf5e5b69f0752a8c9b5ebb09aee2dccf49d53b580c0c1cb260a95d7f92c7861
+
+Name: Files/kubernetes/role_rolebinding_SA.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 5d67ef70773d1673c3a115ab0f2fe2efebc841acaeafad056444e23e23664bbc
+
+Name: Files/kubernetes/self-subject-access-review_and_self-subject-rule-review.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 83bd9c40db8c798d0cab0e793a4b40a4ac7eca4fec4fba89ab4257d0f397db40
+
+Name: Files/kubernetes/statefulset.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: d0beddd39f6808cb62094146778961b068871393df3474e0787145639a94f649
+
+Name: Files/kubernetes/storage-class.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: ccde582b3c81019991a2753a73061f5954cf1fd5f5dfa2e4a0e2b4458b424cf5
+
+Name: Files/kubernetes/storage-class_pv_pvc.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: edc5e4d0b6c8e0c7e0e9ce199aa2b36b95d36442ff3daf309fb46f784ad14722
+
+Name: Files/kubernetes/subject-access-review.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: ef937e9c90c1cb6093092ba2043c11e353d572736b04f798a49b785049fec552
+
+Name: Files/kubernetes/token-review.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 468d9d53a3125c5850c6473d324c94f00b91a1e3536d1a62c7c7eb80fd7aa6d2

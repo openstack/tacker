@@ -17,7 +17,6 @@ import copy
 import functools
 import inspect
 import six
-import time
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -155,7 +154,9 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vim_connection_info.vim_type, 'pre_instantiation_vnf',
             context=context, vnf_instance=vnf_instance,
             vim_connection_info=vim_connection_info,
-            vnf_software_images=vnf_software_images)
+            vnf_software_images=vnf_software_images,
+            instantiate_vnf_req=instantiate_vnf_req,
+            vnf_package_path=vnf_package_path)
 
         # save the vnf resources in the db
         for _, resources in vnf_resources.items():
@@ -275,23 +276,21 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vim_connection_info, terminate_vnf_req=None,
             update_instantiated_state=True):
 
-        if vnf_instance.instantiated_vnf_info and \
-                vnf_instance.instantiated_vnf_info.instance_id:
+        if (vnf_instance.instantiated_vnf_info and
+            vnf_instance.instantiated_vnf_info.instance_id) or \
+                vim_connection_info.vim_type == 'kubernetes':
 
-            instance_id = vnf_instance.instantiated_vnf_info.instance_id
+            instance_id = vnf_instance.instantiated_vnf_info.instance_id \
+                if vnf_instance.instantiated_vnf_info else None
             access_info = vim_connection_info.access_info
 
             LOG.info("Deleting stack %(instance)s for vnf %(id)s ",
                     {"instance": instance_id, "id": vnf_instance.id})
 
-            if terminate_vnf_req:
-                if (terminate_vnf_req.termination_type == 'GRACEFUL' and
-                        terminate_vnf_req.graceful_termination_timeout > 0):
-                    time.sleep(terminate_vnf_req.graceful_termination_timeout)
-
             self._vnf_manager.invoke(vim_connection_info.vim_type,
                 'delete', plugin=self, context=context,
-                vnf_id=instance_id, auth_attr=access_info)
+                vnf_id=instance_id, auth_attr=access_info,
+                vnf_instance=vnf_instance, terminate_vnf_req=terminate_vnf_req)
 
             if update_instantiated_state:
                 vnf_instance.instantiation_state = \
@@ -300,7 +299,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
             self._vnf_manager.invoke(vim_connection_info.vim_type,
                 'delete_wait', plugin=self, context=context,
-                vnf_id=instance_id, auth_attr=access_info)
+                vnf_id=instance_id, auth_attr=access_info,
+                vnf_instance=vnf_instance)
 
         vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
             context, vnf_instance.id)

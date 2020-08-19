@@ -1,0 +1,6 @@
+apiVersion: apps/v1
+kind: ControllerRevision
+metadata:
+  name: curry-test001
+  namespace: curryns
+revision: 1

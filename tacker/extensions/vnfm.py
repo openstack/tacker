@@ -100,6 +100,16 @@ class VNFDNotFound(exceptions.NotFound):
     message = _('VNFD %(vnfd_id)s could not be found')
 
 
+class CnfDefinitionNotFound(exceptions.NotFound):
+    message = _(
+        "CNF definition file with path %(path)s "
+        "is not found in vnf_artifacts.")
+
+
+class CNFCreateWaitFailed(exceptions.TackerException):
+    message = _('CNF Create Failed with reason: %(reason)s')
+
+
 class ServiceTypeNotFound(exceptions.NotFound):
     message = _('service type %(service_type_id)s could not be found')
 

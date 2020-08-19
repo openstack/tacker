@@ -58,7 +58,9 @@ class TOSCAToKubernetes(object):
         transformer = translate_outputs.Transformer(
             core_v1_api_client=self.core_v1_api_client,
             app_v1_api_client=self.app_v1_api_client,
-            scaling_api_client=self.scaling_api_client)
+            scaling_api_client=self.scaling_api_client,
+            k8s_client_dict=None
+        )
         kubernetes_objects = transformer.transform(tosca_kube_objects)
         deployment_names = transformer.deploy(
             kubernetes_objects=kubernetes_objects)
