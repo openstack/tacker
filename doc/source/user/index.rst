@@ -45,6 +45,8 @@ Use cases
 .. toctree::
    :maxdepth: 1
 
+   vnf-package
+   vnfd-sol001
    alarm_monitoring_usage_guide.rst
    dynamic_vnffg_usage_guide.rst
    enhanced_placement_awareness_usage_guide.rst
