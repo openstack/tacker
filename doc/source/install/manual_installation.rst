@@ -188,13 +188,13 @@ Installing Tacker Server
       .. code-block:: ini
 
          [agent]
-         root_helper = sudo /usr/bin/tacker-rootwrap /usr/local/etc/tacker/rootwrap.conf
+         root_helper = sudo /usr/bin/tacker-rootwrap /etc/tacker/rootwrap.conf
 
    .. code-block:: ini
 
       [DEFAULT]
       auth_strategy = keystone
-      policy_file = /usr/local/etc/tacker/policy.json
+      policy_file = /etc/tacker/policy.json
       debug = True
       use_syslog = False
       bind_host = <TACKER_NODE_IP>
@@ -202,13 +202,14 @@ Installing Tacker Server
       service_plugins = nfvo,vnfm
 
       state_path = /var/lib/tacker
+      transport_url = rabbit://<RABBIT_USERID>:<RABBIT_PASSWORD>@<TACKER_NODE_IP>:5672/
       ...
 
       [nfvo_vim]
       vim_drivers = openstack
 
       [keystone_authtoken]
-      memcached_servers = 11211
+      memcached_servers = <TACKER_NODE_IP>:11211
       region_name = RegionOne
       auth_type = password
       project_domain_name = <DOMAIN_NAME>
@@ -221,7 +222,7 @@ Installing Tacker Server
       ...
 
       [agent]
-      root_helper = sudo /usr/local/bin/tacker-rootwrap /usr/local/etc/tacker/rootwrap.conf
+      root_helper = sudo /usr/local/bin/tacker-rootwrap /etc/tacker/rootwrap.conf
       ...
 
       [database]
@@ -231,20 +232,18 @@ Installing Tacker Server
       [tacker]
       monitor_driver = ping,http_ping
 
-#. Copy the ``tacker.conf`` to ``/usr/local/etc/tacker/`` directory.
+#. Copy the ``tacker.conf`` to ``/etc/tacker/`` directory.
 
    .. code-block:: console
 
-      $ sudo su
-      $ cp etc/tacker/tacker.conf /usr/local/etc/tacker/
+      $ sudo cp etc/tacker/tacker.conf /etc/tacker/
 
 #. Populate Tacker database.
-
 
    .. code-block:: console
 
       $ /usr/local/bin/tacker-db-manage \
-          --config-file /usr/local/etc/tacker/tacker.conf \
+          --config-file /etc/tacker/tacker.conf \
           upgrade head
 
 #. To make tacker be controlled from systemd, copy ``tacker.service`` and
@@ -253,10 +252,9 @@ Installing Tacker Server
 
    .. code-block:: console
 
-      $ sudo su
-      $ cp etc/systemd/system/tacker.service /etc/systemd/system/
-      $ cp etc/systemd/system/tacker-conductor.service /etc/systemd/system/
-      $ systemctl daemon-reload
+      $ sudo cp etc/systemd/system/tacker.service /etc/systemd/system/
+      $ sudo cp etc/systemd/system/tacker-conductor.service /etc/systemd/system/
+      $ sudo systemctl daemon-reload
 
 Install Tacker Client
 ---------------------
@@ -313,9 +311,7 @@ required because the console will be locked by a running process.
 
 .. code-block:: console
 
-   $ sudo python3 /usr/local/bin/tacker-server \
-       --config-file /usr/local/etc/tacker/tacker.conf \
-       --log-file /var/log/tacker/tacker.log
+   $ sudo systemctl start tacker.service
 
 Starting Tacker conductor
 -------------------------
@@ -325,6 +321,4 @@ required because the console will be locked by a running process.
 
 .. code-block:: console
 
-   $ sudo python /usr/local/bin/tacker-conductor \
-       --config-file /usr/local/etc/tacker/tacker.conf \
-       --log-file /var/log/tacker/tacker-conductor.log
+   $ sudo systemctl start tacker-conductor.service
