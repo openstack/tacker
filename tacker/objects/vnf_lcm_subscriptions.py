@@ -111,13 +111,16 @@ def _vnf_lcm_subscriptions_show(context, subscriptionId):
         "where t1.id = t2.subscription_uuid "
         "and deleted = 0 "
         "and t1.id = :subsc_id")
+    result_line = ""
     try:
         result = context.session.execute(sql, {'subsc_id': subscriptionId})
+        for line in result:
+            result_line = line
     except exceptions.NotFound:
         return ''
     except Exception as e:
         raise e
-    return result
+    return result_line
 
 
 @db_api.context_manager.reader
@@ -193,7 +196,8 @@ def _vnf_lcm_subscriptions_id_get(context,
 
     try:
         result = context.session.execute(sql)
-        return result
+        for line in result:
+            return line
     except exceptions.NotFound:
         return ''
 
@@ -287,6 +291,11 @@ class LccnSubscriptionRequest(base.TackerObject, base.TackerPersistentObject):
         updates = self.obj_clone()
         db_vnf_lcm_subscriptions = _vnf_lcm_subscriptions_create(
             self._context, updates, filter)
+
+        LOG.debug(
+            'test_log: db_vnf_lcm_subscriptions %s' %
+            db_vnf_lcm_subscriptions)
+
         return db_vnf_lcm_subscriptions
 
     @base.remotable_classmethod

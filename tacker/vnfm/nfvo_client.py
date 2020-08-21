@@ -13,6 +13,7 @@
 import io
 import os
 import requests
+from tacker import auth
 import time
 import zipfile
 
@@ -46,7 +47,7 @@ class _Connect:
 
     def request(self, *args, **kwargs):
         return self.__request(
-            requests.Session().request,
+            auth.auth_manager.get_auth_client().request,
             *args,
             timeout=self.timeout,
             **kwargs)
