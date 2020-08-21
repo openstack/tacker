@@ -1,5 +1,4 @@
 # variables in header
-
 vnf_instance_id:
   description: |
     Identifier of the VNF instance.
@@ -49,6 +48,16 @@ ext_cp_info:
   in: body
   required: true
   type: array
+ext_cp_info_associated_vnfc_cp_id:
+  description: |
+    Identifier of the "vnfcCpInfo" structure in
+    "VnfcResourceInfo" structure that represents the
+    VNFC CP which is exposed by this external CP
+    instance. Shall be present in case this CP instance
+    maps to a VNFC CP.
+  in: body
+  required: false
+  type: string
 ext_cp_info_cp_protocol_info:
   description: |
     Network protocol information for this CP.
@@ -76,6 +85,12 @@ ext_cp_info_id:
     Identifier of the external CP instance and the related information instance.
   in: body
   required: true
+  type: string
+ext_cp_info_metadata:
+  description: |
+    Metadata about this external CP.
+  in: body
+  required: false
   type: string
 ext_cps:
   description: |
@@ -361,6 +376,30 @@ resource_handle_vim_level_resource_type:
   in: body
   required: false
   type: string
+scale_status:
+  description: |
+    Scale status of the VNF, one entry per aspect.
+    Represents for every scaling aspect how "big"
+    the VNF has been scaled with reference to that aspect.
+    This attribute shall be present if the VNF
+    supports scaling.
+  in: body
+  required: false
+  type: array
+scale_status_aspect_id:
+  description: |
+    Identifier of the scaling aspect.
+  in: body
+  required: true
+  type: string
+scale_status_scale_level:
+  description: |
+    Indicates the scale level. The minimum value shall be 0
+    and the maximum value shall be less than or equal to maxScaleLevel as
+    described in the VNFD.
+  in: body
+  required: true
+  type: string
 subnet_id:
   description: |
     Subnet defined by the identifier of the subnet resource in the VIM.
@@ -386,6 +425,14 @@ termination_type:
   in: body
   required: true
   type: string
+vim_connection_id:
+  description: |
+    Identifier of the VIM connection to manage the resource.
+    This attribute shall only be supported and present if VNF related
+    resource management in direct mode is applicable.
+  in: body
+  required: false
+  type: string
 vim_connection_info_access_info:
   description: |
     Authentication credentials for accessing the VIM, and other access-related
@@ -406,6 +453,24 @@ vim_connection_info_id:
   description: |
     The identifier of the VIM Connection. This identifier is managed by
     the NFVO.
+  in: body
+  required: true
+  type: string
+vim_connection_info_interface_info:
+  description: |
+    Information about the interface or interfaces to the VIM, if
+    applicable, such as the URI of an interface endpoint to
+    communicate with the VIM. The applicable keys are
+    dependent on the content of vimType.
+
+    Alternatively, such information may have been configured
+    into the VNFM and bound to the vimId.
+  in: body
+  required: false
+  type: string
+vim_connection_info_interface_info_endpoint:
+  description: |
+    The url representing the interface endpoint.
   in: body
   required: true
   type: string
@@ -701,6 +766,35 @@ vnfc_cp_info_vnf_link_port_id:
     associated to a link port.
   in: body
   required: false
+  type: string
+vnfc_info:
+  description: |
+    Information about the VNFC instances.
+  in: body
+  required: array
+  type: string
+vnfc_info_id:
+  description: |
+    Identifier of the VNFC instance.
+  in: body
+  required: true
+  type: string
+vnfc_info_vdu_id:
+  description: |
+    Reference to the applicable VDU information element in the VNFD.
+  in: body
+  required: true
+  type: string
+vnfc_info_vnfc_state:
+  description: |
+    State of the VNFC instance.
+    Permitted values:
+
+    STARTED: The VNFC instance is up and running.
+
+    STOPPED: The VNFC instance has been shut down.
+  in: body
+  required: true
   type: string
 vnfc_resource_info:
   description: |

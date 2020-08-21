@@ -221,6 +221,7 @@ class VnfInstantiatedInfo(model_base.BASE, models.SoftDeleteMixin,
     vnfc_resource_info = sa.Column(sa.JSON(), nullable=True)
     vnf_virtual_link_resource_info = sa.Column(sa.JSON(), nullable=True)
     virtual_storage_resource_info = sa.Column(sa.JSON(), nullable=True)
+    vnfc_info = sa.Column(sa.JSON(), nullable=True)
     vnf_state = sa.Column(sa.String(255), nullable=False)
     instance_id = sa.Column(sa.Text(), nullable=True)
     instantiation_level_id = sa.Column(sa.String(255), nullable=True)

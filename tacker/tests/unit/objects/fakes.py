@@ -298,7 +298,8 @@ virtual_storage_resource_info = {
 vnf_ext_cp_info = {
     'id': uuidsentinel.id,
     'cpd_id': 'CP1',
-    'cp_protocol_info': [cp_protocol_info]
+    'cp_protocol_info': [cp_protocol_info],
+    'associated_vnfc_cp_id': uuidsentinel.associated_vnfc_cp_id
 }
 
 

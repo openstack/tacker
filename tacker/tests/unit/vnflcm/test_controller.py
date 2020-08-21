@@ -65,6 +65,13 @@ class TestController(base.TestCase):
             return_value={'VNFM': nfvo_plugin.FakeVNFMPlugin()})
         self.mock_manager = self.patcher.start()
         self.controller = controller.VnfLcmController()
+        self.vim_info = {
+            'vim_id': uuidsentinel.vnfd_id,
+            'vim_type': 'test',
+            'vim_auth': {'username': 'test', 'password': 'test'},
+            'placement_attr': {'region': 'TestRegionOne'},
+            'tenant': 'test'
+        }
 
     def tearDown(self):
         self.mock_manager.stop()
@@ -74,6 +81,7 @@ class TestController(base.TestCase):
     def app(self):
         return fakes.wsgi_app_v1()
 
+    @mock.patch.object(objects.VnfInstance, 'save')
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
     @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
@@ -82,8 +90,9 @@ class TestController(base.TestCase):
     def test_create_without_name_and_description(
             self, mock_get_by_id_package_vnfd,
             mock_vnf_instance_create, mock_package_save,
-            mock_get_by_id_package, mock_get_vim):
-
+            mock_get_by_id_package, mock_get_vim,
+            mock_save):
+        mock_get_vim.return_value = self.vim_info
         mock_get_by_id_package_vnfd.return_value = \
             fakes.return_vnf_package_vnfd()
         mock_get_by_id_package.return_value = \
@@ -121,6 +130,7 @@ class TestController(base.TestCase):
         self.assertEqual(expected_vnf, resp.json)
         self.assertEqual(location_header, resp.headers['location'])
 
+    @mock.patch.object(objects.VnfInstance, 'save')
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
     @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
@@ -129,7 +139,9 @@ class TestController(base.TestCase):
     def test_create_with_name_and_description(
             self, mock_get_by_id_package_vnfd,
             mock_vnf_instance_create, mock_package_save,
-            mock_get_by_id_package, mock_get_vim):
+            mock_get_by_id_package, mock_get_vim,
+            mock_save):
+        mock_get_vim.return_value = self.vim_info
         mock_get_by_id_package_vnfd.return_value = \
             fakes.return_vnf_package_vnfd()
         mock_get_by_id_package.return_value = \
@@ -169,6 +181,7 @@ class TestController(base.TestCase):
         self.assertEqual(expected_vnf, resp.json)
         self.assertEqual(location_header, resp.headers['location'])
 
+    @mock.patch.object(objects.VnfInstance, 'save')
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
     @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
@@ -177,7 +190,9 @@ class TestController(base.TestCase):
     def test_create_without_name_and_description_with_v241(
             self, mock_get_by_id_package_vnfd,
             mock_vnf_instance_create, mock_package_save,
-            mock_get_by_id_package, mock_get_vim):
+            mock_get_by_id_package, mock_get_vim,
+            mock_save):
+        mock_get_vim.return_value = self.vim_info
         mock_get_by_id_package_vnfd.return_value = \
             fakes.return_vnf_package_vnfd()
         mock_get_by_id_package.return_value = \
@@ -1098,28 +1113,22 @@ class TestController(base.TestCase):
         self.assertEqual(expected_message, exception.msg)
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
-    @ddt.data(' ', '2.6.1')
-    def test_index(self, api_version, mock_vnf_list):
+    def test_index(self, mock_vnf_list):
         req = fake_request.HTTPRequest.blank('/vnf_instances')
-        req.headers['Version'] = api_version
         vnf_instance_1 = fakes.return_vnf_instance()
         vnf_instance_2 = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
 
         mock_vnf_list.return_value = [vnf_instance_1, vnf_instance_2]
         resp = self.controller.index(req)
-        expected_result = [fakes.fake_vnf_instance_response(
-            api_version=api_version),
+        expected_result = [fakes.fake_vnf_instance_response(),
             fakes.fake_vnf_instance_response(
-            fields.VnfInstanceState.INSTANTIATED,
-            api_version=api_version)]
+            fields.VnfInstanceState.INSTANTIATED)]
         self.assertEqual(expected_result, resp)
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
-    @ddt.data(' ', '2.6.1')
-    def test_index_empty_response(self, api_version, mock_vnf_list):
+    def test_index_empty_response(self, mock_vnf_list):
         req = fake_request.HTTPRequest.blank('/vnf_instances')
-        req.headers['Version'] = api_version
         mock_vnf_list.return_value = []
         resp = self.controller.index(req)
         self.assertEqual([], resp)
@@ -1234,12 +1243,10 @@ class TestController(base.TestCase):
     )
     def test_index_filter_operator(self, filter_params, mock_vnf_list):
         """Tests all supported operators in filter expression."""
-        api_version = '2.6.1'
         query = urllib.parse.urlencode(filter_params)
 
         req = fake_request.HTTPRequest.blank(
             '/vnflcm/v1/vnf_instances?' + query)
-        req.headers['Version'] = api_version
 
         vnf_instance_1 = fakes.return_vnf_instance()
         vnf_instance_2 = fakes.return_vnf_instance(
@@ -1248,11 +1255,9 @@ class TestController(base.TestCase):
         mock_vnf_list.return_value = [vnf_instance_1, vnf_instance_2]
         res_dict = self.controller.index(req)
 
-        expected_result = [fakes.fake_vnf_instance_response(
-            api_version=api_version),
+        expected_result = [fakes.fake_vnf_instance_response(),
             fakes.fake_vnf_instance_response(
-            fields.VnfInstanceState.INSTANTIATED,
-            api_version=api_version)]
+            fields.VnfInstanceState.INSTANTIATED)]
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
@@ -1262,11 +1267,9 @@ class TestController(base.TestCase):
             'filter': "(eq,vnfInstanceName,'dummy_name');"
                       "(eq,vnfInstanceDescription,'dummy_desc')"}
 
-        api_version = '2.6.1'
         query = urllib.parse.urlencode(params)
         req = fake_request.HTTPRequest.blank(
             '/vnflcm/v1/vnf_instances?' + query)
-        req.headers['Version'] = '2.6.1'
 
         vnf_instance_1 = fakes.return_vnf_instance()
         vnf_instance_2 = fakes.return_vnf_instance(
@@ -1275,11 +1278,9 @@ class TestController(base.TestCase):
         mock_vnf_list.return_value = [vnf_instance_1, vnf_instance_2]
         res_dict = self.controller.index(req)
 
-        expected_result = [fakes.fake_vnf_instance_response(
-            api_version=api_version),
+        expected_result = [fakes.fake_vnf_instance_response(),
             fakes.fake_vnf_instance_response(
-            fields.VnfInstanceState.INSTANTIATED,
-            api_version=api_version)]
+            fields.VnfInstanceState.INSTANTIATED)]
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
@@ -1318,11 +1319,9 @@ class TestController(base.TestCase):
     def test_index_filter_attributes(self, filter_params,
                                      mock_vnf_list):
         """Test various attributes supported for filter parameter."""
-        api_version = '2.6.1'
         query = urllib.parse.urlencode(filter_params)
         req = fake_request.HTTPRequest.blank(
             '/vnflcm/v1/vnf_instances?' + query)
-        req.headers['Version'] = '2.6.1'
 
         vnf_instance_1 = fakes.return_vnf_instance()
         vnf_instance_2 = fakes.return_vnf_instance(
@@ -1331,11 +1330,9 @@ class TestController(base.TestCase):
         mock_vnf_list.return_value = [vnf_instance_1, vnf_instance_2]
         res_dict = self.controller.index(req)
 
-        expected_result = [fakes.fake_vnf_instance_response(
-            api_version=api_version),
+        expected_result = [fakes.fake_vnf_instance_response(),
             fakes.fake_vnf_instance_response(
-            fields.VnfInstanceState.INSTANTIATED,
-            api_version=api_version)]
+            fields.VnfInstanceState.INSTANTIATED)]
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
@@ -1348,11 +1345,9 @@ class TestController(base.TestCase):
     def test_index_filter_invalid_expression(self, filter_params,
                                              mock_vnf_list):
         """Test invalid filter expression."""
-        api_version = '2.6.1'
         query = urllib.parse.urlencode(filter_params)
         req = fake_request.HTTPRequest.blank(
             '/vnflcm/v1/vnf_instances?' + query)
-        req.headers['Version'] = api_version
 
         self.assertRaises(exceptions.ValidationError,
                           self.controller.index, req)
@@ -1369,11 +1364,9 @@ class TestController(base.TestCase):
     def test_index_filter_invalid_string_values(self, filter_params,
                                                 mock_vnf_list):
         """Test invalid string values as per ETSI NFV SOL013 5.2.2."""
-        api_version = '2.6.1'
         query = urllib.parse.urlencode(filter_params)
         req = fake_request.HTTPRequest.blank(
             '/vnflcm/v1/vnf_instances?' + query)
-        req.headers['Version'] = api_version
         self.assertRaises(exceptions.ValidationError,
                           self.controller.index, req)
 
@@ -1386,11 +1379,9 @@ class TestController(base.TestCase):
     def test_index_filter_invalid_operator(self, filter_params,
                                            mock_vnf_list):
         """Test invalid operator in filter expression."""
-        api_version = '2.6.1'
         query = urllib.parse.urlencode(filter_params)
         req = fake_request.HTTPRequest.blank(
             '/vnflcm/v1/vnf_instances?' + query)
-        req.headers['Version'] = api_version
         self.assertRaises(exceptions.ValidationError,
                           self.controller.index, req)
 
@@ -1402,11 +1393,9 @@ class TestController(base.TestCase):
     def test_index_filter_invalid_attribute(self, filter_params,
                                             mock_vnf_list):
         """Test invalid attribute in filter expression."""
-        api_version = '2.6.1'
         query = urllib.parse.urlencode(filter_params)
         req = fake_request.HTTPRequest.blank(
             '/vnflcm/v1/vnf_instances?' + query)
-        req.headers['Version'] = api_version
         self.assertRaises(exceptions.ValidationError,
                           self.controller.index, req)
 
@@ -1420,10 +1409,8 @@ class TestController(base.TestCase):
     def test_index_filter_invalid_value_type(self, filter_params,
                                              mock_vnf_list):
         """Test values which doesn't match with attribute data type."""
-        api_version = '2.6.1'
         query = urllib.parse.urlencode(filter_params)
         req = fake_request.HTTPRequest.blank(
             '/vnflcm/v1/vnf_instances?' + query)
-        req.headers['Version'] = api_version
         self.assertRaises(exceptions.ValidationError,
                           self.controller.index, req)

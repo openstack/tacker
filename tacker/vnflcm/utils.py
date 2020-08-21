@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import io
 import os
 import six
@@ -256,6 +257,10 @@ def _get_vim_connection_info_from_vnf_req(vnf_instance, instantiate_vnf_req):
     vim_connection_obj_list = []
 
     if not instantiate_vnf_req.vim_connection_info:
+        # add default vim
+        if len(vnf_instance.vim_connection_info):
+            vim_connection_obj_list.append(vnf_instance.vim_connection_info[0])
+
         return vim_connection_obj_list
 
     for vim_connection in instantiate_vnf_req.vim_connection_info:
@@ -265,6 +270,16 @@ def _get_vim_connection_info_from_vnf_req(vnf_instance, instantiate_vnf_req):
 
         vim_connection_obj_list.append(vim_conn)
 
+    # add default vim
+    if len(vnf_instance.vim_connection_info):
+        if vim_conn.id and vnf_instance.vim_connection_info[0].id:
+            is_default_vim_exist = [vim_conn for vim_conn
+                in vim_connection_obj_list
+                    if vim_conn.id == vnf_instance.vim_connection_info[0].id]
+            if not len(is_default_vim_exist):
+                vim_connection_obj_list.append(vnf_instance.
+                    vim_connection_info[0])
+
     return vim_connection_obj_list
 
 
@@ -272,9 +287,6 @@ def _build_instantiated_vnf_info(vnfd_dict, instantiate_vnf_req,
                                  vnf_instance, vim_id):
     inst_vnf_info = vnf_instance.instantiated_vnf_info
     inst_vnf_info.vnf_state = fields.VnfOperationalStateType.STARTED
-    inst_vnf_info.ext_cp_info = _set_ext_cp_info(instantiate_vnf_req)
-    inst_vnf_info.ext_virtual_link_info = _set_ext_virtual_link_info(
-        instantiate_vnf_req, inst_vnf_info.ext_cp_info)
 
     node_templates = vnfd_dict.get(
         'topology_template', {}).get('node_templates')
@@ -283,6 +295,13 @@ def _build_instantiated_vnf_info(vnfd_dict, instantiate_vnf_req,
         _get_vnfc_resource_info(vnfd_dict, instantiate_vnf_req, vim_id)
 
     inst_vnf_info.vnfc_resource_info = vnfc_resource_info
+
+    tmp_insta_vnf_info = copy.deepcopy(inst_vnf_info)
+    inst_vnf_info.ext_cp_info = _set_ext_cp_info(instantiate_vnf_req,
+        inst_vnf_info=tmp_insta_vnf_info)
+    inst_vnf_info.ext_virtual_link_info = _set_ext_virtual_link_info(
+        instantiate_vnf_req, inst_vnf_info.ext_cp_info)
+
     inst_vnf_info.virtual_storage_resource_info = \
         virtual_storage_resource_info
     inst_vnf_info.vnf_virtual_link_resource_info = \
@@ -530,8 +549,12 @@ def _get_vnfc_resource_info(vnfd_dict, instantiate_vnf_req, vim_id):
     return vnfc_resource_info_list, virtual_storage_resource_info_list
 
 
-def _set_ext_cp_info(instantiate_vnf_req):
+def _set_ext_cp_info(instantiate_vnf_req, inst_vnf_info=None):
     ext_cp_info_list = []
+    vnfc_info = []
+
+    if inst_vnf_info.vnfc_resource_info:
+        vnfc_info = inst_vnf_info.vnfc_resource_info
 
     if not instantiate_vnf_req.ext_virtual_links:
         return ext_cp_info_list
@@ -546,6 +569,8 @@ def _set_ext_cp_info(instantiate_vnf_req):
                 cpd_id=ext_cp.cpd_id,
                 cp_protocol_info=_set_cp_protocol_info(ext_cp),
                 ext_link_port_id=_get_ext_link_port_id(ext_virt_link,
+                        ext_cp.cpd_id),
+                associated_vnfc_cp_id=_get_associated_vnfc_cp_id(vnfc_info,
                         ext_cp.cpd_id))
 
             ext_cp_info_list.append(ext_cp_info)
@@ -560,6 +585,17 @@ def _get_ext_link_port_id(ext_virtual_link, cpd_id):
     for ext_link in ext_virtual_link.ext_link_ports:
         if ext_link.id == cpd_id:
             return ext_link.id
+
+
+def _get_associated_vnfc_cp_id(vnfc_info, cpd_id):
+    if not isinstance(vnfc_info, list):
+        return
+
+    for vnfc in vnfc_info:
+        if vnfc.vnfc_cp_info:
+            for cp_info in vnfc.vnfc_cp_info:
+                if cp_info.cpd_id == cpd_id:
+                    return vnfc.id
 
 
 def _build_ip_over_ethernet_address_info(cp_protocol_data):

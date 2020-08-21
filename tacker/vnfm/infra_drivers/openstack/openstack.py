@@ -27,6 +27,7 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import encodeutils
 from oslo_utils import excutils
+from oslo_utils import uuidutils
 import yaml
 
 from tacker._i18n import _
@@ -36,6 +37,7 @@ from tacker.common import utils
 from tacker.extensions import vnflcm
 from tacker.extensions import vnfm
 from tacker import objects
+from tacker.objects import fields
 from tacker.tosca.utils import represent_odict
 from tacker.vnfm.infra_drivers import abstract_driver
 from tacker.vnfm.infra_drivers.openstack import constants as infra_cnst
@@ -796,6 +798,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             inst_vnf_info.instance_id, heatclient)
 
         self._update_vnfc_resources(vnf_instance, stack_resources)
+        self._update_vnfc_info(vnf_instance)
 
     def _update_resource_handle(self, vnf_instance, resource_handle,
                                 stack_resources, resource_name):
@@ -925,6 +928,18 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
             for vl_port in vnf_vl_resource_info.vnf_link_ports:
                 _update_link_port(vl_port)
+
+    def _update_vnfc_info(self, vnf_instance):
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        vnfc_info = []
+
+        for vnfc_res_info in inst_vnf_info.vnfc_resource_info:
+            vnfc = objects.VnfcInfo(id=uuidutils.generate_uuid(),
+                    vdu_id=vnfc_res_info.vdu_id,
+                    vnfc_state=fields.VnfcState.STARTED)
+            vnfc_info.append(vnfc)
+
+        inst_vnf_info.vnfc_info = vnfc_info
 
     def _update_vnfc_resources(self, vnf_instance, stack_resources):
         inst_vnf_info = vnf_instance.instantiated_vnf_info

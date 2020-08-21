@@ -120,12 +120,14 @@ def get_instantiated_info_dict_for_ext_links_and_flavour_id():
                 "layer_protocol": "IP_OVER_ETHERNET"}],
             "cpd_id": "CP1",
             "id": "19f0aa71-9376-43dc-8e13-5e76e4bdc8bf",
-            "ext_link_port_id": None}, {
+            "ext_link_port_id": None,
+            "associated_vnfc_cp_id": "dc67ee99-e963-44e2-a152-f0fb492eae76"}, {
             "cp_protocol_info": [{
                 "layer_protocol": "IP_OVER_ETHERNET"}],
             "cpd_id": "CP2",
             "id": "f47a9e33-b31a-4290-828a-c7569c52bd0e",
-            "ext_link_port_id": None}]
+            "ext_link_port_id": None,
+            "associated_vnfc_cp_id": "7ec01a11-e584-404a-88bd-39a56b63e29c"}]
     }
     }
 

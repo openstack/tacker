@@ -177,3 +177,10 @@ class VnfInstanceTerminationType(BaseTackerEnum):
 
 class VnfInstanceTerminationTypeField(BaseEnumField):
     AUTO_TYPE = VnfInstanceTerminationType()
+
+
+class VnfcState(BaseTackerEnum):
+    STARTED = 'STARTED'
+    STOPPED = 'STOPPED'
+
+    ALL = (STARTED, STOPPED)
