@@ -18,11 +18,11 @@ import functools
 import inspect
 import json
 import os
-import requests
 import shutil
 import sys
 import time
 import traceback
+import yaml
 
 
 from glance_store import exceptions as store_exceptions
@@ -38,8 +38,8 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from sqlalchemy import exc as sqlexc
 from sqlalchemy.orm import exc as orm_exc
-import yaml
 
+from tacker import auth
 from tacker.common import coordination
 from tacker.common import csar_utils
 from tacker.common import exceptions
@@ -620,9 +620,13 @@ class Conductor(manager.Manager):
                 notification['timeStamp'] = datetime.datetime.utcnow(
                 ).isoformat()
                 try:
+                    self.__set_auth_subscription(line)
+
                     for num in range(CONF.vnf_lcm.retry_num):
                         LOG.warn("send notify[%s]" % json.dumps(notification))
-                        response = requests.post(
+                        auth_client = auth.auth_manager.get_auth_client(
+                            notification['subscriptionId'])
+                        response = auth_client.post(
                             line.callback_uri.decode(),
                             data=json.dumps(notification))
                         if response.status_code == 204:
@@ -654,7 +658,7 @@ class Conductor(manager.Manager):
         except Exception as e:
             LOG.warn("Internal Sever Error[%s]" % str(e))
             LOG.warn(traceback.format_exc())
-            return -2
+            return 99
         return 0
 
     @coordination.synchronized('{vnf_instance[id]}')
@@ -857,6 +861,37 @@ class Conductor(manager.Manager):
                 evacuate_end_list=evacuate_end_list,
                 error=str(ex)
             )
+
+    def __set_auth_subscription(self, vnf_lcm_subscription):
+        def decode(val):
+            return val if isinstance(val, str) else val.decode()
+
+        if not vnf_lcm_subscription.subscription_authentication:
+            return
+
+        subscription_authentication = decode(
+            vnf_lcm_subscription.subscription_authentication)
+
+        authentication = utils.convert_camelcase_to_snakecase(
+            json.loads(subscription_authentication))
+
+        if not authentication:
+            return
+
+        auth_params = {}
+        auth_type = None
+        if 'params_basic' in authentication:
+            auth_params = authentication.get('params_basic')
+            auth_type = 'BASIC'
+        elif 'params_oauth2_client_credentials' in authentication:
+            auth_params = authentication.get(
+                'params_oauth2_client_credentials')
+            auth_type = 'OAUTH2_CLIENT_CREDENTIALS'
+
+        auth.auth_manager.set_auth_client(
+            id=decode(vnf_lcm_subscription.id),
+            auth_type=auth_type,
+            auth_params=auth_params)
 
 
 def init(args, **kwargs):

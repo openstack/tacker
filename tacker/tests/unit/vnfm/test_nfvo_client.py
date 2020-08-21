@@ -10,11 +10,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import base64
 import datetime
 import hashlib
 import io
 import json
 import os
+import requests
 import shutil
 import tempfile
 import uuid
@@ -22,9 +24,10 @@ import zipfile
 
 import ddt
 from oslo_config import cfg
-import requests
+from requests_mock.contrib import fixture as requests_mock_fixture
+from tacker import auth
+from tacker.tests import base
 
-from tacker.tests.unit import base
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import client
 from tacker.tests.unit.vnfpkgm import fakes
 from tacker.tests import utils
@@ -44,21 +47,46 @@ def _count_mock_history(history, *url):
 
 
 @ddt.ddt
-class TestVnfPackageRequest(base.FixturedTestCase):
+class TestVnfPackageRequest(base.BaseTestCase):
 
     client_fixture_class = client.ClientFixture
     sdk_connection_fixure_class = client.SdkConnectionFixture
 
     def setUp(self):
         super(TestVnfPackageRequest, self).setUp()
+        self.requests_mock = self.useFixture(requests_mock_fixture.Fixture())
         self.url = "http://nfvo.co.jp/vnfpkgm/v1/vnf_packages"
         self.nfvo_url = "http://nfvo.co.jp"
         self.test_package_dir = 'tacker/tests/unit/vnfm/'
         self.headers = {'Content-Type': 'application/json'}
 
+        self.token_endpoint = 'https://oauth2/tokens'
+        self.oauth_url = 'https://oauth2'
+        self.auth_user_name = 'test_user'
+        self.auth_password = 'test_password'
+
+        cfg.CONF.set_override('auth_type', None,
+                              group='authentication')
+        auth.auth_manager = auth._AuthManager()
+        nfvo_client.VnfPackageRequest._connector = nfvo_client._Connect(
+            2, 1, 20)
+
     def tearDown(self):
         super(TestVnfPackageRequest, self).tearDown()
         self.addCleanup(mock.patch.stopall)
+
+    def assert_auth_basic(self, acutual_request):
+        actual_auth = acutual_request._request.headers.get("Authorization")
+        expected_auth = base64.b64encode(
+            '{}:{}'.format(
+                self.auth_user_name,
+                self.auth_password).encode('utf-8')).decode()
+        self.assertEqual("Basic " + expected_auth, actual_auth)
+
+    def assert_auth_client_credentials(self, acutual_request, expected_token):
+        actual_auth = acutual_request._request.headers.get(
+            "Authorization")
+        self.assertEqual("Bearer " + expected_token, actual_auth)
 
     def assert_zipfile(
             self,
@@ -243,6 +271,133 @@ class TestVnfPackageRequest(base.FixturedTestCase):
 
         self.assertEqual(expected_connect_cnt, req_count)
 
+    def test_download_vnf_packages_with_auth_basic(self):
+        cfg.CONF.set_override("base_url", self.url,
+                              group='connect_vnf_packages')
+
+        cfg.CONF.set_override('auth_type', 'BASIC',
+                              group='authentication')
+        cfg.CONF.set_override('user_name', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('password', self.auth_password,
+                              group='authentication')
+        auth.auth_manager = auth._AuthManager()
+
+        expected_connect_cnt = \
+            self._download_vnf_packages_all_pipeline_with_assert()
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, self.nfvo_url)
+        self.assertEqual(expected_connect_cnt, req_count)
+        for h in history:
+            self.assert_auth_basic(h)
+
+    def test_download_vnf_packages_with_auth_client_credentials(self):
+        cfg.CONF.set_override("base_url", self.url,
+                              group='connect_vnf_packages')
+
+        cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
+                              group='authentication')
+        cfg.CONF.set_override('token_endpoint', self.token_endpoint,
+                              group='authentication')
+        cfg.CONF.set_override('client_id', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('client_password', self.auth_password,
+                              group='authentication')
+
+        expected_connect_cnt = 1
+        self.requests_mock.register_uri('GET',
+            self.token_endpoint,
+            json={'access_token': 'test_token', 'token_type': 'bearer'},
+            headers={'Content-Type': 'application/json'},
+            status_code=200)
+
+        auth.auth_manager = auth._AuthManager()
+
+        expected_connect_cnt += \
+            self._download_vnf_packages_all_pipeline_with_assert()
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, self.nfvo_url, self.oauth_url)
+        self.assertEqual(expected_connect_cnt, req_count)
+        self.assert_auth_basic(history[0])
+        for h in history[1:]:
+            self.assert_auth_client_credentials(h, "test_token")
+
+    def _download_vnf_packages_all_pipeline_with_assert(self):
+        fetch_base_url = os.path.join(self.url, uuidsentinel.vnf_pkg_id)
+        expected_connect_cnt = 0
+        pipelines = []
+
+        content = 'vnfpkgm1'
+        expected_connect_cnt += 1
+        pipelines.append('package_content')
+        path = self._make_zip_file_from_sample(content)
+        with open(path, 'rb') as test_package_content_zip_obj:
+            expected_package_content_zip = zipfile.ZipFile(
+                io.BytesIO(test_package_content_zip_obj.read()))
+            test_package_content_zip_obj.seek(0)
+            self.requests_mock.register_uri(
+                'GET',
+                os.path.join(
+                    fetch_base_url,
+                    'package_content'),
+                content=test_package_content_zip_obj.read(),
+                headers={
+                    'Content-Type': 'application/zip'},
+                status_code=200)
+
+        vnfd = 'vnfpkgm2'
+        expected_connect_cnt += 1
+        pipelines.append('vnfd')
+        path = self._make_zip_file_from_sample(vnfd, read_vnfd_only=True)
+        with open(path, 'rb') as test_vnfd_zip_obj:
+            expected_vnfd_zip = zipfile.ZipFile(
+                io.BytesIO(test_vnfd_zip_obj.read()))
+            test_vnfd_zip_obj.seek(0)
+            self.requests_mock.register_uri(
+                'GET',
+                os.path.join(
+                    fetch_base_url,
+                    'vnfd'),
+                content=test_vnfd_zip_obj.read(),
+                headers={
+                    'Content-Type': 'application/zip'},
+                status_code=200)
+
+        artifacts = ["vnfd_lcm_user_data.yaml"]
+        pipelines.append('artifacts')
+        artifacts = [os.path.join("tacker/tests/etc/samples", p)
+                    for p in artifacts]
+        for artifact_path in artifacts:
+            expected_connect_cnt += 1
+            with open(artifact_path, 'rb') as artifact_path_obj:
+                self.requests_mock.register_uri(
+                    'GET',
+                    os.path.join(
+                        fetch_base_url,
+                        'artifacts',
+                        artifact_path),
+                    headers={
+                        'Content-Type': 'application/octet-stream'},
+                    status_code=200,
+                    content=artifact_path_obj.read())
+
+        cfg.CONF.set_default(
+            name='pipeline',
+            group='connect_vnf_packages',
+            default=pipelines)
+
+        res = nfvo_client.VnfPackageRequest.download_vnf_packages(
+            uuidsentinel.vnf_pkg_id, artifacts)
+        self.assertIsInstance(res, io.BytesIO)
+
+        actual_zip = zipfile.ZipFile(res)
+        self.assert_zipfile(
+            actual_zip, [
+                expected_package_content_zip,
+                expected_vnfd_zip], artifacts)
+
+        return expected_connect_cnt
+
     def test_download_vnf_packages_content_disposition(self):
         cfg.CONF.set_override("base_url", self.url,
                               group='connect_vnf_packages')
@@ -313,6 +468,9 @@ class TestVnfPackageRequest(base.FixturedTestCase):
         self.assertEqual(1, req_count)
 
     def test_download_vnf_packages_with_retry_raise_not_found(self):
+        # TODO(Edagawa) fix duplicated lines
+        # (cfg.CONF.set_override and cfg.CONF.set_default) with below
+        # two functions.
         cfg.CONF.set_override("base_url", self.url,
                               group='connect_vnf_packages')
         cfg.CONF.set_default(
@@ -436,6 +594,74 @@ class TestVnfPackageRequest(base.FixturedTestCase):
         req_count = _count_mock_history(history, self.nfvo_url)
         self.assertEqual(1, req_count)
 
+    def test_index_with_auth_basic(self):
+        cfg.CONF.set_override("base_url", self.url,
+                              group='connect_vnf_packages')
+
+        cfg.CONF.set_override('auth_type', 'BASIC',
+                              group='authentication')
+        cfg.CONF.set_override('user_name', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('password', self.auth_password,
+                              group='authentication')
+        auth.auth_manager = auth._AuthManager()
+
+        response_body = self.json_serial_date_to_dict(
+            [fakes.VNFPACKAGE_RESPONSE, fakes.VNFPACKAGE_RESPONSE])
+        self.requests_mock.register_uri(
+            'GET', self.url, headers=self.headers, json=response_body)
+
+        res = nfvo_client.VnfPackageRequest.index()
+        self.assertEqual(200, res.status_code)
+        self.assertIsInstance(res.json(), list)
+        self.assertEqual(response_body, res.json())
+        self.assertEqual(2, len(res.json()))
+        self.assertEqual(response_body, json.loads(res.text))
+
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, self.nfvo_url)
+        self.assertEqual(1, req_count)
+        self.assert_auth_basic(history[0])
+
+    def test_index_with_auth_client_credentials(self):
+        cfg.CONF.set_override("base_url", self.url,
+                              group='connect_vnf_packages')
+
+        cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
+                              group='authentication')
+        cfg.CONF.set_override('token_endpoint', self.token_endpoint,
+                              group='authentication')
+        cfg.CONF.set_override('client_id', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('client_password', self.auth_password,
+                              group='authentication')
+
+        self.requests_mock.register_uri('GET',
+            self.token_endpoint,
+            json={'access_token': 'test_token', 'token_type': 'bearer'},
+            headers={'Content-Type': 'application/json'},
+            status_code=200)
+
+        auth.auth_manager = auth._AuthManager()
+
+        response_body = self.json_serial_date_to_dict(
+            [fakes.VNFPACKAGE_RESPONSE, fakes.VNFPACKAGE_RESPONSE])
+        self.requests_mock.register_uri(
+            'GET', self.url, headers=self.headers, json=response_body)
+
+        res = nfvo_client.VnfPackageRequest.index()
+        self.assertEqual(200, res.status_code)
+        self.assertIsInstance(res.json(), list)
+        self.assertEqual(response_body, res.json())
+        self.assertEqual(2, len(res.json()))
+        self.assertEqual(response_body, json.loads(res.text))
+
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, self.nfvo_url, self.oauth_url)
+        self.assertEqual(2, req_count)
+        self.assert_auth_basic(history[0])
+        self.assert_auth_client_credentials(history[1], "test_token")
+
     def test_index_raise_not_found(self):
         cfg.CONF.set_override("base_url", self.url,
                               group='connect_vnf_packages')
@@ -484,6 +710,82 @@ class TestVnfPackageRequest(base.FixturedTestCase):
         req_count = _count_mock_history(history, self.nfvo_url)
         self.assertEqual(1, req_count)
 
+    def test_show_with_auth_basic(self):
+        cfg.CONF.set_override("base_url", self.url,
+                              group='connect_vnf_packages')
+
+        cfg.CONF.set_override('auth_type', 'BASIC',
+                              group='authentication')
+        cfg.CONF.set_override('user_name', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('password', self.auth_password,
+                              group='authentication')
+        auth.auth_manager = auth._AuthManager()
+
+        response_body = self.json_serial_date_to_dict(
+            fakes.VNFPACKAGE_RESPONSE)
+        self.requests_mock.register_uri(
+            'GET',
+            os.path.join(
+                self.url,
+                uuidsentinel.vnf_pkg_id),
+            headers=self.headers,
+            json=response_body)
+
+        res = nfvo_client.VnfPackageRequest.show(uuidsentinel.vnf_pkg_id)
+        self.assertEqual(200, res.status_code)
+        self.assertIsInstance(res.json(), dict)
+        self.assertEqual(response_body, res.json())
+        self.assertEqual(response_body, json.loads(res.text))
+
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, self.nfvo_url)
+        self.assertEqual(1, req_count)
+        self.assert_auth_basic(history[0])
+
+    def test_show_with_auth_client_credentials(self):
+        cfg.CONF.set_override("base_url", self.url,
+                              group='connect_vnf_packages')
+
+        cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
+                              group='authentication')
+        cfg.CONF.set_override('token_endpoint', self.token_endpoint,
+                              group='authentication')
+        cfg.CONF.set_override('client_id', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('client_password', self.auth_password,
+                              group='authentication')
+
+        self.requests_mock.register_uri('GET',
+            self.token_endpoint,
+            json={'access_token': 'test_token', 'token_type': 'bearer'},
+            headers={'Content-Type': 'application/json'},
+            status_code=200)
+
+        auth.auth_manager = auth._AuthManager()
+
+        response_body = self.json_serial_date_to_dict(
+            fakes.VNFPACKAGE_RESPONSE)
+        self.requests_mock.register_uri(
+            'GET',
+            os.path.join(
+                self.url,
+                uuidsentinel.vnf_pkg_id),
+            headers=self.headers,
+            json=response_body)
+
+        res = nfvo_client.VnfPackageRequest.show(uuidsentinel.vnf_pkg_id)
+        self.assertEqual(200, res.status_code)
+        self.assertIsInstance(res.json(), dict)
+        self.assertEqual(response_body, res.json())
+        self.assertEqual(response_body, json.loads(res.text))
+
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, self.nfvo_url, self.oauth_url)
+        self.assertEqual(2, req_count)
+        self.assert_auth_basic(history[0])
+        self.assert_auth_client_credentials(history[1], "test_token")
+
     def test_show_raise_not_found(self):
         cfg.CONF.set_override("base_url", self.url,
                               group='connect_vnf_packages')
@@ -516,19 +818,42 @@ class TestVnfPackageRequest(base.FixturedTestCase):
 
 
 @ddt.ddt
-class TestGrantRequest(base.FixturedTestCase):
-    client_fixture_class = client.ClientFixture
-    sdk_connection_fixure_class = client.SdkConnectionFixture
+class TestGrantRequest(base.BaseTestCase):
 
     def setUp(self):
         super(TestGrantRequest, self).setUp()
+        self.requests_mock = self.useFixture(requests_mock_fixture.Fixture())
         self.url = "http://nfvo.co.jp/grant/v1/grants"
         self.nfvo_url = 'http://nfvo.co.jp'
         self.headers = {'content-type': 'application/json'}
 
+        self.token_endpoint = 'https://oauth2/tokens'
+        self.nfvo_url = 'http://nfvo.co.jp'
+        self.oauth_url = 'https://oauth2'
+        self.auth_user_name = 'test_user'
+        self.auth_password = 'test_password'
+
+        cfg.CONF.set_override('auth_type', None,
+                              group='authentication')
+        auth.auth_manager = auth._AuthManager()
+        nfvo_client.GrantRequest._connector = nfvo_client._Connect(2, 1, 20)
+
     def tearDown(self):
         super(TestGrantRequest, self).tearDown()
         self.addCleanup(mock.patch.stopall)
+
+    def assert_auth_basic(self, acutual_request):
+        actual_auth = acutual_request._request.headers.get("Authorization")
+        expected_auth = base64.b64encode(
+            '{}:{}'.format(
+                self.auth_user_name,
+                self.auth_password).encode('utf-8')).decode()
+        self.assertEqual("Basic " + expected_auth, actual_auth)
+
+    def assert_auth_client_credentials(self, acutual_request, expected_token):
+        actual_auth = acutual_request._request.headers.get(
+            "Authorization")
+        self.assertEqual("Bearer " + expected_token, actual_auth)
 
     def create_request_body(self):
         return {
@@ -630,3 +955,71 @@ class TestGrantRequest(base.FixturedTestCase):
         self.assertRaises(nfvo_client.UndefinedExternalSettingException,
                           nfvo_client.GrantRequest.grants,
                           data={"test": "value1"})
+
+    def test_grants_with_auth_basic(self):
+        cfg.CONF.set_override("base_url", self.url, group='connect_grant')
+
+        cfg.CONF.set_override('auth_type', 'BASIC',
+                              group='authentication')
+        cfg.CONF.set_override('user_name', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('password', self.auth_password,
+                              group='authentication')
+        auth.auth_manager = auth._AuthManager()
+
+        response_body = self.fake_response_body()
+        self.requests_mock.register_uri(
+            'POST',
+            self.url,
+            json=response_body,
+            headers=self.headers,
+            status_code=201)
+
+        request_body = self.create_request_body()
+        res = nfvo_client.GrantRequest.grants(data=request_body)
+        self.assertEqual(response_body, json.loads(res.text))
+        self.assertEqual(response_body, res.json())
+
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, self.nfvo_url)
+        self.assertEqual(1, req_count)
+        self.assert_auth_basic(history[0])
+
+    def test_grants_with_auth_client_credentials(self):
+        cfg.CONF.set_override("base_url", self.url, group='connect_grant')
+
+        cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
+                              group='authentication')
+        cfg.CONF.set_override('token_endpoint', self.token_endpoint,
+                              group='authentication')
+        cfg.CONF.set_override('client_id', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('client_password', self.auth_password,
+                              group='authentication')
+
+        self.requests_mock.register_uri('GET',
+            self.token_endpoint,
+            json={'access_token': 'test_token', 'token_type': 'bearer'},
+            headers={'Content-Type': 'application/json'},
+            status_code=200)
+
+        auth.auth_manager = auth._AuthManager()
+
+        response_body = self.fake_response_body()
+        self.requests_mock.register_uri(
+            'POST',
+            self.url,
+            json=response_body,
+            headers=self.headers,
+            status_code=201)
+
+        request_body = self.create_request_body()
+        res = nfvo_client.GrantRequest.grants(data=request_body)
+        self.assertEqual(response_body, json.loads(res.text))
+        self.assertEqual(response_body, res.json())
+
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, self.nfvo_url, self.oauth_url)
+        self.assertEqual(2, req_count)
+        self.assert_auth_basic(history[0])
+        self.assert_auth_client_credentials(history[1], "test_token")
