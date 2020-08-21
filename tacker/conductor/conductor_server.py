@@ -157,6 +157,79 @@ def revert_upload_vnf_package(function):
     return decorated_function
 
 
+@utils.expects_func_args('vnf_lcm_opoccs')
+def revert_update_lcm(function):
+    """Decorator to revert update_lcm on failure."""
+    @functools.wraps(function)
+    def decorated_function(self, context, *args, **kwargs):
+        try:
+            return function(self, context, *args, **kwargs)
+        except Exception as exp:
+            LOG.error("update vnf_instance failed %s" % exp)
+            with excutils.save_and_reraise_exception():
+                wrapped_func = safe_utils.get_wrapped_function(function)
+                keyed_args = inspect.getcallargs(wrapped_func, self, context,
+                                                 *args, **kwargs)
+                context = keyed_args['context']
+                vnf_lcm_opoccs = keyed_args['vnf_lcm_opoccs']
+
+                try:
+                    # update vnf
+                    vnf_now = timeutils.utcnow()
+                    vnf_obj = objects.vnf.VNF(context=context)
+                    vnf_obj.id = vnf_lcm_opoccs.get('vnf_instance_id')
+                    vnf_obj.status = 'ERROR'
+                    vnf_obj.updated_at = vnf_now
+                    vnf_obj.save()
+
+                    e_msg = str(exp)
+
+                    # update lcm_op_occs
+                    problem_obj = objects.vnf_lcm_op_occs.ProblemDetails()
+                    problem_obj.status = '500'
+                    problem_obj.detail = e_msg
+
+                    lcm_op_obj = objects.vnf_lcm_op_occs.VnfLcmOpOcc(
+                        context=context)
+                    lcm_op_obj.id = vnf_lcm_opoccs.get('id')
+                    lcm_op_obj.operation_state =\
+                        fields.LcmOccsOperationState.FAILED_TEMP
+                    lcm_op_obj.error = problem_obj
+                    lcm_op_obj.state_entered_time = vnf_now
+                    lcm_op_obj.updated_at = vnf_now
+                    lcm_op_obj.save()
+
+                    # Notification
+                    notification = {}
+                    notification['notificationType'] = \
+                        'VnfLcmOperationOccurrenceNotification'
+                    notification['notificationStatus'] = 'RESULT'
+                    notification['operationState'] = \
+                        fields.LcmOccsOperationState.FAILED_TEMP
+                    notification['vnfInstanceId'] = vnf_lcm_opoccs.get(
+                        'vnf_instance_id')
+                    notification['operation'] = 'MODIFY_INFO'
+                    notification['isAutomaticInvocation'] = 'False'
+                    notification['vnfLcmOpOccId'] = vnf_lcm_opoccs.get('id')
+                    notification['error'] = jsonutils.dumps(
+                        problem_obj.to_dict())
+                    instance_url = self._get_vnf_instance_href(
+                        vnf_lcm_opoccs.get('vnf_instance_id'))
+                    lcm_url = self._get_vnf_lcm_op_occs_href(
+                        vnf_lcm_opoccs.get('id'))
+                    notification['_links'] = {
+                        'vnfInstance': {
+                            'href': instance_url},
+                        'vnfLcmOpOcc': {
+                            'href': lcm_url}}
+                    self.send_notification(context, notification)
+
+                except Exception as msg:
+                    LOG.error("revert_update_lcm failed %s" % str(msg))
+
+    return decorated_function
+
+
 class Conductor(manager.Manager):
     def __init__(self, host, conf=None):
         if conf:
@@ -179,6 +252,12 @@ class Conductor(manager.Manager):
     def init_host(self):
         glance_store.initialize_glance_store()
         self._basic_config_check()
+
+    def _get_vnf_instance_href(self, vnf_instance_id):
+        return '/vnflcm/v1/vnf_instances/%s' % vnf_instance_id
+
+    def _get_vnf_lcm_op_occs_href(self, vnf_lcm_op_occs_id):
+        return '/vnflcm/v1/vnf_lcm_op_occs/%s' % vnf_lcm_op_occs_id
 
     def _basic_config_check(self):
         if not os.path.isdir(CONF.vnf_package.vnf_package_csar_path):
@@ -1099,6 +1178,100 @@ class Conductor(manager.Manager):
             id=decode(vnf_lcm_subscription.id),
             auth_type=auth_type,
             auth_params=auth_params)
+
+    @revert_update_lcm
+    def update(
+            self,
+            context,
+            vnf_lcm_opoccs,
+            body_data,
+            vnfd_pkg_data,
+            vnfd_id):
+        # input vnf_lcm_op_occs
+        now = timeutils.utcnow()
+        lcm_op_obj = objects.vnf_lcm_op_occs.VnfLcmOpOcc(context=context)
+        lcm_op_obj.id = vnf_lcm_opoccs.get('id')
+        lcm_op_obj.operation_state = fields.LcmOccsOperationState.PROCESSING
+        lcm_op_obj.state_entered_time = vnf_lcm_opoccs.get(
+            'state_entered_time')
+        lcm_op_obj.start_time = now
+        lcm_op_obj.vnf_instance_id = vnf_lcm_opoccs.get('vnf_instance_id')
+        lcm_op_obj.operation = fields.InstanceOperation.MODIFY_INFO
+        lcm_op_obj.is_automatic_invocation = 0
+        lcm_op_obj.is_cancel_pending = 0
+        lcm_op_obj.operationParams = vnf_lcm_opoccs.get('operationParams')
+
+        try:
+            lcm_op_obj.create()
+        except Exception as msg:
+            raise Exception(str(msg))
+
+        # Notification
+        instance_url = self._get_vnf_instance_href(
+            vnf_lcm_opoccs.get('vnf_instance_id'))
+        lcm_url = self._get_vnf_lcm_op_occs_href(vnf_lcm_opoccs.get('id'))
+
+        notification_data = {
+            'notificationType':
+                fields.LcmOccsNotificationType.VNF_OP_OCC_NOTIFICATION,
+            'notificationStatus': fields.LcmOccsNotificationStatus.START,
+            'operationState': fields.LcmOccsOperationState.PROCESSING,
+            'vnfInstanceId': vnf_lcm_opoccs.get('vnf_instance_id'),
+            'operation': fields.InstanceOperation.MODIFY_INFO,
+            'isAutomaticInvocation': False,
+            'vnfLcmOpOccId': vnf_lcm_opoccs.get('id'),
+            '_links': {
+                'vnfInstance': {
+                    'href': instance_url},
+                'vnfLcmOpOcc': {
+                    'href': lcm_url}}}
+
+        self.send_notification(context, notification_data)
+
+        # update vnf_instances
+        try:
+            ins_obj = objects.vnf_instance.VnfInstance(context=context)
+            result = ins_obj.update(
+                context,
+                vnf_lcm_opoccs,
+                body_data,
+                vnfd_pkg_data,
+                vnfd_id)
+        except Exception as msg:
+            raise Exception(str(msg))
+
+        # update lcm_op_occs
+        changed_info = objects.vnf_lcm_op_occs.VnfInfoModifications()
+        changed_info.vnf_instance_name = body_data.get('vnf_instance_name')
+        changed_info.vnf_instance_description = body_data.get(
+            'vnf_instance_description')
+        if body_data.get('vnfd_id'):
+            changed_info.vnfd_id = body_data.get('vnfd_id')
+            changed_info.vnf_provider = vnfd_pkg_data.get('vnf_provider')
+            changed_info.vnf_product_name = vnfd_pkg_data.get(
+                'vnf_product_name')
+            changed_info.vnf_software_version = vnfd_pkg_data.get(
+                'vnf_software_version')
+            changed_info.vnfd_version = vnfd_pkg_data.get('vnfd_version')
+
+        # update vnf_lcm_op_occs
+        now = timeutils.utcnow()
+        lcm_op_obj.id = vnf_lcm_opoccs.get('id')
+        lcm_op_obj.operation_state = fields.LcmOccsOperationState.COMPLETED
+        lcm_op_obj.state_entered_time = result
+        lcm_op_obj.updated_at = now
+        lcm_op_obj.changed_info = changed_info
+
+        try:
+            lcm_op_obj.save()
+        except Exception as msg:
+            raise Exception(str(msg))
+
+        # Notification
+        notification_data['notificationStatus'] = 'RESULT'
+        notification_data['operationState'] = 'COMPLETED'
+        notification_data['changed_info'] = changed_info.to_dict()
+        self.send_notification(context, notification_data)
 
 
 def init(args, **kwargs):

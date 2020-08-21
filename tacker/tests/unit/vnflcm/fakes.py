@@ -120,7 +120,6 @@ def _model_non_instantiated_vnf_instance(**updates):
         'tenant_id': uuidsentinel.tenant_id,
         'vnfd_id': uuidsentinel.vnfd_id,
         'vnfd_version': '1.0',
-        'vnf_pkg_id': uuidsentinel.vnf_pkg_id,
         'vnf_metadata': {"key": "value"}}
 
     if updates:
@@ -231,7 +230,6 @@ def _fake_vnf_instance_not_instantiated_response(
         'vnfdId': uuidsentinel.vnfd_id,
         'vnfdVersion': '1.0',
         'vnfSoftwareVersion': '1.0',
-        'vnfPkgId': uuidsentinel.vnf_pkg_id,
         'id': uuidsentinel.vnf_instance_id,
         'metadata': {'key': 'value'}
     }
