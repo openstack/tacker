@@ -174,6 +174,22 @@ class VnfLcmController(wsgi.Controller):
         except exceptions.VnfPackageVnfdNotFound as exc:
             raise webob.exc.HTTPBadRequest(explanation=six.text_type(exc))
 
+        # get default vim information
+        vim_client_obj = vim_client.VimClient()
+        default_vim = vim_client_obj.get_vim(context)
+
+        # set vim_connection_info
+        access_info = {
+            'username': default_vim.get('vim_auth', {}).get('username'),
+            'password': default_vim.get('vim_auth', {}).get('password'),
+            'region': default_vim.get('placement_attr', {}).get('region'),
+            'tenant': default_vim.get('tenant')
+        }
+        vim_con_info = objects.VimConnectionInfo(id=default_vim.get('vim_id'),
+                            vim_id=default_vim.get('vim_id'),
+                            vim_type=default_vim.get('vim_type'),
+                            access_info=access_info)
+
         vnf_instance = objects.VnfInstance(
             context=request.context,
             vnf_instance_name=req_body.get('vnf_instance_name'),
@@ -190,6 +206,11 @@ class VnfLcmController(wsgi.Controller):
             vnf_metadata=req_body.get('metadata'))
 
         vnf_instance.create()
+
+        # add default vim to vim_connection_info
+        setattr(vnf_instance, 'vim_connection_info', [vim_con_info])
+        vnf_instance.save()
+
         result = self._view_builder.create(vnf_instance)
         headers = {"location": self._get_vnf_instance_href(vnf_instance)}
         return wsgi.ResponseObject(result, headers=headers)
@@ -215,8 +236,7 @@ class VnfLcmController(wsgi.Controller):
         vnf_instances = objects.VnfInstanceList.get_by_filters(
             request.context, filters=filters)
 
-        api_version = request.headers['Version']
-        return self._view_builder.index(vnf_instances, api_version)
+        return self._view_builder.index(vnf_instances)
 
     @check_vnf_state(action="delete",
         instantiation_state=[fields.VnfInstanceState.NOT_INSTANTIATED],

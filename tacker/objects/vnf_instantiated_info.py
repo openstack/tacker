@@ -72,6 +72,8 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
             'VnfVirtualLinkResourceInfo', nullable=True, default=[]),
         'virtual_storage_resource_info': fields.ListOfObjectsField(
             'VirtualStorageResourceInfo', nullable=True, default=[]),
+        'vnfc_info': fields.ListOfObjectsField(
+            'VnfcInfo', nullable=True, default=[]),
         'vnf_state': fields.VnfOperationalStateTypeField(nullable=False,
             default=fields.VnfOperationalStateType.STOPPED),
         'instance_id': fields.StringField(nullable=True, default=None),
@@ -116,6 +118,10 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
                 'additional_params', 'key_value_pair',
                 {"key_column": "key", "value_column": "value",
                 "model": "VnfInstantiatedInfo"}),
+            'vnfcInfo/*': (
+                'vnfc_info', 'key_value_pair',
+                {"key_column": "key", "value_column": "value",
+                "model": "VnfInstantiatedInfo"}),
         }
     }
 
@@ -128,7 +134,8 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
                           'ext_managed_virtual_link_info',
                           'vnfc_resource_info',
                           'vnf_virtual_link_resource_info',
-                          'virtual_storage_resource_info']
+                          'virtual_storage_resource_info',
+                          'vnfc_info']
         for key in inst_vnf_info.fields:
             if key in special_fields:
                 continue
@@ -168,6 +175,13 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
             obj_from_primitive(vnf_vl_info, context) for vnf_vl_info in
             vnf_vl_resource_info]
         inst_vnf_info.vnf_virtual_link_resource_info = vnf_vl_info_list
+
+        vnfc_info = db_inst_vnf_info[
+            'vnfc_info']
+        vnfc_info_list = [VnfcInfo.
+            obj_from_primitive(vnfc, context) for vnfc in
+            vnfc_info]
+        inst_vnf_info.vnfc_info = vnfc_info_list
 
         inst_vnf_info._context = context
         inst_vnf_info.obj_reset_changes()
@@ -241,6 +255,12 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
                     'virtual_storage_resource_info', [])]
                 primitive.update({'virtual_storage_resource_info': obj_data})
 
+            if 'vnfc_info' in primitive.keys():
+                obj_data = [VnfcInfo.obj_from_primitive(
+                    vnfc_info, context) for vnfc_info in primitive.get(
+                    'vnfc_info', [])]
+                primitive.update({'vnfc_info': obj_data})
+
             instantiate_vnf_info = \
                 InstantiatedVnfInfo._from_dict(primitive)
 
@@ -265,6 +285,7 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
         vnf_state = data_dict.get('vnf_state')
         instantiation_level_id = data_dict.get('instantiation_level_id')
         additional_params = data_dict.get('additional_params', {})
+        vnfc_info = data_dict.get('vnfc_info', [])
 
         obj = cls(flavour_id=flavour_id, ext_cp_info=ext_cp_info,
                ext_virtual_link_info=ext_virtual_link_info,
@@ -272,6 +293,7 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
                vnfc_resource_info=vnfc_resource_info,
                vnf_virtual_link_resource_info=vnf_virtual_link_resource_info,
                virtual_storage_resource_info=virtual_storage_resource_info,
+               vnfc_info=vnfc_info,
                vnf_state=vnf_state,
                instantiation_level_id=instantiation_level_id,
                additional_params=additional_params)
@@ -328,6 +350,14 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
             data.update({'virtual_storage_resource_info':
                     virtual_storage_resource_info_list})
 
+        if self.vnfc_info:
+            vnfc_info = []
+            for vnfc in self.vnfc_info:
+                info = vnfc.to_dict()
+                vnfc_info.append(info)
+
+            data.update({'vnfc_info': vnfc_info})
+
         data.update({'additional_params':
                 self.additional_params})
 
@@ -343,6 +373,7 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
         self.virtual_storage_resource_info = []
         self.instance_id = None
         self.vnf_state = fields.VnfOperationalStateType.STOPPED
+        self.vnfc_info = []
 
 
 @base.TackerObjectRegistry.register
@@ -358,6 +389,7 @@ class VnfExtCpInfo(base.TackerObject, base.TackerObjectDictCompat,
         'cp_protocol_info': fields.ListOfObjectsField(
             'CpProtocolInfo', nullable=False, default=[]),
         'ext_link_port_id': fields.StringField(nullable=True, default=None),
+        'associated_vnfc_cp_id': fields.StringField(nullable=False)
     }
 
     @classmethod
@@ -383,16 +415,19 @@ class VnfExtCpInfo(base.TackerObject, base.TackerObjectDictCompat,
         cpd_id = data_dict.get('cpd_id')
         cp_protocol_info = data_dict.get('cp_protocol_info', [])
         ext_link_port_id = data_dict.get('ext_link_port_id')
+        associated_vnfc_cp_id = data_dict.get('associated_vnfc_cp_id')
 
         obj = cls(id=id, cpd_id=cpd_id,
                 cp_protocol_info=cp_protocol_info,
-                ext_link_port_id=ext_link_port_id)
+                ext_link_port_id=ext_link_port_id,
+                associated_vnfc_cp_id=associated_vnfc_cp_id)
         return obj
 
     def to_dict(self):
         data = {'id': self.id,
             'cpd_id': self.cpd_id,
-            'ext_link_port_id': self.ext_link_port_id}
+            'ext_link_port_id': self.ext_link_port_id,
+            'associated_vnfc_cp_id': self.associated_vnfc_cp_id}
 
         cp_protocol_info_list = []
         for cp_protocol_info in self.cp_protocol_info:
@@ -988,11 +1023,52 @@ class VirtualStorageResourceInfo(base.TackerObject,
 
 
 @base.TackerObjectRegistry.register
+class VnfcInfo(base.TackerObject, base.TackerPersistentObject):
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'id': fields.StringField(nullable=False),
+        'vdu_id': fields.StringField(nullable=False),
+        'vnfc_state': fields.StringField(nullable=False)
+    }
+
+    @classmethod
+    def obj_from_primitive(cls, primitive, context):
+        if 'tacker_object.name' in primitive:
+            obj_vnfc_info = super(
+                VnfcInfo, cls).obj_from_primitive(
+                primitive, context)
+        else:
+            obj_vnfc_info = VnfcInfo._from_dict(
+                primitive)
+
+        return obj_vnfc_info
+
+    @classmethod
+    def _from_dict(cls, data_dict):
+        id = data_dict.get('id')
+        vdu_id = data_dict.get('vdu_id')
+        vnfc_state = data_dict.get('vnfc_state')
+
+        obj = cls(id=id, vdu_id=vdu_id,
+                  vnfc_state=vnfc_state)
+
+        return obj
+
+    def to_dict(self):
+        return {'id': self.id,
+            'vdu_id': self.vdu_id,
+            'vnfc_state': self.vnfc_state}
+
+
+@base.TackerObjectRegistry.register
 class ResourceHandle(base.TackerObject,
                      base.TackerPersistentObject):
     # Version 1.0: Initial version
     VERSION = '1.0'
 
+    # TODO(esto-aln):Add vimConnectionId in Type:ResourceHandle
     fields = {
         'resource_id': fields.StringField(nullable=False, default=""),
         'vim_level_resource_type': fields.StringField(nullable=True,

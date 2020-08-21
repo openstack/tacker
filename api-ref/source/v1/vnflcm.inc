@@ -316,11 +316,16 @@ Response Parameters
   - id: vim_connection_info_id
   - vimId: vim_connection_info_vim_id
   - vimType: vim_connection_info_vim_type
+  - interfaceInfo: vim_connection_info_interface_info
+  - endpoint: vim_connection_info_interface_info_endpoint
   - accessInfo: vim_connection_info_access_info
   - instantiationState: vnf_instance_instantiation_state
   - instantiatedVnfInfo: instantiated_vnf_info
   - flavourId: flavour_id_response
   - vnfState: vnf_state
+  - scaleStatus: scale_status
+  - aspectId: scale_status_aspect_id
+  - scaleLevel: scale_status_scale_level
   - extCpInfo: ext_cp_info
   - id: ext_cp_info_id
   - cpdId: ext_cp_info_cpd_id
@@ -334,14 +339,18 @@ Response Parameters
   - isDynamic: is_dynamic
   - subnetId: subnet_id
   - extLinkPortId: ext_cp_info_ext_link_port_id
+  - metadata: ext_cp_info_metadata
+  - associatedVnfcCpId: ext_cp_info_associated_vnfc_cp_id
   - extVirtualLinkInfo: ext_virtual_link_info
   - id: ext_virtual_link_info_id
   - resourceHandle: resource_handle
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - extLinkPorts: ext_virtual_link_info_ext_link_ports
   - id: ext_virtual_link_info_ext_link_ports_id
   - resourceHandle: resource_handle
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - cpInstanceId: ext_virtual_link_info_ext_link_ports_cp_instance_id
@@ -349,11 +358,13 @@ Response Parameters
   - id: ext_managed_virtual_link_info_id
   - vnfVirtualLinkDescId: ext_managed_virtual_link_info_vnf_virtual_link_desc_id
   - networkResource: ext_managed_virtual_link_info_network_resource
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - vnfLinkPorts: vnf_link_ports
   - id: vnf_link_port_id
   - resourceHandle: vnf_link_port_resource_handle
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - cpInstanceId: vnf_link_port_cp_instance_id
@@ -361,6 +372,7 @@ Response Parameters
   - id: vnfc_resource_info_id
   - vduId: vnfc_resource_info_vdu_id
   - computeResource: vnfc_resource_info_compute_resource
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - storageResourceIds: vnfc_resource_info_storage_resource_ids
@@ -382,11 +394,13 @@ Response Parameters
   - id: vnf_virtual_link_resource_info_id
   - vnfVirtualLinkDescId: vnf_virtual_link_resource_info_vnf_virtual_link_desc_id
   - networkResource: vnf_virtual_link_resource_info_network_resource
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - vnfLinkPorts: vnf_link_ports
   - id: vnf_link_port_id
   - resourceHandle: vnf_link_port_resource_handle
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - cpInstanceId: vnf_link_port_cp_instance_id
@@ -394,8 +408,13 @@ Response Parameters
   - id: virtual_storage_resource_info_id
   - virtualStorageDescId: virtual_storage_resource_info_virtual_storage_desc_id
   - storageResource: virtual_storage_resource_info_storage_resource
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - vnfcInfo: vnfc_info
+  - id: vnfc_info_id
+  - vduId: vnfc_info_vdu_id
+  - vnfcState: vnfc_info_vnfc_state
   - _links: vnf_instance_links
 
 Response Example
@@ -444,11 +463,16 @@ Response Parameters
   - id: vim_connection_info_id
   - vimId: vim_connection_info_vim_id
   - vimType: vim_connection_info_vim_type
+  - interfaceInfo: vim_connection_info_interface_info
+  - endpoint: vim_connection_info_interface_info_endpoint
   - accessInfo: vim_connection_info_access_info
   - instantiationState: vnf_instance_instantiation_state
   - instantiatedVnfInfo: instantiated_vnf_info
   - flavourId: flavour_id_response
   - vnfState: vnf_state
+  - scaleStatus: scale_status
+  - aspectId: scale_status_aspect_id
+  - scaleLevel: scale_status_scale_level
   - extCpInfo: ext_cp_info
   - id: ext_cp_info_id
   - cpdId: ext_cp_info_cpd_id
@@ -462,14 +486,18 @@ Response Parameters
   - isDynamic: is_dynamic
   - subnetId: subnet_id
   - extLinkPortId: ext_cp_info_ext_link_port_id
+  - metadata: ext_cp_info_metadata
+  - associatedVnfcCpId: ext_cp_info_associated_vnfc_cp_id
   - extVirtualLinkInfo: ext_virtual_link_info
   - id: ext_virtual_link_info_id
   - resourceHandle: resource_handle
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - extLinkPorts: ext_virtual_link_info_ext_link_ports
   - id: ext_virtual_link_info_ext_link_ports_id
   - resourceHandle: resource_handle
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - cpInstanceId: ext_virtual_link_info_ext_link_ports_cp_instance_id
@@ -477,11 +505,13 @@ Response Parameters
   - id: ext_managed_virtual_link_info_id
   - vnfVirtualLinkDescId: ext_managed_virtual_link_info_vnf_virtual_link_desc_id
   - networkResource: ext_managed_virtual_link_info_network_resource
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - vnfLinkPorts: vnf_link_ports
   - id: vnf_link_port_id
   - resourceHandle: vnf_link_port_resource_handle
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - cpInstanceId: vnf_link_port_cp_instance_id
@@ -489,6 +519,7 @@ Response Parameters
   - id: vnfc_resource_info_id
   - vduId: vnfc_resource_info_vdu_id
   - computeResource: vnfc_resource_info_compute_resource
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - storageResourceIds: vnfc_resource_info_storage_resource_ids
@@ -510,11 +541,13 @@ Response Parameters
   - id: vnf_virtual_link_resource_info_id
   - vnfVirtualLinkDescId: vnf_virtual_link_resource_info_vnf_virtual_link_desc_id
   - networkResource: vnf_virtual_link_resource_info_network_resource
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - vnfLinkPorts: vnf_link_ports
   - id: vnf_link_port_id
   - resourceHandle: vnf_link_port_resource_handle
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - cpInstanceId: vnf_link_port_cp_instance_id
@@ -522,10 +555,15 @@ Response Parameters
   - id: virtual_storage_resource_info_id
   - virtualStorageDescId: virtual_storage_resource_info_virtual_storage_desc_id
   - storageResource: virtual_storage_resource_info_storage_resource
+  - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - vnfcInfo: vnfc_info
+  - id: vnfc_info_id
+  - vduId: vnfc_info_vdu_id
+  - vnfcState: vnfc_info_vnfc_state
   - _links: vnf_instance_links
- 
+
 Response Example
 ----------------
 

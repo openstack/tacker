@@ -33,6 +33,43 @@ from tacker.tests import uuidsentinel
 from tacker import wsgi
 
 
+def return_default_vim():
+    default_vim = {
+        'vim_auth': {
+            'username': 'user123',
+            'password': 'pass123'
+        },
+        'placement_attr': {
+            'region': 'RegionOne'
+        },
+        'tenant': uuidsentinel.tenant_uuid,
+        'vim_id': uuidsentinel.vim_uuid,
+        'vim_type': 'openstack'
+    }
+
+    return default_vim
+
+
+def return_vim_connection_object(fields):
+    access_info = {
+        'username': fields.get('vim_auth', {}).
+        get('username'),
+        'password': fields.get('vim_auth', {}).
+        get('password'),
+        'region': fields.get('placement_attr', {}).
+        get('region'),
+        'tenant': fields.get('tenant')
+    }
+
+    vim_con_info = objects.\
+        VimConnectionInfo(id=fields.get('vim_id'),
+                          vim_id=fields.get('vim_id'),
+                          vim_type=fields.get('vim_type'),
+                          access_info=access_info)
+
+    return vim_con_info
+
+
 def fake_vnf_package_vnfd_model_dict(**updates):
     vnfd = {
         'package_uuid': uuidsentinel.package_uuid,

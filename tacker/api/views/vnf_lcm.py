@@ -58,18 +58,41 @@ class ViewBuilder(base.BaseViewBuilder):
 
         return {"_links": links}
 
-    def _get_vnf_instance_info(self,
-            vnf_instance, api_version=None):
+    def _get_vim_conn_info(self, vim_connection_info):
+        vim_connections = []
+
+        for vim in vim_connection_info:
+            access_info = {
+                'username': '',
+                'region': '',
+                'password': '',
+                'tenant': ''
+            }
+            vim_conn = vim
+
+            for key_name in access_info.keys():
+                if vim['access_info'].get(key_name):
+                    access_info[key_name] = vim['access_info'].get(key_name)
+
+            vim_conn['access_info'] = access_info
+
+            vim_connections.append(vim_conn)
+
+        return vim_connections
+
+    def _get_vnf_instance_info(self, vnf_instance):
         vnf_instance_dict = vnf_instance.to_dict()
+        if vnf_instance_dict.get('vim_connection_info'):
+            vnf_instance_dict['vim_connection_info'] = \
+                self._get_vim_conn_info(vnf_instance_dict.get(
+                    'vim_connection_info', []))
+
         if 'vnf_metadata' in vnf_instance_dict:
             metadata_val = vnf_instance_dict.pop('vnf_metadata')
             vnf_instance_dict['metadata'] = metadata_val
 
         vnf_instance_dict = utils.convert_snakecase_to_camelcase(
             vnf_instance_dict)
-
-        if api_version == "2.6.1":
-            del vnf_instance_dict["vnfPkgId"]
 
         links = self._get_links(vnf_instance)
 
@@ -82,6 +105,6 @@ class ViewBuilder(base.BaseViewBuilder):
     def show(self, vnf_instance):
         return self._get_vnf_instance_info(vnf_instance)
 
-    def index(self, vnf_instances, api_version=None):
-        return [self._get_vnf_instance_info(vnf_instance, api_version)
+    def index(self, vnf_instances):
+        return [self._get_vnf_instance_info(vnf_instance)
                 for vnf_instance in vnf_instances]
