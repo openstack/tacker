@@ -695,6 +695,100 @@ class VnfLcmController(wsgi.Controller):
 
         return self._view_builder.show_lcm_op_occs(vnf_lcm_op_occs)
 
+    @wsgi.response(http_client.OK)
+    @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
+    def update(self, request, id, body):
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'update_vnf')
+
+        # get body
+        req_body = utils.convert_camelcase_to_snakecase(body)
+
+        # According to the ETSI NFV SOL document,
+        # there is no API request/response
+        # specification for Etag yet,
+        # and transactions using Etag are not defined
+        # by standardization. Therefore, the Victoria release does not support
+        # `Error Code: 412 Precondition Failed`. Once a standard specification
+        # for this is established, it will be installed on the tacker.
+
+        # Confirmation of update target
+        try:
+            vnf_data = objects.VNF.vnf_index_list(id, context)
+            if not vnf_data:
+                msg = _("Can not find requested vnf data: %s") % id
+                return self._make_problem_detail(msg, 404, title='Not Found')
+        except Exception as e:
+            return self._make_problem_detail(
+                str(e), 500, 'Internal Server Error')
+
+        if (vnf_data.get("status") != fields.VnfStatus.ACTIVE and
+                vnf_data.get("status") != fields.VnfStatus.INACTIVE):
+            msg = _("VNF %(id)s status is %(state)s")
+            return self._make_problem_detail(msg % {"id": id,
+                    "state": vnf_data.get("status")}, 409, 'Conflict')
+
+        try:
+            vnf_instance_data = objects.VnfInstanceList.vnf_instance_list(
+                vnf_data.get('vnfd_id'), context)
+            if not vnf_instance_data:
+                msg = _("Can not find requested vnf instance data: %s") \
+                    % vnf_data.get('vnfd_id')
+                return self._make_problem_detail(msg, 404, title='Not Found')
+        except Exception as e:
+            return self._make_problem_detail(
+                str(e), 500, 'Internal Server Error')
+
+        if req_body['vnfd_id']:
+            try:
+                pkg_obj = objects.VnfPackageVnfd(context=context)
+                vnfd_pkg = pkg_obj.get_vnf_package_vnfd(req_body['vnfd_id'])
+                if not vnfd_pkg:
+                    msg = _(
+                        "Can not find requested vnf package vnfd: %s") %\
+                        req_body['vnfd_id']
+                    return self._make_problem_detail(msg, 400, 'Bad Request')
+            except Exception as e:
+                return self._make_problem_detail(
+                    str(e), 500, 'Internal Server Error')
+            vnfd_pkg_data = {}
+            vnfd_pkg_data['vnf_provider'] = vnfd_pkg.get('vnf_provider')
+            vnfd_pkg_data['vnf_product_name'] = vnfd_pkg.get(
+                'vnf_product_name')
+            vnfd_pkg_data['vnf_software_version'] = vnfd_pkg.get(
+                'vnf_software_version')
+            vnfd_pkg_data['vnfd_version'] = vnfd_pkg.get('vnfd_version')
+            vnfd_pkg_data['package_uuid'] = vnfd_pkg.get('package_uuid')
+
+        # make op_occs_uuid
+        op_occs_uuid = uuidutils.generate_uuid()
+
+        # process vnf
+        if not req_body['vnfd_id']:
+            vnfd_pkg_data = ""
+        vnf_lcm_opoccs = {
+            'vnf_instance_id': id,
+            'id': op_occs_uuid,
+            'state_entered_time': vnf_data.get('updated_at'),
+            'operationParams': str(body)}
+
+        self.rpc_api.update(
+            context,
+            vnf_lcm_opoccs,
+            req_body,
+            vnfd_pkg_data,
+            vnf_data.get('vnfd_id'))
+
+        # make response
+        res = webob.Response(content_type='application/json')
+        res.status_int = 202
+        loc_url = CONF.vnf_lcm.endpoint_url + \
+            '/vnflcm/v1/vnf_lcm_op_occs/' + op_occs_uuid
+        location = ('Location', loc_url)
+        res.headerlist.append(location)
+
+        return res
+
     @wsgi.response(http_client.CREATED)
     @validation.schema(vnf_lcm.register_subscription)
     def register_subscription(self, request, body):

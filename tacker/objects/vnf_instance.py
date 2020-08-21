@@ -28,10 +28,13 @@ from tacker.common import utils
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
+from tacker.db.vnfm import vnfm_db
 from tacker import objects
 from tacker.objects import base
 from tacker.objects import fields
 from tacker.objects import vnf_instantiated_info
+from tacker.objects import vnf_package as vnf_package_obj
+from tacker.objects import vnf_package_vnfd as vnf_package_vnfd
 
 
 LOG = logging.getLogger(__name__)
@@ -149,6 +152,151 @@ def _wrap_object_error(method):
     return wrapper
 
 
+@db_api.context_manager.reader
+def _get_vnf_instance(context, id):
+    vnf_instance = api.model_query(
+        context, models.VnfInstance).filter_by(
+        vnfd_id=id).first()
+    return vnf_instance
+
+
+@db_api.context_manager.reader
+def _vnf_instance_get(context, vnfd_id, columns_to_join=None):
+    query = api.model_query(context, models.VnfInstance, read_deleted="no",
+                            project_only=True).filter_by(vnfd_id=vnfd_id)
+
+    if columns_to_join:
+        for column in columns_to_join:
+            query = query.options(joinedload(column))
+
+    return query.first()
+
+
+def _merge_vim_connection_info(
+        pre_vim_connection_info_list,
+        update_vim_connection_info_list):
+
+    def update_nested_element(pre_data, update_data):
+        for key, val in update_data.items():
+            if not isinstance(val, dict):
+                pre_data[key] = val
+                continue
+
+            if key in pre_data:
+                pre_data[key].update(val)
+            else:
+                pre_data.update({key: val})
+
+    result = []
+    clone_pre_list = copy.deepcopy(pre_vim_connection_info_list)
+
+    for update_vim_connection in update_vim_connection_info_list:
+        pre_data = None
+        for i in range(0, len(clone_pre_list) - 1):
+            if clone_pre_list[i].id == update_vim_connection.get('id'):
+                pre_data = clone_pre_list.pop(i)
+
+        if pre_data is None:
+            # new elm.
+            result.append(objects.VimConnectionInfo._from_dict(
+                update_vim_connection))
+            continue
+
+        convert_dict = pre_data.to_dict()
+        update_nested_element(convert_dict, update_vim_connection)
+        result.append(objects.VimConnectionInfo._from_dict(
+            convert_dict))
+
+    # Reflecting unupdated data
+    result.extend(clone_pre_list)
+
+    return result
+
+
+@db_api.context_manager.writer
+def _update_vnf_instances(
+        context,
+        vnf_lcm_opoccs,
+        body_data,
+        vnfd_pkg_data,
+        vnfd_id):
+    updated_values = {}
+    updated_values['vnf_instance_name'] = body_data.get('vnf_instance_name')
+    updated_values['vnf_instance_description'] = body_data.get(
+        'vnf_instance_description')
+
+    # get vnf_instances
+    vnf_instance = _get_vnf_instance(context, vnfd_id)
+    if body_data.get('metadata'):
+        vnf_instance.vnf_metadata.update(body_data.get('metadata'))
+        updated_values['vnf_metadata'] = vnf_instance.vnf_metadata
+
+    if body_data.get('vim_connection_info'):
+        merge_vim_connection_info = _merge_vim_connection_info(
+            vnf_instance.vim_connection_info,
+            body_data.get('vim_connection_info'))
+
+        updated_values['vim_connection_info'] = merge_vim_connection_info
+
+    if body_data.get('vnfd_id'):
+        updated_values['vnfd_id'] = body_data.get('vnfd_id')
+        updated_values['vnf_provider'] = vnfd_pkg_data.get('vnf_provider')
+        updated_values['vnf_product_name'] = vnfd_pkg_data.get(
+            'vnf_product_name')
+        updated_values['vnf_software_version'] = vnfd_pkg_data.get(
+            'vnf_software_version')
+
+    api.model_query(context, models.VnfInstance). \
+        filter_by(id=vnf_lcm_opoccs.get('vnf_instance_id')). \
+        update(updated_values, synchronize_session=False)
+
+    vnf_now = timeutils.utcnow()
+    if body_data.get('vnfd_id'):
+        # update vnf
+        updated_values = {'vnfd_id': body_data.get('vnfd_id'),
+                         'updated_at': vnf_now
+                          }
+        api.model_query(context, vnfm_db.VNF).\
+            filter_by(id=vnf_lcm_opoccs.get('vnf_instance_id')). \
+            update(updated_values, synchronize_session=False)
+
+        # get vnf_packages
+        id = vnfd_pkg_data.get('package_uuid')
+        try:
+            vnf_package = vnf_package_obj.VnfPackage.get_by_id(context, id)
+        except exceptions.VnfPackageNotFound:
+            raise exceptions.VnfPackageNotFound(id=id)
+
+        if vnf_package.usage_state == 'NOT_IN_USE':
+            # update vnf_packages
+            now = timeutils.utcnow()
+            updated_values = {'usage_state': 'IN_USE',
+                              'updated_at': now
+                              }
+            api.model_query(context, models.VnfPackage).\
+                filter_by(id=id). \
+                update(updated_values, synchronize_session=False)
+
+        # get vnf_instances
+        vnf_instance = _get_vnf_instance(context, vnfd_id)
+
+        if not vnf_instance:
+            # get vnf_package_vnfd
+            vnfd_data = vnf_package_vnfd.VnfPackageVnfd.get_by_vnfdId(
+                context, vnfd_id)
+
+            # update vnf_packages
+            now = timeutils.utcnow()
+            updated_values = {'usage_state': 'NOT_IN_USE',
+                              'updated_at': now
+                              }
+            api.model_query(context, models.VnfPackage).\
+                filter_by(id=vnfd_data.package_uuid). \
+                update(updated_values, synchronize_session=False)
+
+    return vnf_now
+
+
 @base.TackerObjectRegistry.register
 class VnfInstance(base.TackerObject, base.TackerPersistentObject,
                   base.TackerObjectDictCompat):
@@ -171,7 +319,6 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
         'vim_connection_info': fields.ListOfObjectsField(
             'VimConnectionInfo', nullable=True, default=[]),
         'tenant_id': fields.StringField(nullable=False),
-        'vnf_pkg_id': fields.StringField(nullable=False),
         'vnf_metadata': fields.DictOfStringsField(nullable=True, default={}),
         'instantiated_vnf_info': fields.ObjectField('InstantiatedVnfInfo',
                                                 nullable=True, default=None)
@@ -329,7 +476,6 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
             'vnf_product_name': self.vnf_product_name,
             'vnf_software_version': self.vnf_software_version,
             'vnfd_version': self.vnfd_version,
-            'vnf_pkg_id': self.vnf_pkg_id,
             'vnf_metadata': self.vnf_metadata}
 
         if (self.instantiation_state == fields.VnfInstanceState.INSTANTIATED
@@ -343,6 +489,23 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
             data.update({'vim_connection_info': vim_connection_info_list})
 
         return data
+
+    @base.remotable
+    def update(
+            self,
+            context,
+            vnf_lcm_opoccs,
+            body_data,
+            vnfd_pkg_data,
+            vnfd_id):
+
+        # update vnf_instances
+        return _update_vnf_instances(
+            context,
+            vnf_lcm_opoccs,
+            body_data,
+            vnfd_pkg_data,
+            vnfd_id)
 
     @base.remotable_classmethod
     def get_by_id(cls, context, id):
@@ -380,3 +543,19 @@ class VnfInstanceList(ovoo_base.ObjectListBase, base.TackerObject):
 
         return _make_vnf_instance_list(context, cls(), db_vnf_instances,
                                        expected_attrs)
+
+    @base.remotable_classmethod
+    def vnf_instance_list(cls, vnfd_id, context):
+        # get vnf_instance data
+        expected_attrs = ["instantiated_vnf_info"]
+        db_vnf_instances = _vnf_instance_get(context, vnfd_id,
+                                             columns_to_join=expected_attrs)
+
+        vnf_instance_cls = VnfInstance
+        vnf_instance_data = ""
+        vnf_instance_obj = vnf_instance_cls._from_db_object(
+            context, vnf_instance_cls(context), db_vnf_instances,
+            expected_attrs=expected_attrs)
+        vnf_instance_data = vnf_instance_obj
+
+        return vnf_instance_data

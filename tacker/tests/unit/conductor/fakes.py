@@ -15,9 +15,11 @@
 
 import datetime
 import iso8601
-
 import os
 import shutil
+from tacker import objects
+from tacker.objects import fields
+from tacker.tests import constants
 import tempfile
 import uuid
 import yaml
@@ -25,6 +27,7 @@ import zipfile
 
 from oslo_config import cfg
 
+from tacker.db.db_sqlalchemy import models
 from tacker.tests import utils
 from tacker.tests import uuidsentinel
 
@@ -150,3 +153,137 @@ def get_expected_vnfd_data(zip_file=None):
 
     shutil.rmtree(csar_temp_dir)
     return file_path_and_data
+
+
+def fake_vnf_package_vnfd_model_dict(**updates):
+    vnfd = {
+        'package_uuid': uuidsentinel.package_uuid,
+        'deleted': False,
+        'deleted_at': None,
+        'updated_at': None,
+        'created_at': datetime.datetime(2020, 1, 1, 1, 1, 1,
+                                        tzinfo=iso8601.UTC),
+        'vnf_product_name': 'Sample VNF',
+        'vnf_provider': 'test vnf provider',
+        'vnf_software_version': '1.0',
+        'vnfd_id': uuidsentinel.vnfd_id,
+        'vnfd_version': '1.0',
+        'id': constants.UUID,
+    }
+
+    if updates:
+        vnfd.update(updates)
+
+    return vnfd
+
+
+def return_vnf_package_vnfd():
+    model_obj = models.VnfPackageVnfd()
+    model_obj.update(fake_vnf_package_vnfd_model_dict())
+    return model_obj
+
+
+def _model_non_instantiated_vnf_instance(**updates):
+    vnf_instance = {
+        'created_at': datetime.datetime(2020, 1, 1, 1, 1, 1,
+                                        tzinfo=iso8601.UTC),
+        'deleted': False,
+        'deleted_at': None,
+        'id': uuidsentinel.vnf_instance_id,
+        'instantiated_vnf_info': None,
+        'instantiation_state': fields.VnfInstanceState.NOT_INSTANTIATED,
+        'updated_at': None,
+        'vim_connection_info': [],
+        'vnf_instance_description': 'Vnf instance description',
+        'vnf_instance_name': 'Vnf instance name',
+        'vnf_product_name': 'Sample VNF',
+        'vnf_provider': 'Vnf provider',
+        'vnf_software_version': '1.0',
+        'tenant_id': uuidsentinel.tenant_id,
+        'vnfd_id': uuidsentinel.vnfd_id,
+        'vnfd_version': '1.0'}
+
+    if updates:
+        vnf_instance.update(**updates)
+
+    return vnf_instance
+
+
+def return_vnf_instance(
+        instantiated_state=fields.VnfInstanceState.NOT_INSTANTIATED,
+        scale_status=None,
+        **updates):
+
+    if instantiated_state == fields.VnfInstanceState.NOT_INSTANTIATED:
+        data = _model_non_instantiated_vnf_instance(**updates)
+        data['instantiation_state'] = instantiated_state
+        vnf_instance_obj = objects.VnfInstance(**data)
+
+    elif scale_status:
+        data = _model_non_instantiated_vnf_instance(**updates)
+        data['instantiation_state'] = instantiated_state
+        vnf_instance_obj = objects.VnfInstance(**data)
+
+        get_instantiated_vnf_info = {
+            'flavour_id': uuidsentinel.flavour_id,
+            'vnf_state': 'STARTED',
+            'instance_id': uuidsentinel.instance_id
+        }
+        instantiated_vnf_info = get_instantiated_vnf_info
+
+        s_status = {"aspect_id": "SP1", "scale_level": 1}
+        scale_status = objects.ScaleInfo(**s_status)
+
+        instantiated_vnf_info.update(
+            {"ext_cp_info": [],
+            'ext_virtual_link_info': [],
+            'ext_managed_virtual_link_info': [],
+            'vnfc_resource_info': [],
+            'vnf_virtual_link_resource_info': [],
+            'virtual_storage_resource_info': [],
+            "flavour_id": "simple",
+            "scale_status": [scale_status],
+            "vnf_instance_id": "171f3af2-a753-468a-b5a7-e3e048160a79",
+            "additional_params": {"key": "value"},
+           'vnf_state': "STARTED"})
+        info_data = objects.InstantiatedVnfInfo(**instantiated_vnf_info)
+
+        vnf_instance_obj.instantiated_vnf_info = info_data
+    else:
+        data = _model_non_instantiated_vnf_instance(**updates)
+        data['instantiation_state'] = instantiated_state
+        vnf_instance_obj = objects.VnfInstance(**data)
+        inst_vnf_info = objects.InstantiatedVnfInfo.obj_from_primitive({
+            "ext_cp_info": [],
+            'ext_virtual_link_info': [],
+            'ext_managed_virtual_link_info': [],
+            'vnfc_resource_info': [],
+            'vnf_virtual_link_resource_info': [],
+            'virtual_storage_resource_info': [],
+            "flavour_id": "simple",
+            "additional_params": {"key": "value"},
+            'vnf_state': "STARTED"}, None)
+
+        vnf_instance_obj.instantiated_vnf_info = inst_vnf_info
+
+    return vnf_instance_obj
+
+
+def _get_vnf(**updates):
+    vnf_data = {
+        'tenant_id': uuidsentinel.tenant_id,
+        'name': "fake_name",
+        'vnfd_id': uuidsentinel.vnfd_id,
+        'vnf_instance_id': uuidsentinel.instance_id,
+        'mgmt_ip_address': "fake_mgmt_ip_address",
+        'status': 'ACTIVE',
+        'description': 'fake_description',
+        'placement_attr': 'fake_placement_attr',
+        'vim_id': 'uuidsentinel.vim_id',
+        'error_reason': 'fake_error_reason',
+    }
+
+    if updates:
+        vnf_data.update(**updates)
+
+    return vnf_data

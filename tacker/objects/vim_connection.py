@@ -26,6 +26,8 @@ class VimConnectionInfo(base.TackerObject, base.TackerPersistentObject):
         'id': fields.StringField(nullable=False),
         'vim_id': fields.StringField(nullable=True, default=None),
         'vim_type': fields.StringField(nullable=False),
+        'interface_info': fields.DictOfNullableStringsField(nullable=True,
+                                                         default={}),
         'access_info': fields.DictOfNullableStringsField(nullable=True,
                                                          default={}),
     }
@@ -36,7 +38,11 @@ class VimConnectionInfo(base.TackerObject, base.TackerPersistentObject):
         vim_id = data_dict.get('vim_id')
         vim_type = data_dict.get('vim_type')
         access_info = data_dict.get('access_info', {})
-        obj = cls(id=id, vim_id=vim_id, vim_type=vim_type,
+        interface_info = data_dict.get('interface_info', {})
+        obj = cls(id=id,
+                  vim_id=vim_id,
+                  vim_type=vim_type,
+                  interface_info=interface_info,
                   access_info=access_info)
         return obj
 
@@ -55,4 +61,5 @@ class VimConnectionInfo(base.TackerObject, base.TackerPersistentObject):
         return {'id': self.id,
                 'vim_id': self.vim_id,
                 'vim_type': self.vim_type,
+                'interface_info': self.interface_info,
                 'access_info': self.access_info}

@@ -25,6 +25,7 @@ def register_all():
     # function in order for it to be registered by services that may
     # need to receive it via RPC.
     __import__('tacker.objects.heal_vnf_request')
+    __import__('tacker.objects.vnfd')
     __import__('tacker.objects.vnf_package')
     __import__('tacker.objects.vnf_package_vnfd')
     __import__('tacker.objects.vnf_deployment_flavour')
@@ -34,6 +35,7 @@ def register_all():
     __import__('tacker.objects.vim_connection')
     __import__('tacker.objects.instantiate_vnf_req')
     __import__('tacker.objects.vnf_resources')
+    __import__('tacker.objects.vnf')
     __import__('tacker.objects.vnfd')
     __import__('tacker.objects.vnf_lcm_op_occs')
     __import__('tacker.objects.terminate_vnf_req')

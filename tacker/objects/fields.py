@@ -255,3 +255,14 @@ class LcmOccsNotificationType(BaseTackerEnum):
     VNF_ID_CREATION_NOTIFICATION = 'VnfIdentifierCreationNotification'
 
     ALL = (VNF_OP_OCC_NOTIFICATION)
+
+
+class VnfStatus(BaseTackerEnum):
+    ACTIVE = 'ACTIVE'
+    INACTIVE = 'INACTIVE'
+
+    ALL = (ACTIVE, INACTIVE)
+
+
+class InstanceOperation(BaseTackerEnum):
+    MODIFY_INFO = 'MODIFY_INFO'

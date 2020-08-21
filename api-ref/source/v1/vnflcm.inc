@@ -570,6 +570,66 @@ Response Example
 .. literalinclude:: samples/vnflcm/list-vnf-instance-response.json
    :language: javascript
 
+Modify a VNF instance
+========================
+
+.. rest_method::  POST /vnflcm/v1/vnf_instances/{vnfInstanceId}
+
+This method modifies an "Individual VNF instance" resource.
+
+Changes to the VNF configurable properties are applied to the configuration in the VNF instance, and are reflected in
+the representation of this resource. Other changes are applied to the VNF instance information managed by the VNFM,
+and are reflected in the representation of this resource.
+
+According to the ETSI NFV SOL document, there is no API request/response
+specification for Etag yet, and transactions using Etag are not defined
+by standardization. Therefore, the Victoria release does not support
+`Error Code: 412 Precondition Failed`. Once a standard specification
+for this is established, it will be installed on the tacker.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 202
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 401
+  - 403
+  - 404
+  - 409
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfInstanceId: vnf_instance_id
+  - vnfInstanceName: vnf_instance_modify_request_name
+  - vnfInstanceDescription: vnf_instance_modify_request_description
+  - vnfdId: vnf_instance_modify_request_vnfd_id
+  - metadata: vnf_instance_modify_request_metadata
+  - vimConnectionInfo: vnf_instance_modify_request_vim_connection_info
+  - id: vim_connection_info_id
+  - vimId: vim_connection_info_vim_id
+  - vimType: vim_connection_info_vim_type
+  - interfaceInfo: vim_connection_info_interface_info
+  - endpoint: vim_connection_info_interface_info_endpoint
+  - accessInfo: vim_connection_info_access_info
+  - username: vim_connection_info_access_info_username
+  - region: vim_connection_info_access_info_region
+  - password: vim_connection_info_access_info_password
+  - tenant: vim_connection_info_access_info_tenant
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnflcm/modify-vnf-instance-request.json
+   :language: javascript
+
 Show VNF LCM operation occurrence
 =================================
 

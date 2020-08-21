@@ -59,7 +59,7 @@ class VnflcmAPIRouter(wsgi.Router):
 
         # Allowed methods on
         # /vnflcm/v1/vnf_instances/{vnfInstanceId} resource
-        methods = {"DELETE": "delete", "GET": "show"}
+        methods = {"DELETE": "delete", "GET": "show", "PATCH": "update"}
         self._setup_route(mapper, "/vnf_instances/{id}",
                           methods, controller, default_resource)
 

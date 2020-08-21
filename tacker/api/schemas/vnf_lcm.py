@@ -239,3 +239,16 @@ register_subscription = {
     'required': ['callbackUri'],
     'additionalProperties': False,
 }
+
+update = {
+    'type': 'object',
+    'properties': {
+        'vnfdId': parameter_types.uuid,
+        'vnfInstanceName': parameter_types.name_allow_zero_min_length,
+        'vnfInstanceDescription': parameter_types.description,
+        'vnfPkgId': parameter_types.uuid,
+        'metadata': parameter_types.keyvalue_pairs,
+        'vimConnectionInfo': _vimConnectionInfo,
+    },
+    'additionalProperties': False,
+}
