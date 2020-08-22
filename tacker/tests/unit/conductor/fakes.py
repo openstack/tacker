@@ -28,9 +28,9 @@ import zipfile
 from oslo_config import cfg
 
 from tacker.db.db_sqlalchemy import models
+from tacker.objects import scale_vnf_request
 from tacker.tests import utils
 from tacker.tests import uuidsentinel
-
 
 VNF_UPLOAD_VNF_PACKAGE_CONTENT = {
     'algorithm': 'sha512', 'created_at': '2019-08-16T06:57:09Z',
@@ -288,3 +288,16 @@ def _get_vnf(**updates):
         vnf_data.update(**updates)
 
     return vnf_data
+
+
+def scale_request(type, number_of_steps):
+    scale_request_data = {
+        'type': type,
+        'aspect_id': "SP1",
+        'number_of_steps': number_of_steps,
+        'scale_level': 1,
+        'additional_params': {"test": "test_value"},
+    }
+    scale_request = scale_vnf_request.ScaleVnfRequest(**scale_request_data)
+
+    return scale_request

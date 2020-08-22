@@ -35,6 +35,7 @@ from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import client
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import \
     fixture_data_utils as fd_utils
 from tacker.tests import uuidsentinel
+from tacker.vnfm.infra_drivers.openstack import heat_client as hc
 from tacker.vnfm.infra_drivers.openstack import openstack
 
 
@@ -787,6 +788,7 @@ class TestOpenStack(base.FixturedTestCase):
         json = {'stack': [fd_utils.get_dummy_stack()]}
         self.requests_mock.register_uri('GET', url, json=json,
                                         headers=self.json_headers)
+
         url = self.heat_url + '/stacks/' + self.instance_uuid + (
             '/myStack/60f83b5e/resources/SP1_scale_out/events?limit=1&sort_dir'
             '=desc&sort_keys=event_time')
@@ -830,8 +832,16 @@ class TestOpenStack(base.FixturedTestCase):
         self._response_in_resource_get(self.instance_uuid,
                                        res_name='SP1_group')
 
-    def test_scale_wait_with_different_last_event_id(self):
+    @mock.patch.object(hc.HeatClient, "resource_event_list")
+    def test_scale_wait_with_different_last_event_id(self,
+            mock_resource_event_list):
         self._test_scale("SIGNAL_COMPLETE")
+        print("test_scale_wait_with_different_last_event_id")
+        dummy_event = fd_utils.get_dummy_event("CREATE_IN_PROGRESS")
+        self._responses_in_resource_event_list(dummy_event)
+        event_list_obj = mock.MagicMock(id="fake")
+        fake_list = [event_list_obj]
+        mock_resource_event_list.return_value = fake_list
         mgmt_ip = self.openstack.scale_wait(plugin=self, context=self.context,
                                      auth_attr=None,
                                      policy=fd_utils.get_dummy_policy_dict(),
@@ -841,9 +851,15 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertEqual(helpers.compact_byte('{"vdu1": ["test1"]}'),
                          mgmt_ip)
 
+    @mock.patch.object(hc.HeatClient, "resource_event_list")
     @ddt.data("SIGNAL_COMPLETE", "CREATE_COMPLETE")
-    def test_scale_wait_with_same_last_event_id(self, resource_status):
+    def test_scale_wait_with_same_last_event_id(self,
+            resource_status, mock_resource_event_list):
         self._test_scale(resource_status)
+        event_list_obj = mock.MagicMock(id="fake")
+        fake_list = [event_list_obj]
+        mock_resource_event_list.return_value = fake_list
+        print("test_scale_wait_with_same_last_event_id")
         mgmt_ip = self.openstack.scale_wait(plugin=self,
                                 context=self.context,
                                 auth_attr=None,
@@ -855,7 +871,16 @@ class TestOpenStack(base.FixturedTestCase):
 
     @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack.LOG')
     def test_scale_wait_failed_with_exception(self, mock_log):
-        self._exception_response()
+        self._response_in_resource_get(self.instance_uuid)
+
+        url = self.heat_url + '/stacks/' + self.instance_uuid + '/resources'
+        body = {"error": Exception("any stuff")}
+        self.requests_mock.register_uri('GET', url, body=body,
+                    status_code=404, headers=self.json_headers)
+        self._response_in_resource_get(self.instance_uuid,
+                                       res_name='SP1_group')
+
+        print("test_scale_wait_failed_with_exception")
         self.assertRaises(vnfm.VNFScaleWaitFailed,
                           self.openstack.scale_wait,
                           plugin=self, context=self.context, auth_attr=None,
@@ -873,15 +898,22 @@ class TestOpenStack(base.FixturedTestCase):
                                         headers=self.json_headers)
 
     def test_scale_wait_failed_with_stack_retries_0(self):
-        dummy_event = fd_utils.get_dummy_event("CREATE_IN_PROGRESS")
-        self._responses_in_resource_event_list(dummy_event)
+        print("test_scale_wait_failed_with_stack_retries_0")
+        self._response_in_resource_get(self.instance_uuid)
         self._response_in_resource_metadata(True)
+        self._response_in_resource_get(self.stack_id, res_name='G1')
+        self._response_in_resource_get_list(
+            resources=[fd_utils.get_dummy_resource(
+                resource_status="IN_PROGRESS")])
+        self._response_in_resource_get(self.stack_id)
+        self._response_in_resource_get(self.instance_uuid,
+                                       res_name='SP1_group')
         self.assertRaises(vnfm.VNFScaleWaitFailed,
                           self.openstack.scale_wait,
                           plugin=self, context=self.context, auth_attr=None,
                           policy=fd_utils.get_dummy_policy_dict(),
                           region_name=None,
-                          last_event_id=dummy_event['id'])
+                          last_event_id=uuidsentinel.event_id)
         self.mock_log.warning.assert_called_once()
 
     def test_scale_wait_without_resource_metadata(self):
@@ -899,9 +931,7 @@ class TestOpenStack(base.FixturedTestCase):
                                   region_name=None,
                                   last_event_id=fd_utils.get_dummy_event()
                                   ['id'])
-        error_reason = ('When signal occurred within cool down '
-                        'window, no events generated from heat, '
-                        'so ignore it')
+        error_reason = ('skip scaling')
         self.mock_log.warning.assert_called_once_with(error_reason)
         self.assertEqual(b'{"vdu1": ["test1"]}', mgmt_ip)
 

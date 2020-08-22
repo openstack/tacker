@@ -984,7 +984,138 @@ class VnfLcmController(wsgi.Controller):
             return self._make_problem_detail(
                 str(e), 500, title='Internal Server Error')
 
-    # Generate a response when an error occurs as a problem_detail object
+    def _scale(self, context, vnf_info, vnf_instance, request_body):
+        req_body = utils.convert_camelcase_to_snakecase(request_body)
+        scale_vnf_request = objects.ScaleVnfRequest.obj_from_primitive(
+            req_body, context=context)
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+
+        aspect = False
+        current_level = 0
+        for scale in inst_vnf_info.scale_status:
+            if scale_vnf_request.aspect_id == scale.aspect_id:
+                aspect = True
+                current_level = scale.scale_level
+                break
+        if not aspect:
+            return self._make_problem_detail(
+                'aspectId not in ScaleStatus',
+                400,
+                title='aspectId not in ScaleStatus')
+        if not scale_vnf_request.number_of_steps:
+            scale_vnf_request.number_of_steps = 1
+        if not scale_vnf_request.additional_params:
+            scale_vnf_request.additional_params = {"is_reverse": "False",
+                                                   "is_auto": "False"}
+        if not scale_vnf_request.additional_params.get('is_reverse'):
+            scale_vnf_request.additional_params['is_reverse'] = "False"
+        if not scale_vnf_request.additional_params.get('is_auto'):
+            scale_vnf_request.additional_params['is_auto'] = "False"
+
+        if scale_vnf_request.type == 'SCALE_IN':
+            if current_level == 0 or\
+               current_level < scale_vnf_request.number_of_steps:
+                return self._make_problem_detail(
+                    'can not scale_in', 400, title='can not scale_in')
+            scale_level = current_level - scale_vnf_request.number_of_steps
+
+        elif scale_vnf_request.type == 'SCALE_OUT':
+            scaleGroupDict = jsonutils.loads(
+                vnf_info['attributes']['scale_group'])
+            max_level = (scaleGroupDict['scaleGroupDict']
+                [scale_vnf_request.aspect_id]['maxLevel'])
+            scale_level = current_level + scale_vnf_request.number_of_steps
+            if max_level < scale_level:
+                return self._make_problem_detail(
+                    'can not scale_out', 400, title='can not scale_out')
+
+        vnf_lcm_op_occs_id = uuidutils.generate_uuid()
+        timestamp = datetime.datetime.utcnow()
+        operation_params = {
+            'type': scale_vnf_request.type,
+            'aspect_id': scale_vnf_request.aspect_id,
+            'number_of_steps': scale_vnf_request.number_of_steps,
+            'additional_params': scale_vnf_request.additional_params}
+        vnf_lcm_op_occ = objects.VnfLcmOpOcc(
+            context=context,
+            id=vnf_lcm_op_occs_id,
+            operation_state='STARTING',
+            state_entered_time=timestamp,
+            start_time=timestamp,
+            vnf_instance_id=inst_vnf_info.vnf_instance_id,
+            operation='SCALE',
+            is_automatic_invocation=scale_vnf_request.additional_params.get('\
+                is_auto'),
+            operation_params=json.dumps(operation_params),
+            error_point=1)
+        vnf_lcm_op_occ.create()
+
+        vnflcm_url = CONF.vnf_lcm.endpoint_url + \
+            "/vnflcm/v1/vnf_lcm_op_occs/" + vnf_lcm_op_occs_id
+        insta_url = CONF.vnf_lcm.endpoint_url + \
+            "/vnflcm/v1/vnf_instances/" + inst_vnf_info.vnf_instance_id
+
+        vnf_info['vnflcm_id'] = vnf_lcm_op_occs_id
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
+        vnf_info['after_scale_level'] = scale_level
+        vnf_info['scale_level'] = current_level
+
+        self.rpc_api.scale(context, vnf_info, vnf_instance, scale_vnf_request)
+
+        notification = {}
+        notification['notificationType'] = \
+            'VnfLcmOperationOccurrenceNotification'
+        notification['vnfInstanceId'] = inst_vnf_info.vnf_instance_id
+        notification['notificationStatus'] = 'START'
+        notification['operation'] = 'SCALE'
+        notification['operationState'] = 'STARTING'
+        notification['isAutomaticInvocation'] = \
+            scale_vnf_request.additional_params.get('is_auto')
+        notification['vnfLcmOpOccId'] = vnf_lcm_op_occs_id
+        notification['_links'] = {}
+        notification['_links']['vnfInstance'] = {}
+        notification['_links']['vnfInstance']['href'] = insta_url
+        notification['_links']['vnfLcmOpOcc'] = {}
+        notification['_links']['vnfLcmOpOcc']['href'] = vnflcm_url
+        self.rpc_api.send_notification(context, notification)
+
+        vnf_info['notification'] = notification
+
+        res = webob.Response()
+        res.status_int = 202
+        location = ('Location', vnflcm_url)
+        res.headerlist.append(location)
+        return res
+
+    @validation.schema(vnf_lcm.scale)
+    @wsgi.response(http_client.ACCEPTED)
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
+                           http_client.NOT_FOUND, http_client.CONFLICT))
+    def scale(self, request, id, body):
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'scale')
+
+        try:
+            vnf_info = self._vnfm_plugin.get_vnf(context, id)
+            if vnf_info['status'] != constants.ACTIVE:
+                return self._make_problem_detail(
+                    'VNF IS NOT ACTIVE', 409, title='VNF IS NOT ACTIVE')
+            vnf_instance = self._get_vnf_instance(context, id)
+            if not vnf_instance.instantiated_vnf_info.scale_status:
+                return self._make_problem_detail(
+                    'NOT SCALE VNF', 409, title='NOT SCALE VNF')
+            return self._scale(context, vnf_info, vnf_instance, body)
+        except vnfm.VNFNotFound as vnf_e:
+            return self._make_problem_detail(
+                str(vnf_e), 404, title='VNF NOT FOUND')
+        except webob.exc.HTTPNotFound as inst_e:
+            return self._make_problem_detail(
+                str(inst_e), 404, title='VNF NOT FOUND')
+        except Exception as e:
+            LOG.error(traceback.format_exc())
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
+
     def _make_problem_detail(
             self,
             detail,

@@ -72,6 +72,8 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
     fields = {
         'flavour_id': fields.StringField(nullable=False),
         'vnf_instance_id': fields.UUIDField(nullable=False),
+        'scale_status': fields.ListOfObjectsField(
+            'ScaleInfo', nullable=True, default=[]),
         'ext_cp_info': fields.ListOfObjectsField(
             'VnfExtCpInfo', nullable=False),
         'ext_virtual_link_info': fields.ListOfObjectsField(
@@ -142,7 +144,8 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
     @staticmethod
     def _from_db_object(context, inst_vnf_info, db_inst_vnf_info):
 
-        special_fields = ['ext_cp_info', 'ext_virtual_link_info',
+        special_fields = ['scale_status',
+                          'ext_cp_info', 'ext_virtual_link_info',
                           'ext_managed_virtual_link_info',
                           'vnfc_resource_info',
                           'vnf_virtual_link_resource_info',
@@ -153,6 +156,11 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
                 continue
 
             setattr(inst_vnf_info, key, db_inst_vnf_info.get(key))
+
+        scale_status = db_inst_vnf_info['scale_status']
+        scale_status_list = [ScaleInfo.obj_from_primitive(scale, context)
+                    for scale in scale_status]
+        inst_vnf_info.scale_status = scale_status_list
 
         ext_cp_info = db_inst_vnf_info['ext_cp_info']
         ext_cp_info_list = [VnfExtCpInfo.obj_from_primitive(ext_cp, context)
@@ -226,6 +234,12 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
                 InstantiatedVnfInfo, cls).obj_from_primitive(
                 primitive, context)
         else:
+            if 'scale_status' in primitive.keys():
+                obj_data = [ScaleInfo.obj_from_primitive(
+                    scale, context) for scale in primitive.get(
+                    'scale_status', [])]
+                primitive.update({'scale_status': obj_data})
+
             if 'ext_cp_info' in primitive.keys():
                 obj_data = [VnfExtCpInfo.obj_from_primitive(
                     vnf_ext_cp, context) for vnf_ext_cp in primitive.get(
@@ -285,6 +299,7 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
     @classmethod
     def _from_dict(cls, data_dict):
         flavour_id = data_dict.get('flavour_id')
+        scale_status = data_dict.get('scale_status', [])
         ext_cp_info = data_dict.get('ext_cp_info', [])
         ext_virtual_link_info = data_dict.get('ext_virtual_link_info', [])
         ext_managed_virtual_link_info = data_dict.get(
@@ -299,7 +314,9 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
         additional_params = data_dict.get('additional_params', {})
         vnfc_info = data_dict.get('vnfc_info', [])
 
-        obj = cls(flavour_id=flavour_id, ext_cp_info=ext_cp_info,
+        obj = cls(flavour_id=flavour_id,
+               scale_status=scale_status,
+               ext_cp_info=ext_cp_info,
                ext_virtual_link_info=ext_virtual_link_info,
                ext_managed_virtual_link_info=ext_managed_virtual_link_info,
                vnfc_resource_info=vnfc_resource_info,
@@ -314,6 +331,13 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
     def to_dict(self):
         data = {'flavour_id': self.flavour_id,
             'vnf_state': self.vnf_state}
+
+        if self.scale_status:
+            scale_status_list = []
+            for scale_status in self.scale_status:
+                scale_status_list.append(scale_status.to_dict())
+
+            data.update({'scale_status': scale_status_list})
 
         ext_cp_info_list = []
         for ext_cp_info in self.ext_cp_info:
@@ -377,6 +401,7 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
 
     def reinitialize(self):
         # Reinitialize vnf to non instantiated state.
+        self.scale_status = []
         self.ext_cp_info = []
         self.ext_virtual_link_info = []
         self.ext_managed_virtual_link_info = []
@@ -394,6 +419,44 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
                                                reason='no uuid')
 
         _destroy_instantiated_vnf_info(context, self.vnf_instance_id)
+
+
+@base.TackerObjectRegistry.register
+class ScaleInfo(base.TackerObject, base.TackerObjectDictCompat,
+                base.TackerPersistentObject):
+
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'aspect_id': fields.StringField(nullable=False),
+        'scale_level': fields.IntegerField(nullable=False),
+    }
+
+    @classmethod
+    def obj_from_primitive(cls, primitive, context):
+        if 'tacker_object.name' in primitive:
+            obj_scale_status = super(
+                ScaleInfo, cls).obj_from_primitive(
+                primitive, context)
+        else:
+            obj_scale_status = ScaleInfo._from_dict(primitive)
+
+        return obj_scale_status
+
+    @classmethod
+    def _from_dict(cls, data_dict):
+        aspect_id = data_dict.get('aspect_id')
+        scale_level = data_dict.get('scale_level')
+
+        obj = cls(aspect_id=aspect_id,
+                  scale_level=scale_level)
+        return obj
+
+    def to_dict(self):
+
+        return {'aspect_id': self.aspect_id,
+                'scale_level': self.scale_level}
 
 
 @base.TackerObjectRegistry.register
@@ -1090,6 +1153,8 @@ class ResourceHandle(base.TackerObject,
 
     # TODO(esto-aln):Add vimConnectionId in Type:ResourceHandle
     fields = {
+        'vim_connection_id': fields.StringField(nullable=True,
+                                                default=None),
         'resource_id': fields.StringField(nullable=False, default=""),
         'vim_level_resource_type': fields.StringField(nullable=True,
                                                       default=None)
@@ -1108,14 +1173,17 @@ class ResourceHandle(base.TackerObject,
 
     @classmethod
     def _from_dict(cls, data_dict):
+        vim_connection_id = data_dict.get('vim_connection_id')
         resource_id = data_dict.get('resource_id', "")
         vim_level_resource_type = data_dict.get('vim_level_resource_type')
 
-        obj = cls(resource_id=resource_id,
+        obj = cls(vim_connection_id=vim_connection_id,
+                  resource_id=resource_id,
                   vim_level_resource_type=vim_level_resource_type)
 
         return obj
 
     def to_dict(self):
-        return {'resource_id': self.resource_id,
+        return {'vim_connection_id': self.vim_connection_id,
+                'resource_id': self.resource_id,
                 'vim_level_resource_type': self.vim_level_resource_type}

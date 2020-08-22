@@ -252,3 +252,16 @@ update = {
     },
     'additionalProperties': False,
 }
+
+scale = {
+    'type': 'object',
+    'properties': {
+        'type': {'type': 'string',
+                 'enum': ['SCALE_OUT', 'SCALE_IN']},
+        'aspectId': {'type': 'string'},
+        'numberOfSteps': {'type': 'integer'},
+        'additionalParams': parameter_types.keyvalue_pairs
+    },
+    'required': ['type', 'aspectId'],
+    'additionalProperties': False,
+}

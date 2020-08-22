@@ -101,8 +101,8 @@ def _get_cp_protocol_data_list(ext_cp_info):
         ip_addresses = []
         for ip_address in ip_addresses:
             # TODO(nitin-uikey): How to determine num_dynamic_addresses
-            # back from InstantiatedVnfInfo->IpAddress.
-            ip_address_data = IpAddress(
+            # back from InstantiatedVnfInfo->IpAddressReq.
+            ip_address_data = IpAddressReq(
                 type=ip_address.type,
                 subnet_id=ip_address.subnet_id,
                 fixed_addresses=ip_address.addresses)
@@ -479,8 +479,12 @@ class IpOverEthernetAddressData(base.TackerObject):
     VERSION = '1.0'
 
     fields = {
-        'mac_address': fields.StringField(nullable=True, default=None),
-        'ip_addresses': fields.ListOfObjectsField('IpAddress', nullable=True,
+        'mac_address': fields.StringField(
+            nullable=True,
+            default=None),
+        'ip_addresses': fields.ListOfObjectsField(
+            'IpAddressReq',
+            nullable=True,
             default=[]),
     }
 
@@ -492,7 +496,7 @@ class IpOverEthernetAddressData(base.TackerObject):
                 primitive, context)
         else:
             if 'ip_addresses' in primitive.keys():
-                obj_data = [IpAddress._from_dict(
+                obj_data = [IpAddressReq._from_dict(
                     ip_address) for ip_address in primitive.get(
                         'ip_addresses', [])]
                 primitive.update({'ip_addresses': obj_data})
@@ -510,7 +514,7 @@ class IpOverEthernetAddressData(base.TackerObject):
 
 
 @base.TackerObjectRegistry.register
-class IpAddress(base.TackerObject):
+class IpAddressReq(base.TackerObject):
 
     # Version 1.0: Initial version
     VERSION = '1.0'

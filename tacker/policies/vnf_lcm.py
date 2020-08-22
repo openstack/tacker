@@ -78,6 +78,17 @@ rules = [
         ]
     ),
     policy.DocumentedRuleDefault(
+        name=VNFLCM % 'scale',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Scale a VNF instance.",
+        operations=[
+            {
+                'method': 'POST',
+                'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}/scale'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
         name=VNFLCM % 'show_lcm_op_occs',
         check_str=base.RULE_ADMIN_OR_OWNER,
         description="Query an Individual VNF LCM operation occurrence",
