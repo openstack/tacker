@@ -27,10 +27,13 @@ from tacker.objects import fields
 from tacker.objects.instantiate_vnf_req import ExtManagedVirtualLinkData
 from tacker.objects.instantiate_vnf_req import ExtVirtualLinkData
 from tacker.objects.instantiate_vnf_req import InstantiateVnfRequest
+from tacker.objects import scale_vnf_request
 from tacker.objects.vim_connection import VimConnectionInfo
 from tacker.tests import constants
 from tacker.tests import uuidsentinel
 from tacker import wsgi
+
+import tacker.db.vnfm.vnfm_db
 
 import tacker.conf
 CONF = tacker.conf.CONF
@@ -99,6 +102,19 @@ def return_vnf_package_vnfd():
     model_obj = models.VnfPackageVnfd()
     model_obj.update(fake_vnf_package_vnfd_model_dict())
     return model_obj
+
+
+def scale_request_make(type, number_of_steps):
+    scale_request_data = {
+        'type': type,
+        'aspect_id': "SP1",
+        'number_of_steps': number_of_steps,
+        'scale_level': 1,
+        'additional_params': {"test": "test_value"},
+    }
+    scale_request = scale_vnf_request.ScaleVnfRequest(**scale_request_data)
+
+    return scale_request
 
 
 def _model_non_instantiated_vnf_instance(**updates):
@@ -752,13 +768,30 @@ def _get_vnf(**updates):
         'placement_attr': 'fake_placement_attr',
         'vim_id': 'uuidsentinel.vim_id',
         'error_reason': 'fake_error_reason',
+        'instance_id': uuidsentinel.instance_id,
         'attributes': {
-            "scale_group": '{"scaleGroupDict" : {"SP1": {"maxLevel" : 3}}}'}}
+            "scale_group": '{"scaleGroupDict" : {"SP1": {"maxLevel" : 3}}}',
+            "heat_template": os.path.dirname(__file__) +
+            "/../../etc/samples/hot_lcm_template.yaml"}}
 
     if updates:
         vnf_data.update(**updates)
 
     return vnf_data
+
+
+def scale_request(type, number_of_steps, is_reverse):
+    scale_request_data = {
+        'type': type,
+        'aspect_id': "SP1",
+        'number_of_steps': number_of_steps,
+        'scale_level': 1,
+        'additional_params': {"is_reverse": is_reverse},
+    }
+    scale_request = \
+        scale_vnf_request.ScaleVnfRequest(**scale_request_data)
+
+    return scale_request
 
 
 def get_dummy_grant_response():
@@ -789,6 +822,14 @@ def return_vnf_resource():
         vnf_instance_id=uuidsentinel.vnf_instance_id
     )
     return version_obj
+
+
+def vnf_scale():
+    return tacker.db.vnfm.vnfm_db.VNF(id=constants.UUID,
+        vnfd_id=uuidsentinel.vnfd_id,
+        name='test',
+        status='ACTIVE',
+        vim_id=uuidsentinel.vim_id)
 
 
 class InjectContext(wsgi.Middleware):

@@ -2206,10 +2206,10 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.VNF, "vnf_index_list")
     @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_vnf_package_vnfd')
-    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "update_vnf_instance_content")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "update")
     def test_update_none_vnf_package_info(
             self, input_id,
-            mock_update_vnf_instance_content,
+            mock_update,
             mock_vnf_package_vnf_get_vnf_package_vnfd,
             mock_vnf_instance_list,
             mock_vnf_index_list,
@@ -2257,10 +2257,10 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.VNF, "vnf_index_list")
     @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_vnf_package_vnfd')
-    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "update_vnf_instance_content")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "update")
     def test_update_none_vnf_package_vnfd(
             self, input_id,
-            mock_update_vnf_instance_content,
+            mock_update,
             mock_vnf_package_vnf_get_vnf_package_vnfd,
             mock_vnf_instance_list,
             mock_vnf_index_list,
@@ -2295,3 +2295,302 @@ class TestController(base.TestCase):
 
         resp = req.get_response(self.app)
         self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_scale_not_scale_err(
+            self,
+            mock_vnf_instance_get_by_id,
+            mock_get_service_plugins):
+        mock_vnf_instance_get_by_id.return_value =\
+            fakes.return_vnf_instance(fields.VnfInstanceState.INSTANTIATED)
+
+        body = {
+            "type": "SCALE_OUT",
+            "aspectId": "SP1",
+            "numberOfSteps": 1,
+            "additionalParams": {
+                "test": "test_value"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            constants.UUID)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        res = self._make_problem_detail(
+            'NOT SCALE VNF', 409, title='NOT SCALE VNF')
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    def test_scale_not_active_err(self,
+            mock_get_service_plugins):
+
+        body = {
+            "type": "SCALE_OUT",
+            "aspectId": "SP1",
+            "numberOfSteps": 1,
+            "additionalParams": {
+                "test": "test_value"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            '91e32c20-6d1f-47a4-9ba7-08f5e5effe07')
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        res = self._make_problem_detail(
+            'VNF IS NOT ACTIVE', 409, title='VNF IS NOT ACTIVE')
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    def test_scale_vnfnotfound_err(self,
+            mock_get_service_plugins):
+        msg = _('VNF %(vnf_id)s could not be found')
+
+        body = {
+            "type": "SCALE_OUT",
+            "aspectId": "SP1",
+            "numberOfSteps": 1,
+            "additionalParams": {
+                "test": "test_value"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            '7168062e-9fa1-4203-8cb7-f5c99ff3ee1b')
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        res = self._make_problem_detail(msg, 404, title='VNF NOT FOUND')
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "create")
+    @mock.patch.object(objects.ScaleVnfRequest, "obj_from_primitive")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(tacker.db.vnfm.vnfm_db.VNFMPluginDb, "get_vnf")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "scale")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "send_notification")
+    def test_scale_in(
+            self,
+            mock_send_notification,
+            mock_scale,
+            mock_get_vnf,
+            mock_vnf_instance_get_by_id,
+            mock_obj_from_primitive,
+            mock_create,
+            mock_get_service_plugins):
+
+        mock_get_vnf.return_value = fakes._get_vnf()
+        mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status="scale_status")
+        mock_obj_from_primitive.return_value = fakes.scale_request_make(
+            "SCALE_IN", 1)
+        mock_create.return_value = 200
+
+        body = {
+            "type": "SCALE_IN",
+            "aspectId": "SP1",
+            "numberOfSteps": 1,
+            "additionalParams": {
+                "test": "test_value"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            constants.UUID)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_scale.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "create")
+    @mock.patch.object(objects.ScaleVnfRequest, "obj_from_primitive")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(tacker.db.vnfm.vnfm_db.VNFMPluginDb, "get_vnf")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "scale")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "send_notification")
+    def test_scale_out(
+            self,
+            mock_send_notification,
+            mock_scale,
+            mock_get_vnf,
+            mock_vnf_instance_get_by_id,
+            mock_obj_from_primitive,
+            mock_create,
+            mock_get_service_plugins):
+
+        mock_get_vnf.return_value = fakes._get_vnf()
+        mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status="scale_status")
+        mock_obj_from_primitive.return_value = fakes.scale_request_make(
+            "SCALE_OUT", 1)
+        mock_create.return_value = 200
+
+        body = {
+            "type": "SCALE_OUT",
+            "aspectId": "SP1",
+            "numberOfSteps": 1,
+            "additionalParams": {
+                "test": "test_value"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            constants.UUID)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_scale.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "create")
+    @mock.patch.object(objects.ScaleVnfRequest, "obj_from_primitive")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(tacker.db.vnfm.vnfm_db.VNFMPluginDb, "get_vnf")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "scale")
+    def test_scale_in_err(
+            self,
+            mock_scale,
+            mock_get_vnf,
+            mock_vnf_instance_get_by_id,
+            mock_obj_from_primitive,
+            mock_create,
+            mock_get_service_plugins):
+
+        mock_get_vnf.return_value = fakes._get_vnf()
+        mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status="scale_status")
+        mock_obj_from_primitive.return_value = fakes.scale_request_make(
+            "SCALE_IN", 4)
+        mock_create.return_value = 200
+
+        body = {
+            "type": "SCALE_IN",
+            "aspectId": "SP1",
+            "numberOfSteps": 1,
+            "additionalParams": {
+                "test": "test_value"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            constants.UUID)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        res = self._make_problem_detail(
+            'can not scale_in', 400, title='can not scale_in')
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "create")
+    @mock.patch.object(objects.ScaleVnfRequest, "obj_from_primitive")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(tacker.db.vnfm.vnfm_db.VNFMPluginDb, "get_vnf")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "scale")
+    def test_scale_out_err(
+            self,
+            mock_scale,
+            mock_get_vnf,
+            mock_vnf_instance_get_by_id,
+            mock_obj_from_primitive,
+            mock_create,
+            mock_get_service_plugins):
+
+        mock_get_vnf.return_value = fakes._get_vnf()
+        mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status="scale_status")
+        mock_obj_from_primitive.return_value = fakes.scale_request_make(
+            "SCALE_OUT", 4)
+        mock_create.return_value = 200
+
+        body = {
+            "type": "SCALE_OUT",
+            "aspectId": "SP1",
+            "numberOfSteps": 1,
+            "additionalParams": {
+                "test": "test_value"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            constants.UUID)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        res = self._make_problem_detail(
+            'can not scale_out', 400, title='can not scale_out')
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.ScaleVnfRequest, "obj_from_primitive")
+    @mock.patch.object(tacker.db.vnfm.vnfm_db.VNFMPluginDb, "get_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfLcmOpOcc, "create")
+    def test_scale_notification(
+            self,
+            mock_create,
+            mock_send_notification,
+            mock_vnf_instance,
+            mock_get_vnf,
+            mock_obj_from_primitive,
+            get_service_plugins):
+        body = {"type": "SCALE_OUT", "aspect_id": "SP1"}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_obj = fakes.vnf_scale()
+        mock_obj_from_primitive.return_value = fakes.scale_request_make(
+            "SCALE_IN", 1)
+        mock_get_vnf.return_value = vnf_obj
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status="scale_status")
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.vnf_instance_id =\
+            uuidsentinel.vnf_instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='SP1', scale_level=0))
+        mock_vnf_instance.return_value = vnf_instance
+
+        vnf_info = fakes._get_vnf()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status="scale_status")
+        self.controller._scale(self.context,
+            vnf_info, vnf_instance, body)
+
+        mock_send_notification.assert_called_once()
+        self.assertEqual(mock_send_notification.call_args[0][1].get(
+            'notificationType'), 'VnfLcmOperationOccurrenceNotification')
+        self.assertEqual(
+            mock_send_notification.call_args[0][1].get('vnfInstanceId'),
+            vnf_instance.instantiated_vnf_info.vnf_instance_id)
+        self.assertEqual(mock_send_notification.call_args[0][1].get(
+            'notificationStatus'), 'START')
+        self.assertEqual(
+            mock_send_notification.call_args[0][1].get('operation'),
+            'SCALE')
+        self.assertEqual(
+            mock_send_notification.call_args[0][1].get('operationState'),
+            'STARTING')
+        self.assertEqual(mock_send_notification.call_args[0][1].get(
+            'isAutomaticInvocation'), 'False')

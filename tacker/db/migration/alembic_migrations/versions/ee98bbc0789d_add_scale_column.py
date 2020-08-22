@@ -1,6 +1,4 @@
-# Copyright 2013, 2014 Intel Corporation.
-# All Rights Reserved.
-#
+# Copyright 2020 OpenStack Foundation
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -13,16 +11,25 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+#
 
-# key
-KEY_ACTION = 'action'
-KEY_KWARGS = 'kwargs'
-KEY_SCALE = 'scale_stack_id'
+"""add scale column
 
-# ACTION type
-ACTION_CREATE_VNF = 'create_vnf'
-ACTION_UPDATE_VNF = 'update_vnf'
-ACTION_DELETE_VNF = 'delete_vnf'
-ACTION_HEAL_VNF = 'heal_vnf'
-ACTION_SCALE_IN_VNF = 'scale_in_vnf'
-ACTION_SCALE_OUT_VNF = 'scale_out_vnf'
+Revision ID: ee98bbc0789d
+Revises: c47a733f425a
+Create Date: 2020-09-11 16:39:04.039173
+
+"""
+# flake8: noqa: E402
+
+# revision identifiers, used by Alembic.
+revision = 'ee98bbc0789d'
+down_revision = 'c47a733f425a'
+
+from alembic import op
+import sqlalchemy as sa
+
+
+def upgrade(active_plugins=None, options=None):
+    op.add_column('vnf_instantiated_info',
+                  sa.Column('scale_status', sa.JSON(), nullable=True))

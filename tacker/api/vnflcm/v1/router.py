@@ -97,6 +97,13 @@ class VnflcmAPIRouter(wsgi.Router):
                 "/vnf_instances/{id}/heal",
                 methods, controller, default_resource)
 
+        # Allowed methods on
+        # /vnflcm/v1/vnf_instances/{vnfInstanceId}/scale resource
+        methods = {"POST": "scale"}
+        self._setup_route(mapper,
+                "/vnf_instances/{id}/scale",
+                methods, controller, default_resource)
+
         methods = {"GET": "subscription_list", "POST": "register_subscription"}
         self._setup_route(mapper, "/subscriptions",
                 methods, controller, default_resource)

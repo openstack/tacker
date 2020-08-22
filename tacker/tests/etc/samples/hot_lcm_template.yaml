@@ -1,0 +1,14 @@
+heat_template_version: 2020-08-07
+description: 'Template for test _generate_hot_from_tosca().'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  SP1_scale_in:
+    type: OS::Nova::Server
+    properties:
+      cooldown: 60
+
+outputs: {}

@@ -570,6 +570,48 @@ Response Example
 .. literalinclude:: samples/vnflcm/list-vnf-instance-response.json
    :language: javascript
 
+Scale a VNF instance
+========================
+
+.. rest_method::  POST /vnflcm/v1/vnf_instances/{vnfInstanceId}/scale
+
+This task resource represents the "Scale VNF" operation. The client can use 
+this resource to request scaling a VNF instance.
+
+The POST method requests to scale a VNF instance.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 202
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 401
+  - 403
+  - 404
+  - 409
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfInstanceId: vnf_instance_id
+  - type: scale_type
+  - aspectId: aspect_id
+  - numberOfSteps: number_of_steps
+  - additionalParams: scale_additional_params
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnflcm/scale-vnf-instance-request.json
+   :language: javascript
+
 Modify a VNF instance
 ========================
 

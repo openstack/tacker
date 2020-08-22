@@ -1315,3 +1315,45 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
     def post_heal_vnf(self, context, vnf_instance, vim_connection_info,
                       heal_vnf_request):
         raise NotImplementedError()
+
+    def get_scale_ids(self,
+                      plugin,
+                      context,
+                      vnf_dict,
+                      auth_attr,
+                      region_name):
+        pass
+
+    def get_scale_in_ids(self,
+                         plugin,
+                         context,
+                         vnf_dict,
+                         is_reverse,
+                         auth_attr,
+                         region_name,
+                         number_of_steps):
+        pass
+
+    def scale_resource_update(self, context, vnf_instance,
+                              scale_vnf_request,
+                              vim_connection_info):
+        pass
+
+    def scale_in_reverse(self,
+              context,
+              plugin,
+              auth_attr,
+              vnf_info,
+              scale_vnf_request,
+              region_name,
+              scale_name_list,
+              grp_id):
+        pass
+
+    def scale_in_reverse_wait(self,
+                   context,
+                   plugin,
+                   auth_attr,
+                   vnf_info,
+                   region_name):
+        pass
