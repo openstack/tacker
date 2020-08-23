@@ -82,6 +82,11 @@ The first step of installing tacker is to clone Devstack and prepare your
           :language: ini
           :emphasize-lines: 60-65
 
+      .. note::
+
+          The above local.conf.kubernetes does not work on CentOS8.
+          Because docker-ce is not supported on CentOS8.
+
    #. Standalone mode
 
       The ``local.conf`` file of standalone mode from [#f4]_ is shown as below.
