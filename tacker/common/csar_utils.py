@@ -12,6 +12,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from copy import deepcopy
 import hashlib
 import os
 import re
@@ -29,6 +30,7 @@ import zipfile
 
 from tacker.common import exceptions
 import tacker.conf
+from tacker.extensions import vnfm
 import urllib.request as urllib2
 
 
@@ -124,8 +126,10 @@ def _get_software_image(custom_defs, nodetemplate_name, node_tpl):
         properties = node_tpl['properties']
         sw_image_artifact = _get_sw_image_artifact(node_tpl.get('artifacts'))
         if sw_image_artifact:
+            image_path = sw_image_artifact['file'].lstrip("./")
             properties['sw_image_data'].update(
-                {'software_image_id': nodetemplate_name})
+                {'software_image_id': nodetemplate_name,
+                'image_path': image_path})
             sw_image_data = properties['sw_image_data']
             if 'metadata' in sw_image_artifact:
                 sw_image_data.update({'metadata':
@@ -137,7 +141,79 @@ def _populate_flavour_data(tosca):
     flavours = []
     if tosca.nested_tosca_templates_with_topology:
         for tp in tosca.nested_tosca_templates_with_topology:
-            _get_flavour_data(tp, flavours)
+            sw_image_list = []
+
+            # Setting up flavour data
+            flavour_id = tp.substitution_mappings.properties.get('flavour_id')
+            if flavour_id:
+                flavour = {'flavour_id': flavour_id}
+                tpl_dict = dict()
+
+                # get from top-vnfd data
+                for key, value in tosca.tpl.items():
+                    if key in CONF.vnf_package.get_top_list:
+                        tpl_dict[key] = value
+
+                # get from lower-vnfd data
+                tpl_dict['topology_template'] = dict()
+                tpl_dict['topology_template']['policies'] = \
+                    tp.tpl.get('policies')
+                tpl_dict['topology_template']['node_templates'] = \
+                    deepcopy(tp.tpl.get('node_templates'))
+                for e_node in CONF.vnf_package.exclude_node:
+                    if tpl_dict['topology_template']['node_templates'].\
+                            get(e_node):
+                        del (tpl_dict['topology_template']
+                            ['node_templates'][e_node])
+                tpl_dict['topology_template']['inputs'] = \
+                    deepcopy(tp.tpl.get('inputs'))
+                for del_input in CONF.vnf_package.del_input_list:
+                    if tpl_dict['topology_template']['inputs'].get(del_input):
+                        del tpl_dict['topology_template']['inputs'][del_input]
+                if len(tpl_dict['topology_template']['inputs']) < 1:
+                    del tpl_dict['topology_template']['inputs']
+
+                flavour.update({'tpl_dict': tpl_dict})
+
+                instantiation_levels = _get_instantiation_levels(tp.policies)
+                if instantiation_levels:
+                    flavour.update(
+                        {'instantiation_levels': instantiation_levels})
+
+                mgmt_driver = None
+                for template_name, node_tpl in \
+                        tp.tpl.get('node_templates').items():
+                    # check the flavour property in vnf data
+                    _update_flavour_data_from_vnf(
+                        tp.custom_defs, node_tpl, flavour)
+                    if node_tpl['type'] in CONF.vnf_package.get_lower_list:
+                        if node_tpl['type'] == "tosca.nodes.nfv.VDU.Tacker":
+                            # get mgmt_driver
+                            mgmt_driver_flavour = \
+                                node_tpl['properties'].get('mgmt_driver')
+                            if mgmt_driver_flavour:
+                                if mgmt_driver and \
+                                        mgmt_driver_flavour != mgmt_driver:
+                                    raise vnfm.MultipleMGMTDriversSpecified()
+                                mgmt_driver = mgmt_driver_flavour
+                                flavour.update({'mgmt_driver': mgmt_driver})
+
+                for template_name, node_tpl in \
+                        tp.tpl.get('node_templates').items():
+                    # Update the software image data
+                    sw_image = _get_software_image(tp.custom_defs,
+                                                   template_name,
+                                                   node_tpl)
+                    if sw_image:
+                        sw_image_list.append(sw_image)
+
+                # Add software images for flavour
+                if sw_image_list:
+                    flavour.update({'sw_images': sw_image_list})
+
+                if flavour:
+                    flavours.append(flavour)
+
     else:
         _get_flavour_data(tosca.topology_template, flavours)
 

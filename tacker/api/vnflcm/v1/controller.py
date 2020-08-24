@@ -13,11 +13,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+import requests
+import six
+import tacker.conf
+import webob
+
+from oslo_db.exception import DBDuplicateEntry
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import encodeutils
+from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
+from sqlalchemy import exc as sqlexc
 
 import ast
 import functools
@@ -25,20 +34,18 @@ import json
 import re
 import traceback
 
-import six
 from six.moves import http_client
 from six.moves.urllib import parse
-import webob
-
 
 from tacker._i18n import _
 from tacker.api.schemas import vnf_lcm
 from tacker.api import validation
 from tacker.api.views import vnf_lcm as vnf_lcm_view
+from tacker.api.vnflcm.v1 import sync_resource
 from tacker.common import exceptions
 from tacker.common import utils
 from tacker.conductor.conductorrpc import vnf_lcm_rpc
-import tacker.conf
+from tacker.db.vnfm import vnfm_db
 from tacker.extensions import nfvo
 from tacker.extensions import vnfm
 from tacker import manager
@@ -47,8 +54,10 @@ from tacker.objects import fields
 from tacker.objects import vnf_lcm_subscriptions as subscription_obj
 from tacker.plugins.common import constants
 from tacker.policies import vnf_lcm as vnf_lcm_policies
+import tacker.vnfm.nfvo_client as nfvo_client
 from tacker.vnfm import vim_client
 from tacker import wsgi
+
 
 CONF = tacker.conf.CONF
 
@@ -307,73 +316,187 @@ class VnfLcmController(wsgi.Controller):
 
         return vnf_lcm_op_occs_id
 
+    def _create_vnf(self, context, vnf_instance, default_vim, attributes=None):
+        tenant_id = vnf_instance.tenant_id
+        vnfd_id = vnf_instance.vnfd_id
+        name = vnf_instance.vnf_instance_name
+        description = vnf_instance.vnf_instance_description
+        vnf_id = vnf_instance.id
+        vim_id = default_vim.get('vim_id')
+        placement_attr = default_vim.get('placement_attr', {})
+
+        try:
+            with context.session.begin(subtransactions=True):
+                vnf_db = vnfm_db.VNF(id=vnf_id,
+                             tenant_id=tenant_id,
+                             name=name,
+                             description=description,
+                             instance_id=None,
+                             vnfd_id=vnfd_id,
+                             vim_id=vim_id,
+                             placement_attr=placement_attr,
+                             status=constants.INACTIVE,
+                             error_reason=None,
+                             deleted_at=datetime.min)
+                context.session.add(vnf_db)
+                for key, value in attributes.items():
+                    arg = vnfm_db.VNFAttribute(
+                        id=uuidutils.generate_uuid(), vnf_id=vnf_id,
+                        key=key, value=str(value))
+                    context.session.add(arg)
+        except DBDuplicateEntry as e:
+            raise exceptions.DuplicateEntity(
+                _type="vnf",
+                entry=e.columns)
+
+    def _destroy_vnf(self, context, vnf_instance):
+        with context.session.begin(subtransactions=True):
+            if vnf_instance.id:
+                now = timeutils.utcnow()
+                updated_values = {'deleted_at': now, 'status':
+                    'PENDING_DELETE'}
+                context.session.query(vnfm_db.VNFAttribute).filter_by(
+                    vnf_id=vnf_instance.id).delete()
+                context.session.query(vnfm_db.VNF).filter_by(
+                    id=vnf_instance.id).update(updated_values)
+
+    def _update_package_usage_state(self, context, vnf_package):
+        """Update vnf package usage state to IN_USE/NOT_IN_USE
+
+        If vnf package is not used by any of the vnf instances, it's usage
+        state should be set to NOT_IN_USE otherwise it should be set to
+        IN_USE.
+        """
+        result = vnf_package.is_package_in_use(context)
+        if result:
+            vnf_package.usage_state = fields.PackageUsageStateType.IN_USE
+        else:
+            vnf_package.usage_state = fields.PackageUsageStateType.NOT_IN_USE
+
+        vnf_package.save()
+
     @wsgi.response(http_client.CREATED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN))
     @validation.schema(vnf_lcm.create)
     def create(self, request, body):
         context = request.environ['tacker.context']
         context.can(vnf_lcm_policies.VNFLCM % 'create')
-
-        req_body = utils.convert_camelcase_to_snakecase(body)
-        vnfd_id = req_body.get('vnfd_id')
         try:
+            req_body = utils.convert_camelcase_to_snakecase(body)
+            vnfd_id = req_body.get('vnfd_id')
             vnfd = objects.VnfPackageVnfd.get_by_id(request.context,
                                                     vnfd_id)
-        except exceptions.VnfPackageVnfdNotFound as exc:
-            raise webob.exc.HTTPBadRequest(explanation=six.text_type(exc))
+        except exceptions.VnfPackageVnfdNotFound:
+            vnf_package_info = self._find_vnf_package_info('vnfdId',
+                vnfd_id)
+            if not vnf_package_info:
+                msg = (
+                    _("Can not find requested to NFVO, \
+                        vnf package info: vnfdId=[%s]") %
+                    vnfd_id)
+                return self._make_problem_detail(
+                    msg, 404, title='Not Found')
 
-        # get default vim information
-        vim_client_obj = vim_client.VimClient()
-        default_vim = vim_client_obj.get_vim(context)
+            vnfd = sync_resource.SyncVnfPackage.create_package(
+                context,
+                vnf_package_info)
+            if not vnfd:
+                msg = (
+                    _("Can not find requested to NFVO, \
+                        vnf package vnfd: %s") %
+                    vnfd_id)
+                return self._make_problem_detail(
+                    msg, 500, 'Internal Server Error')
+        try:
+            # get default vim information
+            vim_client_obj = vim_client.VimClient()
+            default_vim = vim_client_obj.get_vim(context)
 
-        # set vim_connection_info
-        access_info = {
-            'username': default_vim.get('vim_auth', {}).get('username'),
-            'password': default_vim.get('vim_auth', {}).get('password'),
-            'region': default_vim.get('placement_attr', {}).get('region'),
-            'tenant': default_vim.get('tenant')
-        }
-        vim_con_info = objects.VimConnectionInfo(id=default_vim.get('vim_id'),
-                            vim_id=default_vim.get('vim_id'),
-                            vim_type=default_vim.get('vim_type'),
-                            access_info=access_info)
+            vnf_instance = objects.VnfInstance(
+                context=request.context,
+                vnf_instance_name=req_body.get('vnf_instance_name'),
+                vnf_instance_description=req_body.get(
+                    'vnf_instance_description'),
+                vnfd_id=vnfd_id,
+                instantiation_state=fields.VnfInstanceState.NOT_INSTANTIATED,
+                vnf_provider=vnfd.vnf_provider,
+                vnf_product_name=vnfd.vnf_product_name,
+                vnf_software_version=vnfd.vnf_software_version,
+                vnfd_version=vnfd.vnfd_version,
+                tenant_id=request.context.project_id,
+                vnf_metadata=req_body.get('metadata'))
 
-        vnf_instance = objects.VnfInstance(
-            context=request.context,
-            vnf_instance_name=req_body.get('vnf_instance_name'),
-            vnf_instance_description=req_body.get(
-                'vnf_instance_description'),
-            vnfd_id=vnfd_id,
-            instantiation_state=fields.VnfInstanceState.NOT_INSTANTIATED,
-            vnf_provider=vnfd.vnf_provider,
-            vnf_product_name=vnfd.vnf_product_name,
-            vnf_software_version=vnfd.vnf_software_version,
-            vnfd_version=vnfd.vnfd_version,
-            vnf_pkg_id=vnfd.package_uuid,
-            tenant_id=request.context.project_id,
-            vnf_metadata=req_body.get('metadata'))
+            try:
+                vnf_instance.create()
 
-        vnf_instance.create()
+                # create entry to 'vnf' table and 'vnf_attribute' table
+                attributes = {'placement_attr': default_vim.
+                    get('placement_attr', {})}
+                self._create_vnf(context, vnf_instance,
+                                 default_vim, attributes)
+                # get vnf package
+                vnf_package = objects.VnfPackage.get_by_id(context,
+                vnfd.package_uuid, expected_attrs=['vnfd'])
+                # Update VNF Package to IN_USE
+                self._update_package_usage_state(context, vnf_package)
+            except Exception:
+                with excutils.save_and_reraise_exception():
+                    # roll back db changes
+                    self._destroy_vnf(context, vnf_instance)
+                    vnf_instance.destroy(context)
+                    self._update_package_usage_state(context, vnf_package)
 
-        # add default vim to vim_connection_info
-        setattr(vnf_instance, 'vim_connection_info', [vim_con_info])
-
-        # create notification data
-        notification = {
-            'notificationType':
+            # create notification data
+            notification = {
+                'notificationType':
                 fields.LcmOccsNotificationType.VNF_ID_CREATION_NOTIFICATION,
-            'vnfInstanceId': vnf_instance.id,
-            'links': {
-                'vnfInstance': {
-                    'href': self._get_vnf_instance_href(vnf_instance)}}}
+                'vnfInstanceId': vnf_instance.id,
+                'links': {
+                    'vnfInstance': {
+                        'href': self._get_vnf_instance_href(vnf_instance)}}}
 
-        # call send nootification
-        self.rpc_api.send_notification(context, notification)
-        vnf_instance.save()
+            # call sendNotification
+            self.rpc_api.send_notification(context, notification)
 
-        result = self._view_builder.create(vnf_instance)
-        headers = {"location": self._get_vnf_instance_href(vnf_instance)}
-        return wsgi.ResponseObject(result, headers=headers)
+            result = self._view_builder.create(vnf_instance)
+            headers = {"location": self._get_vnf_instance_href(vnf_instance)}
+            return wsgi.ResponseObject(result, headers=headers)
+
+        except nfvo.VimDefaultNotDefined as exc:
+            raise webob.exc.HTTPBadRequest(explanation=six.text_type(exc))
+        except(sqlexc.SQLAlchemyError, Exception)\
+                as exc:
+            raise webob.exc.HTTPInternalServerError(
+                explanation=six.text_type(exc))
+        except webob.exc.HTTPNotFound as e:
+            return self._make_problem_detail(str(e), 404,
+                'Not Found')
+        except webob.exc.HTTPInternalServerError as e:
+            return self._make_problem_detail(str(e), 500,
+                'Internal Server Error')
+        except Exception as e:
+            return self._make_problem_detail(str(e), 500,
+                'Internal Server Error')
+
+    def _find_vnf_package_info(self, filter_key, filter_val):
+        try:
+            vnf_package_info_res = \
+                nfvo_client.VnfPackageRequest.index(params={
+                    "filter":
+                    "(eq,{},{})".format(filter_key, filter_val)
+                })
+        except requests.exceptions.RequestException as e:
+            LOG.exception(e)
+            return None
+
+        if not vnf_package_info_res.ok:
+            return None
+
+        vnf_package_info = vnf_package_info_res.json()
+        if (not vnf_package_info or len(vnf_package_info) == 0):
+            return None
+
+        return vnf_package_info[0]
 
     @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
@@ -401,8 +524,16 @@ class VnfLcmController(wsgi.Controller):
     @check_vnf_state(action="delete",
         instantiation_state=[fields.VnfInstanceState.NOT_INSTANTIATED],
         task_state=[None])
-    def _delete(self, context, vnf_instance):
+    @check_vnf_status(action="delete",
+        status=[constants.INACTIVE])
+    def _delete(self, context, vnf_instance, vnf):
+        vnf_package_vnfd = objects.VnfPackageVnfd.get_by_id(context,
+                vnf_instance.vnfd_id)
         vnf_instance.destroy(context)
+        self._destroy_vnf(context, vnf_instance)
+        vnf_package = objects.VnfPackage.get_by_id(context,
+                vnf_package_vnfd.package_uuid, expected_attrs=['vnfd'])
+        self._update_package_usage_state(context, vnf_package)
 
     @wsgi.response(http_client.NO_CONTENT)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,
@@ -411,7 +542,8 @@ class VnfLcmController(wsgi.Controller):
         context = request.environ['tacker.context']
 
         vnf_instance = self._get_vnf_instance(context, id)
-        self._delete(context, vnf_instance)
+        vnf = self._get_vnf(context, id)
+        self._delete(context, vnf_instance, vnf)
 
         notification = {
             "notificationType": "VnfIdentifierDeletionNotification",

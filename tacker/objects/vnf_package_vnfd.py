@@ -59,6 +59,29 @@ def _vnf_package_vnfd_get_by_id(context, vnfd_id):
     return result
 
 
+@db_api.context_manager.reader
+def _get_vnf_package_vnfd_by_vnfid(context, vnfpkgid):
+
+    sql = ("select"
+         " t1.vnfd_id,"
+         " t1.vnf_provider,"
+         " t1.vnf_product_name,"
+         " t1.vnf_software_version,"
+         " t1.vnfd_version,"
+         " t2.name"
+         " from "
+         " vnf_package_vnfd t1,"
+         " vnf t2 "
+         " where"
+         " t1.vnfd_id=t2.vnfd_id"
+         " and"
+         " t2.id= :vnfpkgid")
+
+    result = context.session.execute(sql, {'vnfpkgid': vnfpkgid})
+    for line in result:
+        return line
+
+
 @base.TackerObjectRegistry.register
 class VnfPackageVnfd(base.TackerObject, base.TackerObjectDictCompat,
                      base.TackerPersistentObject):
@@ -103,6 +126,10 @@ class VnfPackageVnfd(base.TackerObject, base.TackerObjectDictCompat,
         db_vnf_package_vnfd = _vnf_package_vnfd_create(
             self._context, updates)
         self._from_db_object(self._context, self, db_vnf_package_vnfd)
+
+    @base.remotable_classmethod
+    def get_vnf_package_vnfd_by_vnfid(self, context, vnfid):
+        return _get_vnf_package_vnfd_by_vnfid(context, vnfid)
 
     @classmethod
     def obj_from_db_obj(cls, context, db_obj):

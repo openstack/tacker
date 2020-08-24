@@ -119,8 +119,8 @@ def _model_non_instantiated_vnf_instance(**updates):
         'vnf_software_version': '1.0',
         'tenant_id': uuidsentinel.tenant_id,
         'vnfd_id': uuidsentinel.vnfd_id,
-        'vnf_pkg_id': uuidsentinel.vnf_pkg_id,
         'vnfd_version': '1.0',
+        'vnf_pkg_id': uuidsentinel.vnf_pkg_id,
         'vnf_metadata': {"key": "value"}}
 
     if updates:

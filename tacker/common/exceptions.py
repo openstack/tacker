@@ -356,5 +356,9 @@ class UserDataUpdateCreateFailed(TackerException):
                 "or created after %(retries)d retries.")
 
 
+class DBAccessError(TackerException):
+    message = _("DB Access Error")
+
+
 class SeeOther(TackerException):
     code = 303

@@ -13,8 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
 from io import BytesIO
+import json
 import mimetypes
 import os
 
@@ -302,19 +302,37 @@ class VnfPkgmController(wsgi.Controller):
         context = request.environ['tacker.context']
         context.can(vnf_package_policies.VNFPKGM % 'upload_package_content')
 
-        vnf_package = self._get_vnf_package(id, request)
+        # check if id is of type uuid format
+        if not uuidutils.is_uuid_like(id):
+            msg = _("Can not find requested vnf package: %s") % id
+            return self._make_problem_detail('Not Found', msg, 404)
+
+        try:
+            vnf_package = vnf_package_obj.VnfPackage.get_by_id(
+                request.context, id)
+        except exceptions.VnfPackageNotFound:
+            msg = _("Can not find requested vnf package: %s") % id
+            return self._make_problem_detail('Not Found', msg, 404)
+        except Exception as e:
+            return self._make_problem_detail(
+                'Internal Server Error', str(e), 500)
 
         if vnf_package.onboarding_state != \
            fields.PackageOnboardingStateType.CREATED:
             msg = _("VNF Package %(id)s onboarding state "
                     "is not %(onboarding)s")
-            raise webob.exc.HTTPConflict(explanation=msg % {"id": id,
-                    "onboarding": fields.PackageOnboardingStateType.CREATED})
+            return self._make_problem_detail('Conflict', msg % {"id": id,
+                    "onboarding": fields.PackageOnboardingStateType.CREATED},
+                    409)
 
         vnf_package.onboarding_state = (
             fields.PackageOnboardingStateType.UPLOADING)
 
-        vnf_package.save()
+        try:
+            vnf_package.save()
+        except Exception as e:
+            return self._make_problem_detail(
+                'Internal Server Error', str(e), 500)
 
         try:
             (location, size, checksum, multihash,
@@ -323,16 +341,29 @@ class VnfPkgmController(wsgi.Controller):
             with excutils.save_and_reraise_exception():
                 vnf_package.onboarding_state = (
                     fields.PackageOnboardingStateType.CREATED)
-                vnf_package.save()
-
-        vnf_package.onboarding_state = (
-            fields.PackageOnboardingStateType.PROCESSING)
+                try:
+                    vnf_package.save()
+                except Exception as e:
+                    return self._make_problem_detail(
+                        'Internal Server Error', str(e), 500)
 
         vnf_package.algorithm = CONF.vnf_package.hashing_algorithm
         vnf_package.hash = multihash
         vnf_package.location_glance_store = location
         vnf_package.size = size
-        vnf_package.save()
+        try:
+            vnf_package.save()
+        except Exception as e:
+            vnf_package.onboarding_state = (
+                fields.PackageOnboardingStateType.CREATED)
+            try:
+                vnf_package.save()
+            except Exception as e:
+                return self._make_problem_detail(
+                    'Internal Server Error', str(e), 500)
+
+            return self._make_problem_detail(
+                'Internal Server Error', str(e), 500)
 
         # process vnf_package
         self.rpc_api.upload_vnf_package_content(context, vnf_package)
@@ -617,6 +648,16 @@ class VnfPkgmController(wsgi.Controller):
                 zip_archive.writestr(file_path, file_data)
 
         return buff.getvalue()
+
+    def _make_problem_detail(self, title, detail, status):
+        res = webob.Response(content_type='application/problem+json')
+        problemDetails = {}
+        problemDetails['title'] = title
+        problemDetails['detail'] = detail
+        problemDetails['status'] = status
+        res.text = json.dumps(problemDetails)
+        res.status_int = status
+        return res
 
 
 def create_resource():
