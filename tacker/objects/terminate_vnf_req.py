@@ -51,6 +51,8 @@ class TerminateVnfRequest(base.TackerObject, base.TackerPersistentObject):
         termination_type = data_dict.get('termination_type')
         graceful_termination_timeout = \
             data_dict.get('graceful_termination_timeout', 0)
+        additional_params = data_dict.get('additional_params', {})
 
         return cls(termination_type=termination_type,
-                   graceful_termination_timeout=graceful_termination_timeout)
+                   graceful_termination_timeout=graceful_termination_timeout,
+                   additional_params=additional_params)

@@ -12,11 +12,13 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import copy
 
 from oslo_log import log as logging
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovoo_base
+from sqlalchemy import exc
 from sqlalchemy.orm import joinedload
 from sqlalchemy_filters import apply_filters
 
@@ -135,6 +137,18 @@ def _make_vnf_instance_list(context, vnf_instance_list, db_vnf_instance_list,
     return vnf_instance_list
 
 
+# decorator to catch DBAccess exception
+def _wrap_object_error(method):
+
+    def wrapper(*args, **kwargs):
+        try:
+            method(*args, **kwargs)
+        except exc.SQLAlchemyError:
+            raise exceptions.DBAccessError
+
+    return wrapper
+
+
 @base.TackerObjectRegistry.register
 class VnfInstance(base.TackerObject, base.TackerPersistentObject,
                   base.TackerObjectDictCompat):
@@ -157,10 +171,10 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
         'vim_connection_info': fields.ListOfObjectsField(
             'VimConnectionInfo', nullable=True, default=[]),
         'tenant_id': fields.StringField(nullable=False),
-        'instantiated_vnf_info': fields.ObjectField('InstantiatedVnfInfo',
-                                                nullable=True, default=None),
         'vnf_pkg_id': fields.StringField(nullable=False),
-        'vnf_metadata': fields.DictOfStringsField(nullable=True, default={})
+        'vnf_metadata': fields.DictOfStringsField(nullable=True, default={}),
+        'instantiated_vnf_info': fields.ObjectField('InstantiatedVnfInfo',
+                                                nullable=True, default=None)
     }
 
     ALL_ATTRIBUTES = {
@@ -239,12 +253,20 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
             updates['id'] = uuidutils.generate_uuid()
             self.id = updates['id']
 
+        # add default vnf_instance_name if not specified
+        # format: 'vnf' + <vnf instance id>
+        if 'vnf_instance_name' not in updates or \
+                not updates.get("vnf_instance_name"):
+            updates['vnf_instance_name'] = 'vnf-' + self.id
+            self.vnf_instance_name = updates['vnf_instance_name']
+
         db_vnf_instance = _vnf_instance_create(self._context, updates)
         expected_attrs = ["instantiated_vnf_info"]
         self._from_db_object(self._context, self, db_vnf_instance,
                              expected_attrs=expected_attrs)
 
     @base.remotable
+    @_wrap_object_error
     def save(self):
         context = self._context
 
@@ -263,6 +285,10 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
                 field_list = getattr(self, field)
                 updates[field] = [obj.obj_to_primitive() for obj in field_list]
             elif field in changes:
+                if (field == 'vnf_instance_name' and
+                        not self[field]):
+                    self.vnf_instance_name = 'vnf-' + self.id
+
                 updates[field] = self[field]
 
         expected_attrs = ["instantiated_vnf_info"]
@@ -277,6 +303,15 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
                 self.instantiated_vnf_info.save()
 
     @base.remotable
+    @_wrap_object_error
+    def update_metadata(self, data):
+        _metadata = copy.deepcopy(self['vnf_metadata'])
+        _metadata.update(data)
+        self['vnf_metadata'] = _metadata
+        self.save()
+
+    @base.remotable
+    @_wrap_object_error
     def destroy(self, context):
         if not self.obj_attr_is_set('id'):
             raise exceptions.ObjectActionError(action='destroy',
@@ -293,8 +328,8 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
             'vnf_provider': self.vnf_provider,
             'vnf_product_name': self.vnf_product_name,
             'vnf_software_version': self.vnf_software_version,
-            'vnf_pkg_id': self.vnf_pkg_id,
             'vnfd_version': self.vnfd_version,
+            'vnf_pkg_id': self.vnf_pkg_id,
             'vnf_metadata': self.vnf_metadata}
 
         if (self.instantiation_state == fields.VnfInstanceState.INSTANTIATED

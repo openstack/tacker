@@ -34,6 +34,7 @@ def register_all():
     __import__('tacker.objects.vim_connection')
     __import__('tacker.objects.instantiate_vnf_req')
     __import__('tacker.objects.vnf_resources')
+    __import__('tacker.objects.vnfd')
     __import__('tacker.objects.vnf_lcm_op_occs')
     __import__('tacker.objects.terminate_vnf_req')
     __import__('tacker.objects.vnf_artifact')

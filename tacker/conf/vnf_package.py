@@ -56,7 +56,28 @@ Possible values:
 
 Related options:
     * None
-"""))]
+""")),
+
+    cfg.ListOpt('get_top_list',
+                default=['tosca_definitions_version',
+                    'description', 'metadata'],
+                help=_("List of items to get from top-vnfd")),
+
+    cfg.ListOpt('exclude_node',
+                default=['VNF'],
+                help=_("Exclude node from node_template")),
+
+    cfg.ListOpt('get_lower_list',
+                default=['tosca.nodes.nfv.VNF', 'tosca.nodes.nfv.VDU.Tacker'],
+                help=_("List of types to get from lower-vnfd")),
+
+    cfg.ListOpt('del_input_list',
+                default=['descriptor_id', 'descriptor_version'
+                'provider', 'product_name', 'software_version',
+                'vnfm_info', 'flavour_id', 'flavour_description'],
+                help=_("List of del inputs from lower-vnfd")),
+
+]
 
 vnf_package_group = cfg.OptGroup('vnf_package',
     title='vnf_package options',

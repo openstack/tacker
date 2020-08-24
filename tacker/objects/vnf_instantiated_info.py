@@ -14,6 +14,7 @@
 #    under the License.
 
 from oslo_log import log as logging
+from oslo_utils import timeutils
 
 from tacker.common import exceptions
 from tacker.common import utils
@@ -25,6 +26,17 @@ from tacker.objects import fields
 
 
 LOG = logging.getLogger(__name__)
+
+
+@db_api.context_manager.writer
+def _destroy_instantiated_vnf_info(context, uuid):
+    now = timeutils.utcnow()
+    updated_values = {'deleted': True,
+                      'deleted_at': now
+                      }
+    api.model_query(context, models.VnfInstantiatedInfo). \
+        filter_by(vnf_instance_id=uuid). \
+        update(updated_values, synchronize_session=False)
 
 
 @db_api.context_manager.writer
@@ -374,6 +386,14 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
         self.instance_id = None
         self.vnf_state = fields.VnfOperationalStateType.STOPPED
         self.vnfc_info = []
+
+    @base.remotable
+    def destroy(self, context):
+        if not self.obj_attr_is_set('vnf_instance_id'):
+            raise exceptions.ObjectActionError(action='destroy',
+                                               reason='no uuid')
+
+        _destroy_instantiated_vnf_info(context, self.vnf_instance_id)
 
 
 @base.TackerObjectRegistry.register

@@ -502,9 +502,6 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
 
     @base.remotable
     def create(self):
-        if self.obj_attr_is_set('id'):
-            raise exceptions.ObjectActionError(action='create',
-                                               reason=_('already created'))
         updates = self.obj_get_changes()
 
         if 'id' not in updates:

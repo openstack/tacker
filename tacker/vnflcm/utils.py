@@ -359,15 +359,25 @@ def _create_grant_request(vnfd_dict, package_uuid):
     return vnf_software_images
 
 
-def _make_final_vnf_dict(vnfd_dict, id, name, param_values):
-    return {'vnfd': {
-        'attributes': {
-            'vnfd': str(vnfd_dict)}},
-        'id': id,
-        'name': name,
-        'attributes': {
-            'param_values': str(param_values),
-            'stack_name': name or ("vnflcm_" + id)}}
+def _make_final_vnf_dict(vnfd_dict, id, name, param_values, vnf_dict=None):
+    if vnf_dict:
+        final_vnf_dict = vnf_dict
+        final_vnf_dict['vnfd']['attributes'].\
+            update({'vnfd': str(vnfd_dict)})
+        final_vnf_dict['attributes'].\
+            update({'param_values': str(param_values)})
+        final_vnf_dict['attributes'].\
+            update({'stack_name': name or ("vnflcm_" + id)})
+        return final_vnf_dict
+    else:
+        return {'vnfd': {
+            'attributes': {
+                'vnfd': str(vnfd_dict)}},
+            'id': id,
+            'name': name,
+            'attributes': {
+                'param_values': str(param_values),
+                'stack_name': name or ("vnflcm_" + id)}}
 
 
 def _get_flavour_based_vnfd(csar_path, flavour_id):
@@ -517,6 +527,9 @@ def _build_instantiated_vnf_info(vnfd_dict, instantiate_vnf_req,
     inst_vnf_info.ext_managed_virtual_link_info = \
         _build_ext_managed_virtual_link_info(instantiate_vnf_req,
             inst_vnf_info)
+
+    inst_vnf_info.additional_params = instantiate_vnf_req.additional_params
+
     vnf_instance.instantiated_vnf_info = inst_vnf_info
 
 

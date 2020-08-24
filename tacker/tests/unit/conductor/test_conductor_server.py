@@ -14,31 +14,29 @@
 # limitations under the License.
 
 import base64
+import fixtures
 import json
 import os
+import requests
 import shutil
+import six.moves.urllib.error as urlerr
 import sys
-from unittest import mock
-
-import fixtures
+import tacker.conf
+import yaml
 
 from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
-import requests
 from six.moves import urllib
-import six.moves.urllib.error as urlerr
-import yaml
-
 from tacker import auth
 from tacker.common import coordination
 from tacker.common import csar_utils
 from tacker.common import exceptions
 from tacker.conductor import conductor_server
-import tacker.conf
 from tacker import context
 from tacker.glance_store import store as glance_store
 from tacker import objects
 from tacker.objects import fields
+from tacker.plugins.common import constants
 from tacker.tests.unit import base as unit_base
 from tacker.tests.unit.conductor import fakes
 from tacker.tests.unit.db.base import SqlTestCase
@@ -46,9 +44,14 @@ from tacker.tests.unit.db import utils as db_utils
 from tacker.tests.unit.objects import fakes as fake_obj
 from tacker.tests.unit.vnflcm import fakes as vnflcm_fakes
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import client
+from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import \
+    fixture_data_utils as fd_utils
 import tacker.tests.unit.vnfm.test_nfvo_client as nfvo_client
 from tacker.tests import utils
 from tacker.tests import uuidsentinel
+import unittest
+from unittest import mock
+
 
 CONF = tacker.conf.CONF
 
@@ -254,14 +257,16 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
         return vnf_pack_vnfd_obj
 
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(coordination.Coordinator, 'get_lock')
-    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
     def test_instantiate_vnf_instance(self, mock_vnf_by_id,
-            mock_package_in_use,
-            mock_get_lock,
-            mock_save):
+            mock_get_lock, mock_save, mock_change_vnf_status,
+            mock_update_vnf_attributes):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
             objects.VnfLcmOpOcc(context=self.context,
@@ -270,19 +275,23 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
-        mock_package_in_use.return_value = False
         vnf_instance = objects.VnfInstance(context=self.context,
                                            **vnf_instance_data)
         vnf_instance.create()
         instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
-        self.conductor.instantiate(self.context, vnf_instance,
-                                   instantiate_vnf_req,
-                                   vnf_lcm_op_occs_id)
+        vnf_dict = {"status": "ACTIVE"}
+        self.conductor.instantiate(self.context, vnf_instance, vnf_dict,
+                                   instantiate_vnf_req, vnf_lcm_op_occs_id)
         self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
-            self.context, mock.ANY, instantiate_vnf_req)
-        mock_package_in_use.assert_called_once()
+            self.context, mock.ANY, vnf_dict, instantiate_vnf_req)
+        self.vnflcm_driver._vnf_instance_update.assert_called_once()
+        mock_change_vnf_status. \
+            assert_called_once_with(self.context, vnf_instance.id,
+                                    mock.ANY, 'PENDING_CREATE')
+        mock_update_vnf_attributes.assert_called_once()
 
+    @unittest.skip("Such test is no longer feasible.")
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
@@ -316,6 +325,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             {'id': vnf_instance.id,
              'state': fields.VnfInstanceState.INSTANTIATED})
 
+    @unittest.skip("Such test is no longer feasible.")
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
@@ -351,9 +361,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             self.context, mock.ANY, instantiate_vnf_req)
         mock_vnf_package_in_use.assert_called_once()
 
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(coordination.Coordinator, 'get_lock')
-    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
     @mock.patch.object(objects.LccnSubscriptionRequest,
         'vnf_lcm_subscriptions_get')
     @mock.patch('tacker.conductor.conductor_server.LOG')
@@ -362,7 +375,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     def test_instantiate_vnf_instance_failed_with_exception(
             self, mock_res, mock_vnf_by_id, mock_log,
             mock_vnf_lcm_subscriptions_get,
-            mock_is_package_in_use, mock_get_lock, mock_save):
+            mock_get_lock, mock_save, mock_change_vnf_status,
+            mock_update_vnf_attributes):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
             objects.VnfLcmOpOcc(context=self.context,
@@ -376,38 +390,32 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.create()
         instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        vnf_dict = {"status": "ACTIVE"}
         m_vnf_lcm_subscriptions = \
             [mock.MagicMock(**fakes.get_vnf_lcm_subscriptions())]
         mock_vnf_lcm_subscriptions_get.return_value = \
             m_vnf_lcm_subscriptions
-        mock_is_package_in_use.side_effect = Exception
+        mock_update_vnf_attributes.side_effect = Exception
         mock_res.return_value = {}
-        self.conductor.instantiate(self.context, vnf_instance,
-                                   instantiate_vnf_req,
-                                   vnf_lcm_op_occs_id)
+        self.conductor.instantiate(self.context, vnf_instance, vnf_dict,
+                                   instantiate_vnf_req, vnf_lcm_op_occs_id)
         self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
-            self.context, mock.ANY, instantiate_vnf_req)
-        mock_is_package_in_use.assert_called_once()
-        expected_log = 'Failed to update usage_state of vnf package %s'
-        mock_log.error.assert_called_once_with(expected_log,
-            vnf_package_vnfd.package_uuid)
+            self.context, vnf_instance, vnf_dict, instantiate_vnf_req)
+        mock_change_vnf_status.assert_called_with(self.context,
+            vnf_instance.id, mock.ANY, 'ERROR')
+        mock_update_vnf_attributes.assert_called_once()
 
-    @mock.patch('tacker.conductor.conductor_server.Conductor.'
-                '_send_lcm_op_occ_notification')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._send_lcm_op_occ_notification')
     @mock.patch.object(coordination.Coordinator, 'get_lock')
-    @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
-    def test_terminate_vnf_instance(self, mock_package_in_use,
-                                    mock_get_lock,
-                                    mock_send_notification):
-        vnf_package_vnfd = self._create_and_upload_vnf_package()
-        vnf_instance_data = fake_obj.get_vnf_instance_data(
-            vnf_package_vnfd.vnfd_id)
-        mock_package_in_use.return_value = True
-        vnf_instance_data['instantiation_state'] =\
-            fields.VnfInstanceState.INSTANTIATED
-        vnf_instance = objects.VnfInstance(context=self.context,
-            **vnf_instance_data)
-        vnf_instance.create()
+    def test_terminate_vnf_instance(self, mock_get_lock,
+                                    mock_send_notification,
+                                    mock_change_vnf_status):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+        vnf_instance = fd_utils. \
+            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info)
 
         terminate_vnf_req = objects.TerminateVnfRequest(
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
@@ -415,14 +423,43 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
         self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
-                                 vnf_instance,
-                                 terminate_vnf_req, vnf_dict)
+                                 vnf_instance, terminate_vnf_req, vnf_dict)
 
         self.vnflcm_driver.terminate_vnf.assert_called_once_with(
-            self.context, mock.ANY, terminate_vnf_req,
-            vnf_lcm_op_occs_id)
-        mock_package_in_use.assert_called_once()
+            self.context, vnf_instance, terminate_vnf_req)
+        self.vnflcm_driver._vnf_instance_update.assert_called_once()
+        self.assertEqual(mock_send_notification.call_count, 2)
+        self.assertEqual(mock_change_vnf_status.call_count, 2)
 
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._send_lcm_op_occ_notification')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    def test_terminate_vnf_instance_exception(self, mock_get_lock,
+                                    mock_send_notification,
+                                    mock_change_vnf_status):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+        vnf_instance = fd_utils. \
+            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info)
+
+        mock_send_notification.side_effect = Exception
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
+            additional_params={"key": "value"})
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        try:
+            self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
+                                 vnf_instance, terminate_vnf_req, vnf_dict)
+        except Exception:
+            pass
+        self.vnflcm_driver.terminate_vnf.assert_not_called()
+        mock_change_vnf_status.assert_called_once_with(self.context,
+            vnf_instance.id, mock.ANY, 'ERROR')
+        self.assertEqual(mock_send_notification.call_count, 2)
+
+    @unittest.skip("Such test is no longer feasible.")
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_send_lcm_op_occ_notification')
     @mock.patch.object(coordination.Coordinator, 'get_lock')
@@ -458,6 +495,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                 {'id': vnf_instance.id,
              'state': fields.VnfInstanceState.NOT_INSTANTIATED})
 
+    @unittest.skip("Such test is no longer feasible.")
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_send_lcm_op_occ_notification')
     @mock.patch.object(coordination.Coordinator, 'get_lock')
@@ -489,6 +527,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             vnf_lcm_op_occs_id)
         mock_vnf_package_is_package_in_use.assert_called_once()
 
+    @unittest.skip("Such test is no longer feasible.")
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_send_lcm_op_occ_notification')
     @mock.patch.object(coordination.Coordinator, 'get_lock')
@@ -520,6 +559,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             vnf_lcm_op_occs_id)
         mock_vnf_package_is_package_in_use.assert_called_once()
 
+    @unittest.skip("Such test is no longer feasible.")
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_send_lcm_op_occ_notification')
     @mock.patch.object(coordination.Coordinator, 'get_lock')
@@ -552,11 +592,18 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         mock_log.error.assert_called_once_with(expected_msg,
             vnf_package_vnfd.package_uuid)
 
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_add_additional_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_instantiated_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
     def test_heal_vnf_instance(self, mock_vnf_by_id, mock_get_lock,
-            mock_save):
+            mock_save, mock_change_vnf_status,
+            mock_update_insta_vnf_info, mock_add_additional_vnf_info):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
             objects.VnfLcmOpOcc(context=self.context,
@@ -574,8 +621,50 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_dict = {"fake": "fake_dict"}
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
-        heal_vnf_req, vnf_lcm_op_occs_id)
+                            heal_vnf_req, vnf_lcm_op_occs_id)
+        self.assertEqual(mock_change_vnf_status.call_count, 2)
+        mock_update_insta_vnf_info. \
+            assert_called_once_with(self.context, vnf_instance, heal_vnf_req)
+        mock_add_additional_vnf_info. \
+            assert_called_once_with(self.context, vnf_instance)
 
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_send_lcm_op_occ_notification')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_instantiated_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_add_additional_vnf_info')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch('tacker.conductor.conductor_server.LOG')
+    def test_heal_vnf_instance_exception(self,
+            mock_log, mock_get_lock, mock_add_additional_vnf_info,
+            mock_change_vnf_status, mock_update_insta_vnf_info,
+            mock_send_notification):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.NOT_INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        mock_add_additional_vnf_info.side_effect = Exception
+
+        heal_vnf_req = objects.HealVnfRequest(cause="healing request")
+        vnf_dict = {"fake": "fake_dict"}
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        self.conductor.heal(self.context, vnf_instance, vnf_dict,
+                            heal_vnf_req, vnf_lcm_op_occs_id)
+        mock_change_vnf_status.assert_called_with(self.context,
+            vnf_instance, mock.ANY, constants.ERROR, "")
+        mock_update_insta_vnf_info.assert_called_with(self.context,
+            vnf_instance, heal_vnf_req)
+        self.assertEqual(mock_send_notification.call_count, 2)
+
+    @unittest.skip("Such test is no longer feasible.")
     @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch('tacker.conductor.conductor_server.LOG')
     def test_heal_vnf_instance_already_not_instantiated(self,

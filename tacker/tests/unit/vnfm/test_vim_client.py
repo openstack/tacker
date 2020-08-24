@@ -73,6 +73,7 @@ class TestVIMClient(base.TestCase):
                                                 region_name='TestRegionOne')
             vim_expect = {'vim_auth': {'password': '****'}, 'vim_id': 'aaaa',
                           'vim_name': 'VIM0', 'vim_type': 'test_vim',
+                          'placement_attr': {'regions': ['TestRegionOne']},
                           'tenant': 'test'}
             self.assertEqual(vim_expect, vim_result)
 
@@ -89,6 +90,7 @@ class TestVIMClient(base.TestCase):
                                                 region_name='TestRegionOne')
             vim_expect = {'vim_auth': {'password': '****'}, 'vim_id': 'aaaa',
                           'vim_name': 'aaaa', 'vim_type': 'test_vim',
+                          'placement_attr': {'regions': ['TestRegionOne']},
                           'tenant': 'test'}
             self.assertEqual(vim_expect, vim_result)
 

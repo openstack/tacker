@@ -116,18 +116,11 @@ class ViewBuilder(base.BaseViewBuilder):
 
         return {"_links": _links}
 
-    def _get_vnf_instance_info(self,
-            vnf_instance, api_version=None):
+    def _get_vnf_instance_info(self, vnf_instance):
         vnf_instance_dict = vnf_instance.to_dict()
-        if vnf_instance_dict.get('vim_connection_info'):
-            vnf_instance_dict['vim_connection_info'] = \
-                self._get_vim_conn_info(vnf_instance_dict.get(
-                    'vim_connection_info', []))
-
-        if 'vnf_metadata' in vnf_instance_dict:
-            metadata_val = vnf_instance_dict.pop('vnf_metadata')
-            vnf_instance_dict['metadata'] = metadata_val
-
+        vnf_metadata = vnf_instance_dict.pop("vnf_metadata")
+        if vnf_metadata:
+            vnf_instance_dict.update({"metadata": vnf_metadata})
         vnf_instance_dict = utils.convert_snakecase_to_camelcase(
             vnf_instance_dict)
 
