@@ -600,8 +600,9 @@ class VnfLcmController(wsgi.Controller):
         self._instantiate(context, vnf_instance, vnf, body)
 
     @check_vnf_state(action="terminate",
-        instantiation_state=[fields.VnfInstanceState.INSTANTIATED],
-        task_state=[None])
+                     instantiation_state=[
+                         fields.VnfInstanceState.INSTANTIATED],
+                     task_state=[None])
     def _terminate(self, context, vnf_instance, request_body, vnf):
         req_body = utils.convert_camelcase_to_snakecase(request_body)
         terminate_vnf_req = \
@@ -641,8 +642,9 @@ class VnfLcmController(wsgi.Controller):
         req_body = utils.convert_camelcase_to_snakecase(request_body)
         heal_vnf_request = objects.HealVnfRequest(context=context, **req_body)
         inst_vnf_info = vnf_instance.instantiated_vnf_info
-        vnfc_resource_info_ids = [vnfc_resource_info.id for
-            vnfc_resource_info in inst_vnf_info.vnfc_resource_info]
+        vnfc_resource_info_ids = [
+            vnfc_resource_info.id for vnfc_resource_info in
+            inst_vnf_info.vnfc_resource_info]
 
         for vnfc_id in heal_vnf_request.vnfc_instance_id:
             # check if vnfc_id exists in vnfc_resource_info
@@ -702,7 +704,13 @@ class VnfLcmController(wsgi.Controller):
         context.can(vnf_lcm_policies.VNFLCM % 'update_vnf')
 
         # get body
-        req_body = utils.convert_camelcase_to_snakecase(body)
+        body_data = {}
+        body_data['vnf_instance_name'] = body.get('vnfInstanceName')
+        body_data['vnf_instance_description'] = body.get(
+            'vnfInstanceDescription')
+        body_data['vnfd_id'] = body.get('vnfdId')
+        if (body.get('vnfdId') is None and body.get('vnfPkgId')):
+            body_data['vnf_pkg_id'] = body.get('vnfPkgId')
 
         # According to the ETSI NFV SOL document,
         # there is no API request/response
@@ -725,8 +733,12 @@ class VnfLcmController(wsgi.Controller):
         if (vnf_data.get("status") != fields.VnfStatus.ACTIVE and
                 vnf_data.get("status") != fields.VnfStatus.INACTIVE):
             msg = _("VNF %(id)s status is %(state)s")
-            return self._make_problem_detail(msg % {"id": id,
-                    "state": vnf_data.get("status")}, 409, 'Conflict')
+            return self._make_problem_detail(
+                msg % {
+                    "id": id,
+                    "state": vnf_data.get("status")},
+                409,
+                'Conflict')
 
         try:
             vnf_instance_data = objects.VnfInstanceList.vnf_instance_list(
@@ -739,19 +751,27 @@ class VnfLcmController(wsgi.Controller):
             return self._make_problem_detail(
                 str(e), 500, 'Internal Server Error')
 
-        if req_body['vnfd_id']:
+        vnfd_pkg_data = {}
+        if (body_data.get('vnfd_id') or body_data.get('vnf_pkg_id')):
             try:
                 pkg_obj = objects.VnfPackageVnfd(context=context)
-                vnfd_pkg = pkg_obj.get_vnf_package_vnfd(req_body['vnfd_id'])
+                if (body_data.get('vnfd_id')):
+                    input_id = 'vnfd_id'
+                    vnfd_pkg = pkg_obj.get_vnf_package_vnfd(
+                        body_data[input_id])
+                elif (body_data.get('vnf_pkg_id')):
+                    input_id = 'vnf_pkg_id'
+                    vnfd_pkg = pkg_obj.get_vnf_package_vnfd(
+                        body_data[input_id], package_uuid=True)
                 if not vnfd_pkg:
                     msg = _(
                         "Can not find requested vnf package vnfd: %s") %\
-                        req_body['vnfd_id']
+                        body_data[input_id]
                     return self._make_problem_detail(msg, 400, 'Bad Request')
             except Exception as e:
                 return self._make_problem_detail(
                     str(e), 500, 'Internal Server Error')
-            vnfd_pkg_data = {}
+
             vnfd_pkg_data['vnf_provider'] = vnfd_pkg.get('vnf_provider')
             vnfd_pkg_data['vnf_product_name'] = vnfd_pkg.get(
                 'vnf_product_name')
@@ -759,13 +779,12 @@ class VnfLcmController(wsgi.Controller):
                 'vnf_software_version')
             vnfd_pkg_data['vnfd_version'] = vnfd_pkg.get('vnfd_version')
             vnfd_pkg_data['package_uuid'] = vnfd_pkg.get('package_uuid')
+            vnfd_pkg_data['vnfd_id'] = vnfd_pkg.get('vnfd_id')
 
         # make op_occs_uuid
         op_occs_uuid = uuidutils.generate_uuid()
 
         # process vnf
-        if not req_body['vnfd_id']:
-            vnfd_pkg_data = ""
         vnf_lcm_opoccs = {
             'vnf_instance_id': id,
             'id': op_occs_uuid,
@@ -775,7 +794,7 @@ class VnfLcmController(wsgi.Controller):
         self.rpc_api.update(
             context,
             vnf_lcm_opoccs,
-            req_body,
+            body_data,
             vnfd_pkg_data,
             vnf_data.get('vnfd_id'))
 

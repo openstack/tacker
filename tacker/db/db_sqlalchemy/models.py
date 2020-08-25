@@ -80,6 +80,19 @@ class VnfSoftwareImage(model_base.BASE, models.SoftDeleteMixin,
         return {m.key: m.value for m in self._metadata}
 
 
+class VnfArtifactMetadata(model_base.BASE, models.SoftDeleteMixin,
+                          models.TimestampMixin):
+    """Contains all info about vnf packages artifacts metadata."""
+
+    __tablename__ = 'vnf_artifact_metadata'
+    id = sa.Column(sa.Integer, nullable=False, primary_key=True)
+    artifact_uuid = sa.Column(sa.String(36),
+                              sa.ForeignKey('vnf_artifacts.id'),
+                              nullable=False)
+    key = sa.Column(sa.String(255), nullable=False)
+    value = sa.Column(sa.String(255), nullable=False)
+
+
 class VnfDeploymentFlavour(model_base.BASE, models.SoftDeleteMixin,
                 models.TimestampMixin, models_v1.HasId):
     """Contains all info about vnf packages Deployment Flavours."""
@@ -115,7 +128,9 @@ class VnfPackageVnfd(model_base.BASE, VnfPackageVnfdSoftDeleteMixin,
 
     __tablename__ = 'vnf_package_vnfd'
     __table_args__ = (
-        sa.schema.UniqueConstraint("vnfd_id", "deleted",
+        sa.schema.UniqueConstraint(
+            "vnfd_id",
+            "deleted",
             name="uniq_vnf_package_vnfd0vnfd_id0deleted"),
     )
 
@@ -201,6 +216,7 @@ class VnfInstance(model_base.BASE, models.SoftDeleteMixin,
     task_state = sa.Column(sa.String(255), nullable=True)
     vim_connection_info = sa.Column(sa.JSON(), nullable=True)
     tenant_id = sa.Column('tenant_id', sa.String(length=64), nullable=False)
+    vnf_pkg_id = sa.Column(types.Uuid, nullable=False)
     vnf_metadata = sa.Column(sa.JSON(), nullable=True)
 
 
@@ -211,8 +227,8 @@ class VnfInstantiatedInfo(model_base.BASE, models.SoftDeleteMixin,
     __tablename__ = 'vnf_instantiated_info'
     id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
     vnf_instance_id = sa.Column(sa.String,
-                           sa.ForeignKey('vnf_instances.id'),
-                           nullable=False)
+                            sa.ForeignKey('vnf_instances.id'),
+                            nullable=False)
     flavour_id = sa.Column(sa.String(255), nullable=False)
     ext_cp_info = sa.Column(sa.JSON(), nullable=False)
     ext_virtual_link_info = sa.Column(sa.JSON(), nullable=True)
@@ -226,8 +242,11 @@ class VnfInstantiatedInfo(model_base.BASE, models.SoftDeleteMixin,
     instantiation_level_id = sa.Column(sa.String(255), nullable=True)
     additional_params = sa.Column(sa.JSON(), nullable=True)
 
-    vnf_instance = orm.relationship(VnfInstance,
-        backref=orm.backref('instantiated_vnf_info', uselist=False),
+    vnf_instance = orm.relationship(
+        VnfInstance,
+        backref=orm.backref(
+            'instantiated_vnf_info',
+            uselist=False),
         foreign_keys=vnf_instance_id,
         primaryjoin='and_(VnfInstantiatedInfo.vnf_instance_id == '
         'VnfInstance.id, VnfInstantiatedInfo.deleted == 0)')
@@ -264,8 +283,8 @@ class VnfLcmFilters(model_base.BASE):
     __maxsize__ = 65536
     id = sa.Column(sa.Integer, nullable=True, primary_key=True)
     subscription_uuid = sa.Column(sa.String(36),
-                           sa.ForeignKey('vnf_lcm_subscriptions.id'),
-                           nullable=False)
+                            sa.ForeignKey('vnf_lcm_subscriptions.id'),
+                            nullable=False)
     filter = sa.Column(sa.JSON, nullable=False)
     notification_types = sa.Column(sa.VARBINARY(255), nullable=True)
     notification_types_len = sa.Column(sa.Integer, nullable=True)
