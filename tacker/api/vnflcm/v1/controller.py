@@ -753,25 +753,38 @@ class VnfLcmController(wsgi.Controller):
 
         vnfd_pkg_data = {}
         if (body_data.get('vnfd_id') or body_data.get('vnf_pkg_id')):
+            pkg_obj = objects.VnfPackageVnfd(context=context)
             try:
-                pkg_obj = objects.VnfPackageVnfd(context=context)
-                if (body_data.get('vnfd_id')):
+                if (body.get('vnfdId')):
                     input_id = 'vnfd_id'
+                    filter_id = 'vnfdId'
                     vnfd_pkg = pkg_obj.get_vnf_package_vnfd(
                         body_data[input_id])
                 elif (body_data.get('vnf_pkg_id')):
                     input_id = 'vnf_pkg_id'
+                    filter_id = 'id'
                     vnfd_pkg = pkg_obj.get_vnf_package_vnfd(
                         body_data[input_id], package_uuid=True)
-                if not vnfd_pkg:
+            except exceptions.VnfPackageVnfdNotFound:
+                vnf_package_info = self._find_vnf_package_info(filter_id,
+                    body_data[input_id])
+                if not vnf_package_info:
                     msg = _(
                         "Can not find requested vnf package vnfd: %s") %\
                         body_data[input_id]
-                    return self._make_problem_detail(msg, 400, 'Bad Request')
-            except Exception as e:
-                return self._make_problem_detail(
-                    str(e), 500, 'Internal Server Error')
+                    return self._make_problem_detail(msg, 400,
+                    'Bad Request')
 
+                vnfd_pkg = sync_resource.SyncVnfPackage.create_package(
+                    context, vnf_package_info)
+
+                if not vnfd_pkg:
+                    msg = (
+                        _("Can not find requested to NFVO,\
+                        vnf package vnfd: %s") %
+                        body_data[input_id])
+                    return self._make_problem_detail(
+                        msg, 500, 'Internal Server Error')
             vnfd_pkg_data['vnf_provider'] = vnfd_pkg.get('vnf_provider')
             vnfd_pkg_data['vnf_product_name'] = vnfd_pkg.get(
                 'vnf_product_name')
