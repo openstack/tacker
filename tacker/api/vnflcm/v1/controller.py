@@ -455,7 +455,7 @@ class VnfLcmController(wsgi.Controller):
                     'vnfInstance': {
                         'href': self._get_vnf_instance_href(vnf_instance)}}}
 
-            # call sendNotification
+            # call send_notification
             self.rpc_api.send_notification(context, notification)
 
             result = self._view_builder.create(vnf_instance)

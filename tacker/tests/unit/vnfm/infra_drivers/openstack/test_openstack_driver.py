@@ -23,8 +23,12 @@ import ddt
 import requests
 import yaml
 
+from heatclient.v1 import resources
+from oslo_serialization import jsonutils
 from tacker.common import exceptions
+from tacker.common import utils as cutils
 from tacker import context
+from tacker.db.db_sqlalchemy import models
 from tacker.extensions import vnfm
 from tacker import objects
 from tacker.tests.common import helpers
@@ -37,6 +41,21 @@ from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import \
 from tacker.tests import uuidsentinel
 from tacker.vnfm.infra_drivers.openstack import heat_client as hc
 from tacker.vnfm.infra_drivers.openstack import openstack
+
+
+vnf_dict = {
+    'instance_id': 'd1121d3c-368b-4ac2-b39d-835aa3e4ccd8'
+}
+
+
+class FakeAlarmPlugin():
+    def add_alarm_url_to_vnf(self, context, vnf):
+        return
+
+
+class FakePlugin():
+    def get_vnf(self, context, id):
+        return vnf_dict
 
 
 @ddt.ddt
@@ -144,7 +163,8 @@ class TestOpenStack(base.FixturedTestCase):
                            mock_get_base_hot_dict,
                            mock_get_vnflcm_interface,
                            mock_format_base_hot):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
@@ -156,7 +176,7 @@ class TestOpenStack(base.FixturedTestCase):
             'instantiate_vnf_request_lcm_userdata.json')
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
-        inst_req_info_test.flavour_id = test_json['flavourId']
+        inst_req_info_test.flavour_id = 'simple'
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
@@ -164,6 +184,105 @@ class TestOpenStack(base.FixturedTestCase):
         mock_get_base_hot_dict.return_value = \
             self._read_file(), nested_hot_dict
         vnf_instance = fd_utils.get_vnf_instance_object()
+        self.openstack.create(self.plugin, self.context, vnf,
+                self.auth_attr, inst_req_info=inst_req_info_test,
+                vnf_package_path=vnf_package_path_test,
+                base_hot_dict=base_hot_dict_test,
+                grant_info=grant_info_test,
+                vnf_instance=vnf_instance)
+
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
+                '.OpenStack._format_base_hot')
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_grant(self, mock_OpenstackClients_heat,
+                          mock_get_base_hot_dict,
+                          mock_format_base_hot):
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        base_hot_dict_test = self._read_file()
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = 'simple'
+        vnf_resource = type('', (), {})
+        vnf_resource.resource_identifier = constants.INVALID_UUID
+        grant_info_test = {'vdu_name': {vnf_resource}}
+        nested_hot_dict = {'parameters': {'vnf': 'test'}}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vimAssets = {'compute_resource_flavours': [
+            {'vim_connection_id': uuidsentinel.vim_id,
+             'vnfd_virtual_compute_desc_id': 'VDU1',
+             'vim_flavour_id': 'm1.tiny'}],
+            'softwareImages': [
+            {'vim_connection_id': uuidsentinel.vim_id,
+             'vnfd_software_image_id': 'VDU1',
+             'vim_software_image_id': 'cirros'}]}
+        resAddResource = []
+        resource = {
+            'resource_definition_id': '2c6e5cc7-240d-4458-a683-1fe648351280',
+            'vim_connection_id': uuidsentinel.vim_id,
+            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        resource = {
+            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            'vim_connection_id': uuidsentinel.vim_id,
+            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        resource = {
+            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa0',
+            'vim_connection_id': uuidsentinel.vim_id,
+            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        resource = {
+            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa1',
+            'vim_connection_id': uuidsentinel.vim_id,
+            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        zone = {
+            'id': '5e4da3c3-4a55-412a-b624-843921f8b51d',
+            'zone_id': 'nova',
+            'vim_connection_id': uuidsentinel.vim_id}
+        vim_obj = {'id': '0b9c66bb-9e1f-4bb2-92c3-913074e52e2b',
+                   'vim_id': uuidsentinel.vim_id,
+                   'vim_type': 'openstack',
+                   'access_info': {
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'region': 'test_region',
+                       'tenant': uuidsentinel.tenant}}
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnf_instance_id'] = uuidsentinel.vnf_instance_id
+        grant_dict['vnf_lcm_op_occ_id'] = uuidsentinel.vnf_lcm_op_occ_id
+        grant_dict['add_resources'] = []
+        grant_dict['add_resources'].extend(resAddResource)
+        grant_dict['vim_assets'] = vimAssets
+        grant_dict['zones'] = [zone]
+        grant_dict['vim_connections'] = [vim_obj]
+        grant_obj = objects.Grant.obj_from_primitive(
+            grant_dict, context=self.context)
+        vnf['grant'] = grant_obj
+        vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf_instance.instantiated_vnf_info.reinitialize()
+        vnfc_obj = objects.VnfcResourceInfo()
+        vnfc_obj.id = '2c6e5cc7-240d-4458-a683-1fe648351280'
+        vnfc_obj.vdu_id = 'VDU1'
+        vnfc_obj.storage_resource_ids = \
+            ['faf14707-da7c-4eec-be99-8099fa1e9fa0']
+        compute_resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce2')
+        vnfc_obj.compute_resource = compute_resource
+        vnf_instance.instantiated_vnf_info.vnfc_resource_info = [vnfc_obj]
         self.openstack.create(self.plugin, self.context, vnf,
                 self.auth_attr, inst_req_info=inst_req_info_test,
                 vnf_package_path=vnf_package_path_test,
@@ -236,7 +355,8 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_userdata_null(self, mock_OpenstackClients_heat,
                                   mock_get_base_hot_dict):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
@@ -251,7 +371,7 @@ class TestOpenStack(base.FixturedTestCase):
 
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
-        inst_req_info_test.flavour_id = test_json['flavourId']
+        inst_req_info_test.flavour_id = 'simple'
         grant_info_test = None
         nested_hot_dict = {'test': 'test'}
         mock_get_base_hot_dict.return_value = \
@@ -270,7 +390,8 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_userdataclass_null(self, mock_OpenstackClients_heat,
                                        mock_get_base_hot_dict):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
@@ -285,7 +406,7 @@ class TestOpenStack(base.FixturedTestCase):
 
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
-        inst_req_info_test.flavour_id = test_json['flavourId']
+        inst_req_info_test.flavour_id = 'simple'
         grant_info_test = None
         nested_hot_dict = {'test': 'test'}
         mock_get_base_hot_dict.return_value = \
@@ -304,7 +425,8 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_import_module_exception(self, mock_OpenstackClients_heat,
                                             mock_get_base_hot_dict):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
@@ -316,7 +438,7 @@ class TestOpenStack(base.FixturedTestCase):
             'instantiate_vnf_request_lcm_userdata.json')
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
-        inst_req_info_test.flavour_id = test_json['flavourId']
+        inst_req_info_test.flavour_id = 'simple'
         grant_info_test = None
         nested_hot_dict = {'test': 'test'}
         mock_get_base_hot_dict.return_value = \
@@ -337,7 +459,8 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_getattr_none(self, mock_OpenstackClients_heat,
                                  mock_get_base_hot_dict):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
@@ -370,7 +493,8 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_missing_file(self, mock_OpenstackClients_heat,
                                  mock_get_base_hot_dict):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
@@ -382,7 +506,7 @@ class TestOpenStack(base.FixturedTestCase):
             'instantiate_vnf_request_lcm_userdata.json')
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
-        inst_req_info_test.flavour_id = test_json['flavourId']
+        inst_req_info_test.flavour_id = 'simple'
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
@@ -403,7 +527,8 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_return_none_dict(self, mock_OpenstackClients_heat,
                                      mock_get_base_hot_dict):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
@@ -417,7 +542,7 @@ class TestOpenStack(base.FixturedTestCase):
             'UserData/lcm_user_data_non_dict.py'
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
-        inst_req_info_test.flavour_id = test_json['flavourId']
+        inst_req_info_test.flavour_id = 'simple'
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
@@ -438,7 +563,8 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_none_base_hot_dict(self, mock_OpenstackClients_heat,
                                        mock_get_base_hot_dict):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
@@ -465,7 +591,8 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_invalid_user_data(self, mock_OpenstackClients_heat,
                                       mock_get_base_hot_dict):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
@@ -481,7 +608,7 @@ class TestOpenStack(base.FixturedTestCase):
 
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
-        inst_req_info_test.flavour_id = test_json['flavourId']
+        inst_req_info_test.flavour_id = 'simple'
         grant_info_test = None
         nested_hot_dict = {'test': 'test'}
         mock_get_base_hot_dict.return_value = \
@@ -501,7 +628,8 @@ class TestOpenStack(base.FixturedTestCase):
     def test_create_invalid_user_data_class(self,
             mock_OpenstackClients_heat,
             mock_get_base_hot_dict):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
@@ -517,7 +645,7 @@ class TestOpenStack(base.FixturedTestCase):
 
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
-        inst_req_info_test.flavour_id = test_json['flavourId']
+        inst_req_info_test.flavour_id = 'simple'
         grant_info_test = None
         nested_hot_dict = {'test': 'test'}
         mock_get_base_hot_dict.return_value = \
@@ -536,7 +664,8 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_lcm_user_data_and_user_data_class_no_value(self,
             mock_OpenstackClients_heat, mock_get_base_hot_dict):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
@@ -553,7 +682,7 @@ class TestOpenStack(base.FixturedTestCase):
 
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = test_json['extVirtualLinks']
-        inst_req_info_test.flavour_id = test_json['flavourId']
+        inst_req_info_test.flavour_id = 'simple'
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
@@ -620,7 +749,8 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_instance_exception(self, mock_OpenstackClients_heat,
                                        mock_get_base_hot_dict):
-        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
@@ -634,7 +764,7 @@ class TestOpenStack(base.FixturedTestCase):
             'UserData/lcm_user_data_invalid_script.py'
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
-        inst_req_info_test.flavour_id = test_json['flavourId']
+        inst_req_info_test.flavour_id = 'simple'
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
@@ -1633,3 +1763,190 @@ class TestOpenStack(base.FixturedTestCase):
                         "stack_id %s") % (vnf_instance.id,
                         uuidsentinel.stack_id)
         self.assertEqual(expected_msg, str(result))
+
+    def test_get_grant_resource_scale_out(self):
+        vnfc_resource_info = fd_utils.get_vnfc_resource_info()
+
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info(
+            vnfc_resource_info=[vnfc_resource_info])
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+        scale_vnf_request = objects.ScaleVnfRequest(type='SCALE_OUT',
+                                                   aspect_id='SP1',
+                                                   number_of_steps=1)
+        test_res = '[{"id_type": "RES_MGMT", "resource_id": ' + \
+            '"2c6e5cc7-240d-4458-a683-1fe648351200",' + \
+            ' "vim_connection_id": ' + \
+            '"2a63bee3-0c43-4568-bcfa-b0cb733e064c"}]'
+        placemnt = models.PlacementConstraint(
+            id='c2947d8a-2c67-4e8f-ad6f-c0889b351c17',
+            vnf_instance_id=uuidsentinel.vnf_instance_id,
+            affinity_or_anti_affinity='ANTI_AFFINITY',
+            scope='ZONE',
+            server_group_name='my_compute_placement_policy',
+            resource=test_res)
+        placement_obj_list = [placemnt]
+        del_list = []
+        vnf_info = {}
+        vnf_info['attributes'] = {}
+        vnf_info['attributes']['scale_group'] = '{\"scaleGroupDict\": ' + \
+            '{ \"SP1\": { \"vdu\": [\"VDU1\"], \"num\": ' + \
+            '1, \"maxLevel\": 3, \"initialNum\": 0, ' + \
+            '\"initialLevel\": 0, \"default\": 0 }}}'
+        vnf_info['attributes']['heat_template'] = utils.\
+            get_dummy_scale_grant_hot()
+        vnf_info['attributes']['SP1_res.yaml'] = utils.\
+            get_dummy_scale_nest_grant_hot()
+        self.openstack.get_grant_resource(
+            vnf_instance,
+            vnf_info,
+            scale_vnf_request,
+            placement_obj_list,
+            vim_connection_info,
+            del_list)
+        self.assertEqual(1, len(vnf_info['placement_constraint_list']))
+
+    @mock.patch.object(hc.HeatClient, "resource_get_list")
+    def test_get_grant_resource_scale_in(self, mock_list):
+        v_s_resource_info = fd_utils.get_virtual_storage_resource_info(
+            desc_id="storage1", set_resource_id=False)
+
+        storage_resource_ids = [v_s_resource_info.id]
+        vnfc_resource_info = fd_utils.get_vnfc_resource_info(vdu_id="VDU_VNF",
+            storage_resource_ids=storage_resource_ids, set_resource_id=False)
+
+        v_l_resource_info = fd_utils.get_virtual_link_resource_info(
+            vnfc_resource_info.vnfc_cp_info[0].vnf_link_port_id,
+            vnfc_resource_info.vnfc_cp_info[0].id)
+
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info(
+            virtual_storage_resource_info=[v_s_resource_info],
+            vnf_virtual_link_resource_info=[v_l_resource_info],
+            vnfc_resource_info=[vnfc_resource_info])
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+        scale_vnf_request = objects.ScaleVnfRequest(type='SCALE_IN',
+                                                   aspect_id='SP1',
+                                                   number_of_steps=1)
+        placement_obj_list = []
+        del_list = ['58337c61-3148-4c29-892f-68b043c009ea']
+        vnf_info = {}
+        res_list = []
+        vdu_id = uuidsentinel.vdu_resource_id
+        vnf_instance.instantiated_vnf_info.vnfc_resource_info[0].\
+            compute_resource.resource_id = vdu_id
+        resource2 = resources.Resource(None, {
+            'resource_name': 'aaaaaaaa',
+            'resource_type': 'OS::Nova::Server',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': vdu_id,
+            'id': '1111'
+        })
+        res_list.append(resource2)
+        port_id = uuidsentinel.virtual_link_port_resource_id
+        vnf_instance.instantiated_vnf_info.vnf_virtual_link_resource_info[
+            0].vnf_link_ports[0].resource_handle.resource_id = port_id
+        resource3 = resources.Resource(None, {
+            'resource_name': 'bbbbbbbb',
+            'resource_type': 'OS::Neutron::Port',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': port_id,
+            'id': '1111'
+        })
+        res_list.append(resource3)
+        st_id = uuidsentinel.vdu_resource_id
+        vnf_instance.instantiated_vnf_info.virtual_storage_resource_info[
+            0].storage_resource.resource_id = st_id
+        resource4 = resources.Resource(None, {
+            'resource_name': 'cccccccc',
+            'resource_type': 'OS::Cinder::Volume',
+            'creation_time': '2020-01-01T00:00:01',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': st_id,
+            'id': '1111'
+        })
+        res_list.append(resource4)
+        mock_list.return_value = res_list
+        self.openstack.get_grant_resource(
+            vnf_instance,
+            vnf_info,
+            scale_vnf_request,
+            placement_obj_list,
+            vim_connection_info,
+            del_list)
+        self.assertEqual(3, len(vnf_info['removeResources']))
+
+    @mock.patch.object(hc.HeatClient, "update")
+    def test_scale_out_initial(self, mock_update):
+        scale_vnf_request = objects.ScaleVnfRequest(type='SCALE_OUT',
+                                                   aspect_id='SP1',
+                                                   number_of_steps=1)
+        vnf_info = {}
+        vnf_info['attributes'] = {}
+        vnf_info['attributes']['scale_group'] = '{\"scaleGroupDict\": ' + \
+            '{ \"SP1\": { \"vdu\": [\"VDU1\"], \"num\": ' + \
+            '1, \"maxLevel\": 3, \"initialNum\": 0, ' + \
+            '\"initialLevel\": 0, \"default\": 0 }}}'
+        vnf_info['attributes']['heat_template'] = \
+            utils.get_dummy_scale_initial_hot()
+        vnf_info['attributes']['SP1_res.yaml'] = \
+            utils.get_dummy_scale_nest_initial_hot()
+        stack_param_dict = {}
+        stack_param_dict['nfv'] = {}
+        stack_param_dict['nfv']['VDU'] = {}
+        stack_param_dict['nfv']['VDU']['VDU1'] = {}
+        stack_param_dict['nfv']['VDU']['VDU1']['zone'] = ''
+        stack_param_dict['nfv']['VDU']['VDU1']['flavor'] = ''
+        stack_param_dict['nfv']['VDU']['VDU1']['image'] = ''
+        vnf_info['attributes'].update({'stack_param': str(stack_param_dict)})
+        vnf_info['instance_id'] = uuidsentinel.stack_id
+        testjson = '{"id": "c213e465-8220-487e-9464-f79104e81e96", ' + \
+            '"vnf_instance_id": ' + \
+            '"47101fb6-bd18-4e04-b2b5-22370a023448", ' + \
+            '"vnf_lcm_op_occ_id": ' + \
+            '"f26f181d-7891-4720-b022-b074ec1733ef", ' + \
+            '"add_resources": [{"resource_definition_id": ' + \
+            '"2c6e5cc7-240d-4458-a683-1fe648351280", ' + \
+            '"vim_connection_id": ' + \
+            '"b6eacd1b-5a9e-41ea-a33b-9d7196cd9187", ' + \
+            '"zone_id": "5e4da3c3-4a55-412a-b624-843921f8b51d"}' + \
+            ', {"resource_definition_id": ' + \
+            '"faf14707-da7c-4eec-be99-8099fa1e9fa9", ' + \
+            '"vim_connection_id": ' + \
+            '"b6eacd1b-5a9e-41ea-a33b-9d7196cd9187", ' + \
+            '"zone_id": "5e4da3c3-4a55-412a-b624-843921f8b51d"}' + \
+            ', {"resource_definition_id": ' + \
+            '"faf14707-da7c-4eec-be99-8099fa1e9fa9", ' + \
+            '"vim_connection_id": ' + \
+            '"b6eacd1b-5a9e-41ea-a33b-9d7196cd9187", ' + \
+            '"zone_id": ' + \
+            '"5e4da3c3-4a55-412a-b624-843921f8b51d"}], ' + \
+            '"vim_assets": {"compute_resource_flavours": ' + \
+            '[{"vim_connection_id": ' + \
+            '"b6eacd1b-5a9e-41ea-a33b-9d7196cd9187", ' + \
+            '"vnfd_virtual_compute_desc_id": "VDU1", ' + \
+            '"vim_flavour_id": "m1.tiny"}], "software_images": ' + \
+            '[{"vim_connection_id": ' + \
+            '"b6eacd1b-5a9e-41ea-a33b-9d7196cd9187", ' + \
+            '"vnfd_software_image_id": "VDU1", ' + \
+            '"vim_software_image_id": "cirros"}]}}'
+        res_body = jsonutils.loads(testjson)
+        res_dict = cutils.convert_camelcase_to_snakecase(res_body)
+        grant_obj = objects.Grant.obj_from_primitive(
+            res_dict, context=context)
+        vnf_info['grant'] = grant_obj
+        self.openstack.scale_out_initial(context=self.context,
+                                plugin=self,
+                                auth_attr=None,
+                                vnf_info=vnf_info,
+                                scale_vnf_request=scale_vnf_request,
+                                region_name=None
+                                         )

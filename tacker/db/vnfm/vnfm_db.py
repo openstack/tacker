@@ -18,6 +18,7 @@ from datetime import datetime
 
 from oslo_db.exception import DBDuplicateEntry
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
@@ -29,9 +30,11 @@ from sqlalchemy import schema
 from tacker._i18n import _
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
+import tacker.conf
 from tacker import context as t_context
 from tacker.db.common_services import common_services_db_plugin
 from tacker.db import db_base
+from tacker.db.db_sqlalchemy import models
 from tacker.db import model_base
 from tacker.db import models_v1
 from tacker.db.nfvo import ns_db
@@ -39,6 +42,8 @@ from tacker.db import types
 from tacker.extensions import vnfm
 from tacker import manager
 from tacker.plugins.common import constants
+
+CONF = tacker.conf.CONF
 
 LOG = logging.getLogger(__name__)
 _ACTIVE_UPDATE = (constants.ACTIVE, constants.PENDING_UPDATE,
@@ -812,3 +817,51 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             constants.ERROR]
         return self._mark_vnf_status(
             vnf_id, exclude_status, constants.DEAD)
+
+    def create_placement_constraint(self, context, placement_obj_list):
+        context.session.add_all(placement_obj_list)
+
+    def get_placement_constraint(self, context, vnf_instance_id):
+        placement_constraint = (
+            self._model_query(context, models.PlacementConstraint).filter(
+                models.PlacementConstraint.vnf_instance_id == vnf_instance_id).
+            filter(models.PlacementConstraint.deleted == 0).all())
+        return placement_constraint
+
+    def update_placement_constraint_heal(self, context,
+                                         vnf_info,
+                                         vnf_instance):
+        if not vnf_info.get('grant'):
+            return
+        placement_obj_list = vnf_info['placement_obj_list']
+        inst_info = vnf_instance.instantiated_vnf_info
+        for vnfc in inst_info.vnfc_resource_info:
+            for placement_obj in placement_obj_list:
+                rsc_dict = jsonutils.loads(placement_obj.resource)
+                for rsc in rsc_dict:
+                    if vnfc.id == rsc.get('resource_id') and\
+                       rsc.get('id_type') == 'GRANT':
+                        rsc['id_type'] = 'RES_MGMT'
+                        rsc['resource_id'] = vnfc.\
+                            compute_resource.resource_id
+                        rsc['vim_connection_id'] = vnfc.\
+                            compute_resource.vim_connection_id
+                placement_obj.resource = jsonutils.dumps(rsc_dict)
+                self.update_placement_constraint(context, placement_obj)
+
+    def delete_placement_constraint(self, context, vnf_instance_id):
+        (self._model_query(context, models.PlacementConstraint).
+            filter(
+                models.PlacementConstraint.vnf_instance_id == vnf_instance_id).
+            filter(models.PlacementConstraint.deleted == 0).
+            update({'deleted': 0, 'deleted_at': timeutils.utcnow()}))
+
+    def update_placement_constraint(self, context, placement_obj):
+        (self._model_query(
+            context,
+            models.PlacementConstraint).filter(
+                models.PlacementConstraint.id == placement_obj.id).
+            filter(models.PlacementConstraint.deleted == 0).
+            update({
+                'resource': placement_obj.resource,
+                'updated_at': timeutils.utcnow()}))

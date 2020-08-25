@@ -18,6 +18,7 @@ from unittest import mock
 from unittest.mock import patch
 
 import ddt
+import iso8601
 from oslo_utils import uuidutils
 import yaml
 
@@ -25,12 +26,15 @@ from tacker._i18n import _
 from tacker.common import exceptions
 from tacker import context
 from tacker.db.common_services import common_services_db_plugin
+from tacker.db.db_sqlalchemy import models
 from tacker.db.nfvo import nfvo_db
 from tacker.db.nfvo import ns_db
 from tacker.db.vnfm import vnfm_db
 from tacker.extensions import vnfm
+from tacker import objects
 from tacker.objects import heal_vnf_request
 from tacker.plugins.common import constants
+from tacker.tests.unit.conductor import fakes
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.db import utils
 from tacker.vnfm import monitor
@@ -1160,3 +1164,165 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         mock_get_vnf.return_value = dummy_vnf
         self._test_create_vnf_trigger(policy_name="start_actions",
                                       action_value="SP_RSV-out")
+
+    def test_create_placement_constraint(self):
+        res_str = '[{"id_type": "RES_MGMT", "resource_id": ' + \
+            '"2c6e5cc7-240d-4458-a683-1fe648351200", ' + \
+            '"vim_connection_id": ' + \
+            '"2a63bee3-0c43-4568-bcfa-b0cb733e064c"}]'
+        placemnt = models.PlacementConstraint(
+            id='c2947d8a-2c67-4e8f-ad6f-c0889b351c17',
+            vnf_instance_id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
+            affinity_or_anti_affinity='ANTI_AFFINITY',
+            scope='ZONE',
+            server_group_name='my_compute_placement_policy',
+            resource=res_str,
+            deleted_at=datetime.min)
+        pls_list = [placemnt]
+        vnf_inst = models.VnfInstance(
+            id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
+            vnf_provider=' ',
+            vnf_product_name=' ',
+            vnf_software_version=' ',
+            vnfd_version=' ',
+            vnfd_id='8d86480e-d4e6-4ee0-ba4d-08217118d6cb',
+            instantiation_state=' ',
+            tenant_id='9b3f0518-bf6b-4982-af32-d282ce577c8f',
+            created_at=datetime(
+                2020, 1, 1, 1, 1, 1,
+                tzinfo=iso8601.UTC),
+            vnf_pkg_id=uuidutils.generate_uuid())
+        self.context.session.add(vnf_inst)
+        self.context.session.flush()
+
+        self.vnfm_plugin.create_placement_constraint(
+            self.context, pls_list)
+
+    def test_get_placement_constraint(self):
+        res_str = '[{"id_type": "RES_MGMT", "resource_id": ' + \
+            '"2c6e5cc7-240d-4458-a683-1fe648351200", ' + \
+            '"vim_connection_id": ' + \
+            '"2a63bee3-0c43-4568-bcfa-b0cb733e064c"}]'
+        placemnt = models.PlacementConstraint(
+            id='c2947d8a-2c67-4e8f-ad6f-c0889b351c17',
+            vnf_instance_id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
+            affinity_or_anti_affinity='ANTI_AFFINITY',
+            scope='ZONE',
+            server_group_name='my_compute_placement_policy',
+            resource=res_str,
+            deleted_at=datetime.min)
+        vnf_inst = models.VnfInstance(
+            id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
+            vnf_provider=' ',
+            vnf_product_name=' ',
+            vnf_software_version=' ',
+            vnfd_version=' ',
+            vnfd_id='8d86480e-d4e6-4ee0-ba4d-08217118d6cb',
+            instantiation_state=' ',
+            tenant_id='9b3f0518-bf6b-4982-af32-d282ce577c8f',
+            created_at=datetime(
+                2020, 1, 1, 1, 1, 1,
+                tzinfo=iso8601.UTC),
+            vnf_pkg_id=uuidutils.generate_uuid())
+        self.context.session.add(vnf_inst)
+        self.context.session.flush()
+        self.context.session.add(placemnt)
+        self.context.session.flush()
+
+        res = self.vnfm_plugin.get_placement_constraint(
+            self.context, '7ddc38c3-a116-48b0-bfc1-68d7f306f467')
+        self.assertEqual(1, len(res))
+
+    def test_update_placement_constraint_heal(self):
+        res_str = '[{"id_type": "RES_MGMT", "resource_id": ' + \
+            '"2c6e5cc7-240d-4458-a683-1fe648351200", ' + \
+            '"vim_connection_id": ' + \
+            '"2a63bee3-0c43-4568-bcfa-b0cb733e064c"}]'
+        placemnt = models.PlacementConstraint(
+            id='c2947d8a-2c67-4e8f-ad6f-c0889b351c17',
+            vnf_instance_id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
+            affinity_or_anti_affinity='ANTI_AFFINITY',
+            scope='ZONE',
+            server_group_name='my_compute_placement_policy',
+            resource=res_str,
+            deleted_at=datetime.min)
+        res_str2 = '[{"id_type": "GRANT", "resource_id": ' + \
+            '"4cef1b7e-8e5f-430e-b32e-a7585a61d61c"}]'
+        placemnt2 = models.PlacementConstraint(
+            id='c2947d8a-2c67-4e8f-ad6f-c0889b351c17',
+            vnf_instance_id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
+            affinity_or_anti_affinity='ANTI_AFFINITY',
+            scope='ZONE',
+            server_group_name='my_compute_placement_policy',
+            resource=res_str2,
+            deleted_at=datetime.min)
+        vnf_inst = models.VnfInstance(
+            id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
+            vnf_provider=' ',
+            vnf_product_name=' ',
+            vnf_software_version=' ',
+            vnfd_version=' ',
+            vnfd_id='8d86480e-d4e6-4ee0-ba4d-08217118d6cb',
+            instantiation_state=' ',
+            tenant_id='9b3f0518-bf6b-4982-af32-d282ce577c8f',
+            created_at=datetime(
+                2020, 1, 1, 1, 1, 1,
+                tzinfo=iso8601.UTC),
+            vnf_pkg_id=uuidutils.generate_uuid())
+        self.context.session.add(vnf_inst)
+        self.context.session.flush()
+        self.context.session.add(placemnt)
+        self.context.session.flush()
+
+        vnf_info = {}
+        vnf_info['grant'] = objects.Grant()
+        placement_obj_list = []
+        placement_obj_list.append(placemnt2)
+        vnf_info['placement_obj_list'] = placement_obj_list
+
+        insta = fakes.return_vnf_instance('INSTANTIATED')
+        vnfc = objects.VnfcResourceInfo()
+        vnfc.id = '4cef1b7e-8e5f-430e-b32e-a7585a61d61c'
+        vnfc.vdu_id = 'VDU1'
+        c_rsc = objects.ResourceHandle()
+        c_rsc.vim_connection_id = '2a63bee3-0c43-4568-bcfa-b0cb733e064c'
+        c_rsc.resource_id = '9aa1e075-2aa1-46ce-a27a-35a581190219'
+        vnfc.compute_resource = c_rsc
+        insta.instantiated_vnf_info.vnfc_resource_info.append(vnfc)
+
+        self.vnfm_plugin.update_placement_constraint_heal(
+            self.context, vnf_info, insta)
+
+    def test_delete_placement_constraint(self):
+        res_str = '[{"id_type": "RES_MGMT", "resource_id": ' + \
+            '"2c6e5cc7-240d-4458-a683-1fe648351200", ' + \
+            '"vim_connection_id": ' + \
+            '"2a63bee3-0c43-4568-bcfa-b0cb733e064c"}]'
+        placemnt = models.PlacementConstraint(
+            id='c2947d8a-2c67-4e8f-ad6f-c0889b351c17',
+            vnf_instance_id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
+            affinity_or_anti_affinity='ANTI_AFFINITY',
+            scope='ZONE',
+            server_group_name='my_compute_placement_policy',
+            resource=res_str,
+            deleted_at=datetime.min)
+        vnf_inst = models.VnfInstance(
+            id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
+            vnf_provider=' ',
+            vnf_product_name=' ',
+            vnf_software_version=' ',
+            vnfd_version=' ',
+            vnfd_id='8d86480e-d4e6-4ee0-ba4d-08217118d6cb',
+            instantiation_state=' ',
+            tenant_id='9b3f0518-bf6b-4982-af32-d282ce577c8f',
+            created_at=datetime(
+                2020, 1, 1, 1, 1, 1,
+                tzinfo=iso8601.UTC),
+            vnf_pkg_id=uuidutils.generate_uuid())
+        self.context.session.add(vnf_inst)
+        self.context.session.flush()
+        self.context.session.add(placemnt)
+        self.context.session.flush()
+
+        self.vnfm_plugin.delete_placement_constraint(
+            self.context, '7ddc38c3-a116-48b0-bfc1-68d7f306f467')

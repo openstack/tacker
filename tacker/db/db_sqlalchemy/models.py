@@ -301,7 +301,7 @@ class VnfLcmOpOccs(model_base.BASE, models.SoftDeleteMixin,
     """VNF LCM OP OCCS Fields"""
 
     __tablename__ = 'vnf_lcm_op_occs'
-    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
+    id = sa.Column(sa.String(16), primary_key=True)
     vnf_instance_id = sa.Column(sa.String(36),
                                 sa.ForeignKey('vnf_instances.id'),
                                 nullable=False)
@@ -316,3 +316,17 @@ class VnfLcmOpOccs(model_base.BASE, models.SoftDeleteMixin,
     resource_changes = sa.Column(sa.JSON(), nullable=True)
     changed_info = sa.Column(sa.JSON(), nullable=True)
     error_point = sa.Column(sa.Integer, nullable=False)
+
+
+class PlacementConstraint(model_base.BASE, models.SoftDeleteMixin,
+                models.TimestampMixin, models_v1.HasId):
+    """Represents a Vnf Placement Constraint."""
+
+    __tablename__ = 'placement_constraint'
+    vnf_instance_id = sa.Column(sa.String(36),
+                                sa.ForeignKey('vnf_instances.id'),
+                                nullable=False)
+    affinity_or_anti_affinity = sa.Column(sa.String(255), nullable=False)
+    scope = sa.Column(sa.String(255), nullable=False)
+    server_group_name = sa.Column(sa.String(255), nullable=False)
+    resource = sa.Column(sa.JSON(), nullable=True)

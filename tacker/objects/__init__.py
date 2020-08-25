@@ -42,3 +42,7 @@ def register_all():
     __import__('tacker.objects.vnf_artifact')
     __import__('tacker.objects.vnf_lcm_subscriptions')
     __import__('tacker.objects.scale_vnf_request')
+    __import__('tacker.objects.grant')
+    __import__('tacker.objects.grant_request')
+    __import__('tacker.objects.vnfd')
+    __import__('tacker.objects.vnfd_attribute')

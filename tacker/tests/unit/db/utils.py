@@ -34,6 +34,7 @@ tosca_cvnf_vnfd = _get_template('test_tosca_cvnf.yaml')
 tosca_vnfd_openwrt = _get_template('test_tosca_openwrt.yaml')
 tosca_vnfd_openwrt_param = _get_template('test_tosca_openwrt_param.yaml')
 tosca_invalid_vnfd = _get_template('test_tosca_parser_failure.yaml')
+etsi_vnfd = _get_template('etsi_nfv/tosca_vnfd.yaml')
 config_data = _get_template('config_data.yaml')
 update_config_data = _get_template('update_config_data.yaml')
 hot_data = _get_template('hot_data.yaml')
@@ -74,6 +75,11 @@ vnffgd_wrong_cp_number_template = yaml.safe_load(_get_template(
     'tosca_vnffgd_wrong_cp_number_template.yaml'))
 vnfd_instance_reservation_alarm_scale_tosca_template = _get_template(
     'test_tosca-vnfd-instance-reservation.yaml')
+hot_grant = _get_template('hot_grant.yaml')
+hot_scale_grant = _get_template('hot_scale_grant.yaml')
+hot_scale_nest_grant = _get_template('hot_scale_nest_grant.yaml')
+hot_scale_initial = _get_template('hot_scale_initial.yaml')
+hot_scale_nest_initial = _get_template('hot_scale_nest_initial.yaml')
 
 
 def get_dummy_vnfd_obj():
@@ -177,6 +183,57 @@ def get_dummy_vnf(status='PENDING_CREATE', scaling_group=False,
             'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
             'mgmt_driver': u'openwrt',
             'attributes': {u'vnfd': tosca_vnfd_openwrt},
+            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
+            'name': u'openwrt_services'},
+        'mgmt_ip_address': None, 'service_context': [],
+        'attributes': {u'param_values': u''},
+        'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
+        'description': u'OpenWRT with services'}
+    if scaling_group:
+        dummy_vnf['attributes'].update({'scaling_group_names':
+                                   '{"SP1": "SP1_group"}',
+                                   'heat_template': 'test'})
+    return dummy_vnf
+
+
+def get_dummy_vnf_test(status='PENDING_CREATE', scaling_group=False,
+                  instance_id=None):
+    dummy_vnf = {'status': status, 'instance_id': instance_id, 'name':
+        u'test_openwrt', 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+        'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+        'vnfd': {
+            'service_types': [{'service_type': u'vnfd',
+            'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
+            'description': u'OpenWRT with services',
+            'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+            'mgmt_driver': u'openwrt',
+            'attributes': {u'vnfd_simple': tosca_vnfd_openwrt},
+            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
+            'name': u'openwrt_services'},
+        'mgmt_ip_address': None, 'service_context': [],
+        'attributes': {u'param_values': u''},
+        'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
+        'description': u'OpenWRT with services'}
+    if scaling_group:
+        dummy_vnf['attributes'].update({'scaling_group_names':
+                                   '{"SP1": "SP1_group"}',
+                                   'heat_template': 'test'})
+    return dummy_vnf
+
+
+def get_dummy_vnf_etsi(status='PENDING_CREATE', scaling_group=False,
+                       instance_id=None, flavour='Simple'):
+    vnfd_key = 'vnfd_' + flavour
+    dummy_vnf = {'status': status, 'instance_id': instance_id, 'name':
+        u'test_openwrt', 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+        'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+        'vnfd': {
+            'service_types': [{'service_type': u'vnfd',
+            'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
+            'description': u'OpenWRT with services',
+            'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+            'mgmt_driver': u'openwrt',
+            'attributes': {vnfd_key: etsi_vnfd},
             'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
             'name': u'openwrt_services'},
         'mgmt_ip_address': None, 'service_context': [],
@@ -483,3 +540,23 @@ def get_dummy_vim_connection_info():
         'created_at': '', 'deleted': False, 'deleted_at': '',
         'id': 'fake_id', 'updated_at': '',
         'vim_id': 'fake_vim_id', 'vim_type': 'openstack'}
+
+
+def get_dummy_grant_hot():
+    return str(hot_grant)
+
+
+def get_dummy_scale_grant_hot():
+    return str(hot_scale_grant)
+
+
+def get_dummy_scale_nest_grant_hot():
+    return str(hot_scale_nest_grant)
+
+
+def get_dummy_scale_initial_hot():
+    return str(hot_scale_initial)
+
+
+def get_dummy_scale_nest_initial_hot():
+    return str(hot_scale_nest_initial)

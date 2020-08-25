@@ -95,9 +95,11 @@ def _get_vnflcm_interface(context, interface, vnf_instance, flavour_id):
     if vnfd_dict.get('topology_template'):
         topology_template = vnfd_dict.get('topology_template')
         if topology_template.get('node_templates'):
-            for a_val in topology_template.get('node_templates').values():
-                if 'interfaces' in a_val.keys():
-                    interfaces = a_val.get('interfaces')
+            node_templates = topology_template.get('node_templates')
+            if node_templates.get('VNF'):
+                vnf = node_templates.get('VNF')
+                if vnf.get('interfaces'):
+                    interfaces = vnf.get('interfaces')
                     if interfaces.get('Vnflcm'):
                         vnflcm = interfaces.get('Vnflcm')
                         if vnflcm:

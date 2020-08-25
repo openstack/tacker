@@ -1,0 +1,98 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: >
+  Template for test _generate_hot_from_tosca().
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+
+node_types:
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VDU1
+        description: VDU1 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+        sw_image_data:
+          name: Software of VDU1
+          version: '0.4.0'
+          checksum:
+            algorithm: sha-256
+            hash: b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 1 GiB
+          size: 1 GiB
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: Files/images/cirros-0.4.0-x86_64-disk.img
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 512 MiB
+            virtual_cpu:
+              num_virtual_cpu: 1
+            virtual_local_storage:
+              - size_of_storage: 1 GiB
+      requirements:
+        - virtual_storage: VB1
+
+    VB1:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 100 GB
+          rdma_enabled: true
+        sw_image_data:
+          name: cirros
+          version: '0.0.0'
+          checksum:
+            algorithm: sha512
+            hash: f0fd1b50420dce4ca382ccfbb528eef3a38bbeff00b54e95e3876b9bafe7ed2d6f919ca35d9046d437c6d2d8698b1174a335fbd66035bb3edc525d2cdb187232
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 0 B
+          min_ram: 0 B
+          size: 13267968 B
+
+    CP1:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 0
+      requirements:
+        - virtual_binding: VDU1
+        - virtual_link: VL3
+
+    VL3:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        description: Internal Virtual link in the VNF
+        vl_profile:
+          max_bitrate_requirements:
+            root: 1048576
+            leaf: 1048576
+          min_bitrate_requirements:
+            root: 1048576
+            leaf: 1048576
+          virtual_link_protocol_data:
+            - associated_layer_protocol: ipv4
+              l3_protocol_data:
+                ip_version: ipv4
+                cidr: 33.33.0.0/24
+
+  policies:
+    - policy_affinity_local_VDU1:
+        type: tosca.policies.nfv.AntiAffinityRule
+        targets: [ VDU1 ]
+        properties:
+          scope: zone
