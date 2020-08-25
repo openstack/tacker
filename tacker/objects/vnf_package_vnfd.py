@@ -92,7 +92,7 @@ def _vnf_package_vnfd_get_by_id(context, vnfd_id):
                             read_deleted="no", project_only=False). \
         filter_by(vnfd_id=vnfd_id).\
         join((models.VnfPackage, models.VnfPackage.id ==
-            models.VnfPackageVnfd.package_uuid))
+              models.VnfPackageVnfd.package_uuid))
 
     if tacker.context.is_user_context(context):
         query = query.filter(models.VnfPackage.tenant_id == context.project_id)
@@ -125,9 +125,9 @@ def _vnf_package_vnfd_get_by_packageId(context, packageId):
 @db_api.context_manager.reader
 def _vnf_package_vnfd_get_by_vnfdId(context, vnfdId):
     query = api.model_query(context,
-        models.VnfPackageVnfd,
-        read_deleted="no",
-        project_only=True).filter_by(vnfd_id=vnfdId)
+                            models.VnfPackageVnfd,
+                            read_deleted="no",
+                            project_only=True).filter_by(vnfd_id=vnfdId)
 
     result = query.first()
 
@@ -141,19 +141,19 @@ def _vnf_package_vnfd_get_by_vnfdId(context, vnfdId):
 def _get_vnf_package_vnfd_by_vnfid(context, vnfpkgid):
 
     sql = ("select"
-         " t1.vnfd_id,"
-         " t1.vnf_provider,"
-         " t1.vnf_product_name,"
-         " t1.vnf_software_version,"
-         " t1.vnfd_version,"
-         " t2.name"
-         " from "
-         " vnf_package_vnfd t1,"
-         " vnf t2 "
-         " where"
-         " t1.vnfd_id=t2.vnfd_id"
-         " and"
-         " t2.id= :vnfpkgid")
+           " t1.vnfd_id,"
+           " t1.vnf_provider,"
+           " t1.vnf_product_name,"
+           " t1.vnf_software_version,"
+           " t1.vnfd_version,"
+           " t2.name"
+           " from "
+           " vnf_package_vnfd t1,"
+           " vnf t2 "
+           " where"
+           " t1.vnfd_id=t2.vnfd_id"
+           " and"
+           " t2.id= :vnfpkgid")
 
     result = context.session.execute(sql, {'vnfpkgid': vnfpkgid})
     for line in result:

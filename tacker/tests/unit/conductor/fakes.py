@@ -111,9 +111,9 @@ def get_lcm_op_occs_data():
         'operation_state': 'PROCESSING',
         'state_entered_time':
         datetime.datetime(1900, 1, 1, 1, 1, 1,
-        tzinfo=iso8601.UTC),
+                          tzinfo=iso8601.UTC),
         'start_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
-        tzinfo=iso8601.UTC),
+                                        tzinfo=iso8601.UTC),
         'operation': 'MODIFY_INFO',
         'is_automatic_invocation': 0,
         'is_cancel_pending': 0,
@@ -201,7 +201,8 @@ def _model_non_instantiated_vnf_instance(**updates):
         'vnf_software_version': '1.0',
         'tenant_id': uuidsentinel.tenant_id,
         'vnfd_id': uuidsentinel.vnfd_id,
-        'vnfd_version': '1.0'}
+        'vnfd_version': '1.0',
+        'vnfPkgId': uuidsentinel.vnf_pkg_id}
 
     if updates:
         vnf_instance.update(**updates)
@@ -236,16 +237,16 @@ def return_vnf_instance(
 
         instantiated_vnf_info.update(
             {"ext_cp_info": [],
-            'ext_virtual_link_info': [],
-            'ext_managed_virtual_link_info': [],
-            'vnfc_resource_info': [],
-            'vnf_virtual_link_resource_info': [],
-            'virtual_storage_resource_info': [],
-            "flavour_id": "simple",
-            "scale_status": [scale_status],
-            "vnf_instance_id": "171f3af2-a753-468a-b5a7-e3e048160a79",
-            "additional_params": {"key": "value"},
-           'vnf_state': "STARTED"})
+             'ext_virtual_link_info': [],
+             'ext_managed_virtual_link_info': [],
+             'vnfc_resource_info': [],
+             'vnf_virtual_link_resource_info': [],
+             'virtual_storage_resource_info': [],
+             "flavour_id": "simple",
+             "scale_status": [scale_status],
+             "vnf_instance_id": "171f3af2-a753-468a-b5a7-e3e048160a79",
+             "additional_params": {"key": "value"},
+             'vnf_state': "STARTED"})
         info_data = objects.InstantiatedVnfInfo(**instantiated_vnf_info)
 
         vnf_instance_obj.instantiated_vnf_info = info_data
