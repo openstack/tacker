@@ -16,6 +16,8 @@
 import ddt
 from unittest import mock
 
+from oslo_utils import uuidutils
+
 from tacker.common import exceptions
 from tacker import context
 from tacker.db import api as sqlalchemy_api
@@ -231,7 +233,9 @@ class TestVnfInstance(SqlTestCase):
         vnf_instance = objects.VnfInstance(context=self.context,
                                            **vnf_instance_data)
         vnf_instance.create()
+        id = uuidutils.generate_uuid()
         vnf_lcm_oppccs = fakes.get_lcm_op_occs_data(
+            id,
             vnf_instance.id)
 
         vnf_instance.update(

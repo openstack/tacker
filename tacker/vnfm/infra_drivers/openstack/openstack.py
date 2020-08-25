@@ -34,10 +34,12 @@ from tacker._i18n import _
 from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import utils
+from tacker.db.common_services import common_services_db_plugin
 from tacker.extensions import vnflcm
 from tacker.extensions import vnfm
 from tacker import objects
 from tacker.objects import fields
+from tacker.plugins.common import constants
 from tacker.tosca.utils import represent_odict
 from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnfm.infra_drivers import abstract_driver
@@ -51,6 +53,11 @@ from tacker.vnfm.lcm_user_data.constants import USER_DATA_TIMEOUT
 
 
 eventlet.monkey_patch(time=True)
+
+SCALING_GROUP_RESOURCE = "OS::Heat::AutoScalingGroup"
+NOVA_SERVER_RESOURCE = "OS::Nova::Server"
+
+VNF_PACKAGE_HOT_DIR = 'Files'
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -108,6 +115,9 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         self.STACK_RETRY_WAIT = cfg.CONF.openstack_vim.stack_retry_wait
         self.IMAGE_RETRIES = 10
         self.IMAGE_RETRY_WAIT = 10
+        self.LOCK_RETRIES = 10
+        self.LOCK_RETRY_WAIT = 10
+        self._cos_db_plg = common_services_db_plugin.CommonServicesPluginDb()
 
     def get_type(self):
         return 'openstack'
@@ -124,7 +134,17 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                inst_req_info=None, grant_info=None,
                vnf_instance=None):
         LOG.debug('vnf %s', vnf)
-        region_name = vnf.get('placement_attr', {}).get('region_name', None)
+        if vnf.get('grant'):
+            if vnf['grant'].vim_connections:
+                vim_con = vnf['grant'].vim_connections[0]
+                auth_attr = vim_con.access_info
+                region_name = auth_attr.get('region')
+            else:
+                region_name = vnf.get('placement_attr', {}).\
+                    get('region_name', None)
+        else:
+            region_name = vnf.get('placement_attr', {}).\
+                get('region_name', None)
         heatclient = hc.HeatClient(auth_attr, region_name)
         additional_param = None
         if inst_req_info is not None:
@@ -157,7 +177,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             for name, hot in nested_hot_dict.items():
                 vnf['attributes'][name] = self._format_base_hot(hot)
 
-            vnfd_str = vnf['vnfd']['attributes']['vnfd']
+            vnfd_str = vnf['vnfd']['attributes']['vnfd_' +
+                                                 inst_req_info.flavour_id]
             vnfd_dict = yaml.safe_load(vnfd_str)
             LOG.debug('VNFD: %s', vnfd_dict)
             LOG.debug('VNF package path: %s', vnf_package_path)
@@ -220,6 +241,30 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 for name, value in scaleGroupDict['scaleGroupDict'].items():
                     hot_param_dict[name + '_desired_capacity'] = \
                         value['default']
+            if vnf.get('grant'):
+                grant = vnf['grant']
+                ins_inf = vnf_instance.instantiated_vnf_info.vnfc_resource_info
+                for addrsc in grant.add_resources:
+                    for zone in grant.zones:
+                        if zone.id == addrsc.zone_id:
+                            vdu_name = None
+                            for rsc in ins_inf:
+                                if addrsc.resource_definition_id == rsc.id:
+                                    vdu_name = rsc.vdu_id
+                                    break
+                            if not vdu_name:
+                                continue
+                            hot_param_dict['nfv']['VDU'][vdu_name]['zone'] = \
+                                zone.zone_id
+                if 'vim_assets' in grant and grant.vim_assets:
+                    for flavour in grant.vim_assets.compute_resource_flavours:
+                        vdu_name = flavour.vnfd_virtual_compute_desc_id
+                        hot_param_dict['nfv']['VDU'][vdu_name]['flavor'] = \
+                            flavour.vim_flavour_id
+                    for image in grant.vim_assets.software_images:
+                        vdu_name = image.vnfd_software_image_id
+                        hot_param_dict['nfv']['VDU'][vdu_name]['image'] = \
+                            image.vim_software_image_id
 
             # Add stack param to vnf_attributes
             vnf['attributes'].update({'stack_param': str(hot_param_dict)})
@@ -1482,15 +1527,63 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     mark_unhealthy=True,
                     resource_status_reason='Scale')
         paramDict = {}
-        paramDict[scale_vnf_request.aspect_id +
-     '_desired_capacity'] = vnf_info['res_num']
+        scale_json = vnf_info['attributes']['scale_group']
+        scaleGroupDict = jsonutils.loads(scale_json)
+        for name, value in scaleGroupDict['scaleGroupDict'].items():
+            paramDict[name + '_desired_capacity'] = value['default']
+        paramDict[scale_vnf_request.aspect_id + '_desired_capacity'] = \
+            vnf_info['res_num']
         stack_update_param = {
             'parameters': paramDict,
             'existing': True}
         heatclient.update(vnf_info['instance_id'], **stack_update_param)
+        stack_param = jsonutils.loads(vnf_info['attributes']['stack_param'])
+        stack_param.update(paramDict)
+        vnf_info['attributes'].update({'stack_param': str(paramDict)})
 
     @log.log
-    def scale_in_reverse_wait(
+    def scale_out_initial(self, context, plugin, auth_attr, vnf_info,
+                         scale_vnf_request, region_name):
+        scale_json = vnf_info['attributes']['scale_group']
+        scaleGroupDict = jsonutils.loads(scale_json)
+        key_aspect = scale_vnf_request.aspect_id
+        num = scaleGroupDict['scaleGroupDict'][key_aspect]['num']
+        vnf_info['res_num'] = num * scale_vnf_request.number_of_steps
+        heatclient = hc.HeatClient(auth_attr, region_name)
+        paramDict = {}
+        for name, value in scaleGroupDict['scaleGroupDict'].items():
+            paramDict[name + '_desired_capacity'] = value['default']
+        paramDict[scale_vnf_request.aspect_id +
+     '_desired_capacity'] = vnf_info['res_num']
+        stack_param = yaml.safe_load(vnf_info['attributes']['stack_param'])
+        grant = vnf_info['grant']
+        for addrsc in grant.add_resources:
+            for zone in grant.zones:
+                if zone.id == addrsc.zone_id:
+                    for rsc in vnf_info['addResources']:
+                        if addrsc.id == rsc.id:
+                            vdu_name = rsc.vdu_id
+                            break
+                    stack_param['nfv']['VDU'][vdu_name]['zone'] = zone.zone_id
+        if 'vim_assets' in grant and grant.vim_assets:
+            for flavour in grant.vim_assets.compute_resource_flavours:
+                vdu_name = flavour.vnfd_virtual_compute_desc_id
+                stack_param['nfv']['VDU'][vdu_name]['flavor'] = \
+                    flavour.vim_flavour_id
+            for image in grant.vim_assets.software_images:
+                vdu_name = image.vnfd_software_image_id
+                stack_param['nfv']['VDU'][vdu_name]['image'] = \
+                    image.vim_software_image_id
+
+        paramDict['nfv'] = stack_param['nfv']
+        stack_update_param = {
+            'parameters': paramDict,
+            'existing': True}
+        heatclient.update(vnf_info['instance_id'], **stack_update_param)
+        vnf_info['attributes'].update({'stack_param': str(paramDict)})
+
+    @log.log
+    def scale_update_wait(
             self,
             context,
             plugin,
@@ -1501,3 +1594,251 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             auth_attr, infra_cnst.STACK_UPDATE_IN_PROGRESS,
             infra_cnst.STACK_UPDATE_COMPLETE,
             vnfm.VNFScaleWaitFailed, region_name=region_name)
+
+    def get_cinder_list(self, vnf_info):
+        cinder_list = []
+        block_key = 'block_device_mapping_v2'
+        if not vnf_info['attributes'].get('scale_group'):
+            heat_yaml = vnf_info['attributes']['heat_template']
+            heat_dict = yaml.safe_load(heat_yaml)
+            for resource_name, resource in heat_dict['resources'].items():
+                if resource.get('properties') and resource.get(
+                        'properties').get(block_key):
+                    for cinder in resource['properties'][block_key]:
+                        if cinder['volume_id'].get('get_resource'):
+                            cinder_list.append(
+                                cinder['volume_id']['get_resource'])
+        else:
+            for resource_name, resource in vnf_info['attributes'].items():
+                if '.yaml' in resource_name:
+                    heat_dict = yaml.safe_load(resource)
+                    for resource_name, resource in heat_dict['resources'].\
+                            items():
+                        if resource.get('properties') and resource.get(
+                                'properties').get(block_key):
+                            for cinder in resource['properties'][block_key]:
+                                if cinder['volume_id'].get('get_resource'):
+                                    cinder_list.append(
+                                        cinder['volume_id']['get_resource'])
+        return cinder_list
+
+    def get_grant_resource(
+            self,
+            vnf_instance,
+            vnf_info,
+            scale_vnf_request,
+            placement_obj_list,
+            vim_connection_info,
+            del_list):
+        if scale_vnf_request.type == 'SCALE_OUT':
+            self._get_grant_resource_scale_out(vnf_info,
+                                               scale_vnf_request,
+                                               placement_obj_list)
+        else:
+            self.get_grant_resource_scale_in(vnf_instance,
+                                             vnf_info,
+                                             vim_connection_info,
+                                             del_list)
+
+    def _get_grant_resource_scale_out(
+            self,
+            vnf_info,
+            scale_vnf_request,
+            placement_obj_list):
+        add_resources = []
+        affinity_list = []
+        placement_constraint_list = []
+        uuid_list = []
+        port_uuid_list = []
+        storage_uuid_list = []
+        heat_template = vnf_info['attributes']['heat_template']
+        heat_resource = yaml.safe_load(heat_template)
+        key_vnfd = scale_vnf_request.aspect_id + '_scale_out'
+        ajust_prop = heat_resource['resources'][key_vnfd]['properties']
+        ajust = ajust_prop['scaling_adjustment']
+        size = ajust * scale_vnf_request.number_of_steps
+        yaml_name = scale_vnf_request.aspect_id + '_res.yaml'
+        if not vnf_info['attributes'].get(yaml_name):
+            yaml_name = scale_vnf_request.aspect_id + '.hot.yaml'
+        nested_hot = yaml.safe_load(
+            vnf_info['attributes'][yaml_name])
+        for resource_name, resource in nested_hot['resources'].items():
+            if resource['type'] == 'OS::Nova::Server':
+                for i in range(size):
+                    add_uuid = uuidutils.generate_uuid()
+                    rsc = objects.ResourceDefinition(
+                        id=add_uuid,
+                        type=constants.TYPE_COMPUTE,
+                        vdu_id=resource_name,
+                        resource_template_id=resource_name)
+                    add_resources.append(rsc)
+                    uuid_list.append(add_uuid)
+                    for net in resource.get('networks', []):
+                        add_uuid = uuidutils.generate_uuid()
+                        port_rsc = net['port']['get_resource']
+                        rsc = objects.ResourceDefinition(
+                            id=add_uuid,
+                            type=constants.TYPE_LINKPORT,
+                            vdu_id=resource_name,
+                            resource_template_id=port_rsc)
+                        add_resources.append(rsc)
+                        port_uuid_list.append(add_uuid)
+                if resource['properties'].get('block_device_mapping_v2'):
+                    for i in range(size):
+                        for cinder in resource['properties'].get(
+                                'block_device_mapping_v2', []):
+                            add_uuid = uuidutils.generate_uuid()
+                            vol_rsc = cinder['volume_id']['get_resource']
+                            rsc = objects.ResourceDefinition(
+                                id=add_uuid,
+                                type=constants.TYPE_STORAGE,
+                                vdu_id=resource_name,
+                                resource_template_id=vol_rsc)
+                            add_resources.append(rsc)
+                            storage_uuid_list.append(add_uuid)
+                if resource['properties'].get('scheduler_hints'):
+                    sch_hint = resource['properties']['scheduler_hints']
+                    if sch_hint['group'].get('get_param'):
+                        affinity_name = sch_hint['group']['get_param']
+                    else:
+                        affinity_name = sch_hint['group']['get_resource']
+                    for placement in placement_obj_list:
+                        if placement.server_group_name == affinity_name:
+                            for uuid in uuid_list:
+                                rsc = objects.ConstraintResourceRef(
+                                    id_type='GRANT', resource_id=uuid)
+                                plm = jsonutils.loads(placement.resource)
+                                plm.append(rsc.to_dict())
+                                placement.resource = jsonutils.dumps(plm)
+                            affinity_list.append(affinity_name)
+                            break
+            if resource['type'] == 'OS::Cinder::VolumeAttachment':
+                for i in range(size):
+                    add_uuid = uuidutils.generate_uuid()
+                    vol_rsc = resource['properties']['instance_uuid']
+                    rsc = objects.ResourceDefinition(
+                        id=add_uuid,
+                        type=constants.TYPE_STORAGE,
+                        vdu_id=vol_rsc['get_resource'],
+                        resource_template_id=resource_name)
+                    add_resources.append(rsc)
+                    storage_uuid_list.append(add_uuid)
+        vnf_info['uuid_list'] = uuid_list
+        vnf_info['port_uuid_list'] = port_uuid_list
+        vnf_info['storage_uuid_list'] = storage_uuid_list
+        for placement in placement_obj_list:
+            if placement.server_group_name in affinity_list:
+                plm = jsonutils.loads(placement.resource)
+                addRsc = []
+                for pl in plm:
+                    vim_id = pl.get('vim_connection_id')
+                    addRsc.append(
+                        objects.ConstraintResourceRef(
+                            id_type=pl['id_type'],
+                            resource_id=pl['resource_id'],
+                            vim_connection_id=vim_id))
+                placement_constraint = objects.PlacementConstraint(
+                    affinity_or_anti_affinity='ANTI_AFFINITY',
+                    scope='ZONE',
+                    resource=addRsc,
+                    fallback_best_effort=True)
+                placement_constraint_list.append(placement_constraint)
+        vnf_info['addResources'] = add_resources
+        vnf_info['removeResources'] = []
+        vnf_info['affinity_list'] = affinity_list
+        vnf_info['placement_constraint_list'] = placement_constraint_list
+
+    def get_grant_resource_scale_in(
+            self,
+            vnf_instance,
+            vnf_info,
+            vim_connection_info,
+            del_list):
+        remove_resources = []
+        access_info = vim_connection_info.access_info
+
+        heatclient = hc.HeatClient(access_info,
+            region_name=access_info.get('region'))
+        inst_info = vnf_instance.instantiated_vnf_info
+        for del_rsc in del_list:
+            scale_resurce_list = heatclient.resource_get_list(del_rsc)
+            for rsc in scale_resurce_list:
+                if rsc.resource_type == 'OS::Nova::Server':
+                    for vnfc_resource in inst_info.vnfc_resource_info:
+                        if vnfc_resource.\
+                            compute_resource.resource_id == \
+                                rsc.physical_resource_id:
+                            cmo_rsc = vnfc_resource.compute_resource
+                            vim_id = cmo_rsc.vim_connection_id
+                            rsc_id = cmo_rsc.resource_id
+                            resource = objects.ResourceDefinition(
+                                id=vnfc_resource.id,
+                                type=constants.TYPE_COMPUTE,
+                                vdu_id=vnfc_resource.vdu_id,
+                                resource_template_id=vnfc_resource.vdu_id,
+                                resource=objects.ResourceHandle(
+                                    vim_connection_id=vim_id,
+                                    resource_id=rsc_id))
+                            remove_resources.append(resource)
+                if rsc.resource_type == 'OS::Neutron::Port':
+                    for vl_resource in \
+                            inst_info.vnf_virtual_link_resource_info:
+                        for cp_resource in vl_resource.vnf_link_ports:
+                            cp_handl = cp_resource.resource_handle
+                            cp_id = cp_handl.resource_id
+                            vim_id = cp_handl.vim_connection_id
+                            if cp_id == rsc.physical_resource_id:
+                                for vnfc_resource in inst_info.\
+                                        vnfc_resource_info:
+                                    for vnfc_cp_rsc in vnfc_resource.\
+                                            vnfc_cp_info:
+                                        if cp_resource.\
+                                            cp_instance_id == \
+                                                vnfc_cp_rsc.id:
+                                            p_id = cp_resource.id
+                                            v_id = vnfc_resource.vdu_id
+                                            d_id = vnfc_cp_rsc.cpd_id
+                                            r_hd = objects.\
+                                                ResourceHandle()
+                                            r_hd.\
+                                                vim_connection_id = \
+                                                vim_id
+                                            r_hd.resource_id = cp_id
+                                            rs = objects.\
+                                                ResourceDefinition()
+                                            rs.id = p_id
+                                            rs.type = 'constants.\
+                                                TYPE_LINKPORT'
+                                            rs.vdu_id = v_id
+                                            rs.resource_template_id = d_id
+                                            rs.resource = r_hd
+                                            remove_resources.append(
+                                                rs)
+                if rsc.resource_type == 'OS::Cinder::Volume':
+                    st_info = inst_info.virtual_storage_resource_info
+                    for storage_resource in st_info:
+                        st_rsc = storage_resource.storage_resource
+                        st_id = st_rsc.resource_id
+                        if st_id == rsc.physical_resource_id:
+                            ins_vnfc = inst_info.vnfc_resource_info
+                            for vnfc_resource in ins_vnfc:
+                                s_ids = vnfc_resource.storage_resource_ids
+                                if storage_resource.id in s_ids:
+                                    rs = objects.ResourceDefinition()
+                                    rs.id = storage_resource.id
+                                    rs.type = 'STORAGE'
+                                    rs.vdu_id = vnfc_resource.vdu_id
+                                    tmp_id = storage_resource.\
+                                        virtual_storage_desc_id
+                                    rs.resource_template_id = tmp_id
+                                    r_hd = objects.ResourceHandle()
+                                    vim_id = st_rsc.vim_connection_id
+                                    rsc_id = st_rsc.resource_id
+                                    r_hd.vim_connection_id = vim_id
+                                    r_hd.resource_id = rsc_id
+                                    rs.resource = r_hd
+                                    remove_resources.append(rs)
+        vnf_info['addResources'] = []
+        vnf_info['removeResources'] = remove_resources
+        vnf_info['affinity_list'] = []
+        vnf_info['placement_constraint_list'] = []

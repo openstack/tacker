@@ -11,6 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from oslo_utils import uuidutils
+
 from tacker import context
 from tacker import objects
 from tacker.tests.unit.db.base import SqlTestCase
@@ -58,21 +60,27 @@ class TestVnfLcmOpOcc(SqlTestCase):
         return vnf_instance
 
     def _create_vnf_lcm_op_occs(self):
-        vnf_lcm_op_occs_data = fakes.get_lcm_op_occs_data(self.vnf_instance.id)
+        id = uuidutils.generate_uuid()
+        vnf_lcm_op_occs_data = \
+            fakes.get_lcm_op_occs_data(id, self.vnf_instance.id)
         vnf_lcm_op_occs = objects.vnf_lcm_op_occs.VnfLcmOpOcc(
             context=self.context, **vnf_lcm_op_occs_data)
         vnf_lcm_op_occs.create()
         return vnf_lcm_op_occs
 
     def test_create(self):
-        vnf_lcm_op_occs_data = fakes.get_lcm_op_occs_data(self.vnf_instance.id)
+        id = uuidutils.generate_uuid()
+        vnf_lcm_op_occs_data = \
+            fakes.get_lcm_op_occs_data(id, self.vnf_instance.id)
         vnf_lcm_op_occs = objects.vnf_lcm_op_occs.VnfLcmOpOcc(
             context=self.context, **vnf_lcm_op_occs_data)
         vnf_lcm_op_occs.create()
         self.assertTrue(vnf_lcm_op_occs.vnf_instance_id)
 
     def test_save(self):
-        vnf_lcm_op_occs_data = fakes.get_lcm_op_occs_data(self.vnf_instance.id)
+        id = uuidutils.generate_uuid()
+        vnf_lcm_op_occs_data = \
+            fakes.get_lcm_op_occs_data(id, self.vnf_instance.id)
         vnf_lcm_op_occs = objects.vnf_lcm_op_occs.VnfLcmOpOcc(
             context=self.context, **vnf_lcm_op_occs_data)
         vnf_lcm_op_occs.create()

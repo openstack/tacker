@@ -25,7 +25,6 @@ import time
 import traceback
 import yaml
 
-
 from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -51,6 +50,7 @@ from tacker.common import utils
 import tacker.conf
 from tacker import context as t_context
 from tacker.db.common_services import common_services_db
+from tacker.db.db_sqlalchemy import models
 from tacker.db.nfvo import nfvo_db
 from tacker.db.vnfm import vnfm_db
 from tacker.extensions import nfvo
@@ -66,6 +66,7 @@ from tacker import service as tacker_service
 from tacker import version
 from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnflcm import vnflcm_driver
+from tacker.vnfm import nfvo_client
 from tacker.vnfm import plugin
 
 CONF = tacker.conf.CONF
@@ -226,6 +227,65 @@ def revert_update_lcm(function):
 
                 except Exception as msg:
                     LOG.error("revert_update_lcm failed %s" % str(msg))
+
+    return decorated_function
+
+
+@utils.expects_func_args('vnf_instance', 'vnf_lcm_op_occ_id')
+def grant_error_common(function):
+    """Decorator to revert upload_vnf_package on failure."""
+
+    @functools.wraps(function)
+    def decorated_function(self, context, *args, **kwargs):
+        try:
+            return function(self, context, *args, **kwargs)
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                wrapped_func = safe_utils.get_wrapped_function(function)
+                keyed_args = inspect.getcallargs(wrapped_func, self, context,
+                                                 *args, **kwargs)
+                context = keyed_args['context']
+                vnf_instance = keyed_args['vnf_instance']
+                vnf_lcm_op_occ_id = keyed_args['vnf_lcm_op_occ_id']
+                try:
+                    vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(
+                        context, vnf_lcm_op_occ_id)
+                    timestamp = datetime.datetime.utcnow()
+                    vnf_lcm_op_occs.operation_state = 'ROLLED_BACK'
+                    vnf_lcm_op_occs.state_entered_time = timestamp
+                    vnf_lcm_op_occs.save()
+                except Exception as e:
+                    LOG.warning("Failed to update vnf_lcm_op_occ for vnf "
+                                "instance %(id)s. Error: %(error)s",
+                                {"id": vnf_instance.id, "error": e})
+
+                try:
+                    notification = {}
+                    notification['notificationType'] = \
+                        'VnfLcmOperationOccurrenceNotification'
+                    notification['vnfInstanceId'] = vnf_instance.id
+                    notification['notificationStatus'] = 'RESULT'
+                    notification['operation'] = vnf_lcm_op_occs.operation
+                    notification['operationState'] = 'ROLLED_BACK'
+                    notification['isAutomaticInvocation'] = \
+                        vnf_lcm_op_occs.is_automatic_invocation
+                    notification['vnfLcmOpOccId'] = vnf_lcm_op_occ_id
+                    insta_url = CONF.vnf_lcm.endpoint_url + \
+                        "/vnflcm/v1/vnf_instances/" + \
+                        vnf_instance.id
+                    vnflcm_url = CONF.vnf_lcm.endpoint_url + \
+                        "/vnflcm/v1/vnf_lcm_op_occs/" + \
+                        vnf_lcm_op_occ_id
+                    notification['_links'] = {}
+                    notification['_links']['vnfInstance'] = {}
+                    notification['_links']['vnfInstance']['href'] = insta_url
+                    notification['_links']['vnfLcmOpOcc'] = {}
+                    notification['_links']['vnfLcmOpOcc']['href'] = vnflcm_url
+                    self.send_notification(context, notification)
+                except Exception as e:
+                    LOG.warning("Failed notification for vnf "
+                                "instance %(id)s. Error: %(error)s",
+                                {"id": vnf_instance.id, "error": e})
 
     return decorated_function
 
@@ -661,9 +721,10 @@ class Conductor(manager.Manager):
                 vim_connection_info = objects.VimConnectionInfo.\
                     obj_from_primitive(vim_info, context)
 
-                vnflcm_utils._build_instantiated_vnf_info(vnfd_dict,
-                instantiate_vnf_req, vnf_instance,
-                vim_id=vim_connection_info.vim_id)
+                if not vnf_instance.instantiated_vnf_info.instance_id:
+                    vnflcm_utils._build_instantiated_vnf_info(
+                        vnfd_dict, instantiate_vnf_req, vnf_instance,
+                        vim_id=vim_connection_info.vim_id)
 
                 if vnf_instance.instantiated_vnf_info.instance_id:
                     self.vnf_manager.invoke(vim_connection_info.vim_type,
@@ -761,6 +822,522 @@ class Conductor(manager.Manager):
                             {'zip': csar_path, 'folder': csar_zip_temp_path,
                              'uuid': vnf_pack.id})
 
+    def _grant(self, context, grant_request):
+        LOG.info(
+            "grant start grant_request[%s]" %
+            grant_request.to_request_body())
+
+        response = nfvo_client.GrantRequest().grants(
+            json=grant_request.to_request_body())
+
+        res_body = response.json()
+        res_dict = utils.convert_camelcase_to_snakecase(res_body)
+        LOG.info("grant end res_body[%s]" % res_dict)
+        grant_obj = objects.Grant.obj_from_primitive(
+            res_dict, context=context)
+        if len(grant_request.add_resources) != len(grant_obj.add_resources):
+            msg = "grant add resource error"
+            raise exceptions.ValidationError(detail=msg)
+        if len(
+                grant_request.remove_resources) != len(
+                grant_obj.remove_resources):
+            msg = "grant remove resource error"
+            raise exceptions.ValidationError(detail=msg)
+
+        self._check_res_add_remove_rsc(context, grant_request, grant_obj)
+
+        return grant_obj
+
+    def _check_res_add_remove_rsc(self, context, grant_request, grant_obj):
+        for add_resource in grant_request.add_resources:
+            match_flg = False
+            for rsc in grant_obj.add_resources:
+                if add_resource.id == rsc.resource_definition_id:
+                    match_flg = True
+                    break
+            if not match_flg:
+                msg = "grant add resource error"
+                raise exceptions.ValidationError(detail=msg)
+
+        for remove_resource in grant_request.remove_resources:
+            match_flg = False
+            for rsc in grant_obj.remove_resources:
+                if remove_resource.id == rsc.resource_definition_id:
+                    match_flg = True
+                    break
+            if not match_flg:
+                msg = "grant remove resource error"
+                raise exceptions.ValidationError(detail=msg)
+
+    @grant_error_common
+    def _instantiate_grant(self,
+                           context,
+                           vnf_instance,
+                           vnf_dict,
+                           instantiate_vnf_request,
+                           vnf_lcm_op_occ_id):
+        vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
+            vnf_dict['vnfd']['id'],
+            instantiate_vnf_request.flavour_id)
+        inst_level = instantiate_vnf_request.instantiation_level_id
+        vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
+            flavour_id=instantiate_vnf_request.flavour_id,
+            instantiation_level_id=inst_level,
+            vnf_instance_id=vnf_instance.id)
+        vnf_instance.instantiated_vnf_info.reinitialize()
+        vnflcm_utils._build_instantiated_vnf_info(vnfd_dict,
+                            instantiate_vnf_request, vnf_instance, '')
+        if not self._get_grant_execute():
+            return
+
+        add_resources = []
+        vnf_inf = vnf_instance.instantiated_vnf_info
+        for vnfc_resource in vnf_inf.vnfc_resource_info:
+            resource = objects.ResourceDefinition()
+            resource.id = vnfc_resource.id
+            resource.type = constants.TYPE_COMPUTE
+            resource.vdu_id = vnfc_resource.vdu_id
+            resource.resource_template_id = vnfc_resource.vdu_id
+            add_resources.append(resource)
+
+        for vl_resource in vnf_inf.vnf_virtual_link_resource_info:
+            resource = objects.ResourceDefinition()
+            resource.id = vl_resource.id
+            resource.type = constants.TYPE_VL
+            resource.resource_template_id = \
+                vl_resource.vnf_virtual_link_desc_id
+            add_resources.append(resource)
+            for cp_resource in vl_resource.vnf_link_ports:
+                for vnfc_resource in vnf_inf.vnfc_resource_info:
+                    for vnfc_cp_resource in vnfc_resource.vnfc_cp_info:
+                        if cp_resource.cp_instance_id == vnfc_cp_resource.id:
+                            resource = objects.ResourceDefinition()
+                            resource.id = cp_resource.id
+                            resource.type = constants.TYPE_LINKPORT
+                            resource.vdu_id = vnfc_resource.vdu_id
+                            resource.resource_template_id = \
+                                vnfc_cp_resource.cpd_id
+                            add_resources.append(resource)
+
+        for storage_resource in vnf_inf.virtual_storage_resource_info:
+            for vnfc_resource in vnf_inf.vnfc_resource_info:
+                if storage_resource.id in vnfc_resource.storage_resource_ids:
+                    resource = objects.ResourceDefinition()
+                    resource.id = storage_resource.id
+                    resource.type = constants.TYPE_STORAGE
+                    resource.vdu_id = vnfc_resource.vdu_id
+                    resource.resource_template_id = \
+                        storage_resource.virtual_storage_desc_id
+                    add_resources.append(resource)
+
+        p_c_list = []
+        placement_obj_list = []
+        topo_temp = vnfd_dict.get('topology_template', {})
+        for policy in topo_temp.get('policies', []):
+            for policy_name, policy_dict in policy.items():
+                key_type = 'tosca.policies.nfv.AntiAffinityRule'
+                if policy_dict['type'] == key_type:
+                    placement_constraint = objects.PlacementConstraint()
+                    placement_constraint.affinity_or_anti_affinity = \
+                        'ANTI_AFFINITY'
+                    placement_constraint.scope = 'ZONE'
+                    placement_constraint.resource = []
+                    placement_constraint.fallback_best_effort = True
+                    for target in policy_dict.get('targets', []):
+                        if target in topo_temp.get('groups', []):
+                            for member in topo_temp['groups']['members']:
+                                for vnfc_rsc in vnf_inf.vnfc_resource_info:
+                                    if member == vnfc_rsc.vdu_id:
+                                        resource = \
+                                            objects.ConstraintResourceRef()
+                                        resource.id_type = 'GRANT'
+                                        resource.resource_id = vnfc_rsc.id
+                                        p_rsc = \
+                                            placement_constraint.resource
+                                        p_rsc.append(resource)
+                                        break
+                        else:
+                            for vnfc_rsc in vnf_inf.vnfc_resource_info:
+                                if target == vnfc_rsc.vdu_id:
+                                    resource = \
+                                        objects.ConstraintResourceRef()
+                                    resource.id_type = 'GRANT'
+                                    resource.resource_id = vnfc_rsc.id
+                                    p_rsc = placement_constraint.resource
+                                    p_rsc.append(resource)
+                                    break
+                    p_c_list.append(placement_constraint)
+                    placement_obj = models.PlacementConstraint()
+                    placement_obj.id = uuidutils.generate_uuid()
+                    placement_obj.vnf_instance_id = vnf_instance.id
+                    placement_obj.affinity_or_anti_affinity = \
+                        placement_constraint.affinity_or_anti_affinity
+                    placement_obj.scope = placement_constraint.scope
+                    placement_obj.server_group_name = policy_name
+                    p_c_dict = placement_constraint.to_dict()
+                    res_dict = p_c_dict.get('resource', {})
+                    res_json = json.dumps(res_dict)
+                    placement_obj.resource = res_json
+                    placement_obj.created_at = timeutils.utcnow()
+                    placement_obj.deleted_at = datetime.datetime.min
+                    placement_obj_list.append(placement_obj)
+
+        g_request = self._make_grant_request(context,
+                                             vnf_instance,
+                                             vnf_lcm_op_occ_id,
+                                             'INSTANTIATE',
+                                             False,
+                                             add_resources=add_resources,
+                                             placement_constraints=p_c_list)
+
+        vnf_dict['placement_obj_list'] = placement_obj_list
+        vnf_dict['grant'] = self._grant(context, g_request)
+
+    def _get_placement(self, context, vnf_instance):
+        return self.vnfm_plugin.get_placement_constraint(context,
+                                                         vnf_instance.id)
+
+    @grant_error_common
+    def _scale_grant(
+            self,
+            context,
+            vnf_dict,
+            vnf_instance,
+            scale_vnf_request,
+            vnf_lcm_op_occ_id):
+        # Check if vnf is in instantiated state.
+        vnf_instance = objects.VnfInstance.get_by_id(context,
+            vnf_instance.id)
+        if vnf_instance.instantiation_state == \
+                fields.VnfInstanceState.NOT_INSTANTIATED:
+            LOG.error("Scale action cannot be performed on vnf %(id)s "
+                      "which is in %(state)s state.",
+                      {"id": vnf_instance.id,
+                      "state": vnf_instance.instantiation_state})
+            raise Exception("Scale action cannot be performed on vnf")
+
+        vim_info = vnflcm_utils._get_vim(
+            context, vnf_instance.vim_connection_info)
+        vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
+            vim_info, context)
+        if scale_vnf_request.type == 'SCALE_IN':
+            vnf_dict['action'] = 'in'
+            reverse = scale_vnf_request.additional_params.get('is_reverse')
+            region_name = vim_connection_info.access_info.get('region_name')
+            scale_id_list, scale_name_list, grp_id, res_num = \
+                self.vnf_manager.invoke(vim_connection_info.vim_type,
+                    'get_scale_in_ids',
+                    plugin=self,
+                    context=context,
+                    vnf_dict=vnf_dict,
+                    is_reverse=reverse,
+                    auth_attr=vim_connection_info.access_info,
+                    region_name=region_name,
+                    number_of_steps=scale_vnf_request.number_of_steps)
+            vnf_dict['res_num'] = res_num
+        else:
+            scale_id_list = []
+        if not self._get_grant_execute():
+            return None, []
+
+        placement_obj_list = self.vnfm_plugin.get_placement_constraint(
+            context, vnf_instance.id)
+        self.vnf_manager.invoke(
+            vim_connection_info.vim_type,
+            'get_grant_resource',
+            plugin=self,
+            vnf_instance=vnf_instance,
+            vnf_info=vnf_dict,
+            scale_vnf_request=scale_vnf_request,
+            placement_obj_list=placement_obj_list,
+            vim_connection_info=vim_connection_info,
+            del_list=scale_id_list
+        )
+        vnf_dict['placement_obj_list'] = placement_obj_list
+
+        grant_request = self._make_grant_request(
+            context,
+            vnf_instance,
+            vnf_lcm_op_occ_id,
+            'SCALE',
+            False,
+            add_resources=vnf_dict['addResources'],
+            remove_resources=vnf_dict['removeResources'],
+            placement_constraints=vnf_dict['placement_constraint_list'])
+
+        vnf_dict['grant'] = self._grant(context, grant_request)
+
+    @grant_error_common
+    def _heal_grant(self,
+                    context,
+                    vnf_instance,
+                    vnf_dict,
+                    heal_vnf_request,
+                    vnf_lcm_op_occ_id):
+        vnf_inf = vnf_instance.instantiated_vnf_info
+        if not self._get_grant_execute():
+            return
+
+        placement_obj_list = self._get_placement(context, vnf_instance)
+        vim_info = vnflcm_utils._get_vim(context,
+                                         vnf_instance.vim_connection_info)
+        vim_connection_info = \
+            objects.VimConnectionInfo.obj_from_primitive(vim_info, context)
+
+        cinder_list = self.vnf_manager.invoke(vim_connection_info.vim_type,
+                                              'get_cinder_list',
+                                              vnf_info=vnf_dict)
+
+        vnf_instantiated_info_after = copy.deepcopy(vnf_inf)
+        del_cre_vdu_list = []
+        add_resources = []
+        rm_resources = []
+        affinity_list = []
+        for vnfc_resource in vnf_instantiated_info_after.vnfc_resource_info:
+            vnfc_key = vnfc_resource.compute_resource.resource_id
+            if not heal_vnf_request.vnfc_instance_id or \
+               vnfc_key in heal_vnf_request.vnfc_instance_id:
+                if vnfc_resource.vdu_id not in del_cre_vdu_list:
+                    del_cre_vdu_list.append(vnfc_resource.vdu_id)
+        for vnfc_resource in vnf_instantiated_info_after.vnfc_resource_info:
+            if vnfc_resource.vdu_id in del_cre_vdu_list:
+                resource = objects.ResourceDefinition()
+                resource.id = vnfc_resource.id
+                resource.type = constants.TYPE_COMPUTE
+                resource.vdu_id = vnfc_resource.vdu_id
+                resource.resource_template_id = vnfc_resource.vdu_id
+                vim_id = vnfc_resource.compute_resource.vim_connection_id
+                rsc_id = vnfc_resource.compute_resource.resource_id
+                vnfc_rh = objects.ResourceHandle(
+                    vim_connection_id=vim_id,
+                    resource_id=rsc_id)
+                resource.resource = vnfc_rh
+                rm_resources.append(resource)
+                add_uuid = uuidutils.generate_uuid()
+                resource = objects.ResourceDefinition()
+                resource.id = add_uuid
+                resource.type = constants.TYPE_COMPUTE
+                resource.vdu_id = vnfc_resource.vdu_id
+                resource.resource_template_id = vnfc_resource.vdu_id
+                add_resources.append(resource)
+
+                key_id = vnfc_resource.compute_resource.resource_id
+                for placement_obj in placement_obj_list:
+                    resource_dict = jsonutils.loads(placement_obj.resource)
+                    set_flg = False
+                    for resource in resource_dict:
+                        if resource.get('resource_id') == key_id:
+                            resource['id_type'] = 'GRANT'
+                            resource['resource_id'] = add_uuid
+                            g_name = placement_obj.server_group_name
+                            affinity_list.append(g_name)
+                            set_flg = True
+                            res_json = jsonutils.dump_as_bytes(resource_dict)
+                            placement_obj.resource = res_json
+                            break
+                    if set_flg:
+                        break
+                vnfc_resource.id = add_uuid
+                vnfc_resource.compute_resource = objects.ResourceHandle()
+
+        st_info = vnf_instantiated_info_after.virtual_storage_resource_info
+        for storage_resource in st_info:
+            if storage_resource.virtual_storage_desc_id in cinder_list:
+                for vnfc_resource in vnf_inf.vnfc_resource_info:
+                    id_list = vnfc_resource.storage_resource_ids
+                    if storage_resource.id in id_list:
+                        resource = objects.ResourceDefinition()
+                        resource.id = storage_resource.id
+                        resource.type = constants.TYPE_STORAGE
+                        resource.vdu_id = vnfc_resource.vdu_id
+                        resource.resource_template_id = \
+                            storage_resource.virtual_storage_desc_id
+                        st_rh = objects.ResourceHandle()
+                        st_rh.vim_connection_id = \
+                            storage_resource.storage_resource.vim_connection_id
+                        st_rh.resource_id = \
+                            storage_resource.storage_resource.resource_id
+                        resource.resource = st_rh
+                        rm_resources.append(resource)
+
+                        add_uuid = uuidutils.generate_uuid()
+                        resource = objects.ResourceDefinition()
+                        resource = objects.ResourceDefinition()
+                        resource.id = add_uuid
+                        resource.type = constants.TYPE_STORAGE
+                        resource.vdu_id = vnfc_resource.vdu_id
+                        resource.resource_template_id = \
+                            storage_resource.virtual_storage_desc_id
+                        add_resources.append(resource)
+                        storage_resource.id = add_uuid
+                        storage_resource.storage_resource = \
+                            objects.ResourceHandle()
+
+        p_c_list = []
+        for placement_obj in placement_obj_list:
+            p_constraint = objects.PlacementConstraint()
+            p_constraint.affinity_or_anti_affinity = \
+                placement_obj.affinity_or_anti_affinity
+            p_constraint.scope = placement_obj.scope
+            resource_dict = jsonutils.loads(placement_obj.resource)
+            p_constraint.resource = []
+            for rsc in resource_dict:
+                rsc_obj = objects.ConstraintResourceRef()
+                rsc_obj.id_type = rsc.get('id_type')
+                rsc_obj.resource_id = rsc.get('resource_id')
+                p_constraint.resource.append(rsc_obj)
+            p_constraint.fallback_best_effort = True
+            p_c_list.append(p_constraint)
+
+        g_request = self._make_grant_request(context,
+                                             vnf_instance,
+                                             vnf_lcm_op_occ_id,
+                                             'HEAL',
+                                             False,
+                                             add_resources=add_resources,
+                                             remove_resources=rm_resources,
+                                             placement_constraints=p_c_list)
+
+        vnf_dict['placement_obj_list'] = placement_obj_list
+        vnf_dict['grant'] = self._grant(context, g_request)
+        vnf_dict['vnf_instantiated_info_after'] = vnf_instantiated_info_after
+
+    @grant_error_common
+    def _terminate_grant(self, context, vnf_instance, vnf_lcm_op_occ_id):
+        vnf_inf = vnf_instance.instantiated_vnf_info
+        if not self._get_grant_execute():
+            return
+
+        rm_resources = []
+        for vnfc_resource in vnf_inf.vnfc_resource_info:
+            resource = objects.ResourceDefinition()
+            resource.id = vnfc_resource.id
+            resource.type = constants.TYPE_COMPUTE
+            resource.vdu_id = vnfc_resource.vdu_id
+            resource.resource_template_id = vnfc_resource.vdu_id
+            vim_id = vnfc_resource.compute_resource.vim_connection_id
+            rsc_id = vnfc_resource.compute_resource.resource_id
+            vnfc_rh = objects.ResourceHandle(
+                vim_connection_id=vim_id,
+                resource_id=rsc_id)
+            resource.resource = vnfc_rh
+            rm_resources.append(resource)
+
+        for vl_resource in vnf_inf.vnf_virtual_link_resource_info:
+            resource = objects.ResourceDefinition()
+            resource.id = vl_resource.id
+            resource.type = constants.TYPE_VL
+            resource.resource_template_id = \
+                vl_resource.vnf_virtual_link_desc_id
+            vim_id = vl_resource.network_resource.vim_connection_id
+            rsc_id = vl_resource.network_resource.resource_id
+            vl_rh = objects.ResourceHandle(
+                vim_connection_id=vim_id,
+                resource_id=rsc_id)
+            resource.resource = vl_rh
+            rm_resources.append(resource)
+            for cp_resource in vl_resource.vnf_link_ports:
+                for vnfc_resource in vnf_inf.vnfc_resource_info:
+                    for vnfc_cp_resource in vnfc_resource.vnfc_cp_info:
+                        if cp_resource.cp_instance_id == vnfc_cp_resource.id:
+                            resource = objects.ResourceDefinition()
+                            resource.id = cp_resource.id
+                            resource.type = constants.TYPE_LINKPORT
+                            resource.vdu_id = vnfc_resource.vdu_id
+                            resource.resource_template_id = \
+                                vnfc_cp_resource.cpd_id
+                            vim_id = \
+                                cp_resource.resource_handle.vim_connection_id
+                            rsc_id = cp_resource.resource_handle.resource_id
+                            cp_rh = objects.ResourceHandle(
+                                vim_connection_id=vim_id,
+                                resource_id=rsc_id)
+                            resource.resource = cp_rh
+                            rm_resources.append(resource)
+
+        for storage_resource in vnf_inf.virtual_storage_resource_info:
+            for vnfc_resource in vnf_inf.vnfc_resource_info:
+                if storage_resource.id in vnfc_resource.storage_resource_ids:
+                    resource = objects.ResourceDefinition()
+                    resource.id = storage_resource.id
+                    resource.type = constants.TYPE_STORAGE
+                    resource.vdu_id = vnfc_resource.vdu_id
+                    resource.resource_template_id = \
+                        storage_resource.virtual_storage_desc_id
+                    vim_id = \
+                        storage_resource.storage_resource.vim_connection_id
+                    rsc_id = storage_resource.storage_resource.resource_id
+                    st_rh = objects.ResourceHandle(
+                        vim_connection_id=vim_id,
+                        resource_id=rsc_id)
+                    resource.resource = st_rh
+                    rm_resources.append(resource)
+
+        grant_request = self._make_grant_request(context,
+                                                 vnf_instance,
+                                                 vnf_lcm_op_occ_id,
+                                                 'TERMINATE',
+                                                 False,
+                                                 remove_resources=rm_resources)
+        self._grant(context, grant_request)
+
+    def _get_grant_execute(self):
+        try:
+            nfvo_client.GrantRequest().validate()
+        except nfvo_client.UndefinedExternalSettingException:
+            return False
+
+        return True
+
+    def _make_grant_request(self, context, vnf_instance,
+                            vnf_lcm_op_occ_id, operation,
+                            is_automatic_invocation,
+                            add_resources=[],
+                            remove_resources=[],
+                            placement_constraints=[]):
+        grant_request = objects.GrantRequest()
+        grant_request.vnf_instance_id = vnf_instance.id
+        grant_request.vnf_lcm_op_occ_id = vnf_lcm_op_occ_id
+        grant_request.vnfd_id = vnf_instance.vnfd_id
+        grant_request.flavour_id = \
+            vnf_instance.instantiated_vnf_info.flavour_id
+        grant_request.operation = operation
+        grant_request.is_automatic_invocation = is_automatic_invocation
+        vnflcm_url = CONF.vnf_lcm.endpoint_url + \
+            "/vnflcm/v1/vnf_lcm_op_occs/" + vnf_lcm_op_occ_id
+        insta_url = CONF.vnf_lcm.endpoint_url + \
+            "/vnflcm/v1/vnf_instances/" + vnf_instance.id
+        link_vnflcm = objects.Link(href=vnflcm_url)
+        link_insta = objects.Link(href=insta_url)
+        link = objects.Links(vnf_lcm_op_occ=link_vnflcm,
+                             vnf_instance=link_insta)
+        grant_request._links = link
+
+        if add_resources:
+            grant_request.add_resources = add_resources
+        if remove_resources:
+            grant_request.remove_resources = remove_resources
+        if placement_constraints:
+            grant_request.placement_constraints = placement_constraints
+
+        return grant_request
+
+    def _create_placement(self, context, vnf_dict):
+        p_list = vnf_dict.get('placement_obj_list', [])
+        if len(p_list) == 0:
+            return
+        self.vnfm_plugin.create_placement_constraint(context,
+                                                     p_list)
+
+    def _update_placement(self, context, vnf_dict, vnf_instance):
+        self.vnfm_plugin.update_placement_constraint(context,
+                                                     vnf_dict,
+                                                     vnf_instance)
+
+    def _delete_placement(self, context, vnf_instance_id):
+        self.vnfm_plugin.delete_placement_constraint(context,
+                                                     vnf_instance_id)
+
     @log.log
     def _get_vnf_notify(self, context, id):
         try:
@@ -790,6 +1367,7 @@ class Conductor(manager.Manager):
         is_automatic_invocation = \
             kwargs.get('is_automatic_invocation', False)
         error = kwargs.get('error', None)
+        # Used for timing control when a failure occurs
 
         if old_vnf_instance:
             vnf_instance_id = old_vnf_instance.id
@@ -918,7 +1496,7 @@ class Conductor(manager.Manager):
                     self.__set_auth_subscription(line)
 
                     for num in range(CONF.vnf_lcm.retry_num):
-                        LOG.info("send notify[%s]" % json.dumps(notification))
+                        LOG.warn("send notify[%s]" % json.dumps(notification))
                         auth_client = auth.auth_manager.get_auth_client(
                             notification['subscriptionId'])
                         response = auth_client.post(
@@ -965,6 +1543,12 @@ class Conductor(manager.Manager):
             instantiate_vnf,
             vnf_lcm_op_occs_id):
 
+        self._instantiate_grant(context,
+            vnf_instance,
+            vnf_dict,
+            instantiate_vnf,
+            vnf_lcm_op_occs_id)
+
         try:
             # Update vnf_lcm_op_occs table and send notification "PROCESSING"
             self._send_lcm_op_occ_notification(
@@ -992,6 +1576,8 @@ class Conductor(manager.Manager):
             self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
                         instantiation_state=fields.VnfInstanceState.
                         INSTANTIATED, task_state=None)
+
+            self._create_placement(context, vnf_dict)
 
             # Update vnf_lcm_op_occs table and send notification "COMPLETED"
             self._send_lcm_op_occ_notification(
@@ -1024,6 +1610,11 @@ class Conductor(manager.Manager):
     @coordination.synchronized('{vnf_instance[id]}')
     def terminate(self, context, vnf_lcm_op_occs_id,
                   vnf_instance, terminate_vnf_req, vnf_dict):
+
+        self._terminate_grant(context,
+            vnf_instance,
+            vnf_lcm_op_occs_id)
+
         try:
             old_vnf_instance = copy.deepcopy(vnf_instance)
 
@@ -1042,6 +1633,9 @@ class Conductor(manager.Manager):
 
             self.vnflcm_driver.terminate_vnf(context, vnf_instance,
                                              terminate_vnf_req)
+
+            self._delete_placement(context, vnf_instance.id)
+
             self._change_vnf_status(context, vnf_instance.id,
                             _PENDING_STATUS, 'INACTIVE')
 
@@ -1086,6 +1680,12 @@ class Conductor(manager.Manager):
              heal_vnf_request,
              vnf_lcm_op_occs_id):
 
+        self._heal_grant(context,
+            vnf_instance,
+            vnf_dict,
+            heal_vnf_request,
+            vnf_lcm_op_occs_id)
+
         try:
             old_vnf_instance = copy.deepcopy(vnf_instance)
 
@@ -1116,6 +1716,8 @@ class Conductor(manager.Manager):
             # during .save() ,instantiated_vnf_info is also saved to DB
             self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
                                                     task_state=None)
+
+            self._update_placement(context, vnf_dict, vnf_instance)
 
             # update vnf_lcm_op_occs and send notification "COMPLETED"
             self._send_lcm_op_occ_notification(
@@ -1150,16 +1752,15 @@ class Conductor(manager.Manager):
 
     @coordination.synchronized('{vnf_instance[id]}')
     def scale(self, context, vnf_info, vnf_instance, scale_vnf_request):
-        # Check if vnf is in instantiated state.
-        vnf_instance = objects.VnfInstance.get_by_id(context,
-            vnf_instance.id)
-        if vnf_instance.instantiation_state == \
-                fields.VnfInstanceState.NOT_INSTANTIATED:
-            LOG.error("Scale action cannot be performed on vnf %(id)s "
-                      "which is in %(state)s state.",
-                      {"id": vnf_instance.id,
-                      "state": vnf_instance.instantiation_state})
-            return
+        vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
+        vnf_lcm_op_occ_id = vnf_lcm_op_occ.id
+
+        self._scale_grant(
+            context,
+            vnf_info,
+            vnf_instance,
+            scale_vnf_request,
+            vnf_lcm_op_occ_id)
 
         self.vnflcm_driver.scale_vnf(
             context, vnf_info, vnf_instance, scale_vnf_request)

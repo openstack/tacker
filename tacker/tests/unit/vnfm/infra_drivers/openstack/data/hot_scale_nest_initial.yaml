@@ -1,0 +1,27 @@
+heat_template_version: 2016-10-14
+description: test
+parameters:
+  DB11_image:
+    type: string
+    default: cirros
+resources:
+  DB11:
+    type: OS::Nova::Server
+    properties:
+      user_data_format: SOFTWARE_CONFIG
+      availability_zone: nova
+      block_device_mapping_v2:
+        - device_name: vda
+          volume_id: {get_resource: ST1}
+      flavor: m1.tiny
+      networks:
+      - port: {get_resource: DB11-CP}
+      config_drive: false
+  DB11-CP:
+    type: OS::Neutron::Port
+    properties:
+      network: net_mgmt
+outputs:
+  id-DB11:
+    value:
+      get_attr: [DB11-CP, fixed_ips, 0, ip_address]

@@ -28,18 +28,23 @@ import yaml
 
 from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
+from oslo_serialization import jsonutils
 from six.moves import urllib
+
 from tacker import auth
 from tacker.common import coordination
 from tacker.common import csar_utils
+from tacker.common import driver_manager
 from tacker.common import exceptions
 from tacker.conductor import conductor_server
 from tacker import context
 from tacker import context as t_context
+from tacker.db.db_sqlalchemy import models
 from tacker.glance_store import store as glance_store
 from tacker import objects
 from tacker.objects import fields
 from tacker.plugins.common import constants
+from tacker.tests import constants as test_constants
 from tacker.tests.unit import base as unit_base
 from tacker.tests.unit.conductor import fakes
 from tacker.tests.unit.db.base import SqlTestCase
@@ -52,6 +57,8 @@ from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import \
 import tacker.tests.unit.vnfm.test_nfvo_client as nfvo_client
 from tacker.tests import utils
 from tacker.tests import uuidsentinel
+from tacker.vnfm import nfvo_client as test_nfvo_client
+from tacker.vnfm import vim_client
 import unittest
 from unittest import mock
 
@@ -65,6 +72,14 @@ class FakeVnfLcmDriver(mock.Mock):
 
 class FakeVNFMPlugin(mock.Mock):
     pass
+
+
+class MockResponse:
+    def __init__(self, json_data):
+        self.json_data = json_data
+
+    def json(self):
+        return self.json_data
 
 
 class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
@@ -302,11 +317,17 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                 '._update_vnf_attributes')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._build_instantiated_vnf_info')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.utils._convert_desired_capacity')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
     def test_instantiate_vnf_instance(self, mock_vnf_by_id,
-            mock_get_lock, mock_save, mock_change_vnf_status,
+            mock_des, mock_vnfd_dict,
+            mock_get_lock, mock_save,
+            mock_build_info, mock_change_vnf_status,
             mock_update_vnf_attributes):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
@@ -321,7 +342,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.create()
         instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
-        vnf_dict = {"status": "ACTIVE"}
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour=instantiate_vnf_req.flavour_id)
+        vnfd_key = 'vnfd_' + instantiate_vnf_req.flavour_id
+        vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
+        mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
         self.conductor.instantiate(self.context, vnf_instance, vnf_dict,
                                    instantiate_vnf_req, vnf_lcm_op_occs_id)
         self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
@@ -331,6 +356,217 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             assert_called_once_with(self.context, vnf_instance.id,
                                     mock.ANY, 'PENDING_CREATE')
         mock_update_vnf_attributes.assert_called_once()
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._build_instantiated_vnf_info')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.utils._convert_desired_capacity')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._check_res_add_remove_rsc')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_instantiate_vnf_instance_grant(self,
+            mock_vnf_by_id,
+            mock_save,
+            mock_check,
+            mock_des, mock_vnfd_dict, mock_grants,
+            mock_exec, mock_get_lock,
+            mock_change_vnf_status,
+            mock_build_info):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour=instantiate_vnf_req.flavour_id)
+        vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        mock_vnf_by_id.return_value = \
+            objects.VnfLcmOpOcc(context=self.context,
+            **lcm_op_occs_data)
+        mock_exec.return_value = True
+        vimAssets = {'computeResourceFlavours': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdVirtualComputeDescId': 'CDU1',
+             'vimFlavourId': 'm1.tiny'}],
+            'softwareImages': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdSoftwareImageId': 'VDU1',
+             'vimSoftwareImageId': 'cirros'}]}
+        resAddResource = []
+        resource = {
+            'resourceDefinitionId': '2c6e5cc7-240d-4458-a683-1fe648351280',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa0',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa1',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnfInstanceId'] = vnf_instance.id
+        grant_dict['vnfLcmOpOccId'] = vnf_lcm_op_occs_id
+        grant_dict['addResources'] = []
+        grant_dict['addResources'].extend(resAddResource)
+        grant_dict['vimAssets'] = vimAssets
+        json_data = grant_dict
+        mock_grants.return_value = MockResponse(json_data=json_data)
+        vnfd_key = 'vnfd_' + instantiate_vnf_req.flavour_id
+        vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
+        mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
+        self.conductor.instantiate(self.context, vnf_instance, vnf_dict,
+                                   instantiate_vnf_req, vnf_lcm_op_occs_id)
+        self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
+            self.context, vnf_instance, vnf_dict,
+            instantiate_vnf_req)
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._build_instantiated_vnf_info')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.utils._convert_desired_capacity')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._check_res_add_remove_rsc')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_instantiate_vnf_instance_grant_resource_exception(self,
+            mock_vnf_by_id,
+            mock_save,
+            mock_check,
+            mock_des, mock_vnfd_dict, mock_grants,
+            mock_exec, mock_get_lock,
+            mock_build_info,
+            mock_send):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        # mock_package_in_use.return_value = False
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour=instantiate_vnf_req.flavour_id)
+        vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        mock_vnf_by_id.return_value = \
+            objects.VnfLcmOpOcc(context=self.context,
+            **lcm_op_occs_data)
+        mock_exec.return_value = True
+        vimAssets = {'computeResourceFlavours': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdVirtualComputeDescId': 'CDU1',
+             'vimFlavourId': 'm1.tiny'}],
+            'softwareImages': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdSoftwareImageId': 'VDU1',
+             'vimSoftwareImageId': 'cirros'}]}
+        resAddResource = []
+        resource = {
+            'resourceDefinitionId': '2c6e5cc7-240d-4458-a683-1fe648351280',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa0',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnfInstanceId'] = vnf_instance.id
+        grant_dict['vnfLcmOpOccId'] = vnf_lcm_op_occs_id
+        grant_dict['addResources'] = []
+        grant_dict['addResources'].extend(resAddResource)
+        grant_dict['vimAssets'] = vimAssets
+        json_data = grant_dict
+        mock_grants.return_value = MockResponse(json_data=json_data)
+        self.assertRaises(exceptions.ValidationError,
+            self.conductor.instantiate,
+            self.context, vnf_instance, vnf_dict,
+            instantiate_vnf_req, vnf_lcm_op_occs_id)
+        self.assertEqual(
+            mock_send.call_args[0][1].get('operationState'),
+            'ROLLED_BACK')
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._build_instantiated_vnf_info')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.utils._convert_desired_capacity')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._check_res_add_remove_rsc')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_instantiate_vnf_instance_grant_exception(self,
+            mock_vnf_by_id,
+            mock_save,
+            mock_check,
+            mock_des, mock_vnfd_dict, mock_grants,
+            mock_exec, mock_get_lock,
+            mock_build_info,
+            mock_send):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        # mock_package_in_use.return_value = False
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour=instantiate_vnf_req.flavour_id)
+        vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        vnfd_key = 'vnfd_' + instantiate_vnf_req.flavour_id
+        vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
+        mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
+        mock_vnf_by_id.return_value = \
+            objects.VnfLcmOpOcc(context=self.context,
+            **lcm_op_occs_data)
+        mock_exec.return_value = True
+        mock_grants.side_effect = \
+            requests.exceptions.HTTPError("MockException")
+        self.assertRaises(requests.exceptions.HTTPError,
+            self.conductor.instantiate,
+            self.context, vnf_instance, vnf_dict,
+            instantiate_vnf_req, vnf_lcm_op_occs_id)
+        self.assertEqual(
+            mock_send.call_args[0][1].get('operationState'),
+            'ROLLED_BACK')
 
     @unittest.skip("Such test is no longer feasible.")
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
@@ -410,17 +646,23 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                 '._update_vnf_attributes')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._build_instantiated_vnf_info')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.LccnSubscriptionRequest,
         'vnf_lcm_subscriptions_get')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.utils._convert_desired_capacity')
     @mock.patch('tacker.conductor.conductor_server.LOG')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
     @mock.patch('tacker.vnflcm.utils._get_affected_resources')
     def test_instantiate_vnf_instance_failed_with_exception(
             self, mock_res, mock_vnf_by_id, mock_log,
+            mock_des, mock_vnfd_dict,
             mock_vnf_lcm_subscriptions_get,
-            mock_get_lock, mock_save, mock_change_vnf_status,
+            mock_get_lock, mock_save, mock_build_info,
+            mock_change_vnf_status,
             mock_update_vnf_attributes):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
@@ -435,9 +677,13 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.create()
         instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
-        vnf_dict = {"status": "ACTIVE"}
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour=instantiate_vnf_req.flavour_id)
         m_vnf_lcm_subscriptions = \
             [mock.MagicMock(**fakes.get_vnf_lcm_subscriptions())]
+        vnfd_key = 'vnfd_' + instantiate_vnf_req.flavour_id
+        vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
+        mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
         mock_vnf_lcm_subscriptions_get.return_value = \
             m_vnf_lcm_subscriptions
         mock_update_vnf_attributes.side_effect = Exception
@@ -475,6 +721,261 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.vnflcm_driver._vnf_instance_update.assert_called_once()
         self.assertEqual(mock_send_notification.call_count, 2)
         self.assertEqual(mock_change_vnf_status.call_count, 2)
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_terminate_vnf_instance_grant(self, mock_vnf_by_id,
+                                          mock_grants,
+                                          mock_exec,
+                                          mock_get_lock,
+                                          mock_change_vnf_status):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        # mock_package_in_use.return_value = True
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
+            flavour_id='simple',
+            vnf_instance_id=vnf_instance.id)
+        vnf_instance.instantiated_vnf_info.reinitialize()
+
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
+        vnfLcmOpOccId = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+
+        mock_exec.return_value = True
+        resRemResource = []
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnfInstanceId'] = vnf_instance.id
+        grant_dict['vnfLcmOpOccId'] = vnfLcmOpOccId
+        grant_dict['removeResources'] = []
+        grant_dict['removeResources'].extend(resRemResource)
+        json_data = grant_dict
+        mock_grants.return_value = MockResponse(json_data=json_data)
+        self.conductor.terminate(self.context, vnfLcmOpOccId,
+                                vnf_instance, terminate_vnf_req, vnf_dict)
+
+        self.vnflcm_driver.terminate_vnf.assert_called_once_with(
+            self.context, mock.ANY, terminate_vnf_req)
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_terminate_vnf_instance_grant_1(self, mock_vnf_by_id,
+                                            mock_grants,
+                                            mock_exec,
+                                            mock_get_lock,
+                                            mock_change_vnf_status):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        # mock_package_in_use.return_value = True
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
+            flavour_id='simple',
+            vnf_instance_id=vnf_instance.id)
+        vnf_instance.instantiated_vnf_info.reinitialize()
+        vnfc_obj = objects.VnfcResourceInfo()
+        vnfc_obj.id = '2c6e5cc7-240d-4458-a683-1fe648351280'
+        vnfc_obj.vdu_id = 'VDU1'
+        vnfc_obj.storage_resource_ids = \
+            ['faf14707-da7c-4eec-be99-8099fa1e9fa0']
+        compute_resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce2')
+        vnfc_obj.compute_resource = compute_resource
+        cp_obj = objects.VnfcCpInfo()
+        cp_obj.id = 'faf14707-da7c-4eec-be99-8099fa1e9fa9'
+        cp_obj.cpd_id = 'PORT1'
+        cp_obj.vnf_link_port_id = 'faf14707-da7c-4eec-be99-8099fa1e9fb9'
+        vnfc_obj.vnfc_cp_info = [cp_obj]
+        st_obj = objects.VirtualStorageResourceInfo()
+        st_obj.id = 'faf14707-da7c-4eec-be99-8099fa1e9fa0'
+        st_obj.virtual_storage_desc_id = 'ST1'
+        storage_resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce4')
+        st_obj.storage_resource = storage_resource
+        vl_obj = objects.VnfVirtualLinkResourceInfo()
+        vl_obj.id = 'faf14707-da7c-4eec-be99-8099fa1e9fa1'
+        vl_obj.vnf_virtual_link_desc_id = 'VL1'
+        network_resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce5')
+        vl_obj.network_resource = network_resource
+        port_obj = objects.VnfLinkPortInfo()
+        port_obj.id = 'faf14707-da7c-4eec-be99-8099fa1e9fb9'
+        port_obj.cp_instance_id = 'faf14707-da7c-4eec-be99-8099fa1e9fa9'
+        resource_handle = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce3')
+        port_obj.resource_handle = resource_handle
+        vl_obj.vnf_link_ports = [port_obj]
+        vnf_instance.instantiated_vnf_info.vnfc_resource_info = [vnfc_obj]
+        vnf_instance.instantiated_vnf_info.virtual_storage_resource_info = \
+            [st_obj]
+        vnf_instance.instantiated_vnf_info.vnf_virtual_link_resource_info = \
+            [vl_obj]
+
+        resRemResource = []
+        resource = {
+            'resourceDefinitionId': '2c6e5cc7-240d-4458-a683-1fe648351280',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resRemResource.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fb9',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resRemResource.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa0',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resRemResource.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa1',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resRemResource.append(resource)
+
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
+        vnfLcmOpOccId = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+
+        mock_exec.return_value = True
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnfInstanceId'] = vnf_instance.id
+        grant_dict['vnfLcmOpOccId'] = vnfLcmOpOccId
+        grant_dict['removeResources'] = []
+        grant_dict['removeResources'].extend(resRemResource)
+        json_data = grant_dict
+        mock_grants.return_value = MockResponse(json_data=json_data)
+        self.conductor.terminate(self.context, vnfLcmOpOccId,
+                                vnf_instance, terminate_vnf_req, vnf_dict)
+
+        self.vnflcm_driver.terminate_vnf.assert_called_once_with(
+            self.context, mock.ANY, terminate_vnf_req)
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_terminate_vnf_instance_grant_resource_exception(self,
+                                          mock_vnf_by_id,
+                                          mock_save,
+                                          mock_grants,
+                                          mock_exec,
+                                          mock_get_lock,
+                                          mock_send):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        # mock_package_in_use.return_value = True
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
+            flavour_id='simple',
+            vnf_instance_id=vnf_instance.id)
+        vnf_instance.instantiated_vnf_info.reinitialize()
+
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
+        vnfLcmOpOccId = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+
+        mock_exec.return_value = True
+        resRemResource = []
+        resource = {
+            'resourceDefinitionId': '2c6e5cc7-240d-4458-a683-1fe648351280',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resRemResource.append(resource)
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnfInstanceId'] = vnf_instance.id
+        grant_dict['vnfLcmOpOccId'] = vnfLcmOpOccId
+        grant_dict['removeResources'] = []
+        grant_dict['removeResources'].extend(resRemResource)
+        json_data = grant_dict
+        mock_grants.return_value = MockResponse(json_data=json_data)
+
+        self.assertRaises(exceptions.ValidationError,
+            self.conductor.terminate,
+            self.context, vnfLcmOpOccId,
+            vnf_instance, terminate_vnf_req, vnf_dict)
+        self.assertEqual(
+            mock_send.call_args[0][1].get('operationState'),
+            'ROLLED_BACK')
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_terminate_vnf_instance_grant_exception(self,
+                                          mock_vnf_by_id,
+                                          mock_save,
+                                          mock_grants,
+                                          mock_exec,
+                                          mock_get_lock,
+                                          mock_send):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        # mock_package_in_use.return_value = True
+        vnf_instance_data['instantiation_state'] =\
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance = objects.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
+            flavour_id='simple',
+            vnf_instance_id=vnf_instance.id)
+        vnf_instance.instantiated_vnf_info.reinitialize()
+
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
+        vnfLcmOpOccId = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+
+        mock_exec.return_value = True
+        mock_grants.side_effect = \
+            requests.exceptions.HTTPError("MockException")
+        self.assertRaises(requests.exceptions.HTTPError,
+            self.conductor.terminate,
+            self.context, vnfLcmOpOccId,
+            vnf_instance, terminate_vnf_req, vnf_dict)
+        self.assertEqual(
+            mock_send.call_args[0][1].get('operationState'),
+            'ROLLED_BACK')
 
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
@@ -674,6 +1175,422 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         mock_add_additional_vnf_info. \
             assert_called_once_with(self.context, vnf_instance)
 
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_instantiated_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._add_additional_vnf_info')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch('tacker.vnflcm.utils._get_vnflcm_interface')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(driver_manager.DriverManager, "__init__")
+    @mock.patch.object(driver_manager.DriverManager, "register")
+    @mock.patch.object(driver_manager.DriverManager, "invoke")
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._get_placement')
+    def test_heal_vnf_instance_grant(self,
+                                     mock_placement,
+                                     mock_d1,
+                                     mock_d2,
+                                     mock_d3,
+                                     mock_vim,
+                                     mock_act,
+                                     mock_grants,
+                                     mock_exec,
+                                     mock_vnf_by_id,
+                                     mock_get_lock,
+                                     mock_save,
+                                     mock_add_vnf_info,
+                                     mock_update_vnf_info,
+                                     mock_change_status):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = \
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
+            flavour_id='simple')
+        heal_vnf_req = objects.HealVnfRequest(cause="healing request")
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
+        vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        mock_exec.return_value = True
+        mock_act.return_value = None
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'openstack',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost/identity',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+        vimAssets = {'computeResourceFlavours': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdVirtualComputeDescId': 'CDU1',
+             'vimFlavourId': 'm1.tiny'}],
+            'softwareImages': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdSoftwareImageId': 'VDU1',
+             'vimSoftwareImageId': 'cirros'}]}
+        resAddResource = []
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnfInstanceId'] = vnf_instance.id
+        grant_dict['vnfLcmOpOccId'] = vnf_lcm_op_occs_id
+        grant_dict['addResources'] = []
+        grant_dict['addResources'].extend(resAddResource)
+        grant_dict['vimAssets'] = vimAssets
+        json_data = grant_dict
+        mock_grants.return_value = MockResponse(json_data=json_data)
+
+        mock_vim.return_value = vim_obj
+        mock_d1.return_value = []
+        mock_placement.return_value = []
+        self.conductor.heal(self.context, vnf_instance, vnf_dict,
+                            heal_vnf_req, vnf_lcm_op_occs_id)
+        mock_add_vnf_info.assert_called_once()
+        mock_update_vnf_info.assert_called_once()
+        self.vnflcm_driver.heal_vnf.assert_called_once_with(
+            self.context, mock.ANY, vnf_dict, heal_vnf_req)
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_instantiated_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._add_additional_vnf_info')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch('tacker.vnflcm.utils._get_vnflcm_interface')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(driver_manager.DriverManager, "__init__")
+    @mock.patch.object(driver_manager.DriverManager, "register")
+    @mock.patch.object(driver_manager.DriverManager, "invoke")
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._get_placement')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._check_res_add_remove_rsc')
+    def test_heal_vnf_instance_grant_1(self,
+                                       mock_check,
+                                       mock_placement,
+                                       mock_d1,
+                                       mock_d2,
+                                       mock_d3,
+                                       mock_vim,
+                                       mock_act,
+                                       mock_grants,
+                                       mock_exec,
+                                       mock_vnf_by_id,
+                                       mock_get_lock,
+                                       mock_save,
+                                       mock_add_vnf_info,
+                                       mock_update_vnf_info,
+                                       mock_change_status):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = \
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
+            flavour_id='simple',
+            vnf_instance_id=vnf_instance.id)
+        vnf_instance.instantiated_vnf_info.reinitialize()
+        vnfc_obj = objects.VnfcResourceInfo()
+        vnfc_obj.id = '2c6e5cc7-240d-4458-a683-1fe648351280'
+        vnfc_obj.vdu_id = 'VDU1'
+        vnfc_obj.storage_resource_ids = \
+            ['faf14707-da7c-4eec-be99-8099fa1e9fa0']
+        compute_resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce2')
+        vnfc_obj.compute_resource = compute_resource
+        cp_obj = objects.VnfcCpInfo()
+        cp_obj.id = 'faf14707-da7c-4eec-be99-8099fa1e9fa9'
+        cp_obj.cpd_id = 'PORT1'
+        cp_obj.vnf_link_port_id = 'faf14707-da7c-4eec-be99-8099fa1e9fb9'
+        vnfc_obj.vnfc_cp_info = [cp_obj]
+        st_obj = objects.VirtualStorageResourceInfo()
+        st_obj.id = 'faf14707-da7c-4eec-be99-8099fa1e9fa0'
+        st_obj.virtual_storage_desc_id = 'ST1'
+        storage_resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce4')
+        st_obj.storage_resource = storage_resource
+        vl_obj = objects.VnfVirtualLinkResourceInfo()
+        vl_obj.id = 'faf14707-da7c-4eec-be99-8099fa1e9fa1'
+        vl_obj.vnf_virtual_link_desc_id = 'VL1'
+        network_resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce5')
+        vl_obj.network_resource = network_resource
+        port_obj = objects.VnfLinkPortInfo()
+        port_obj.id = 'faf14707-da7c-4eec-be99-8099fa1e9fb9'
+        port_obj.cp_instance_id = 'faf14707-da7c-4eec-be99-8099fa1e9fa9'
+        resource_handle = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce3')
+        port_obj.resource_handle = resource_handle
+        vl_obj.vnf_link_ports = [port_obj]
+        vnf_instance.instantiated_vnf_info.vnfc_resource_info = [vnfc_obj]
+        vnf_instance.instantiated_vnf_info.virtual_storage_resource_info = \
+            [st_obj]
+        vnf_instance.instantiated_vnf_info.vnf_virtual_link_resource_info = \
+            [vl_obj]
+        heal_vnf_req = objects.HealVnfRequest(cause="healing request")
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
+        vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        mock_exec.return_value = True
+        mock_act.return_value = None
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'openstack',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost/identity',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+        vimAssets = {'computeResourceFlavours': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdVirtualComputeDescId': 'CDU1',
+             'vimFlavourId': 'm1.tiny'}],
+            'softwareImages': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdSoftwareImageId': 'VDU1',
+             'vimSoftwareImageId': 'cirros'}]}
+        resAddResource = []
+        resRemResource = []
+        resource = {
+            'resourceDefinitionId': '2c6e5cc7-240d-4458-a683-1fe648351280'}
+        resRemResource.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa0'}
+        resRemResource.append(resource)
+        resource = {
+            'resourceDefinitionId': '2c6e5cc7-240d-4458-a683-1fe648351281',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        resource = {
+            'resourceDefinitionId': '2c6e5cc7-240d-4458-a683-1fe648351282',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnfInstanceId'] = vnf_instance.id
+        grant_dict['vnfLcmOpOccId'] = vnf_lcm_op_occs_id
+        grant_dict['addResources'] = []
+        grant_dict['addResources'].extend(resAddResource)
+        grant_dict['removeResources'] = []
+        grant_dict['removeResources'].extend(resRemResource)
+        grant_dict['vimAssets'] = vimAssets
+        json_data = grant_dict
+        mock_grants.return_value = MockResponse(json_data=json_data)
+
+        mock_vim.return_value = vim_obj
+        mock_d1.return_value = ['ST1']
+        res_str = '[{"id_type": "RES_MGMT", "resource_id": ' + \
+            '"2c6e5cc7-240d-4458-a683-1fe648351200", ' + \
+            '"vim_connection_id": ' + \
+            '"2a63bee3-0c43-4568-bcfa-b0cb733e064c"}]'
+        placemnt = models.PlacementConstraint(
+            id='c2947d8a-2c67-4e8f-ad6f-c0889b351c17',
+            vnf_instance_id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
+            affinity_or_anti_affinity='ANTI_AFFINITY',
+            scope='ZONE',
+            server_group_name='my_compute_placement_policy',
+            resource=res_str,
+            deleted_at=datetime.datetime.min)
+        mock_placement.return_value = [placemnt]
+        self.conductor.heal(self.context, vnf_instance, vnf_dict,
+                            heal_vnf_req, vnf_lcm_op_occs_id)
+        mock_add_vnf_info.assert_called_once()
+        mock_update_vnf_info.assert_called_once()
+        self.vnflcm_driver.heal_vnf.assert_called_once_with(
+            self.context, mock.ANY, vnf_dict, heal_vnf_req)
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_instantiated_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._add_additional_vnf_info')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch('tacker.vnflcm.utils._get_vnflcm_interface')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(driver_manager.DriverManager, "__init__")
+    @mock.patch.object(driver_manager.DriverManager, "register")
+    @mock.patch.object(driver_manager.DriverManager, "invoke")
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._get_placement')
+    def test_heal_vnf_instance_grant_resource_exception(self,
+                                     mock_placement,
+                                     mock_d1,
+                                     mock_d2,
+                                     mock_d3,
+                                     mock_vim,
+                                     mock_act,
+                                     mock_grants,
+                                     mock_exec,
+                                     mock_vnf_by_id,
+                                     mock_get_lock,
+                                     mock_save,
+                                     mock_add_vnf_info,
+                                     mock_update_vnf_info,
+                                     mock_send):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = \
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
+            flavour_id='simple')
+        heal_vnf_req = objects.HealVnfRequest(cause="healing request")
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
+        vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        mock_exec.return_value = True
+        mock_act.return_value = None
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'openstack',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost/identity',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+        vimAssets = {'computeResourceFlavours': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdVirtualComputeDescId': 'CDU1',
+             'vimFlavourId': 'm1.tiny'}],
+            'softwareImages': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdSoftwareImageId': 'VDU1',
+             'vimSoftwareImageId': 'cirros'}]}
+        resAddResource = []
+        resource = {
+            'resourceDefinitionId': '2c6e5cc7-240d-4458-a683-1fe648351281',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnfInstanceId'] = vnf_instance.id
+        grant_dict['vnfLcmOpOccId'] = vnf_lcm_op_occs_id
+        grant_dict['addResources'] = []
+        grant_dict['addResources'].extend(resAddResource)
+        grant_dict['vimAssets'] = vimAssets
+        json_data = grant_dict
+        mock_grants.return_value = MockResponse(json_data=json_data)
+
+        mock_vim.return_value = vim_obj
+        mock_d1.return_value = []
+        mock_placement.return_value = []
+        self.assertRaises(exceptions.ValidationError,
+            self.conductor.heal,
+            self.context, vnf_instance, vnf_dict,
+            heal_vnf_req, vnf_lcm_op_occs_id)
+        self.assertEqual(
+            mock_send.call_args[0][1].get('operationState'),
+            'ROLLED_BACK')
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_instantiated_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._add_additional_vnf_info')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch('tacker.vnflcm.utils._get_vnflcm_interface')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(driver_manager.DriverManager, "__init__")
+    @mock.patch.object(driver_manager.DriverManager, "register")
+    @mock.patch.object(driver_manager.DriverManager, "invoke")
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._get_placement')
+    def test_heal_vnf_instance_grant_exception(self,
+                                     mock_placement,
+                                     mock_d1,
+                                     mock_d2,
+                                     mock_d3,
+                                     mock_vim,
+                                     mock_act,
+                                     mock_grants,
+                                     mock_exec,
+                                     mock_vnf_by_id,
+                                     mock_get_lock,
+                                     mock_save,
+                                     mock_add_vnf_info,
+                                     mock_update_vnf_info,
+                                     mock_send):
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = \
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
+            flavour_id='simple')
+        heal_vnf_req = objects.HealVnfRequest(cause="healing request")
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
+        vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        mock_exec.return_value = True
+        mock_act.return_value = None
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'openstack',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost/identity',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+        mock_grants.side_effect = \
+            requests.exceptions.HTTPError("MockException")
+
+        mock_vim.return_value = vim_obj
+        mock_d1.return_value = []
+        mock_placement.return_value = []
+        self.assertRaises(requests.exceptions.HTTPError,
+            self.conductor.heal,
+            self.context, vnf_instance, vnf_dict,
+            heal_vnf_req, vnf_lcm_op_occs_id)
+        self.assertEqual(
+            mock_send.call_args[0][1].get('operationState'),
+            'ROLLED_BACK')
+
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_send_lcm_op_occ_notification')
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
@@ -800,16 +1717,65 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual('CREATED', self.vnf_package.onboarding_state)
 
     @mock.patch.object(coordination.Coordinator, 'get_lock')
-    @mock.patch.object(objects.VnfInstance, "get_by_id")
-    def test_scale(self, mock_vnf_by_id, mock_get_lock):
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(driver_manager.DriverManager, "__init__")
+    @mock.patch.object(driver_manager.DriverManager, "register")
+    @mock.patch.object(driver_manager.DriverManager, "invoke")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    def test_scale_in(
+            self,
+            mock_grants,
+            mock_d1,
+            mock_d2,
+            mock_d3,
+            mock_vim,
+            mock_vnf_by_id,
+            mock_get_lock):
         mock_vnf_by_id.return_value = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
 
         vnf_info = fakes._get_vnf()
+        vnf_lcm_op_occ = objects.VnfLcmOpOcc(
+            state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                              tzinfo=iso8601.UTC),
+            start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                         tzinfo=iso8601.UTC),
+            vnf_instance_id=uuidsentinel.vnf_instance_id,
+            operation='SCALE',
+            operation_state='ACTIVE',
+            is_automatic_invocation=False,
+            operation_params='{"type": "SCALE_IN", "aspect_id": "SP1"}',
+            error_point=0,
+            id=test_constants.UUID,
+            created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                         tzinfo=iso8601.UTC))
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED,
             scale_status="scale_status")
         scale_vnf_request = fakes.scale_request("SCALE_IN", 1)
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'openstack',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost/identity',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+
+        mock_vim.return_value = vim_obj
+        mock_d1.return_value = ([], [], "", "")
+        vnf_info['addResources'] = []
+        vnf_info['removeResources'] = []
+        vnf_info['affinity_list'] = []
+        vnf_info['placement_constraint_list'] = []
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnf_instance_id'] = uuidsentinel.vnf_instance_id
+        grant_dict['vnf_lcm_op_occ_id'] = test_constants.UUID
+        mock_grants.return_value = MockResponse(
+            json_data=jsonutils.dumps(grant_dict))
 
         self.conductor.scale(
             self.context,
@@ -818,6 +1784,473 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             scale_vnf_request)
         self.vnflcm_driver.scale_vnf.assert_called_once_with(
             self.context, vnf_info, mock.ANY, scale_vnf_request)
+        self.assertEqual(0, mock_grants.call_count)
+
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(driver_manager.DriverManager, "__init__")
+    @mock.patch.object(driver_manager.DriverManager, "register")
+    @mock.patch.object(driver_manager.DriverManager, "invoke")
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    def test_scale_in_grants(
+            self,
+            mock_grants,
+            moch_exec,
+            mock_d1,
+            mock_d2,
+            mock_d3,
+            mock_vim,
+            mock_vnf_by_id,
+            mock_get_lock):
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_info = fakes._get_vnf()
+        vnf_lcm_op_occ = objects.VnfLcmOpOcc(
+            state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                              tzinfo=iso8601.UTC),
+            start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                         tzinfo=iso8601.UTC),
+            vnf_instance_id=uuidsentinel.vnf_instance_id,
+            operation='SCALE',
+            operation_state='ACTIVE',
+            is_automatic_invocation=False,
+            operation_params='{"type": "SCALE_IN", "aspect_id": "SP1"}',
+            error_point=0,
+            id=test_constants.UUID,
+            created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                         tzinfo=iso8601.UTC))
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status="scale_status")
+        scale_vnf_request = fakes.scale_request("SCALE_IN", 1)
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'openstack',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost/identity',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+
+        mock_vim.return_value = vim_obj
+        removeResources = []
+        resRemoveResource = []
+        resource = objects.ResourceDefinition(
+            id='2c6e5cc7-240d-4458-a683-1fe648351280',
+            type='COMPUTE',
+            vdu_id='VDU1',
+            resource_template_id='VDU1')
+        resource.resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce2')
+        removeResources.append(resource)
+        resource = {
+            'resourceDefinitionId': '2c6e5cc7-240d-4458-a683-1fe648351280',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resRemoveResource.append(resource)
+        resource = objects.ResourceDefinition(
+            id='faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            type='LINKPORT',
+            vdu_id='VDU1',
+            resource_template_id='PORT1')
+        resource.resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce3')
+        removeResources.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resRemoveResource.append(resource)
+        resource = objects.ResourceDefinition(
+            id='faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            type='STORAGE',
+            vdu_id='VDU1',
+            resource_template_id='ST1')
+        resource.resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce4')
+        removeResources.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resRemoveResource.append(resource)
+        mock_d1.return_value = ([], [], "", "")
+        vnf_info['addResources'] = []
+        vnf_info['removeResources'] = removeResources
+        vnf_info['affinity_list'] = []
+        vnf_info['placement_constraint_list'] = []
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnfInstanceId'] = uuidsentinel.vnf_instance_id
+        grant_dict['vnfLcmOpOccId'] = test_constants.UUID
+        grant_dict['removeResources'] = []
+        grant_dict['removeResources'].extend(resRemoveResource)
+        json_data = grant_dict
+        mock_grants.return_value = MockResponse(json_data=json_data)
+        moch_exec.return_value = True
+
+        self.conductor.scale(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            scale_vnf_request)
+        self.vnflcm_driver.scale_vnf.assert_called_once_with(
+            self.context, vnf_info, mock.ANY, scale_vnf_request)
+        self.assertEqual(1, mock_grants.call_count)
+
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(driver_manager.DriverManager, "__init__")
+    @mock.patch.object(driver_manager.DriverManager, "register")
+    @mock.patch.object(driver_manager.DriverManager, "invoke")
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    def test_scale_grants_out(
+            self,
+            mock_grants,
+            moch_exec,
+            mock_d1,
+            mock_d2,
+            mock_d3,
+            mock_vim,
+            mock_vnf_by_id,
+            mock_get_lock):
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+
+        vnf_info = fakes._get_vnf()
+        vnf_lcm_op_occ = objects.VnfLcmOpOcc(
+            context=self.context,
+            state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                              tzinfo=iso8601.UTC),
+            start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                         tzinfo=iso8601.UTC),
+            vnf_instance_id=vnf_instance.id,
+            operation='SCALE',
+            operation_state='ACTIVE',
+            is_automatic_invocation=False,
+            operation_params='{"type": "SCALE_OUT", "aspect_id": "SP1"}',
+            is_cancel_pending=False,
+            error_point=0,
+            id='00e1314d-2a82-40bd-b318-cc881243842d',
+            created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                         tzinfo=iso8601.UTC))
+        vnf_lcm_op_occ.create()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status="scale_status")
+        scale_vnf_request = fakes.scale_request("SCALE_OUT", 1)
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'openstack',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost/identity',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+
+        mock_vim.return_value = vim_obj
+        addResources = []
+        resAddResource = []
+        resource = objects.ResourceDefinition(
+            id='2c6e5cc7-240d-4458-a683-1fe648351280',
+            type='COMPUTE',
+            vdu_id='VDU1',
+            resource_template_id='VDU1')
+        addResources.append(resource)
+        resource = {
+            'resourceDefinitionId': '2c6e5cc7-240d-4458-a683-1fe648351280',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        resource = objects.ResourceDefinition(
+            id='faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            type='LINKPORT',
+            vdu_id='VDU1',
+            resource_template_id='PORT1')
+        addResources.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        resource = objects.ResourceDefinition(
+            id='faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            type='STORAGE',
+            vdu_id='VDU1',
+            resource_template_id='ST1')
+        addResources.append(resource)
+        resource = {
+            'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            'vimConnectionId': uuidsentinel.vim_id,
+            'zoneId': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        resAddResource.append(resource)
+        placement = objects.PlacementConstraint(
+            affinity_or_anti_affinity='ANTI_AFFINITY',
+            scope='ZONE',
+            resource=[],
+            fallback_best_effort=True)
+        resource = objects.ConstraintResourceRef(
+            id_type='RES_MGMT',
+            resource_id='2c6e5cc7-240d-4458-a683-1fe648351200',
+            vim_connection_id=uuidsentinel.vim_id)
+        placement.resource.append(resource)
+        resource = objects.ConstraintResourceRef(
+            id_type='GRANT',
+            resource_id='2c6e5cc7-240d-4458-a683-1fe648351280')
+        placement.resource.append(resource)
+        vimAssets = {'computeResourceFlavours': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdVirtualComputeDescId': 'CDU1',
+             'vimFlavourId': 'm1.tiny'}],
+            'softwareImages': [
+            {'vimConnectionId': uuidsentinel.vim_id,
+             'vnfdSoftwareImageId': 'VDU1',
+             'vimSoftwareImageId': 'cirros'}]}
+
+        mock_d1.return_value = ([], [], "", "")
+        vnf_info['addResources'] = addResources
+        vnf_info['removeResources'] = []
+        vnf_info['affinity_list'] = []
+        vnf_info['placement_constraint_list'] = []
+        vnf_info['placement_constraint_list'].append(placement)
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnfInstanceId'] = uuidsentinel.vnf_instance_id
+        grant_dict['vnfLcmOpOccId'] = test_constants.UUID
+        grant_dict['addResources'] = []
+        grant_dict['addResources'].extend(resAddResource)
+        grant_dict['vimAssets'] = vimAssets
+        moch_exec.return_value = True
+        json_data = grant_dict
+        mock_grants.return_value = MockResponse(json_data=json_data)
+
+        self.conductor.scale(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            scale_vnf_request)
+        self.vnflcm_driver.scale_vnf.assert_called_once_with(
+            self.context, vnf_info, mock.ANY, scale_vnf_request)
+        self.assertEqual(1, mock_grants.call_count)
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(driver_manager.DriverManager, "__init__")
+    @mock.patch.object(driver_manager.DriverManager, "register")
+    @mock.patch.object(driver_manager.DriverManager, "invoke")
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    def test_scale_grants_out_resource_exception(
+            self,
+            mock_grants,
+            moch_exec,
+            mock_d1,
+            mock_d2,
+            mock_d3,
+            mock_vim,
+            mock_vnf_by_id,
+            mock_get_lock,
+            mock_send):
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+
+        vnf_info = fakes._get_vnf()
+        vnf_lcm_op_occ = objects.VnfLcmOpOcc(
+            context=self.context,
+            state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                              tzinfo=iso8601.UTC),
+            start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                         tzinfo=iso8601.UTC),
+            vnf_instance_id=vnf_instance.id,
+            operation='SCALE',
+            operation_state='ACTIVE',
+            is_automatic_invocation=False,
+            operation_params='{"type": "SCALE_OUT", "aspect_id": "SP1"}',
+            is_cancel_pending=False,
+            error_point=0,
+            id='00e1314d-2a82-40bd-b318-cc881243843d',
+            created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                         tzinfo=iso8601.UTC))
+        vnf_lcm_op_occ.create()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status="scale_status")
+        scale_vnf_request = fakes.scale_request("SCALE_OUT", 1)
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'openstack',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost/identity',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+
+        mock_vim.return_value = vim_obj
+        addResources = []
+        resource = objects.ResourceDefinition(
+            id='2c6e5cc7-240d-4458-a683-1fe648351280',
+            type='COMPUTE',
+            vdu_id='VDU1',
+            resource_template_id='VDU1')
+        addResources.append(resource)
+        resource = objects.ResourceDefinition(
+            id='faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            type='LINKPORT',
+            vdu_id='VDU1',
+            resource_template_id='PORT1')
+        addResources.append(resource)
+        resource = objects.ResourceDefinition(
+            id='faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            type='STORAGE',
+            vdu_id='VDU1',
+            resource_template_id='ST1')
+        addResources.append(resource)
+        mock_d1.return_value = ([], [], "", "")
+        vnf_info['addResources'] = addResources
+        vnf_info['removeResources'] = []
+        vnf_info['affinity_list'] = []
+        vnf_info['placement_constraint_list'] = []
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnf_instance_id'] = uuidsentinel.vnf_instance_id
+        grant_dict['vnf_lcm_op_occ_id'] = test_constants.UUID
+        moch_exec.return_value = True
+        mock_grants.return_value = MockResponse(json_data=grant_dict)
+
+        self.assertRaises(exceptions.ValidationError,
+            self.conductor.scale,
+            self.context, vnf_info, vnf_instance, scale_vnf_request)
+        self.assertEqual(
+            mock_send.call_args[0][1].get('operationState'),
+            'ROLLED_BACK')
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(driver_manager.DriverManager, "__init__")
+    @mock.patch.object(driver_manager.DriverManager, "register")
+    @mock.patch.object(driver_manager.DriverManager, "invoke")
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    def test_scale_grants_exception(
+            self,
+            mock_grants,
+            moch_exec,
+            mock_d1,
+            mock_d2,
+            mock_d3,
+            mock_vim,
+            mock_vnf_by_id,
+            mock_get_lock,
+            mock_send):
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+
+        vnf_info = fakes._get_vnf()
+        vnf_lcm_op_occ = objects.VnfLcmOpOcc(
+            context=self.context,
+            state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                              tzinfo=iso8601.UTC),
+            start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                         tzinfo=iso8601.UTC),
+            vnf_instance_id=vnf_instance.id,
+            operation='SCALE',
+            operation_state='ACTIVE',
+            is_automatic_invocation=False,
+            operation_params='{"type": "SCALE_OUT", "aspect_id": "SP1"}',
+            error_point=0,
+            id='00e1314d-2a82-40bd-b318-cc881243843d',
+            created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                         tzinfo=iso8601.UTC))
+        vnf_lcm_op_occ.create()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status="scale_status")
+        scale_vnf_request = fakes.scale_request("SCALE_OUT", 1)
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'openstack',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost/identity',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+
+        mock_vim.return_value = vim_obj
+        addResources = []
+        resource = objects.ResourceDefinition(
+            id='2c6e5cc7-240d-4458-a683-1fe648351280',
+            type='COMPUTE',
+            vdu_id='VDU1',
+            resource_template_id='VDU1')
+        addResources.append(resource)
+        resource = objects.ResourceDefinition(
+            id='faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            type='LINKPORT',
+            vdu_id='VDU1',
+            resource_template_id='PORT1')
+        addResources.append(resource)
+        resource = objects.ResourceDefinition(
+            id='faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            type='STORAGE',
+            vdu_id='VDU1',
+            resource_template_id='ST1')
+        addResources.append(resource)
+        mock_d1.return_value = ([], [], "", "")
+        vnf_info['addResources'] = addResources
+        vnf_info['removeResources'] = []
+        vnf_info['affinity_list'] = []
+        vnf_info['placement_constraint_list'] = []
+        moch_exec.return_value = True
+        mock_grants.side_effect = \
+            requests.exceptions.HTTPError("MockException")
+
+        self.assertRaises(requests.exceptions.HTTPError,
+            self.conductor.scale,
+            self.context, vnf_info, vnf_instance, scale_vnf_request)
+        print("test_log rollback")
+        print(mock_send.call_args)
+        self.assertEqual(
+            mock_send.call_args[0][1].get('operationState'),
+            'ROLLED_BACK')
 
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')

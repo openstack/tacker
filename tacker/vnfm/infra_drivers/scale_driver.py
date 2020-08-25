@@ -80,10 +80,35 @@ class VnfScaleAbstractDriver(extensions.PluginInterface):
         pass
 
     @abc.abstractmethod
-    def scale_in_reverse_wait(self,
+    def scale_out_initial(self,
+              context,
+              plugin,
+              auth_attr,
+              vnf_info,
+              scale_vnf_request,
+              region_name):
+        pass
+
+    @abc.abstractmethod
+    def scale_update_wait(self,
                    context,
                    plugin,
                    auth_attr,
                    vnf_info,
                    region_name):
+        pass
+
+    @abc.abstractmethod
+    def get_cinder_list(self,
+                        vnf_info):
+        pass
+
+    @abc.abstractmethod
+    def get_grant_resource(self,
+                   vnf_instance,
+                   vnf_info,
+                   scale_vnf_request,
+                   placement_obj_list,
+                   vim_connection_info,
+                   del_list):
         pass

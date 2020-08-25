@@ -1,0 +1,57 @@
+heat_template_version: 2013-05-23
+description: test
+parameters:
+  DB11_image:
+    type: string
+    default: cirros
+  my_compute_placement_policy:
+    type: string
+    default: ssss
+resources:
+  DB11:
+    type: OS::Nova::Server
+    properties:
+      user_data_format: SOFTWARE_CONFIG
+      availability_zone: nova
+      scheduler_hints:
+        group: {get_resource: my_compute_placement_policy}
+      block_device_mapping_v2:
+        - device_name: vda
+          volume_id: {get_resource: ENUMm0-VB}
+      flavor: m1.tiny
+      networks:
+      - port: {get_resource: DB11-CP}
+      config_drive: false
+  DB11-CP:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: DB11-VL}
+  DB12:
+    type: OS::Nova::Server
+    properties:
+      user_data_format: SOFTWARE_CONFIG
+      availability_zone: nova
+      image: cirros
+      flavor: m1.tiny
+      networks:
+      - port: {get_resource: DB12-CP}
+      config_drive: false
+  DB12-CP:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: DB11-VL}
+  DB12-VB:
+    properties: {image: cirros, size: \'1\'}
+    type: OS::Cinder::Volume
+  ENUMm0-VB:
+    properties:
+      image: {get_param: DB11_image}
+      size: \'1\'
+    type: OS::Cinder::Volume
+  DB12-CB:
+    properties:
+      instance_uuid: {get_resource: DB12}
+      mountpoint: /dev/vdb
+      volume_id: {get_resource: DB12-VB}
+    type: OS::Cinder::VolumeAttachment
+outputs: {}

@@ -245,8 +245,9 @@ def get_vnf_instance_data_with_id(vnfd_id):
     }
 
 
-def get_lcm_op_occs_data(vnf_instance_id):
+def get_lcm_op_occs_data(id, vnf_instance_id):
     return {
+        "id": id,
         "tenant_id": uuidsentinel.tenant_id,
         'operation_state': 'PROCESSING',
         'state_entered_time': datetime.datetime(1900, 1, 1, 1, 1, 1,

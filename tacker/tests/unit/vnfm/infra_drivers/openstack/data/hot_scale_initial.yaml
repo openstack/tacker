@@ -1,0 +1,31 @@
+heat_template_version: 2013-05-23
+description: test
+parameters:
+  current_num:
+    type: number
+  nfv:
+    type: json
+resources:
+  SP1_scale_out:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      auto_scaling_group_id: {get_resource: SP1_group}
+      adjustment_type: change_in_capacity
+      scaling_adjustment: 1
+  SP1_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 0
+      desired_capacity: {get_param: current_num}
+      resource:
+        type: SP1_res.yaml
+        properties:
+          nfv: {get_param: nfv}
+      max_size: 3
+  SP1_scale_in:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      auto_scaling_group_id: {get_resource: SP1_group}
+      adjustment_type: change_in_capacity
+      scaling_adjustment: -1
+outputs: {}

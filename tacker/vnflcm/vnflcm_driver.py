@@ -276,7 +276,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         try:
             instance_id = self._vnf_manager.invoke(
                 vim_connection_info.vim_type, 'instantiate_vnf',
-                context=context, vnf_instance=vnf_instance,
+                context=context, plugin=self._vnfm_plugin,
+                vnf_instance=vnf_instance,
                 vnfd_dict=final_vnf_dict, grant_response=vnf_resources,
                 vim_connection_info=vim_connection_info,
                 base_hot_dict=base_hot_dict,
@@ -293,12 +294,9 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     id=vnf_instance.id,
                     error=encodeutils.exception_to_unicode(exp))
 
-        vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
-            flavour_id=instantiate_vnf_req.flavour_id,
-            instantiation_level_id=instantiate_vnf_req.instantiation_level_id,
-            vnf_instance_id=vnf_instance.id,
-            instance_id=instance_id,
-            ext_cp_info=[])
+        if vnf_instance.instantiated_vnf_info and\
+           not vnf_instance.instantiated_vnf_info.instance_id:
+            vnf_instance.instantiated_vnf_info.instance_id = instance_id
         if vnf_dict['attributes'].get('scaling_group_names'):
             vnf_instance.instantiated_vnf_info.scale_status = \
                 vnf_dict['scale_status']
@@ -306,7 +304,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         try:
             self._vnf_manager.invoke(
                 vim_connection_info.vim_type, 'create_wait',
-                plugin=self, context=context,
+                plugin=self._vnfm_plugin, context=context,
                 vnf_dict=final_vnf_dict,
                 vnf_id=final_vnf_dict['instance_id'],
                 auth_attr=vim_connection_info.access_info)
@@ -321,14 +319,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 raise exceptions.VnfInstantiationWaitFailed(
                     id=vnf_instance.id,
                     error=encodeutils.exception_to_unicode(exp))
-
-        vnflcm_utils._build_instantiated_vnf_info(vnfd_dict,
-                instantiate_vnf_req, vnf_instance, vim_connection_info.vim_id)
-
-        self._vnf_manager.invoke(vim_connection_info.vim_type,
-                'post_vnf_instantiation', context=context,
-                vnf_instance=vnf_instance,
-                vim_connection_info=vim_connection_info)
 
     @log.log
     @rollback_vnf_instantiated_resources
@@ -350,10 +340,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
         self._instantiate_vnf(context, vnf_instance, vnf_dict,
                               vim_connection_info, instantiate_vnf_req)
-
-        self._vnf_instance_update(context, vnf_instance,
-                    instantiation_state=fields.VnfInstanceState.INSTANTIATED,
-                    task_state=None)
 
     @log.log
     @revert_to_error_task_state
@@ -929,7 +915,12 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         LOG.debug(
             "is_reverse: %s",
             scale_vnf_request.additional_params.get('is_reverse'))
-        if scale_vnf_request.additional_params['is_reverse'] == 'True':
+        scale_json = vnf_info['attributes']['scale_group']
+        scaleGroupDict = jsonutils.loads(scale_json)
+        key_aspect = scale_vnf_request.aspect_id
+        default = scaleGroupDict['scaleGroupDict'][key_aspect]['default']
+        if (scale_vnf_request.type == 'SCALE_IN' and
+                scale_vnf_request.additional_params['is_reverse'] == 'True'):
             self._vnf_manager.invoke(
                 vim_connection_info.vim_type,
                 'scale_in_reverse',
@@ -944,7 +935,27 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             )
             self._vnf_manager.invoke(
                 vim_connection_info.vim_type,
-                'scale_in_reverse_wait',
+                'scale_update_wait',
+                plugin=self,
+                context=context,
+                auth_attr=vim_connection_info.access_info,
+                vnf_info=vnf_info,
+                region_name=vim_connection_info.access_info.get('region_name')
+            )
+        elif scale_vnf_request.type == 'SCALE_OUT' and default == 0:
+            self._vnf_manager.invoke(
+                vim_connection_info.vim_type,
+                'scale_out_initial',
+                plugin=self,
+                context=context,
+                auth_attr=vim_connection_info.access_info,
+                vnf_info=vnf_info,
+                scale_vnf_request=scale_vnf_request,
+                region_name=vim_connection_info.access_info.get('region_name')
+            )
+            self._vnf_manager.invoke(
+                vim_connection_info.vim_type,
+                'scale_update_wait',
                 plugin=self,
                 context=context,
                 auth_attr=vim_connection_info.access_info,
