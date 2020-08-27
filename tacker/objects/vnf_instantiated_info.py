@@ -16,6 +16,7 @@
 from oslo_log import log as logging
 
 from tacker.common import exceptions
+from tacker.common import utils
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
@@ -78,8 +79,47 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
             default=None),
         'additional_params': fields.DictOfStringsField(nullable=True,
                                                        default={})
-
     }
+
+    ALL_ATTRIBUTES = {
+        'instantiatedInfo': {
+            'flavourId': ('id', 'string', 'VnfInstantiatedInfo'),
+            'vnfInstanceId':
+                ('vnf_instance_id', 'string', 'VnfInstantiatedInfo'),
+            'vnfState': ('vnf_state', 'string', 'VnfInstantiatedInfo'),
+            'instanceId': ('instance_id', 'string', 'VnfInstantiatedInfo'),
+            'instantiationLevelId':
+                ('instantiation_level_id', 'string', 'VnfInstantiatedInfo'),
+            'extCpInfo/*': ('ext_cp_info', 'key_value_pair',
+                            {"key_column": "key", "value_column": "value",
+                             "model": "VnfInstantiatedInfo"}),
+            'extVirtualLinkInfo/*': ('ext_virtual_link_info', 'key_value_pair',
+                                {"key_column": "key", "value_column": "value",
+                                "model": "VnfInstantiatedInfo"}),
+            'extManagedVirtualLinkInfo/*': (
+                'ext_managed_virtual_link_info', 'key_value_pair',
+                {"key_column": "key", "value_column": "value",
+                "model": "VnfInstantiatedInfo"}),
+            'vnfcResourceInfo/*': (
+                'vnfc_resource_info', 'key_value_pair',
+                {"key_column": "key", "value_column": "value",
+                "model": "VnfInstantiatedInfo"}),
+            'vnfVirtualLinkResourceInfo/*': (
+                'vnf_virtual_link_resource_info', 'key_value_pair',
+                {"key_column": "key", "value_column": "value",
+                "model": "VnfInstantiatedInfo"}),
+            'virtualStorageResourceInfo/*': (
+                'virtual_storage_resource_info', 'key_value_pair',
+                {"key_column": "key", "value_column": "value",
+                "model": "VnfInstantiatedInfo"}),
+            'additionalParams/*': (
+                'additional_params', 'key_value_pair',
+                {"key_column": "key", "value_column": "value",
+                "model": "VnfInstantiatedInfo"}),
+        }
+    }
+
+    FLATTEN_ATTRIBUTES = utils.flatten_dict(ALL_ATTRIBUTES.copy())
 
     @staticmethod
     def _from_db_object(context, inst_vnf_info, db_inst_vnf_info):

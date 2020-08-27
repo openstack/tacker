@@ -13,11 +13,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from tacker.api import views as base
 from tacker.common import utils
 from tacker.objects import fields
+from tacker.objects import vnf_instance as _vnf_instance
 
 
-class ViewBuilder(object):
+class ViewBuilder(base.BaseViewBuilder):
+
+    FLATTEN_ATTRIBUTES = _vnf_instance.VnfInstance.FLATTEN_ATTRIBUTES
 
     def _get_links(self, vnf_instance):
         links = {
@@ -54,7 +58,8 @@ class ViewBuilder(object):
 
         return {"_links": links}
 
-    def _get_vnf_instance_info(self, vnf_instance):
+    def _get_vnf_instance_info(self,
+            vnf_instance, api_version=None):
         vnf_instance_dict = vnf_instance.to_dict()
         if 'vnf_metadata' in vnf_instance_dict:
             metadata_val = vnf_instance_dict.pop('vnf_metadata')
@@ -62,6 +67,9 @@ class ViewBuilder(object):
 
         vnf_instance_dict = utils.convert_snakecase_to_camelcase(
             vnf_instance_dict)
+
+        if api_version == "2.6.1":
+            del vnf_instance_dict["vnfPkgId"]
 
         links = self._get_links(vnf_instance)
 
@@ -74,6 +82,6 @@ class ViewBuilder(object):
     def show(self, vnf_instance):
         return self._get_vnf_instance_info(vnf_instance)
 
-    def index(self, vnf_instances):
-        return [self._get_vnf_instance_info(vnf_instance)
+    def index(self, vnf_instances, api_version=None):
+        return [self._get_vnf_instance_info(vnf_instance, api_version)
                 for vnf_instance in vnf_instances]

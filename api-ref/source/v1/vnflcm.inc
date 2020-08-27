@@ -410,6 +410,8 @@ List VNF Instance
 .. rest_method::  GET /vnflcm/v1/vnf_instances
 
 The GET method queries information about multiple VNF instances.
+In Victoria release, added attribute-based filtering expression (for VnfInstance)
+that follows clause 5.2 of ETSI GS NFV SOL13.
 
 Response Codes
 --------------
