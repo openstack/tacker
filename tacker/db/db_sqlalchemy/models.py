@@ -202,6 +202,7 @@ class VnfInstance(model_base.BASE, models.SoftDeleteMixin,
     vim_connection_info = sa.Column(sa.JSON(), nullable=True)
     vnf_pkg_id = sa.Column(types.Uuid, nullable=False)
     tenant_id = sa.Column('tenant_id', sa.String(length=64), nullable=False)
+    vnf_metadata = sa.Column(sa.JSON(), nullable=True)
 
 
 class VnfInstantiatedInfo(model_base.BASE, models.SoftDeleteMixin,

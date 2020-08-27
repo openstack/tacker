@@ -56,6 +56,10 @@ class ViewBuilder(object):
 
     def _get_vnf_instance_info(self, vnf_instance):
         vnf_instance_dict = vnf_instance.to_dict()
+        if 'vnf_metadata' in vnf_instance_dict:
+            metadata_val = vnf_instance_dict.pop('vnf_metadata')
+            vnf_instance_dict['metadata'] = metadata_val
+
         vnf_instance_dict = utils.convert_snakecase_to_camelcase(
             vnf_instance_dict)
 

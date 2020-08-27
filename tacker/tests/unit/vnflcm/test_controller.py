@@ -34,6 +34,26 @@ from tacker.tests import uuidsentinel
 from tacker.vnfm import vim_client
 
 
+class FakeVNFMPlugin(mock.Mock):
+
+    def __init__(self):
+        super(FakeVNFMPlugin, self).__init__()
+        self.vnf1_vnfd_id = 'eb094833-995e-49f0-a047-dfb56aaf7c4e'
+        self.vnf1_vnf_id = '91e32c20-6d1f-47a4-9ba7-08f5e5effe07'
+        self.vnf1_update_vnf_id = '91e32c20-6d1f-47a4-9ba7-08f5e5effaf6'
+        self.vnf2_vnfd_id = 'e4015e9f-1ef2-49fb-adb6-070791ad3c45'
+        self.vnf3_vnfd_id = 'e4015e9f-1ef2-49fb-adb6-070791ad3c45'
+        self.vnf3_vnf_id = '7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'
+        self.vnf3_update_vnf_id = '10f66bc5-b2f1-45b7-a7cd-6dd6ad0017f5'
+
+        self.cp11_id = 'd18c8bae-898a-4932-bff8-d5eac981a9c9'
+        self.cp11_update_id = 'a18c8bae-898a-4932-bff8-d5eac981a9b8'
+        self.cp12_id = 'c8906342-3e30-4b2a-9401-a251a7a9b5dd'
+        self.cp12_update_id = 'b8906342-3e30-4b2a-9401-a251a7a9b5cc'
+        self.cp32_id = '3d1bd2a2-bf0e-44d1-87af-a2c6b2cad3ed'
+        self.cp32_update_id = '064c0d99-5a61-4711-9597-2a44dc5da14b'
+
+
 @ddt.ddt
 class TestController(base.TestCase):
 
@@ -71,13 +91,15 @@ class TestController(base.TestCase):
         updates = {'vnfd_id': uuidsentinel.vnfd_id,
                 'vnf_instance_description': None,
                 'vnf_instance_name': None,
-                'vnf_pkg_id': uuidsentinel.vnf_pkg_id}
+                'vnf_pkg_id': uuidsentinel.vnf_pkg_id,
+                'vnf_metadata': {"key": "value"}}
 
         mock_vnf_instance_create.return_value =\
             fakes.return_vnf_instance_model(**updates)
 
         req = fake_request.HTTPRequest.blank('/vnf_instances')
-        body = {'vnfdId': uuidsentinel.vnfd_id}
+        body = {'vnfdId': uuidsentinel.vnfd_id,
+                'metadata': {"key": "value"}}
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.headers['Version'] = '2.6.1'
@@ -115,14 +137,16 @@ class TestController(base.TestCase):
         updates = {'vnfd_id': uuidsentinel.vnfd_id,
                 'vnf_instance_description': 'SampleVnf Description',
                 'vnf_instance_name': 'SampleVnf',
-                'vnf_pkg_id': uuidsentinel.vnf_pkg_id}
+                'vnf_pkg_id': uuidsentinel.vnf_pkg_id,
+                'vnf_metadata': {"key": "value"}}
 
         mock_vnf_instance_create.return_value =\
             fakes.return_vnf_instance_model(**updates)
 
         body = {'vnfdId': uuidsentinel.vnfd_id,
                 "vnfInstanceName": "SampleVnf",
-                "vnfInstanceDescription": "SampleVnf Description"}
+                "vnfInstanceDescription": "SampleVnf Description",
+                'metadata': {"key": "value"}}
         req = fake_request.HTTPRequest.blank('/vnf_instances')
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
@@ -161,7 +185,8 @@ class TestController(base.TestCase):
         updates = {'vnfd_id': uuidsentinel.vnfd_id,
                 'vnf_instance_description': None,
                 'vnf_instance_name': None,
-                'vnf_pkg_id': uuidsentinel.vnf_pkg_id}
+                'vnf_pkg_id': uuidsentinel.vnf_pkg_id,
+                'metadata': {'key': 'value'}}
 
         mock_vnf_instance_create.return_value =\
             fakes.return_vnf_instance_model(**updates)
@@ -196,6 +221,12 @@ class TestController(base.TestCase):
          'expected_type': 'description'},
         {'attribute': 'vnfInstanceDescription', 'value': 123,
          'expected_type': 'description'},
+        {'attribute': 'metadata', 'value': ['val1', 'val2'],
+         'expected_type': 'object'},
+        {'attribute': 'metadata', 'value': True,
+         'expected_type': 'object'},
+        {'attribute': 'metadata', 'value': 123,
+         'expected_type': 'object'},
     )
     @ddt.unpack
     def test_create_with_invalid_request_body(
@@ -203,7 +234,8 @@ class TestController(base.TestCase):
         """value of attribute in body is of invalid type"""
         body = {"vnfInstanceName": "SampleVnf",
                 "vnfdId": "29c770a3-02bc-4dfc-b4be-eb173ac00567",
-                "vnfInstanceDescription": "VNF Description"}
+                "vnfInstanceDescription": "VNF Description",
+                "metadata": {"key": "value"}}
         req = fake_request.HTTPRequest.blank('/vnf_instances')
         body.update({attribute: value})
         req.body = jsonutils.dump_as_bytes(body)
@@ -223,13 +255,20 @@ class TestController(base.TestCase):
                                 "{attribute}. " "Value: {value}. {value} is "
                                 "not of type 'string'".
                  format(value=value, attribute=attribute))
+        elif expected_type == 'object':
+            expected_message = ("Invalid input for field/attribute "
+                                "{attribute}. " "Value: {value}. {value} is "
+                                "not of type 'object'".
+                format(value=value, attribute=attribute,
+                       expected_type=expected_type))
 
         self.assertEqual(expected_message, exception.msg)
 
-    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd, 'get_by_id')
     def test_create_non_existing_vnf_package_vnfd(self, mock_vnf_by_id):
         mock_vnf_by_id.side_effect = exceptions.VnfPackageVnfdNotFound
-        body = {'vnfdId': uuidsentinel.vnfd_id}
+        body = {'vnfdId': uuidsentinel.vnfd_id,
+                'metadata': {"key": "value"}}
         req = fake_request.HTTPRequest.blank('/vnf_instances')
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
@@ -239,7 +278,8 @@ class TestController(base.TestCase):
                           body=body)
 
     def test_create_without_vnfd_id(self):
-        body = {"vnfInstanceName": "SampleVnfInstance"}
+        body = {"vnfInstanceName": "SampleVnfInstance",
+                'metadata': {"key": "value"}}
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances')
         req.body = jsonutils.dump_as_bytes(body)
@@ -259,16 +299,21 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
-    @ddt.data({'name': "A" * 256, 'description': "VNF Description"},
-              {'name': 'Fake-VNF', 'description': "A" * 1025})
+    @ddt.data({'name': "A" * 256, 'description': "VNF Description",
+               'meta': {"key": "value"}},
+              {'name': 'Fake-VNF', 'description': "A" * 1025,
+               'meta': {"key": "value"}},
+              {'name': 'Fake-VNF', 'description': "VNF Description",
+               'meta': {"key": "v" * 256}})
     @ddt.unpack
     def test_create_max_length_exceeded_for_vnf_name_and_description(
-            self, name, description):
+            self, name, description, meta):
         # vnf instance_name and description with length greater than max
         # length defined
         body = {"vnfInstanceName": name,
                 "vnfdId": uuidsentinel.vnfd_id,
-                "vnfInstanceDescription": description}
+                "vnfInstanceDescription": description,
+                "metadata": meta}
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances')
         req.body = jsonutils.dump_as_bytes(body)

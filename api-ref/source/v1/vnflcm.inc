@@ -42,6 +42,7 @@ Request Parameters
   - vnfdId: vnf_instance_create_request_vnfd_id
   - vnfInstanceName: vnf_instance_create_request_name
   - vnfInstanceDescription: vnf_instance_create_request_description
+  - metadata: vnf_instance_create_request_metadata
 
 Request Example
 ---------------
@@ -520,7 +521,7 @@ Response Parameters
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - _links: vnf_instance_links
-  
+ 
 Response Example
 ----------------
 

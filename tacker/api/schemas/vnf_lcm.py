@@ -181,6 +181,7 @@ create = {
         'vnfdId': parameter_types.uuid,
         'vnfInstanceName': parameter_types.name_allow_zero_min_length,
         'vnfInstanceDescription': parameter_types.description,
+        'metadata': parameter_types.keyvalue_pairs,
     },
     'required': ['vnfdId'],
     'additionalProperties': False,
