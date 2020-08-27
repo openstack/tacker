@@ -471,6 +471,12 @@ vnf_instance_create_request_description:
   in: body
   required: false
   type: string
+vnf_instance_create_request_metadata:
+  description: |
+    This attribute provides values for the "metadata" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: array
 vnf_instance_create_request_name:
   description: |
     Human-readable name of the VNF instance to be created.

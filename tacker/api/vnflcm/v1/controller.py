@@ -186,7 +186,8 @@ class VnfLcmController(wsgi.Controller):
             vnf_software_version=vnfd.vnf_software_version,
             vnfd_version=vnfd.vnfd_version,
             vnf_pkg_id=vnfd.package_uuid,
-            tenant_id=request.context.project_id)
+            tenant_id=request.context.project_id,
+            vnf_metadata=req_body.get('metadata'))
 
         vnf_instance.create()
         result = self._view_builder.create(vnf_instance)
