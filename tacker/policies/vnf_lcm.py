@@ -132,6 +132,17 @@ rules = [
             }
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name=VNFLCM % 'rollback',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Rollback a VNF instance.",
+        operations=[
+            {
+                'method': 'POST',
+                'path': '/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/rollback'
+            }
+        ]
+    ),
 ]
 
 

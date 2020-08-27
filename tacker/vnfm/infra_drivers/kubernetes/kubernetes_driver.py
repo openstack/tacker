@@ -1379,3 +1379,12 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                    vim_connection_info,
                    del_list):
         pass
+
+    def get_rollback_ids(self,
+                         plugin,
+                         context,
+                         vnf_dict,
+                         aspect_id,
+                         auth_attr,
+                         region_name):
+        pass

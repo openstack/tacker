@@ -20,12 +20,16 @@ from unittest import mock
 import yaml
 
 from oslo_config import cfg
+from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 
+from heatclient.v1 import resources
 from tacker.common import driver_manager
 from tacker.common import exceptions
 from tacker.common import utils
+from tacker.conductor.conductorrpc.vnf_lcm_rpc import VNFLcmRPCAPI
 from tacker import context
+from tacker.db.common_services import common_services_db_plugin
 from tacker.manager import TackerManager
 from tacker import objects
 from tacker.objects import fields
@@ -36,6 +40,9 @@ from tacker.tests.unit.vnflcm import fakes
 from tacker.tests import utils as test_utils
 from tacker.tests import uuidsentinel
 from tacker.vnflcm import vnflcm_driver
+from tacker.vnfm.infra_drivers.openstack import heat_client
+from tacker.vnfm.infra_drivers.openstack import openstack as opn
+from tacker.vnfm import plugin
 from tacker.vnfm import vim_client
 
 
@@ -125,6 +132,8 @@ class FakeDriverManager(mock.Mock):
             if self.fail_method_name and \
                     self.fail_method_name == 'post_heal_vnf':
                 raise InfraDriverException("post_heal_vnf failed")
+        if 'get_rollback_ids' in args:
+            return [], [], ""
 
 
 class FakeVimClient(mock.Mock):
@@ -308,7 +317,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual(expected_error % vnf_instance_obj.id, str(error))
         self.assertEqual("NOT_INSTANTIATED",
             vnf_instance_obj.instantiation_state)
-        self.assertEqual(2, mock_vnf_instance_save.call_count)
+        # 2->1 reason: rollback_vnf_instantiated_resources deleted
+        self.assertEqual(1, mock_vnf_instance_save.call_count)
         self.assertEqual(2, self._vnf_manager.invoke.call_count)
         mock_final_vnf_dict.assert_called_once()
 
@@ -356,9 +366,11 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual(expected_error % vnf_instance_obj.id, str(error))
         self.assertEqual("NOT_INSTANTIATED",
             vnf_instance_obj.instantiation_state)
-        self.assertEqual(3, mock_vnf_instance_save.call_count)
-        self.assertEqual(5, self._vnf_manager.invoke.call_count)
-        mock_final_vnf_dict.assert_called_once()
+        # 3->1 reason: rollback_vnf_instantiated_resources deleted
+        self.assertEqual(1, mock_vnf_instance_save.call_count)
+        # 5->3 reason: rollback_vnf_instantiated_resources deleted
+        self.assertEqual(3, self._vnf_manager.invoke.call_count)
+
         shutil.rmtree(fake_csar)
 
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
@@ -904,3 +916,765 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         driver = vnflcm_driver.VnfLcmDriver()
         driver.scale(self.context, vnf_info, scale_vnf_request,
         vim_connection_info, scale_name_list, grp_id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_7(
+            self,
+            mock_update,
+            mock_up,
+            mock_insta_save,
+            mock_notification,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta()
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.rollback_vnf(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(1, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_6(
+            self,
+            mock_update,
+            mock_up,
+            mock_insta_save,
+            mock_notification,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta(error_point=6)
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.rollback_vnf(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(1, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_5(
+            self,
+            mock_update,
+            mock_up,
+            mock_insta_save,
+            mock_notification,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta(error_point=5)
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.rollback_vnf(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(1, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_4(
+            self,
+            mock_update,
+            mock_up,
+            mock_insta_save,
+            mock_notification,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta(error_point=4)
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.rollback_vnf(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(1, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_3(
+            self,
+            mock_update,
+            mock_up,
+            mock_insta_save,
+            mock_notification,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta(error_point=3)
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.rollback_vnf(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(1, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_scale(
+            self,
+            mock_update,
+            mock_up,
+            mock_insta_save,
+            mock_notification,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='SP1', scale_level=0))
+        vnf_lcm_op_occs = fakes.vnflcm_rollback()
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+
+        driver.rollback_vnf(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(1, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_scale_6(
+            self,
+            mock_update,
+            mock_up,
+            mock_insta_save,
+            mock_notification,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='SP1', scale_level=0))
+        vnf_lcm_op_occs = fakes.vnflcm_rollback(error_point=6)
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+
+        driver.rollback_vnf(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(1, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_scale_5(
+            self,
+            mock_update,
+            mock_up,
+            mock_insta_save,
+            mock_notification,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='SP1', scale_level=0))
+        vnf_lcm_op_occs = fakes.vnflcm_rollback(error_point=5)
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+
+        driver.rollback_vnf(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(1, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_scale_4(
+            self,
+            mock_update,
+            mock_up,
+            mock_insta_save,
+            mock_notification,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='SP1', scale_level=0))
+        vnf_lcm_op_occs = fakes.vnflcm_rollback(error_point=4)
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+
+        driver.rollback_vnf(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(1, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_scale_3(
+            self,
+            mock_update,
+            mock_up,
+            mock_insta_save,
+            mock_notification,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='SP1', scale_level=0))
+        vnf_lcm_op_occs = fakes.vnflcm_rollback(error_point=3)
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+
+        driver.rollback_vnf(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(1, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    def test_rollback_vnf_save_error(self, mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta()
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        mock_lcm_save.side_effect = exceptions.DBAccessError()
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(
+            exceptions.DBAccessError,
+            driver.rollback_vnf,
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
+                       "create_event")
+    @mock.patch.object(heat_client.HeatClient, "__init__")
+    @mock.patch.object(heat_client.HeatClient, "resource_get")
+    @mock.patch.object(heat_client.HeatClient, "resource_get_list")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_scale_resource_error(
+            self,
+            mock_update,
+            mock_up,
+            mock_resource_get_list,
+            mock_resource_get,
+            mock_init,
+            mock_event,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='SP1', scale_level=0))
+        vnf_lcm_op_occs = fakes.vnflcm_rollback()
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        vnf_info['scale_level'] = 0
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        mock_init.return_value = None
+        mock_resource_get.side_effect = exceptions.DBAccessError()
+
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(
+            exceptions.DBAccessError,
+            driver.rollback_vnf,
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(2, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
+                       "create_event")
+    @mock.patch.object(heat_client.HeatClient, "__init__")
+    @mock.patch.object(heat_client.HeatClient, "resource_get")
+    @mock.patch.object(heat_client.HeatClient, "resource_get_list")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_scale_resource_list_error(
+            self,
+            mock_update,
+            mock_up,
+            mock_resource_list,
+            mock_resource_get,
+            mock_init,
+            mock_event,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='SP1', scale_level=0))
+        vnf_lcm_op_occs = fakes.vnflcm_rollback()
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        mock_init.return_value = None
+        resource1 = resources.Resource(None, {
+            'resource_name': 'SP1_group',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111'
+        })
+        mock_resource_get.return_value = resource1
+        mock_resource_list.side_effect = exceptions.DBAccessError()
+
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(
+            exceptions.DBAccessError,
+            driver.rollback_vnf,
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(2, mock_lcm_save.call_count)
+        self.assertEqual(2, mock_resource_list.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
+                       "create_event")
+    @mock.patch.object(heat_client.HeatClient, "__init__")
+    @mock.patch.object(plugin.VNFMMgmtMixin, "mgmt_call")
+    @mock.patch.object(opn.OpenStack, "delete")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_delete_error(
+            self,
+            mock_update,
+            mock_up,
+            mock_delete,
+            mock_mgmt,
+            mock_init,
+            mock_event,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta()
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        mock_init.return_value = None
+        mock_delete.side_effect = exceptions.DBAccessError()
+
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(
+            exceptions.DBAccessError,
+            driver.rollback_vnf,
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(2, mock_lcm_save.call_count)
+        self.assertEqual(1, mock_delete.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
+                       "create_event")
+    @mock.patch.object(heat_client.HeatClient, "__init__")
+    @mock.patch.object(plugin.VNFMMgmtMixin, "mgmt_call")
+    @mock.patch.object(opn.OpenStack, "delete")
+    @mock.patch.object(opn.OpenStack, "delete_wait")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_delete_wait_error(
+            self,
+            mock_update,
+            mock_up,
+            mock_delete_wait,
+            mock_delete,
+            mock_mgmt,
+            mock_init,
+            mock_event,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta()
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        mock_init.return_value = None
+        mock_delete_wait.side_effect = exceptions.DBAccessError()
+
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(
+            exceptions.DBAccessError,
+            driver.rollback_vnf,
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(2, mock_lcm_save.call_count)
+        self.assertEqual(1, mock_delete.call_count)
+        self.assertEqual(1, mock_delete_wait.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
+                       "create_event")
+    @mock.patch.object(heat_client.HeatClient, "__init__")
+    @mock.patch.object(heat_client.HeatClient, "resource_get")
+    @mock.patch.object(heat_client.HeatClient, "resource_get_list")
+    @mock.patch.object(opn.OpenStack, "get_rollback_ids")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_rollback_mgmt_call")
+    @mock.patch.object(opn.OpenStack, "scale_in_reverse")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_scale_update_error(
+            self,
+            mock_update,
+            mock_up,
+            mock_scale,
+            mock_mgmt,
+            mock_resource_get,
+            mock_resource_get_list,
+            mock_resource,
+            mock_init,
+            mock_event,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='SP1', scale_level=0))
+        vnf_lcm_op_occs = fakes.vnflcm_rollback()
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        vnf_info['scale_level'] = 0
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        mock_init.return_value = None
+        mock_resource_get.return_value = (
+            ['342bd357-7c4a-438c-9b5b-1f56702137d8'],
+            ['VDU1'],
+            '49c1cf71-abd4-4fb1-afb3-5f63f3b04246')
+
+        mock_scale.side_effect = exceptions.DBAccessError()
+
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(
+            exceptions.DBAccessError,
+            driver.rollback_vnf,
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(2, mock_lcm_save.call_count)
+        self.assertEqual(1, mock_scale.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
+                       "create_event")
+    @mock.patch.object(heat_client.HeatClient, "__init__")
+    @mock.patch.object(heat_client.HeatClient, "resource_get")
+    @mock.patch.object(heat_client.HeatClient, "resource_get_list")
+    @mock.patch.object(opn.OpenStack, "get_rollback_ids")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_rollback_mgmt_call")
+    @mock.patch.object(opn.OpenStack, "scale_in_reverse")
+    @mock.patch.object(opn.OpenStack, "scale_update_wait")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_scale_update_wait_error(
+            self,
+            mock_update,
+            mock_up,
+            mock_wait,
+            mock_scale,
+            mock_mgmt,
+            mock_resource_get,
+            mock_resource_get_list,
+            mock_resource,
+            mock_init,
+            mock_event,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='SP1', scale_level=0))
+        vnf_lcm_op_occs = fakes.vnflcm_rollback()
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        vnf_info['scale_level'] = 0
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        mock_init.return_value = None
+        mock_resource_get.return_value = (
+            ['342bd357-7c4a-438c-9b5b-1f56702137d8'],
+            ['VDU1'],
+            '49c1cf71-abd4-4fb1-afb3-5f63f3b04246')
+
+        mock_wait.side_effect = exceptions.DBAccessError()
+
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(
+            exceptions.DBAccessError,
+            driver.rollback_vnf,
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(2, mock_lcm_save.call_count)
+        self.assertEqual(1, mock_scale.call_count)
+        self.assertEqual(1, mock_wait.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
+                       "create_event")
+    @mock.patch.object(heat_client.HeatClient, "__init__")
+    @mock.patch.object(opn.OpenStack, "get_rollback_ids")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_rollback_mgmt_call")
+    @mock.patch.object(opn.OpenStack, "scale_in_reverse")
+    @mock.patch.object(opn.OpenStack, "scale_update_wait")
+    @mock.patch.object(opn.OpenStack, "scale_resource_update")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_scale_resource_get_error(
+            self,
+            mock_update,
+            mock_up,
+            mock_scale_resource,
+            mock_wait,
+            mock_scale,
+            mock_mgmt,
+            mock_resource_get,
+            mock_init,
+            mock_event,
+            mock_lcm_save,
+            mock_get_service_plugins):
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='SP1', scale_level=0))
+        vnf_lcm_op_occs = fakes.vnflcm_rollback()
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        vnf_info['scale_level'] = 0
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        mock_init.return_value = None
+        mock_resource_get.return_value = (
+            ['342bd357-7c4a-438c-9b5b-1f56702137d8'],
+            ['VDU1'],
+            '49c1cf71-abd4-4fb1-afb3-5f63f3b04246')
+        resource1 = resources.Resource(None, {
+            'resource_name': 'SP1_group',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'UPDATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111'
+        })
+
+        mock_wait.return_value = resource1
+        mock_scale_resource.side_effect = exceptions.DBAccessError()
+
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(
+            exceptions.DBAccessError,
+            driver.rollback_vnf,
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(2, mock_lcm_save.call_count)
+        self.assertEqual(1, mock_scale.call_count)
+        self.assertEqual(1, mock_wait.call_count)
+        self.assertEqual(2, mock_scale_resource.call_count)

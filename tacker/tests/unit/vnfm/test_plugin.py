@@ -37,6 +37,7 @@ from tacker.plugins.common import constants
 from tacker.tests.unit.conductor import fakes
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.db import utils
+from tacker.tests.unit.vnflcm import fakes as vnflcm_fakes
 from tacker.vnfm import monitor
 from tacker.vnfm import plugin
 
@@ -1326,3 +1327,53 @@ class TestVNFMPlugin(db_base.SqlTestCase):
 
         self.vnfm_plugin.delete_placement_constraint(
             self.context, '7ddc38c3-a116-48b0-bfc1-68d7f306f467')
+
+    def test_update_vnf_rollback_pre_scale(self):
+        vnf_info = {}
+        vnf_lcm_op_occ = vnflcm_fakes.vnflcm_rollback()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
+        vnf_info['id'] = uuidutils.generate_uuid()
+        self.vnfm_plugin._update_vnf_rollback_pre(
+            self.context, vnf_info)
+
+    def test_update_vnf_rollback_pre_insta(self):
+        vnf_info = {}
+        vnf_lcm_op_occ = vnflcm_fakes.vnflcm_rollback_insta()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
+        vnf_info['id'] = uuidutils.generate_uuid()
+        self.vnfm_plugin._update_vnf_rollback_pre(
+            self.context, vnf_info)
+
+    def test_update_vnf_rollback_scale(self):
+        vnf_info = {}
+        vnf_lcm_op_occ = vnflcm_fakes.vnflcm_rollback()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
+        vnf_info['id'] = uuidutils.generate_uuid()
+        self.vnfm_plugin._update_vnf_rollback(
+            self.context, vnf_info,
+            'ERROR', 'ACTIVE')
+
+    def test_update_vnf_rollback_insta(self):
+        vnf_info = {}
+        vnf_lcm_op_occ = vnflcm_fakes.vnflcm_rollback_insta()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
+        vnf_info['id'] = uuidutils.generate_uuid()
+        self.vnfm_plugin._update_vnf_rollback(
+            self.context, vnf_info,
+            'ERROR', 'INACTIVE')
+
+    def test_update_vnf_rollback_status_err_scale(self):
+        vnf_info = {}
+        vnf_lcm_op_occ = vnflcm_fakes.vnflcm_rollback()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
+        vnf_info['id'] = uuidutils.generate_uuid()
+        self.vnfm_plugin.update_vnf_rollback_status_err(
+            self.context, vnf_info)
+
+    def test_update_vnf_rollback_status_err_insta(self):
+        vnf_info = {}
+        vnf_lcm_op_occ = vnflcm_fakes.vnflcm_rollback_insta()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
+        vnf_info['id'] = uuidutils.generate_uuid()
+        self.vnfm_plugin.update_vnf_rollback_status_err(
+            self.context, vnf_info)

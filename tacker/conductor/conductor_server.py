@@ -1368,6 +1368,7 @@ class Conductor(manager.Manager):
             kwargs.get('is_automatic_invocation', False)
         error = kwargs.get('error', None)
         # Used for timing control when a failure occurs
+        error_point = kwargs.get('error_point', 0)
 
         if old_vnf_instance:
             vnf_instance_id = old_vnf_instance.id
@@ -1381,6 +1382,7 @@ class Conductor(manager.Manager):
             vnf_notif = self._get_vnf_notify(context, vnf_lcm_op_occs_id)
             vnf_notif.operation_state = operation_state
             if operation_state == fields.LcmOccsOperationState.FAILED_TEMP:
+                vnf_notif.error_point = error_point
                 error_details = objects.ProblemDetails(
                     context=context,
                     status=500,
@@ -1543,6 +1545,8 @@ class Conductor(manager.Manager):
             instantiate_vnf,
             vnf_lcm_op_occs_id):
 
+        vnf_dict['error_point'] = 1
+
         self._instantiate_grant(context,
             vnf_instance,
             vnf_dict,
@@ -1565,12 +1569,15 @@ class Conductor(manager.Manager):
             self._change_vnf_status(context, vnf_instance.id,
                             _INACTIVE_STATUS, 'PENDING_CREATE')
 
+            vnf_dict['error_point'] = 3
             self.vnflcm_driver.instantiate_vnf(context, vnf_instance,
                                                vnf_dict, instantiate_vnf)
+            vnf_dict['error_point'] = 5
             self._build_instantiated_vnf_info(context,
                         vnf_instance,
                         instantiate_vnf_req=instantiate_vnf)
 
+            vnf_dict['error_point'] = 7
             self._update_vnf_attributes(context, vnf_dict,
                                         _PENDING_STATUS, _ACTIVE_STATUS)
             self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
@@ -1604,7 +1611,8 @@ class Conductor(manager.Manager):
                 vnf_instance=vnf_instance,
                 request_obj=instantiate_vnf,
                 operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
-                error=str(ex)
+                error=str(ex),
+                error_point=vnf_dict['error_point']
             )
 
     @coordination.synchronized('{vnf_instance[id]}')
@@ -1886,6 +1894,11 @@ class Conductor(manager.Manager):
         notification_data['operationState'] = 'COMPLETED'
         notification_data['changed_info'] = changed_info.to_dict()
         self.send_notification(context, notification_data)
+
+    @coordination.synchronized('{vnf_instance[id]}')
+    def rollback(self, context, vnf_info, vnf_instance, operation_params):
+        self.vnflcm_driver.rollback_vnf(context, vnf_info,
+            vnf_instance, operation_params)
 
 
 def init(args, **kwargs):

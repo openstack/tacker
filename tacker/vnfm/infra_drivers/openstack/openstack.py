@@ -275,6 +275,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             for name, value in nested_hot_dict.items():
                 vnf['attributes'].update({name: self._format_base_hot(value)})
 
+            vnf['error_point'] = 4
             # Create heat-stack with BaseHOT and parameters
             stack = self._create_stack_with_user_data(
                 heatclient, vnf, base_hot_dict,
@@ -1537,7 +1538,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             'parameters': paramDict,
             'existing': True}
         heatclient.update(vnf_info['instance_id'], **stack_update_param)
-        stack_param = jsonutils.loads(vnf_info['attributes']['stack_param'])
+        stack_param = yaml.safe_load(vnf_info['attributes']['stack_param'])
         stack_param.update(paramDict)
         vnf_info['attributes'].update({'stack_param': str(paramDict)})
 
@@ -1842,3 +1843,66 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         vnf_info['removeResources'] = remove_resources
         vnf_info['affinity_list'] = []
         vnf_info['placement_constraint_list'] = []
+
+    @log.log
+    def get_rollback_ids(self, plugin, context,
+                         vnf_dict,
+                         aspect_id,
+                         auth_attr,
+                         region_name):
+        heatclient = hc.HeatClient(auth_attr, region_name)
+        grp = heatclient.resource_get(vnf_dict['instance_id'],
+                                      aspect_id + '_group')
+        res_list = []
+        for rsc in heatclient.resource_get_list(grp.physical_resource_id):
+            scale_rsc = heatclient.resource_get(grp.physical_resource_id,
+                                                rsc.resource_name)
+            if 'COMPLETE' in scale_rsc.resource_status \
+                    and 'INIT_COMPLETE' != scale_rsc.resource_status:
+                res_list.append(scale_rsc)
+        res_list = sorted(
+            res_list,
+            key=lambda x: (x.creation_time, x.resource_name)
+        )
+        LOG.debug("res_list %s", res_list)
+        heat_template = vnf_dict['attributes']['heat_template']
+        group_name = aspect_id + '_group'
+
+        heat_resource = yaml.safe_load(heat_template)
+        group_temp = heat_resource['resources'][group_name]
+        group_prop = group_temp['properties']
+        min_size = group_prop['min_size']
+
+        cap_size = vnf_dict['res_num']
+
+        if cap_size < min_size:
+            cap_size = min_size
+
+        reversed_res_list = res_list[:cap_size]
+        LOG.debug("reversed_res_list reverse %s", reversed_res_list)
+
+        # List of physical_resource_id before Rollback
+        before_list = []
+        # List of physical_resource_ids remaining after Rollback
+        after_list = []
+        # List of resource_name before Rollback
+        before_rs_list = []
+        # List of resource_names left after Rollback
+        after_rs_list = []
+        for rsc in res_list:
+            before_list.append(rsc.physical_resource_id)
+            before_rs_list.append(rsc.resource_name)
+        for rsc in reversed_res_list:
+            after_list.append(rsc.physical_resource_id)
+            after_rs_list.append(rsc.resource_name)
+
+        # Make a list of the physical_resource_id and r
+        # esource_name of the VMs that will actually be deleted
+        if 0 < cap_size:
+            return_list = list(set(before_list) - set(after_list))
+            return_rs_list = list(set(before_rs_list) - set(after_rs_list))
+        else:
+            return_list = before_list
+            return_rs_list = before_rs_list
+
+        return return_list, return_rs_list, grp.physical_resource_id

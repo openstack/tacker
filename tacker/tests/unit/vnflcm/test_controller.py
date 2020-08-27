@@ -2535,7 +2535,7 @@ class TestController(base.TestCase):
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.ScaleVnfRequest, "obj_from_primitive")
-    @mock.patch.object(tacker.db.vnfm.vnfm_db.VNFMPluginDb, "get_vnf")
+    @mock.patch.object(controller.VnfLcmController, "_get_rollback_vnf")
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfLcmOpOcc, "create")
@@ -2594,3 +2594,223 @@ class TestController(base.TestCase):
             'STARTING')
         self.assertEqual(mock_send_notification.call_args[0][1].get(
             'isAutomaticInvocation'), 'False')
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_rollback_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "rollback")
+    def test_rollback(
+            self,
+            mock_rollback,
+            mock_vnf_instance,
+            mock_get_vnf,
+            mock_lcm_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_rollback()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_rollback()
+        mock_get_vnf.return_value = vnf_obj
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.ERROR)
+        mock_vnf_instance.return_value = vnf_instance
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_rollback.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_rollback_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "rollback")
+    def test_rollback_2(
+            self,
+            mock_rollback,
+            mock_vnf_instance,
+            mock_get_vnf,
+            mock_lcm_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_rollback()
+        mock_get_vnf.return_value = vnf_obj
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.ERROR)
+        mock_vnf_instance.return_value = vnf_instance
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_rollback.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    def test_rollback_vnf_lcm_op_occs_access_error(self,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+        self.assertEqual(500, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_rollback_lcm_not_found(self, mock_lcm_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % constants.INVALID_UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        mock_lcm_by_id.side_effect = exceptions.NotFound(resource='table',
+                                  name='vnf_lcm_op_occs')
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_rollback_not_failed_temp(self, mock_lcm_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_active()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id",)
+    def test_rollback_not_ope(self, mock_lcm_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_ope()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_rollback_not_scale_in(self, mock_lcm_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_scale_in()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(controller.VnfLcmController, "_get_rollback_vnf")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_rollback_vnf_error(self, mock_lcm_by_id, mock_get_vnf,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        mock_get_vnf.side_effect = Exception("error")
+
+        resp = req.get_response(self.app)
+        self.assertEqual(500, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_rollback_vnf")
+    def test_rollback_vnf_not_found(self, mock_get_vnf, mock_lcm_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        mock_get_vnf.side_effect = vnfm.VNFNotFound(
+            vnf_id=uuidsentinel.vnf_instance_id)
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_rollback_vnf")
+    def test_rollback_vnf_instance_error(self, mock_get_vnf, mock_lcm_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_rollback()
+        mock_get_vnf.return_value = vnf_obj
+
+        resp = req.get_response(self.app)
+        self.assertEqual(500, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_rollback_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_rollback_vnf_instance_not_found(
+            self, mock_vnf_instance, mock_get_vnf, mock_lcm_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_rollback()
+        mock_get_vnf.return_value = vnf_obj
+
+        mock_vnf_instance.side_effect = vnfm.VNFNotFound(
+            vnf_id=uuidsentinel.vnf_instance_id)
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)

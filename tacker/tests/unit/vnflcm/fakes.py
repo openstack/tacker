@@ -836,6 +836,252 @@ def vnf_scale():
         vim_id=uuidsentinel.vim_id)
 
 
+def vnflcm_rollback(error_point=7):
+    return objects.VnfLcmOpOcc(
+        state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                             tzinfo=iso8601.UTC),
+        start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC),
+        vnf_instance_id=uuidsentinel.vnf_instance_id,
+        operation='SCALE',
+        operation_state='FAILED_TEMP',
+        is_automatic_invocation=False,
+        operation_params='{"type": "SCALE_OUT", "aspect_id": "SP1"}',
+        error_point=error_point,
+        id=constants.UUID,
+        created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC))
+
+
+def vnflcm_rollback_insta(error_point=7):
+    return objects.VnfLcmOpOcc(
+        state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                             tzinfo=iso8601.UTC),
+        start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC),
+        vnf_instance_id=uuidsentinel.vnf_instance_id,
+        operation='INSTANTIATION',
+        operation_state='FAILED_TEMP',
+        is_automatic_invocation=False,
+        operation_params='{}',
+        error_point=error_point,
+        id=constants.UUID,
+        created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC))
+
+
+def vnflcm_rollback_active():
+    return objects.VnfLcmOpOcc(
+        state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                             tzinfo=iso8601.UTC),
+        start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC),
+        vnf_instance_id=uuidsentinel.vnf_instance_id,
+        operation='SCALE',
+        operation_state='ACTIVE',
+        is_automatic_invocation=False,
+        operation_params='{"type": "SCALE_OUT", "aspect_id": "SP1"}',
+        error_point=7,
+        id=constants.UUID,
+        created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC))
+
+
+def vnflcm_rollback_ope():
+    return objects.VnfLcmOpOcc(
+        state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                             tzinfo=iso8601.UTC),
+        start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC),
+        vnf_instance_id=uuidsentinel.vnf_instance_id,
+        operation='HEAL',
+        operation_state='FAILED_TEMP',
+        is_automatic_invocation=False,
+        operation_params='{}',
+        error_point=7,
+        id=constants.UUID,
+        created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC))
+
+
+def vnflcm_rollback_scale_in():
+    return objects.VnfLcmOpOcc(
+        state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                             tzinfo=iso8601.UTC),
+        start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC),
+        vnf_instance_id=uuidsentinel.vnf_instance_id,
+        operation='SCALE',
+        operation_state='FAILED_TEMP',
+        is_automatic_invocation=False,
+        operation_params='{"type": "SCALE_IN", "aspect_id": "SP1"}',
+        error_point=7,
+        id=constants.UUID,
+        created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC))
+
+
+def vnf_rollback():
+    return tacker.db.vnfm.vnfm_db.VNF(id=constants.UUID,
+                                      vnfd_id=uuidsentinel.vnfd_id,
+                                      name='test',
+                                      status='ERROR',
+                                      vim_id=uuidsentinel.vim_id)
+
+
+def vnf_dict():
+    heat_temp = 'heat_template_version: ' + \
+                '2013-05-23\ndescription: \'VNF Descriptor (TEST)' + \
+                '\n\n  \'\nparameters:\n  current_num:\n    type: ' + \
+                'number\n  nfv:\n    type: json\nresources:\n  ' + \
+                'SP1_scale_out:\n    type: OS::Heat::ScalingPolicy\n' + \
+                '    properties:\n      auto_scaling_group_id: ' + \
+                '{get_resource: SP1_group}\n      adjustment_type: ' + \
+                'change_in_capacity\n      scaling_adjustment: 1\n  ' + \
+                'SP1_group:\n    type: OS::Heat::AutoScalingGroup\n    ' + \
+                'properties:\n      min_size: 0\n      desired_capacity:' + \
+                ' {get_param: current_num}\n      resource:\n        ' + \
+                'type: SP1_res.yaml\n        properties:\n          nfv:' + \
+                ' {get_param: nfv}\n      max_size: 3\n  SP1_scale_in:\n' + \
+                '    type: OS::Heat::ScalingPolicy\n    properties:\n' + \
+                '      auto_scaling_group_id: {get_resource: SP1_group}\n' + \
+                '      adjustment_type: change_in_capacity\n      ' + \
+                'scaling_adjustment: -1\noutputs: {}\n'
+    scale_g = '{\"scaleGroupDict\": { \"SP1\": { \"vdu\":' + \
+              ' [\"VDU1\"], \"num\": 1, \"maxLevel\": 3, \"initialNum\":' + \
+              ' 0, \"initialLevel\": 0, \"default\": 0 }}}'
+    vnfd = 'tosca_definitions_version: ' + \
+           'tosca_simple_yaml_1_2\n\ndescription: Simple deployment' + \
+           ' flavour for Sample VNF\n\nimports:\n' + \
+           '  - etsi_nfv_sol001_common_types.yaml\n' + \
+           '  - etsi_nfv_sol001_vnfd_types.yaml\n\n' + \
+           'topology_template:\n  node_templates:\n' + \
+           '    VNF:\n      type: nec.ossmano.VNF\n' + \
+           '      properties:\n' + \
+           '        flavour_description: A simple flavour\n' + \
+           '      interfaces:\n        Vnflcm:\n' + \
+           '          scale_start: noop\n' + \
+           '          scale: scale_standard\n' + \
+           '          scale_end: noop\n      artifacts:\n' + \
+           '        hot:\n' + \
+           '          type: tosca.artifacts.Implementation.nfv.Hot\n' + \
+           '          file: ../Files/scale.yaml\n        hot-nest:\n' + \
+           '          type: tosca.artifacts.Implementation.nfv.Hot\n' + \
+           '          file: ../Files/SP1_res.yaml\n' + \
+           '          properties:\n            nest: "True"\n\n' + \
+           '    VDU1:\n      type: tosca.nodes.nfv.Vdu.Compute\n' + \
+           '      properties:\n        name: VDU1\n' + \
+           '        description: VDU1 compute node\n' + \
+           '        vdu_profile:\n' + \
+           '          min_number_of_instances: 1\n' + \
+           '          max_number_of_instances: 3\n\n' + \
+           '      capabilities:\n        virtual_compute:\n' + \
+           '          properties:\n            virtual_memory:\n' + \
+           '              virtual_mem_size: 512 MB\n' + \
+           '            virtual_cpu:\n' + \
+           '              num_virtual_cpu: 1\n' + \
+           '            virtual_local_storage:\n' + \
+           '              - size_of_storage: 1 GB\n' + \
+           '      requirements:\n' + \
+           '        - virtual_storage: VirtualStorage\n\n' + \
+           '    VirtualStorage:\n' + \
+           '      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage\n' + \
+           '      properties:\n        virtual_block_storage_data:\n' + \
+           '          size_of_storage: 1 GB\n' + \
+           '          rdma_enabled: true\n        sw_image_data:\n' + \
+           '          name: VirtualStorage\n' + \
+           '          version: \'0.4.0\'\n          checksum:\n' + \
+           '            algorithm: sha-512\n' + \
+           '            hash: 6513f21e44aa3da349f248188a44bc304a3' + \
+           '653a04122d8fb4535423c8e1d14cd6a153f735bb0982e2161b5b5' + \
+           '186106570c17a9e58b64dd39390617cd5a350f78\n' + \
+           '          container_format: bare\n' + \
+           '          disk_format: qcow2\n' + \
+           '          min_disk: 2 GB\n' + \
+           '          min_ram: 256 MB\n' + \
+           '          size: 1 GB\n\n    CP1:\n' + \
+           '      type: tosca.nodes.nfv.VduCp\n' + \
+           '      properties:\n        layer_protocols: [ ipv4 ]\n' + \
+           '        order: 2\n      requirements:\n' + \
+           '        - virtual_binding: VDU1\n' + \
+           '        - virtual_link: internalVL1\n\n' + \
+           '    internalVL1:\n' + \
+           '      type: tosca.nodes.nfv.VnfVirtualLink\n' + \
+           '      properties:\n        connectivity_type:\n' + \
+           '          layer_protocols: [ ipv4 ]\n' + \
+           '        description: Internal Virtual link in the VNF\n' + \
+           '        vl_profile:\n' + \
+           '          max_bitrate_requirements:\n' + \
+           '            root: 1048576\n' + \
+           '            leaf: 1048576\n' + \
+           '          min_bitrate_requirements:\n' + \
+           '            root: 1048576\n            leaf: 1048576\n' + \
+           '          virtual_link_protocol_data:\n' + \
+           '            - associated_layer_protocol: ipv4\n' + \
+           '              l3_protocol_data:\n' + \
+           '                ip_version: ipv4\n' + \
+           '                cidr: 33.33.0.0/24\n\n  policies:\n' + \
+           '    - scaling_aspects:\n' + \
+           '        type: tosca.policies.nfv.ScalingAspects\n' + \
+           '        properties:\n          aspects:\n' + \
+           '            SP1:\n              name: SP1_aspect\n' + \
+           '              description: SP1 scaling aspect\n' + \
+           '              max_scale_level: 2\n' + \
+           '              step_deltas:\n' + \
+           '                - delta_1\n\n' + \
+           '    - VDU1_initial_delta:\n' + \
+           '        type: tosca.policies.nfv.VduInitialDelta\n' + \
+           '        properties:\n          initial_delta:\n' + \
+           '            number_of_instances: 0\n' + \
+           '        targets: [ VDU1 ]\n\n' + \
+           '    - VDU1_scaling_aspect_deltas:\n' + \
+           '        type: tosca.policies.nfv.VduScalingAspectDeltas\n' + \
+           '        properties:\n          aspect: SP1\n' + \
+           '          deltas:\n            delta_1:\n' + \
+           '              number_of_instances: 1\n' + \
+           '        targets: [ VDU1 ]\n\n' + \
+           '    - instantiation_levels:\n' + \
+           '        type: tosca.policies.nfv.InstantiationLevels\n' + \
+           '        properties:\n          levels:\n' + \
+           '            instantiation_level_1:\n' + \
+           '              description: Smallest size\n' + \
+           '              scale_info:\n                SP1:\n' + \
+           '                  scale_level: 0\n' + \
+           '            instantiation_level_2:\n' + \
+           '              description: Largest size\n' + \
+           '              scale_info:\n                SP1:\n' + \
+           '                  scale_level: 3\n' + \
+           '          default_level: instantiation_level_1\n\n' + \
+           '    - VDU1_instantiation_levels:\n' + \
+           '        type: tosca.policies.nfv.VduInstantiationLevels\n' + \
+           '        properties:\n          levels:\n' + \
+           '            instantiation_level_1:\n' + \
+           '              number_of_instances: 0\n' + \
+           '            instantiation_level_2:\n' + \
+           '              number_of_instances: 3\n' + \
+           '        targets: [ VDU1 ]\n'
+    vnf_dict = {
+        'attributes': {
+            'heat_template': heat_temp,
+            'scale_group': scale_g
+        },
+        'status': 'ERROR',
+        'vnfd_id': '576acf48-b9df-491d-a57c-342de660ec78',
+        'tenant_id': '13d2ca8de70d48b2a2e0dbac2c327c0b',
+        'vim_id': '3f41faa7-5630-47d2-9d4a-1216953c8887',
+        'instance_id': 'd1121d3c-368b-4ac2-b39d-835aa3e4ccd8',
+        'placement_attr': {'vim_name': 'openstack-vim'},
+        'id': 'a27fc58e-66ae-4031-bba4-efede318c60b',
+        'name': 'vnf_create_1',
+        'vnfd': {
+            'attributes': {
+                'vnfd_simple': vnfd
+            }
+        }
+    }
+    return vnf_dict
+
+
 class InjectContext(wsgi.Middleware):
     """Add a 'tacker.context' to WSGI environ."""
 
