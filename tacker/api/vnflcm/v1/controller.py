@@ -207,8 +207,16 @@ class VnfLcmController(wsgi.Controller):
     @wsgi.expected_errors((http_client.FORBIDDEN))
     def index(self, request):
         context = request.environ['tacker.context']
-        vnf_instances = objects.VnfInstanceList.get_all(context)
-        return self._view_builder.index(vnf_instances)
+        context.can(vnf_lcm_policies.VNFLCM % 'index')
+
+        filters = request.GET.get('filter')
+        filters = self._view_builder.validate_filter(filters)
+
+        vnf_instances = objects.VnfInstanceList.get_by_filters(
+            request.context, filters=filters)
+
+        api_version = request.headers['Version']
+        return self._view_builder.index(vnf_instances, api_version)
 
     @check_vnf_state(action="delete",
         instantiation_state=[fields.VnfInstanceState.NOT_INSTANTIATED],

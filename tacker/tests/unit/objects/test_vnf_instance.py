@@ -130,6 +130,19 @@ class TestVnfInstance(SqlTestCase):
         self.assertTrue(result.objects, list)
         self.assertTrue(result.objects)
 
+    def test_vnf_instance_list_get_by_filters(self):
+        vnf_instance_data = fakes.get_vnf_instance_data(
+            self.vnf_package.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        filters = {'field': 'instantiation_state', 'model': 'VnfInstance',
+                   'value': 'NOT_INSTANTIATED',
+                   'op': '=='}
+        vnf_instance_list = objects.VnfInstanceList.get_by_filters(
+            self.context, filters=filters)
+        self.assertEqual(1, len(vnf_instance_list))
+
     @mock.patch('tacker.objects.vnf_instance._destroy_vnf_instance')
     def test_destroy(self, mock_vnf_destroy):
         vnf_instance_data = fakes.get_vnf_instance_data(

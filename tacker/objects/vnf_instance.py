@@ -18,15 +18,18 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovoo_base
 from sqlalchemy.orm import joinedload
+from sqlalchemy_filters import apply_filters
 
 from tacker._i18n import _
 from tacker.common import exceptions
+from tacker.common import utils
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
 from tacker import objects
 from tacker.objects import base
 from tacker.objects import fields
+from tacker.objects import vnf_instantiated_info
 
 
 LOG = logging.getLogger(__name__)
@@ -100,6 +103,23 @@ def _vnf_instance_list(context, columns_to_join=None):
     return query.all()
 
 
+@db_api.context_manager.reader
+def _vnf_instance_list_by_filter(context, columns_to_join=None,
+                                 filters=None):
+    query = api.model_query(context, models.VnfInstance,
+                            read_deleted="no",
+                            project_only=True)
+
+    if columns_to_join:
+        for column in columns_to_join:
+            query = query.options(joinedload(column))
+
+    if filters:
+        query = apply_filters(query, filters)
+
+    return query.all()
+
+
 def _make_vnf_instance_list(context, vnf_instance_list, db_vnf_instance_list,
                             expected_attrs):
     vnf_instance_cls = VnfInstance
@@ -142,6 +162,34 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
         'vnf_pkg_id': fields.StringField(nullable=False),
         'vnf_metadata': fields.DictOfStringsField(nullable=True, default={})
     }
+
+    ALL_ATTRIBUTES = {
+        'id': ('id', "string", 'VnfInstance'),
+        'vnfInstanceName': ('vnf_instance_name', 'string', 'VnfInstance'),
+        'vnfInstanceDescription': (
+            'vnf_instance_description', 'string', 'VnfInstance'),
+        'instantiationState': ('instantiation_state', 'string', 'VnfInstance'),
+        'taskState': ('task_state', 'string', 'VnfInstance'),
+        'vnfdId': ('vnfd_id', 'string', 'VnfInstance'),
+        'vnfProvider': ('vnf_provider', 'string', 'VnfInstance'),
+        'vnfProductName': ('vnf_product_name', 'string', 'VnfInstance'),
+        'vnfSoftwareVersion': (
+            'vnf_software_version', 'string', 'VnfInstance'),
+        'vnfdVersion': ('vnfd_version', 'string', 'VnfInstance'),
+        'tenantId': ('tenant_id', 'string', 'VnfInstance'),
+        'vnfPkgId': ('vnf_pkg_id', 'string', 'VnfInstance'),
+        'vimConnectionInfo/*': ('vim_connection_info', 'key_value_pair',
+                                {"key_column": "key", "value_column": "value",
+                                 "model": "VnfInstance"}),
+        'metadata/*': ('vnf_metadata', 'key_value_pair',
+                       {"key_column": "key", "value_column": "value",
+                        "model": "VnfInstance"}),
+    }
+
+    ALL_ATTRIBUTES.update(
+        vnf_instantiated_info.InstantiatedVnfInfo.ALL_ATTRIBUTES)
+
+    FLATTEN_ATTRIBUTES = utils.flatten_dict(ALL_ATTRIBUTES.copy())
 
     def __init__(self, context=None, **kwargs):
         super(VnfInstance, self).__init__(context, **kwargs)
@@ -284,5 +332,16 @@ class VnfInstanceList(ovoo_base.ObjectListBase, base.TackerObject):
         expected_attrs = ["instantiated_vnf_info"]
         db_vnf_instances = _vnf_instance_list(context,
                                               columns_to_join=expected_attrs)
+        return _make_vnf_instance_list(context, cls(), db_vnf_instances,
+                                       expected_attrs)
+
+    @base.remotable_classmethod
+    def get_by_filters(cls, context, filters=None,
+                       expected_attrs=None):
+        expected_attrs = ["instantiated_vnf_info"]
+        db_vnf_instances = _vnf_instance_list_by_filter(
+            context, columns_to_join=expected_attrs,
+            filters=filters)
+
         return _make_vnf_instance_list(context, cls(), db_vnf_instances,
                                        expected_attrs)

@@ -172,7 +172,7 @@ def _fake_vnf_instance_not_instantiated_response(
 
 def fake_vnf_instance_response(
         instantiated_state=fields.VnfInstanceState.NOT_INSTANTIATED,
-        **updates):
+        api_version=None, **updates):
     if instantiated_state == fields.VnfInstanceState.NOT_INSTANTIATED:
         data = _fake_vnf_instance_not_instantiated_response(**updates)
     else:
@@ -190,6 +190,9 @@ def fake_vnf_instance_response(
             return inst_vnf_info
 
         data['instantiatedVnfInfo'] = _instantiated_vnf_info()
+
+    if api_version == '2.6.1':
+        del data['vnfPkgId']
 
     return data
 
