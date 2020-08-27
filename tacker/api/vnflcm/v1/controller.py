@@ -1116,6 +1116,90 @@ class VnfLcmController(wsgi.Controller):
             return self._make_problem_detail(
                 str(e), 500, title='Internal Server Error')
 
+    def _rollback(
+            self,
+            context,
+            vnf_info,
+            vnf_instance,
+            vnf_lcm_op_occs,
+            operation_params):
+
+        self.rpc_api.rollback(
+            context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+
+        vnflcm_url = CONF.vnf_lcm.endpoint_url + \
+            "/vnflcm/v1/vnf_lcm_op_occs/" + vnf_lcm_op_occs.id
+        res = webob.Response()
+        res.status_int = 202
+        location = ('Location', vnflcm_url)
+        res.headerlist.append(location)
+        return res
+
+    def _get_rollback_vnf(self, context, vnf_instance_id):
+        return self._vnfm_plugin.get_vnf(context, vnf_instance_id)
+
+    @wsgi.response(http_client.ACCEPTED)
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
+                           http_client.NOT_FOUND, http_client.CONFLICT))
+    def rollback(self, request, id):
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'rollback')
+
+        try:
+            vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
+            if vnf_lcm_op_occs.operation_state != 'FAILED_TEMP':
+                return self._make_problem_detail(
+                    'OperationState IS NOT FAILED_TEMP',
+                    409,
+                    title='OperationState IS NOT FAILED_TEMP')
+
+            if vnf_lcm_op_occs.operation != 'INSTANTIATION' \
+                    and vnf_lcm_op_occs.operation != 'SCALE':
+                return self._make_problem_detail(
+                    'OPERATION IS NOT INSTANTIATION/SCALE',
+                    409,
+                    title='OPERATION IS NOT INSTANTIATION/SCALE')
+
+            operation_params = jsonutils.loads(
+                vnf_lcm_op_occs.operation_params)
+
+            if vnf_lcm_op_occs.operation == 'SCALE' \
+                    and operation_params['type'] == 'SCALE_IN':
+                return self._make_problem_detail(
+                    'SCALE_IN CAN NOT ROLLBACK', 409,
+                    title='SCALE_IN CAN NOT ROLLBACK')
+
+            vnf_info = self._get_rollback_vnf(
+                context, vnf_lcm_op_occs.vnf_instance_id)
+            vnf_instance = self._get_vnf_instance(
+                context, vnf_lcm_op_occs.vnf_instance_id)
+
+            vnf_lcm_op_occs.changed_info = None
+            vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+            return self._rollback(
+                context,
+                vnf_info,
+                vnf_instance,
+                vnf_lcm_op_occs,
+                operation_params)
+        except vnfm.VNFNotFound as vnf_e:
+            return self._make_problem_detail(
+                str(vnf_e), 404, title='VNF NOT FOUND')
+        except exceptions.NotFound as occ_e:
+            return self._make_problem_detail(
+                str(occ_e), 404, title='VNF NOT FOUND')
+        except webob.exc.HTTPNotFound as inst_e:
+            return self._make_problem_detail(
+                str(inst_e), 404, title='VNF NOT FOUND')
+        except Exception as e:
+            LOG.error(traceback.format_exc())
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
+
     def _make_problem_detail(
             self,
             detail,

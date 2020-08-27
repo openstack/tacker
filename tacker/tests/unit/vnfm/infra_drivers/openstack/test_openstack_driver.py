@@ -35,6 +35,7 @@ from tacker.tests.common import helpers
 from tacker.tests import constants
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
+from tacker.tests.unit.vnflcm import fakes
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import client
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import \
     fixture_data_utils as fd_utils
@@ -1950,3 +1951,97 @@ class TestOpenStack(base.FixturedTestCase):
                                 scale_vnf_request=scale_vnf_request,
                                 region_name=None
                                          )
+
+    @mock.patch.object(hc.HeatClient, "resource_get")
+    @mock.patch.object(hc.HeatClient, "resource_get_list")
+    def test_get_rollback_ids(self, mock_list, mock_resource):
+        resource1 = resources.Resource(None, {
+            'resource_name': 'SP1_group',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111'
+        })
+        mock_resource.return_value = resource1
+        res_list = []
+        resource2 = resources.Resource(None, {
+            'resource_name': 'aaaaaaaa',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce8',
+            'id': '1111'
+        })
+        res_list.append(resource2)
+        resource3 = resources.Resource(None, {
+            'resource_name': 'bbbbbbbb',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce9',
+            'id': '1111'
+        })
+        res_list.append(resource3)
+        resource4 = resources.Resource(None, {
+            'resource_name': 'cccccccc',
+            'creation_time': '2020-01-01T00:00:01',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce0',
+            'id': '1111'
+        })
+        res_list.append(resource4)
+        mock_list.return_value = res_list
+
+        vnf_dict = fakes.vnf_dict()
+        vnf_dict['res_num'] = 2
+
+        scale_id_list, scale_name_list, grp_id = \
+            self.openstack.get_rollback_ids(
+                None, self.context, vnf_dict, 'SP1', None, None)
+
+        self.assertEqual('30435eb8-1472-4cbc-abbe-00b395165ce7', grp_id)
+
+    @mock.patch.object(hc.HeatClient, "resource_get")
+    @mock.patch.object(hc.HeatClient, "resource_get_list")
+    def test_get_rollback_ids_0(self, mock_list, mock_resource):
+        resource1 = resources.Resource(None, {
+            'resource_name': 'SP1_group',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111'
+        })
+        mock_resource.return_value = resource1
+        res_list = []
+        resource2 = resources.Resource(None, {
+            'resource_name': 'aaaaaaaa',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce8',
+            'id': '1111'
+        })
+        res_list.append(resource2)
+        resource3 = resources.Resource(None, {
+            'resource_name': 'bbbbbbbb',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce9',
+            'id': '1111'
+        })
+        res_list.append(resource3)
+        resource4 = resources.Resource(None, {
+            'resource_name': 'cccccccc',
+            'creation_time': '2020-01-01T00:00:01',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce0',
+            'id': '1111'
+        })
+        res_list.append(resource4)
+        mock_list.return_value = res_list
+
+        vnf_dict = fakes.vnf_dict()
+        vnf_dict['res_num'] = 0
+
+        scale_id_list, scale_name_list, grp_id = \
+            self.openstack.get_rollback_ids(
+                None, self.context, vnf_dict, 'SP1', None, None)
+
+        self.assertEqual('30435eb8-1472-4cbc-abbe-00b395165ce7', grp_id)

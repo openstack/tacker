@@ -112,6 +112,13 @@ class VnflcmAPIRouter(wsgi.Router):
                 "/vnf_instances/{id}/scale",
                 methods, controller, default_resource)
 
+        # Allowed methods on
+        # {apiRoot}/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/rollback resource
+        methods = {"POST": "rollback"}
+        self._setup_route(mapper,
+                "/vnf_lcm_op_occs/{id}/rollback",
+                methods, controller, default_resource)
+
         methods = {"GET": "subscription_list", "POST": "register_subscription"}
         self._setup_route(mapper, "/subscriptions",
                 methods, controller, default_resource)

@@ -112,3 +112,13 @@ class VnfScaleAbstractDriver(extensions.PluginInterface):
                    vim_connection_info,
                    del_list):
         pass
+
+    @abc.abstractmethod
+    def get_rollback_ids(self,
+                         plugin,
+                         context,
+                         vnf_dict,
+                         aspect_id,
+                         auth_attr,
+                         region_name):
+        pass
