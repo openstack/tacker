@@ -89,7 +89,35 @@ class ViewBuilder(base.BaseViewBuilder):
 
         return vim_connections
 
-    def _get_vnf_instance_info(self, vnf_instance):
+    def _get_lcm_op_occs_links(self, vnf_lcm_op_occs):
+        _links = {
+            "self": {
+                "href": '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s'
+                % {"endpoint": CONF.vnf_lcm.endpoint_url,
+                    "id": vnf_lcm_op_occs.id}
+            },
+            "vnfInstance": {
+                "href": '%(endpoint)s/vnflcm/v1/vnf_instances/%(id)s'
+                % {"endpoint": CONF.vnf_lcm.endpoint_url,
+                    "id": vnf_lcm_op_occs.vnf_instance_id}
+            },
+            "rollback": {
+                "href":
+                '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s/rollback'
+                % {"endpoint": CONF.vnf_lcm.endpoint_url,
+                    "id": vnf_lcm_op_occs.id}
+            },
+            "grant": {
+                "href": '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s/grant'
+                % {"endpoint": CONF.vnf_lcm.endpoint_url,
+                    "id": vnf_lcm_op_occs.id}
+            }
+        }
+
+        return {"_links": _links}
+
+    def _get_vnf_instance_info(self,
+            vnf_instance, api_version=None):
         vnf_instance_dict = vnf_instance.to_dict()
         if vnf_instance_dict.get('vim_connection_info'):
             vnf_instance_dict['vim_connection_info'] = \
@@ -107,6 +135,17 @@ class ViewBuilder(base.BaseViewBuilder):
 
         vnf_instance_dict.update(links)
         return vnf_instance_dict
+
+    def _get_vnf_lcm_op_occs(self, vnf_lcm_op_occs):
+        vnf_lcm_op_occs_dict = vnf_lcm_op_occs.to_dict()
+        vnf_lcm_op_occs_dict.pop('error_point')
+        vnf_lcm_op_occs_dict = utils.convert_snakecase_to_camelcase(
+            vnf_lcm_op_occs_dict)
+
+        links = self._get_lcm_op_occs_links(vnf_lcm_op_occs)
+
+        vnf_lcm_op_occs_dict.update(links)
+        return vnf_lcm_op_occs_dict
 
     def create(self, vnf_instance):
         return self._get_vnf_instance_info(vnf_instance)
@@ -224,3 +263,6 @@ class ViewBuilder(base.BaseViewBuilder):
 
     def subscription_show(self, vnf_lcm_subscriptions):
         return self._get_vnf_lcm_subscription(vnf_lcm_subscriptions)
+
+    def show_lcm_op_occs(self, vnf_lcm_op_occs):
+        return self._get_vnf_lcm_op_occs(vnf_lcm_op_occs)

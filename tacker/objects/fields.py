@@ -186,6 +186,37 @@ class VnfcState(BaseTackerEnum):
     ALL = (STARTED, STOPPED)
 
 
+class InstanceOperationalState(BaseTackerEnum):
+    STARTING = 'STARTING'
+    PROCESSING = 'PROCESSING'
+    COMPLETED = 'COMPLETED'
+    FAILED_TEMP = 'FAILED_TEMP'
+    ROLLING_BACK = 'ROLLING_BACK'
+    ROLLED_BACK = 'ROLLED_BACK'
+
+    ALL = (STARTING, PROCESSING, COMPLETED, FAILED_TEMP,
+        ROLLING_BACK, ROLLED_BACK)
+
+
+class InstanceOperationalStateField(BaseEnumField):
+    AUTO_TYPE = InstanceOperationalState()
+
+
+class InstanceOperation(BaseTackerEnum):
+    INSTANTIATE = 'INSTANTIATE'
+    SCALE = 'SCALE'
+    TERMINATE = 'TERMINATE'
+    HEAL = 'HEAL'
+    MODIFY_INFO = 'MODIFY_INFO'
+
+    ALL = (INSTANTIATE, SCALE,
+        TERMINATE, HEAL, MODIFY_INFO)
+
+
+class InstanceOperationField(BaseEnumField):
+    AUTO_TYPE = InstanceOperation()
+
+
 class LcmOccsOperationState(BaseTackerEnum):
     STARTING = 'STARTING'
     PROCESSING = 'PROCESSING'

@@ -14,11 +14,15 @@
 #    under the License.
 from unittest import mock
 
-import ddt
+import codecs
+import os
 
+import ddt
+import json
 from oslo_serialization import jsonutils
 from six.moves import http_client
 import urllib
+import webob
 from webob import exc
 
 from tacker.api.vnflcm.v1 import controller
@@ -27,6 +31,7 @@ from tacker.conductor.conductorrpc.vnf_lcm_rpc import VNFLcmRPCAPI
 from tacker import context
 import tacker.db.vnfm.vnfm_db
 from tacker.extensions import nfvo
+from tacker.extensions import vnfm
 from tacker.manager import TackerManager
 from tacker import objects
 from tacker.objects import fields
@@ -38,6 +43,13 @@ import tacker.tests.unit.nfvo.test_nfvo_plugin as nfvo_plugin
 from tacker.tests.unit.vnflcm import fakes
 from tacker.tests import uuidsentinel
 from tacker.vnfm import vim_client
+
+
+def _get_template(name):
+    filename = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                '../../etc/samples/' + str(name)))
+    f = codecs.open(filename, encoding='utf-8', errors='strict')
+    return f.read()
 
 
 class FakeVNFMPlugin(mock.Mock):
@@ -58,6 +70,100 @@ class FakeVNFMPlugin(mock.Mock):
         self.cp12_update_id = 'b8906342-3e30-4b2a-9401-a251a7a9b5cc'
         self.cp32_id = '3d1bd2a2-bf0e-44d1-87af-a2c6b2cad3ed'
         self.cp32_update_id = '064c0d99-5a61-4711-9597-2a44dc5da14b'
+
+    def get_vnfd(self, *args, **kwargs):
+        if 'VNF1' in args:
+            return {'id': self.vnf1_vnfd_id,
+                    'name': 'VNF1',
+                    'attributes': {'vnfd': _get_template(
+                                   'test-nsd-vnfd1.yaml')}}
+        elif 'VNF2' in args:
+            return {'id': self.vnf3_vnfd_id,
+                    'name': 'VNF2',
+                    'attributes': {'vnfd': _get_template(
+                                   'test-nsd-vnfd2.yaml')}}
+
+    def get_vnfds(self, *args, **kwargs):
+        if {'name': ['VNF1']} in args:
+            return [{'id': self.vnf1_vnfd_id}]
+        elif {'name': ['VNF3']} in args:
+            return [{'id': self.vnf3_vnfd_id}]
+        else:
+            return []
+
+    def get_vnfs(self, *args, **kwargs):
+        if {'vnfd_id': [self.vnf1_vnfd_id]} in args:
+            return [{'id': self.vnf1_vnf_id}]
+        elif {'vnfd_id': [self.vnf3_vnfd_id]} in args:
+            return [{'id': self.vnf3_vnf_id}]
+        else:
+            return None
+
+    def get_vnf(self, *args, **kwargs):
+        if self.vnf1_vnf_id in args:
+            return self.get_dummy_vnf_error()
+        elif self.vnf3_vnf_id in args:
+            return self.get_dummy_vnf_not_error()
+        else:
+            return self.get_dummy_vnf_active()
+
+    def get_vnf_resources(self, *args, **kwargs):
+        if self.vnf1_vnf_id in args:
+            return self.get_dummy_vnf1_details()
+        elif self.vnf1_update_vnf_id in args:
+            return self.get_dummy_vnf1_update_details()
+        elif self.vnf3_vnf_id in args:
+            return self.get_dummy_vnf3_details()
+        elif self.vnf3_update_vnf_id in args:
+            return self.get_dummy_vnf3_update_details()
+
+    def get_dummy_vnf1_details(self):
+        return [{'name': 'CP11', 'id': self.cp11_id},
+                {'name': 'CP12', 'id': self.cp12_id}]
+
+    def get_dummy_vnf1_update_details(self):
+        return [{'name': 'CP11', 'id': self.cp11_update_id},
+                {'name': 'CP12', 'id': self.cp12_update_id}]
+
+    def get_dummy_vnf3_details(self):
+        return [{'name': 'CP32', 'id': self.cp32_id}]
+
+    def get_dummy_vnf3_update_details(self):
+        return [{'name': 'CP32', 'id': self.cp32_update_id}]
+
+    def get_dummy_vnf_active(self):
+        return {'tenant_id': uuidsentinel.tenant_id,
+            'name': "fake_name",
+            'vnfd_id': uuidsentinel.vnfd_id,
+            'vnf_instance_id': uuidsentinel.instance_id,
+            'mgmt_ip_address': "fake_mgmt_ip_address",
+            'status': 'ACTIVE',
+            'description': 'fake_description',
+            'placement_attr': 'fake_placement_attr',
+            'vim_id': 'uuidsentinel.vim_id',
+            'error_reason': 'fake_error_reason',
+            'attributes': {
+                "scale_group": '{"scaleGroupDict":' +
+                    '{"SP1": {"maxLevel" : 3}}}'}}
+
+    def get_dummy_vnf_error(self):
+        return {'tenant_id': uuidsentinel.tenant_id,
+            'name': "fake_name",
+            'vnfd_id': uuidsentinel.vnfd_id,
+            'vnf_instance_id': uuidsentinel.instance_id,
+            'mgmt_ip_address': "fake_mgmt_ip_address",
+            'status': 'ERROR',
+            'description': 'fake_description',
+            'placement_attr': 'fake_placement_attr',
+            'vim_id': 'uuidsentinel.vim_id',
+            'error_reason': 'fake_error_reason',
+            'attributes': {
+                "scale_group": '{"scaleGroupDict":' +
+                    '{"SP1": {"maxLevel" : 3}}}'}}
+
+    def get_dummy_vnf_not_error(self):
+        msg = _('VNF %(vnf_id)s could not be found')
+        raise vnfm.VNFNotFound(explanation=msg)
 
 
 @ddt.ddt
@@ -103,6 +209,27 @@ class TestController(base.TestCase):
             vnf_dict['id'] = vnf_id
 
         return vnf_dict
+
+    def _make_problem_detail(
+            self,
+            detail,
+            status,
+            title=None,
+            type=None,
+            instance=None):
+        res = webob.Response(content_type='application/problem+json')
+        problemDetails = {}
+        if type:
+            problemDetails['type'] = type
+        if title:
+            problemDetails['title'] = title
+        problemDetails['detail'] = detail
+        problemDetails['status'] = status
+        if instance:
+            problemDetails['instance'] = instance
+        res.text = json.dumps(problemDetails)
+        res.status_int = status
+        return res
 
     @mock.patch.object(objects.VnfInstance, 'save')
     @mock.patch.object(vim_client.VimClient, "get_vim")
@@ -1631,3 +1758,30 @@ class TestController(base.TestCase):
             '/vnflcm/v1/vnf_instances?' + query)
         self.assertRaises(exceptions.ValidationError,
                           self.controller.index, req)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_show_lcm_op_occs(self, mock_get_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s' % constants.UUID)
+        mock_get_by_id.return_value = fakes.return_vnf_lcm_opoccs_obj()
+        expected_result = fakes.VNFLCMOPOCC_RESPONSE
+        res_dict = self.controller.show_lcm_op_occs(req, constants.UUID)
+        self.assertEqual(expected_result, res_dict)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_show_lcm_op_occs_not_found(self, mock_get_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnfpkgm/v1/vnf_packages/%s' % constants.UUID)
+        mock_get_by_id.side_effect = exceptions.NotFound()
+
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'GET'
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
