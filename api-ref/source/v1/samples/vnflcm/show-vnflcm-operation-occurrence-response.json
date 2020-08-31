@@ -1,0 +1,70 @@
+{
+  "id": "d85c6ae4-af16-42c0-96fc-82f7c014c468",
+  "operationState": "COMPLETED",
+  "stateEnteredTime": "2020-08-02T06:50:50.883373",
+  "startTime": "2020-08-02T06:41:34.883483",
+  "vnfInstanceId": "0b7b95a9-21d5-4ac4-80c8-9ae9f7323787",
+  "operation": "INSTANTIATE",
+  "isAutomaticInvocation": false,
+  "operationParams": "{
+    "flavourId": "default",
+    "instantiationLevelId": "vnf-min",
+    }"
+  "isCancelPending": false,
+  "resourceChanges": {
+    "affectedVnfcs": [
+      {
+        "id": "36e24439-829c-4803-a413-385cd658d544",
+        "vduId": "VDU",
+        "changeType": "ADDED",
+        "computeResource": {
+            "vimConnectionId": "f26f181d-7891-4720-b022-b074ec1733ef",
+            "resourceId": "e0510ba9-3a53-4fcf-9dcc-58dea5c048b0",
+            "vimLevelResourceType": "OS::Nova::Server",
+        },
+        "affectedVnfcCpIds": [
+          "VDU1_CP0",
+          "VDU1_CP1"
+        ],
+        "addedStorageResourceIds": [
+          "81ae44f6-b65b-47aa-a578-e53b7a50a574"
+        ]
+      }
+    ],
+    "affectedVirtualLinks": [
+      {
+        "id": "9836f7f2-5af4-4df5-a89f-933479448ef7",
+        "vnfVirtualLinkDescId": "internalNW",
+        "changeType": "ADDED",
+        "networkResource": {
+            "vimConnectionId": "f26f181d-7891-4720-b022-b074ec1733ef",
+            "resourceId": "400692e5-b2db-478e-acb1-b77a92635ec6",
+            "vimLevelResourceType": "OS::Neutron::Net"
+        }
+      }
+    ],
+    "affectedVirtualStorages": [
+      {
+        "id": "81ae44f6-b65b-47aa-a578-e53b7a50a574",
+        "virtualStorageDescId": "Storage",
+        "changeType": "ADDED",
+        "storageResource": {
+            "vimConnectionId": "f26f181d-7891-4720-b022-b074ec1733ef",
+            "resourceId": "842f527e-0092-4f11-aede-f981ba4fd884",
+            "vimLevelResourceType": "OS::Cinder::Volume"
+        }
+      }
+    ]
+  },
+  "_links": {
+    "self": {
+      "href": "http://sample.com/vnflcm/v1/vnf_lcm_op_occs/d85c6ae4-af16-42c0-96fc-82f7c014c468"
+    },
+    "vnfInstance": {
+      "href": "http://sample.com/vnflcm/v1/vnf_instances/0b7b95a9-21d5-4ac4-80c8-9ae9f7323787"
+    },
+    "grant": {
+      "href": "/grant/v1/grants/3432cebe-db0a-11e8-9023-005056317abe"
+    }
+  }
+}

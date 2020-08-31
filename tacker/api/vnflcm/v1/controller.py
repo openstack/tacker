@@ -545,6 +545,24 @@ class VnfLcmController(wsgi.Controller):
         vnf_instance = self._get_vnf_instance(context, id)
         self._heal(context, vnf_instance, vnf, body)
 
+    @wsgi.response(http_client.OK)
+    @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
+    def show_lcm_op_occs(self, request, id):
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'show_lcm_op_occs')
+
+        try:
+            vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
+        except exceptions.NotFound as occ_e:
+            return self._make_problem_detail(str(occ_e),
+                404, title='VnfLcmOpOcc NOT FOUND')
+        except Exception as e:
+            LOG.error(traceback.format_exc())
+            return self._make_problem_detail(str(e),
+                500, title='Internal Server Error')
+
+        return self._view_builder.show_lcm_op_occs(vnf_lcm_op_occs)
+
     @wsgi.response(http_client.CREATED)
     @validation.schema(vnf_lcm.register_subscription)
     def register_subscription(self, request, body):
