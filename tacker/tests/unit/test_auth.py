@@ -13,14 +13,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import base64
 import ddt
 from oslo_config import cfg
 from oslo_middleware import request_id
 import requests
 from requests_mock.contrib import fixture as requests_mock_fixture
+import tacker.api.vnflcm.v1.router as vnflcm_router
+import tacker.api.vnfpkgm.v1.router as vnfpkgm_router
 from tacker import auth
-from tacker.tests import base
-import tacker.tests.unit.vnfm.test_nfvo_client as nfvo_client
+from tacker.tests import base as test_base
+from tacker.tests.unit import base as unit_base
+from tacker.tests.unit import fake_auth
 
 import threading
 
@@ -33,7 +37,17 @@ import webob
 LOG = logging.getLogger(__name__)
 
 
-class TackerKeystoneContextTestCase(base.BaseTestCase):
+def _count_mock_history(history, *url):
+    req_count = 0
+    for mock_history in history:
+        actual_url = '{}://{}'.format(mock_history.scheme,
+              mock_history.hostname)
+        if actual_url in url:
+            req_count += 1
+    return req_count
+
+
+class TackerKeystoneContextTestCase(test_base.BaseTestCase):
     def setUp(self):
         super(TackerKeystoneContextTestCase, self).setUp()
 
@@ -126,12 +140,11 @@ class TackerKeystoneContextTestCase(base.BaseTestCase):
 
 
 @ddt.ddt
-class TestAuthManager(base.BaseTestCase):
+class TestAuthManager(test_base.BaseTestCase):
 
     def setUp(self):
         super(TestAuthManager, self).setUp()
-        self.token_endpoint_url = 'https://oauth2/tokens'
-        self.oauth_url = 'https://oauth2'
+        self.url = 'https://oauth2/tokens'
         self.user_name = 'test_user'
         self.password = 'test_password'
         auth.auth_manager = auth._AuthManager()
@@ -153,7 +166,7 @@ class TestAuthManager(base.BaseTestCase):
     def test_get_auth_client_oauth2_client_credentials_with_local(self):
         cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
                               group='authentication')
-        cfg.CONF.set_override('token_endpoint', self.token_endpoint_url,
+        cfg.CONF.set_override('token_endpoint', self.url,
                               group='authentication')
         cfg.CONF.set_override('client_id', self.user_name,
                               group='authentication')
@@ -161,7 +174,7 @@ class TestAuthManager(base.BaseTestCase):
                               group='authentication')
 
         self.requests_mock.register_uri('GET',
-            self.token_endpoint_url,
+            self.url,
             json={'access_token': 'test_token3', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
             status_code=200)
@@ -177,12 +190,11 @@ class TestAuthManager(base.BaseTestCase):
             self.password,
             client.grant.client_password)
         self.assertEqual(
-            self.token_endpoint_url,
+            self.url,
             client.grant.token_endpoint)
 
         history = self.requests_mock.request_history
-        req_count = nfvo_client._count_mock_history(history, self.oauth_url)
-        self.assertEqual(1, req_count)
+        self.assertEqual(1, len(history))
 
     def test_get_auth_client_basic_with_local(self):
         cfg.CONF.set_override('auth_type', 'BASIC',
@@ -200,8 +212,7 @@ class TestAuthManager(base.BaseTestCase):
         self.assertEqual(self.password, client.password)
 
         history = self.requests_mock.request_history
-        req_count = nfvo_client._count_mock_history(history, self.oauth_url)
-        self.assertEqual(0, req_count)
+        self.assertEqual(0, len(history))
 
     def test_get_auth_client_noauth_with_local(self):
         cfg.CONF.set_override('auth_type', None,
@@ -211,12 +222,11 @@ class TestAuthManager(base.BaseTestCase):
         self.assertIsInstance(client, requests.Session)
 
         history = self.requests_mock.request_history
-        req_count = nfvo_client._count_mock_history(history, self.oauth_url)
-        self.assertEqual(0, req_count)
+        self.assertEqual(0, len(history))
 
     def test_get_auth_client_oauth2_client_credentials_with_subscription(self):
         self.requests_mock.register_uri('GET',
-            self.token_endpoint_url,
+            self.url,
             json={'access_token': 'test_token', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
             status_code=200)
@@ -224,7 +234,7 @@ class TestAuthManager(base.BaseTestCase):
         params_oauth2_client_credentials = {
             'clientId': self.user_name,
             'clientPassword': self.password,
-            'tokenEndpoint': self.token_endpoint_url}
+            'tokenEndpoint': self.url}
 
         auth.auth_manager.set_auth_client(
             id=uuidsentinel.subscription_id,
@@ -241,12 +251,11 @@ class TestAuthManager(base.BaseTestCase):
             self.password,
             client.grant.client_password)
         self.assertEqual(
-            self.token_endpoint_url,
+            self.url,
             client.grant.token_endpoint)
 
         history = self.requests_mock.request_history
-        req_count = nfvo_client._count_mock_history(history, self.oauth_url)
-        self.assertEqual(1, req_count)
+        self.assertEqual(1, len(history))
 
     def test_get_auth_client_basic_with_subscription(self):
         params_basic = {
@@ -265,8 +274,7 @@ class TestAuthManager(base.BaseTestCase):
         self.assertEqual(self.password, client.password)
 
         history = self.requests_mock.request_history
-        req_count = nfvo_client._count_mock_history(history, self.oauth_url)
-        self.assertEqual(0, req_count)
+        self.assertEqual(0, len(history))
 
     def test_set_auth_client_noauth(self):
         auth.auth_manager.set_auth_client(
@@ -297,7 +305,7 @@ class TestAuthManager(base.BaseTestCase):
 
     def test_set_auth_client_oauth2_client_credentials(self):
         self.requests_mock.register_uri(
-            'GET', self.token_endpoint_url,
+            'GET', self.url,
             json={
                 'access_token': 'test_token', 'token_type': 'bearer'},
             headers={
@@ -307,7 +315,7 @@ class TestAuthManager(base.BaseTestCase):
         params_oauth2_client_credentials = {
             'clientId': self.user_name,
             'clientPassword': self.password,
-            'tokenEndpoint': self.token_endpoint_url}
+            'tokenEndpoint': self.url}
 
         auth.auth_manager.set_auth_client(
             id=uuidsentinel.subscription_id,
@@ -326,12 +334,11 @@ class TestAuthManager(base.BaseTestCase):
             self.password,
             client.grant.client_password)
         self.assertEqual(
-            self.token_endpoint_url,
+            self.url,
             client.grant.token_endpoint)
 
         history = self.requests_mock.request_history
-        req_count = nfvo_client._count_mock_history(history, self.oauth_url)
-        self.assertEqual(1, req_count)
+        self.assertEqual(1, len(history))
 
     def test_set_auth_client_used_chahe(self):
         params_basic = {
@@ -346,7 +353,7 @@ class TestAuthManager(base.BaseTestCase):
         params_oauth2_client_credentials = {
             'clientId': self.user_name,
             'clientPassword': self.password,
-            'tokenEndpoint': self.token_endpoint_url}
+            'tokenEndpoint': self.url}
 
         auth.auth_manager.set_auth_client(
             id=uuidsentinel.subscription_id,
@@ -363,12 +370,11 @@ class TestAuthManager(base.BaseTestCase):
 
 
 @ddt.ddt
-class TestBasicAuthSession(base.BaseTestCase):
+class TestBasicAuthSession(test_base.BaseTestCase):
 
     def setUp(self):
         super(TestBasicAuthSession, self).setUp()
-        self.token_endpoint_url = 'https://oauth2/tokens'
-        self.nfvo_url = 'http://nfvo.co.jp'
+        self.url = 'https://oauth2/tokens'
         self.user_name = 'test_user'
         self.password = 'test_password'
         self.requests_mock = self.useFixture(requests_mock_fixture.Fixture())
@@ -384,44 +390,43 @@ class TestBasicAuthSession(base.BaseTestCase):
             password=self.password)
 
         self.requests_mock.register_uri(http_method,
-            self.nfvo_url,
+            'https://nfvo.co.jp',
             headers={'Content-Type': 'application/json'},
             status_code=200)
 
         if http_method == 'GET':
             response = client.get(
-                self.nfvo_url,
+                'https://nfvo.co.jp',
                 params={
                     'sample_key': 'sample_value'})
         elif http_method == 'PUT':
             response = client.put(
-                self.nfvo_url,
+                'https://nfvo.co.jp',
                 data={
                     'sample_key': 'sample_value'})
         elif http_method == 'POST':
             response = client.post(
-                self.nfvo_url,
+                'https://nfvo.co.jp',
                 data={
                     'sample_key': 'sample_value'})
         elif http_method == 'DELETE':
             response = client.delete(
-                self.nfvo_url,
+                'https://nfvo.co.jp',
                 params={
                     'sample_key': 'sample_value'})
         elif http_method == 'PATCH':
             response = client.patch(
-                self.nfvo_url,
+                'https://nfvo.co.jp',
                 data={
                     'sample_key': 'sample_value'})
 
         self.assertEqual(200, response.status_code)
         history = self.requests_mock.request_history
-        req_count = nfvo_client._count_mock_history(history, self.nfvo_url)
-        self.assertEqual(1, req_count)
+        self.assertEqual(1, len(history))
 
 
 @ddt.ddt
-class TestOAuth2Session(base.BaseTestCase):
+class TestOAuth2Session(test_base.BaseTestCase):
 
     class MockThread(threading.Timer):
         def __init__(self, *args, **kwargs):
@@ -433,8 +438,7 @@ class TestOAuth2Session(base.BaseTestCase):
 
     def setUp(self):
         super(TestOAuth2Session, self).setUp()
-        self.token_endpoint_url = 'https://oauth2/tokens'
-        self.oauth_url = 'https://oauth2'
+        self.url = 'https://oauth2/tokens'
         self.user_name = 'test_user'
         self.password = 'test_password'
         self.requests_mock = self.useFixture(requests_mock_fixture.Fixture())
@@ -460,21 +464,19 @@ class TestOAuth2Session(base.BaseTestCase):
 
         self.requests_mock.register_uri(
             'GET',
-            self.token_endpoint_url, [res_mock, res_mock2])
+            self.url, [res_mock, res_mock2])
 
         grant = auth._ClientCredentialsGrant(
             client_id=self.user_name,
             client_password=self.password,
-            token_endpoint=self.token_endpoint_url)
+            token_endpoint=self.url)
 
         with mock.patch("threading.Timer", side_effect=self.MockThread) as m:
             client = auth._OAuth2Session(grant)
             client.apply_access_token_info()
 
             history = self.requests_mock.request_history
-            req_count = nfvo_client._count_mock_history(history,
-                self.oauth_url)
-            self.assertEqual(2, req_count)
+            self.assertEqual(2, len(history))
             self.assertEqual(1, m.call_count)
 
     def test_apply_access_token_info_fail_error_response(self):
@@ -485,7 +487,7 @@ class TestOAuth2Session(base.BaseTestCase):
         """
         self.requests_mock.register_uri(
             'GET',
-            self.token_endpoint_url,
+            self.url,
             headers={
                 'Content-Type': 'application/json;charset=UTF-8',
                 'Cache-Control': 'no-store',
@@ -499,7 +501,7 @@ class TestOAuth2Session(base.BaseTestCase):
         grant = auth._ClientCredentialsGrant(
             client_id=self.user_name,
             client_password=self.password,
-            token_endpoint=self.token_endpoint_url)
+            token_endpoint=self.url)
 
         with mock.patch("threading.Timer", side_effect=self.MockThread) as m:
             try:
@@ -509,21 +511,19 @@ class TestOAuth2Session(base.BaseTestCase):
                 self.assertEqual(401, e.response.status_code)
 
             history = self.requests_mock.request_history
-            req_count = nfvo_client._count_mock_history(history,
-                self.oauth_url)
-            self.assertEqual(1, req_count)
+            self.assertEqual(1, len(history))
             self.assertEqual(0, m.call_count)
 
     def test_apply_access_token_info_fail_timeout(self):
         self.requests_mock.register_uri(
             'GET',
-            self.token_endpoint_url,
+            self.url,
             exc=requests.exceptions.ConnectTimeout)
 
         grant = auth._ClientCredentialsGrant(
             client_id=self.user_name,
             client_password=self.password,
-            token_endpoint=self.token_endpoint_url)
+            token_endpoint=self.url)
 
         with mock.patch("threading.Timer", side_effect=self.MockThread) as m:
             try:
@@ -533,15 +533,13 @@ class TestOAuth2Session(base.BaseTestCase):
                 self.assertIsNone(e.response)
 
             history = self.requests_mock.request_history
-            req_count = nfvo_client._count_mock_history(history,
-                self.oauth_url)
-            self.assertEqual(1, req_count)
+            self.assertEqual(1, len(history))
             self.assertEqual(0, m.call_count)
 
     def test_schedule_refrash_token_expaire(self):
         self.requests_mock.register_uri(
             'GET',
-            self.token_endpoint_url,
+            self.url,
             headers={'Content-Type': 'application/json'},
             json={
                 'access_token': 'test_token',
@@ -551,7 +549,7 @@ class TestOAuth2Session(base.BaseTestCase):
         grant = auth._ClientCredentialsGrant(
             client_id=self.user_name,
             client_password=self.password,
-            token_endpoint=self.token_endpoint_url)
+            token_endpoint=self.url)
 
         with mock.patch("threading.Timer", side_effect=self.MockThread) as m:
             client = auth._OAuth2Session(grant)
@@ -562,16 +560,14 @@ class TestOAuth2Session(base.BaseTestCase):
             client.schedule_refrash_token()
 
             history = self.requests_mock.request_history
-            req_count = nfvo_client._count_mock_history(history,
-                self.oauth_url)
-            self.assertEqual(1, req_count)
+            self.assertEqual(1, len(history))
             self.assertEqual(1, m.call_count)
 
     def test_schedule_refrash_token_non_expaire(self):
         grant = auth._ClientCredentialsGrant(
             client_id=self.user_name,
             client_password=self.password,
-            token_endpoint=self.token_endpoint_url)
+            token_endpoint=self.url)
 
         with mock.patch("threading.Timer", side_effect=self.MockThread) as m:
             client = auth._OAuth2Session(grant)
@@ -581,9 +577,7 @@ class TestOAuth2Session(base.BaseTestCase):
             client.schedule_refrash_token()
 
             history = self.requests_mock.request_history
-            req_count = nfvo_client._count_mock_history(history,
-                self.oauth_url)
-            self.assertEqual(0, req_count)
+            self.assertEqual(0, len(history))
             self.assertEqual(0, m.call_count)
 
     @ddt.data(None, "")
@@ -591,7 +585,7 @@ class TestOAuth2Session(base.BaseTestCase):
         grant = auth._ClientCredentialsGrant(
             client_id=self.user_name,
             client_password=self.password,
-            token_endpoint=self.token_endpoint_url)
+            token_endpoint=self.url)
 
         with mock.patch("threading.Timer", side_effect=self.MockThread) as m:
             client = auth._OAuth2Session(grant)
@@ -602,15 +596,13 @@ class TestOAuth2Session(base.BaseTestCase):
             client.schedule_refrash_token()
 
             history = self.requests_mock.request_history
-            req_count = nfvo_client._count_mock_history(history,
-                self.oauth_url)
-            self.assertEqual(0, req_count)
+            self.assertEqual(0, len(history))
             self.assertEqual(0, m.call_count)
 
     @ddt.data('GET', 'PUT', 'POST', 'DELETE', 'PATCH')
     def test_request_client_credentials(self, http_method):
         self.requests_mock.register_uri('GET',
-            self.token_endpoint_url,
+            self.url,
             json={'access_token': 'test_token3', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
             status_code=200)
@@ -618,49 +610,48 @@ class TestOAuth2Session(base.BaseTestCase):
         grant = auth._ClientCredentialsGrant(
             client_id=self.user_name,
             client_password=self.password,
-            token_endpoint=self.token_endpoint_url)
+            token_endpoint=self.url)
         client = auth._OAuth2Session(grant)
         client.apply_access_token_info()
 
         self.requests_mock.register_uri(http_method,
-            self.oauth_url,
+            'https://nfvo.co.jp',
             headers={'Content-Type': 'application/json'},
             status_code=200)
 
         if http_method == 'GET':
             response = client.get(
-                self.oauth_url,
+                'https://nfvo.co.jp',
                 params={
                     'sample_key': 'sample_value'})
         elif http_method == 'PUT':
             response = client.put(
-                self.oauth_url,
+                'https://nfvo.co.jp',
                 data={
                     'sample_key': 'sample_value'})
         elif http_method == 'POST':
             response = client.post(
-                self.oauth_url,
+                'https://nfvo.co.jp',
                 data={
                     'sample_key': 'sample_value'})
         elif http_method == 'DELETE':
             response = client.delete(
-                self.oauth_url,
+                'https://nfvo.co.jp',
                 params={
                     'sample_key': 'sample_value'})
         elif http_method == 'PATCH':
             response = client.patch(
-                self.oauth_url,
+                'https://nfvo.co.jp',
                 data={
                     'sample_key': 'sample_value'})
 
         self.assertEqual(200, response.status_code)
         history = self.requests_mock.request_history
-        req_count = nfvo_client._count_mock_history(history, self.oauth_url)
-        self.assertEqual(2, req_count)
+        self.assertEqual(2, len(history))
 
     def test_request_client_credentials_auth_error(self):
         self.requests_mock.register_uri('GET',
-            self.token_endpoint_url,
+            self.url,
             json={'access_token': 'test_token3', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
             status_code=200)
@@ -673,7 +664,7 @@ class TestOAuth2Session(base.BaseTestCase):
         grant = auth._ClientCredentialsGrant(
             client_id=self.user_name,
             client_password=self.password,
-            token_endpoint=self.token_endpoint_url)
+            token_endpoint=self.url)
         client = auth._OAuth2Session(grant)
         client.apply_access_token_info()
 
@@ -681,6 +672,215 @@ class TestOAuth2Session(base.BaseTestCase):
 
         self.assertEqual(401, response.status_code)
         history = self.requests_mock.request_history
-        req_count = nfvo_client._count_mock_history(
-            history, self.oauth_url, 'https://nfvo.co.jp')
-        self.assertEqual(3, req_count)
+        self.assertEqual(3, len(history))
+
+
+class TestAuthValidateBearer(unit_base.FixturedTestCase):
+
+    def setUp(self):
+        super(TestAuthValidateBearer, self).setUp()
+        token_type = 'Bearer'
+        api_name = 'dummy'
+        token_value = 'SampleAccessToken'
+        application_type = vnflcm_router.VnflcmAPIRouter
+        self.auth_opts = [cfg.ListOpt('vnflcm_dummy_scope',
+                        default='test_api',
+                        help="OAuth2.0 api token scope for create")]
+        cfg.CONF.register_opts(self.auth_opts, group='authentication')
+        self.requests_mock = self.useFixture(requests_mock_fixture.Fixture())
+        self.url = 'http://auth/authorize/'
+        self.auth_bearer = auth._AuthValidateBearer(
+            application_type, api_name, token_type, token_value)
+        auth._AuthValidateManager()
+
+    def tearDown(self):
+        super(TestAuthValidateBearer, self).tearDown()
+
+    @mock.patch.object(auth._AuthValidateBearer, 'request')
+    def test_do_auth_no_response(self, mock_request):
+        cfg.CONF.set_override('token_type', 'Bearer',
+                              group='authentication')
+        mock_request.return_value = None
+        self.assertRaises(webob.exc.HTTPUnauthorized, self.auth_bearer.do_auth)
+
+    def test_do_auth_no_token_value_in_response(self):
+        cfg.CONF.set_override('token_type', 'Bearer',
+                              group='authentication')
+        cfg.CONF.set_override('auth_url', 'http://auth/authorize/',
+                              group='authentication')
+        update = {'access_token': None}
+        json = fake_auth.fake_response(**update)
+        self.requests_mock.register_uri('GET',
+            self.url,
+            json=json,
+            headers={'Content-Type': 'application/json'},
+            status_code=200)
+        self.assertRaises(webob.exc.HTTPUnauthorized, self.auth_bearer.do_auth)
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, 'http://auth')
+        self.assertEqual(1, req_count)
+
+    def test_do_auth_no_token_type_in_response(self):
+        cfg.CONF.set_override('token_type', 'Bearer',
+                              group='authentication')
+        cfg.CONF.set_override('auth_url', 'http://auth/authorize/',
+                              group='authentication')
+        update = {'token_type': None}
+        json = fake_auth.fake_response(**update)
+        self.requests_mock.register_uri('GET',
+            self.url,
+            json=json,
+            headers={'Content-Type': 'application/json'},
+            status_code=200)
+        self.assertRaises(webob.exc.HTTPUnauthorized, self.auth_bearer.do_auth)
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, 'http://auth')
+        self.assertEqual(1, req_count)
+
+    def test_do_auth_invalid_token_value(self):
+        cfg.CONF.set_override('token_type', 'Bearer',
+                              group='authentication')
+        cfg.CONF.set_override('auth_url', 'http://auth/authorize/',
+                              group='authentication')
+        update = {'access_token': 'Test'}
+        json = fake_auth.fake_response(**update)
+        self.requests_mock.register_uri('GET',
+            self.url,
+            json=json,
+            headers={'Content-Type': 'application/json'},
+            status_code=200)
+        self.assertRaises(webob.exc.HTTPUnauthorized, self.auth_bearer.do_auth)
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, 'http://auth')
+        self.assertEqual(1, req_count)
+
+    def test_do_auth_invalid_scope(self):
+        cfg.CONF.set_override('token_type', 'Bearer',
+                              group='authentication')
+        cfg.CONF.set_override('auth_url', 'http://auth/authorize/',
+                              group='authentication')
+        json = fake_auth.fake_response()
+        self.requests_mock.register_uri('GET',
+            self.url,
+            json=json,
+            headers={'Content-Type': 'application/json'},
+            status_code=200)
+
+        self.assertRaises(webob.exc.HTTPForbidden, self.auth_bearer.do_auth)
+        history = self.requests_mock.request_history
+        req_count = _count_mock_history(history, 'http://auth')
+        self.assertEqual(1, req_count)
+
+
+class TestAuthValidateBasic(unit_base.FixturedTestCase):
+    def setUp(self):
+        super(TestAuthValidateBasic, self).setUp()
+        self.api_name = 'test'
+        self.user_name = 'test_user'
+        self.password = 'test_pass'
+        self.token_type = 'Basic'
+        self.token_value = self._encode_base64(self.user_name + self.password)
+        self.auth_basic = auth._AuthValidateBasic(
+            self.api_name, self.token_type, self.token_value)
+        auth._AuthValidateManager()
+
+    def _encode_base64(self, info):
+        encode = base64.b64encode(info.encode())
+        return encode
+
+    def test_do_auth(self):
+        cfg.CONF.set_override('token_type', 'Basic',
+                              group='authentication')
+        cfg.CONF.set_override('user_name', self.user_name,
+                              group='authentication')
+        cfg.CONF.set_override('password', self.password,
+                              group='authentication')
+        auth._AuthValidateBasic(self.api_name, self.token_type,
+        self.token_value)
+
+        self.auth_basic.do_auth()
+
+    def test_do_auth_invalid_token_value(self):
+        cfg.CONF.set_override('token_type', 'Basic',
+                              group='authentication')
+        cfg.CONF.set_override('user_name', 'test',
+                              group='authentication')
+        cfg.CONF.set_override('password', self.password,
+                              group='authentication')
+        auth._AuthValidateBasic(
+            self.api_name,
+            self.token_type,
+            self.token_value)
+
+        self.assertRaises(webob.exc.HTTPUnauthorized, self.auth_basic.do_auth)
+
+    def test_do_auth_invalid_token_type(self):
+        cfg.CONF.set_override('token_type', 'Basic',
+                              group='authentication')
+        self.auth_basic = auth._AuthValidateBasic(
+            'test', 'test_type', 'test_val')
+        self.assertRaises(webob.exc.HTTPUnauthorized, self.auth_basic.do_auth)
+
+
+@ddt.ddt
+class TestAuthValidateManager(unit_base.FixturedTestCase):
+
+    def setUp(self):
+        super(TestAuthValidateManager, self).setUp()
+        self.auth_validate = auth._AuthValidateManager()
+
+    @ddt.data(vnflcm_router.VnflcmAPIRouter, vnfpkgm_router.VnfpkgmAPIRouter)
+    def test_auth_main_bearer(self, obj):
+        mock_response = mock.MagicMock()
+        mock_response.request = mock.MagicMock()
+        mock_response.request.headers = {
+            'Authorization': 'Bearer 123456abc'}
+        mock_response.application.return_value = obj
+
+        ret = self.auth_validate._get_auth_type(
+            mock_response.request, mock_response.application)
+        self.assertIsInstance(ret, auth._AuthValidateBearer)
+
+    def test_auth_main_basic(self):
+        mock_response = mock.MagicMock()
+        mock_response.request = mock.MagicMock()
+        mock_response.request.headers = {
+            'Authorization': 'Basic 123456abc'}
+
+        mock_response.application = mock.MagicMock()
+        mock_response.application.return_value = vnflcm_router.VnflcmAPIRouter
+
+        ret = self.auth_validate._get_auth_type(
+            mock_response.request, mock_response.application)
+        self.assertIsInstance(ret, auth._AuthValidateBasic)
+
+    def test_auth_main_none(self):
+        mock_response = mock.MagicMock()
+        mock_response.request = mock.MagicMock()
+        mock_response.request.headers = {
+            'Authorization': 'Test 123456abc'}
+        mock_response.application.return_value = vnflcm_router.VnflcmAPIRouter
+
+        ret = self.auth_validate._get_auth_type(
+            mock_response.request, mock_response.application)
+        self.assertIsInstance(ret, auth._AuthValidateIgnore)
+
+
+class TestAuthValidatorExecution(test_base.BaseTestCase):
+    def setUp(self):
+        super(TestAuthValidatorExecution, self).setUp()
+
+        @webob.dec.wsgify
+        def fake_app(req):
+            # self.context = req.environ['tacker.context']
+            return webob.Response()
+
+        self.context = None
+        self.middleware = auth.AuthValidatorExecution(fake_app)
+        self.request = webob.Request.blank('/')
+        self.request.headers['X_AUTH_TOKEN'] = 'testauthtoken'
+
+    @mock.patch.object(auth.auth_validator_manager, "auth_main")
+    def test_called(self, mock_auth_main):
+        response = self.request.get_response(self.middleware)
+        self.assertEqual('200 OK', response.status)
