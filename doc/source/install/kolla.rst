@@ -26,19 +26,20 @@ Install via Kolla Ansible
 
 .. note::
 
-    This installation guide is just a bit old, and explained for Redhat distro.
+    This installation guide contents are specific to Redhat distro.
 
 
 Please refer to
 `Install dependencies
 <https://docs.openstack.org/kolla-ansible/latest/user/quickstart.html#install-dependencies>`_
-of kolla ansible installation [1]_ to set up the docker environment that is
-used by kolla ansible.
+of Kolla Ansible installation [1]_ to set up the docker environment that is
+used by Kolla Ansible.
 
 To install via Kolla Ansible, the version of Kolla Ansible should be consistent
-with the target Tacker system. For example, stable/pike branch of Kolla Ansible
-should be used to install stable/pike branch of Tacker. Here the stable/pike
-branch version will be used to show how to install Tacker with Kolla Ansible.
+with the target Tacker system. For example, stable/ussuri branch of
+Kolla Ansible should be used to install stable/ussuri branch of Tacker.
+Here the stable/ussuri branch version will be used to show how to install
+Tacker with Kolla Ansible.
 
 Kolla can be used to install multiple nodes system, but Tacker server is not
 ready for multiple nodes deployment yet, so only an all-in-one Tacker is
@@ -48,15 +49,15 @@ installed in this document.
 Install Kolla Ansible
 ---------------------
 
-#. Get the stable/pike version of kolla ansible:
+#. Get the stable/ussuri version of Kolla Ansible:
 
    .. code-block:: console
 
-       $ git clone https://github.com/openstack/kolla-ansible.git -b stable/pike
+       $ git clone https://github.com/openstack/kolla-ansible.git -b stable/ussuri
        $ cd kolla-ansible
-       $ sudo yum install python-devel libffi-devel gcc openssl-devel libselinux-python
-       $ sudo pip install -r requirements.txt
-       $ sudo python setup.py install
+       $ sudo dnf install python3-devel libffi-devel gcc openssl-devel python3-libselinux
+       $ sudo pip3 install -r requirements.txt
+       $ sudo python3 setup.py install
 
    If the needed version has already been published at pypi site
    'https://pypi.org/project/kolla-ansible', the command below can be used:
@@ -65,11 +66,27 @@ Install Kolla Ansible
 
       $ sudo pip install "kolla-ansible==5.0.0"
 
+#. Install dependencies:
+
+   .. code-block:: console
+
+      $ sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+      $ sudo dnf install https://download.docker.com/linux/centos/7/x86_64/stable/Packages/containerd.io-1.2.6-3.3.el7.x86_64.rpm
+      $ sudo dnf install docker-ce docker-ce-cli
+      $ sudo systemctl enable docker
+      $ sudo systemctl restart docker
+      $ sudo pip3 install 'ansible<2.10'
+      $ sudo pip3 install docker
+
+   .. note::
+
+      Installing docker-ce on CentOS 8 is not officially supported.
+
 
 Install Tacker
 --------------
 
-#. Edit kolla ansible's configuration file ``/etc/kolla/globals.yml``:
+#. Edit Kolla Ansible's configuration file ``/etc/kolla/globals.yml``:
 
    .. code-block:: ini
 
@@ -87,8 +104,8 @@ Install Tacker
       #docker_registry: "127.0.0.1:4000"
       # If needed OpenStack kolla images are published, docker_namespace should be
       # kolla
-      #docker_namespace: "kolla"
-      docker_namespace: "gongysh"
+      docker_namespace: "kolla"
+      #docker_namespace: "gongysh"
       enable_glance: "no"
       enable_haproxy: "no"
       enable_keystone: "yes"
@@ -132,14 +149,14 @@ Install Tacker
    With this command, ``/etc/kolla/passwords.yml`` will be populated with
    generated passwords.
 
-#. Run kolla ansible deploy to install tacker system:
+#. Run Kolla Ansible deploy to install tacker system:
 
    .. code-block:: console
 
       $ sudo kolla-ansible deploy
 
 
-#. Run kolla ansible post-deploy to generate tacker access environment file:
+#. Run Kolla Ansible post-deploy to generate tacker access environment file:
 
    .. code-block:: console
 
@@ -152,41 +169,48 @@ Install Tacker
 
    Tacker system consists of some containers. Following is a sample output.
    The containers fluentd, cron and kolla_toolbox are from kolla, please see
-   kolla ansible documentation for their usage. Others are from Tacker system
+   Kolla Ansible documentation for their usage. Others are from Tacker system
    components.
 
    .. code-block:: console
 
       $ sudo docker ps --format "table {{.ID}}\t{{.Image}}\t{{.Names}}"
-      CONTAINER ID        IMAGE                                                    NAMES
-      78eafed848a8        gongysh/centos-source-tacker-server:5.0.0                tacker_server
-      00bbecca5950        gongysh/centos-source-tacker-conductor:5.0.0             tacker_conductor
-      19eddccf8e8f        gongysh/centos-source-barbican-worker:5.0.0              barbican_worker
-      6434b1d8236e        gongysh/centos-source-barbican-keystone-listener:5.0.0   barbican_keystone_listener
-      48be088643f8        gongysh/centos-source-barbican-api:5.0.0                 barbican_api
-      50b9a9a0e542        gongysh/centos-source-mistral-executor:5.0.0             mistral_executor
-      07c28d845311        gongysh/centos-source-mistral-engine:5.0.0               mistral_engine
-      196bbcc592a4        gongysh/centos-source-mistral-api:5.0.0                  mistral_api
-      d5511b195a58        gongysh/centos-source-horizon:5.0.0                      horizon
-      62913ec7c056        gongysh/centos-source-keystone:5.0.0                     keystone
-      552b95e82f98        gongysh/centos-source-rabbitmq:5.0.0                     rabbitmq
-      4d57d7735514        gongysh/centos-source-mariadb:5.0.0                      mariadb
-      4e1142ff158d        gongysh/centos-source-cron:5.0.0                         cron
-      000ba4ca1974        gongysh/centos-source-kolla-toolbox:5.0.0                kolla_toolbox
-      0fe21b1ad18c        gongysh/centos-source-fluentd:5.0.0                      fluentd
-      a13e45fc034f        gongysh/centos-source-memcached:5.0.0                    memcached
+      CONTAINER ID        IMAGE                                                   NAMES
+      756adb8d787f        kolla/centos-source-tacker-server:ussuri                tacker_server
+      000320a1c76f        kolla/centos-source-tacker-conductor:ussuri             tacker_conductor
+      11b5ccf91d86        kolla/centos-source-barbican-worker:ussuri              barbican_worker
+      4a5224d14f36        kolla/centos-source-barbican-keystone-listener:ussuri   barbican_keystone_listener
+      a169e7aed0b6        kolla/centos-source-barbican-api:ussuri                 barbican_api
+      2b3b0341b562        kolla/centos-source-mistral-executor:ussuri             mistral_executor
+      6c69bbdf6aea        kolla/centos-source-mistral-event-engine:ussuri         mistral_event_engine
+      d035295fe9f0        kolla/centos-source-mistral-engine:ussuri               mistral_engine
+      72f52de2fb77        kolla/centos-source-mistral-api:ussuri                  mistral_api
+      07ecaad80542        kolla/centos-source-horizon:ussuri                      horizon
+      7e6ac94ea505        kolla/centos-source-keystone:ussuri                     keystone
+      2b16b169ed18        kolla/centos-source-keystone-fernet:ussuri              keystone_fernet
+      ec80b37da07b        kolla/centos-source-keystone-ssh:ussuri                 keystone_ssh
+      3e3d5c976921        kolla/centos-source-rabbitmq:ussuri                     rabbitmq
+      24196bca6652        kolla/centos-source-memcached:ussuri                    memcached
+      73f9873b1eac        kolla/centos-source-mariadb-clustercheck:ussuri         mariadb_clustercheck
+      ceb67bd5418d        kolla/centos-source-mariadb:ussuri                      mariadb
+      b82404a0400e        kolla/centos-source-chrony:ussuri                       chrony
+      f70ab08ea36d        kolla/centos-source-cron:ussuri                         cron
+      5bbe7eee05d4        kolla/centos-source-kolla-toolbox:ussuri                kolla_toolbox
+      be73c1b5fdca        kolla/centos-source-fluentd:ussuri                      fluentd
 
 #. Install tacker client:
 
    .. code-block:: console
 
-      $ sudo pip install python-tackerclient
+      $ sudo pip3 install python-tackerclient
+      $ sudo pip3 install python-openstackclient
 
 #. Check the Tacker server is running well:
 
    .. code-block:: console
 
-      $ . /etc/kolla/admin-openrc.sh
+      $ sudo cat /etc/kolla/admin-openrc.sh > /tmp/admin-openrc.sh
+      $ . /tmp/admin-openrc.sh
       $ openstack vim list
 
 
