@@ -34,7 +34,7 @@ future==0.16.0
 futurist==1.6.0
 glance-store==0.26.1
 google-auth==1.4.1
-greenlet==0.4.13
+greenlet==0.4.15
 heat-translator==2.0.0
 idna==2.6
 imagesize==1.0.0
