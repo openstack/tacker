@@ -10,7 +10,7 @@ beautifulsoup4==4.6.0
 cachetools==2.0.1
 castellan==0.16.0
 certifi==2018.1.18
-cffi==1.11.5
+cffi==1.14.0
 chardet==3.0.4
 cliff==2.11.0
 cmd2==0.8.2
@@ -34,7 +34,7 @@ future==0.16.0
 futurist==1.6.0
 glance-store==0.26.1
 google-auth==1.4.1
-greenlet==0.4.13
+greenlet==0.4.15
 heat-translator==2.0.0
 idna==2.6
 imagesize==1.0.0
