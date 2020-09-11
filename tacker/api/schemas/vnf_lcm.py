@@ -32,7 +32,7 @@ _extManagedVirtualLinkData = {
             'vimConnectionId': parameter_types.identifier
         },
         'required': ['id', 'vnfVirtualLinkDescId', 'resourceId'],
-        'additionalProperties': False,
+        'additionalProperties': True,
     },
 }
 
@@ -63,7 +63,7 @@ _ipaddresses = {
             }
         },
         'required': ['type', 'fixedAddresses'],
-        'additionalProperties': False
+        'additionalProperties': True
     }
 }
 
@@ -77,7 +77,7 @@ _ipOverEthernetAddressData = {
         {'required': ['macAddress']},
         {'required': ['ipAddresses']}
     ],
-    'additionalProperties': False
+    'additionalProperties': True
 }
 
 _cpProtocolData = {
@@ -91,7 +91,7 @@ _cpProtocolData = {
             'ipOverEthernet': _ipOverEthernetAddressData,
         },
         'required': ['layerProtocol'],
-        'additionalProperties': False,
+        'additionalProperties': True,
     }
 }
 
@@ -104,7 +104,7 @@ _vnfExtCpConfig = {
             'linkPortId': parameter_types.identifier,
             'cpProtocolData': _cpProtocolData,
         },
-        'additionalProperties': False,
+        'additionalProperties': True,
     }
 }
 
@@ -117,7 +117,7 @@ _vnfExtCpData = {
             'cpConfig': _vnfExtCpConfig,
         },
         'required': ['cpdId', 'cpConfig'],
-        'additionalProperties': False,
+        'additionalProperties': True,
     },
 }
 
@@ -129,7 +129,7 @@ _resourceHandle = {
         'vimLevelResourceType': {'type': 'string', 'maxLength': 255},
     },
     'required': ['resourceId'],
-    'additionalProperties': False,
+    'additionalProperties': True,
 }
 
 _extLinkPortData = {
@@ -141,7 +141,7 @@ _extLinkPortData = {
             'resourceHandle': _resourceHandle,
         },
         'required': ['id', 'resourceHandle'],
-        'additionalProperties': False,
+        'additionalProperties': True,
     }
 }
 
@@ -158,7 +158,7 @@ _extVirtualLinkData = {
 
         },
         'required': ['id', 'resourceId', 'extCps'],
-        'additionalProperties': False,
+        'additionalProperties': True,
     }
 }
 
@@ -174,7 +174,7 @@ _vimConnectionInfo = {
             'accessInfo': parameter_types.keyvalue_pairs,
         },
         'required': ['id', 'vimType'],
-        'additionalProperties': False,
+        'additionalProperties': True,
     }
 }
 
@@ -187,7 +187,7 @@ create = {
         'metadata': parameter_types.keyvalue_pairs,
     },
     'required': ['vnfdId'],
-    'additionalProperties': False,
+    'additionalProperties': True,
 }
 
 instantiate = {
@@ -201,7 +201,7 @@ instantiate = {
         'additionalParams': parameter_types.keyvalue_pairs,
     },
     'required': ['flavourId'],
-    'additionalProperties': False,
+    'additionalProperties': True,
 }
 
 terminate = {
@@ -213,7 +213,7 @@ terminate = {
         'additionalParams': parameter_types.keyvalue_pairs,
     },
     'required': ['terminationType'],
-    'additionalProperties': False,
+    'additionalProperties': True,
 }
 
 heal = {
@@ -229,7 +229,7 @@ heal = {
         }
 
     },
-    'additionalProperties': False,
+    'additionalProperties': True,
 }
 
 register_subscription = {
@@ -240,7 +240,7 @@ register_subscription = {
         'authentication': parameter_types.keyvalue_pairs,
     },
     'required': ['callbackUri'],
-    'additionalProperties': False,
+    'additionalProperties': True,
 }
 
 update = {
@@ -253,7 +253,7 @@ update = {
         'metadata': parameter_types.keyvalue_pairs,
         'vimConnectionInfo': _vimConnectionInfo,
     },
-    'additionalProperties': False,
+    'additionalProperties': True,
 }
 
 scale = {
@@ -266,5 +266,5 @@ scale = {
         'additionalParams': parameter_types.keyvalue_pairs
     },
     'required': ['type', 'aspectId'],
-    'additionalProperties': False,
+    'additionalProperties': True,
 }

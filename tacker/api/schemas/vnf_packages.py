@@ -26,7 +26,7 @@ create = {
     'properties': {
         'userDefinedData': parameter_types.keyvalue_pairs
     },
-    'additionalProperties': False,
+    'additionalProperties': True,
 }
 
 upload_from_uri = {
@@ -47,7 +47,7 @@ upload_from_uri = {
 
     },
     'required': ['addressInformation'],
-    'additionalProperties': False,
+    'additionalProperties': True,
 }
 
 """
@@ -65,7 +65,7 @@ patch = {
     },
     'anyOf': [{'required': ['operationalState']},
               {'required': ['userDefinedData']}],
-    'additionalProperties': False
+    'additionalProperties': True
 }
 
 query_params_v1 = {
@@ -77,5 +77,5 @@ query_params_v1 = {
         'all_fields': {'format': 'all_fields'},
         'exclude_default': {'format': 'exclude_default'},
     },
-    'additionalProperties': False,
+    'additionalProperties': True,
 }

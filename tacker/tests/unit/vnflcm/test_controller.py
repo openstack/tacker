@@ -1086,10 +1086,7 @@ class TestController(base.TestCase):
         # Call Instantiate API
         resp = req.get_response(self.app)
 
-        self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
-        self.assertEqual("Additional properties are not allowed "
-                         "('additional_property' was unexpected)",
-                         resp.json['badRequest']['message'])
+        self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
