@@ -18,6 +18,7 @@ import inspect
 import json
 import os
 import threading
+import time
 
 from oslo_log import log as logging
 
@@ -391,8 +392,16 @@ class FakeServerManager(SingletonMixin):
             '[Start] %s.%s()' %
             (self.__class__.__name__,
              inspect.currentframe().f_code.co_name))
-        self.objHttpd = http.server.HTTPServer(
-            (address, port), DummyRequestHander)
+        while True:
+            try:
+                self.objHttpd = http.server.HTTPServer(
+                    (address, port), DummyRequestHander)
+            except OSError:
+                time.sleep(10)
+                continue
+            else:
+                break
+        self.thread_server = threading.Thread(None, self.run)
         LOG.debug(
             '[ End ] %s.%s()' %
             (self.__class__.__name__,
@@ -401,7 +410,7 @@ class FakeServerManager(SingletonMixin):
     def start_server(self):
         """Start server in thread."""
         LOG.debug('[START] %s()' % inspect.currentframe().f_code.co_name)
-        threading.Thread(None, self.run).start()
+        self.thread_server.start()
         LOG.debug('[ END ] %s()' % inspect.currentframe().f_code.co_name)
 
     def run(self):
@@ -411,10 +420,15 @@ class FakeServerManager(SingletonMixin):
             self.objHttpd.serve_forever()
         except KeyboardInterrupt:
             self.stop_server()
+        finally:
+            self.objHttpd.server_close()
         LOG.debug('[ END ] %s()' % inspect.currentframe().f_code.co_name)
 
     def stop_server(self):
         """Stop HTTP Server"""
         LOG.debug('[START] %s()' % inspect.currentframe().f_code.co_name)
-        self.objHttpd.shutdown()
+        thread_shutdown = threading.Thread(None, self.objHttpd.shutdown)
+        thread_shutdown.daemon = True
+        thread_shutdown.start()
+        self.thread_server.join()
         LOG.debug('[ END ] %s()' % inspect.currentframe().f_code.co_name)

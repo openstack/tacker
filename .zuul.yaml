@@ -175,6 +175,15 @@
           TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
           TACKER_MODE: standalone
           IS_ZUUL_FT: True
+        # Since a VirtualInterfaceCreateException occurs during a test,
+        # the setting of network-vif-plugged is changed by the reference of
+        # the following URL.
+        #   https://bugs.launchpad.net/heat/+bug/1694371
+        devstack_local_conf:
+          post-config:
+            $NOVA_CONF:
+              DEFAULT:
+                vif_plugging_is_fatal: False
         devstack_services:
           q-agt: true
           n-api: false
