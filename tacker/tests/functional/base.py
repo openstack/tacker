@@ -81,12 +81,15 @@ class SessionClient(adapter.Adapter):
 class BaseTackerTest(base.BaseTestCase):
     """Base test case class for all Tacker API tests."""
 
+    # Class specific variables
+    tacker_config_file = '/etc/tacker/tacker.conf'
+
     @classmethod
     def setUpClass(cls):
         super(BaseTackerTest, cls).setUpClass()
         kwargs = {}
 
-        cfg.CONF(args=['--config-file', '/etc/tacker/tacker.conf'],
+        cfg.CONF(args=['--config-file', cls.tacker_config_file],
                  project='tacker',
                  version='%%prog %s' % version.version_info.release_string(),
                  **kwargs)
@@ -94,6 +97,7 @@ class BaseTackerTest(base.BaseTestCase):
         cls.client = cls.tackerclient()
         cls.http_client = cls.tacker_http_client()
         cls.h_client = cls.heatclient()
+        cls.glance_client = cls.glanceclient()
 
     @classmethod
     def get_credentials(cls):
