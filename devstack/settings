@@ -1,5 +1,7 @@
 TACKER_MODE=${TACKER_MODE:-all}
-USE_BARBICAN=True
+# Temporarily change because of Ubuntu Focal Migration issue
+#   https://storyboard.openstack.org/#!/story/2007732
+USE_BARBICAN=False
 KUBERNETES_VIM=${KUBERNETES_VIM:-False}
 
 if [ "${TACKER_MODE}" == "all" ]; then
