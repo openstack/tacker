@@ -76,6 +76,36 @@ def _get_vnfd_dict(context, vnfd_id, flavour_id):
     return vnfd_dict
 
 
+def _get_vnflcm_interface(context, interface, vnf_instance, flavour_id):
+    '''Gets the interface found in vnfd
+
+        ...
+            node_templates:
+                VNF:
+                    interfaces:
+                        Vnflcm:
+                            <interface>
+    '''
+    interface_value = None
+    vnfd_dict = _get_vnfd_dict(context, vnf_instance.vnfd_id, flavour_id)
+
+    if not isinstance(vnfd_dict, dict):
+        raise exceptions.InvalidContentType(msg="VNFD not valid")
+
+    if vnfd_dict.get('topology_template'):
+        topology_template = vnfd_dict.get('topology_template')
+        if topology_template.get('node_templates'):
+            for a_val in topology_template.get('node_templates').values():
+                if 'interfaces' in a_val.keys():
+                    interfaces = a_val.get('interfaces')
+                    if interfaces.get('Vnflcm'):
+                        vnflcm = interfaces.get('Vnflcm')
+                        if vnflcm:
+                            interface_value = vnflcm.get(interface)
+
+    return interface_value
+
+
 def _build_affected_resources(vnf_instance,
      change_type=fields.ResourceChangeType.ADDED):
     '''build affected resources from vnf_instance instantiated info '''
@@ -1022,3 +1052,31 @@ def _get_base_hot_dict(context, vnfd_id):
                 base_hot_dict = yaml.safe_load(open(source_file_path))
     LOG.debug("Loaded base hot: %s", base_hot_dict)
     return base_hot_dict
+
+
+def get_base_nest_hot_dict(context, flavour_id, vnfd_id):
+    vnf_package_id = _get_vnf_package_id(context, vnfd_id)
+    vnf_package_base_path = cfg.CONF.vnf_package.vnf_package_csar_path
+    vnf_package_csar_path = vnf_package_base_path + '/' + vnf_package_id
+    base_hot_dir = 'BaseHOT'
+    ext = [".yaml", ".yml"]
+
+    base_hot_path = vnf_package_csar_path + '/' + \
+        base_hot_dir + '/' + flavour_id
+    base_hot_dict = None
+    nested_hot_path = base_hot_path + '/nested'
+    nested_hot_dict = {}
+    if os.path.exists(base_hot_path):
+        for file in os.listdir(base_hot_path):
+            if file.endswith(tuple(ext)):
+                source_file_path = os.path.join(base_hot_path, file)
+                base_hot_dict = yaml.safe_load(open(source_file_path))
+    if os.path.exists(nested_hot_path):
+        for file in os.listdir(nested_hot_path):
+            if file.endswith(tuple(ext)):
+                source_file_path = os.path.join(nested_hot_path, file)
+                nested_hot = yaml.safe_load(open(source_file_path))
+                nested_hot_dict[file] = nested_hot
+    LOG.debug("Loaded base hot: %s", base_hot_dict)
+    LOG.debug("Loaded nested_hot_dict: %s", nested_hot_dict)
+    return base_hot_dict, nested_hot_dict

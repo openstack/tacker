@@ -136,8 +136,10 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vim_connection_info, instantiate_vnf_req):
         vnfd_dict = vnflcm_utils._get_vnfd_dict(context, vnf_instance.vnfd_id,
                 instantiate_vnf_req.flavour_id)
-        base_hot_dict = vnflcm_utils._get_base_hot_dict(
-            context, vnf_instance.vnfd_id)
+        base_hot_dict, nested_hot_dict = vnflcm_utils. \
+            get_base_nest_hot_dict(context,
+                                   instantiate_vnf_req.flavour_id,
+                                   vnf_instance.vnfd_id)
         vnf_package_path = None
         if base_hot_dict is not None:
             vnf_package_path = vnflcm_utils._get_vnf_package_path(
