@@ -14,12 +14,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+import copy
 import eventlet
 import importlib
 import os
 import sys
 import time
+import yaml
 
 from collections import OrderedDict
 from oslo_config import cfg
@@ -28,8 +29,6 @@ from oslo_serialization import jsonutils
 from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import uuidutils
-import yaml
-
 from tacker._i18n import _
 from tacker.common import exceptions
 from tacker.common import log
@@ -39,6 +38,7 @@ from tacker.extensions import vnfm
 from tacker import objects
 from tacker.objects import fields
 from tacker.tosca.utils import represent_odict
+from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnfm.infra_drivers import abstract_driver
 from tacker.vnfm.infra_drivers.openstack import constants as infra_cnst
 from tacker.vnfm.infra_drivers.openstack import glance_client as gc
@@ -47,6 +47,7 @@ from tacker.vnfm.infra_drivers.openstack import translate_template
 from tacker.vnfm.infra_drivers.openstack import vdu
 from tacker.vnfm.infra_drivers import scale_driver
 from tacker.vnfm.lcm_user_data.constants import USER_DATA_TIMEOUT
+
 
 eventlet.monkey_patch(time=True)
 
@@ -89,6 +90,8 @@ OUTPUT_PREFIX = 'mgmt_ip-'
 ALARMING_POLICY = 'tosca.policies.tacker.Alarming'
 SCALING_POLICY = 'tosca.policies.tacker.Scaling'
 
+NOVA_SERVER_RESOURCE = "OS::Nova::Server"
+
 
 def get_scaling_policy_name(action, policy_name):
     return '%s_scale_%s' % (policy_name, action)
@@ -117,7 +120,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     @log.log
     def create(self, plugin, context, vnf, auth_attr,
                base_hot_dict=None, vnf_package_path=None,
-               inst_req_info=None, grant_info=None):
+               inst_req_info=None, grant_info=None,
+               vnf_instance=None):
         LOG.debug('vnf %s', vnf)
         region_name = vnf.get('placement_attr', {}).get('region_name', None)
         heatclient = hc.HeatClient(auth_attr, region_name)
@@ -138,9 +142,19 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
         if user_data_path is not None and user_data_class is not None:
             LOG.info('Execute user data and create heat-stack.')
+            base_hot_dict, nested_hot_dict = vnflcm_utils. \
+                get_base_nest_hot_dict(context,
+                                       inst_req_info.flavour_id,
+                                       vnf_instance.vnfd_id)
             if base_hot_dict is None:
                 error_reason = _("failed to get Base HOT.")
                 raise vnfm.LCMUserDataFailed(reason=error_reason)
+
+            if base_hot_dict is None:
+                nested_hot_dict = {}
+
+            for name, hot in nested_hot_dict.items():
+                vnf['attributes'][name] = self._format_base_hot(hot)
 
             vnfd_str = vnf['vnfd']['attributes']['vnfd']
             vnfd_dict = yaml.safe_load(vnfd_str)
@@ -175,10 +189,13 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
             # Set the timeout and execute the UserData script.
             hot_param_dict = None
+            param_base_hot_dict = copy.deepcopy(nested_hot_dict)
+            param_base_hot_dict['heat_template'] = base_hot_dict
             with eventlet.timeout.Timeout(USER_DATA_TIMEOUT, False):
                 try:
                     hot_param_dict = klass.instantiate(
-                        base_hot_dict, vnfd_dict, inst_req_info, grant_info)
+                        param_base_hot_dict, vnfd_dict,
+                        inst_req_info, grant_info)
                 except Exception:
                     raise
                 finally:
@@ -196,9 +213,13 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     "is not in dict format.")
                 raise vnfm.LCMUserDataFailed(reason=error_reason)
 
+            # Add stack param to vnf_attributes
+            vnf['attributes'].update({'stack_param': str(hot_param_dict)})
+
             # Create heat-stack with BaseHOT and parameters
             stack = self._create_stack_with_user_data(
-                heatclient, vnf, base_hot_dict, hot_param_dict)
+                heatclient, vnf, base_hot_dict,
+                nested_hot_dict, hot_param_dict)
 
         elif user_data_path is None and user_data_class is None:
             LOG.info('Execute heat-translator and create heat-stack.')
@@ -230,13 +251,18 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
     @log.log
     def _create_stack_with_user_data(self, heatclient, vnf,
-                                     base_hot_dict, hot_param_dict):
+                                     base_hot_dict, nested_hot_dict,
+                                     hot_param_dict):
         fields = {}
         fields['stack_name'] = ("vnflcm_" + vnf["id"])
         fields['template'] = self._format_base_hot(base_hot_dict)
         fields['parameters'] = hot_param_dict
         fields['timeout_mins'] = (
             self.STACK_RETRIES * self.STACK_RETRY_WAIT // 60)
+        if nested_hot_dict:
+            fields['files'] = {}
+            for name, value in nested_hot_dict.items():
+                fields['files'][name] = self._format_base_hot(value)
 
         LOG.debug('fields: %s', fields)
         LOG.debug('template: %s', fields['template'])
@@ -771,7 +797,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
     def instantiate_vnf(self, context, vnf_instance, vnfd_dict,
                         vim_connection_info, instantiate_vnf_req,
-                        grant_response,
+                        grant_response, plugin,
                         base_hot_dict=None, vnf_package_path=None):
         access_info = vim_connection_info.access_info
         region_name = access_info.get('region')
@@ -779,10 +805,11 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         placement_attr.update({'region_name': region_name})
         vnfd_dict['placement_attr'] = placement_attr
 
-        instance_id = self.create(None, context, vnfd_dict,
+        instance_id = self.create(plugin, context, vnfd_dict,
             access_info, base_hot_dict, vnf_package_path,
             inst_req_info=instantiate_vnf_req,
-            grant_info=grant_response)
+            grant_info=grant_response,
+            vnf_instance=vnf_instance)
         vnfd_dict['instance_id'] = instance_id
         return instance_id
 
