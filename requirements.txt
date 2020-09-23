@@ -7,7 +7,6 @@ Paste>=2.0.2 # MIT
 PasteDeploy>=1.5.0 # MIT
 Routes>=2.3.1 # MIT
 anyjson>=0.3.3 # BSD
-Babel!=2.4.0,>=2.3.4 # BSD
 eventlet!=0.23.0,!=0.25.0,>=0.22.0 # MIT
 requests>=2.14.2 # Apache-2.0
 jsonschema>=3.2.0 # MIT

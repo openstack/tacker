@@ -4,7 +4,6 @@ amqp==2.2.2
 anyjson==0.3.3
 appdirs==1.4.3
 asn1crypto==0.24.0
-Babel==2.3.4
 bcrypt==3.1.4
 beautifulsoup4==4.6.0
 cachetools==2.0.1
@@ -52,7 +51,6 @@ kubernetes==7.0.0
 linecache2==1.0.0
 Mako==1.0.7
 MarkupSafe==1.1
-mccabe==0.2.1
 monotonic==1.4
 mox3==0.25.0
 msgpack==0.5.6
