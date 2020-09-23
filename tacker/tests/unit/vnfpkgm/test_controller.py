@@ -15,6 +15,7 @@
 from unittest import mock
 
 import ddt
+import os
 from oslo_serialization import jsonutils
 from six.moves import http_client
 from six.moves import urllib
@@ -101,8 +102,12 @@ class TestController(base.TestCase):
         req = fake_request.HTTPRequest.blank(path)
         mock_vnf_list.return_value = fakes.return_vnf_package_list()
         res_dict = self.controller.index(req)
-        expected_result = fakes.index_response(remove_attrs=[
-            'softwareImages', 'checksum', 'userDefinedData'])
+        expected_result = fakes.index_response(
+            remove_attrs=[
+                'softwareImages',
+                'checksum',
+                'userDefinedData',
+                'additionalArtifacts'])
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
@@ -124,8 +129,12 @@ class TestController(base.TestCase):
             query)
         mock_vnf_list.return_value = fakes.return_vnf_package_list()
         res_dict = self.controller.index(req)
-        expected_result = fakes.index_response(remove_attrs=[
-            'softwareImages', 'checksum', 'userDefinedData'])
+        expected_result = fakes.index_response(
+            remove_attrs=[
+                'softwareImages',
+                'checksum',
+                'userDefinedData',
+                'additionalArtifacts'])
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
@@ -133,6 +142,7 @@ class TestController(base.TestCase):
         {'exclude_fields': 'softwareImages'},
         {'exclude_fields': 'checksum'},
         {'exclude_fields': 'userDefinedData'},
+        {'exclude_fields': 'additionalArtifacts'}
     )
     def test_index_attribute_selector_exclude_fields(self, params,
             mock_vnf_list):
@@ -150,6 +160,7 @@ class TestController(base.TestCase):
         {'fields': 'softwareImages'},
         {'fields': 'checksum'},
         {'fields': 'userDefinedData'},
+        {'fields': 'additionalArtifacts'}
     )
     def test_index_attribute_selector_fields(self, params, mock_vnf_list):
         """Test valid attribute names with fields parameter
@@ -157,7 +168,11 @@ class TestController(base.TestCase):
         We can specify complex attributes in fields. Hence the data only
         contains such attributes.
         """
-        complex_attrs = ['softwareImages', 'checksum', 'userDefinedData']
+        complex_attrs = [
+            'softwareImages',
+            'checksum',
+            'userDefinedData',
+            'additionalArtifacts']
         query = urllib.parse.urlencode(params)
         req = fake_request.HTTPRequest.blank('/vnfpkgm/v1/vnf_packages?' +
                 query)
@@ -187,8 +202,11 @@ class TestController(base.TestCase):
             'userDefinedData': {'key1': 'value1'},
             'softwareImages': [{'userMetadata': {'key3': 'value3'}}]
         }
-        expected_result = fakes.index_response(remove_attrs=[
-            'checksum'], vnf_package_updates=vnf_package_updates)
+        expected_result = fakes.index_response(
+            remove_attrs=[
+                'checksum',
+                'additionalArtifacts'],
+            vnf_package_updates=vnf_package_updates)
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
@@ -200,14 +218,15 @@ class TestController(base.TestCase):
         mock_vnf_list.return_value = fakes.return_vnf_package_list()
         res_dict = self.controller.index(req)
         expected_result = fakes.index_response(remove_attrs=[
-            'checksum', 'softwareImages'])
+            'checksum', 'softwareImages', 'additionalArtifacts'])
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     def test_index_attribute_selector_nested_complex_attribute(self,
             mock_vnf_list):
         params = {'fields': 'softwareImages/checksum/algorithm,'
-            'softwareImages/minRam'}
+            'softwareImages/minRam,additionalArtifacts/metadata,'
+            'additionalArtifacts/checksum/algorithm'}
         query = urllib.parse.urlencode(params)
         req = fake_request.HTTPRequest.blank('/vnfpkgm/v1/vnf_packages?' +
             query)
@@ -217,6 +236,10 @@ class TestController(base.TestCase):
             'softwareImages': [{
                 'minRam': 0,
                 'checksum': {'algorithm': 'fake-algorithm'}
+            }],
+            'additionalArtifacts': [{
+                'metadata': {},
+                'checksum': {'algorithm': 'SHA-256'}
             }]
         }
         expected_result = fakes.index_response(remove_attrs=[
@@ -236,7 +259,18 @@ class TestController(base.TestCase):
         {'filter': '(gte,softwareImages/createdAt,2020-03-14 04:10:15+00:00)'},
         {'filter': '(lt,softwareImages/createdAt,2020-03-20 04:10:15+00:00)'},
         {'filter': '(lte,softwareImages/createdAt,2020-03-11 04:10:15+00:00)'},
-    )
+        {'filter': '(eq,additionalArtifacts/checksum/algorithm,'
+                   'SHA-256)'},
+        {'filter': '(neq,additionalArtifacts/checksum/algorithm,'
+                   'SHA-256)'},
+        {'filter': '(in,additionalArtifacts/checksum/algorithm,'
+                   'SHA-256)'},
+        {'filter': '(nin,additionalArtifacts/checksum/algorithm,'
+                   'SHA-256)'},
+        {'filter': '(cont,additionalArtifacts/checksum/algorithm,'
+                   'SHA-256)'},
+        {'filter': '(ncont,additionalArtifacts/checksum/algorithm,'
+                   'SHA-256)'})
     def test_index_filter_operator(self, filter_params, mock_vnf_list):
         """Tests all supported operators in filter expression """
         query = urllib.parse.urlencode(filter_params)
@@ -244,8 +278,12 @@ class TestController(base.TestCase):
             query)
         mock_vnf_list.return_value = fakes.return_vnf_package_list()
         res_dict = self.controller.index(req)
-        expected_result = fakes.index_response(remove_attrs=[
-            'softwareImages', 'checksum', 'userDefinedData'])
+        expected_result = fakes.index_response(
+            remove_attrs=[
+                'softwareImages',
+                'checksum',
+                'userDefinedData',
+                'additionalArtifacts'])
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
@@ -257,8 +295,12 @@ class TestController(base.TestCase):
             query)
         mock_vnf_list.return_value = fakes.return_vnf_package_list()
         res_dict = self.controller.index(req)
-        expected_result = fakes.index_response(remove_attrs=[
-            'softwareImages', 'checksum', 'userDefinedData'])
+        expected_result = fakes.index_response(
+            remove_attrs=[
+                'softwareImages',
+                'checksum',
+                'userDefinedData',
+                'additionalArtifacts'])
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
@@ -289,6 +331,9 @@ class TestController(base.TestCase):
         {'filter': '(eq,softwareImages/containerFormat,dummy_value)'},
         {'filter': '(eq,softwareImages/checksum/hash,dummy_value)'},
         {'filter': '(eq,softwareImages/checksum/algorithm,dummy_value)'},
+        {'filter': '(eq,additionalArtifacts/artifactPath,dummy_value)'},
+        {'filter': '(eq,additionalArtifacts/checksum/algorithm,dummy_value)'},
+        {'filter': '(eq,additionalArtifacts/checksum/hash,dummy_value)'}
     )
     def test_index_filter_attributes(self, filter_params, mock_vnf_list):
         """Test various attributes supported for filter parameter """
@@ -297,8 +342,12 @@ class TestController(base.TestCase):
             query)
         mock_vnf_list.return_value = fakes.return_vnf_package_list()
         res_dict = self.controller.index(req)
-        expected_result = fakes.index_response(remove_attrs=[
-            'softwareImages', 'checksum', 'userDefinedData'])
+        expected_result = fakes.index_response(
+            remove_attrs=[
+                'softwareImages',
+                'checksum',
+                'userDefinedData',
+                'additionalArtifacts'])
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
@@ -325,8 +374,12 @@ class TestController(base.TestCase):
             query)
         mock_vnf_list.return_value = fakes.return_vnf_package_list()
         res_dict = self.controller.index(req)
-        expected_result = fakes.index_response(remove_attrs=[
-            'softwareImages', 'checksum', 'userDefinedData'])
+        expected_result = fakes.index_response(
+            remove_attrs=[
+                'softwareImages',
+                'checksum',
+                'userDefinedData',
+                'additionalArtifacts'])
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
@@ -936,3 +989,142 @@ class TestController(base.TestCase):
         self.assertRaises(exc.HTTPBadRequest,
                           self.controller._get_range_from_request, request,
                           120)
+
+    def test_fetch_vnf_package_artifacts_with_invalid_uuid(
+            self):
+        # invalid_uuid
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/artifacts/%s'
+            % (constants.INVALID_UUID, constants.ARTIFACT_PATH))
+        req.method = 'GET'
+        exception = self.assertRaises(exc.HTTPNotFound,
+                          self.controller.fetch_vnf_package_artifacts,
+                          req, constants.INVALID_UUID, constants.ARTIFACT_PATH)
+        self.assertEqual(
+            "Can not find requested vnf package: %s" % constants.INVALID_UUID,
+            exception.explanation)
+
+    @mock.patch.object(controller.VnfPkgmController, "_get_csar_path")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_fetch_vnf_package_artifacts_with_invalid_path(
+            self, mock_vnf_by_id, mock_get_csar_path):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        extract_path = os.path.join(base_path, '../../etc/samples/'
+                            'sample_vnf_package_csar_in_meta_and_manifest')
+        mock_get_csar_path.return_value = extract_path
+        # valid_uuid
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/artifacts/%s'
+            % (constants.UUID, constants.INVALID_ARTIFACT_PATH))
+        req.method = 'GET'
+        self.assertRaises(exc.HTTPNotFound,
+                          self.controller.fetch_vnf_package_artifacts,
+                          req, constants.UUID,
+                          constants.INVALID_ARTIFACT_PATH)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_fetch_vnf_package_artifacts_with_invalid_range(
+            self, mock_vnf_by_id):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
+        # valid_uuid
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/artifacts/%s'
+            % (constants.UUID, constants.ARTIFACT_PATH))
+        req.headers['Range'] = 'bytes=150-'
+        req.method = 'GET'
+        self.assertRaises(exc.HTTPRequestRangeNotSatisfiable,
+                          self.controller._get_range_from_request, req,
+                          33)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_fetch_vnf_package_artifacts_with_invalid_multiple_range(
+            self, mock_vnf_by_id):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
+        # valid_uuid
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/artifacts/%s'
+            % (constants.UUID, constants.ARTIFACT_PATH))
+        req.headers['Range'] = 'bytes=10-20,21-30'
+        req.method = 'GET'
+        self.assertRaises(exc.HTTPBadRequest,
+                          self.controller._get_range_from_request, req,
+                          33)
+
+    @mock.patch.object(controller.VnfPkgmController, "_get_csar_path")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_fetch_vnf_package_artifacts_with_range(
+            self, mock_vnf_by_id, mock_get_csar_path):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        extract_path = os.path.join(base_path, '../../etc/samples/'
+                    'sample_vnf_package_csar_in_meta_and_manifest')
+        mock_get_csar_path.return_value = extract_path
+        # valid_uuid
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/artifacts/%s'
+            % (constants.UUID, constants.ARTIFACT_PATH))
+        req.headers['Range'] = 'bytes=10-30'
+        req.method = 'GET'
+        absolute_artifact_path = \
+            os.path.join(extract_path, constants.ARTIFACT_PATH)
+        with open(absolute_artifact_path, 'rb') as f:
+            f.seek(10, 1)
+            data = f.read(20)
+        artifact_data = \
+            self.controller._download_vnf_artifact(
+                absolute_artifact_path, 10, 20)
+        self.assertEqual(data, artifact_data)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_fetch_vnf_package_artifacts_with_non_existing_vnf_package(
+            self, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/artifacts/%s'
+            % (constants.UUID, constants.ARTIFACT_PATH))
+        req.method = 'GET'
+        mock_vnf_by_id.side_effect = tacker_exc.VnfPackageNotFound
+        self.assertRaises(exc.HTTPNotFound,
+                          self.controller.fetch_vnf_package_artifacts, req,
+                          constants.UUID, constants.ARTIFACT_PATH)
+
+    @mock.patch.object(controller.VnfPkgmController, "_get_csar_path")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_fetch_vnf_package_artifacts_with_non_range(
+            self, mock_vnf_by_id, mock_get_csar_path):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        extract_path = os.path.join(base_path, '../../etc/samples/'
+                    'sample_vnf_package_csar_in_meta_and_manifest')
+        mock_get_csar_path.return_value = extract_path
+        # valid_uuid
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/artifacts/%s'
+            % (constants.UUID, constants.ARTIFACT_PATH))
+        req.method = 'GET'
+        absolute_artifact_path = \
+            os.path.join(extract_path, constants.ARTIFACT_PATH)
+        with open(absolute_artifact_path, 'rb') as f:
+            data = f.read()
+        artifact_data = \
+            self.controller._download_vnf_artifact(
+                absolute_artifact_path, 0, 34)
+        self.assertEqual(data, artifact_data)
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_fetch_vnf_package_artifacts_with_invalid_status(
+            self, mock_vnf_by_id):
+        vnf_package_updates = {
+            'onboarding_state': 'CREATED',
+            'operational_state': 'DISABLED'
+        }
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates=vnf_package_updates)
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/artifacts/%s'
+            % (constants.UUID, constants.ARTIFACT_PATH))
+        req.method = 'GET'
+        self.assertRaises(exc.HTTPConflict,
+                          self.controller.fetch_vnf_package_artifacts,
+                          req, constants.UUID,
+                          constants.ARTIFACT_PATH)

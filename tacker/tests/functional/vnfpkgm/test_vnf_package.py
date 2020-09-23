@@ -52,8 +52,14 @@ class VnfPackageTest(base.BaseTackerTest):
         resp, self.package2 = self.http_client.do_request(show_url, "GET")
         self.assertEqual(200, resp.status_code)
 
+        self.package_id3 = self._create_and_upload_vnf("vnfpkgm3")
+        show_url = self.base_url + "/" + self.package_id3
+        resp, self.package3 = self.http_client.do_request(show_url, "GET")
+        self.assertEqual(200, resp.status_code)
+
     def tearDown(self):
-        for package_id in [self.package_id1, self.package_id2]:
+        for package_id in [self.package_id1, self.package_id2,
+                           self.package_id3]:
             self._disable_operational_state(package_id)
             self._delete_vnf_package(package_id)
             self._wait_for_delete(package_id)
@@ -112,18 +118,19 @@ class VnfPackageTest(base.BaseTackerTest):
         """Creates and deletes a vnf package."""
 
         # Create vnf package
-        body = jsonutils.dumps({"userDefinedData": {"foo": "bar"}})
-        vnf_package = self._create_vnf_package(body)
-        package_uuid = vnf_package['id']
+        vnf_package_id = self._create_and_upload_vnf('vnfpkgm1')
 
         # show vnf package
-        show_url = self.base_url + "/" + package_uuid
+        show_url = self.base_url + "/" + vnf_package_id
         resp, body = self.http_client.do_request(show_url, "GET")
         self.assertEqual(200, resp.status_code)
 
+        # update vnf package
+        self._disable_operational_state(vnf_package_id)
+
         # Delete vnf package
-        self._delete_vnf_package(package_uuid)
-        self._wait_for_delete(package_uuid)
+        self._delete_vnf_package(vnf_package_id)
+        self._wait_for_delete(vnf_package_id)
 
         # show vnf package should fail as it's deleted
         resp, body = self.http_client.do_request(show_url, "GET")
@@ -159,7 +166,13 @@ class VnfPackageTest(base.BaseTackerTest):
         body = jsonutils.dumps({"userDefinedData": {"foo": "bar"}})
         vnf_package = self._create_vnf_package(body)
         csar_dir = self._get_csar_dir_path(sample_name)
-        file_path, vnfd_id = utils.create_csar_with_unique_vnfd_id(csar_dir)
+        if os.path.exists(os.path.join(csar_dir, 'TOSCA-Metadata')) and \
+                sample_name != 'vnfpkgm2':
+            file_path = utils.create_csar_with_unique_artifact(
+                csar_dir)
+        else:
+            file_path, vnfd_id = utils.create_csar_with_unique_vnfd_id(
+                csar_dir)
         self.addCleanup(os.remove, file_path)
 
         with open(file_path, 'rb') as file_object:
@@ -246,7 +259,7 @@ class VnfPackageTest(base.BaseTackerTest):
                                "key1": "changed_val1", "new_key": "new_val"}}
 
         csar_dir = self._get_csar_dir_path("vnfpkgm1")
-        file_path, vnfd_id = utils.create_csar_with_unique_vnfd_id(csar_dir)
+        file_path = utils.create_csar_with_unique_artifact(csar_dir)
         self.addCleanup(os.remove, file_path)
         with open(file_path, 'rb') as file_object:
             resp, resp_body = self.http_client.do_request(
@@ -273,12 +286,14 @@ class VnfPackageTest(base.BaseTackerTest):
         filter_expr = {
             'filter': "(gt,softwareImages/minDisk,7);"
             "(eq,onboardingState,ONBOARDED);"
-            "(eq,softwareImages/checksum/algorithm,'sha-512')"
+            "(eq,softwareImages/checksum/algorithm,'sha-512');"
+            "(eq,additionalArtifacts/checksum/algorithm,'sha-256')"
         }
         filter_url = self.base_url + "?" + urllib.parse.urlencode(filter_expr)
         resp, body = self.http_client.do_request(filter_url, "GET")
         package = deepcopy(self.package2)
-        for attr in ['softwareImages', 'checksum', 'userDefinedData']:
+        for attr in ['softwareImages', 'checksum', 'userDefinedData',
+                     'additionalArtifacts']:
             package.pop(attr, None)
         expected_result = [package]
         self.assertEqual(expected_result, body)
@@ -307,19 +322,24 @@ class VnfPackageTest(base.BaseTackerTest):
         filter_url = self.base_url + "?" + urllib.parse.urlencode(filter_expr)
         resp, body = self.http_client.do_request(filter_url, "GET")
         package2 = deepcopy(self.package2)
-        for attr in ['softwareImages', 'checksum', 'userDefinedData']:
+        for attr in ['softwareImages', 'checksum', 'userDefinedData',
+                     'additionalArtifacts']:
             package2.pop(attr, None)
         expected_result = [package2]
         self.assertEqual(expected_result, body)
 
     def test_index_attribute_selector_exclude_fields(self):
-        filter_expr = {'filter': '(eq,id,%s)' % self.package_id2,
-            'exclude_fields': 'checksum,softwareImages/checksum'}
+        filter_expr = {
+            'filter': '(eq,id,%s)' % self.package_id2,
+            'exclude_fields': 'checksum,softwareImages/checksum,'
+                              'additionalArtifacts/checksum'}
         filter_url = self.base_url + "?" + urllib.parse.urlencode(filter_expr)
         resp, body = self.http_client.do_request(filter_url, "GET")
         package2 = deepcopy(self.package2)
         for software_image in package2['softwareImages']:
             software_image.pop('checksum', None)
+        for artifact in package2['additionalArtifacts']:
+            artifact.pop('checksum', None)
         package2.pop('checksum', None)
         expected_result = [package2]
         self.assertEqual(expected_result, body)
@@ -328,7 +348,8 @@ class VnfPackageTest(base.BaseTackerTest):
         filter_expr = {'filter': '(eq,id,%s)' % self.package_id1,
             'fields': 'softwareImages/checksum/hash,'
             'softwareImages/containerFormat,softwareImages/name,'
-            'userDefinedData'}
+            'userDefinedData,additionalArtifacts/checksum/hash,'
+            'additionalArtifacts/artifactPath'}
         filter_url = self.base_url + "?" + urllib.parse.urlencode(filter_expr)
         resp, body = self.http_client.do_request(filter_url, "GET")
         package1 = deepcopy(self.package1)
@@ -340,6 +361,9 @@ class VnfPackageTest(base.BaseTackerTest):
                     'minDisk', 'minRam', 'provider', 'size', 'userMetadata',
                     'version']:
                 software_image.pop(attr, None)
+        for artifact in package1['additionalArtifacts']:
+            artifact['checksum'].pop('algorithm', None)
+            artifact.pop('metadata', None)
         package1.pop('checksum', None)
         expected_result = [package1]
         self.assertEqual(expected_result, body)
@@ -413,7 +437,7 @@ class VnfPackageTest(base.BaseTackerTest):
                 id=self.package_id1, base_path=self.base_url),
             "GET", body={}, headers={})
         self.assertEqual(200, response[0].status_code)
-        self.assertEqual('12802866', response[0].headers['Content-Length'])
+        self.assertEqual('12804503', response[0].headers['Content-Length'])
 
     def test_fetch_vnf_package_content_combined_download(self):
         """Combine two partial downloads using 'Range' requests for csar zip"""
@@ -434,7 +458,7 @@ class VnfPackageTest(base.BaseTackerTest):
         zipf.writestr(file_path, data)
 
         # Partial download 2
-        range_ = 'bytes=11-12802866'
+        range_ = 'bytes=11-12804503'
         headers = {'Range': range_}
         response_2 = self.http_client.do_request(
             '{base_path}/{id}/package_content'.format(
@@ -447,5 +471,51 @@ class VnfPackageTest(base.BaseTackerTest):
         size_2 = int(response_2[0].headers['Content-Length'])
         total_size = size_1 + size_2
         self.assertEqual(True, zipfile.is_zipfile(zip_file_path))
-        self.assertEqual(12802866, total_size)
+        self.assertEqual(12804503, total_size)
         zip_file_path.close()
+
+    def test_fetch_vnf_package_artifacts(self):
+        # run download api
+        response1 = self.http_client.do_request(
+            '{base_path}/{id}/artifacts/{artifact_path}'.format(
+                base_path=self.base_url, id=self.package_id1,
+                artifact_path='Scripts/install.sh'),
+            "GET", body={}, headers={})
+
+        response2 = self.http_client.do_request(
+            '{base_path}/{id}/artifacts/{artifact_path}'.format(
+                base_path=self.base_url, id=self.package_id2,
+                artifact_path='Scripts/install.sh'),
+            "GET", body={}, headers={})
+
+        response3 = self.http_client.do_request(
+            '{base_path}/{id}/artifacts/{artifact_path}'.format(
+                base_path=self.base_url, id=self.package_id3,
+                artifact_path='Scripts/install.sh'),
+            "GET", body={}, headers={})
+        # verification
+        self.assertEqual(200, response1[0].status_code)
+        self.assertEqual('33', response1[0].headers['Content-Length'])
+        self.assertIsNotNone(response1[1])
+        self.assertEqual(200, response2[0].status_code)
+        self.assertEqual('33', response2[0].headers['Content-Length'])
+        self.assertIsNotNone(response2[1])
+        self.assertEqual(200, response3[0].status_code)
+        self.assertEqual('33', response3[0].headers['Content-Length'])
+        self.assertIsNotNone(response3[1])
+
+    def test_fetch_vnf_package_artifacts_partial_download_using_range(self):
+        # get range
+        range_ = 'bytes=3-8'
+        # get headers
+        headers = {'Range': range_}
+        # request download api
+        response = self.http_client.do_request(
+            '{base_path}/{id}/artifacts/{artifact_path}'.format(
+                base_path=self.base_url, id=self.package_id1,
+                artifact_path='Scripts/install.sh'),
+            "GET", body={}, headers=headers)
+        # verification
+        self.assertEqual(206, response[0].status_code)
+        self.assertEqual('6', response[0].headers['Content-Length'])
+        self.assertIsNotNone(response[1])

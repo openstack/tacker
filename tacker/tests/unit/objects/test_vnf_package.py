@@ -87,7 +87,8 @@ class TestVnfPackage(SqlTestCase):
                                                self.vnf_package.id,
                                                expected_attrs=None)
         self.compare_obj(self.vnf_package, vnfpkgm,
-                         allow_missing=['vnf_deployment_flavours'])
+                         allow_missing=['vnf_deployment_flavours',
+                                        'vnf_artifacts'])
 
     def test_get_by_id_with_no_existing_id(self):
         self.assertRaises(

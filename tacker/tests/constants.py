@@ -39,3 +39,6 @@ LEASE_CHECK_EVENT_TIMEOUT = 300
 LEASE_CHECK_SLEEP_TIME = 3
 UUID = 'f26f181d-7891-4720-b022-b074ec1733ef'
 INVALID_UUID = 'f181d-7891-4720-b022-b074ec3ef'
+# artifact related
+ARTIFACT_PATH = 'Scripts/install.sh'
+INVALID_ARTIFACT_PATH = 'Fake_Scripts/fake_install.sh'

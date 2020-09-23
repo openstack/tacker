@@ -12,22 +12,38 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+import hashlib
 import os
+import re
 import shutil
+
+import yaml
 
 from oslo_log import log as logging
 from oslo_utils import encodeutils
 from oslo_utils import excutils
+from six.moves.urllib.parse import urlparse
+from toscaparser.prereq.csar import CSAR
 from toscaparser.tosca_template import ToscaTemplate
 import zipfile
 
 from tacker.common import exceptions
 import tacker.conf
+import urllib.request as urllib2
 
 
+HASH_DICT = {
+    'sha-224': hashlib.sha224,
+    'sha-256': hashlib.sha256,
+    'sha-384': hashlib.sha384,
+    'sha-512': hashlib.sha512
+}
 CONF = tacker.conf.CONF
 LOG = logging.getLogger(__name__)
+TOSCA_META = 'TOSCA-Metadata/TOSCA.meta'
+ARTIFACT_KEYS = ['Source', 'Algorithm', 'Hash']
+IMAGE_FORMAT_LIST = ['raw', 'vhd', 'vhdx', 'vmdk', 'vdi', 'iso', 'ploop',
+                   'qcow2', 'aki', 'ari', 'ami', 'img']
 
 
 def _check_type(custom_def, node_type, type_list):
@@ -272,7 +288,140 @@ def _get_data_from_csar(tosca, context, id):
         error_msg = "No VNF flavours are available"
         raise exceptions.InvalidCSAR(error_msg)
 
-    return vnf_data, flavours
+    csar = CSAR(tosca.input_path, tosca.a_file)
+    vnf_artifacts = []
+    if csar.validate():
+        vnf_artifacts = _get_vnf_artifacts(csar)
+
+    return vnf_data, flavours, vnf_artifacts
+
+
+def _get_vnf_artifacts(csar):
+    vnf_artifacts = []
+    if csar.is_tosca_metadata:
+        if csar._get_metadata("ETSI-Entry-Manifest"):
+            manifest_path = csar._get_metadata("ETSI-Entry-Manifest")
+            if manifest_path.lower().endswith(".mf"):
+                manifest_data = csar.zfile.read(manifest_path)
+                vnf_artifacts = _convert_artifacts(
+                    vnf_artifacts, manifest_data, csar)
+            else:
+                invalid_manifest_err_msg = (
+                    ('The file "%(manifest)s" in the CSAR "%(csar)s" does not '
+                     'contain valid manifest.') %
+                    {'manifest': manifest_path, 'csar': csar.path})
+                raise exceptions.InvalidCSAR(invalid_manifest_err_msg)
+        tosca_data = csar.zfile.read(TOSCA_META)
+        vnf_artifacts = _convert_artifacts(vnf_artifacts, tosca_data, csar)
+
+    else:
+        filelist = csar.zfile.namelist()
+        main_template_file_name = os.path.splitext(
+            csar.main_template_file_name)[0]
+        for path in filelist:
+            if path.lower().endswith(".mf"):
+                manifest_file_name = os.path.splitext(path)[0]
+                if manifest_file_name == main_template_file_name:
+                    manifest_data = csar.zfile.read(path)
+                    vnf_artifacts = _convert_artifacts(
+                        vnf_artifacts, manifest_data, csar)
+                else:
+                    invalid_manifest_err_msg = \
+                        (('The filename "%(manifest)s" is an invalid name.'
+                          'The name must be the same as the main template '
+                          'file name.') %
+                        {'manifest': path})
+                    raise exceptions.InvalidCSAR(invalid_manifest_err_msg)
+    # Deduplication
+    vnf_artifacts = [dict(t) for t in set([tuple(d.items())
+                          for d in vnf_artifacts])]
+    return vnf_artifacts
+
+
+def _convert_artifacts(vnf_artifacts, artifacts_data, csar):
+    artifacts_data_split = re.split(b'\n\n+', artifacts_data)
+
+    for data in artifacts_data_split:
+        if re.findall(b'.?Name:.?|.?Source:.?|', data):
+            # validate key's existence
+            if re.findall(b'.?Algorithm:.?|.?Hash:.?', data):
+                artifact_data_dict = yaml.safe_load(data)
+                if 'Name' in artifact_data_dict.keys():
+                    artifact_data_dict.update(
+                        {"Source": artifact_data_dict.pop("Name")})
+                if 'Content-Type' in artifact_data_dict.keys():
+                    del artifact_data_dict['Content-Type']
+                if sorted(ARTIFACT_KEYS) != sorted(artifact_data_dict.keys()):
+                    missing_key = list(set(ARTIFACT_KEYS) ^
+                                       set(artifact_data_dict.keys()))
+                    missing_key = sorted(missing_key)
+                    invalid_artifact_err_msg = \
+                        (('One of the artifact information '
+                          'may not have the key("%(key)s")') %
+                         {'key': missing_key})
+                    raise exceptions.InvalidCSAR(invalid_artifact_err_msg)
+                # validate value's existence
+                for key, value in artifact_data_dict.items():
+                    if not value:
+                        invalid_artifact_err_msg = \
+                            (('One of the artifact information may not have '
+                              'the key value("%(key)s")') % {'key': key})
+                        raise exceptions.InvalidCSAR(invalid_artifact_err_msg)
+                artifact_path = artifact_data_dict.get('Source')
+                if os.path.splitext(artifact_path)[-1][1:] \
+                        in IMAGE_FORMAT_LIST:
+                    continue
+                else:
+                    algorithm = artifact_data_dict.get('Algorithm')
+                    hash_code = artifact_data_dict.get('Hash')
+                    result = _validate_hash(algorithm, hash_code,
+                                            csar, artifact_path)
+                    if result:
+                        vnf_artifacts.append(artifact_data_dict)
+                    else:
+                        invalid_artifact_err_msg = \
+                            (('The hash "%(hash)s" of artifact file '
+                              '"%(artifact)s" is an invalid value.') %
+                             {'hash': hash_code, 'artifact': artifact_path})
+                        raise exceptions.InvalidCSAR(invalid_artifact_err_msg)
+
+    return vnf_artifacts
+
+
+def _validate_hash(algorithm, hash_code, csar, artifact_path):
+    z = zipfile.ZipFile(csar.path)
+    algorithm = algorithm.lower()
+
+    # validate Algorithm's value
+    if algorithm in HASH_DICT.keys():
+        hash_obj = HASH_DICT[algorithm]()
+    else:
+        invalid_artifact_err_msg = (('The algorithm("%(algorithm)s") of '
+                                     'artifact("%(artifact_path)s") is '
+                                     'an invalid value.') %
+                                    {'algorithm': algorithm,
+                                     'artifact_path': artifact_path})
+        raise exceptions.InvalidCSAR(invalid_artifact_err_msg)
+    filelist = csar.zfile.namelist()
+
+    # validate Source's value
+    if artifact_path in filelist:
+        hash_obj.update(z.read(artifact_path))
+    elif ((urlparse(artifact_path).scheme == 'file') or
+          (bool(urlparse(artifact_path).scheme) and
+           bool(urlparse(artifact_path).netloc))):
+        hash_obj.update(urllib2.urlopen(artifact_path).read())
+    else:
+        invalid_artifact_err_msg = (('The path("%(artifact_path)s") of '
+                                     'artifact Source is an invalid value.') %
+                                    {'artifact_path': artifact_path})
+        raise exceptions.InvalidCSAR(invalid_artifact_err_msg)
+
+    # validate Hash's value
+    if hash_code == hash_obj.hexdigest():
+        return True
+    else:
+        return False
 
 
 def extract_csar_zip_file(file_path, extract_path):

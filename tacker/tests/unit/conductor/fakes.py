@@ -77,7 +77,7 @@ def make_vnfd_files_list(csar_path):
 def create_fake_csar_dir(vnf_package_id, temp_dir,
                          csar_without_tosca_meta=False):
     csar_dir = ('sample_vnfpkg_no_meta_single_vnfd' if csar_without_tosca_meta
-                else 'vnfpkgm1')
+                else 'sample_vnfpkg_tosca_vnfd')
     fake_csar = os.path.join(temp_dir, vnf_package_id)
     cfg.CONF.set_override('vnf_package_csar_path', temp_dir,
                           group='vnf_package')
@@ -94,7 +94,8 @@ def get_expected_vnfd_data(zip_file=None):
     else:
         unique_name = str(uuid.uuid4())
         csar_temp_dir = os.path.join('/tmp', unique_name)
-        utils.copy_csar_files(csar_temp_dir, 'vnfpkgm1', read_vnfd_only=True)
+        utils.copy_csar_files(csar_temp_dir, 'sample_vnfpkg_tosca_vnfd',
+                              read_vnfd_only=True)
 
     file_names = ['TOSCA-Metadata/TOSCA.meta',
                   'Definitions/etsi_nfv_sol001_vnfd_types.yaml',

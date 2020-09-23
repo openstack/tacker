@@ -33,11 +33,15 @@ from tacker.db.db_sqlalchemy import models
 from tacker import objects
 from tacker.objects import base
 from tacker.objects import fields
+from tacker.objects import vnf_artifact
 from tacker.objects import vnf_software_image
 
 _NO_DATA_SENTINEL = object()
 
-VNF_PACKAGE_OPTIONAL_ATTRS = ['vnf_deployment_flavours', 'vnfd']
+VNF_PACKAGE_OPTIONAL_ATTRS = [
+    'vnf_deployment_flavours',
+    'vnfd',
+    'vnf_artifacts']
 
 LOG = logging.getLogger(__name__)
 
@@ -178,6 +182,9 @@ def _vnf_package_list_by_filters(context, read_deleted=None, filters=None):
             query = query.join(models.VnfDeploymentFlavour).join(
                 models.VnfSoftwareImage)
 
+        if 'VnfPackageArtifactInfo' in filter_data:
+            query = query.join(models.VnfPackageArtifactInfo)
+
         query = apply_filters(query, filters)
 
     return query.all()
@@ -231,6 +238,9 @@ def _destroy_vnf_package(context, package_uuid):
         filter_by(package_uuid=package_uuid). \
         update(updated_values, synchronize_session=False)
     api.model_query(context, models.VnfDeploymentFlavour). \
+        filter_by(package_uuid=package_uuid). \
+        update(updated_values, synchronize_session=False)
+    api.model_query(context, models.VnfPackageArtifactInfo). \
         filter_by(package_uuid=package_uuid). \
         update(updated_values, synchronize_session=False)
     api.model_query(context, models.VnfPackageVnfd). \
@@ -294,6 +304,7 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
     }
 
     ALL_ATTRIBUTES.update(vnf_software_image.VnfSoftwareImage.ALL_ATTRIBUTES)
+    ALL_ATTRIBUTES.update(vnf_artifact.VnfPackageArtifactInfo.ALL_ATTRIBUTES)
 
     FLATTEN_ATTRIBUTES = utils.flatten_dict(ALL_ATTRIBUTES.copy())
 
@@ -305,6 +316,8 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
     COMPLEX_ATTRIBUTES = ["checksum", "userDefinedData"]
     COMPLEX_ATTRIBUTES.extend(
         vnf_software_image.VnfSoftwareImage.COMPLEX_ATTRIBUTES)
+    COMPLEX_ATTRIBUTES.extend(vnf_artifact.VnfPackageArtifactInfo.
+                              COMPLEX_ATTRIBUTES)
 
     # Version 1.1: Added 'size' to persist size of VnfPackage.
     VERSION = '1.1'
@@ -325,6 +338,8 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
             'VnfDeploymentFlavoursList', nullable=True),
         'vnfd': fields.ObjectField('VnfPackageVnfd', nullable=True),
         'size': fields.IntegerField(nullable=False, default=0),
+        'vnf_artifacts': fields.ObjectField('VnfPackageArtifactInfoList',
+                                            nullable=True)
     }
 
     def __init__(self, context=None, **kwargs):
@@ -375,6 +390,10 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
         if 'vnfd' in expected_attrs:
             vnf_package._load_vnfd(db_vnf_package.get('vnfd'))
 
+        if 'vnf_artifacts' in expected_attrs:
+            vnf_package._load_vnf_artifacts(
+                db_vnf_package.get('vnf_artifacts'))
+
     def _load_vnf_deployment_flavours(self, db_flavours=_NO_DATA_SENTINEL):
         if db_flavours is _NO_DATA_SENTINEL:
             vnf_package = self.get_by_id(
@@ -411,6 +430,25 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
             self.vnfd = objects.VnfPackageVnfd.obj_from_db_obj(
                 self._context, db_vnfd)
             self.obj_reset_changes(['vnfd'])
+
+    def _load_vnf_artifacts(self, db_artifact=_NO_DATA_SENTINEL):
+        if db_artifact is _NO_DATA_SENTINEL:
+            vnf_package = self.get_by_id(
+                self._context, self.id,
+                expected_attrs=['vnf_artifacts'])
+            if 'vnf_artifacts' in vnf_package:
+                self.vnf_artifacts = vnf_package.vnf_artifacts
+                self.vnf_artifacts.obj_reset_changes(recursive=True)
+                self.obj_reset_changes(['vnf_artifacts'])
+            else:
+                self.vnf_artifacts = objects.\
+                    VnfPackageArtifactInfoList(objects=[])
+        elif db_artifact:
+            self.vnf_artifacts = base.obj_make_list(
+                self._context, objects.VnfPackageArtifactInfoList(
+                    self._context), objects.VnfPackageArtifactInfo,
+                db_artifact)
+            self.obj_reset_changes(['vnf_artifacts'])
 
     def _load_generic(self, attrname):
         vnf_package = self.__class__.get_by_id(self._context,
@@ -449,6 +487,8 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
             self._load_vnf_deployment_flavours()
         elif attrname == 'vnfd':
             self._load_vnfd()
+        elif attrname == 'vnf_artifacts':
+            self._load_vnf_artifacts()
         elif attrname in self.fields and attrname != 'id':
             self._load_generic(attrname)
         else:
@@ -472,7 +512,11 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
             self.id = updates['id']
 
         for key in ['vnf_deployment_flavours']:
-            if key in updates:
+            if key in updates.keys():
+                updates.pop(key)
+
+        for key in ['vnf_artifacts']:
+            if key in updates.keys():
                 updates.pop(key)
 
         user_data = updates.pop('user_data', None)
@@ -499,7 +543,7 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
     def save(self):
         updates = self.tacker_obj_get_changes()
         for key in ['vnf_deployment_flavours']:
-            if key in updates:
+            if key in updates.keys():
                 updates.pop(key)
 
         db_vnf_package = _vnf_package_update(self._context,
@@ -606,6 +650,12 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
             checksum = self._get_checksum(include_fields=include_fields)
             if checksum:
                 vnf_package_response.update(checksum)
+
+            artifacts = self.vnf_artifacts.to_dict(
+                include_fields=include_fields)
+            if artifacts:
+                vnf_package_response.update(
+                    {'additionalArtifacts': artifacts})
 
         return vnf_package_response
 

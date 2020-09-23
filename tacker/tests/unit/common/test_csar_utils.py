@@ -36,9 +36,10 @@ class TestCSARUtils(testtools.TestCase):
     @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data(self, mock_extract_csar_zip_file):
         file_path, _ = utils.create_csar_with_unique_vnfd_id(
-            './tacker/tests/etc/samples/etsi/nfv/vnfpkgm1')
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnfpkg_tosca_vnfd')
         self.addCleanup(os.remove, file_path)
-        vnf_data, flavours = csar_utils.load_csar_data(
+        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
             self.context, constants.UUID, file_path)
         self.assertEqual(vnf_data['descriptor_version'], '1.0')
         self.assertEqual(vnf_data['vnfm_info'], ['Tacker'])
@@ -52,7 +53,7 @@ class TestCSARUtils(testtools.TestCase):
             './tacker/tests/etc/samples/etsi/nfv/'
             'sample_vnfpkg_no_meta_single_vnfd')
         self.addCleanup(os.remove, file_path)
-        vnf_data, flavours = csar_utils.load_csar_data(
+        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
             self.context, constants.UUID, file_path)
         self.assertEqual(vnf_data['descriptor_version'], '1.0')
         self.assertEqual(vnf_data['vnfm_info'], ['Tacker'])
@@ -88,6 +89,193 @@ class TestCSARUtils(testtools.TestCase):
                 zcsar.write(src_file, dst_file)
         zcsar.close()
         return tempname
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_in_meta_and_manifest_with_vnf_artifact(
+            self, mock_extract_csar_zip_file):
+        file_path = utils.create_csar_with_unique_artifact(
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnf_package_csar_in_meta_and_manifest')
+        self.addCleanup(os.remove, file_path)
+        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
+            self.context, constants.UUID, file_path)
+        self.assertEqual(vnf_data['descriptor_version'], '1.0')
+        self.assertEqual(vnf_data['vnfm_info'], ['Tacker'])
+        self.assertEqual(flavours[0]['flavour_id'], 'simple')
+        self.assertIsNotNone(flavours[0]['sw_images'])
+        self.assertIsNotNone(vnf_artifacts)
+        self.assertIsNotNone(vnf_artifacts[0]['Source'])
+        self.assertIsNotNone(vnf_artifacts[0]['Hash'])
+        for item in vnf_artifacts:
+            flag = item.get('Source').lower().endswith('.img')
+            self.assertEqual(flag, False)
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_with_single_manifest_with_vnf_artifact(
+            self, mock_extract_csar_zip_file):
+        file_path = utils.create_csar_with_unique_artifact(
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnf_package_csar_manifest')
+        self.addCleanup(os.remove, file_path)
+        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
+            self.context, constants.UUID, file_path)
+        self.assertEqual(vnf_data['descriptor_version'], '1.0')
+        self.assertEqual(vnf_data['vnfm_info'], ['Tacker'])
+        self.assertEqual(flavours[0]['flavour_id'], 'simple')
+        self.assertIsNotNone(flavours[0]['sw_images'])
+        self.assertIsNotNone(vnf_artifacts)
+        self.assertIsNotNone(vnf_artifacts[0]['Source'])
+        self.assertIsNotNone(vnf_artifacts[0]['Hash'])
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_with_single_meta_with_vnf_artifact(
+            self, mock_extract_csar_zip_file):
+        file_path = utils.create_csar_with_unique_artifact(
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnf_package_csar_meta')
+        self.addCleanup(os.remove, file_path)
+        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
+            self.context, constants.UUID, file_path)
+        self.assertEqual(vnf_data['descriptor_version'], '1.0')
+        self.assertEqual(vnf_data['vnfm_info'], ['Tacker'])
+        self.assertEqual(flavours[0]['flavour_id'], 'simple')
+        self.assertIsNotNone(flavours[0]['sw_images'])
+        self.assertIsNotNone(vnf_artifacts)
+        self.assertIsNotNone(vnf_artifacts[0]['Source'])
+        self.assertIsNotNone(vnf_artifacts[0]['Hash'])
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_meta_in_manifest_with_vnf_artifact(
+            self, mock_extract_csar_zip_file):
+        file_path = utils.create_csar_with_unique_artifact(
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnf_package_csar_meta_in_manifest')
+        self.addCleanup(os.remove, file_path)
+        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
+            self.context, constants.UUID, file_path)
+        self.assertEqual(vnf_data['descriptor_version'], '1.0')
+        self.assertEqual(vnf_data['vnfm_info'], ['Tacker'])
+        self.assertEqual(flavours[0]['flavour_id'], 'simple')
+        self.assertIsNotNone(flavours[0]['sw_images'])
+        self.assertIsNotNone(vnf_artifacts)
+        self.assertIsNotNone(vnf_artifacts[0]['Source'])
+        self.assertIsNotNone(vnf_artifacts[0]['Hash'])
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_false_mf_with_vnf_artifact(
+            self, mock_extract_csar_zip_file):
+        file_path = utils.create_csar_with_unique_artifact(
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnf_package_csar_in_meta_and_manifest_false')
+        self.addCleanup(os.remove, file_path)
+        manifest_path = 'manifest.mf1'
+        exc = self.assertRaises(exceptions.InvalidCSAR,
+                                csar_utils.load_csar_data,
+                                self.context, constants.UUID, file_path)
+        msg = (('The file "%(manifest)s" in the CSAR "%(csar)s" does not '
+                'contain valid manifest.') %
+               {'manifest': manifest_path, 'csar': file_path})
+        self.assertEqual(msg, exc.format_message())
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_false_mf_name_with_vnf_artifact(
+            self, mock_extract_csar_zip_file):
+        file_path = utils.create_csar_with_unique_artifact(
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnf_package_csar_in_single_manifest_false_name')
+        self.addCleanup(os.remove, file_path)
+        manifest_path = 'VNF1.mf'
+        exc = self.assertRaises(exceptions.InvalidCSAR,
+                                csar_utils.load_csar_data,
+                                self.context, constants.UUID, file_path)
+        msg = (('The filename "%(manifest)s" is an invalid name.'
+                'The name must be the same as the main template '
+                'file name.') %
+               {'manifest': manifest_path, 'csar': file_path})
+        self.assertEqual(msg, exc.format_message())
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_false_hash_with_vnf_artifact(
+            self, mock_extract_csar_zip_file):
+        file_path = utils.create_csar_with_unique_artifact(
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnf_package_csar_in_meta_and_manifest_false_hash')
+        self.addCleanup(os.remove, file_path)
+        exc = self.assertRaises(exceptions.InvalidCSAR,
+                                csar_utils.load_csar_data,
+                                self.context, constants.UUID, file_path)
+        hash_code = '27bbdb25d8f4ed6d07d6f6581b86515e8b2f' \
+                    '0059b236ef7b6f50d6674b34f02'
+        artifact_path = 'Scripts/install.sh'
+        msg = (('The hash "%(hash)s" of artifact file '
+                '"%(artifact)s" is an invalid value.') %
+               {'hash': hash_code, 'artifact': artifact_path})
+        self.assertEqual(msg, exc.format_message())
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_missing_key_with_vnf_artifact(
+            self, mock_extract_csar_zip_file):
+        file_path = utils.create_csar_with_unique_artifact(
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnf_package_csar_in_meta_and_manifest_missing_key')
+        self.addCleanup(os.remove, file_path)
+        exc = self.assertRaises(exceptions.InvalidCSAR,
+                                csar_utils.load_csar_data,
+                                self.context, constants.UUID, file_path)
+        key_name = sorted(['Algorithm'])
+        msg = (('One of the artifact information may not have '
+                'the key("%(key)s")') % {'key': key_name})
+        self.assertEqual(msg, exc.format_message())
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_missing_value_with_vnf_artifact(
+            self, mock_extract_csar_zip_file):
+        file_path = utils.create_csar_with_unique_artifact(
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnf_package_csar_in_meta_and_manifest_missing_value')
+        self.addCleanup(os.remove, file_path)
+        exc = self.assertRaises(exceptions.InvalidCSAR,
+                                csar_utils.load_csar_data,
+                                self.context, constants.UUID, file_path)
+        key_name = 'Algorithm'
+        msg = (('One of the artifact information may not have '
+                'the key value("%(key)s")') % {'key': key_name})
+        self.assertEqual(msg, exc.format_message())
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_false_source_with_vnf_artifact(
+            self, mock_extract_csar_zip_file):
+        file_path = utils.create_csar_with_unique_artifact(
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnf_package_csar_in_meta_and_manifest_false_source')
+        self.addCleanup(os.remove, file_path)
+        exc = self.assertRaises(exceptions.InvalidCSAR,
+                                csar_utils.load_csar_data,
+                                self.context, constants.UUID, file_path)
+        artifact_path = 'Scripts/install.s'
+        msg = (('The path("%(artifact_path)s") of '
+                'artifact Source is an invalid value.') %
+               {'artifact_path': artifact_path})
+        self.assertEqual(msg, exc.format_message())
+
+    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    def test_load_csar_data_false_algorithm_with_vnf_artifact(
+            self, mock_extract_csar_zip_file):
+        file_path = utils.create_csar_with_unique_artifact(
+            './tacker/tests/etc/samples/etsi/nfv/'
+            'sample_vnf_package_csar_in_meta_and_manifest_false_algorithm')
+        self.addCleanup(os.remove, file_path)
+        exc = self.assertRaises(exceptions.InvalidCSAR,
+                                csar_utils.load_csar_data,
+                                self.context, constants.UUID, file_path)
+        algorithm = 'sha-255'
+        artifact_path = 'Scripts/install.sh'
+        msg = (('The algorithm("%(algorithm)s") of '
+                'artifact("%(artifact_path)s") is '
+                'an invalid value.') %
+               {'algorithm': algorithm,
+                'artifact_path': artifact_path})
+        self.assertEqual(msg, exc.format_message())
 
     @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
     def test_load_csar_data_without_instantiation_level(
@@ -205,7 +393,7 @@ class TestCSARUtils(testtools.TestCase):
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_zip_from_dir(
             'csar_without_policies')
-        vnf_data, flavours = csar_utils.load_csar_data(
+        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
             self.context, constants.UUID, file_path)
         self.assertIsNone(flavours[0].get('instantiation_levels'))
         self.assertEqual(vnf_data['descriptor_version'], '1.0')
@@ -231,7 +419,7 @@ class TestCSARUtils(testtools.TestCase):
                     "csar_with_short_notation_for_artifacts"
         zip_name, uniqueid = utils.create_csar_with_unique_vnfd_id(file_path)
 
-        vnf_data, flavours = csar_utils.load_csar_data(
+        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
             self.context, constants.UUID, zip_name)
         self.assertEqual(vnf_data['descriptor_version'], '1.0')
         self.assertEqual(vnf_data['vnfm_info'], ['Tacker'])

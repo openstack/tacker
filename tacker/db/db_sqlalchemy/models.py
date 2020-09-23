@@ -129,6 +129,20 @@ class VnfPackageVnfd(model_base.BASE, VnfPackageVnfdSoftDeleteMixin,
     vnfd_version = sa.Column(sa.String(255), nullable=False)
 
 
+class VnfPackageArtifactInfo(model_base.BASE, models.SoftDeleteMixin,
+                 models.TimestampMixin, models_v1.HasId):
+    """Contains all info about vnf artifacts."""
+
+    __tablename__ = 'vnf_artifacts'
+    package_uuid = sa.Column(sa.String(36),
+                             sa.ForeignKey('vnf_packages.id'),
+                             nullable=False)
+    artifact_path = sa.Column(sa.Text(), nullable=False)
+    algorithm = sa.Column(sa.String(64), nullable=False)
+    hash = sa.Column(sa.String(128), nullable=False)
+    _metadata = sa.Column(sa.JSON(), nullable=True)
+
+
 class VnfPackage(model_base.BASE, models.SoftDeleteMixin,
                  models.TimestampMixin, models_v1.HasTenant,
                  models_v1.HasId):
@@ -159,6 +173,12 @@ class VnfPackage(model_base.BASE, models.SoftDeleteMixin,
         primaryjoin='and_(VnfPackage.id == '
                     'VnfPackageVnfd.package_uuid,'
                     'VnfPackageVnfd.deleted == 0)')
+
+    vnf_artifacts = orm.relationship(
+        VnfPackageArtifactInfo,
+        primaryjoin='and_(VnfPackage.id == '
+                    'VnfPackageArtifactInfo.package_uuid,'
+                    'VnfPackageArtifactInfo.deleted == 0)')
 
     @property
     def metadetails(self):

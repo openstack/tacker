@@ -91,7 +91,7 @@ class TestConductor(SqlTestCase):
     def test_upload_vnf_package_content(self, mock_load_csar,
                                         mock_load_csar_data,
                                         mock_revert, mock_onboard):
-        mock_load_csar_data.return_value = (mock.ANY, mock.ANY)
+        mock_load_csar_data.return_value = (mock.ANY, mock.ANY, mock.ANY)
         mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a-4c3' \
                                       '1-9e6d-ab21b87dcfff.zip'
         self.conductor.upload_vnf_package_content(
@@ -110,7 +110,7 @@ class TestConductor(SqlTestCase):
                                          mock_revert, mock_store,
                                          mock_onboard):
         address_information = "http://test.zip"
-        mock_load_csar_data.return_value = (mock.ANY, mock.ANY)
+        mock_load_csar_data.return_value = (mock.ANY, mock.ANY, mock.ANY)
         mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a' \
                                       '-4c31-9e6d-ab21b87dcfff.zip'
         mock_store.return_value = 'location', 0, 'checksum',\
@@ -159,7 +159,7 @@ class TestConductor(SqlTestCase):
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
                               group='vnf_package')
         fake_csar_zip, _ = utils.create_csar_with_unique_vnfd_id(
-            './tacker/tests/etc/samples/etsi/nfv/vnfpkgm1')
+            './tacker/tests/etc/samples/etsi/nfv/sample_vnfpkg_tosca_vnfd')
         mock_load_csar.return_value = fake_csar_zip
         expected_data = fakes.get_expected_vnfd_data(zip_file=fake_csar_zip)
         result = self.conductor.get_vnf_package_vnfd(self.context,

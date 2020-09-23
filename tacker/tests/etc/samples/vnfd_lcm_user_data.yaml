@@ -30,7 +30,7 @@ topology_template:
       type: string
 
   substitution_mappings:
-    node_type: ntt.nslab.VNF
+    node_type: company.provider.VNF
     properties:
       flavour_id: simple
     requirements:
@@ -38,7 +38,7 @@ topology_template:
 
   node_templates:
     VNF:
-      type: ntt.nslab.VNF
+      type: company.provider.VNF
       properties:
         flavour_description: A simple flavour
       interfaces:

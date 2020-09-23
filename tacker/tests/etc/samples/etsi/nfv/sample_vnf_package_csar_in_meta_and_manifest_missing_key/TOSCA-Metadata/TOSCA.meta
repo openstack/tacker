@@ -1,0 +1,8 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml
+
+Name: Files/Scripts/install.sh
+Content-Type: test-data
+Hash: 27bbdb25d8f4ed6d07d6f6581b86515e8b2f0059b236ef7b6f50d6674b34f02a

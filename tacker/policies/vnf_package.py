@@ -115,6 +115,16 @@ rules = [
                 'path': '/vnf_packages/{vnf_package_id}/vnfd'
             }
         ]),
+    policy.DocumentedRuleDefault(
+        name=VNFPKGM % 'fetch_artifact',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="reads the content of the artifact within a VNF package.",
+        operations=[
+            {
+                'method': 'GET',
+                'path': '/vnf_packages/{vnfPkgId}/artifacts/{artifactPath}'
+            }
+        ]),
 ]
 
 

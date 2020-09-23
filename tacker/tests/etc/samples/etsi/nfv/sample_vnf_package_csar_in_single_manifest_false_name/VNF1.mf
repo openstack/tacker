@@ -1,0 +1,11 @@
+Source: Files/images/cirros.img
+Algorithm: SHA-512
+Hash: <calculate here>
+
+Source: Scripts/install.sh
+Algorithm: SHA-256
+Hash: 27bbdb25d8f4ed6d07d6f6581b86515e8b2f0059b236ef7b6f50d6674b34f02a
+
+Source: Files/kubernetes/deployment.yaml
+Algorithm: SHA-256
+Hash: e23cc3433835cea32ce790b4823313dc6d0744dce02e27b1b339c87ee993b8c2
