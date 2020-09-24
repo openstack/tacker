@@ -208,6 +208,10 @@ class InvalidInstReqInfoForScaling(exceptions.InvalidInput):
                 "fixed ip_address or mac_address.")
 
 
+class InvalidMaintenanceParameter(exceptions.InvalidInput):
+    message = _("Could not find the required params for maintenance")
+
+
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("Invalid data format for service list: '%s'") % data
@@ -491,6 +495,37 @@ SUB_RESOURCE_ATTRIBUTE_MAP = {
                 }
             }
         }
+    },
+    'maintenances': {
+        'parent': {
+            'collection_name': 'vnfs',
+            'member_name': 'vnf'
+        },
+        'members': {
+            'maintenance': {
+                'parameters': {
+                    'params': {
+                        'allow_post': True,
+                        'allow_put': False,
+                        'is_visible': True,
+                        'validate': {'type:dict_or_none': None}
+                    },
+                    'tenant_id': {
+                        'allow_post': True,
+                        'allow_put': False,
+                        'validate': {'type:string': None},
+                        'required_by_policy': False,
+                        'is_visible': False
+                    },
+                    'response': {
+                        'allow_post': False,
+                        'allow_put': False,
+                        'validate': {'type:dict_or_none': None},
+                        'is_visible': True
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -622,4 +657,8 @@ class VNFMPluginBase(service_base.NFVPluginBase):
     @abc.abstractmethod
     def create_vnf_trigger(
             self, context, vnf_id, trigger):
+        pass
+
+    @abc.abstractmethod
+    def create_vnf_maintenance(self, context, vnf_id, maintenance):
         pass

@@ -24,3 +24,4 @@ Reference
    mistral_workflows_usage_guide.rst
    block_storage_usage_guide.rst
    reservation_policy_usage_guide.rst
+   maintenance_usage_guide.rst

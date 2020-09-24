@@ -427,12 +427,24 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     @log.log
     def heal_wait(self, plugin, context, vnf_dict, auth_attr,
                   region_name=None):
-        stack = self._wait_until_stack_ready(vnf_dict['instance_id'],
+        region_name = vnf_dict.get('placement_attr', {}).get(
+            'region_name', None)
+        heatclient = hc.HeatClient(auth_attr, region_name)
+        stack_id = vnf_dict.get('heal_stack_id', vnf_dict['instance_id'])
+
+        stack = self._wait_until_stack_ready(stack_id,
             auth_attr, infra_cnst.STACK_UPDATE_IN_PROGRESS,
             infra_cnst.STACK_UPDATE_COMPLETE,
             vnfm.VNFHealWaitFailed, region_name=region_name)
-
-        mgmt_ips = self._find_mgmt_ips(stack.outputs)
+        # scaling enabled
+        if vnf_dict['attributes'].get('scaling_group_names'):
+            group_names = jsonutils.loads(
+                vnf_dict['attributes'].get('scaling_group_names')).values()
+            mgmt_ips = self._find_mgmt_ips_from_groups(heatclient,
+                                                       vnf_dict['instance_id'],
+                                                       group_names)
+        else:
+            mgmt_ips = self._find_mgmt_ips(stack.outputs)
 
         if mgmt_ips:
             vnf_dict['mgmt_ip_address'] = jsonutils.dump_as_bytes(mgmt_ips)
@@ -462,10 +474,13 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             return mgmt_ips
 
         mgmt_ips = {}
+        ignore_status = ['DELETE_COMPLETE', 'DELETE_IN_PROGRESS']
         for group_name in group_names:
             # Get scale group
             grp = heat_client.resource_get(instance_id, group_name)
             for rsc in heat_client.resource_get_list(grp.physical_resource_id):
+                if rsc.resource_status in ignore_status:
+                    continue
                 # Get list of resources in scale group
                 scale_rsc = heat_client.resource_get(grp.physical_resource_id,
                                                      rsc.resource_name)

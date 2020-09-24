@@ -107,6 +107,7 @@ class TestVDU(base.TestCase):
             cause=["Unable to reach while monitoring resource: 'VDU1'"])
         self.heal_request_data_obj = heal_vnf_request.HealVnfRequest(
             cause='VNF monitoring fails.',
+            stack_id=vnf_dict['instance_id'],
             additional_params=[self.additional_paramas_obj])
         self.heal_vdu = vdu.Vdu(self.context, vnf_dict,
                            self.heal_request_data_obj)

@@ -33,6 +33,7 @@ class Vdu(object):
         self.context = context
         self.vnf_dict = vnf_dict
         self.heal_request_data_obj = heal_request_data_obj
+        self.stack_id = self.heal_request_data_obj.stack_id
         vim_id = self.vnf_dict['vim_id']
         vim_res = vim_client.VimClient().get_vim(context, vim_id)
         placement_attr = vnf_dict.get('placement_attr', {})
@@ -53,15 +54,15 @@ class Vdu(object):
         additional_params = self.heal_request_data_obj.additional_params
         for additional_param in additional_params:
             resource_name = additional_param.parameter
-            res_status = self._get_resource_status(
-                self.vnf_dict['instance_id'], resource_name)
+            res_status = self._get_resource_status(self.stack_id,
+                                                   resource_name)
             if res_status != 'CHECK_FAILED':
                 self.heat_client.resource_mark_unhealthy(
-                    stack_id=self.vnf_dict['instance_id'],
+                    stack_id=self.stack_id,
                     resource_name=resource_name, mark_unhealthy=True,
                     resource_status_reason=additional_param.cause)
                 LOG.debug("Heat stack '%s' resource '%s' marked as "
-                          "unhealthy", self.vnf_dict['instance_id'],
+                          "unhealthy", self.stack_id,
                           resource_name)
                 evt_details = (("HealVnfRequest invoked to mark resource "
                                 "'%s' to unhealthy.") % resource_name)
@@ -70,7 +71,7 @@ class Vdu(object):
                                       evt_details)
             else:
                 LOG.debug("Heat stack '%s' resource '%s' already mark "
-                          "unhealthy.", self.vnf_dict['instance_id'],
+                          "unhealthy.", self.stack_id,
                           resource_name)
 
     def heal_vdu(self):
@@ -81,11 +82,11 @@ class Vdu(object):
 
         # Mark all the resources as unhealthy
         self._resource_mark_unhealthy()
-        self.heat_client.update(stack_id=self.vnf_dict['instance_id'],
+        self.heat_client.update(stack_id=self.stack_id,
                                 existing=True)
         LOG.debug("Heat stack '%s' update initiated to revive "
-                  "unhealthy resources.", self.vnf_dict['instance_id'])
+                  "unhealthy resources.", self.stack_id)
         evt_details = (("HealVnfRequest invoked to update the stack "
-                        "'%s'") % self.vnf_dict['instance_id'])
+                        "'%s'") % self.stack_id)
         vnfm_utils.log_events(self.context, self.vnf_dict,
                               constants.RES_EVT_HEAL, evt_details)

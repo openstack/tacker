@@ -17,6 +17,8 @@
 import ast
 import copy
 import inspect
+import random
+import string
 import threading
 import time
 
@@ -418,6 +420,43 @@ class VNFReservationAlarmMonitor(VNFAlarmMonitor):
                 'reservation'][action], scaling_type)
 
         return alarm_url
+
+    def process_alarm_for_vnf(self, vnf, trigger):
+        """call in plugin"""
+        params = trigger['params']
+        alarm_dict = dict()
+        alarm_dict['alarm_id'] = params['data'].get('alarm_id')
+        alarm_dict['status'] = params['data'].get('current')
+        driver = 'ceilometer'
+        return self.process_alarm(driver, vnf, alarm_dict)
+
+
+class VNFMaintenanceAlarmMonitor(VNFAlarmMonitor):
+    """VNF Maintenance Alarm monitor"""
+
+    def update_vnf_with_maintenance(self, vnf, vdu_names):
+        maintenance = dict()
+        vdus = dict()
+        params = dict()
+        params['vnf_id'] = vnf['id']
+        params['mon_policy_name'] = 'maintenance'
+        params['mon_policy_action'] = vnf['tenant_id']
+        driver = 'ceilometer'
+
+        url = self.call_alarm_url(driver, vnf, params)
+        maintenance['url'] = url[:url.rindex('/')]
+        vdu_names.append('ALL')
+        for vdu in vdu_names:
+            access_key = ''.join(
+                random.SystemRandom().choice(
+                    string.ascii_lowercase + string.digits)
+                for _ in range(8))
+            vdus[vdu] = access_key
+        maintenance.update({'vdus': vdus})
+        details = "Alarm URL set successfully: %s" % maintenance['url']
+        vnfm_utils.log_events(t_context.get_admin_context(), vnf,
+                              constants.RES_EVT_MONITOR, details)
+        return maintenance
 
     def process_alarm_for_vnf(self, vnf, trigger):
         """call in plugin"""

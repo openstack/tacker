@@ -81,6 +81,7 @@ TACKER_NOVA_CA_CERTIFICATES_FILE=${TACKER_NOVA_CA_CERTIFICATES_FILE:-}
 TACKER_NOVA_API_INSECURE=${TACKER_NOVA_API_INSECURE:-False}
 
 HEAT_CONF_DIR=/etc/heat
+CEILOMETER_CONF_DIR=/etc/ceilometer
 
 source ${TACKER_DIR}/tacker/tests/contrib/post_test_hook_lib.sh
 
@@ -479,4 +480,12 @@ function modify_heat_flavor_policy_rule {
     touch $policy_file
     # Allow non-admin projects with 'admin' roles to create flavors in Heat
     echo '"resource_types:OS::Nova::Flavor": "role:admin"' >> $policy_file
+}
+
+function configure_maintenance_event_types {
+    local event_definitions_file=$CEILOMETER_CONF_DIR/event_definitions.yaml
+    local maintenance_events_file=$TACKER_DIR/etc/ceilometer/maintenance_event_types.yaml
+
+    echo "Configure maintenance event types to $event_definitions_file"
+    cat $maintenance_events_file >> $event_definitions_file
 }
