@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Binding
+metadata:
+  name: curry-test001
+  namespace: curryns
+target:
+  apiVersion: v1
+  kind: Node
+  namespace: curryns
+  name: curry-endpoint-test001

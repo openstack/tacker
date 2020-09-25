@@ -1,0 +1,9 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml
+
+Name: http://127.0.0.1:44380/storage-class-url.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: dedcaa9f6c51ef9fa92bad9b870f7fd91fd3f6680a4f7af17d6bf4ff7dd2016f

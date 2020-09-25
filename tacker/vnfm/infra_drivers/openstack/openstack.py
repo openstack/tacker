@@ -450,13 +450,19 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             vnf_dict['mgmt_ip_address'] = jsonutils.dump_as_bytes(mgmt_ips)
 
     @log.log
-    def delete(self, plugin, context, vnf_id, auth_attr, region_name=None):
+    def delete(self, plugin, context, vnf_id, auth_attr, region_name=None,
+               vnf_instance=None, terminate_vnf_req=None):
+        if terminate_vnf_req:
+            if (terminate_vnf_req.termination_type == 'GRACEFUL' and
+                    terminate_vnf_req.graceful_termination_timeout > 0):
+                time.sleep(terminate_vnf_req.graceful_termination_timeout)
+
         heatclient = hc.HeatClient(auth_attr, region_name)
         heatclient.delete(vnf_id)
 
     @log.log
     def delete_wait(self, plugin, context, vnf_id, auth_attr,
-                    region_name=None):
+                    region_name=None, vnf_instance=None):
         self._wait_until_stack_ready(vnf_id, auth_attr,
             infra_cnst.STACK_DELETE_IN_PROGRESS,
             infra_cnst.STACK_DELETE_COMPLETE, vnfm.VNFDeleteWaitFailed,
@@ -605,8 +611,10 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             raise vnfm.VNFHealFailed(vnf_id=vnf_dict['id'])
 
     @log.log
-    def pre_instantiation_vnf(self, context, vnf_instance,
-                              vim_connection_info, vnf_software_images):
+    def pre_instantiation_vnf(
+            self, context, vnf_instance, vim_connection_info,
+            vnf_software_images, instantiate_vnf_req=None,
+            vnf_package_path=None):
         glance_client = gc.GlanceClient(vim_connection_info)
         vnf_resources = {}
 

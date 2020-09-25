@@ -222,7 +222,7 @@ class VnfInstantiatedInfo(model_base.BASE, models.SoftDeleteMixin,
     vnf_virtual_link_resource_info = sa.Column(sa.JSON(), nullable=True)
     virtual_storage_resource_info = sa.Column(sa.JSON(), nullable=True)
     vnf_state = sa.Column(sa.String(255), nullable=False)
-    instance_id = sa.Column(sa.String(255), nullable=True)
+    instance_id = sa.Column(sa.Text(), nullable=True)
     instantiation_level_id = sa.Column(sa.String(255), nullable=True)
     additional_params = sa.Column(sa.JSON(), nullable=True)
 
@@ -241,7 +241,7 @@ class VnfResource(model_base.BASE, models.SoftDeleteMixin,
     vnf_instance_id = sa.Column(sa.String(36),
                                 sa.ForeignKey('vnf_instances.id'),
                                 nullable=False)
-    resource_name = sa.Column(sa.String(255), nullable=True)
+    resource_name = sa.Column(sa.Text(), nullable=True)
     resource_type = sa.Column(sa.String(255), nullable=False)
     resource_identifier = sa.Column(sa.String(255), nullable=False)
     resource_status = sa.Column(sa.String(255), nullable=False)

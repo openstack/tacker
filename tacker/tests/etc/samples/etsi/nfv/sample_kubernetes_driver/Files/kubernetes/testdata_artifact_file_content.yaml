@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: curry-endpoint-test001
+  namespace: curry-ns
+  labels:
+    role: my-curry
+spec:
+  containers:
+  - image: celebdor/kuryr-demo
+    imagePullPolicy: IfNotPresent
+    name: local
+    ports:
+    - containerPort: 8080

@@ -1,0 +1,9 @@
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1beta1.currytest.k8s.io
+spec:
+  group: currytest.k8s.io
+  groupPriorityMinimum: 17000
+  version: v1beta1
+  versionPriority: 5

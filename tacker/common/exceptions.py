@@ -139,6 +139,18 @@ class Invalid(TackerException):
     message = _("Bad Request - Invalid Parameters")
 
 
+class CreateApiFalse(TackerException):
+    message = _('Failed to create resource.')
+
+
+class InitApiFalse(TackerException):
+    message = _('Failed to init resource.')
+
+
+class ReadEndpoindsFalse(TackerException):
+    message = _('The method to read a resource failed.')
+
+
 class InvalidInput(BadRequest):
     message = _("Invalid input for operation: %(error_message)s.")
 

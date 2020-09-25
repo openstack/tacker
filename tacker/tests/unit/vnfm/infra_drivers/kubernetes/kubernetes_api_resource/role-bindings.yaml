@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: curry-rolebinding
+  namespace: curry-ns
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: curry-role
+subjects:
+- apiGroup: ""
+  kind: ServiceAccount
+  name: curry-sa
+  namespace: default

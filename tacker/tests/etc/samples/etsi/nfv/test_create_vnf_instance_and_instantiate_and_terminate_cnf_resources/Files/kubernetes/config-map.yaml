@@ -1,0 +1,8 @@
+apiVersion: v1
+data:
+  param0: key1
+  param1: key2
+kind: ConfigMap
+metadata:
+  name: curry-test001
+  namespace: default
