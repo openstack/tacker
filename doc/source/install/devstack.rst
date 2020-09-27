@@ -22,26 +22,33 @@ Install via Devstack
 Overview
 --------
 
-Tacker provides some examples, or templates, of ``local.conf`` used for
-Devstack. You can find them in ``${TACKER_ROOT}/devstack`` directory in the
+Devstack based installation requires ``local.conf`` file.
+This file contains different configuration options required for
+installation.
+
+Tacker provides some sample ``local.conf`` templates which can be
+used for Devstack based Tacker installation.
+You can find them in ``${TACKER_ROOT}/devstack`` directory in the
 tacker repository.
 
-Devstack supports installation from different code branch by specifying
-branch name in your ``local.conf`` as described in below.
-If you install the latest version, use ``master`` branch.
-On the other hand, if you install specific release, suppose ``ussuri``
-in this case, branch name must be ``stable/ussuri``.
+Devstack supports installation from different code branches by
+specifying branch name in your ``local.conf``.
+
+* For latest version installation, use ``master`` branch.
+* For specific release based installation, use corresponding branch name.
+  For ex, to install ``ussuri`` release, use ``stable/ussuri``.
 
 For installation, ``stack.sh`` script in Devstack should be run as a
 non-root user with sudo enabled.
-Add a separate user ``stack`` and granting relevant privileges is a good way
-to install via Devstack [#f0]_.
+Add a separate user ``stack`` and granting relevant privileges is a
+good way to install via Devstack [#f0]_.
 
 Install
 -------
 
-Devstack expects to be provided ``local.conf`` before running install script.
-The first step of installing tacker is to clone Devstack and prepare your
+Devstack installation script ``stack.sh`` expects ``local.conf``.
+
+So the first step of installing tacker is to clone Devstack and prepare your
 ``local.conf``.
 
 #. Download DevStack
@@ -51,53 +58,72 @@ The first step of installing tacker is to clone Devstack and prepare your
 
    .. code-block:: console
 
-       $ git clone https://opendev.org/openstack-dev/devstack -b <branch-name>
+       $ git clone https://opendev.org/openstack/devstack -b <branch-name>
        $ cd devstack
 
 #. Enable tacker related Devstack plugins in ``local.conf`` file
 
-   ``local.conf`` needs to be created by manual, or copied from Tacker
-   repo [#f1]_ renamed as ``local.conf``. We have two choices for
-   configuration basically. First one is the ``all-in-one`` mode that
-   installs full Devstack environment including Tacker in one PC or Laptop.
-   Second, it is ``standalone`` mode which only will install only Tacker
-   environment with some mandatory OpenStack services. Nova, Neutron or other
-   essential components are not included in this mode.
+   The ``local.conf`` can be created manually, or copied from Tacker
+   repo [#f1]_. If copied, rename it as ``local.conf``.
+
+   We have two choices for configuration basically:
 
    #. All-in-one mode
 
-      There are two examples for ``all-in-one`` mode, targetting OpenStack
-      or Kubernetes as VIM.
+      All-in-one mode installs full Devstack environment including
+      Tacker in one PC or Laptop.
 
-      ``local.conf`` for ``all-in-one`` mode with OpenStack [#f2]_
-      is shown as below.
+      There are two examples for ``all-in-one`` mode:
 
-      .. literalinclude:: ../../../devstack/local.conf.example
-          :language: ini
+      #. OpenStack as VIM.
 
-      The difference between ``all-in-one`` mode with Kubernetes [#f3]_ is
-      to deploy kuryr-kubernetes and octavia.
+         The example ``local.conf`` file for all-in-one mode with OpenStack
+         is available at ``${TACKER_ROOT}/devstack/local.conf.example``.
 
-      .. literalinclude:: ../../../devstack/local.conf.kubernetes
-          :language: ini
-          :emphasize-lines: 60-65
+         Refer below the contents of ``local.conf.example``:
 
-      .. note::
+         .. literalinclude:: ../../../devstack/local.conf.example
+             :language: ini
 
-          The above local.conf.kubernetes does not work on CentOS8.
-          Because docker-ce is not supported on CentOS8.
+
+      #. Openstack and Kubernetes as VIM.
+
+         The difference between all-in-one mode with Kubernetes is
+         to deploy kuryr-kubernetes and octavia.
+
+         The example ``local.conf`` for all-in-one mode with Kubernetes is
+         available at ``${TACKER_ROOT}/devstack/local.conf.kubernetes``
+
+         Refer below the contents of ``local.conf.kubernetes``
+
+         .. literalinclude:: ../../../devstack/local.conf.kubernetes
+             :language: ini
+             :emphasize-lines: 60-65
+
+         .. note::
+
+             The above local.conf.kubernetes does not work on CentOS8.
+             Because docker-ce is not supported on CentOS8.
 
    #. Standalone mode
 
-      The ``local.conf`` file of standalone mode from [#f4]_ is shown as below.
+      Standalone mode installs only Tacker environment with some
+      mandatory OpenStack services. Nova, Neutron or other essential
+      components are not included in this mode.
+
+
+      The example ``local.conf`` for standalone mode is available at
+      ``${TACKER_ROOT}/devstack/local.conf.standalone``
+
+      Refer below the contents of ``local.conf.standalone``
 
       .. literalinclude:: ../../../devstack/local.conf.standalone
           :language: ini
 
-#. Installation
+#. Execute installation script
 
    After saving the ``local.conf``, we can run ``stack.sh`` in the terminal
-   to start setting up.
+   to start installation.
 
    .. code-block:: console
 
@@ -107,9 +133,3 @@ The first step of installing tacker is to clone Devstack and prepare your
 
 .. [#f0] https://docs.openstack.org/devstack/latest/
 .. [#f1] https://opendev.org/openstack/tacker/src/branch/master/devstack
-.. [#f2]
-   https://opendev.org/openstack/tacker/src/branch/master/devstack/local.conf.example
-.. [#f3]
-   https://opendev.org/openstack/tacker/src/branch/master/devstack/local.conf.kubernetes
-.. [#f4]
-   https://opendev.org/openstack/tacker/src/branch/master/devstack/local.conf.standalone
