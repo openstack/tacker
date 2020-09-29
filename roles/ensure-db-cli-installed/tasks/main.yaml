@@ -1,0 +1,18 @@
+# Currently the plugins which implicitly require db cli to be
+# pre-installed when the database is remote (i.e., MYSQL_HOST
+# != host-where-it-is-enabled) is only ceilometer. So it'd be
+# more accurate to set the outermost 'when' condition like:
+#
+#   when:
+#     - devstack_plugins['ceilometer'] | default(false)
+#     - devstack_localrc['DATABASE_TYPE'] is defined
+#
+# Either is fine so let's dispense with it to keep it simple.
+- block:
+  - name: install mysql client if needed
+    include_tasks: mysql.yaml
+    when: devstack_localrc['DATABASE_TYPE'] == 'mysql'
+  - name: install postgresql client if needed
+    include_tasks: postgresql.yaml
+    when: devstack_localrc['DATABASE_TYPE'] == 'postgresql'
+  when: devstack_localrc['DATABASE_TYPE'] is defined

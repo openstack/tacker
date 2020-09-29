@@ -1,0 +1,13 @@
+- name: set db cli package name (postgresql-client)
+  set_fact:
+    db_cli_package_name: postgresql-client
+  when: ansible_os_family in ['Debian', 'RedHat', 'Suse']
+- name: fail if postgresql client package is not resolved
+  fail:
+    msg: postgresql client to install cannot be determined
+  when: db_cli_package_name is not defined
+- name: install db cli package
+  become: true
+  package:
+    name: "{{ db_cli_package_name }}"
+    state: present

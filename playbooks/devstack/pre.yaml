@@ -1,5 +1,6 @@
 - hosts: all
   roles:
+    - ensure-db-cli-installed
     - orchestrate-devstack
     - modify-heat-policy
     - setup-default-vim
