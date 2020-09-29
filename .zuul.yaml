@@ -76,6 +76,11 @@
         Q_SERVICE_PLUGIN_CLASSES: router,neutron.services.metering.metering_plugin.MeteringPlugin,networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,neutron.services.qos.qos_plugin.QoSPlugin,qos
         Q_ML2_PLUGIN_EXT_DRIVERS: port_security,qos
         L2_AGENT_EXTENSIONS: qos
+      devstack_local_conf:
+        post-config:
+          $NEUTRON_DHCP_CONF:
+            DEFAULT:
+              enable_isolated_metadata: True
       test_matrix_configs: [neutron]
       zuul_work_dir: src/opendev.org/openstack/tacker
     host-vars:
@@ -149,6 +154,7 @@
         devstack_localrc:
           CELLSV2_SETUP: singleconductor
           PHYSICAL_NETWORK: mgmtphysnet0
+          OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
           DATABASE_TYPE: mysql
         devstack_services:
           q-agt: true
