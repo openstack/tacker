@@ -50,17 +50,13 @@
       # Temporarily remove because of Ubuntu Focal Migration issue
       #   https://storyboard.openstack.org/#!/story/2007732
       # - openstack/barbican
-      # Temporarily remove because of Ubuntu Focal Migration issue
-      #   https://storyboard.openstack.org/#!/story/2008121
-      #   https://review.opendev.org/#/c/752294/
-      # - openstack/ceilometer
+      - openstack/ceilometer
       - openstack/heat
       - openstack/mistral
       - openstack/mistral-dashboard
       - openstack/networking-sfc
       # Temporarily remove because of Ubuntu Focal Migration issue
-      #   https://storyboard.openstack.org/#!/story/2008121
-      #   https://review.opendev.org/#/c/752294/
+      #   https://storyboard.openstack.org/#!/story/2007732
       # - openstack/python-barbicanclient
       - openstack/python-blazarclient
       - openstack/python-mistralclient
@@ -89,10 +85,7 @@
           heat: https://opendev.org/openstack/heat
           networking-sfc: https://opendev.org/openstack/networking-sfc
           aodh: https://opendev.org/openstack/aodh
-          # Temporarily remove because of Ubuntu Focal Migration issue
-          #   https://storyboard.openstack.org/#!/story/2008121
-          #   https://review.opendev.org/#/c/752294/
-          # ceilometer: https://opendev.org/openstack/ceilometer
+          ceilometer: https://opendev.org/openstack/ceilometer
           # Temporarily remove because of Ubuntu Focal Migration issue
           #   https://storyboard.openstack.org/#!/story/2007732
           # barbican: https://opendev.org/openstack/barbican
