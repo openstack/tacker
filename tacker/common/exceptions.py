@@ -17,6 +17,8 @@
 Tacker base exception handling.
 """
 
+import re
+
 from oslo_log import log as logging
 import webob.exc
 from webob import util as woutil
@@ -205,6 +207,18 @@ class DuplicateResourceName(TackerException):
 
 class DuplicateEntity(Conflict):
     message = _("%(_type)s already exist with given %(entry)s")
+
+    def __init__(self, *args, **kwargs):
+        # oslo.db does not parse duplicate key error correctly
+        # if MySQL server is >=8.0.19. (oslo.db BUG 1896916)
+        # TODO(kden): revert once the issue is resolved.
+        if len(kwargs["entry"]) == 1:
+            matched = re.match(
+                r"(?P<tbl>[^\.]+)\.uniq_(?P=tbl)0(?P<columns>.+)$",
+                kwargs["entry"][0])
+            if matched is not None:
+                kwargs["entry"] = matched.group("columns").split("0")
+        super(DuplicateEntity, self).__init__(*args, **kwargs)
 
 
 class ValidationError(BadRequest):
