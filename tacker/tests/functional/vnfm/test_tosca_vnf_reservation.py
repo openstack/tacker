@@ -12,15 +12,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import ast
-import time
-
 import datetime
 import json
 import testtools
+import time
 import yaml
 
 from blazarclient import exception
+from oslo_serialization import jsonutils
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.functional import base
@@ -126,20 +125,10 @@ class VnfTestReservationMonitor(base.BaseTackerTest):
             vnf = self.client.show_vnf(vnf_id)['vnf']
             # {"VDU1": ["10.0.0.14", "10.0.0.5"]}
             if scale_type == 'scaling-in' and vdu_count == 0:
-                try:
-                    # After sacling-in the vnf['mgmt_ip_address'] will be the
-                    # list containg null values. As vnf['mgmt_ip_address']
-                    # is string so we can not access ip address list for VDU1
-                    # so converting that into the dict using ast lib.
-                    # If the list contains the null value then it will raise
-                    # ValueError so on the basis of that we are confirming the
-                    # scaling-in is successful.
-                    ast.literal_eval(vnf['mgmt_ip_address'])
-                    self.fail("Scaling-in should not contain "
-                              "mgmt_ip_address")
-                except ValueError:
-                    assert True, ("Management Ip address list for VDU1 "
-                                  "contains null values.")
+                self.assertFalse(jsonutils.loads(vnf.get('mgmt_ip_address',
+                                                         '{}')),
+                                 "Once scaling-in completes, mgmt_ip_address"
+                                 " should be empty.")
             elif scale_type == 'scaling-out':
                 self.assertEqual(vdu_count, len(json.loads(
                     vnf['mgmt_ip_address'])['VDU1']))
@@ -193,7 +182,7 @@ class VnfTestReservationMonitor(base.BaseTackerTest):
         blazarclient = self.blazarclient()
         reservations = [{'disk_gb': 0,
                          'vcpus': 1, 'memory_mb': 1,
-                         'amount': 1, 'affinity': False,
+                         'amount': 2, 'affinity': True,
                          'resource_properties': '',
                          'resource_type': 'virtual:instance'}]
         events = []
@@ -208,6 +197,7 @@ class VnfTestReservationMonitor(base.BaseTackerTest):
                 blazar_host = blazarclient.host.create(
                     hypervisor.hypervisor_hostname)
                 host_added = True
+                break
             except exception.BlazarClientException:
                 pass
 

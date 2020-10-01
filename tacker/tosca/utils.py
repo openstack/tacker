@@ -307,7 +307,7 @@ def _process_query_metadata(metadata, policy, unique_id):
 
 def _process_query_metadata_reservation(metadata, policy):
     query_metadata = dict()
-    policy_actions = policy.entity_tpl['reservation'].keys()
+    policy_actions = list(policy.entity_tpl['reservation'].keys())
     policy_actions.remove('properties')
     for action in policy_actions:
         query_template = [{
@@ -335,7 +335,7 @@ def _process_alarm_actions(vnf, policy):
 def _process_alarm_actions_for_reservation(vnf, policy):
     # process  alarm url here
     alarm_actions = dict()
-    policy_actions = policy.entity_tpl['reservation'].keys()
+    policy_actions = list(policy.entity_tpl['reservation'].keys())
     policy_actions.remove('properties')
     for action in policy_actions:
         alarm_url = vnf['attributes'].get(action)

@@ -163,10 +163,11 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
         if user_data_path is not None and user_data_class is not None:
             LOG.info('Execute user data and create heat-stack.')
-            base_hot_dict, nested_hot_dict = vnflcm_utils. \
-                get_base_nest_hot_dict(context,
-                                       inst_req_info.flavour_id,
-                                       vnf_instance.vnfd_id)
+            base_hot_dict, nested_hot_dict = \
+                vnflcm_utils.get_base_nest_hot_dict(
+                    context,
+                    inst_req_info.flavour_id,
+                    vnf_instance.vnfd_id)
             if base_hot_dict is None:
                 error_reason = _("failed to get Base HOT.")
                 raise vnfm.LCMUserDataFailed(reason=error_reason)

@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
 import yaml
 
 from oslo_config import cfg
@@ -49,6 +50,10 @@ class TestRemoteCommandExecutor(base.BaseTackerTest):
 
     def _test_cmd_executor(self, vnfd_file, vnf_name):
         vnf_id, mgmt_ip = self._test_create_vnf(vnfd_file, vnf_name)
+
+        # Wait for VM initialization. It takes time after VM started until
+        # sshd starts. It is a bit ad-hoc but adopted it for simplicity.
+        time.sleep(100)
 
         # Login on VNF instance, and execute 'hostname' command to verify
         # connection and command output.
