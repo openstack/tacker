@@ -18,14 +18,17 @@
 Deploying OpenWRT as VNF
 ========================
 
-Once tacker is installed successfully, follow the steps given below to get
-started with deploying OpenWRT as VNF.
+Once the tacker is installed successfully, follow the steps given below to
+deploy OpenWRT as VNF:
 
 #. Ensure Glance already contains OpenWRT image.
 
-   Normally, Tacker tries to add OpenWRT image to Glance while installing
-   via devstack. By running ``openstack image list`` to check OpenWRT image
-   if exists.
+   If the tacker is installed using devstack, it tries to add the OpenWRT image
+   to Glance during installation.
+
+   Make sure that the OpenWRT image has been successfully added to Glance by
+   running following command:
+   ``openstack image list``
 
    .. code-block:: console
        :emphasize-lines: 5
@@ -39,15 +42,20 @@ started with deploying OpenWRT as VNF.
        | ab0abeb8-f73c-467b-9743-b17083c02093 | cirros-0.5.1-x86_64-disk | active |
        +--------------------------------------+--------------------------+--------+
 
-   If not, you can get the customized image of OpenWRT 15.05.1 in your tacker repository,
-   or download the image from [#f1]_. Unzip the file by using the command below:
+   If OpenWRT image does not exist in the output of ``openstack image list``,
+   you can get the customized image of OpenWRT 15.05.1 in your tacker repository,
+   or download the image from [#f1]_.
+
+   After downloading the image file, execute following steps:
+
+   * First Unzip it by using following commands:
 
    .. code-block:: console
 
       $ cd /path/to/tacker/samples/images/
       $ gunzip openwrt-x86-kvm_guest-combined-ext4.img.gz
 
-   Then upload the image into Glance by using command below:
+   * Then upload the image into Glance by using following command:
 
    .. code-block:: console
 
@@ -59,28 +67,28 @@ started with deploying OpenWRT as VNF.
 #. Configure OpenWRT
 
    The example below shows how to create the OpenWRT-based Firewall VNF.
-   First, we have a yaml template which contains the configuration of
-   OpenWRT as shown below:
 
+   We have a yaml template which contains the configuration of OpenWRT as
+   shown below:
    *tosca-vnfd-openwrt.yaml* [#f2]_
 
    .. literalinclude:: ../../../samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
        :language: yaml
 
-
-   We also have another configuration yaml template with some firewall rules of
-   OpenWRT.
-
+   We also have another configuration yaml template with some firewall
+   rules of OpenWRT.
    *tosca-config-openwrt-firewall.yaml* [#f3]_
 
    .. literalinclude:: ../../../samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml
        :language: yaml
 
-   In this template file, we specify the ``mgmt_driver: openwrt`` which means
-   this VNFD is managed by openwrt driver [#f4]_. This driver can inject
-   firewall rules which defined in VNFD into OpenWRT instance by using SSH
-   protocol. We can run ``cat /etc/config/firewall`` to confirm the firewall
-   rules if inject succeed.
+   In this template file, we specify the ``mgmt_driver: openwrt``, which means
+   this VNFD is managed by openwrt driver [#f4]_.
+
+   This driver can inject firewall rules defined in VNFD to OpenWRT instance
+   by using SSH protocol.
+   We can run ``cat /etc/config/firewall`` to confirm if firewall rules are
+   injected successfully.
 
 #. Create a sample vnfd
 
@@ -103,14 +111,22 @@ started with deploying OpenWRT as VNF.
        $ openstack vnf list
        $ openstack vnf show <VNF_ID>
 
-   We can replace the firewall rules configuration file with
+   We can replace the configuration files containing firewall rules with
    tosca-config-openwrt-vrouter.yaml [#f5]_, tosca-config-openwrt-dnsmasq.yaml
    [#f6]_, or tosca-config-openwrt-qos.yaml [#f7]_ to deploy the router, DHCP,
-   DNS, or QoS VNFs. The openwrt VNFM management driver will do the same way to
-   inject the desired service rules into the OpenWRT instance. You can also do the
-   same to check if the rules are injected successful: **cat /etc/config/network**
-   to check vrouter, **cat /etc/config/dhcp** to check DHCP and DNS, and
-   **cat /etc/config/qos** to check the QoS rules.
+   DNS, or QoS VNFs.
+
+   The OpenWRT VNFM management driver will follow same way to inject the
+   desired service rules into the OpenWRT instance.
+
+   We can run the following commands to check if firewall rules are
+   injected successfully or not:
+
+   .. code-block:: console
+
+      $ cat /etc/config/network # to check vrouter.
+      $ cat /etc/config/dhcp    # to check DHCP and DNS.
+      $ cat /etc/config/qos     # to check the QoS rules.
 
 #. Notes
 
@@ -122,7 +138,7 @@ started with deploying OpenWRT as VNF.
    #. Procedure to customize the OpenWRT image
 
       The OpenWRT is modified based on KVM OpenWRT 15.05.1 to be suitable
-      for Tacker. The procedure is following as below:
+      for Tacker. Following is the procedure:
 
       .. code-block:: console
 
