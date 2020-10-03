@@ -6,6 +6,30 @@
 
 # This setup needs to be run as a user that can run sudo.
 
+function is_fedora {
+  if [[ -x $(command -v dnf 2>/dev/null) ]]; then
+      sudo dnf install -qy redhat-lsb-core
+  else
+      return
+  fi
+
+
+
+  if [[ -x $(command -v lsb_release 2>/dev/null) ]]; then
+    os_VENDOR=$(lsb_release -i -s)
+
+    if [ "$os_VENDOR" = "Fedora" ] || [ "$os_VENDOR" = "Red Hat" ] || \
+        [ "$os_VENDOR" = "RedHatEnterpriseServer" ] || \
+        [ "$os_VENDOR" = "RedHatEnterprise" ] || \
+        [ "$os_VENDOR" = "CentOS" ] || [ "$os_VENDOR" = "OracleServer" ] || \
+        [ "$os_VENDOR" = "Virtuozzo" ] ; then
+        return 0
+    else
+        return
+    fi
+  fi
+}
+
 # The root password for the MySQL database; pass it in via
 # MYSQL_ROOT_PW.
 DB_ROOT_PW=${MYSQL_ROOT_PW:-insecure_slave}
@@ -14,6 +38,36 @@ DB_ROOT_PW=${MYSQL_ROOT_PW:-insecure_slave}
 # your tests might fail.
 DB_USER=openstack_citest
 DB_PW=openstack_citest
+
+if is_fedora ; then
+    # services are not started by default
+
+    # Enable and start MariaDB
+    sudo systemctl enable --now mariadb
+    
+    # Intialiaze, Enable and start PostgreSQL
+    pg_hba=/var/lib/pgsql/data/pg_hba.conf
+    pg_conf=/var/lib/pgsql/data/postgresql.conf
+    if ! sudo [ -e $pg_hba ]; then
+        sudo postgresql-setup initdb
+    fi
+    sudo systemctl enable --now postgresql
+
+    if sudo [ -e $pg_conf ]; then
+        # Listen on all addresses
+        sudo sed -i "/listen_addresses/s/.*/listen_addresses = '*'/" $pg_conf
+    fi
+
+    if sudo [ -e $pg_hba ];then
+        # Do password auth from all IPv4 clients
+        sudo sed -i "/^host/s/all\s\+127.0.0.1\/32\s\+ident/$DB_USER\t0.0.0.0\/0\tpassword/" $pg_hba
+        # Do password auth for all IPv6 clients
+        sudo sed -i "/^host/s/all\s\+::1\/128\s\+ident/$DB_USER\t::0\/0\tpassword/" $pg_hba
+    fi
+
+    sudo systemctl stop postgresql
+    sudo systemctl start postgresql
+fi
 
 sudo -H mysqladmin -u root password $DB_ROOT_PW
 
@@ -38,12 +92,12 @@ mysql -u $DB_USER -p$DB_PW -h 127.0.0.1 -e "
 DB_ROOT_PW=${POSTGRES_ROOT_PW:-insecure_slave}
 
 # Setup user
-root_roles=$(sudo -H -u postgres psql -t -c "
+root_roles=$(sudo -u root sudo -u postgres -i psql -t -c "
    SELECT 'HERE' from pg_roles where rolname='$DB_USER'")
 if [[ ${root_roles} == *HERE ]];then
-    sudo -H -u postgres psql -c "ALTER ROLE $DB_USER WITH SUPERUSER LOGIN PASSWORD '$DB_PW'"
+    sudo -u root sudo -u postgres -i psql -c "ALTER ROLE $DB_USER WITH SUPERUSER LOGIN PASSWORD '$DB_PW'"
 else
-    sudo -H -u postgres psql -c "CREATE ROLE $DB_USER WITH SUPERUSER LOGIN PASSWORD '$DB_PW'"
+    sudo -u root sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH SUPERUSER LOGIN PASSWORD '$DB_PW'"
 fi
 
 # Store password for tests

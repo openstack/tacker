@@ -8,3 +8,5 @@ mysql-server [platform:dpkg]
 postgresql
 postgresql-client [platform:dpkg]
 postgresql-server [platform:rpm]
+mariadb [platform:rpm]
+mariadb-server [platform:rpm]
