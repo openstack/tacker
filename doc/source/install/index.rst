@@ -21,31 +21,34 @@ Tacker Installation Guide
 Installation
 ------------
 
-For Tacker to work, the system consists of two parts, one is tacker system
-and another is VIM systems. Tacker system can be installed
-(here just some ways are listed):
+For Tacker to work, the system consists of two parts:
 
-* via DevStack, which is usually used by developers
-* via Tacker source code manually
-* via Kolla installation
+* Tacker system
+* VIM systems
 
+Refer following installation procedures for both of these systems:
 
-.. toctree::
-   :maxdepth: 1
+#. Tacker Installation
 
-   devstack.rst
-   manual_installation.rst
-   kolla.rst
+   Tacker can be installed using following methods:
 
+   (here just some ways are listed)
 
-Target VIM installation
------------------------
+   .. toctree::
+      :maxdepth: 1
 
-Most of time, the target VIM existed for Tacker to manage. This section shows
-us how to prepare a target VIM for Tacker.
+      Install via Devstack <devstack.rst>
+      Manual Installation <manual_installation.rst>
+      Install via Kolla Ansible <kolla.rst>
 
-.. toctree::
-   :maxdepth: 1
+#. Target VIM Installation
 
-   openstack_vim_installation.rst
-   kubernetes_vim_installation.rst
+   Most of the time, the target VIM already exists for Tacker to manage.
+   In case the target VIM does not exist, this section shows how to prepare a
+   target VIM for Tacker to manage.
+
+   .. toctree::
+      :maxdepth: 1
+
+      Openstack VIM Installation <https://docs.openstack.org/install-guide/index.html>
+      Kubernetes VIM Installation <kubernetes_vim_installation.rst>
