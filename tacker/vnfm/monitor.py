@@ -232,7 +232,8 @@ class VNFAppMonitor(object):
 
     def _create_app_monitoring_dict(self, dev_attrs, mgmt_ip_address):
         app_policy = 'app_monitoring_policy'
-        appmonitoring_dict = ast.literal_eval(dev_attrs[app_policy])
+        appmonitoring_dict = ast.literal_eval(
+            dev_attrs[app_policy].decode('utf-8'))
         vdulist = appmonitoring_dict['vdus'].keys()
 
         for vduname in vdulist:
@@ -242,7 +243,7 @@ class VNFAppMonitor(object):
 
     def create_app_dict(self, context, vnf_dict):
         dev_attrs = vnf_dict['attributes']
-        mgmt_ip_address = vnf_dict['mgmt_ip_address']
+        mgmt_ip_address = vnf_dict['mgmt_ip_address'].decode("utf-8")
         return self._create_app_monitoring_dict(dev_attrs, mgmt_ip_address)
 
     def _invoke(self, driver, **kwargs):
