@@ -50,6 +50,50 @@ artifacts = {
     'type': 'tosca.artifacts.nfv.SwImage',
     'algorithm': 'sha512', 'hash': uuidsentinel.hash}
 
+filter = {
+    "usageState": ["NOT_IN_USE"],
+    "vnfPkgId": ["f04857cb-abdc-405f-8254-01501f3fa059"],
+    "vnfdId": ["b1bb0ce7-5555-0001-95ed-4840d70a1209"],
+    "vnfProductsFromProviders": [
+        {
+            "vnfProvider": "xxxxx",
+            "vnfProducts": [
+                {
+                    "vnfProductName": "artifactVNF",
+                    "versions": [
+                        {
+                            "vnfSoftwareVersion": "1.0",
+                            "vnfdVersions": ["v2.2"]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "vnfProvider": "xxxxx",
+            "vnfProducts": [
+                {
+                    "vnfProductName": "artifactVNF",
+                    "versions": [
+                        {
+                            "vnfSoftwareVersion": "1.0",
+                            "vnfdVersions": ["v2.2"]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "notificationTypes": ["VnfLcmOperationOccurrenceNotification"],
+    "operationalState": ["ENABLED"]
+}
+
+subscription_data = {
+    'id': "c3e5ea85-8e3d-42df-a636-3b7857cbd7f9",
+    'callback_uri': "fake_url",
+    'created_at': "2020-06-11 09:39:58"
+}
+
 fake_vnf_package_response = copy.deepcopy(vnf_package_data)
 fake_vnf_package_response.pop('user_data')
 fake_vnf_package_response.update({'id': uuidsentinel.package_uuid})

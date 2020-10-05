@@ -246,3 +246,54 @@ class VnfResource(model_base.BASE, models.SoftDeleteMixin,
     resource_type = sa.Column(sa.String(255), nullable=False)
     resource_identifier = sa.Column(sa.String(255), nullable=False)
     resource_status = sa.Column(sa.String(255), nullable=False)
+
+
+class VnfLcmSubscriptions(model_base.BASE, models.SoftDeleteMixin,
+                models.TimestampMixin):
+    """Contains all info about vnf LCM Subscriptions."""
+
+    __tablename__ = 'vnf_lcm_subscriptions'
+    id = sa.Column(sa.String(36), nullable=False, primary_key=True)
+    callback_uri = sa.Column(sa.String(255), nullable=False)
+    subscription_authentication = sa.Column(sa.JSON, nullable=True)
+
+
+class VnfLcmFilters(model_base.BASE):
+    """Contains all info about vnf LCM filters."""
+
+    __tablename__ = 'vnf_lcm_filters'
+    __maxsize__ = 65536
+    id = sa.Column(sa.Integer, nullable=True, primary_key=True)
+    subscription_uuid = sa.Column(sa.String(36),
+                           sa.ForeignKey('vnf_lcm_subscriptions.id'),
+                           nullable=False)
+    filter = sa.Column(sa.JSON, nullable=False)
+    notification_types = sa.Column(sa.VARBINARY(255), nullable=True)
+    notification_types_len = sa.Column(sa.Integer, nullable=True)
+    operation_types = sa.Column(
+        sa.LargeBinary(
+            length=__maxsize__),
+        nullable=True)
+    operation_types_len = sa.Column(sa.Integer, nullable=True)
+
+
+class VnfLcmOpOccs(model_base.BASE, models.SoftDeleteMixin,
+                models.TimestampMixin):
+    """VNF LCM OP OCCS Fields"""
+
+    __tablename__ = 'vnf_lcm_op_occs'
+    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
+    vnf_instance_id = sa.Column(sa.String(36),
+                                sa.ForeignKey('vnf_instances.id'),
+                                nullable=False)
+    state_entered_time = sa.Column(sa.DateTime(), nullable=False)
+    start_time = sa.Column(sa.DateTime(), nullable=False)
+    operation_state = sa.Column(sa.String(length=255), nullable=False)
+    operation = sa.Column(sa.String(length=255), nullable=False)
+    is_automatic_invocation = sa.Column(sa.Boolean, nullable=False)
+    operation_params = sa.Column(sa.JSON(), nullable=True)
+    is_cancel_pending = sa.Column(sa.Boolean(), nullable=False)
+    error = sa.Column(sa.JSON(), nullable=True)
+    resource_changes = sa.Column(sa.JSON(), nullable=True)
+    changed_info = sa.Column(sa.JSON(), nullable=True)
+    error_point = sa.Column(sa.Integer, nullable=False)

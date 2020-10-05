@@ -90,3 +90,11 @@ class VnflcmAPIRouter(wsgi.Router):
         self._setup_route(mapper,
                 "/vnf_instances/{id}/heal",
                 methods, controller, default_resource)
+
+        methods = {"GET": "subscription_list", "POST": "register_subscription"}
+        self._setup_route(mapper, "/subscriptions",
+                methods, controller, default_resource)
+
+        methods = {"GET": "subscription_show", "DELETE": "delete_subscription"}
+        self._setup_route(mapper, "/subscriptions/{subscriptionId}",
+                methods, controller, default_resource)

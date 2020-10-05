@@ -13,24 +13,41 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
+
+import ast
+import json
+import re
+import traceback
 
 import six
 from six.moves import http_client
 import webob
 
+from urllib import parse
+
+from tacker._i18n import _
 from tacker.api.schemas import vnf_lcm
 from tacker.api import validation
 from tacker.api.views import vnf_lcm as vnf_lcm_view
 from tacker.common import exceptions
 from tacker.common import utils
 from tacker.conductor.conductorrpc import vnf_lcm_rpc
+import tacker.conf
 from tacker.extensions import nfvo
+from tacker import manager
 from tacker import objects
 from tacker.objects import fields
+from tacker.objects import vnf_lcm_subscriptions as subscription_obj
 from tacker.policies import vnf_lcm as vnf_lcm_policies
 from tacker.vnfm import vim_client
 from tacker import wsgi
+
+CONF = tacker.conf.CONF
+
+LOG = logging.getLogger(__name__)
 
 
 def check_vnf_state(action, instantiation_state=None, task_state=(None,)):
@@ -70,11 +87,32 @@ def check_vnf_state(action, instantiation_state=None, task_state=(None,)):
 
 class VnfLcmController(wsgi.Controller):
 
+    notification_type_list = ['VnfLcmOperationOccurrenceNotification',
+                          'VnfIdentifierCreationNotification',
+                          'VnfIdentifierDeletionNotification']
+    operation_type_list = ['INSTANTIATE',
+                       'SCALE',
+                       'SCALE_TO_LEVEL',
+                       'CHANGE_FLAVOUR',
+                       'TERMINATE',
+                       'HEAL',
+                       'OPERATE',
+                       'CHANGE_EXT_CONN',
+                       'MODIFY_INFO']
+    operation_state_list = ['STARTING',
+                        'PROCESSING',
+                        'COMPLETED',
+                        'FAILED_TEMP',
+                        'FAILED',
+                        'ROLLING_BACK',
+                        'ROLLED_BACK']
+
     _view_builder_class = vnf_lcm_view.ViewBuilder
 
     def __init__(self):
         super(VnfLcmController, self).__init__()
         self.rpc_api = vnf_lcm_rpc.VNFLcmRPCAPI()
+        self._vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
 
     def _get_vnf_instance_href(self, vnf_instance):
         return '/vnflcm/v1/vnf_instances/%s' % vnf_instance.id
@@ -348,6 +386,193 @@ class VnfLcmController(wsgi.Controller):
 
         vnf_instance = self._get_vnf_instance(context, id)
         self._heal(context, vnf_instance, body)
+
+    @wsgi.response(http_client.CREATED)
+    @validation.schema(vnf_lcm.register_subscription)
+    def register_subscription(self, request, body):
+        subscription_request_data = body
+        if subscription_request_data.get('filter'):
+            # notificationTypes check
+            notification_types = subscription_request_data.get(
+                "filter").get("notificationTypes")
+            for notification_type in notification_types:
+                if notification_type not in self.notification_type_list:
+                    msg = (
+                        _("notificationTypes value mismatch: %s") %
+                        notification_type)
+                    return self._make_problem_detail(
+                        msg, 400, title='Bad Request')
+
+            # operationTypes check
+            operation_types = subscription_request_data.get(
+                "filter").get("operationTypes")
+            for operation_type in operation_types:
+                if operation_type not in self.operation_type_list:
+                    msg = (
+                        _("operationTypes value mismatch: %s") %
+                        operation_type)
+                    return self._make_problem_detail(
+                        msg, 400, title='Bad Request')
+
+        subscription_id = uuidutils.generate_uuid()
+
+        vnf_lcm_subscription = subscription_obj.LccnSubscriptionRequest(
+            context=request.context)
+        vnf_lcm_subscription.id = subscription_id
+        vnf_lcm_subscription.callback_uri = subscription_request_data.get(
+            'callbackUri')
+        vnf_lcm_subscription.subscription_authentication = \
+            subscription_request_data.get('subscriptionAuthentication')
+        LOG.debug("filter %s " % subscription_request_data.get('filter'))
+        LOG.debug(
+            "filter type %s " %
+            type(
+                subscription_request_data.get('filter')))
+        filter_uni = subscription_request_data.get('filter')
+        filter = ast.literal_eval(str(filter_uni).replace("u'", "'"))
+
+        try:
+            vnf_lcm_subscription = vnf_lcm_subscription.create(filter)
+            LOG.debug("vnf_lcm_subscription %s" % vnf_lcm_subscription)
+        except exceptions.SeeOther as e:
+            if re.search("^303", str(e)):
+                res = self._make_problem_detail(
+                    "See Other", 303, title='See Other')
+                link = (
+                    'LINK',
+                    CONF.vnf_lcm.endpoint_url +
+                    "/vnflcm/v1/subscriptions/" +
+                    str(e)[
+                        3:])
+                res.headerlist.append(link)
+                return res
+            else:
+                LOG.error(traceback.format_exc())
+                return self._make_problem_detail(
+                    str(e), 500, title='Internal Server Error')
+
+        result = self._view_builder.subscription_create(vnf_lcm_subscription,
+                                                        filter)
+        location = result.get('_links', {}).get('self', {}).get('href')
+        headers = {"location": location}
+        return wsgi.ResponseObject(result, headers=headers)
+
+    @wsgi.response(http_client.OK)
+    def subscription_show(self, request, subscriptionId):
+        try:
+            vnf_lcm_subscriptions = (
+                subscription_obj.LccnSubscriptionRequest.
+                vnf_lcm_subscriptions_show(request.context, subscriptionId))
+            if not vnf_lcm_subscriptions:
+                msg = (
+                    _("Can not find requested vnf lcm subscriptions: %s") %
+                    subscriptionId)
+                return self._make_problem_detail(msg, 404, title='Not Found')
+        except Exception as e:
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
+
+        return self._view_builder.subscription_show(vnf_lcm_subscriptions)
+
+    @wsgi.response(http_client.OK)
+    def subscription_list(self, request):
+        nextpage_opaque_marker = ""
+        paging = 1
+
+        re_url = request.path_url
+        query_params = request.query_string
+        if query_params:
+            query_params = parse.unquote(query_params)
+        LOG.debug("query_params %s" % query_params)
+        if query_params:
+            query_param_list = query_params.split('&')
+            for query_param in query_param_list:
+                query_param_key_value = query_param.split('=')
+                if len(query_param_key_value) != 2:
+                    msg = _("Request query parameter error")
+                    return self._make_problem_detail(
+                        msg, 400, title='Bad Request')
+                if query_param_key_value[0] == 'nextpage_opaque_marker':
+                    nextpage_opaque_marker = query_param_key_value[1]
+                if query_param_key_value[0] == 'page':
+                    paging = int(query_param_key_value[1])
+
+        try:
+            vnf_lcm_subscriptions = (
+                subscription_obj.LccnSubscriptionRequest.
+                vnf_lcm_subscriptions_list(request.context))
+            LOG.debug("vnf_lcm_subscriptions %s" % vnf_lcm_subscriptions)
+            subscription_data, last = self._view_builder.subscription_list(
+                vnf_lcm_subscriptions, nextpage_opaque_marker, paging)
+            LOG.debug("last %s" % last)
+        except Exception as e:
+            LOG.error(traceback.format_exc())
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
+
+        if subscription_data == 400:
+            msg = _("Number of records exceeds nextpage_opaque_marker")
+            return self._make_problem_detail(msg, 400, title='Bad Request')
+
+        # make response
+        res = webob.Response(content_type='application/json')
+        res.body = jsonutils.dump_as_bytes(subscription_data)
+        res.status_int = 200
+        if nextpage_opaque_marker:
+            if not last:
+                ln = '<%s?page=%s>;rel="next"; title*="next chapter"' % (
+                    re_url, paging + 1)
+                # Regarding the setting in http header related to
+                # nextpage control, RFC8288 and NFV-SOL013
+                # specifications have not been confirmed.
+                # Therefore, it is implemented by setting "page",
+                # which is a general control method of WebAPI,
+                # as "URI-Reference" of Link header.
+
+                links = ('Link', ln)
+                res.headerlist.append(links)
+        LOG.debug("subscription_list res %s" % res)
+
+        return res
+
+    @wsgi.response(http_client.NO_CONTENT)
+    def delete_subscription(self, request, subscriptionId):
+        try:
+            vnf_lcm_subscription = \
+                subscription_obj.LccnSubscriptionRequest.destroy(
+                    request.context, subscriptionId)
+            if vnf_lcm_subscription == 404:
+                msg = (
+                    _("Can not find requested vnf lcm subscription: %s") %
+                    subscriptionId)
+                return self._make_problem_detail(msg, 404, title='Not Found')
+        except Exception as e:
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
+
+    # Generate a response when an error occurs as a problem_detail object
+    def _make_problem_detail(
+            self,
+            detail,
+            status,
+            title=None,
+            type=None,
+            instance=None):
+        '''This process returns the problem_detail to the caller'''
+        LOG.error(detail)
+        res = webob.Response(content_type='application/problem+json')
+        problem_details = {}
+        if type:
+            problem_details['type'] = type
+        if title:
+            problem_details['title'] = title
+        problem_details['detail'] = detail
+        problem_details['status'] = status
+        if instance:
+            problem_details['instance'] = instance
+        res.text = json.dumps(problem_details)
+        res.status_int = status
+        return res
 
 
 def create_resource():

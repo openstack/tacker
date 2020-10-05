@@ -28,6 +28,11 @@
     The response is about a redirection hint. The header of the response
     usually contains a 'location' value where requesters can check to track
     the real location of the resource.
+303:
+  default: |
+    The server is redirecting the user agent to a different resource, as indicated
+    by a URI in the Location header field, which is intended to provide an indirect
+    response to the original request.
 
 #################
 #  Error Codes  #
