@@ -78,6 +78,12 @@ class VnflcmAPIRouter(wsgi.Router):
                 methods, controller, default_resource)
 
         # Allowed methods on
+        # /vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId} resource
+        methods = {"GET": "show_lcm_op_occs"}
+        self._setup_route(mapper, "/vnf_lcm_op_occs/{id}",
+                          methods, controller, default_resource)
+
+        # Allowed methods on
         # /vnflcm/v1/vnf_instances/{vnfInstanceId}/terminate resource
         methods = {"POST": "terminate"}
         self._setup_route(mapper,

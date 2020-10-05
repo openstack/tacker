@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+from copy import deepcopy
 import datetime
 import iso8601
 import os
@@ -31,6 +31,9 @@ from tacker.objects.vim_connection import VimConnectionInfo
 from tacker.tests import constants
 from tacker.tests import uuidsentinel
 from tacker import wsgi
+
+import tacker.conf
+CONF = tacker.conf.CONF
 
 
 def return_default_vim():
@@ -140,12 +143,44 @@ def return_vnf_instance_model(
 
 def return_vnf_instance(
         instantiated_state=fields.VnfInstanceState.NOT_INSTANTIATED,
+        scale_status=None,
         **updates):
 
     if instantiated_state == fields.VnfInstanceState.NOT_INSTANTIATED:
         data = _model_non_instantiated_vnf_instance(**updates)
         data['instantiation_state'] = instantiated_state
         vnf_instance_obj = objects.VnfInstance(**data)
+
+    elif scale_status:
+        data = _model_non_instantiated_vnf_instance(**updates)
+        data['instantiation_state'] = instantiated_state
+        vnf_instance_obj = objects.VnfInstance(**data)
+
+        get_instantiated_vnf_info = {
+            'flavour_id': uuidsentinel.flavour_id,
+            'vnf_state': 'STARTED',
+            'instance_id': uuidsentinel.instance_id
+        }
+        instantiated_vnf_info = get_instantiated_vnf_info
+
+        s_status = {"aspect_id": "SP1", "scale_level": 1}
+        scale_status = objects.ScaleInfo(**s_status)
+
+        instantiated_vnf_info.update(
+            {"ext_cp_info": [],
+            'ext_virtual_link_info': [],
+            'ext_managed_virtual_link_info': [],
+            'vnfc_resource_info': [],
+            'vnf_virtual_link_resource_info': [],
+            'virtual_storage_resource_info': [],
+            "flavour_id": "simple",
+            "scale_status": [scale_status],
+            "vnf_instance_id": "171f3af2-a753-468a-b5a7-e3e048160a79",
+            "additional_params": {"key": "value"},
+           'vnf_state': "STARTED"})
+        info_data = objects.InstantiatedVnfInfo(**instantiated_vnf_info)
+
+        vnf_instance_obj.instantiated_vnf_info = info_data
     else:
         data = _model_non_instantiated_vnf_instance(**updates)
         data['instantiation_state'] = instantiated_state
@@ -704,6 +739,27 @@ def get_instantiate_vnf_request_with_ext_virtual_links(**updates):
     return instantiate_vnf_request
 
 
+def _get_vnf(**updates):
+    vnf_data = {
+        'tenant_id': uuidsentinel.tenant_id,
+        'name': "fake_name",
+        'vnfd_id': uuidsentinel.vnfd_id,
+        'vnf_instance_id': uuidsentinel.instance_id,
+        'mgmt_ip_address': "fake_mgmt_ip_address",
+        'status': 'ACTIVE',
+        'description': 'fake_description',
+        'placement_attr': 'fake_placement_attr',
+        'vim_id': 'uuidsentinel.vim_id',
+        'error_reason': 'fake_error_reason',
+        'attributes': {
+            "scale_group": '{"scaleGroupDict" : {"SP1": {"maxLevel" : 3}}}'}}
+
+    if updates:
+        vnf_data.update(**updates)
+
+    return vnf_data
+
+
 def get_dummy_grant_response():
     return {'VDU1': {'checksum': {'algorithm': 'fake algo',
                                   'hash': 'fake hash'},
@@ -756,3 +812,210 @@ def wsgi_app_v1(fake_auth_context=None):
                                    uuidsentinel.project_id, is_admin=True)
     api_v1 = InjectContext(ctxt, inner_app_v1)
     return api_v1
+
+
+VNFLCMOPOCC_RESPONSE = {
+    '_links': {
+        "self": {
+            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
+            'f26f181d-7891-4720-b022-b074ec1733ef'
+        },
+        "vnfInstance": {
+            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_instances/'
+            'f26f181d-7891-4720-b022-b074ec1733ef'
+        },
+        "rollback": {
+            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
+            'f26f181d-7891-4720-b022-b074ec1733ef/rollback'
+        },
+        "grant": {
+            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
+            'f26f181d-7891-4720-b022-b074ec1733ef/grant'
+        }},
+    'operationState': 'COMPLETED',
+    'stateEnteredTime': datetime.datetime(1900, 1, 1, 1, 1, 1,
+                            tzinfo=iso8601.UTC),
+    'startTime': datetime.datetime(1900, 1, 1, 1, 1, 1,
+                            tzinfo=iso8601.UTC),
+    'vnfInstanceId': 'f26f181d-7891-4720-b022-b074ec1733ef',
+    'operation': 'MODIFY_INFO',
+    'isAutomaticInvocation': False,
+    'operationParams': '{"is_reverse": False, "is_auto": False}',
+    'error': {
+        'status': 500,
+        'detail': "name 'con' is not defined",
+        'title': "ERROR"
+    },
+    'id': 'f26f181d-7891-4720-b022-b074ec1733ef',
+    'isCancelPending': False,
+    'resourceChanges': {
+        'affectedVnfcs': [{
+            'id': 'f26f181d-7891-4720-b022-b074ec1733ef',
+            'vduId': 'VDU1',
+            'changeType': 'ADDED',
+            'computeResource': {
+                'vimConnectionId': 'f26f181d-7891-4720-b022-b074ec1733ef',
+                'resourceId': 'f26f181d-7891-4720-b022-b074ec1733ef',
+                'vimLevelResourceType': "OS::Nova::Server",
+            },
+            'affectedVnfcCpIds': [],
+            'addedStorageResourceIds': [],
+            'removedStorageResourceIds': []
+        }],
+        'affectedVirtualLinks': [{
+            'id': 'f26f181d-7891-4720-b022-b074ec1733ef',
+            'vnfVirtualLinkDescId': 'f26f181d-7891-4720-b022-b074ec1733ef',
+            'changeType': 'ADDED',
+            'networkResource': {
+                'vimConnectionId': 'f26f181d-7891-4720-b022-b074ec1733ef',
+                'resourceId': 'f26f181d-7891-4720-b022-b074ec1733ef',
+                'vimLevelResourceType': 'COMPUTE'
+            }
+        }],
+        'affectedVirtualStorages': [{
+            'id': 'f26f181d-7891-4720-b022-b074ec1733ef',
+            'virtualStorageDescId': 'f26f181d-7891-4720-b022-b074ec1733ef',
+            'changeType': 'ADDED',
+            'storageResource': {
+                'vimConnectionId': 'f26f181d-7891-4720-b022-b074ec1733ef',
+                'resourceId': 'f26f181d-7891-4720-b022-b074ec1733ef',
+                'vimLevelResourceType': 'COMPUTE'
+            }
+        }]
+    },
+    'changedInfo': {
+        'vimConnectionInfo': [],
+        'vimConnectionInfoDeleteIds': [],
+        'vnfPkgId': None,
+        'vnfInstanceName': 'fake_name',
+        'vnfInstanceDescription': "fake_vnf_instance_description",
+        'vnfdId': 'f26f181d-7891-4720-b022-b074ec1733ef',
+        'vnfProvider': 'fake_vnf_provider',
+        'vnfProductName': 'fake_vnf_product_name',
+        'vnfSoftwareVersion': 'fake_vnf_software_version',
+        'vnfdVersion': 'fake_vnfd_version'
+    }
+}
+
+VNFLCMOPOCC_INDEX_RESPONSE = [VNFLCMOPOCC_RESPONSE]
+
+
+def index_response(remove_attrs=None, vnf_lcm_op_occs_updates=None):
+    # Returns VNFLCMOPOCC_RESPONSE
+    # parameter remove_attrs is a list of attribute names
+    # to be removed before returning the response
+    if not remove_attrs:
+        return VNFLCMOPOCC_INDEX_RESPONSE
+    vnf_lcm_op_occs = deepcopy(VNFLCMOPOCC_RESPONSE)
+    for attr in remove_attrs:
+        vnf_lcm_op_occs.pop(attr, None)
+    if vnf_lcm_op_occs_updates:
+        vnf_lcm_op_occs.update(vnf_lcm_op_occs_updates)
+    return [vnf_lcm_op_occs]
+
+
+def fake_vnf_lcm_op_occs():
+    error = {"status": 500, "detail": "name 'con' is not defined",
+            "title": "ERROR"}
+    error_obj = objects.ProblemDetails(**error)
+
+    compute_resource = {
+        "vim_connection_id":
+        "f26f181d-7891-4720-b022-b074ec1733ef",
+        "resource_id":
+        "f26f181d-7891-4720-b022-b074ec1733ef",
+        "vim_level_resource_type": "OS::Nova::Server"}
+    compute_resource_obj = objects.ResourceHandle(**compute_resource)
+    affected_vnfcs = {
+        "id": "f26f181d-7891-4720-b022-b074ec1733ef",
+        "vdu_id": "VDU1",
+        "change_type": "ADDED",
+        "compute_resource": compute_resource_obj,
+        "affected_vnfc_cp_ids": [],
+        "added_storage_resource_ids": [],
+        "removed_storage_sesource_ids": []
+    }
+    affected_vnfcs_obj = objects.AffectedVnfc(**affected_vnfcs)
+
+    network_resource = {
+        "vim_connection_id":
+        "f26f181d-7891-4720-b022-b074ec1733ef",
+        "resource_id":
+        "f26f181d-7891-4720-b022-b074ec1733ef",
+        "vim_level_resource_type": "COMPUTE"
+    }
+    network_resource_obj = \
+        objects.ResourceHandle(**network_resource)
+    affected_virtual_links = {
+        "id": "f26f181d-7891-4720-b022-b074ec1733ef",
+        "vnf_virtual_link_desc_id":
+        "f26f181d-7891-4720-b022-b074ec1733ef",
+        "change_type": "ADDED",
+        "network_resource": network_resource_obj,
+    }
+    affected_virtual_links_obj = \
+        objects.AffectedVirtualLink(**affected_virtual_links)
+
+    storage_resource = {
+        "vim_connection_id":
+        "f26f181d-7891-4720-b022-b074ec1733ef",
+        "resource_id":
+        "f26f181d-7891-4720-b022-b074ec1733ef",
+        "vim_level_resource_type": "COMPUTE"}
+    storage_resource_obj = \
+        objects.ResourceHandle(**storage_resource)
+    affected_virtual_storages = {
+        "id": "f26f181d-7891-4720-b022-b074ec1733ef",
+        "virtual_storage_desc_id":
+        "f26f181d-7891-4720-b022-b074ec1733ef",
+        "change_type": "ADDED",
+        "storage_resource": storage_resource_obj,
+    }
+    affected_virtual_storages_obj = \
+        objects.AffectedVirtualStorage(**affected_virtual_storages)
+
+    resource_changes = {
+        "affected_vnfcs": [affected_vnfcs_obj],
+        "affected_virtual_links": [affected_virtual_links_obj],
+        "affected_virtual_storages": [affected_virtual_storages_obj]
+    }
+    resource_changes_obj = objects.ResourceChanges(**resource_changes)
+
+    changed_info = {
+        "vnf_instance_name": "fake_name",
+        "vnf_instance_description":
+            "fake_vnf_instance_description",
+        "metadata": {},
+        "vnfd_id": "f26f181d-7891-4720-b022-b074ec1733ef",
+        "vnf_provider": "fake_vnf_provider",
+        "vnf_product_name": "fake_vnf_product_name",
+        "vnf_software_version": "fake_vnf_software_version",
+        "vnfd_version": "fake_vnfd_version"
+    }
+    changed_info_obj = objects.VnfInfoModifications(**changed_info)
+
+    vnf_lcm_op_occs = {
+        'id': constants.UUID,
+        'operation_state': 'COMPLETED',
+        'state_entered_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
+                                tzinfo=iso8601.UTC),
+        'start_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
+                                tzinfo=iso8601.UTC),
+        'vnf_instance_id': constants.UUID,
+        'operation': 'MODIFY_INFO',
+        'is_automatic_invocation': False,
+        'operation_params': '{"is_reverse": False, "is_auto": False}',
+        'is_cancel_pending': False,
+        'error': error_obj,
+        'resource_changes': resource_changes_obj,
+        'changed_info': changed_info_obj
+    }
+
+    return vnf_lcm_op_occs
+
+
+def return_vnf_lcm_opoccs_obj():
+    vnf_lcm_op_occs = fake_vnf_lcm_op_occs()
+    obj = objects.VnfLcmOpOcc(**vnf_lcm_op_occs)
+
+    return obj

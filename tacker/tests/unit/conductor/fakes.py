@@ -103,6 +103,7 @@ def get_vnf_package_vnfd():
 
 def get_lcm_op_occs_data():
     return {
+        "id": uuidsentinel.lcm_op_occs_id,
         "tenant_id": uuidsentinel.tenant_id,
         'operation_state': 'PROCESSING',
         'state_entered_time':

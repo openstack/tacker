@@ -12,6 +12,12 @@ vnf_instance_id:
   in: path
   required: true
   type: string
+vnf_lcm_op_occ_id:
+  description: |
+    Identifier of the VNF lifecycle management operation occurrence.
+  in: path
+  required: true
+  type: string
 
 # variables in body
 added_storage_resource_ids:
@@ -714,6 +720,15 @@ is_automatic_invocation:
   in: body
   required: true
   type: boolean
+is_cancel_pending:
+  description: |
+    If the VNF LCM operation occurrence is in "STARTING",
+    "PROCESSING" or "ROLLING_BACK" state and the
+    operation is being cancelled, this attribute shall be set to
+    true. Otherwise, it shall be set to false.
+  in: body
+  required: true
+  type: boolean
 is_dynamic:
   description: |
     Indicates whether this set of addresses was assigned dynamically (true)
@@ -827,6 +842,45 @@ notification_vnf_lcm_op_occ_id:
   in: body
   required: true
   type: string
+operation:
+  description: |
+    Type of the actual LCM operation represented by this
+    VNF LCM operation occurrence.
+  in: body
+  required: true
+  type: string
+operation_params:
+  description: |
+    Input parameters of the LCM operation. This attribute
+    shall be formatted according to the request data type of
+    the related LCM operation.
+    The following mapping between operationType and the
+    data type of this attribute shall apply:
+
+    INSTANTIATE: InstantiateVnfRequest
+
+    SCALE: ScaleVnfRequest
+
+    HEAL: HealVnfRequest
+
+    TERMINATE: TerminateVnfRequest
+
+    MODIFY_INFO: VnfInfoModificationRequest
+
+    This attribute shall be present if this data type is returned
+    in a response to reading an individual resource, and may
+    be present according to the chosen attribute selector
+    parameter if this data type is returned in a response to a
+    query of a container resource.
+  in: body
+  required: false
+  type: string
+operation_state:
+  description: |
+    The state of the LCM operation.
+  in: body
+  required: true
+  type: string
 removed_storage_resource_ids:
   description: |
     References to VirtualStorage resources that
@@ -840,6 +894,14 @@ removed_storage_resource_ids:
   in: body
   required: false
   type: array
+resource_changes:
+  description: |
+    This attribute contains information about the cumulative
+    changes to virtualised resources that were performed so
+    far by the LCM operation since its start, if applicable.
+  in: body
+  required: false
+  type: object
 resource_handle:
   description: |
     Reference to the resource realizing this VL.
@@ -881,6 +943,18 @@ scale_status_scale_level:
     Indicates the scale level. The minimum value shall be 0
     and the maximum value shall be less than or equal to maxScaleLevel as
     described in the VNFD.
+  in: body
+  required: true
+  type: string
+start_time:
+  description: |
+    Date-time of the start of the operation.
+  in: body
+  required: true
+  type: string
+state_entered_time:
+  description: |
+    Date-time when the current state has been entered.
   in: body
   required: true
   type: string
@@ -1167,6 +1241,18 @@ vnf_instance_vnfd_id:
 vnf_instance_vnfd_version:
   description: |
     Identifies the version of the VNFD. The value is copied from the VNFD.
+  in: body
+  required: true
+  type: string
+vnf_lcm_op_occ_id_response:
+  description: |
+    Identifier of this VNF lifecycle management operation occurrence.
+  in: body
+  required: true
+  type: string
+vnf_lcm_vnf_instance_id:
+  description: |
+    Identifier of the VNF instance to which the operation applies.
   in: body
   required: true
   type: string
