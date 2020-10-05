@@ -63,7 +63,8 @@ class VimClient(object):
         vim_auth = self._build_vim_auth(vim_info)
         vim_res = {'vim_auth': vim_auth, 'vim_id': vim_info['id'],
                    'vim_name': vim_info.get('name', vim_info['id']),
-                   'vim_type': vim_info['type']}
+                   'vim_type': vim_info['type'],
+                   'tenant': vim_info['tenant_id']}
         return vim_res
 
     @staticmethod

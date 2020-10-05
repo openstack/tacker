@@ -26,7 +26,8 @@ class TestVIMClient(base.TestCase):
         self.vim_info = {'id': 'aaaa', 'name': 'VIM0', 'type': 'test_vim',
                          'auth_cred': {'password': '****'},
                          'auth_url': 'http://127.0.0.1/identity/v3',
-                         'placement_attr': {'regions': ['TestRegionOne']}}
+                         'placement_attr': {'regions': ['TestRegionOne']},
+                         'tenant_id': 'test'}
         self.vimclient = vim_client.VimClient()
         self.service_plugins = mock.Mock()
         self.nfvo_plugin = mock.Mock()
@@ -71,7 +72,8 @@ class TestVIMClient(base.TestCase):
                                                 vim_id=self.vim_info['id'],
                                                 region_name='TestRegionOne')
             vim_expect = {'vim_auth': {'password': '****'}, 'vim_id': 'aaaa',
-                          'vim_name': 'VIM0', 'vim_type': 'test_vim'}
+                          'vim_name': 'VIM0', 'vim_type': 'test_vim',
+                          'tenant': 'test'}
             self.assertEqual(vim_expect, vim_result)
 
     def test_get_vim_with_default_name(self):
@@ -86,7 +88,8 @@ class TestVIMClient(base.TestCase):
                                                 vim_id=self.vim_info['id'],
                                                 region_name='TestRegionOne')
             vim_expect = {'vim_auth': {'password': '****'}, 'vim_id': 'aaaa',
-                          'vim_name': 'aaaa', 'vim_type': 'test_vim'}
+                          'vim_name': 'aaaa', 'vim_type': 'test_vim',
+                          'tenant': 'test'}
             self.assertEqual(vim_expect, vim_result)
 
     def test_find_vim_key_with_key_not_found_exception(self):
