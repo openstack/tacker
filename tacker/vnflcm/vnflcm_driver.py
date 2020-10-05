@@ -132,8 +132,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             setattr(vnf_instance, k, v)
         vnf_instance.save()
 
-    def _instantiate_vnf(self, context, vnf_instance, vim_connection_info,
-            instantiate_vnf_req):
+    def _instantiate_vnf(self, context, vnf_instance, vnf_dict,
+            vim_connection_info, instantiate_vnf_req):
         vnfd_dict = vnflcm_utils._get_vnfd_dict(context, vnf_instance.vnfd_id,
                 instantiate_vnf_req.flavour_id)
         base_hot_dict = vnflcm_utils._get_base_hot_dict(
@@ -166,7 +166,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vnfd_dict_to_create_final_dict = copy.deepcopy(vnfd_dict)
         final_vnf_dict = vnflcm_utils._make_final_vnf_dict(
             vnfd_dict_to_create_final_dict, vnf_instance.id,
-            vnf_instance.vnf_instance_name, param_for_subs_map)
+            vnf_instance.vnf_instance_name, param_for_subs_map, vnf_dict)
 
         try:
             instance_id = self._vnf_manager.invoke(
@@ -224,7 +224,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
     @log.log
     @rollback_vnf_instantiated_resources
-    def instantiate_vnf(self, context, vnf_instance, instantiate_vnf_req):
+    def instantiate_vnf(self, context, vnf_instance, vnf_dict,
+            instantiate_vnf_req):
 
         vim_connection_info_list = vnflcm_utils.\
             _get_vim_connection_info_from_vnf_req(vnf_instance,
@@ -239,8 +240,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
             vim_info, context)
 
-        self._instantiate_vnf(context, vnf_instance, vim_connection_info,
-                              instantiate_vnf_req)
+        self._instantiate_vnf(context, vnf_instance, vnf_dict,
+                              vim_connection_info, instantiate_vnf_req)
 
         self._vnf_instance_update(context, vnf_instance,
                     instantiation_state=fields.VnfInstanceState.INSTANTIATED,
@@ -363,8 +364,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 raise exceptions.VnfHealFailed(id=vnf_instance.id,
                     error=encodeutils.exception_to_unicode(exp))
 
-    def _respawn_vnf(self, context, vnf_instance, vim_connection_info,
-            heal_vnf_request):
+    def _respawn_vnf(self, context, vnf_instance, vnf_dict,
+                    vim_connection_info, heal_vnf_request):
         try:
             self._delete_vnf_instance_resources(context, vnf_instance,
                 vim_connection_info, update_instantiated_state=False)
@@ -388,8 +389,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             from_vnf_instance(vnf_instance)
 
         try:
-            self._instantiate_vnf(context, vnf_instance, vim_connection_info,
-                                  instantiate_vnf_request)
+            self._instantiate_vnf(context, vnf_instance, vnf_dict,
+                                  vim_connection_info, instantiate_vnf_request)
         except Exception as exc:
             with excutils.save_and_reraise_exception() as exc_ctxt:
                 exc_ctxt.reraise = False
@@ -407,7 +408,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
     @log.log
     @revert_to_error_task_state
-    def heal_vnf(self, context, vnf_instance, heal_vnf_request):
+    def heal_vnf(self, context, vnf_instance, vnf_dict, heal_vnf_request):
         LOG.info("Request received for healing vnf '%s'", vnf_instance.id)
         vim_info = vnflcm_utils._get_vim(context,
             vnf_instance.vim_connection_info)
@@ -416,8 +417,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vim_info, context)
 
         if not heal_vnf_request.vnfc_instance_id:
-            self._respawn_vnf(context, vnf_instance, vim_connection_info,
-                         heal_vnf_request)
+            self._respawn_vnf(context, vnf_instance, vnf_dict,
+                             vim_connection_info, heal_vnf_request)
         else:
             self._heal_vnf(context, vnf_instance, vim_connection_info,
                       heal_vnf_request)

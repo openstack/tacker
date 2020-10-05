@@ -97,9 +97,15 @@ class TestVnfPackage(SqlTestCase):
             uuidsentinel.invalid_uuid)
 
     def test_create_with_id(self):
-        vnf_obj = {'id': uuidsentinel.uuid}
-        vnf_pack = objects.VnfPackage(context=self.context, **vnf_obj)
-        self.assertRaises(exceptions.ObjectActionError, vnf_pack.create)
+        vnfpkgm = objects.VnfPackage(context=self.context,
+                **fakes.vnf_package_data)
+        vnfpkgm['id'] = uuidsentinel.uuid
+        vnfpkgm.create()
+        self.assertTrue(vnfpkgm.id)
+        self.assertEqual('CREATED', vnfpkgm.onboarding_state)
+        self.assertEqual('NOT_IN_USE', vnfpkgm.usage_state)
+        self.assertEqual('DISABLED', vnfpkgm.operational_state)
+        self.assertEqual(0, vnfpkgm.size)
 
     def test_save(self):
         self.vnf_package.onboarding_state = 'ONBOARDED'

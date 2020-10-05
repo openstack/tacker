@@ -18,6 +18,7 @@ import functools
 import inspect
 import json
 import os
+import oslo_messaging
 import shutil
 import sys
 import time
@@ -28,7 +29,6 @@ import yaml
 from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
-import oslo_messaging
 from oslo_serialization import jsonutils
 from oslo_service import periodic_task
 from oslo_service import service
@@ -42,20 +42,25 @@ from sqlalchemy.orm import exc as orm_exc
 from tacker import auth
 from tacker.common import coordination
 from tacker.common import csar_utils
+from tacker.common import driver_manager
 from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import safe_utils
 from tacker.common import topics
 from tacker.common import utils
+import tacker.conf
 from tacker import context as t_context
 from tacker.db.common_services import common_services_db
 from tacker.db.nfvo import nfvo_db
+from tacker.db.vnfm import vnfm_db
 from tacker.extensions import nfvo
 from tacker.glance_store import store as glance_store
 from tacker import manager
 from tacker import objects
 from tacker.objects import fields
 from tacker.objects.vnf_package import VnfPackagesList
+from tacker.objects import vnfd as vnfd_db
+from tacker.objects import vnfd_attribute as vnfd_attribute_db
 from tacker.plugins.common import constants
 from tacker import service as tacker_service
 from tacker import version
@@ -63,7 +68,7 @@ from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnflcm import vnflcm_driver
 from tacker.vnfm import plugin
 
-CONF = cfg.CONF
+CONF = tacker.conf.CONF
 
 # NOTE(tpatil): keystone_authtoken opts registered explicitly as conductor
 # service doesn't use the keystonemiddleware.authtoken middleware as it's
@@ -96,6 +101,13 @@ OPTS = [cfg.StrOpt('user_domain_id',
 cfg.CONF.register_opts(OPTS, 'keystone_authtoken')
 
 LOG = logging.getLogger(__name__)
+
+_INACTIVE_STATUS = ('INACTIVE')
+_ACTIVE_STATUS = ('ACTIVE')
+_PENDING_STATUS = ('PENDING_CREATE',
+                   'PENDING_TERMINATE',
+                   'PENDING_DELETE',
+                   'PENDING_HEAL')
 
 
 def _delete_csar(context, vnf_package):
@@ -154,6 +166,9 @@ class Conductor(manager.Manager):
         super(Conductor, self).__init__(host=self.conf.host)
         self.vnfm_plugin = plugin.VNFMPlugin()
         self.vnflcm_driver = vnflcm_driver.VnfLcmDriver()
+        self.vnf_manager = driver_manager.DriverManager(
+            'tacker.tacker.vnfm.drivers',
+            cfg.CONF.tacker.infra_driver)
 
     def start(self):
         coordination.COORDINATOR.start()
@@ -223,7 +238,7 @@ class Conductor(manager.Manager):
                 vnf_sw_image.min_ram = 0
         vnf_sw_image.min_disk = int(sw_image.get('min_disk').split()[0])
         vnf_sw_image.size = int(sw_image.get('size').split()[0])
-        vnf_sw_image.image_path = ''
+        vnf_sw_image.image_path = sw_image['image_path']
         vnf_sw_image.software_image_id = sw_image['software_image_id']
         vnf_sw_image.metadata = sw_image.get('metadata', dict())
         vnf_sw_image.create()
@@ -233,8 +248,9 @@ class Conductor(manager.Manager):
         deploy_flavour.package_uuid = package_uuid
         deploy_flavour.flavour_id = flavour['flavour_id']
         deploy_flavour.flavour_description = flavour['flavour_description']
-        deploy_flavour.instantiation_levels = \
-            flavour.get('instantiation_levels')
+        if flavour.get('instantiation_levels'):
+            deploy_flavour.instantiation_levels = \
+                flavour.get('instantiation_levels')
         deploy_flavour.create()
 
         sw_images = flavour.get('sw_images')
@@ -273,27 +289,55 @@ class Conductor(manager.Manager):
         package_vnfd.vnfd_version = vnf_data.get('descriptor_version')
         package_vnfd.create()
 
+        self._onboard_vnfd(context, vnf_package, vnf_data, flavours)
+
         for flavour in flavours:
             self._create_flavour(context, vnf_package.id, flavour)
 
+    def _onboard_vnfd(self, context, vnf_package, vnf_data, flavours):
+        vnfd = vnfd_db.Vnfd(context=context)
+        vnfd.id = vnf_data.get('descriptor_id')
+        vnfd.tenant_id = context.tenant_id
+        vnfd.name = vnf_data.get('product_name') + '-' + \
+            vnf_data.get('descriptor_version')
+        vnfd.discription = vnf_data.get('discription')
+        for flavour in flavours:
+            if flavour.get('mgmt_driver'):
+                vnfd.mgmt_driver = flavour.get('mgmt_driver')
+            break
+        vnfd.create()
+
+        for flavour in flavours:
+            vnfd_attribute = vnfd_attribute_db.VnfdAttribute(context=context)
+            vnfd_attribute.id = uuidutils.generate_uuid()
+            vnfd_attribute.vnfd_id = vnf_data.get('descriptor_id')
+            vnfd_attribute.key = 'vnfd_' + flavour['flavour_id']
+            vnfd_attribute.value = \
+                yaml.dump(flavour.get('tpl_dict'), default_flow_style=False)
+            vnfd_attribute.create()
+
+            break
+
     @revert_upload_vnf_package
     def upload_vnf_package_content(self, context, vnf_package):
-        location = vnf_package.location_glance_store
-        zip_path = glance_store.load_csar(vnf_package.id, location)
-        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
-            context.elevated(), vnf_package.id, zip_path)
-        self._onboard_vnf_package(
-            context,
-            vnf_package,
-            vnf_data,
-            flavours,
-            vnf_artifacts)
         vnf_package.onboarding_state = (
-            fields.PackageOnboardingStateType.ONBOARDED)
-        vnf_package.operational_state = (
-            fields.PackageOperationalStateType.ENABLED)
+            fields.PackageOnboardingStateType.PROCESSING)
+        try:
+            vnf_package.save()
 
-        vnf_package.save()
+            location = vnf_package.location_glance_store
+            zip_path = glance_store.load_csar(vnf_package.id, location)
+            vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
+                context.elevated(), vnf_package.id, zip_path)
+            self._onboard_vnf_package(context, vnf_package, vnf_data, flavours)
+            vnf_package.onboarding_state = (
+                fields.PackageOnboardingStateType.ONBOARDED)
+            vnf_package.operational_state = (
+                fields.PackageOperationalStateType.ENABLED)
+            vnf_package.save()
+
+        except Exception as msg:
+            raise Exception(msg)
 
     @revert_upload_vnf_package
     def upload_vnf_package_from_uri(self, context, vnf_package,
@@ -433,6 +477,180 @@ class Conductor(manager.Manager):
 
         vnf_package.save()
 
+    @log.log
+    def _change_vnf_status(self, context, vnf_id,
+                        current_statuses, new_status, error_reason=None):
+        '''Change vnf status and add error reason if error'''
+        LOG.debug("Change status of vnf %s from %s to %s", vnf_id,
+            current_statuses, new_status)
+
+        with context.session.begin(subtransactions=True):
+            updated_values = {
+                'status': new_status, 'updated_at': timeutils.utcnow()}
+            vnf_model = (context.session.query(
+                vnfm_db.VNF).filter_by(id=vnf_id).first())
+            if not vnf_model:
+                raise exceptions.VnfInstanceNotFound(
+                    message="VNF {} not found".format(vnf_id))
+            if vnf_model.status not in current_statuses:
+                raise exceptions.VnfConflictState(
+                    message='Cannot change status to {} \
+                        while in {}'.format(
+                        updated_values['status'], vnf_model.status))
+            vnf_model.update(updated_values)
+
+    def _update_vnf_attributes(self, context, vnf_dict, current_statuses,
+            new_status):
+        with context.session.begin(subtransactions=True):
+            try:
+                modified_attributes = {}
+                added_attributes = {}
+                updated_values = {
+                    'mgmt_ip_address': vnf_dict['mgmt_ip_address'],
+                    'status': new_status,
+                    'updated_at': timeutils.utcnow()}
+                vnf_model = (context.session.query(vnfm_db.VNF).filter_by(
+                    id=vnf_dict['id']).first())
+                if not vnf_model:
+                    raise exceptions.VnfInstanceNotFound(
+                        message="VNF {} not found".format(vnf_dict['id']))
+                if vnf_model.status not in current_statuses:
+                    raise exceptions.VnfConflictState(
+                        message='Cannot change status to {} while \
+                            in {}'.format(updated_values['status'],
+                            vnf_model.status))
+                vnf_model.update(updated_values)
+
+                for key, val in vnf_dict['attributes'].items():
+                    vnf_attr_model = (context.session.query(
+                        vnfm_db.VNFAttribute).
+                        filter_by(vnf_id=vnf_dict['id']).
+                        filter_by(key=key).first())
+                    if vnf_attr_model:
+                        modified_attributes.update(
+                            {vnf_attr_model.key: vnf_attr_model.value})
+                        vnf_attr_model.update({'value': val})
+                    else:
+                        added_attributes.update({key: val})
+                        vnf_attr_model = vnfm_db.VNFAttribute(
+                            id=uuidutils.generate_uuid(),
+                            vnf_id=vnf_dict['id'],
+                            key=key, value=val)
+                        context.session.add(vnf_attr_model)
+
+            except Exception as exc:
+                with excutils.save_and_reraise_exception():
+                    LOG.error("Error in updating tables {}".format(str(exc)))
+                    # Roll back modified/added vnf attributes
+                    for key, val in modified_attributes.items():
+                        vnf_attr_model = (context.session.query(
+                            vnfm_db.VNFAttribute).
+                            filter_by(vnf_id=vnf_dict['id']).
+                            filter_by(key=key).first())
+                        if vnf_attr_model:
+                            vnf_attr_model.update({'value': val})
+
+                    for key, val in added_attributes.items():
+                        vnf_attr_model = (context.session.query(
+                            vnfm_db.VNFAttribute).
+                            filter_by(vnf_id=vnf_dict['id']).
+                            filter_by(key=key).first())
+                        if vnf_attr_model:
+                            vnf_attr_model.delete()
+
+    @log.log
+    def _build_instantiated_vnf_info(self, context, vnf_instance,
+            instantiate_vnf_req=None):
+        try:
+            # if instantiate_vnf_req is not present, create from vnf_instance
+            if not instantiate_vnf_req:
+                instantiate_vnf_req = objects.InstantiateVnfRequest.\
+                    from_vnf_instance(vnf_instance)
+
+            # update instantiated vnf info based on created stack resources
+            if hasattr(vnf_instance.instantiated_vnf_info, 'instance_id'):
+
+                # get final vnfd_dict
+                vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
+                    vnf_instance.vnfd_id,
+                    instantiate_vnf_req.flavour_id)
+
+                # get vim_connection info from request
+                vim_info = vnflcm_utils._get_vim(context,
+                        instantiate_vnf_req.vim_connection_info)
+
+                vim_connection_info = objects.VimConnectionInfo.\
+                    obj_from_primitive(vim_info, context)
+
+                vnflcm_utils._build_instantiated_vnf_info(vnfd_dict,
+                instantiate_vnf_req, vnf_instance,
+                vim_id=vim_connection_info.vim_id)
+
+                if vnf_instance.instantiated_vnf_info.instance_id:
+                    self.vnf_manager.invoke(vim_connection_info.vim_type,
+                                'post_vnf_instantiation', context=context,
+                                vnf_instance=vnf_instance,
+                                vim_connection_info=vim_connection_info)
+
+        except Exception as ex:
+            try:
+                vnf_instance.instantiated_vnf_info.reinitialize()
+                vnf_instance.instantiated_vnf_info.save()
+            finally:
+                error_msg = "Failed to build instantiation information \
+                            for vnf {} because {}".\
+                    format(vnf_instance.id, encodeutils.
+                        exception_to_unicode(ex))
+                LOG.error("_build_instantiated_vnf_info error {}".
+                    format(error_msg))
+                raise exceptions.TackerException(message=error_msg)
+
+    @log.log
+    def _update_instantiated_vnf_info(
+            self, context, vnf_instance, heal_vnf_request):
+        try:
+            vim_info = vnflcm_utils._get_vim(context,
+                                             vnf_instance.vim_connection_info)
+            vim_connection_info = \
+                objects.VimConnectionInfo.obj_from_primitive(
+                    vim_info, context)
+
+            self.vnf_manager.invoke(
+                vim_connection_info.vim_type, 'post_heal_vnf',
+                context=context, vnf_instance=vnf_instance,
+                vim_connection_info=vim_connection_info,
+                heal_vnf_request=heal_vnf_request)
+
+        except Exception as exp:
+            error_msg = \
+                "Failed to update instantiation information for vnf {}: {}".\
+                format(vnf_instance.id, encodeutils.exception_to_unicode(exp))
+            LOG.error("_update_instantiated_vnf_info error {}".
+                format(error_msg))
+            raise exceptions.TackerException(message=error_msg)
+
+    @log.log
+    def _add_additional_vnf_info(self, context, vnf_instance):
+        '''this method adds misc info to 'vnf' table'''
+        try:
+            if hasattr(vnf_instance.instantiated_vnf_info, 'instance_id'):
+                if vnf_instance.instantiated_vnf_info.instance_id:
+                    # add instance_id info
+                    instance_id = vnf_instance.instantiated_vnf_info.\
+                        instance_id
+                    with context.session.begin(subtransactions=True):
+                        updated_values = {'instance_id': instance_id}
+                        context.session.query(vnfm_db.VNF).filter_by(
+                            id=vnf_instance.id).update(updated_values)
+
+        except Exception as ex:
+            # with excutils.save_and_reraise_exception():
+            error_msg = "Failed to add additional vnf info to vnf {}. Details -\
+                 {}".format(
+                vnf_instance.id, str(ex))
+            LOG.error("_add_additional_vnf_info error {}".format(error_msg))
+            raise exceptions.TackerException(message=error_msg)
+
     @periodic_task.periodic_task(spacing=CONF.vnf_package_delete_interval)
     def _run_cleanup_vnf_packages(self, context):
         """Delete orphan extracted csar zip and files from extracted path
@@ -490,7 +708,6 @@ class Conductor(manager.Manager):
                     fields.LcmOccsOperationType.INSTANTIATE)
         operation_state = kwargs.get('operation_state',
                     fields.LcmOccsOperationState.PROCESSING)
-        evacuate_end_list = kwargs.get('evacuate_end_list', None)
         is_automatic_invocation = \
             kwargs.get('is_automatic_invocation', False)
         error = kwargs.get('error', None)
@@ -546,8 +763,7 @@ class Conductor(manager.Manager):
                operation_state == fields.LcmOccsOperationState.FAILED_TEMP):
                 affected_resources = vnflcm_utils._get_affected_resources(
                     old_vnf_instance=old_vnf_instance,
-                    new_vnf_instance=vnf_instance,
-                    extra_list=evacuate_end_list)
+                    new_vnf_instance=vnf_instance)
                 affected_resources_snake_case = \
                     utils.convert_camelcase_to_snakecase(affected_resources)
                 resource_change_obj = \
@@ -666,6 +882,7 @@ class Conductor(manager.Manager):
             self,
             context,
             vnf_instance,
+            vnf_dict,
             instantiate_vnf,
             vnf_lcm_op_occs_id):
 
@@ -679,30 +896,23 @@ class Conductor(manager.Manager):
                 request_obj=instantiate_vnf
             )
 
-            # Check if vnf is already instantiated.
-            vnf_instance = objects.VnfInstance.get_by_id(context,
-                                                         vnf_instance.id)
-            if vnf_instance.instantiation_state == \
-                    fields.VnfInstanceState.INSTANTIATED:
-                LOG.error("Vnf instance %(id)s is already in %(state)s state.",
-                          {"id": vnf_instance.id,
-                           "state": vnf_instance.instantiation_state})
-                return
+            # change vnf_status
+            if vnf_dict['status'] == 'INACTIVE':
+                vnf_dict['status'] = 'PENDING_CREATE'
+            self._change_vnf_status(context, vnf_instance.id,
+                            _INACTIVE_STATUS, 'PENDING_CREATE')
 
             self.vnflcm_driver.instantiate_vnf(context, vnf_instance,
-                                               instantiate_vnf)
+                                               vnf_dict, instantiate_vnf)
+            self._build_instantiated_vnf_info(context,
+                        vnf_instance,
+                        instantiate_vnf_req=instantiate_vnf)
 
-            vnf_package_vnfd = objects.VnfPackageVnfd.get_by_id(
-                context, vnf_instance.vnfd_id)
-            vnf_package = objects.VnfPackage.get_by_id(
-                context, vnf_package_vnfd.package_uuid,
-                expected_attrs=['vnfd'])
-            try:
-                self._update_package_usage_state(context, vnf_package)
-            except Exception:
-                with excutils.save_and_reraise_exception():
-                    LOG.error("Failed to update usage_state of vnf package %s",
-                              vnf_package.id)
+            self._update_vnf_attributes(context, vnf_dict,
+                                        _PENDING_STATUS, _ACTIVE_STATUS)
+            self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
+                        instantiation_state=fields.VnfInstanceState.
+                        INSTANTIATED, task_state=None)
 
             # Update vnf_lcm_op_occs table and send notification "COMPLETED"
             self._send_lcm_op_occ_notification(
@@ -715,6 +925,12 @@ class Conductor(manager.Manager):
             )
 
         except Exception as ex:
+            self._change_vnf_status(context, vnf_instance.id,
+                            _PENDING_STATUS, 'ERROR')
+
+            self._build_instantiated_vnf_info(context, vnf_instance,
+                instantiate_vnf)
+
             # Update vnf_lcm_op_occs table and send notification "FAILED_TEMP"
             self._send_lcm_op_occ_notification(
                 context=context,
@@ -730,17 +946,6 @@ class Conductor(manager.Manager):
     def terminate(self, context, vnf_lcm_op_occs_id,
                   vnf_instance, terminate_vnf_req, vnf_dict):
         try:
-            # Check if vnf is in instantiated state.
-            vnf_instance = objects.VnfInstance.get_by_id(context,
-                                                         vnf_instance.id)
-            if vnf_instance.instantiation_state == \
-                    fields.VnfInstanceState.NOT_INSTANTIATED:
-                LOG.error("Terminate action cannot be performed on vnf %(id)s "
-                          "which is in %(state)s state.",
-                          {"id": vnf_instance.id,
-                           "state": vnf_instance.instantiation_state})
-                return
-
             old_vnf_instance = copy.deepcopy(vnf_instance)
 
             # Update vnf_lcm_op_occs table and send notification "PROCESSING"
@@ -753,22 +958,18 @@ class Conductor(manager.Manager):
                 operation=fields.LcmOccsOperationType.TERMINATE
             )
 
-            self.vnflcm_driver.terminate_vnf(context, vnf_instance,
-                                             terminate_vnf_req,
-                                             vnf_lcm_op_occs_id)
+            self._change_vnf_status(context, vnf_instance.id,
+                            _ACTIVE_STATUS, 'PENDING_TERMINATE')
 
-            vnf_package_vnfd = \
-                objects.VnfPackageVnfd.get_by_id(context, vnf_instance.vnfd_id)
-            vnf_package = \
-                objects.VnfPackage.get_by_id(context,
-                                             vnf_package_vnfd.package_uuid,
-                                             expected_attrs=['vnfd'])
-            try:
-                self._update_package_usage_state(context, vnf_package)
-            except Exception:
-                with excutils.save_and_reraise_exception():
-                    LOG.error("Failed to update usage_state of vnf package %s",
-                              vnf_package.id)
+            self.vnflcm_driver.terminate_vnf(context, vnf_instance,
+                                             terminate_vnf_req)
+            self._change_vnf_status(context, vnf_instance.id,
+                            _PENDING_STATUS, 'INACTIVE')
+
+            self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
+                vim_connection_info=[], task_state=None,
+                instantiation_state=fields.VnfInstanceState.NOT_INSTANTIATED)
+            vnf_instance.instantiated_vnf_info.reinitialize()
 
             # Update vnf_lcm_op_occs table and send notification "COMPLETED"
             self._send_lcm_op_occ_notification(
@@ -782,6 +983,10 @@ class Conductor(manager.Manager):
             )
 
         except Exception as exc:
+            # set vnf_status to error
+            self._change_vnf_status(context, vnf_instance.id,
+                            _PENDING_STATUS, 'ERROR')
+
             # Update vnf_lcm_op_occs table and send notification "FAILED_TEMP"
             self._send_lcm_op_occ_notification(
                 context=context,
@@ -803,19 +1008,6 @@ class Conductor(manager.Manager):
              vnf_lcm_op_occs_id):
 
         try:
-            evacuate_end_list = []
-
-            # Check if vnf is in instantiated state.
-            vnf_instance = objects.VnfInstance.get_by_id(context,
-                                                         vnf_instance.id)
-            if vnf_instance.instantiation_state == \
-                    fields.VnfInstanceState.NOT_INSTANTIATED:
-                LOG.error("Heal action cannot be performed on vnf %(id)s "
-                          "which is in %(state)s state.",
-                          {"id": vnf_instance.id,
-                           "state": vnf_instance.instantiation_state})
-                return
-
             old_vnf_instance = copy.deepcopy(vnf_instance)
 
             # Update vnf_lcm_op_occs table and send notification "PROCESSING"
@@ -828,15 +1020,25 @@ class Conductor(manager.Manager):
                 operation=fields.LcmOccsOperationType.HEAL
             )
 
-            heal_result = \
-                self.vnflcm_driver.heal_vnf(context, vnf_instance, vnf_dict,
-                                            heal_vnf_request,
-                                            vnf_lcm_op_occs_id)
+            # update vnf status to PENDING_HEAL
+            self._change_vnf_status(context, vnf_instance.id,
+                            _ACTIVE_STATUS, constants.PENDING_HEAL)
+            self.vnflcm_driver.heal_vnf(context, vnf_instance,
+                                        vnf_dict, heal_vnf_request)
+            self._update_instantiated_vnf_info(context, vnf_instance,
+                                               heal_vnf_request)
+
+            # update instance_in in vnf_table
+            self._add_additional_vnf_info(context, vnf_instance)
+            # update vnf status to ACTIVE
+            self._change_vnf_status(context, vnf_instance.id,
+                            _PENDING_STATUS, constants.ACTIVE)
+
+            # during .save() ,instantiated_vnf_info is also saved to DB
+            self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
+                                                    task_state=None)
 
             # update vnf_lcm_op_occs and send notification "COMPLETED"
-            if heal_result:
-                evacuate_end_list = heal_result.get('evacuate_end_list')
-
             self._send_lcm_op_occ_notification(
                 context=context,
                 vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
@@ -844,10 +1046,16 @@ class Conductor(manager.Manager):
                 vnf_instance=vnf_instance,
                 request_obj=heal_vnf_request,
                 operation=fields.LcmOccsOperationType.HEAL,
-                operation_state=fields.LcmOccsOperationState.COMPLETED,
-                evacuate_end_list=evacuate_end_list
+                operation_state=fields.LcmOccsOperationState.COMPLETED
             )
         except Exception as ex:
+            # update vnf_status to 'ERROR' and create event with 'ERROR' status
+            self._change_vnf_status(context, vnf_instance,
+                        _PENDING_STATUS, constants.ERROR, str(ex))
+
+            # call _update_instantiated_vnf_info for notification
+            self._update_instantiated_vnf_info(context, vnf_instance,
+                                               heal_vnf_request)
 
             # update vnf_lcm_op_occs and send notification "FAILED_TEMP"
             self._send_lcm_op_occ_notification(
@@ -858,7 +1066,6 @@ class Conductor(manager.Manager):
                 request_obj=heal_vnf_request,
                 operation=fields.LcmOccsOperationType.HEAL,
                 operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
-                evacuate_end_list=evacuate_end_list,
                 error=str(ex)
             )
 

@@ -206,7 +206,8 @@ terminate = {
     'properties': {
         'terminationType': {'type': 'string',
                             'enum': ['FORCEFUL', 'GRACEFUL']},
-        'gracefulTerminationTimeout': {'type': 'integer', 'minimum': 0}
+        'gracefulTerminationTimeout': {'type': 'integer', 'minimum': 0},
+        'additionalParams': parameter_types.keyvalue_pairs,
     },
     'required': ['terminationType'],
     'additionalProperties': False,

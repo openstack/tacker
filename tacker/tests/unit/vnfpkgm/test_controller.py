@@ -15,6 +15,7 @@
 from unittest import mock
 
 import ddt
+import json
 import os
 from oslo_serialization import jsonutils
 from six.moves import http_client
@@ -46,6 +47,16 @@ class TestController(base.TestCase):
     @property
     def app(self):
         return fakes.wsgi_app_v1()
+
+    def _make_problem_detail(self, title, detail, status):
+        res = exc.Response(content_type='application/problem+json')
+        problemDetails = {}
+        problemDetails['title'] = title
+        problemDetails['detail'] = detail
+        problemDetails['status'] = status
+        res.text = json.dumps(problemDetails)
+        res.status_int = status
+        return res
 
     @mock.patch.object(vnf_package, '_vnf_package_create')
     @mock.patch.object(vnf_package.VnfPackage, '_from_db_object')
@@ -594,27 +605,32 @@ class TestController(base.TestCase):
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content'
             % constants.INVALID_UUID)
-        exception = self.assertRaises(exc.HTTPNotFound,
-                                self.controller.upload_vnf_package_content,
-                                req, constants.INVALID_UUID,
-                                      body=mock.mock_open())
-        self.assertEqual(
-            "Can not find requested vnf package: %s" % constants.INVALID_UUID,
-            exception.explanation)
+        req.headers['Content-Type'] = 'application/zip'
+        req.method = 'PUT'
+        req.body = jsonutils.dump_as_bytes(mock.mock_open())
+
+        msg = _("Can not find requested vnf package: %s") \
+            % constants.INVALID_UUID
+        res = self._make_problem_detail('Not Found', msg, 404)
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
 
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_upload_vnf_package_content_without_vnf_pack(self,
                                                          mock_vnf_by_id):
         msg = _("Can not find requested vnf package: %s") % constants.UUID
-        mock_vnf_by_id.side_effect = exc.HTTPNotFound(explanation=msg)
+        mock_vnf_by_id.side_effect = \
+            tacker_exc.VnfPackageNotFound(explanation=msg)
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content' % constants.UUID)
-        exception = self.assertRaises(
-            exc.HTTPNotFound, self.controller.upload_vnf_package_content,
-            req, constants.UUID, body=mock.mock_open())
-        self.assertEqual(
-            "Can not find requested vnf package: %s" % constants.UUID,
-            exception.explanation)
+        req.headers['Content-Type'] = 'application/zip'
+        req.method = 'PUT'
+        req.body = jsonutils.dump_as_bytes(mock.mock_open())
+
+        msg = _("Can not find requested vnf package: %s") % constants.UUID
+        res = self._make_problem_detail('Not Found', msg, 404)
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
 
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_upload_vnf_package_content_with_invalid_status(self,
@@ -624,9 +640,15 @@ class TestController(base.TestCase):
         mock_vnf_by_id.return_value = vnf_obj
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content' % constants.UUID)
-        self.assertRaises(exc.HTTPConflict,
-                          self.controller.upload_vnf_package_content,
-                          req, constants.UUID, body=mock.mock_open())
+        req.headers['Content-Type'] = 'application/zip'
+        req.method = 'PUT'
+        req.body = jsonutils.dump_as_bytes(mock.mock_open())
+
+        msg = _("VNF Package %s onboarding state is not CREATED") \
+            % constants.UUID
+        res = self._make_problem_detail('Conflict', msg, 409)
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
 
     @mock.patch.object(urllib.request, 'urlopen')
     @mock.patch.object(VNFPackageRPCAPI, "upload_vnf_package_from_uri")
