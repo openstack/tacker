@@ -17,6 +17,7 @@
 
 import routes
 
+from oslo_config import cfg
 from tacker.api.vnfpkgm.v1 import controller as vnf_pkgm_controller
 from tacker import wsgi
 
@@ -32,12 +33,20 @@ class VnfpkgmAPIRouter(wsgi.Router):
         all_methods = ['HEAD', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE']
         missing_methods = [m for m in all_methods if m not in methods]
         allowed_methods_str = ",".join(methods.keys())
-
+        scope_opts = []
         for method, action in methods.items():
             mapper.connect(url,
                 controller=controller,
                 action=action,
                 conditions={'method': [method]})
+
+            add = cfg.ListOpt('vnfpkgm_'
+            + action + '_scope',
+                      default=[],
+                      help="OAuth2.0 api token scope for" + action)
+            scope_opts.append(add)
+
+        cfg.CONF.register_opts(scope_opts, group='authentication')
 
         if missing_methods:
             mapper.connect(url,
