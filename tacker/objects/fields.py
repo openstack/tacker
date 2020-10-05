@@ -184,3 +184,43 @@ class VnfcState(BaseTackerEnum):
     STOPPED = 'STOPPED'
 
     ALL = (STARTED, STOPPED)
+
+
+class LcmOccsOperationState(BaseTackerEnum):
+    STARTING = 'STARTING'
+    PROCESSING = 'PROCESSING'
+    COMPLETED = 'COMPLETED'
+    FAILED_TEMP = 'FAILED_TEMP'
+
+    ALL = (STARTING, PROCESSING, COMPLETED, FAILED_TEMP)
+
+
+class LcmOccsOperationType(BaseTackerEnum):
+    INSTANTIATE = 'INSTANTIATE'
+    TERMINATE = 'TERMINATE'
+    HEAL = 'HEAL'
+
+    ALL = (INSTANTIATE, TERMINATE, HEAL)
+
+
+class LcmOccsNotificationStatus(BaseTackerEnum):
+    START = 'START'
+    RESULT = 'RESULT'
+
+    ALL = (START, RESULT)
+
+
+class ResourceChangeType(BaseTackerEnum):
+    ADDED = 'ADDED'
+    REMOVED = 'REMOVED'
+    MODIFIED = 'MODIFIED'
+    TEMPORARY = 'TEMPORARY'
+
+    ALL = (ADDED, REMOVED, MODIFIED, TEMPORARY)
+
+
+class LcmOccsNotificationType(BaseTackerEnum):
+    VNF_OP_OCC_NOTIFICATION = 'VnfLcmOperationOccurrenceNotification'
+    VNF_ID_CREATION_NOTIFICATION = 'VnfIdentifierCreationNotification'
+
+    ALL = (VNF_OP_OCC_NOTIFICATION)

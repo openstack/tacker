@@ -158,10 +158,7 @@ class ViewBuilder(base.BaseViewBuilder):
             paging):
         # filter processing
         lcmsubscription = []
-
-        # last_flg is True if nextpage_opaque_marker is set
         last_flg = False
-
         start_num = CONF.vnf_lcm.subscription_num * (paging - 1)
         # Subscription_data counter for comparing
         # subscription_data and start_num

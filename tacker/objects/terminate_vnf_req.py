@@ -30,7 +30,9 @@ class TerminateVnfRequest(base.TackerObject, base.TackerPersistentObject):
         'termination_type': fields.VnfInstanceTerminationTypeField(
             nullable=False),
         'graceful_termination_timeout': fields.IntegerField(nullable=True,
-                                                            default=0)
+                                                            default=0),
+        'additional_params': fields.DictOfStringsField(nullable=True,
+            default={}),
     }
 
     @classmethod
