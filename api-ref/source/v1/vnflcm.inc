@@ -611,6 +611,7 @@ Request Parameters
   - vnfInstanceName: vnf_instance_modify_request_name
   - vnfInstanceDescription: vnf_instance_modify_request_description
   - vnfdId: vnf_instance_modify_request_vnfd_id
+  - vnfPkgId: vnf_instance_modify_request_vnf_pkg_id
   - metadata: vnf_instance_modify_request_metadata
   - vimConnectionInfo: vnf_instance_modify_request_vim_connection_info
   - id: vim_connection_info_id

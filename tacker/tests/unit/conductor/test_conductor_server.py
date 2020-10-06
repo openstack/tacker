@@ -133,6 +133,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         body_data['vnfd_id'] = "2c69a161-0000-4b0f-bcf8-391f8fc76600"
         body_data['vnf_configurable_properties'] = {"test": "test_value"}
         body_data['vnfc_info_modifications_delete_ids'] = ["test1"]
+        body_data['vnf_pkg_id'] = uuidsentinel.vnf_pkg_id
         return body_data
 
     def _create_vnf_lcm_opoccs(self):
@@ -263,7 +264,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch.object(glance_store, 'load_csar')
     def test_get_vnf_package_vnfd_exception_from_glance_store(self,
-                                                            mock_load_csar):
+                                                              mock_load_csar):
         mock_load_csar.side_effect = store_exceptions.NotFound
         self.assertRaises(exceptions.FailedToGetVnfdData,
                           self.conductor.get_vnf_package_vnfd, self.context,
@@ -310,7 +311,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
             objects.VnfLcmOpOcc(context=self.context,
-            **lcm_op_occs_data)
+                                **lcm_op_occs_data)
 
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
@@ -337,13 +338,13 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @mock.patch.object(objects.VnfPackage, 'is_package_in_use')
     @mock.patch('tacker.conductor.conductor_server.LOG')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
-    def test_instantiate_vnf_instance_already_instantiated(self,
-            mock_vnf_by_id, mock_log, mock_package_in_use, mock_get_lock,
+    def test_instantiate_vnf_instance_already_instantiated(
+            self, mock_vnf_by_id, mock_log, mock_package_in_use, mock_get_lock,
             mock_save):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
             objects.VnfLcmOpOcc(context=self.context,
-            **lcm_op_occs_data)
+                                **lcm_op_occs_data)
 
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
@@ -361,9 +362,10 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.vnflcm_driver.instantiate_vnf.assert_not_called()
         mock_package_in_use.assert_not_called()
         expected_log = 'Vnf instance %(id)s is already in %(state)s state.'
-        mock_log.error.assert_called_once_with(expected_log,
-            {'id': vnf_instance.id,
-             'state': fields.VnfInstanceState.INSTANTIATED})
+        mock_log.error.assert_called_once_with(
+            expected_log, {
+                'id': vnf_instance.id,
+                'state': fields.VnfInstanceState.INSTANTIATED})
 
     @unittest.skip("Such test is no longer feasible.")
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
@@ -372,14 +374,17 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @mock.patch.object(objects.LccnSubscriptionRequest,
         'vnf_lcm_subscriptions_get')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
-    def test_instantiate_vnf_instance_with_vnf_package_in_use(self,
+    def test_instantiate_vnf_instance_with_vnf_package_in_use(
+            self,
             mock_vnf_by_id,
             mock_vnf_lcm_subscriptions_get,
-            mock_vnf_package_in_use, mock_get_lock, mock_save):
+            mock_vnf_package_in_use,
+            mock_get_lock,
+            mock_save):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
             objects.VnfLcmOpOcc(context=self.context,
-            **lcm_op_occs_data)
+                                **lcm_op_occs_data)
 
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
@@ -420,7 +425,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
             objects.VnfLcmOpOcc(context=self.context,
-            **lcm_op_occs_data)
+                                **lcm_op_occs_data)
 
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
@@ -515,7 +520,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance_data['instantiation_state'] =\
             fields.VnfInstanceState.NOT_INSTANTIATED
         vnf_instance = objects.VnfInstance(context=self.context,
-            **vnf_instance_data)
+                                           **vnf_instance_data)
         vnf_instance.create()
 
         terminate_vnf_req = objects.TerminateVnfRequest(
@@ -530,10 +535,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.vnflcm_driver.terminate_vnf.assert_not_called()
         mock_package_in_use.assert_not_called()
         expected_log = ('Terminate action cannot be performed on vnf %(id)s '
-                       'which is in %(state)s state.')
-        mock_log.error.assert_called_once_with(expected_log,
-                {'id': vnf_instance.id,
-             'state': fields.VnfInstanceState.NOT_INSTANTIATED})
+                        'which is in %(state)s state.')
+        mock_log.error.assert_called_once_with(
+            expected_log, {
+                'id': vnf_instance.id,
+                'state': fields.VnfInstanceState.NOT_INSTANTIATED})
 
     @unittest.skip("Such test is no longer feasible.")
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
@@ -549,7 +555,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance_data['instantiation_state'] =\
             fields.VnfInstanceState.INSTANTIATED
         vnf_instance = objects.VnfInstance(context=self.context,
-            **vnf_instance_data)
+                                           **vnf_instance_data)
         vnf_instance.create()
 
         mock_vnf_package_is_package_in_use.return_value = False
@@ -581,7 +587,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance_data['instantiation_state'] =\
             fields.VnfInstanceState.INSTANTIATED
         vnf_instance = objects.VnfInstance(context=self.context,
-            **vnf_instance_data)
+                                           **vnf_instance_data)
         vnf_instance.create()
 
         mock_vnf_package_is_package_in_use.return_value = True
@@ -630,7 +636,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             vnf_lcm_op_occs_id)
         expected_msg = "Failed to update usage_state of vnf package %s"
         mock_log.error.assert_called_once_with(expected_msg,
-            vnf_package_vnfd.package_uuid)
+                                               vnf_package_vnfd.package_uuid)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_add_additional_vnf_info')
@@ -647,7 +653,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
             objects.VnfLcmOpOcc(context=self.context,
-            **lcm_op_occs_data)
+                                **lcm_op_occs_data)
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -707,8 +713,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @unittest.skip("Such test is no longer feasible.")
     @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch('tacker.conductor.conductor_server.LOG')
-    def test_heal_vnf_instance_already_not_instantiated(self,
-            mock_log, mock_get_lock):
+    def test_heal_vnf_instance_already_not_instantiated(
+            self, mock_log, mock_get_lock):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -723,14 +729,15 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_dict = {"fake": "fake_dict"}
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
-        heal_vnf_req, vnf_lcm_op_occs_id)
+                            heal_vnf_req, vnf_lcm_op_occs_id)
 
         self.vnflcm_driver.heal_vnf.assert_not_called()
         expected_log = ('Heal action cannot be performed on vnf %(id)s '
                         'which is in %(state)s state.')
-        mock_log.error.assert_called_once_with(expected_log,
-            {'id': vnf_instance.id,
-             'state': fields.VnfInstanceState.NOT_INSTANTIATED})
+        mock_log.error.assert_called_once_with(
+            expected_log, {
+                'id': vnf_instance.id,
+                'state': fields.VnfInstanceState.NOT_INSTANTIATED})
 
     @mock.patch.object(os, 'remove')
     @mock.patch.object(shutil, 'rmtree')
@@ -812,7 +819,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                                     mock_subscriptions_get):
         self.requests_mock.register_uri('POST',
             "https://localhost/callback",
-            headers={'Content-Type': 'application/json'},
+            headers={
+                'Content-Type': 'application/json'},
             status_code=204)
 
         mock_subscriptions_get.return_value = self._create_subscriptions()
@@ -837,9 +845,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                        'vnf_lcm_subscriptions_get')
     def test_sendNotification_vnfIdentifierCreation(self,
                                                     mock_subscriptions_get):
-        self.requests_mock.register_uri('POST',
+        self.requests_mock.register_uri(
+            'POST',
             "https://localhost/callback",
-            headers={'Content-Type': 'application/json'},
+            headers={
+                'Content-Type': 'application/json'},
             status_code=204)
 
         mock_subscriptions_get.return_value = self._create_subscriptions()
@@ -861,9 +871,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
     def test_sendNotification_with_auth_basic(self, mock_subscriptions_get):
-        self.requests_mock.register_uri('POST',
+        self.requests_mock.register_uri(
+            'POST',
             "https://localhost/callback",
-            headers={'Content-Type': 'application/json'},
+            headers={
+                'Content-Type': 'application/json'},
             status_code=204)
 
         auth_user_name = 'test_user'
@@ -897,17 +909,19 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     def test_sendNotification_with_auth_client_credentials(
             self, mock_subscriptions_get):
         auth.auth_manager = auth._AuthManager()
-        self.requests_mock.register_uri('POST',
+        self.requests_mock.register_uri(
+            'POST',
             "https://localhost/callback",
-            headers={'Content-Type': 'application/json'},
+            headers={
+                'Content-Type': 'application/json'},
             status_code=204)
 
         auth_user_name = 'test_user'
         auth_password = 'test_password'
         token_endpoint = 'https://oauth2/tokens'
-        self.requests_mock.register_uri('GET',
-            token_endpoint,
-            json={'access_token': 'test_token', 'token_type': 'bearer'},
+        self.requests_mock.register_uri(
+            'GET', token_endpoint, json={
+                'access_token': 'test_token', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
             status_code=200)
 
@@ -938,10 +952,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
     def test_sendNotification_retyNotification(self,
-                                              mock_subscriptions_get):
-        self.requests_mock.register_uri('POST',
+                                               mock_subscriptions_get):
+        self.requests_mock.register_uri(
+            'POST',
             "https://localhost/callback",
-            headers={'Content-Type': 'application/json'},
+            headers={
+                'Content-Type': 'application/json'},
             status_code=400)
 
         mock_subscriptions_get.return_value = self._create_subscriptions()
@@ -964,7 +980,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                        'vnf_lcm_subscriptions_get')
     def test_sendNotification_sendError(self,
                                         mock_subscriptions_get):
-        self.requests_mock.register_uri('POST',
+        self.requests_mock.register_uri(
+            'POST',
             "https://localhost/callback",
             exc=requests.exceptions.HTTPError("MockException"))
 
@@ -1006,6 +1023,28 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "create")
     def test_update(self, mock_create, mock_update, mock_save, mock_add,
                     mock_revert):
+        mock_create.return_value = "OK"
+        mock_update.return_value = datetime.datetime(
+            1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+        mock_add.return_value = "OK"
+        mock_save.return_value = "OK"
+        vnfd_id = "2c69a161-0000-4b0f-bcf8-391f8fc76600"
+
+        self.conductor.update(
+            self.context,
+            self.vnf_lcm_opoccs,
+            self.body_data,
+            self.vnfd_pkg_data,
+            vnfd_id)
+
+    @mock.patch.object(conductor_server, 'revert_update_lcm')
+    @mock.patch.object(t_context.get_admin_context().session, "add")
+    @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfInstance, "update")
+    @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "create")
+    def test_update_lcm_with_vnf_pkg_id(self, mock_create,
+                                        mock_update, mock_save,
+                                        mock_add, mock_revert):
         mock_create.return_value = "OK"
         mock_update.return_value = datetime.datetime(
             1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)

@@ -85,6 +85,26 @@ class VNFLcmRPCAPI(object):
                           vnfd_pkg_data=vnfd_pkg_data,
                           vnfd_id=vnfd_id)
 
+    def update_vnf_instance_content(
+            self,
+            context,
+            vnf_lcm_opoccs,
+            body_data,
+            vnfd_pkg_data,
+            vnfd_id,
+            cast=True):
+        serializer = objects_base.TackerObjectSerializer()
+
+        client = rpc.get_client(self.target, version_cap=None,
+                                serializer=serializer)
+        cctxt = client.prepare()
+        rpc_method = cctxt.cast if cast else cctxt.call
+        return rpc_method(context, 'update_lcm',
+                          vnf_lcm_opoccs=vnf_lcm_opoccs,
+                          body_data=body_data,
+                          vnfd_pkg_data=vnfd_pkg_data,
+                          vnfd_id=vnfd_id)
+
     def send_notification(self, context, notification, cast=True):
         serializer = objects_base.TackerObjectSerializer()
 

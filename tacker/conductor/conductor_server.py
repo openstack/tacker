@@ -475,8 +475,8 @@ class Conductor(manager.Manager):
             except (store_exceptions.GlanceStoreException) as e:
                 exc_msg = encodeutils.exception_to_unicode(e)
                 msg = (_("Exception raised from glance store can be "
-                         "unrecoverable if it is not related to connection"
-                         " error. Error: %s.") % exc_msg)
+                        "unrecoverable if it is not related to connection"
+                        " error. Error: %s.") % exc_msg)
                 raise exceptions.FailedToGetVnfdData(error=msg)
         try:
             return self._read_vnfd_files(csar_path)
@@ -1241,18 +1241,15 @@ class Conductor(manager.Manager):
             raise Exception(str(msg))
 
         # update lcm_op_occs
-        changed_info = objects.vnf_lcm_op_occs.VnfInfoModifications()
-        changed_info.vnf_instance_name = body_data.get('vnf_instance_name')
-        changed_info.vnf_instance_description = body_data.get(
-            'vnf_instance_description')
-        if body_data.get('vnfd_id'):
-            changed_info.vnfd_id = body_data.get('vnfd_id')
-            changed_info.vnf_provider = vnfd_pkg_data.get('vnf_provider')
-            changed_info.vnf_product_name = vnfd_pkg_data.get(
-                'vnf_product_name')
-            changed_info.vnf_software_version = vnfd_pkg_data.get(
-                'vnf_software_version')
-            changed_info.vnfd_version = vnfd_pkg_data.get('vnfd_version')
+        if vnfd_pkg_data and len(vnfd_pkg_data) > 0:
+            changed_info = \
+                objects.vnf_lcm_op_occs.VnfInfoModifications._from_dict(
+                    vnfd_pkg_data)
+        else:
+            changed_info = objects.vnf_lcm_op_occs.VnfInfoModifications()
+            changed_info.vnf_instance_name = body_data.get('vnf_instance_name')
+            changed_info.vnf_instance_description = body_data.get(
+                'vnf_instance_description')
 
         # update vnf_lcm_op_occs
         now = timeutils.utcnow()

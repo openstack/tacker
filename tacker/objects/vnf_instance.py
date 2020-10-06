@@ -238,24 +238,30 @@ def _update_vnf_instances(
 
         updated_values['vim_connection_info'] = merge_vim_connection_info
 
-    if body_data.get('vnfd_id'):
-        updated_values['vnfd_id'] = body_data.get('vnfd_id')
+    if vnfd_pkg_data and len(vnfd_pkg_data) > 0:
+        updated_values['vnfd_id'] = vnfd_pkg_data.get('vnfd_id')
         updated_values['vnf_provider'] = vnfd_pkg_data.get('vnf_provider')
         updated_values['vnf_product_name'] = vnfd_pkg_data.get(
             'vnf_product_name')
         updated_values['vnf_software_version'] = vnfd_pkg_data.get(
             'vnf_software_version')
+        updated_values['vnf_pkg_id'] = vnfd_pkg_data.get('package_uuid')
 
     api.model_query(context, models.VnfInstance). \
         filter_by(id=vnf_lcm_opoccs.get('vnf_instance_id')). \
         update(updated_values, synchronize_session=False)
 
     vnf_now = timeutils.utcnow()
-    if body_data.get('vnfd_id'):
+    if (body_data.get('vnfd_id') or body_data.get('vnf_pkg_id')):
         # update vnf
-        updated_values = {'vnfd_id': body_data.get('vnfd_id'),
-                         'updated_at': vnf_now
-                          }
+        if body_data.get('vnfd_id'):
+            updated_values = {'vnfd_id': body_data.get('vnfd_id'),
+                              'updated_at': vnf_now
+                              }
+        elif body_data.get('vnf_pkg_id'):
+            updated_values = {'vnfd_id': vnfd_pkg_data.get('vnfd_id'),
+                              'updated_at': vnf_now
+                              }
         api.model_query(context, vnfm_db.VNF).\
             filter_by(id=vnf_lcm_opoccs.get('vnf_instance_id')). \
             update(updated_values, synchronize_session=False)
@@ -308,7 +314,9 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
         'id': fields.UUIDField(nullable=False),
         'vnf_instance_name': fields.StringField(nullable=True),
         'vnf_instance_description': fields.StringField(nullable=True),
-        'instantiation_state': fields.VnfInstanceStateField(nullable=False,
+        'instantiation_state':
+        fields.VnfInstanceStateField(
+            nullable=False,
             default=fields.VnfInstanceState.NOT_INSTANTIATED),
         'task_state': fields.StringField(nullable=True, default=None),
         'vnfd_id': fields.StringField(nullable=False),
@@ -320,6 +328,7 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
             'VimConnectionInfo', nullable=True, default=[]),
         'tenant_id': fields.StringField(nullable=False),
         'vnf_metadata': fields.DictOfStringsField(nullable=True, default={}),
+        'vnf_pkg_id': fields.StringField(nullable=False),
         'instantiated_vnf_info': fields.ObjectField('InstantiatedVnfInfo',
                                                 nullable=True, default=None)
     }
@@ -367,8 +376,8 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
 
             setattr(vnf_instance, key, db_vnf_instance[key])
 
-        VnfInstance._load_instantiated_vnf_info_from_db_object(context,
-                                           vnf_instance, db_vnf_instance)
+        VnfInstance._load_instantiated_vnf_info_from_db_object(
+            context, vnf_instance, db_vnf_instance)
 
         vim_connection_info = db_vnf_instance['vim_connection_info']
         vim_connection_list = [objects.VimConnectionInfo.obj_from_primitive(
@@ -384,9 +393,8 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
     def _load_instantiated_vnf_info_from_db_object(context, vnf_instance,
                                                    db_vnf_instance):
         if db_vnf_instance['instantiated_vnf_info']:
-            inst_vnf_info = \
-                objects.InstantiatedVnfInfo.obj_from_db_obj(context,
-                        db_vnf_instance['instantiated_vnf_info'])
+            inst_vnf_info = objects.InstantiatedVnfInfo.obj_from_db_obj(
+                context, db_vnf_instance['instantiated_vnf_info'])
             vnf_instance.instantiated_vnf_info = inst_vnf_info
 
     @base.remotable
@@ -440,8 +448,8 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
 
         expected_attrs = ["instantiated_vnf_info"]
         db_vnf_instance = _vnf_instance_update(self._context,
-                                            self.id, updates,
-                                            columns_to_join=expected_attrs)
+                                               self.id, updates,
+                                               columns_to_join=expected_attrs)
         self._from_db_object(self._context, self, db_vnf_instance)
 
     def _save_instantiated_vnf_info(self, context):
@@ -481,7 +489,7 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
         if (self.instantiation_state == fields.VnfInstanceState.INSTANTIATED
                 and self.instantiated_vnf_info):
             data.update({'instantiated_vnf_info':
-                self.instantiated_vnf_info.to_dict()})
+                         self.instantiated_vnf_info.to_dict()})
 
             vim_connection_info_list = []
             for vim_connection_info in self.vim_connection_info:

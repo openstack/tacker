@@ -118,7 +118,7 @@ lcm_op_occs_data = {
     "tenant_id": uuidsentinel.tenant_id,
     'operation_state': 'PROCESSING',
     'state_entered_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                        tzinfo=iso8601.UTC),
+                                            tzinfo=iso8601.UTC),
     'start_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
                                     tzinfo=iso8601.UTC),
     'operation': 'MODIFY_INFO',
@@ -178,6 +178,28 @@ vnf_artifacts = {
 }
 
 
+def fake_vnf_package_vnfd_dict(**updates):
+    vnf_pkg_vnfd = {
+        'package_uuid': uuidsentinel.package_uuid,
+        'vnfd_id': uuidsentinel.vnfd_id,
+        'vnf_provider': 'test vnf provider',
+        'vnf_product_name': 'Sample VNF',
+        'vnf_software_version': '1.0',
+        'vnfd_version': '1.0'
+    }
+
+    if updates:
+        vnf_pkg_vnfd.update(updates)
+
+    return vnf_pkg_vnfd
+
+
+def return_vnf_package_vnfd_data():
+    model_obj = models.VnfPackageVnfd()
+    model_obj.update(fake_vnf_package_vnfd_dict())
+    return model_obj
+
+
 def get_vnf_package_vnfd_data(vnf_package_id, vnfd_id):
     return {
         'package_uuid': vnf_package_id,
@@ -185,6 +207,7 @@ def get_vnf_package_vnfd_data(vnf_package_id, vnfd_id):
         'vnf_provider': 'test vnf provider',
         'vnf_product_name': 'Sample VNF',
         'vnf_software_version': '1.0',
+        "vnf_pkg_id": uuidsentinel.vnf_pkg_id,
         'vnfd_version': '1.0',
     }
 
@@ -201,7 +224,7 @@ def get_vnf_instance_data(vnfd_id):
         "vnfd_version": "1.0",
         "tenant_id": uuidsentinel.tenant_id,
         "vnf_pkg_id": uuidsentinel.vnf_pkg_id,
-        "vnf_metadata": {"key": "value"}
+        "vnf_metadata": {"key": "value"},
     }
 
 
@@ -218,7 +241,7 @@ def get_vnf_instance_data_with_id(vnfd_id):
         "vnfd_version": "1.0",
         "tenant_id": uuidsentinel.tenant_id,
         "vnf_pkg_id": uuidsentinel.vnf_pkg_id,
-        "vnf_metadata": {"key": "value"}
+        "vnf_metadata": {"key": "value"},
     }
 
 
@@ -227,7 +250,7 @@ def get_lcm_op_occs_data(vnf_instance_id):
         "tenant_id": uuidsentinel.tenant_id,
         'operation_state': 'PROCESSING',
         'state_entered_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                            tzinfo=iso8601.UTC),
+                                                tzinfo=iso8601.UTC),
         'start_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
                                         tzinfo=iso8601.UTC),
         'vnf_instance_id': vnf_instance_id,
@@ -254,9 +277,9 @@ def fake_vnf_instance_model_dict(**updates):
         'instantiation_state': 'NOT_INSTANTIATED',
         'vim_connection_info': [],
         'tenant_id': '33f8dbdae36142eebf214c1869eb4e4c',
-        'id': constants.UUID,
         'vnf_pkg_id': uuidsentinel.vnf_pkg_id,
-        'vnf_metadata': {'key': 'value'}
+        'id': constants.UUID,
+        'vnf_metadata': {"key": "value"},
     }
 
     if updates:
@@ -454,7 +477,7 @@ def vnf_instance_model_object(vnf_instance):
         'tenant_id': vnf_instance.tenant_id,
         'created_at': vnf_instance.created_at,
         'vnf_pkg_id': vnf_instance.vnf_pkg_id,
-        'vnf_metadata': vnf_instance.vnf_metadata
+        'vnf_metadata': vnf_instance.vnf_metadata,
     }
 
     vnf_instance_db_obj = models.VnfInstance()

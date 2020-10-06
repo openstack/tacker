@@ -120,6 +120,7 @@ def _model_non_instantiated_vnf_instance(**updates):
         'tenant_id': uuidsentinel.tenant_id,
         'vnfd_id': uuidsentinel.vnfd_id,
         'vnfd_version': '1.0',
+        'vnf_pkg_id': uuidsentinel.vnf_pkg_id,
         'vnf_metadata': {"key": "value"}}
 
     if updates:
@@ -204,9 +205,9 @@ def _instantiated_vnf_links(vnf_instance_id):
     links = {
         "self": {"href": "/vnflcm/v1/vnf_instances/%s" % vnf_instance_id},
         "terminate": {"href": "/vnflcm/v1/vnf_instances/%s/terminate" %
-                vnf_instance_id},
+                      vnf_instance_id},
         "heal": {"href": "/vnflcm/v1/vnf_instances/%s/heal" %
-                vnf_instance_id}}
+                 vnf_instance_id}}
 
     return links
 
@@ -218,13 +219,15 @@ def _fake_vnf_instance_not_instantiated_response(
         'vnfInstanceName': 'Vnf instance name',
         'vnfProductName': 'Sample VNF',
         '_links': {
-            'self': {'href': os.path.join('/vnflcm/v1/vnf_instances/',
-                uuidsentinel.vnf_instance_id)},
+            'self': {
+                'href': os.path.join(
+                    '/vnflcm/v1/vnf_instances/',
+                    uuidsentinel.vnf_instance_id)},
             'instantiate': {
-                'href': os.path.join('/vnflcm/v1/vnf_instances',
-                    uuidsentinel.vnf_instance_id, 'instantiate')
-            }
-        },
+                'href': os.path.join(
+                    '/vnflcm/v1/vnf_instances',
+                    uuidsentinel.vnf_instance_id,
+                    'instantiate')}},
         'instantiationState': 'NOT_INSTANTIATED',
         'vnfProvider': 'Vnf provider',
         'vnfdId': uuidsentinel.vnfd_id,
@@ -621,7 +624,7 @@ def get_vnfd_dict(image_path=None):
                              {'layer_protocol': 'ipv4',
                               'l3_protocol_data': {}
                               }]}},
-                     'type': 'tosca.nodes.nfv.VnfVirtualLink'},
+                         'type': 'tosca.nodes.nfv.VnfVirtualLink'},
                  'VL4': {'properties': {'connectivity_type': {
                      'layer_protocols': ['ipv4']},
                      'description': 'Internal virtual link in VNF',

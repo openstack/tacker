@@ -13,16 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import ddt
 from unittest import mock
 
 from tacker.common import exceptions
 from tacker import context
 from tacker.db import api as sqlalchemy_api
-from tacker.db.db_sqlalchemy import api
 from tacker.db.nfvo import nfvo_db
 from tacker import objects
 from tacker.tests.unit.db.base import SqlTestCase
 from tacker.tests.unit.objects import fakes
+from tacker.tests.unit.vnflcm import fakes as fakes_vnflcm
 from tacker.tests import uuidsentinel
 
 get_engine = sqlalchemy_api.get_engine
@@ -54,6 +55,7 @@ class FakeApiModelQuery:
         return self
 
 
+@ddt.ddt
 class TestVnfInstance(SqlTestCase):
 
     maxDiff = None
@@ -65,8 +67,12 @@ class TestVnfInstance(SqlTestCase):
         self.vims = nfvo_db.Vim(**fakes.vim_data)
         self.engine = get_engine()
         self.conn = self.engine.connect()
+        self.body_data = self._create_body_data()
+        self.vnfd_pkg_data = self._create_vnfd_pkg_data()
+        self.vim = nfvo_db.Vim()
 
-    def _create_and_upload_vnf_package(self):
+    @mock.patch.object(objects.VnfPackageVnfd, 'create')
+    def _create_and_upload_vnf_package(self, mock_create):
         vnf_package = objects.VnfPackage(context=self.context,
                                          **fakes.vnf_package_data)
         vnf_package.create()
@@ -74,6 +80,7 @@ class TestVnfInstance(SqlTestCase):
         vnf_pack_vnfd = fakes.get_vnf_package_vnfd_data(
             vnf_package.id, uuidsentinel.vnfd_id)
 
+        mock_create.return_value = fakes.return_vnf_package_vnfd_data()
         vnf_pack_vnfd_obj = objects.VnfPackageVnfd(
             context=self.context, **vnf_pack_vnfd)
         vnf_pack_vnfd_obj.create()
@@ -82,6 +89,32 @@ class TestVnfInstance(SqlTestCase):
         vnf_package.save()
 
         return vnf_pack_vnfd_obj
+
+    def _create_body_data(self):
+        body_data = {}
+        body_data['vnf_instance_name'] = "new_instance_name"
+        body_data['vnf_instance_description'] = "new_instance_discription"
+        body_data['vnfd_id'] = "2c69a161-0000-4b0f-bcf8-391f8fc76600"
+        body_data['vnf_configurable_properties'] = {"test": "test_value"}
+        body_data['vnfc_info_modifications_delete_ids'] = ["test1"]
+        body_data['vnf_pkg_id'] = uuidsentinel.vnf_pkg_id
+        return body_data
+
+    def _create_vnfd_pkg_data(self):
+        vnfd_pkg_data = {}
+        vnfd_pkg_data['vnf_provider'] =\
+            fakes.return_vnf_package_vnfd_data().get('vnf_provider')
+        vnfd_pkg_data['vnf_product_name'] =\
+            fakes.return_vnf_package_vnfd_data().get('vnf_product_name')
+        vnfd_pkg_data['vnf_software_version'] =\
+            fakes.return_vnf_package_vnfd_data().get('vnf_software_version')
+        vnfd_pkg_data['vnfd_version'] =\
+            fakes.return_vnf_package_vnfd_data().get('vnfd_version')
+        vnfd_pkg_data['package_uuid'] =\
+            fakes.return_vnf_package_vnfd_data().get('package_uuid')
+        vnfd_pkg_data['vnfd_id'] =\
+            fakes.return_vnf_package_vnfd_data().get('vnfd_id')
+        return vnfd_pkg_data
 
     def test_create(self):
         vnf_instance_data = fakes.get_vnf_instance_data(
@@ -189,155 +222,21 @@ class TestVnfInstance(SqlTestCase):
         self.assertRaises(exceptions.ObjectActionError,
                           vnf_instance_obj.destroy, self.context)
 
-    @mock.patch('tacker.objects.vnf_instance._get_vnf_instance')
-    @mock.patch('tacker.objects.vnf_package.VnfPackage.get_by_id')
-    @mock.patch.object(api, 'model_query')
-    def test_update_vnf_instances(
-            self,
-            mock_model_query,
-            mock_get_vnf_package,
-            mock_get_vnf):
-
-        vnf_instance_data = fakes.fake_vnf_instance_model_dict(**{
-            "vim_connection_info": [
-                objects.VimConnectionInfo._from_dict({
-                    "id": "testid",
-                    "vim_id": "aaa",
-                    "vim_type": "openstack-1",
-                    "interface_info": {"endpoint": "endpoint"},
-                    "access_info": {"username": "xxxxx",
-                                    "region": "region",
-                                    "password": "password",
-                                    "tenant": "tenant"}}),
-                objects.VimConnectionInfo._from_dict({
-                    "id": "testid3",
-                    "vim_id": "ccc",
-                    "vim_type": "openstack-2",
-                    "interface_info": {"endpoint": "endpoint22"},
-                    "access_info": {"username": "xxxxx",
-                                    "region": "region",
-                                    "password": "password"}}),
-                objects.VimConnectionInfo._from_dict({
-                    "id": "testid5",
-                    "vim_id": "eee",
-                    "vim_type": "openstack-4"})
-            ],
-            "vnf_metadata": {"testkey": "test_value"}})
-        vnf_instance = objects.VnfInstance(
-            context=self.context, **vnf_instance_data)
-        mock_get_vnf.return_value = \
-            fakes.vnf_instance_model_object(vnf_instance)
-
-        def mock_filter(id=None):
-            print('### mock_filter ###', id)
-
-        def mock_update(updated_values, synchronize_session=False):
-            print('### mock_update ###', updated_values)
-
-            if 'vim_connection_info' not in updated_values:
-                return
-
-            compar_updated_values = {}
-            compar_updated_values['vnf_instance_name'] = "new_instance_name"
-            compar_updated_values['vnf_instance_description'] = \
-                "new_instance_discription"
-            compar_updated_values['vnf_metadata'] = {
-                "testkey": "test_value1", "testkey2": "test_value2"}
-            compar_updated_values['vim_connection_info'] = [
-                objects.VimConnectionInfo._from_dict({
-                    "id": "testid",
-                    "vim_id": "bbb",
-                    "vim_type": "openstack-1A",
-                    "interface_info": {"endpoint": "endpoint11"},
-                    "access_info": {"username": "xxxxx1",
-                                    "region": "region1",
-                                    "password": "password1",
-                                    "tenant": "tenant1"}}),
-                objects.VimConnectionInfo._from_dict({
-                    "id": "testid3",
-                    "vim_id": "ccc",
-                    "vim_type": "openstack-2",
-                    "interface_info": {"endpoint": "endpoint22"},
-                    "access_info": {"username": "xxxxx",
-                                    "region": "region",
-                                    "password": "password2",
-                                    "tenant": "tenant2"}}),
-                objects.VimConnectionInfo._from_dict({
-                    "id": "testid5",
-                    "vim_id": "eee",
-                    "vim_type": "openstack-4"}),
-                objects.VimConnectionInfo._from_dict({
-                    "id": "testid7",
-                    "vim_id": "fff",
-                    "vim_type": "openstack-5A",
-                    "interface_info": {"endpoint": "endpoint55"},
-                    "access_info": {"username": "xxxxx5",
-                                    "region": "region5",
-                                    "password": "password5",
-                                    "tenant": "tenant5"}})
-            ]
-            compar_updated_values['vnfd_id'] = \
-                "2c69a161-0000-4b0f-bcf8-391f8fc76600"
-            compar_updated_values['vnf_provider'] = \
-                self.vnf_package.get('vnf_provider')
-            compar_updated_values['vnf_product_name'] = \
-                self.vnf_package.get('vnf_product_name')
-            compar_updated_values['vnf_software_version'] = \
-                self.vnf_package.get('vnf_software_version')
-
-            expected_vci = sorted(compar_updated_values.pop(
-                'vim_connection_info'), key=lambda x: x.id)
-            actual_vci = sorted(
-                updated_values.pop('vim_connection_info'),
-                key=lambda x: x.id)
-            for e, a in zip(expected_vci, actual_vci):
-                self.assertDictEqual(
-                    e.to_dict(),
-                    a.to_dict())
-
-            self.assertDictEqual(
-                compar_updated_values,
-                updated_values)
-
-        fake_api_model_query = FakeApiModelQuery(
-            callback_filter_by=mock_filter, callback_update=mock_update)
-        mock_model_query.return_value = fake_api_model_query
-
-        vnf_lcm_opoccs = {}
-
-        body = {"vnf_instance_name": "new_instance_name",
-                "vnf_instance_description": "new_instance_discription",
-                "vnfd_id": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
-                "vnf_configurable_properties": {"test": "test_value1"},
-                "vnfc_info_modifications_delete_ids": ["test1"],
-                "metadata": {"testkey": "test_value1",
-                             "testkey2": "test_value2"},
-                "vim_connection_info": [
-                    {"id": "testid",
-                     "vim_id": "bbb",
-                     "vim_type": "openstack-1A",
-                     "interface_info": {"endpoint": "endpoint11"},
-                     "access_info": {"username": "xxxxx1",
-                                     "region": "region1",
-                                     "password": "password1",
-                                     "tenant": "tenant1"}},
-                    {"id": "testid3",
-                     "vim_type": "openstack-2",
-                     "access_info": {"password": "password2",
-                                     "tenant": "tenant2"}},
-                    {"id": "testid7",
-                     "vim_id": "fff",
-                     "vim_type": "openstack-5A",
-                     "interface_info": {"endpoint": "endpoint55"},
-                     "access_info": {"username": "xxxxx5",
-                                     "region": "region5",
-                                     "password": "password5",
-                                     "tenant": "tenant5"}},
-                ]}
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
+    def test_update(self, mock_get_by_id):
+        mock_get_by_id.return_value =\
+            fakes_vnflcm.return_vnf_package_with_deployment_flavour()
+        vnf_instance_data = fakes.get_vnf_instance_data(
+            self.vnf_package.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_lcm_oppccs = fakes.get_lcm_op_occs_data(
+            vnf_instance.id)
 
         vnf_instance.update(
             self.context,
-            vnf_lcm_opoccs,
-            body,
-            self.vnf_package,
-            self.vnf_package.id)
+            vnf_lcm_oppccs,
+            self.body_data,
+            self.vnfd_pkg_data,
+            vnf_instance_data['vnfd_id'])
