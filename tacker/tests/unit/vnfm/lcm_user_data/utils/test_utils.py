@@ -51,7 +51,8 @@ class TestUtils(testtools.TestCase):
         return yaml_file_dict
 
     def test_create_initial_param_dict(self):
-        base_hot_dict = self._read_file("hot_lcm_user_data.yaml")
+        base_hot_dict = {}
+        base_hot_dict['resources'] = self._read_file("hot_lcm_user_data.yaml")
         initial_param_dict = utils.create_initial_param_dict(base_hot_dict)
         self.assertEqual(example_initial_param_dict, initial_param_dict)
 
@@ -153,7 +154,8 @@ class TestUtils(testtools.TestCase):
         self.assertEqual({}, vdu_image_dict)
 
     def test_create_cpd_vl_dict(self):
-        base_hot_dict = {'resources': {'dummy_cpd_id': "101010_d"}}
+        base_hot_dict = \
+            {'resources': {'resources': {'dummy_cpd_id': "101010_d"}}}
         inst_req_info = instantiate_vnf_req.InstantiateVnfRequest()
         ext_virtual_links_test_value = instantiate_vnf_req.ExtVirtualLinkData()
         ext_virtual_links_test_value.resource_id = 'dummy_resource_id'
@@ -169,7 +171,8 @@ class TestUtils(testtools.TestCase):
         self.assertEqual({'dummy_cpd_id': 'dummy_resource_id'}, cpd_vl_dict)
 
     def test_create_cpd_vl_dict_no_cp_resource(self):
-        base_hot_dict = {'resources': {'dummy_cpd_id': "101010_d"}}
+        base_hot_dict = \
+            {'resources': {'resources': {'dummy_cpd_id': "101010_d"}}}
         inst_req_info = instantiate_vnf_req.InstantiateVnfRequest()
         ext_virtual_links_test_value = instantiate_vnf_req.ExtVirtualLinkData()
         ext_virtual_links_test_value.resource_id = 'dummy_resource_id'

@@ -134,8 +134,15 @@ class TestOpenStack(base.FixturedTestCase):
             yaml_file_dict = yaml.safe_load(f)
         return yaml_file_dict
 
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
+                '.OpenStack._format_base_hot')
+    @mock.patch('tacker.vnflcm.utils._get_vnflcm_interface')
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
-    def test_create_normal(self, mock_OpenstackClients_heat):
+    def test_create_normal(self, mock_OpenstackClients_heat,
+                           mock_get_base_hot_dict,
+                           mock_get_vnflcm_interface,
+                           mock_format_base_hot):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
@@ -148,14 +155,20 @@ class TestOpenStack(base.FixturedTestCase):
             'instantiate_vnf_request_lcm_userdata.json')
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = test_json['flavourId']
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
+        nested_hot_dict = {'parameters': {'vnf': 'test'}}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         self.openstack.create(self.plugin, self.context, vnf,
                 self.auth_attr, inst_req_info=inst_req_info_test,
                 vnf_package_path=vnf_package_path_test,
                 base_hot_dict=base_hot_dict_test,
-                grant_info=grant_info_test)
+                grant_info=grant_info_test,
+                vnf_instance=vnf_instance)
 
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_heat_stack(self, mock_OpenstackClients_heat):
@@ -218,8 +231,10 @@ class TestOpenStack(base.FixturedTestCase):
                           inst_req_info=inst_req_info_test,
                           grant_info=grant_info_test)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
-    def test_create_userdata_null(self, mock_OpenstackClients_heat):
+    def test_create_userdata_null(self, mock_OpenstackClients_heat,
+                                  mock_get_base_hot_dict):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
@@ -235,17 +250,25 @@ class TestOpenStack(base.FixturedTestCase):
 
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = test_json['flavourId']
         grant_info_test = None
+        nested_hot_dict = {'test': 'test'}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
                           self.auth_attr, base_hot_dict_test,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
-                          grant_info=grant_info_test)
+                          grant_info=grant_info_test,
+                          vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
-    def test_create_userdataclass_null(self, mock_OpenstackClients_heat):
+    def test_create_userdataclass_null(self, mock_OpenstackClients_heat,
+                                       mock_get_base_hot_dict):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
@@ -261,17 +284,25 @@ class TestOpenStack(base.FixturedTestCase):
 
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = test_json['flavourId']
         grant_info_test = None
+        nested_hot_dict = {'test': 'test'}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
                           self.auth_attr, base_hot_dict_test,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
-                          grant_info=grant_info_test)
+                          grant_info=grant_info_test,
+                          vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
-    def test_create_import_module_exception(self, mock_OpenstackClients_heat):
+    def test_create_import_module_exception(self, mock_OpenstackClients_heat,
+                                            mock_get_base_hot_dict):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
@@ -284,7 +315,12 @@ class TestOpenStack(base.FixturedTestCase):
             'instantiate_vnf_request_lcm_userdata.json')
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = test_json['flavourId']
         grant_info_test = None
+        nested_hot_dict = {'test': 'test'}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         with mock.patch.object(importlib, 'import_module') as mock_importlib:
             mock_importlib.side_effect = Exception('Test Exception')
             self.assertRaises(vnfm.LCMUserDataFailed,
@@ -293,10 +329,13 @@ class TestOpenStack(base.FixturedTestCase):
                               self.auth_attr, base_hot_dict_test,
                               vnf_package_path_test,
                               inst_req_info=inst_req_info_test,
-                              grant_info=grant_info_test)
+                              grant_info=grant_info_test,
+                              vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
-    def test_create_getattr_none(self, mock_OpenstackClients_heat):
+    def test_create_getattr_none(self, mock_OpenstackClients_heat,
+                                 mock_get_base_hot_dict):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
@@ -309,7 +348,12 @@ class TestOpenStack(base.FixturedTestCase):
             'instantiate_vnf_request_lcm_userdata.json')
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = test_json['flavourId']
         grant_info_test = None
+        nested_hot_dict = {'test': 'test'}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         with mock.patch.object(importlib, 'import_module') as mock_importlib:
             mock_importlib.return_value = None
             self.assertRaises(vnfm.LCMUserDataFailed,
@@ -318,10 +362,13 @@ class TestOpenStack(base.FixturedTestCase):
                               self.auth_attr, base_hot_dict_test,
                               vnf_package_path_test,
                               inst_req_info=inst_req_info_test,
-                              grant_info=grant_info_test)
+                              grant_info=grant_info_test,
+                              vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
-    def test_create_missing_file(self, mock_OpenstackClients_heat):
+    def test_create_missing_file(self, mock_OpenstackClients_heat,
+                                 mock_get_base_hot_dict):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
@@ -334,19 +381,27 @@ class TestOpenStack(base.FixturedTestCase):
             'instantiate_vnf_request_lcm_userdata.json')
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = test_json['flavourId']
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
+        nested_hot_dict = {'test': 'test'}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
                           self.auth_attr, inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
                           base_hot_dict=base_hot_dict_test,
-                          grant_info=grant_info_test)
+                          grant_info=grant_info_test,
+                          vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
-    def test_create_return_none_dict(self, mock_OpenstackClients_heat):
+    def test_create_return_none_dict(self, mock_OpenstackClients_heat,
+                                     mock_get_base_hot_dict):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
@@ -361,38 +416,54 @@ class TestOpenStack(base.FixturedTestCase):
             'UserData/lcm_user_data_non_dict.py'
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = test_json['flavourId']
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
+        nested_hot_dict = {'test': 'test'}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
                           self.auth_attr, inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
                           base_hot_dict=base_hot_dict_test,
-                          grant_info=grant_info_test)
+                          grant_info=grant_info_test,
+                          vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
-    def test_create_none_base_hot_dict(self, mock_OpenstackClients_heat):
+    def test_create_none_base_hot_dict(self, mock_OpenstackClients_heat,
+                                       mock_get_base_hot_dict):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
         inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.flavour_id = test_json['flavourId']
         base_hot_dict_test = None
         vnf_package_path_test = None
         grant_info_test = None
+        nested_hot_dict = {}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
                           self.auth_attr, base_hot_dict_test,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
-                          grant_info=grant_info_test)
+                          grant_info=grant_info_test,
+                          vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
-    def test_create_invalid_user_data(self, mock_OpenstackClients_heat):
+    def test_create_invalid_user_data(self, mock_OpenstackClients_heat,
+                                      mock_get_base_hot_dict):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
@@ -409,18 +480,26 @@ class TestOpenStack(base.FixturedTestCase):
 
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = test_json['flavourId']
         grant_info_test = None
+        nested_hot_dict = {'test': 'test'}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
                           self.auth_attr, base_hot_dict_test,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
-                          grant_info=grant_info_test)
+                          grant_info=grant_info_test,
+                          vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_invalid_user_data_class(self,
-            mock_OpenstackClients_heat):
+            mock_OpenstackClients_heat,
+            mock_get_base_hot_dict):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
@@ -437,18 +516,25 @@ class TestOpenStack(base.FixturedTestCase):
 
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = test_json['flavourId']
         grant_info_test = None
+        nested_hot_dict = {'test': 'test'}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
                           self.auth_attr, base_hot_dict_test,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
-                          grant_info=grant_info_test)
+                          grant_info=grant_info_test,
+                          vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_lcm_user_data_and_user_data_class_no_value(self,
-            mock_OpenstackClients_heat):
+            mock_OpenstackClients_heat, mock_get_base_hot_dict):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
@@ -466,16 +552,22 @@ class TestOpenStack(base.FixturedTestCase):
 
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = test_json['extVirtualLinks']
+        inst_req_info_test.flavour_id = test_json['flavourId']
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
+        nested_hot_dict = {'test': 'test'}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
                           self.auth_attr, inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
                           base_hot_dict=base_hot_dict_test,
-                          grant_info=grant_info_test)
+                          grant_info=grant_info_test,
+                          vnf_instance=vnf_instance)
 
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_lcm_user_data_and_user_data_class_none(self,
@@ -523,8 +615,10 @@ class TestOpenStack(base.FixturedTestCase):
                           vnf_package_path=vnf_package_path_test,
                           inst_req_info=inst_req_info_test)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
-    def test_create_instance_exception(self, mock_OpenstackClients_heat):
+    def test_create_instance_exception(self, mock_OpenstackClients_heat,
+                                       mock_get_base_hot_dict):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         base_hot_dict_test = self._read_file()
@@ -539,16 +633,22 @@ class TestOpenStack(base.FixturedTestCase):
             'UserData/lcm_user_data_invalid_script.py'
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = test_json['flavourId']
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
+        nested_hot_dict = {'test': 'test'}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
                           self.auth_attr, inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
                           base_hot_dict=base_hot_dict_test,
-                          grant_info=grant_info_test)
+                          grant_info=grant_info_test,
+                          vnf_instance=vnf_instance)
 
     def test_create_wait(self):
         self._response_in_wait_until_stack_ready(["CREATE_IN_PROGRESS",
@@ -1082,10 +1182,11 @@ class TestOpenStack(base.FixturedTestCase):
         self.requests_mock.register_uri(
             'POST', url, json={'stack': fd_utils.get_dummy_stack()},
             headers=self.json_headers)
+        vnf_instance = fd_utils.get_vnf_instance_object()
 
         instance_id = self.openstack.instantiate_vnf(
-            self.context, None, vnfd_dict, vim_connection_info,
-            inst_req_info, grant_response)
+            self.context, vnf_instance, vnfd_dict, vim_connection_info,
+            inst_req_info, grant_response, self.plugin)
 
         self.assertEqual(uuidsentinel.instance_id, instance_id)
 
