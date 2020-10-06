@@ -11,7 +11,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-URL_ = "/zabbix/api_jsonrpc.php"
+URL = "/zabbix/api_jsonrpc.php"
 
 HEADERS = {'Content-Type': 'application/json-rpc'}
 dAUTH_API = {'jsonrpc': "2.0",
