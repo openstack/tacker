@@ -244,6 +244,7 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.VnfPackage, 'get_by_id')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._create_vnf')
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.vnf_instance, '_vnf_instance_create')
@@ -252,57 +253,14 @@ class TestController(base.TestCase):
             self, mock_get_by_id,
             mock_vnf_instance_create,
             mock_get_service_plugins,
+            mock_package_save,
             mock_private_create_vnf,
             mock_vnf_package_get_by_id,
             mock_update_package_usage_state,
             mock_get_vim):
-        mock_get_by_id.return_value = fakes.return_vnf_package_vnfd()
-
-        updates = {'vnfd_id': uuidsentinel.vnfd_id,
-                'vnf_instance_description': None,
-                'vnf_instance_name': None,
-                'vnf_pkg_id': uuidsentinel.vnf_pkg_id,
-                'vnf_metadata': {"key": "value"}}
-        mock_vnf_instance_create.return_value =\
-            fakes.return_vnf_instance_model(**updates)
-
-        req = fake_request.HTTPRequest.blank('/vnf_instances')
-        body = {'vnfdId': uuidsentinel.vnfd_id,
-                'metadata': {"key": "value"}}
-        req.body = jsonutils.dump_as_bytes(body)
-        req.headers['Content-Type'] = 'application/json'
-        req.method = 'POST'
-
-        # Call create API
-        resp = req.get_response(self.app)
-
-        self.assertEqual(http_client.CREATED, resp.status_code)
-
-        updates = {'vnfInstanceDescription': None, 'vnfInstanceName': None}
-        expected_vnf = fakes.fake_vnf_instance_response(**updates)
-        location_header = ('http://localhost/vnflcm/v1/vnf_instances/%s'
-                           % resp.json['id'])
-
-        self.assertEqual(expected_vnf, resp.json)
-        self.assertEqual(location_header, resp.headers['location'])
-
-    @mock.patch('tacker.api.vnflcm.v1.controller.'
-                'VnfLcmController._create_vnf')
-    @mock.patch.object(objects.VnfInstance, 'save')
-    @mock.patch.object(vim_client.VimClient, "get_vim")
-    @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
-    @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
-    @mock.patch.object(objects.vnf_instance, '_vnf_instance_create')
-    @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd, 'get_by_id')
-    def test_create_with_name_and_description(
-            self, mock_get_by_id_package_vnfd,
-            mock_vnf_instance_create, mock_package_save,
-            mock_get_by_id_package, mock_get_vim,
-            mock_save, mock_create_vnf):
         mock_get_vim.return_value = self.vim_info
-        mock_get_by_id_package_vnfd.return_value = \
-            fakes.return_vnf_package_vnfd()
-        mock_get_by_id_package.return_value = \
+        mock_get_by_id.return_value = fakes.return_vnf_package_vnfd()
+        mock_vnf_package_get_by_id.return_value = \
             fakes.return_vnf_package_with_deployment_flavour()
 
         updates = {'vnfd_id': uuidsentinel.vnfd_id,
@@ -1199,8 +1157,11 @@ class TestController(base.TestCase):
                          constants.INVALID_UUID,
                          resp.json['itemNotFound']['message'])
 
-    @ddt.data('PATCH', 'HEAD', 'PUT', 'POST')
-    def test_show_invalid_http_method(self, http_method):
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @ddt.data('HEAD', 'PUT', 'POST')
+    def test_show_invalid_http_method(self, http_method,
+            mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s' % constants.UUID)
         req.headers['Content-Type'] = 'application/json'
@@ -1888,3 +1849,187 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
 
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VNF, "vnf_index_list")
+    @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_vnf_package_vnfd')
+    @mock.patch.object(VNFLcmRPCAPI, "update")
+    def test_update_vnf(
+            self,
+            mock_update,
+            mock_vnf_package_vnf_get_vnf_package_vnfd,
+            mock_vnf_instance_list,
+            mock_vnf_index_list,
+            mock_get_service_plugins):
+
+        mock_vnf_index_list.return_value = fakes._get_vnf()
+        mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_package_vnf_get_vnf_package_vnfd.return_value =\
+            fakes.return_vnf_package_vnfd()
+
+        body = {"vnfInstanceName": "new_instance_name",
+                "vnfInstanceDescription": "new_instance_discription",
+                "vnfdId": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
+                "vnfConfigurableProperties": {
+                    "test": "test_value"
+                },
+                "vnfcInfoModificationsDeleteIds": ["test1"],
+                "metadata": {"testkey": "test_value"},
+                "vimConnectionInfo": {"id": "testid"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'PATCH'
+
+        # Call Instantiate API
+        resp = req.get_response(self.app)
+        print(resp)
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_update.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VNF, "vnf_index_list")
+    def test_update_vnf_none_vnf_data(
+            self,
+            mock_vnf_index_list,
+            mock_get_service_plugins):
+
+        mock_vnf_index_list.return_value = ""
+
+        body = {"vnfInstanceName": "new_instance_name",
+                "vnfInstanceDescription": "new_instance_discription",
+                "vnfdId": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
+                "vnfConfigurableProperties": {
+                    "test": "test_value"
+                },
+                "vnfcInfoModificationsDeleteIds": ["test1"],
+                "metadata": {"testkey": "test_value"},
+                "vimConnectionInfo": {"id": "testid"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'PATCH'
+
+        msg = _("Can not find requested vnf data: %s") % constants.UUID
+        res = self._make_problem_detail(msg, 404, title='Not Found')
+
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VNF, "vnf_index_list")
+    def test_update_vnf_status_err(
+            self,
+            mock_vnf_index_list,
+            mock_get_service_plugins):
+        updates = {'status': 'ERROR'}
+        mock_vnf_index_list.return_value = fakes._get_vnf(**updates)
+
+        body = {"vnfInstanceName": "new_instance_name",
+                "vnfInstanceDescription": "new_instance_discription",
+                "vnfdId": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
+                "vnfConfigurableProperties": {
+                    "test": "test_value"
+                },
+                "vnfcInfoModificationsDeleteIds": ["test1"],
+                "metadata": {"testkey": "test_value"},
+                "vimConnectionInfo": {"id": "testid"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
+        req.body = jsonutils.dump_as_bytes(body)
+
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'PATCH'
+
+        msg = _("VNF %(id)s status is %(state)s") % {
+            "id": constants.UUID, "state": "ERROR"}
+        res = self._make_problem_detail(msg %
+     {"state": "ERROR"}, 409, 'Conflict')
+
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VNF, "vnf_index_list")
+    @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
+    def test_update_vnf_none_instance_data(
+            self,
+            mock_vnf_instance_list,
+            mock_vnf_index_list,
+            mock_get_service_plugins):
+
+        mock_vnf_index_list.return_value = fakes._get_vnf()
+        mock_vnf_instance_list.return_value = ""
+
+        body = {"vnfInstanceName": "new_instance_name",
+                "vnfInstanceDescription": "new_instance_discription",
+                "vnfdId": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
+                "vnfConfigurableProperties": {
+                    "test": "test_value"
+                },
+                "vnfcInfoModificationsDeleteIds": ["test1"],
+                "metadata": {"testkey": "test_value"},
+                "vimConnectionInfo": {"id": "testid"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'PATCH'
+
+        vnf_data = fakes._get_vnf()
+        msg = _("Can not find requested vnf instance data: %s") % vnf_data.get(
+            'vnfd_id')
+        res = self._make_problem_detail(msg, 404, title='Not Found')
+
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VNF, "vnf_index_list")
+    @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_vnf_package_vnfd')
+    @mock.patch.object(VNFLcmRPCAPI, "update")
+    def test_update_vnf_none_vnfd_data(
+            self,
+            mock_update,
+            mock_vnf_package_vnf_get_vnf_package_vnfd,
+            mock_vnf_instance_list,
+            mock_vnf_index_list,
+            mock_get_service_plugins):
+
+        mock_vnf_index_list.return_value = fakes._get_vnf()
+        mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_package_vnf_get_vnf_package_vnfd.return_value = ""
+
+        body = {"vnfInstanceName": "new_instance_name",
+                "vnfInstanceDescription": "new_instance_discription",
+                "vnfdId": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
+                "vnfConfigurableProperties": {
+                    "test": "test_value"
+                },
+                "vnfcInfoModificationsDeleteIds": ["test1"],
+                "metadata": {"testkey": "test_value"},
+                "vimConnectionInfo": {"id": "testid"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'PATCH'
+
+        fakes._get_vnf()
+        msg = _("Can not find requested vnf package vnfd: %s") %\
+            body.get('vnfdId')
+        res = self._make_problem_detail(msg, 400, 'Bad Request')
+
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)

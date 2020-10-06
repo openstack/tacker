@@ -1189,6 +1189,50 @@ vnf_instance_metadata:
   in: body
   required: false
   type: object
+vnf_instance_modify_request_description:
+  description: |
+    New value of the "vnfInstanceDescription" attribute in
+    "VnfInstance", or "null" to remove the attribute.
+  in: body
+  required: false
+  type: string
+vnf_instance_modify_request_metadata:
+  description: |
+    Modifications of the "metadata" attribute in
+    "VnfInstance". If present, these modifications shall be
+    applied according to the rules of JSON Merge PATCH
+  in: body
+  required: false
+  type: string
+vnf_instance_modify_request_name:
+  description: |
+    New value of the "vnfInstanceName" attribute in
+    "VnfInstance", or "null" to remove the attribute.
+  in: body
+  required: false
+  type: string
+vnf_instance_modify_request_vim_connection_info:
+  description: |
+    New content of certain entries in the
+    "vimConnectionInfo" attribute array in "VnfInstance", as
+    defined below this table.
+  in: body
+  required: false
+  type: string
+vnf_instance_modify_request_vnf_pkg_id:
+  description: |
+    New value of the "vnfPkgId" attribute in "VnfInstance". The
+    value "null" is not permitted.
+  in: body
+  required: false
+  type: string
+vnf_instance_modify_request_vnfd_id:
+  description: |
+    New value of the "vnfdId" attribute in "VnfInstance". The
+    value "null" is not permitted.
+  in: body
+  required: false
+  type: string
 vnf_instance_name:
   description: |
     Name of the VNF instance.

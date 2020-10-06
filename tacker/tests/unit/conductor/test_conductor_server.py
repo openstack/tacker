@@ -14,7 +14,9 @@
 # limitations under the License.
 
 import base64
+import datetime
 import fixtures
+import iso8601
 import json
 import os
 import requests
@@ -33,6 +35,7 @@ from tacker.common import csar_utils
 from tacker.common import exceptions
 from tacker.conductor import conductor_server
 from tacker import context
+from tacker import context as t_context
 from tacker.glance_store import store as glance_store
 from tacker import objects
 from tacker.objects import fields
@@ -78,6 +81,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.vnf_package = self._create_vnf_package()
         self.instance_uuid = uuidsentinel.instance_id
         self.temp_dir = self.useFixture(fixtures.TempDir()).path
+        self.body_data = self._create_body_data()
+        self.vnf_lcm_opoccs = self._create_vnf_lcm_opoccs()
+        self.vnfd_pkg_data = self._create_vnfd_pkg_data()
 
     def _mock_vnfm_plugin(self):
         self.vnfm_plugin = mock.Mock(wraps=FakeVNFMPlugin())
@@ -119,6 +125,40 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                     return None
 
         return [DummyLcmSubscription(auth_params)]
+
+    def _create_body_data(self):
+        body_data = {}
+        body_data['vnf_instance_name'] = "new_instance_name"
+        body_data['vnf_instance_description'] = "new_instance_discription"
+        body_data['vnfd_id'] = "2c69a161-0000-4b0f-bcf8-391f8fc76600"
+        body_data['vnf_configurable_properties'] = {"test": "test_value"}
+        body_data['vnfc_info_modifications_delete_ids'] = ["test1"]
+        return body_data
+
+    def _create_vnf_lcm_opoccs(self):
+        vnf_lcm_opoccs = {
+            'vnf_instance_id': uuidsentinel.vnf_instance_id,
+            'id': uuidsentinel.id,
+            'state_entered_time': datetime.datetime(
+                1900, 1, 1, 1, 1, 1,
+                tzinfo=iso8601.UTC),
+            'operationParams': {
+                "key": "value"}}
+        return vnf_lcm_opoccs
+
+    def _create_vnfd_pkg_data(self):
+        vnfd_pkg_data = {}
+        vnfd_pkg_data['vnf_provider'] = fakes.return_vnf_package_vnfd().get(
+            'vnf_provider')
+        vnfd_pkg_data['vnf_product_name'] =\
+            fakes.return_vnf_package_vnfd().get('vnf_product_name')
+        vnfd_pkg_data['vnf_software_version'] =\
+            fakes.return_vnf_package_vnfd().get('vnf_software_version')
+        vnfd_pkg_data['vnfd_version'] = fakes.return_vnf_package_vnfd().get(
+            'vnfd_version')
+        vnfd_pkg_data['package_uuid'] = fakes.return_vnf_package_vnfd().get(
+            'package_uuid')
+        return vnfd_pkg_data
 
     def assert_auth_basic(
             self,
@@ -958,3 +998,24 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
         self.assertEqual(result, 99)
         mock_subscriptions_get.assert_called()
+
+    @mock.patch.object(conductor_server, 'revert_update_lcm')
+    @mock.patch.object(t_context.get_admin_context().session, "add")
+    @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfInstance, "update")
+    @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "create")
+    def test_update(self, mock_create, mock_update, mock_save, mock_add,
+                    mock_revert):
+        mock_create.return_value = "OK"
+        mock_update.return_value = datetime.datetime(
+            1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+        mock_add.return_value = "OK"
+        mock_save.return_value = "OK"
+        vnfd_id = "2c69a161-0000-4b0f-bcf8-391f8fc76600"
+
+        self.conductor.update(
+            self.context,
+            self.vnf_lcm_opoccs,
+            self.body_data,
+            self.vnfd_pkg_data,
+            vnfd_id)

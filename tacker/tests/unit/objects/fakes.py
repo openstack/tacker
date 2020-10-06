@@ -45,6 +45,14 @@ software_image = {
     'metadata': {'key1': 'value1'}
 }
 
+artifact_data = {
+    'file_name': 'test', 'type': 'test',
+    'algorithm': 'sha-256',
+    'hash': 'b9c3036539fd7a5f87a1bf38eb05fdde8b556a1'
+            'a7e664dbeda90ed3cd74b4f9d',
+    'metadata': {'key1': 'value1'}
+}
+
 artifacts = {
     'json_data': 'test data',
     'type': 'tosca.artifacts.nfv.SwImage',
@@ -92,6 +100,42 @@ subscription_data = {
     'id': "c3e5ea85-8e3d-42df-a636-3b7857cbd7f9",
     'callback_uri': "fake_url",
     'created_at': "2020-06-11 09:39:58"
+}
+
+vnfd_data = {
+    "tenant_id": uuidsentinel.tenant_id,
+    'name': 'test',
+    'description': 'test_description',
+    'mgmt_driver': 'test_mgmt_driver'
+}
+
+vnfd_attribute = {
+    'key': 'test_key',
+    'value': 'test_value',
+}
+
+lcm_op_occs_data = {
+    "tenant_id": uuidsentinel.tenant_id,
+    'operation_state': 'PROCESSING',
+    'state_entered_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
+                                        tzinfo=iso8601.UTC),
+    'start_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
+                                    tzinfo=iso8601.UTC),
+    'operation': 'MODIFY_INFO',
+    'is_automatic_invocation': 0,
+    'is_cancel_pending': 0,
+}
+
+vim_data = {
+    'id': uuidsentinel.vim_id,
+    'type': 'test_type',
+    "tenant_id": uuidsentinel.tenant_id,
+    'name': "test_name",
+    'description': "test_description",
+    'placement_attr': "test_placement_attr",
+    'shared': 0,
+    'status': "REACHABLE",
+    'is_default': 0
 }
 
 fake_vnf_package_response = copy.deepcopy(vnf_package_data)
@@ -429,4 +473,17 @@ def get_changed_info_data():
         "vnf_product_name": "MME",
         "vnf_software_version": "1.0",
         "vnfd_version": "MME_1.0"
+    }
+
+
+def get_vnf(vnfd_id, vim_id):
+    return {
+        'tenant_id': uuidsentinel.tenant_id,
+        'name': "test_name",
+        'vnfd_id': vnfd_id,
+        'mgmt_ip_address': "test_mgmt_ip_address",
+        'status': "ACTIVE",
+        'description': "test_description",
+        'placement_attr': "test_placement_attr",
+        'vim_id': vim_id
     }

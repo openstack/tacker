@@ -110,6 +110,17 @@ rules = [
             }
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name=VNFLCM % 'update_vnf',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Update an Individual VNF instance.",
+        operations=[
+            {
+                'method': 'PATCH',
+                'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}'
+            }
+        ]
+    ),
 ]
 
 
