@@ -35,7 +35,7 @@
     post-run: playbooks/devstack/post.yaml
     roles:
       - zuul: openstack-infra/devstack
-    timeout: 9000
+    timeout: 10800
     required-projects:
       - openstack/cinder
       - openstack/glance
