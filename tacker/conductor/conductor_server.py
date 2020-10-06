@@ -468,7 +468,12 @@ class Conductor(manager.Manager):
             zip_path = glance_store.load_csar(vnf_package.id, location)
             vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
                 context.elevated(), vnf_package.id, zip_path)
-            self._onboard_vnf_package(context, vnf_package, vnf_data, flavours)
+            self._onboard_vnf_package(
+                context,
+                vnf_package,
+                vnf_data,
+                flavours,
+                vnf_artifacts)
             vnf_package.onboarding_state = (
                 fields.PackageOnboardingStateType.ONBOARDED)
             vnf_package.operational_state = (
