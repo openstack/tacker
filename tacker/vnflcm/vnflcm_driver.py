@@ -14,12 +14,18 @@
 #    under the License.
 
 import copy
+from datetime import datetime
 import functools
 import inspect
+import re
 import six
+import time
+import traceback
+import yaml
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from oslo_utils import encodeutils
 from oslo_utils import excutils
 
@@ -29,11 +35,13 @@ from tacker.common import driver_manager
 from tacker.common import exceptions
 from tacker.common import safe_utils
 from tacker.common import utils
+from tacker.conductor.conductorrpc import vnf_lcm_rpc
+from tacker import manager
 from tacker import objects
 from tacker.objects import fields
 from tacker.vnflcm import abstract_driver
 from tacker.vnflcm import utils as vnflcm_utils
-
+from tacker.vnfm.mgmt_drivers import constants as mgmt_constants
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -85,6 +93,99 @@ def rollback_vnf_instantiated_resources(function):
     return decorated_function
 
 
+@utils.expects_func_args('vnf_info', 'vnf_instance', 'scale_vnf_request')
+def revert_to_error_scale(function):
+    """Decorator to revert task_state to error  on failure."""
+
+    @functools.wraps(function)
+    def decorated_function(self, context, *args, **kwargs):
+        try:
+            return function(self, context, *args, **kwargs)
+        except Exception as ex:
+            with excutils.save_and_reraise_exception():
+                wrapped_func = safe_utils.get_wrapped_function(function)
+                keyed_args = inspect.getcallargs(wrapped_func, self, context,
+                                                 *args, **kwargs)
+                try:
+                    vnf_info = keyed_args['vnf_info']
+                    vnf_instance = keyed_args['vnf_instance']
+                    scale_vnf_request = keyed_args['scale_vnf_request']
+                    vim_info = vnflcm_utils._get_vim(context,
+                            vnf_instance.vim_connection_info)
+                    vim_connection_info = \
+                        objects.VimConnectionInfo.obj_from_primitive(
+                            vim_info, context)
+                    if vnf_info.get('resource_changes'):
+                        resource_changes = vnf_info.get('resource_changes')
+                    else:
+                        resource_changes = self._scale_resource_update(context,
+                                            vnf_info,
+                                            vnf_instance,
+                                            scale_vnf_request,
+                                            vim_connection_info,
+                                            error=True)
+                except Exception as e:
+                    LOG.warning(traceback.format_exc())
+                    LOG.warning("Failed to scale resource update "
+                                "instance %(id)s. Error: %(error)s",
+                                {"id": vnf_instance.id, "error": e})
+
+                try:
+                    self._vnfm_plugin._update_vnf_scaling_status_err(context,
+                                                                     vnf_info)
+                except Exception as e:
+                    LOG.warning("Failed to revert scale info for event "
+                                "instance %(id)s. Error: %(error)s",
+                                {"id": vnf_instance.id, "error": e})
+                try:
+                    self._vnf_instance_update(context, vnf_instance)
+                except Exception as e:
+                    LOG.warning("Failed to revert instantiation info for vnf "
+                                "instance %(id)s. Error: %(error)s",
+                                {"id": vnf_instance.id, "error": e})
+                problem = objects.ProblemDetails(status=500,
+                                                 detail=str(ex))
+
+                try:
+                    timestamp = datetime.utcnow()
+                    vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
+                    vnf_lcm_op_occ.operation_state = 'FAILED_TEMP'
+                    vnf_lcm_op_occ.state_entered_time = timestamp
+                    vnf_lcm_op_occ.resource_changes = resource_changes
+                    vnf_lcm_op_occ.error = problem
+                    vnf_lcm_op_occ.save()
+                except Exception as e:
+                    LOG.warning("Failed to update vnf_lcm_op_occ for vnf "
+                                "instance %(id)s. Error: %(error)s",
+                                {"id": vnf_instance.id, "error": e})
+
+                try:
+                    notification = vnf_info['notification']
+                    notification['notificationStatus'] = 'RESULT'
+                    notification['operationState'] = 'FAILED_TEMP'
+                    notification['error'] = problem.to_dict()
+                    resource_dict = resource_changes.to_dict()
+                    if resource_dict.get('affected_vnfcs'):
+                        notification['affectedVnfcs'] =\
+                            jsonutils.dump_as_bytes(
+                            resource_dict.get('affected_vnfcs'))
+                    if resource_dict.get('affected_virtual_links'):
+                        notification['affectedVirtualLinks'] =\
+                            jsonutils.dump_as_bytes(
+                            resource_dict.get('affected_virtual_links'))
+                    if resource_dict.get('affected_virtual_storages'):
+                        notification['affectedVirtualStorages'] =\
+                            jsonutils.dump_as_bytes(
+                            resource_dict.get('affected_virtual_storages'))
+                    self.rpc_api.send_notification(context, notification)
+                except Exception as e:
+                    LOG.warning("Failed to revert scale info for vnf "
+                                "instance %(id)s. Error: %(error)s",
+                                {"id": vnf_instance.id, "error": e})
+
+    return decorated_function
+
+
 @utils.expects_func_args('vnf_instance')
 def revert_to_error_task_state(function):
     """Decorator to revert task_state to error  on failure."""
@@ -121,6 +222,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
     def __init__(self):
         super(VnfLcmDriver, self).__init__()
+        self.rpc_api = vnf_lcm_rpc.VNFLcmRPCAPI()
+        self._vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
         self._vnf_manager = driver_manager.DriverManager(
             'tacker.tacker.vnfm.drivers',
             cfg.CONF.tacker.infra_driver)
@@ -196,6 +299,9 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vnf_instance_id=vnf_instance.id,
             instance_id=instance_id,
             ext_cp_info=[])
+        if vnf_dict['attributes'].get('scaling_group_names'):
+            vnf_instance.instantiated_vnf_info.scale_status = \
+                vnf_dict['scale_status']
 
         try:
             self._vnf_manager.invoke(
@@ -427,3 +533,466 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
         LOG.info("Request received for healing vnf '%s' is completed "
                  "successfully", vnf_instance.id)
+
+    def _scale_vnf_pre(self, context, vnf_info, vnf_instance,
+                      scale_vnf_request, vim_connection_info):
+        self._vnfm_plugin._update_vnf_scaling(
+            context, vnf_info, 'ACTIVE', 'PENDING_' + scale_vnf_request.type)
+        vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
+        vnf_lcm_op_occ.error_point = 2
+
+        scale_id_list = []
+        scale_name_list = []
+        grp_id = None
+        vnf_info['policy_name'] = scale_vnf_request.aspect_id
+        if scale_vnf_request.type == 'SCALE_IN':
+            vnfd_yaml = vnf_info['vnfd']['attributes'].get(
+                'vnfd_' + vnf_instance.instantiated_vnf_info.flavour_id, '')
+            vnfd_dict = yaml.safe_load(vnfd_yaml)
+            # mgmt_driver from vnfd
+            vnf_node = self._get_node_template_for_vnf(vnfd_dict)
+            if vnf_node and vnf_node.get('interfaces'):
+                if vnf_node['interfaces']['Vnflcm']['scale_start']:
+                    vnf_info['vnfd']['mgmt_driver'] = \
+                        vnf_node['interfaces']['Vnflcm']['scale_start']
+            vnf_info['action'] = 'in'
+            scale_id_list, scale_name_list, grp_id, res_num = \
+                self._vnf_manager.invoke(
+                    vim_connection_info.vim_type,
+                    'get_scale_in_ids',
+                    plugin=self,
+                    context=context,
+                    vnf_dict=vnf_info,
+                    is_reverse=scale_vnf_request.additional_params.get('\
+                        is_reverse'),
+                    auth_attr=vim_connection_info.access_info,
+                    region_name=vim_connection_info.access_info.get('\
+                        region_name'),
+                    number_of_steps=scale_vnf_request.number_of_steps
+                )
+            vnf_info['res_num'] = res_num
+
+            # mgmt_driver pre
+            if len(scale_id_list) != 0 and vnf_info['vnfd'].get('mgmt_driver'):
+                if len(scale_id_list) > 1:
+                    stack_value = []
+                    stack_value = scale_id_list
+                else:
+                    stack_value = scale_id_list[0]
+                kwargs = {
+                    mgmt_constants.KEY_ACTION:
+                        mgmt_constants.ACTION_SCALE_IN_VNF,
+                    mgmt_constants.KEY_KWARGS:
+                        {'vnf': vnf_info},
+                    mgmt_constants.KEY_SCALE:
+                        stack_value,
+                }
+                self._vnfm_plugin.mgmt_call(context, vnf_info, kwargs)
+        else:
+            vnf_info['action'] = 'out'
+            scale_id_list = self._vnf_manager.invoke(
+                vim_connection_info.vim_type,
+                'get_scale_ids',
+                plugin=self,
+                context=context,
+                vnf_dict=vnf_info,
+                auth_attr=vim_connection_info.access_info,
+                region_name=vim_connection_info.access_info.get('region_name')
+            )
+        vnf_lcm_op_occ.error_point = 3
+        return scale_id_list, scale_name_list, grp_id
+
+    def _get_node_template_for_vnf(self, vnfd_dict):
+        for node_template in vnfd_dict['topology_template']['\
+        node_templates'].values():
+            LOG.debug("node_template %s", node_template)
+            if not re.match('^tosca', node_template['type']):
+                LOG.debug("VNF node_template %s", node_template)
+                return node_template
+        return {}
+
+    def _scale_vnf_post(self, context, vnf_info, vnf_instance,
+                       scale_vnf_request, vim_connection_info,
+                       scale_id_list,
+                       resource_changes):
+        vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
+        vnf_lcm_op_occ.error_point = 6
+        if scale_vnf_request.type == 'SCALE_OUT':
+            vnfd_yaml =\
+                vnf_info['vnfd']['attributes'].\
+                get('vnfd_' + vnf_instance.instantiated_vnf_info.flavour_id,
+                '')
+            vnf_info['policy_name'] = scale_vnf_request.aspect_id
+            vnfd_dict = yaml.safe_load(vnfd_yaml)
+            # mgmt_driver from vnfd
+            vnf_node = self._get_node_template_for_vnf(vnfd_dict)
+            if vnf_node and vnf_node.get('interfaces'):
+                if vnf_node['interfaces']['Vnflcm']['scale_end']:
+                    vnf_info['vnfd']['mgmt_driver'] = \
+                        vnf_node['interfaces']['Vnflcm']['scale_end']
+            scale_id_after = self._vnf_manager.invoke(
+                vim_connection_info.vim_type,
+                'get_scale_ids',
+                plugin=self,
+                context=context,
+                vnf_dict=vnf_info,
+                auth_attr=vim_connection_info.access_info,
+                region_name=vim_connection_info.access_info.get('region_name')
+            )
+            id_list = []
+            id_list = list(set(scale_id_after) - set(scale_id_list))
+            vnf_info['res_num'] = len(scale_id_after)
+            if len(id_list) != 0 and vnf_info['vnfd'].get('mgmt_driver'):
+                if len(id_list) > 1:
+                    stack_value = []
+                    stack_value = id_list
+                else:
+                    stack_value = id_list[0]
+                kwargs = {
+                    mgmt_constants.KEY_ACTION:
+                        mgmt_constants.ACTION_SCALE_OUT_VNF,
+                    mgmt_constants.KEY_KWARGS:
+                        {'vnf': vnf_info},
+                    mgmt_constants.KEY_SCALE:
+                        stack_value,
+                }
+                self._vnfm_plugin.mgmt_call(context, vnf_info, kwargs)
+        vnf_lcm_op_occ.error_point = 7
+        vnf_instance.instantiated_vnf_info.scale_level =\
+            vnf_info['after_scale_level']
+        scaleGroupDict = \
+            jsonutils.loads(vnf_info['attributes']['scale_group'])
+        (scaleGroupDict
+        ['scaleGroupDict'][scale_vnf_request.aspect_id]['default']) =\
+            vnf_info['res_num']
+        vnf_info['attributes']['scale_group'] =\
+            jsonutils.dump_as_bytes(scaleGroupDict)
+        vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
+        vnf_lcm_op_occ.operation_state = 'COMPLETED'
+        vnf_lcm_op_occ.resource_changes = resource_changes
+        self._vnfm_plugin._update_vnf_scaling(context, vnf_info,
+                                          'PENDING_' + scale_vnf_request.type,
+                                          'ACTIVE',
+                                          vnf_instance=vnf_instance,
+                                          vnf_lcm_op_occ=vnf_lcm_op_occ)
+
+        notification = vnf_info['notification']
+        notification['notificationStatus'] = 'RESULT'
+        notification['operationState'] = 'COMPLETED'
+        resource_dict = resource_changes.to_dict()
+        if resource_dict.get('affected_vnfcs'):
+            notification['affectedVnfcs'] = resource_dict.get('affected_vnfcs')
+        if resource_dict.get('affected_virtual_links'):
+            notification['affectedVirtualLinks'] =\
+                resource_dict.get('affected_virtual_links')
+        if resource_dict.get('affected_virtual_storages'):
+            notification['affectedVirtualStorages'] =\
+                resource_dict.get('affected_virtual_storages')
+        self.rpc_api.send_notification(context, notification)
+
+    def _scale_resource_update(self, context, vnf_info, vnf_instance,
+                               scale_vnf_request,
+                               vim_connection_info,
+                               error=False):
+        vnf_lcm_op_occs = vnf_info['vnf_lcm_op_occ']
+        instantiated_vnf_before = \
+            copy.deepcopy(vnf_instance.instantiated_vnf_info)
+
+        self._vnf_manager.invoke(
+            vim_connection_info.vim_type,
+            'scale_resource_update',
+            context=context,
+            vnf_instance=vnf_instance,
+            scale_vnf_request=scale_vnf_request,
+            vim_connection_info=vim_connection_info
+        )
+        for scale in vnf_instance.instantiated_vnf_info.scale_status:
+            if scale_vnf_request.aspect_id == scale.aspect_id:
+                if not error:
+                    scale.scale_level = vnf_info['after_scale_level']
+                    break
+                else:
+                    scale.scale_level = vnf_info['scale_level']
+                    break
+        LOG.debug("vnf_instance.instantiated_vnf_info %s",
+        vnf_instance.instantiated_vnf_info)
+        affected_vnfcs = []
+        affected_virtual_storages = []
+        affected_virtual_links = []
+        if scale_vnf_request.type == 'SCALE_IN':
+            for vnfc in instantiated_vnf_before.vnfc_resource_info:
+                vnfc_delete = True
+                for rsc in vnf_instance.instantiated_vnf_info.\
+                        vnfc_resource_info:
+                    if vnfc.compute_resource.resource_id == \
+                            rsc.compute_resource.resource_id:
+                        vnfc_delete = False
+                        break
+                if vnfc_delete:
+                    affected_vnfc = objects.AffectedVnfc(id=vnfc.id,
+                                       vdu_id=vnfc.vdu_id,
+                                       change_type='REMOVED',
+                                       compute_resource=vnfc.compute_resource)
+                    affected_vnfcs.append(affected_vnfc)
+
+            for st in instantiated_vnf_before.virtual_storage_resource_info:
+                st_delete = True
+                for rsc in vnf_instance.instantiated_vnf_info.\
+                        virtual_storage_resource_info:
+                    if st.storage_resource.resource_id == \
+                            rsc.storage_resource.resource_id:
+                        st_delete = False
+                        break
+                if st_delete:
+                    affected_st = objects.AffectedVirtualStorage(
+                        id=st.id,
+                        virtual_storage_desc_id=st.virtual_storage_desc_id,
+                        change_type='REMOVED',
+                        storage_resource=st.storage_resource)
+                    affected_virtual_storages.append(affected_st)
+
+            for vl in instantiated_vnf_before.vnf_virtual_link_resource_info:
+                port_delete = False
+                for rsc in vnf_instance.\
+                        instantiated_vnf_info.vnf_virtual_link_resource_info:
+                    if vl.network_resource.resource_id == \
+                            rsc.network_resource.resource_id:
+                        if len(vl.vnf_link_ports) != len(rsc.vnf_link_ports):
+                            port_delete = True
+                            break
+                if port_delete:
+                    affected_vl = objects.AffectedVirtualLink(
+                        id=vl.id,
+                        vnf_virtual_link_desc_id=vl.vnf_virtual_link_desc_id,
+                        change_type='LINK_PORT_REMOVED',
+                        network_resource=vl.network_resource)
+                    affected_virtual_links.append(affected_vl)
+        else:
+            for rsc in vnf_instance.instantiated_vnf_info.vnfc_resource_info:
+                vnfc_add = True
+                for vnfc in instantiated_vnf_before.vnfc_resource_info:
+                    if vnfc.compute_resource.resource_id == \
+                            rsc.compute_resource.resource_id:
+                        vnfc_add = False
+                        break
+                if vnfc_add:
+                    affected_vnfc = objects.AffectedVnfc(
+                        id=rsc.id,
+                        vdu_id=rsc.vdu_id,
+                        change_type='ADDED',
+                        compute_resource=rsc.compute_resource)
+                    affected_vnfcs.append(affected_vnfc)
+            for rsc in vnf_instance.instantiated_vnf_info.\
+                    virtual_storage_resource_info:
+                st_add = True
+                for st in instantiated_vnf_before.\
+                        virtual_storage_resource_info:
+                    if st.storage_resource.resource_id == \
+                            rsc.storage_resource.resource_id:
+                        st_add = False
+                        break
+                if st_add:
+                    affected_st = objects.AffectedVirtualStorage(
+                        id=rsc.id,
+                        virtual_storage_desc_id=rsc.virtual_storage_desc_id,
+                        change_type='ADDED',
+                        storage_resource=rsc.storage_resource)
+                    affected_virtual_storages.append(affected_st)
+            for vl in instantiated_vnf_before.vnf_virtual_link_resource_info:
+                port_add = False
+                for rsc in vnf_instance.instantiated_vnf_info.\
+                        vnf_virtual_link_resource_info:
+                    if vl.network_resource.resource_id == \
+                            rsc.network_resource.resource_id:
+                        if len(vl.vnf_link_ports) != len(rsc.vnf_link_ports):
+                            port_add = True
+                            break
+                if port_add:
+                    affected_vl = objects.AffectedVirtualLink(
+                        id=vl.id,
+                        vnf_virtual_link_desc_id=vl.vnf_virtual_link_desc_id,
+                        change_type='LINK_PORT_ADDED',
+                        network_resource=vl.network_resource)
+                    affected_virtual_links.append(affected_vl)
+        resource_changes = objects.ResourceChanges()
+        resource_changes.affected_vnfcs = []
+        resource_changes.affected_virtual_links = []
+        resource_changes.affected_virtual_storages = []
+        if 'resource_changes' in \
+                vnf_lcm_op_occs and vnf_lcm_op_occs.resource_changes:
+            res_chg = vnf_lcm_op_occs.resource_changes
+            if 'affected_vnfcs' in res_chg:
+                if res_chg.affected_vnfcs and \
+                   len(res_chg.affected_vnfcs) > 0:
+                    resource_changes.affected_vnfcs.\
+                        extend(res_chg.affected_vnfcs)
+            if 'affected_virtual_storages' in res_chg:
+                if res_chg.affected_virtual_storages and \
+                   len(res_chg.affected_virtual_storages) > 0:
+                    resource_changes.affected_virtual_storages.extend(
+                        res_chg.affected_virtual_storages)
+            if 'affected_virtual_links' in res_chg:
+                if res_chg.affected_virtual_links and \
+                   len(res_chg.affected_virtual_links) > 0:
+                    resource_changes.affected_virtual_links.\
+                        extend(res_chg.affected_virtual_links)
+        resource_changes.affected_vnfcs.extend(affected_vnfcs)
+        resource_changes.affected_virtual_storages.extend(
+            affected_virtual_storages)
+        resource_changes.affected_virtual_links = []
+        resource_changes.affected_virtual_links.extend(affected_virtual_links)
+
+        vnf_info['resource_changes'] = resource_changes
+        return resource_changes
+
+    def _scale_vnf(self, context, vnf_info, vnf_instance,
+                   scale_vnf_request, vim_connection_info,
+                   scale_name_list, grp_id):
+        # action_driver
+        LOG.debug("vnf_info['vnfd']['attributes'] %s",
+        vnf_info['vnfd']['attributes'])
+        vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
+        vnf_lcm_op_occ.error_point = 4
+        self.scale(context, vnf_info, scale_vnf_request,
+                   vim_connection_info, scale_name_list, grp_id)
+        vnf_lcm_op_occ.error_point = 5
+
+    @log.log
+    @revert_to_error_scale
+    def scale_vnf(self, context, vnf_info, vnf_instance, scale_vnf_request):
+        LOG.info("Request received for scale vnf '%s'", vnf_instance.id)
+
+        timestamp = datetime.utcnow()
+        vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
+
+        vnf_lcm_op_occ.operation_state = 'PROCESSING'
+        vnf_lcm_op_occ.state_entered_time = timestamp
+        LOG.debug("vnf_lcm_op_occ %s", vnf_lcm_op_occ)
+        vnf_lcm_op_occ.save()
+
+        notification = vnf_info['notification']
+        notification['operationState'] = 'PROCESSING'
+        self.rpc_api.send_notification(context, notification)
+
+        vim_info = vnflcm_utils._get_vim(context,
+            vnf_instance.vim_connection_info)
+
+        vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
+            vim_info, context)
+
+        scale_id_list, scale_name_list, grp_id = self._scale_vnf_pre(
+            context, vnf_info,
+            vnf_instance,
+            scale_vnf_request,
+            vim_connection_info)
+
+        self._scale_vnf(context, vnf_info,
+                        vnf_instance,
+                        scale_vnf_request,
+                        vim_connection_info,
+                        scale_name_list, grp_id)
+
+        resource_changes = self._scale_resource_update(context, vnf_info,
+                                    vnf_instance,
+                                    scale_vnf_request,
+                                    vim_connection_info)
+
+        self._scale_vnf_post(context, vnf_info,
+                             vnf_instance,
+                             scale_vnf_request,
+                             vim_connection_info,
+                             scale_id_list,
+                             resource_changes)
+
+        LOG.info("Request received for scale vnf '%s' is completed "
+                 "successfully", vnf_instance.id)
+
+    def scale(
+            self,
+            context,
+            vnf_info,
+            scale_vnf_request,
+            vim_connection_info,
+            scale_name_list,
+            grp_id):
+        self._vnf_manager = driver_manager.DriverManager(
+            'tacker.tacker.vnfm.drivers',
+            cfg.CONF.tacker.infra_driver)
+        policy = {}
+        policy['instance_id'] = vnf_info['instance_id']
+        policy['name'] = scale_vnf_request.aspect_id
+        policy['vnf'] = vnf_info
+        if scale_vnf_request.type == 'SCALE_IN':
+            policy['action'] = 'in'
+        else:
+            policy['action'] = 'out'
+        LOG.debug(
+            "is_reverse: %s",
+            scale_vnf_request.additional_params.get('is_reverse'))
+        if scale_vnf_request.additional_params['is_reverse'] == 'True':
+            self._vnf_manager.invoke(
+                vim_connection_info.vim_type,
+                'scale_in_reverse',
+                plugin=self,
+                context=context,
+                auth_attr=vim_connection_info.access_info,
+                vnf_info=vnf_info,
+                scale_vnf_request=scale_vnf_request,
+                region_name=vim_connection_info.access_info.get('region_name'),
+                scale_name_list=scale_name_list,
+                grp_id=grp_id
+            )
+            self._vnf_manager.invoke(
+                vim_connection_info.vim_type,
+                'scale_in_reverse_wait',
+                plugin=self,
+                context=context,
+                auth_attr=vim_connection_info.access_info,
+                vnf_info=vnf_info,
+                region_name=vim_connection_info.access_info.get('region_name')
+            )
+        else:
+            heat_template = vnf_info['attributes']['heat_template']
+            policy_in_name = scale_vnf_request.aspect_id + '_scale_in'
+            policy_out_name = scale_vnf_request.aspect_id + '_scale_out'
+
+            heat_resource = yaml.safe_load(heat_template)
+            if scale_vnf_request.type == 'SCALE_IN':
+                policy['action'] = 'in'
+                policy_temp = heat_resource['resources'][policy_in_name]
+                policy_prop = policy_temp['properties']
+                cooldown = policy_prop.get('cooldown')
+                policy_name = policy_in_name
+            else:
+                policy['action'] = 'out'
+                policy_temp = heat_resource['resources'][policy_out_name]
+                policy_prop = policy_temp['properties']
+                cooldown = policy_prop.get('cooldown')
+                policy_name = policy_out_name
+
+            policy_temp = heat_resource['resources'][policy_name]
+            policy_prop = policy_temp['properties']
+            for i in range(scale_vnf_request.number_of_steps):
+                last_event_id = self._vnf_manager.invoke(
+                    vim_connection_info.vim_type,
+                    'scale',
+                    plugin=self,
+                    context=context,
+                    auth_attr=vim_connection_info.access_info,
+                    policy=policy,
+                    region_name=vim_connection_info.access_info.get('\
+                        region_name')
+                )
+                self._vnf_manager.invoke(
+                    vim_connection_info.vim_type,
+                    'scale_wait',
+                    plugin=self,
+                    context=context,
+                    auth_attr=vim_connection_info.access_info,
+                    policy=policy,
+                    region_name=vim_connection_info.access_info.get('\
+                        region_name'),
+                    last_event_id=last_event_id)
+                if i != scale_vnf_request.number_of_steps - 1:
+                    if cooldown:
+                        time.sleep(cooldown)

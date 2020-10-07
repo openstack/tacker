@@ -799,9 +799,29 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                           password=password)
         self.assertEqual('CREATED', self.vnf_package.onboarding_state)
 
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_scale(self, mock_vnf_by_id, mock_get_lock):
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_info = fakes._get_vnf()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status="scale_status")
+        scale_vnf_request = fakes.scale_request("SCALE_IN", 1)
+
+        self.conductor.scale(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            scale_vnf_request)
+        self.vnflcm_driver.scale_vnf.assert_called_once_with(
+            self.context, vnf_info, mock.ANY, scale_vnf_request)
+
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
-    def test_sendNotification_notFoundSubscription(self,
+    def test_send_notification_not_found_subscription(self,
                                                    mock_subscriptions_get):
         mock_subscriptions_get.return_value = None
         notification = {
@@ -815,7 +835,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
-    def test_sendNotification_vnfLcmOperationOccurrence(self,
+    def test_send_notification_vnf_lcm_operation_occurrence(self,
                                                     mock_subscriptions_get):
         self.requests_mock.register_uri('POST',
             "https://localhost/callback",
@@ -843,7 +863,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
-    def test_sendNotification_vnfIdentifierCreation(self,
+    def test_send_notification_vnf_identifier_creation(self,
                                                     mock_subscriptions_get):
         self.requests_mock.register_uri(
             'POST',
@@ -870,9 +890,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
-    def test_sendNotification_with_auth_basic(self, mock_subscriptions_get):
-        self.requests_mock.register_uri(
-            'POST',
+    def test_send_notification_with_auth_basic(self, mock_subscriptions_get):
+        self.requests_mock.register_uri('POST',
             "https://localhost/callback",
             headers={
                 'Content-Type': 'application/json'},
@@ -881,7 +900,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         auth_user_name = 'test_user'
         auth_password = 'test_password'
         mock_subscriptions_get.return_value = self._create_subscriptions(
-            {'authType': ['BASIC'],
+            {'authType': 'BASIC',
             'paramsBasic': {'userName': auth_user_name,
                             'password': auth_password}})
 
@@ -906,7 +925,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
-    def test_sendNotification_with_auth_client_credentials(
+    def test_send_notification_with_auth_client_credentials(
             self, mock_subscriptions_get):
         auth.auth_manager = auth._AuthManager()
         self.requests_mock.register_uri(
@@ -951,10 +970,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
-    def test_sendNotification_retyNotification(self,
-                                               mock_subscriptions_get):
-        self.requests_mock.register_uri(
-            'POST',
+    def test_send_notification_rety_notification(self,
+                                              mock_subscriptions_get):
+        self.requests_mock.register_uri('POST',
             "https://localhost/callback",
             headers={
                 'Content-Type': 'application/json'},
@@ -1003,7 +1021,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
-    def test_sendNotification_internalServerError(
+    def test_send_notification_internal_server_error(
             self, mock_subscriptions_get):
         mock_subscriptions_get.side_effect = Exception("MockException")
         notification = {
@@ -1013,7 +1031,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
         result = self.conductor.send_notification(self.context, notification)
 
-        self.assertEqual(result, 99)
+        self.assertEqual(result, -2)
         mock_subscriptions_get.assert_called()
 
     @mock.patch.object(conductor_server, 'revert_update_lcm')

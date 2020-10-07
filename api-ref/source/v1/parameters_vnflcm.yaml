@@ -163,6 +163,12 @@ affected_vnfcs_vdu_id:
   in: body
   required: true
   type: string
+aspect_id:
+  description: |
+    Identifier of the scaling aspect.
+  in: body
+  required: true
+  type: string
 authentication:
   description: |
     Authentication parameters to configure the use of
@@ -842,6 +848,14 @@ notification_vnf_lcm_op_occ_id:
   in: body
   required: true
   type: string
+number_of_steps:
+  description: |
+    Number of scaling steps to be executed as part of this
+    Scale VNF operation. It shall be a positive number and the
+    default value shall be 1.
+  in: body
+  required: false
+  type: int
 operation:
   description: |
     Type of the actual LCM operation represented by this
@@ -922,6 +936,14 @@ resource_handle_vim_level_resource_type:
   in: body
   required: false
   type: string
+scale_additional_params:
+  description: |
+    Additional parameters passed by the NFVO as input to the
+    scaling process, specific to the VNF being scaled, as
+    declared in the VNFD as part of "ScaleVnfOpConfig".
+  in: body
+  required: false
+  type: string
 scale_status:
   description: |
     Scale status of the VNF, one entry per aspect.
@@ -943,6 +965,17 @@ scale_status_scale_level:
     Indicates the scale level. The minimum value shall be 0
     and the maximum value shall be less than or equal to maxScaleLevel as
     described in the VNFD.
+  in: body
+  required: true
+  type: string
+scale_type:
+  description: |
+    Indicates the type of the scale operation requested.
+    Permitted values:
+
+    SCALE_OUT: adding additional VNFC instances to the VNF to increase capacity.
+
+    SCALE_IN: removing VNFC instances from the VNF in order to release unused capacity.
   in: body
   required: true
   type: string

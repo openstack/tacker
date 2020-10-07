@@ -18,6 +18,7 @@ import copy
 import eventlet
 import importlib
 import os
+import re
 import sys
 import time
 import yaml
@@ -213,8 +214,21 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     "is not in dict format.")
                 raise vnfm.LCMUserDataFailed(reason=error_reason)
 
+            if vnf['attributes'].get('scale_group'):
+                scale_json = vnf['attributes']['scale_group']
+                scaleGroupDict = jsonutils.loads(scale_json)
+                for name, value in scaleGroupDict['scaleGroupDict'].items():
+                    hot_param_dict[name + '_desired_capacity'] = \
+                        value['default']
+
             # Add stack param to vnf_attributes
             vnf['attributes'].update({'stack_param': str(hot_param_dict)})
+
+            # Add base_hot_dict
+            vnf['attributes'].update({
+                'heat_template': self._format_base_hot(base_hot_dict)})
+            for name, value in nested_hot_dict.items():
+                vnf['attributes'].update({name: self._format_base_hot(value)})
 
             # Create heat-stack with BaseHOT and parameters
             stack = self._create_stack_with_user_data(
@@ -546,29 +560,50 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                    last_event_id):
         heatclient = hc.HeatClient(auth_attr, region_name)
 
-        # TODO(kanagaraj-manickam) make wait logic into separate utility method
-        # and make use of it here and other actions like create and delete
         stack_retries = self.STACK_RETRIES
+        stack_id = policy['instance_id']
+        grp = heatclient.resource_get(stack_id, policy['name'] + '_group')
         while (True):
             try:
+                judge = 0
                 time.sleep(self.STACK_RETRY_WAIT)
-                stack_id = policy['instance_id']
                 policy_name = get_scaling_policy_name(
                     policy_name=policy['name'], action=policy['action'])
-                events = heatclient.resource_event_list(stack_id, policy_name,
-                                                        limit=1,
-                                                        sort_dir='desc',
-                                                        sort_keys='event_time')
+                scale_rsc_list = heatclient.resource_get_list(
+                    grp.physical_resource_id)
+                for rsc in scale_rsc_list:
+                    if 'IN_PROGRESS' in rsc.resource_status:
+                        judge = 1
+                        break
 
-                if events[0].id != last_event_id:
-                    if events[0].resource_status == 'SIGNAL_COMPLETE':
+                if judge == 0:
+                    for rsc in scale_rsc_list:
+                        if rsc.resource_status == 'CREATE_FAILED' or \
+                           rsc.resource_status == 'UPDATE_FAILED' or \
+                           rsc.resource_status == 'DELETE_FAILED':
+                            error_reason = _(
+                                "VNF scaling failed for stack %(stack)s with "
+                                "status %(status)s") % {
+                                'stack': policy['instance_id'],
+                                'status': rsc.resource_status}
+                            LOG.warning(error_reason)
+                            raise vnfm.VNFScaleWaitFailed(
+                                vnf_id=policy['vnf']['\
+                                    id'], reason=error_reason)
+                    events = heatclient.resource_event_list(
+                        stack_id, policy_name, limit=1,
+                        sort_dir='desc',
+                        sort_keys='event_time')
+
+                    if events[0].id != last_event_id:
                         break
-                else:
-                    # When the number of instance reaches min or max, the below
-                    # comparision will let VNF status turn into ACTIVE state.
-                    if events[0].resource_status == 'CREATE_COMPLETE' or \
-                            events[0].resource_status == 'SIGNAL_COMPLETE':
+                    else:
+                        # When the number of instance reaches min or max,
+                        # the below comparision will let VNF status turn
+                        # into ACTIVE state.
+                        LOG.warning("skip scaling")
                         break
+
             except Exception as e:
                 error_reason = _("VNF scaling failed for stack %(stack)s with "
                                  "error %(error)s") % {
@@ -579,35 +614,24 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                               reason=error_reason)
 
             if stack_retries == 0:
-                metadata = heatclient.resource_metadata(stack_id, policy_name)
-                if not metadata['scaling_in_progress']:
-                    error_reason = _('When signal occurred within cool down '
-                                     'window, no events generated from heat, '
-                                     'so ignore it')
-                    LOG.warning(error_reason)
-                    break
                 error_reason = _(
-                    "VNF scaling failed to complete within %(wait)s seconds "
+                    "VNF scaling failed to complete within %{wait}s seconds "
                     "while waiting for the stack %(stack)s to be "
-                    "scaled.") % {'stack': stack_id,
-                                  'wait': self.STACK_RETRIES *
-                                  self.STACK_RETRY_WAIT}
-                LOG.warning(error_reason)
+                    "scaled.")
+                LOG.warning(error_reason, {
+                    'stack': stack_id,
+                    'wait': (
+                        self.STACK_RETRIES * self.STACK_RETRY_WAIT)})
                 raise vnfm.VNFScaleWaitFailed(vnf_id=policy['vnf']['id'],
                                               reason=error_reason)
             stack_retries -= 1
 
-        def _fill_scaling_group_name():
-            vnf = policy['vnf']
-            scaling_group_names = vnf['attributes']['scaling_group_names']
-            policy['group_name'] = jsonutils.loads(
-                scaling_group_names)[policy['name']]
-
-        _fill_scaling_group_name()
-
+        vnf = policy['vnf']
+        group_names = jsonutils.loads(
+            vnf['attributes'].get('scaling_group_names')).values()
         mgmt_ips = self._find_mgmt_ips_from_groups(heatclient,
                                                    policy['instance_id'],
-                                                   [policy['group_name']])
+                                                   group_names)
 
         return jsonutils.dump_as_bytes(mgmt_ips)
 
@@ -1163,3 +1187,317 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
             self._update_vnfc_resource_info(vnf_instance, vnfc_res_info,
                     {stack_id: resources}, update_network_resource=False)
+
+    @log.log
+    def get_scale_ids(self, plugin, context, vnf_dict, auth_attr,
+                      region_name=None):
+        heatclient = hc.HeatClient(auth_attr, region_name)
+        grp = heatclient.resource_get(vnf_dict['instance_id'],
+                                      vnf_dict['policy_name'] + '_group')
+        ret_list = []
+        for rsc in heatclient.resource_get_list(grp.physical_resource_id):
+            ret_list.append(rsc.physical_resource_id)
+        return ret_list
+
+    @log.log
+    def get_scale_in_ids(self, plugin, context, vnf_dict, is_reverse,
+                         auth_attr,
+                         region_name,
+                         number_of_steps):
+        heatclient = hc.HeatClient(auth_attr, region_name)
+        grp = heatclient.resource_get(vnf_dict['instance_id'],
+                                      vnf_dict['policy_name'] + '_group')
+        res_list = []
+        for rsc in heatclient.resource_get_list(grp.physical_resource_id):
+            scale_rsc = heatclient.resource_get(grp.physical_resource_id,
+                                                rsc.resource_name)
+            if 'COMPLETE' in scale_rsc.resource_status:
+                res_list.append(scale_rsc)
+        res_list = sorted(
+            res_list,
+            key=lambda x: (x.creation_time, x.resource_name)
+        )
+        LOG.debug("res_list %s", res_list)
+        heat_template = vnf_dict['attributes']['heat_template']
+        group_name = vnf_dict['policy_name'] + '_group'
+        policy_name = vnf_dict['policy_name'] + '_scale_in'
+
+        heat_resource = yaml.safe_load(heat_template)
+        group_temp = heat_resource['resources'][group_name]
+        group_prop = group_temp['properties']
+        min_size = group_prop['min_size']
+
+        policy_temp = heat_resource['resources'][policy_name]
+        policy_prop = policy_temp['properties']
+        adjust = policy_prop['scaling_adjustment']
+
+        stack_size = len(res_list)
+        cap_size = stack_size + (adjust * number_of_steps)
+        if cap_size < min_size:
+            cap_size = min_size
+
+        if is_reverse == 'True':
+            res_list2 = res_list[:cap_size]
+            LOG.debug("res_list2 reverse %s", res_list2)
+        else:
+            res_list2 = res_list[-cap_size:]
+            LOG.debug("res_list2 %s", res_list2)
+
+        before_list = []
+        after_list = []
+        before_rs_list = []
+        after_rs_list = []
+        for rsc in res_list:
+            before_list.append(rsc.physical_resource_id)
+            before_rs_list.append(rsc.resource_name)
+        for rsc in res_list2:
+            after_list.append(rsc.physical_resource_id)
+            after_rs_list.append(rsc.resource_name)
+
+        if 0 < cap_size:
+            return_list = list(set(before_list) - set(after_list))
+            return_rs_list = list(set(before_rs_list) - set(after_rs_list))
+        else:
+            return_list = before_list
+            return_rs_list = before_rs_list
+
+        return return_list, return_rs_list, grp.physical_resource_id, cap_size
+
+    @log.log
+    def scale_resource_update(self, context, vnf_instance,
+                              scale_vnf_request,
+                              vim_connection_info):
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        vnfc_rsc_list = []
+        st_rsc_list = []
+        for vnfc in vnf_instance.instantiated_vnf_info.vnfc_resource_info:
+            vnfc_rsc_list.append(vnfc.compute_resource.resource_id)
+        for st in vnf_instance.instantiated_vnf_info.\
+                virtual_storage_resource_info:
+            st_rsc_list.append(st.storage_resource.resource_id)
+
+        access_info = vim_connection_info.access_info
+
+        heatclient = hc.HeatClient(access_info,
+            region_name=access_info.get('region'))
+
+        if scale_vnf_request.type == 'SCALE_OUT':
+            grp = heatclient.resource_get(
+                inst_vnf_info.instance_id,
+                scale_vnf_request.aspect_id + '_group')
+            for scale_rsc in heatclient.resource_get_list(
+                    grp.physical_resource_id):
+                vnfc_rscs = []
+                scale_resurce_list = heatclient.resource_get_list(
+                    scale_rsc.physical_resource_id)
+                for rsc in scale_resurce_list:
+                    if rsc.resource_type == 'OS::Nova::Server':
+                        if rsc.physical_resource_id not in vnfc_rsc_list:
+                            rsc_info = heatclient.resource_get(
+                                scale_rsc.physical_resource_id,
+                                rsc.resource_name)
+                            meta = heatclient.resource_metadata(
+                                scale_rsc.physical_resource_id,
+                                rsc.resource_name)
+                            LOG.debug("rsc %s", rsc_info)
+                            LOG.debug("meta %s", meta)
+                            if 'COMPLETE' in rsc.resource_status and '\
+                            INIT_COMPLETE' != rsc.resource_status:
+                                vnfc_resource_info = objects.VnfcResourceInfo()
+                                vnfc_resource_info.id =\
+                                    uuidutils.generate_uuid()
+                                vnfc_resource_info.vdu_id = rsc.resource_name
+                                resource = objects.ResourceHandle()
+                                resource.vim_connection_id =\
+                                    vim_connection_info.id
+                                resource.resource_id =\
+                                    rsc_info.physical_resource_id
+                                resource.vim_level_resource_type = '\
+                                    OS::Nova::Server'
+                                vnfc_resource_info.compute_resource = resource
+                                if meta:
+                                    vnfc_resource_info.metadata = meta
+                                vnfc_resource_info.vnfc_cp_info = []
+                                volumes_attached = rsc_info.attributes.get(
+                                    'os-extended-volumes:volumes_attached')
+                                if not volumes_attached:
+                                    volumes_attached = []
+                                vnfc_resource_info.storage_resource_ids = []
+                                for vol in volumes_attached:
+                                    vnfc_resource_info.\
+                                        storage_resource_ids.\
+                                        append(vol.get('id'))
+                                vnfc_rscs.append(vnfc_resource_info)
+                if len(vnfc_rscs) == 0:
+                    continue
+
+                for rsc in scale_resurce_list:
+                    if 'COMPLETE' in rsc.resource_status and '\
+                            INIT_COMPLETE' != rsc.resource_status:
+                        if rsc.resource_type == 'OS::Neutron::Port':
+                            rsc_info = heatclient.resource_get(
+                                scale_rsc.physical_resource_id,
+                                rsc.resource_name)
+                            LOG.debug("rsc %s", rsc_info)
+                            for vnfc_rsc in vnfc_rscs:
+                                if vnfc_rsc.vdu_id in rsc_info.required_by:
+                                    vnfc_cp = objects.VnfcCpInfo()
+                                    vnfc_cp.id = uuidutils.generate_uuid()
+                                    vnfc_cp.cpd_id = rsc.resource_name
+                                    vnfc_cp.cp_protocol_info = []
+
+                                    cp_protocol_info = objects.CpProtocolInfo()
+                                    cp_protocol_info.layer_protocol = '\
+                                        IP_OVER_ETHERNET'
+                                    ip_over_ethernet = objects.\
+                                        IpOverEthernetAddressInfo()
+                                    ip_over_ethernet.mac_address = rsc_info.\
+                                        attributes.get('mac_address')
+                                    cp_protocol_info.ip_over_ethernet = \
+                                        ip_over_ethernet
+                                    vnfc_cp.cp_protocol_info.append(
+                                        cp_protocol_info)
+                                    ip_addresses = objects.\
+                                        vnf_instantiated_info.IpAddress()
+                                    ip_addresses.addresses = []
+                                    for fixed_ip in rsc_info.attributes.get(
+                                            'fixed_ips'):
+                                        ip_addr = fixed_ip.get('ip_address')
+                                        if re.match(
+                                            r'^\d{1,3}\
+                                                (\.\d{1,3}){3}\
+                                                    (/\d{1,2})?$',
+                                                ip_addr):
+                                            ip_addresses.type = 'IPV4'
+                                        else:
+                                            ip_addresses.type = 'IPV6'
+                                        ip_addresses.addresses.append(ip_addr)
+                                        ip_addresses.subnet_id = fixed_ip.get(
+                                            'subnet_id')
+                                    ip_over_ethernet.ip_addresses = []
+                                    ip_over_ethernet.ip_addresses.append(
+                                        ip_addresses)
+                                    for vl in vnf_instance.\
+                                            instantiated_vnf_info.\
+                                            vnf_virtual_link_resource_info:
+                                        if vl.network_resource.resource_id ==\
+                                            rsc_info.attributes.get(
+                                                'network_id'):
+                                            resource = objects.ResourceHandle()
+                                            resource.vim_connection_id =\
+                                                vim_connection_info.id
+                                            resource.resource_id =\
+                                                rsc_info.physical_resource_id
+                                            resource.vim_level_resource_type = '\
+                                                OS::Neutron::Port'
+                                            if not vl.vnf_link_ports:
+                                                vl.vnf_link_ports = []
+                                            link_port_info = objects.\
+                                                VnfLinkPortInfo()
+                                            link_port_info.id = uuidutils.\
+                                                generate_uuid()
+                                            link_port_info.resource_handle =\
+                                                resource
+                                            link_port_info.cp_instance_id =\
+                                                vnfc_cp.id
+                                            vl.vnf_link_ports.append(
+                                                link_port_info)
+                                            vnfc_rsc.vnf_link_port_id =\
+                                                link_port_info.id
+                                    vnfc_rsc.vnfc_cp_info.append(vnfc_cp)
+                        if rsc.resource_type == 'OS::Cinder::Volume':
+                            if rsc.physical_resource_id not in st_rsc_list:
+                                virtual_storage_resource_info =\
+                                    objects.VirtualStorageResourceInfo()
+                                virtual_storage_resource_info.id =\
+                                    uuidutils.generate_uuid()
+                                virtual_storage_resource_info.\
+                                    virtual_storage_desc_id = rsc.resource_name
+                                resource = objects.ResourceHandle()
+                                resource.vim_connection_id =\
+                                    vim_connection_info.id
+                                resource.resource_id = rsc.physical_resource_id
+                                resource.vim_level_resource_type = '\
+                                    OS::Cinder::Volume'
+                                virtual_storage_resource_info.\
+                                    storage_resource = resource
+                                inst_vnf_info.virtual_storage_resource_info.\
+                                    append(virtual_storage_resource_info)
+                inst_vnf_info.vnfc_resource_info.extend(vnfc_rscs)
+        if scale_vnf_request.type == 'SCALE_IN':
+            resurce_list = heatclient.resource_get_list(
+                inst_vnf_info.instance_id, nested_depth=2)
+            after_vnfcs_list = []
+            after_st_list = []
+            after_port_list = []
+            for rsc in resurce_list:
+                if rsc.resource_type == 'OS::Nova::Server':
+                    after_vnfcs_list.append(rsc.physical_resource_id)
+                if rsc.resource_type == 'OS::Cinder::Volume':
+                    after_st_list.append(rsc.physical_resource_id)
+                if rsc.resource_type == 'OS::Neutron::Port':
+                    after_port_list.append(rsc.physical_resource_id)
+            LOG.debug("after_st_list %s", after_st_list)
+            del_index = []
+            for index, vnfc in enumerate(
+                    vnf_instance.instantiated_vnf_info.vnfc_resource_info):
+                if vnfc.compute_resource.resource_id not in after_vnfcs_list:
+                    del_index.append(index)
+            for ind in del_index[::-1]:
+                vnf_instance.instantiated_vnf_info.vnfc_resource_info.pop(ind)
+
+            del_index = []
+            for index, st in enumerate(
+                    vnf_instance.instantiated_vnf_info.
+                    virtual_storage_resource_info):
+                LOG.debug(
+                    "st.storage_resource.resource_id %s",
+                    st.storage_resource.resource_id)
+                if st.storage_resource.resource_id not in after_st_list:
+                    del_index.append(index)
+            for ind in del_index[::-1]:
+                vnf_instance.instantiated_vnf_info.\
+                    virtual_storage_resource_info.pop(ind)
+
+            for vl in vnf_instance.instantiated_vnf_info.\
+                    vnf_virtual_link_resource_info:
+                del_index = []
+                for index, vl_port in enumerate(vl.vnf_link_ports):
+                    if vl_port.resource_handle.\
+                            resource_id not in after_port_list:
+                        del_index.append(index)
+                for ind in del_index[::-1]:
+                    vl.vnf_link_ports.pop(ind)
+
+    @log.log
+    def scale_in_reverse(self, context, plugin, auth_attr, vnf_info,
+                         scale_vnf_request, region_name,
+                         scale_name_list, grp_id):
+        heatclient = hc.HeatClient(auth_attr, region_name)
+        if grp_id:
+            for name in scale_name_list:
+                heatclient.resource_mark_unhealthy(
+                    stack_id=grp_id,
+                    resource_name=name,
+                    mark_unhealthy=True,
+                    resource_status_reason='Scale')
+        paramDict = {}
+        paramDict[scale_vnf_request.aspect_id +
+     '_desired_capacity'] = vnf_info['res_num']
+        stack_update_param = {
+            'parameters': paramDict,
+            'existing': True}
+        heatclient.update(vnf_info['instance_id'], **stack_update_param)
+
+    @log.log
+    def scale_in_reverse_wait(
+            self,
+            context,
+            plugin,
+            auth_attr,
+            vnf_info,
+            region_name):
+        self._wait_until_stack_ready(vnf_info['instance_id'],
+            auth_attr, infra_cnst.STACK_UPDATE_IN_PROGRESS,
+            infra_cnst.STACK_UPDATE_COMPLETE,
+            vnfm.VNFScaleWaitFailed, region_name=region_name)

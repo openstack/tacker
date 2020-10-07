@@ -230,6 +230,7 @@ class VnfInstantiatedInfo(model_base.BASE, models.SoftDeleteMixin,
                             sa.ForeignKey('vnf_instances.id'),
                             nullable=False)
     flavour_id = sa.Column(sa.String(255), nullable=False)
+    scale_status = sa.Column(sa.JSON(), nullable=True)
     ext_cp_info = sa.Column(sa.JSON(), nullable=False)
     ext_virtual_link_info = sa.Column(sa.JSON(), nullable=True)
     ext_managed_virtual_link_info = sa.Column(sa.JSON(), nullable=True)

@@ -537,6 +537,63 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             tstamp=timeutils.utcnow())
         return updated_vnf_dict
 
+    def _update_vnf_scaling_status_err(self,
+                                       context,
+                                       vnf_info):
+        previous_statuses = ['PENDING_SCALE_OUT', 'PENDING_SCALE_IN', 'ACTIVE']
+
+        try:
+            with context.session.begin(subtransactions=True):
+                self._update_vnf_status_db(
+                    context, vnf_info['id'], previous_statuses, 'ERROR')
+        except Exception as e:
+            LOG.warning("Failed to revert scale info for vnf "
+                        "instance %(id)s. Error: %(error)s",
+                        {"id": vnf_info['id'], "error": e})
+        self._cos_db_plg.create_event(
+            context, res_id=vnf_info['id'],
+            res_type=constants.RES_TYPE_VNF,
+            res_state='ERROR',
+            evt_type=constants.RES_EVT_SCALE,
+            tstamp=timeutils.utcnow())
+
+    def _update_vnf_scaling(self,
+                            context,
+                            vnf_info,
+                            previous_statuses,
+                            status,
+                            vnf_instance=None,
+                            vnf_lcm_op_occ=None):
+        with context.session.begin(subtransactions=True):
+            timestamp = timeutils.utcnow()
+            (self._model_query(context, VNF).
+             filter(VNF.id == vnf_info['id']).
+             filter(VNF.status == previous_statuses).
+             update({'status': status,
+                     'updated_at': timestamp}))
+
+            dev_attrs = vnf_info.get('attributes', {})
+            (context.session.query(VNFAttribute).
+             filter(VNFAttribute.vnf_id == vnf_info['id']).
+             filter(~VNFAttribute.key.in_(dev_attrs.keys())).
+             delete(synchronize_session='fetch'))
+
+            for (key, value) in dev_attrs.items():
+                if 'vim_auth' not in key:
+                    self._vnf_attribute_update_or_create(
+                        context, vnf_info['id'], key, value)
+            self._cos_db_plg.create_event(
+                context, res_id=vnf_info['id'],
+                res_type=constants.RES_TYPE_VNF,
+                res_state=status,
+                evt_type=constants.RES_EVT_SCALE,
+                tstamp=timestamp)
+            if vnf_lcm_op_occ:
+                vnf_lcm_op_occ.state_entered_time = timestamp
+                vnf_lcm_op_occ.save()
+            if vnf_instance:
+                vnf_instance.save()
+
     def _update_vnf_pre(self, context, vnf_id, new_status):
         with context.session.begin(subtransactions=True):
             vnf_db = self._update_vnf_status_db(

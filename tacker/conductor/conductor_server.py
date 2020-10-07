@@ -918,7 +918,7 @@ class Conductor(manager.Manager):
                     self.__set_auth_subscription(line)
 
                     for num in range(CONF.vnf_lcm.retry_num):
-                        LOG.warn("send notify[%s]" % json.dumps(notification))
+                        LOG.info("send notify[%s]" % json.dumps(notification))
                         auth_client = auth.auth_manager.get_auth_client(
                             notification['subscriptionId'])
                         response = auth_client.post(
@@ -953,7 +953,7 @@ class Conductor(manager.Manager):
         except Exception as e:
             LOG.warn("Internal Sever Error[%s]" % str(e))
             LOG.warn(traceback.format_exc())
-            return 99
+            return -2
         return 0
 
     @coordination.synchronized('{vnf_instance[id]}')
@@ -1147,6 +1147,22 @@ class Conductor(manager.Manager):
                 operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
                 error=str(ex)
             )
+
+    @coordination.synchronized('{vnf_instance[id]}')
+    def scale(self, context, vnf_info, vnf_instance, scale_vnf_request):
+        # Check if vnf is in instantiated state.
+        vnf_instance = objects.VnfInstance.get_by_id(context,
+            vnf_instance.id)
+        if vnf_instance.instantiation_state == \
+                fields.VnfInstanceState.NOT_INSTANTIATED:
+            LOG.error("Scale action cannot be performed on vnf %(id)s "
+                      "which is in %(state)s state.",
+                      {"id": vnf_instance.id,
+                      "state": vnf_instance.instantiation_state})
+            return
+
+        self.vnflcm_driver.scale_vnf(
+            context, vnf_info, vnf_instance, scale_vnf_request)
 
     def __set_auth_subscription(self, vnf_lcm_subscription):
         def decode(val):
