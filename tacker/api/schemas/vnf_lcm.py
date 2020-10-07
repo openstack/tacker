@@ -28,7 +28,8 @@ _extManagedVirtualLinkData = {
         'properties': {
             'id': parameter_types.identifier,
             'vnfVirtualLinkDescId': parameter_types.identifier_in_vnfd,
-            'resourceId': parameter_types.identifier_in_vim
+            'resourceId': parameter_types.identifier_in_vim,
+            'vimConnectionId': parameter_types.identifier
         },
         'required': ['id', 'vnfVirtualLinkDescId', 'resourceId'],
         'additionalProperties': False,
@@ -124,6 +125,7 @@ _resourceHandle = {
     'type': 'object',
     'properties': {
         'resourceId': parameter_types.identifier_in_vim,
+        'vimConnectionId': parameter_types.identifier,
         'vimLevelResourceType': {'type': 'string', 'maxLength': 255},
     },
     'required': ['resourceId'],
@@ -150,6 +152,7 @@ _extVirtualLinkData = {
         'properties': {
             'id': parameter_types.identifier,
             'resourceId': parameter_types.identifier_in_vim,
+            'vimConnectionId': parameter_types.identifier,
             'extCps': _vnfExtCpData,
             'extLinkPorts': _extLinkPortData,
 
