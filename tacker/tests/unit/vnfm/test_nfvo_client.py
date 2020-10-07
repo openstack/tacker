@@ -67,6 +67,26 @@ class TestVnfPackageRequest(base.BaseTestCase):
 
         cfg.CONF.set_override('auth_type', None,
                               group='authentication')
+        cfg.CONF.set_override(
+            "base_url",
+            self.url,
+            group='connect_vnf_packages')
+        cfg.CONF.set_default(
+            name='pipeline',
+            group='connect_vnf_packages',
+            default=[
+                "package_content",
+                "vnfd"])
+        cfg.CONF.set_override('user_name', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('password', self.auth_password,
+                              group='authentication')
+        cfg.CONF.set_override('token_endpoint', self.token_endpoint,
+                              group='authentication')
+        cfg.CONF.set_override('client_id', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('client_password', self.auth_password,
+                              group='authentication')
         auth.auth_manager = auth._AuthManager()
         nfvo_client.VnfPackageRequest._connector = nfvo_client._Connect(
             2, 1, 20)
@@ -136,8 +156,9 @@ class TestVnfPackageRequest(base.BaseTestCase):
         return json.loads(serial_json_str)
 
     def test_init(self):
-        self.assertEqual(None, cfg.CONF.connect_vnf_packages.base_url)
-        self.assertEqual(None, cfg.CONF.connect_vnf_packages.pipeline)
+        self.assertEqual(self.url, cfg.CONF.connect_vnf_packages.base_url)
+        self.assertEqual(["package_content", "vnfd"],
+                         cfg.CONF.connect_vnf_packages.pipeline)
         self.assertEqual(2, cfg.CONF.connect_vnf_packages.retry_num)
         self.assertEqual(30, cfg.CONF.connect_vnf_packages.retry_wait)
         self.assertEqual(20, cfg.CONF.connect_vnf_packages.timeout)
@@ -176,8 +197,6 @@ class TestVnfPackageRequest(base.BaseTestCase):
     )
     @ddt.unpack
     def test_download_vnf_packages(self, content, vnfd, artifacts):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
         fetch_base_url = os.path.join(self.url, uuidsentinel.vnf_pkg_id)
         expected_connect_cnt = 0
         pipelines = []
@@ -272,14 +291,7 @@ class TestVnfPackageRequest(base.BaseTestCase):
         self.assertEqual(expected_connect_cnt, req_count)
 
     def test_download_vnf_packages_with_auth_basic(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-
         cfg.CONF.set_override('auth_type', 'BASIC',
-                              group='authentication')
-        cfg.CONF.set_override('user_name', self.auth_user_name,
-                              group='authentication')
-        cfg.CONF.set_override('password', self.auth_password,
                               group='authentication')
         auth.auth_manager = auth._AuthManager()
 
@@ -292,16 +304,7 @@ class TestVnfPackageRequest(base.BaseTestCase):
             self.assert_auth_basic(h)
 
     def test_download_vnf_packages_with_auth_client_credentials(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-
         cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
-                              group='authentication')
-        cfg.CONF.set_override('token_endpoint', self.token_endpoint,
-                              group='authentication')
-        cfg.CONF.set_override('client_id', self.auth_user_name,
-                              group='authentication')
-        cfg.CONF.set_override('client_password', self.auth_password,
                               group='authentication')
 
         expected_connect_cnt = 1
@@ -399,8 +402,6 @@ class TestVnfPackageRequest(base.BaseTestCase):
         return expected_connect_cnt
 
     def test_download_vnf_packages_content_disposition(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
         fetch_base_url = os.path.join(self.url, uuidsentinel.vnf_pkg_id)
         test_yaml_filepath = os.path.join(
             'tacker/tests/etc/samples',
@@ -436,8 +437,6 @@ class TestVnfPackageRequest(base.BaseTestCase):
 
     def test_download_vnf_packages_non_content_disposition_raise_download(
             self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
         fetch_base_url = os.path.join(self.url, uuidsentinel.vnf_pkg_id)
         test_yaml_filepath = os.path.join(
             'tacker/tests/etc/samples',
@@ -468,17 +467,6 @@ class TestVnfPackageRequest(base.BaseTestCase):
         self.assertEqual(1, req_count)
 
     def test_download_vnf_packages_with_retry_raise_not_found(self):
-        # TODO(Edagawa) fix duplicated lines
-        # (cfg.CONF.set_override and cfg.CONF.set_default) with below
-        # two functions.
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-        cfg.CONF.set_default(
-            name='pipeline',
-            group='connect_vnf_packages',
-            default=[
-                "package_content",
-                "vnfd"])
 
         fetch_base_url = os.path.join(self.url, uuidsentinel.vnf_pkg_id)
         self.requests_mock.register_uri(
@@ -501,14 +489,6 @@ class TestVnfPackageRequest(base.BaseTestCase):
             cfg.CONF.connect_vnf_packages.retry_num + 1, req_count)
 
     def test_download_vnf_packages_with_retry_raise_timeout(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-        cfg.CONF.set_default(
-            name='pipeline',
-            group='connect_vnf_packages',
-            default=[
-                "package_content",
-                "vnfd"])
 
         fetch_base_url = os.path.join(self.url, uuidsentinel.vnf_pkg_id)
         self.requests_mock.register_uri(
@@ -530,14 +510,6 @@ class TestVnfPackageRequest(base.BaseTestCase):
             cfg.CONF.connect_vnf_packages.retry_num + 1, req_count)
 
     def test_download_vnf_packages_raise_failed_download_content(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-        cfg.CONF.set_default(
-            name='pipeline',
-            group='connect_vnf_packages',
-            default=[
-                "package_content",
-                "vnfd"])
 
         fetch_base_url = os.path.join(self.url, uuidsentinel.vnf_pkg_id)
         self.requests_mock.register_uri('GET', os.path.join(
@@ -564,8 +536,6 @@ class TestVnfPackageRequest(base.BaseTestCase):
 
     @ddt.data(None, [], ["non"])
     def test_download_vnf_packages_raise_non_pipeline(self, empty_val):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
         cfg.CONF.set_override('pipeline', empty_val,
                               group='connect_vnf_packages')
 
@@ -575,9 +545,6 @@ class TestVnfPackageRequest(base.BaseTestCase):
             uuidsentinel.vnf_pkg_id)
 
     def test_index(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-
         response_body = self.json_serial_date_to_dict(
             [fakes.VNFPACKAGE_RESPONSE, fakes.VNFPACKAGE_RESPONSE])
         self.requests_mock.register_uri(
@@ -595,14 +562,7 @@ class TestVnfPackageRequest(base.BaseTestCase):
         self.assertEqual(1, req_count)
 
     def test_index_with_auth_basic(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-
         cfg.CONF.set_override('auth_type', 'BASIC',
-                              group='authentication')
-        cfg.CONF.set_override('user_name', self.auth_user_name,
-                              group='authentication')
-        cfg.CONF.set_override('password', self.auth_password,
                               group='authentication')
         auth.auth_manager = auth._AuthManager()
 
@@ -624,16 +584,7 @@ class TestVnfPackageRequest(base.BaseTestCase):
         self.assert_auth_basic(history[0])
 
     def test_index_with_auth_client_credentials(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-
         cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
-                              group='authentication')
-        cfg.CONF.set_override('token_endpoint', self.token_endpoint,
-                              group='authentication')
-        cfg.CONF.set_override('client_id', self.auth_user_name,
-                              group='authentication')
-        cfg.CONF.set_override('client_password', self.auth_password,
                               group='authentication')
 
         self.requests_mock.register_uri('GET',
@@ -663,9 +614,6 @@ class TestVnfPackageRequest(base.BaseTestCase):
         self.assert_auth_client_credentials(history[1], "test_token")
 
     def test_index_raise_not_found(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-
         self.requests_mock.register_uri(
             'GET', self.url, headers=self.headers, status_code=404)
 
@@ -687,9 +635,6 @@ class TestVnfPackageRequest(base.BaseTestCase):
                           nfvo_client.VnfPackageRequest.index)
 
     def test_show(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-
         response_body = self.json_serial_date_to_dict(
             fakes.VNFPACKAGE_RESPONSE)
         self.requests_mock.register_uri(
@@ -711,14 +656,7 @@ class TestVnfPackageRequest(base.BaseTestCase):
         self.assertEqual(1, req_count)
 
     def test_show_with_auth_basic(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-
         cfg.CONF.set_override('auth_type', 'BASIC',
-                              group='authentication')
-        cfg.CONF.set_override('user_name', self.auth_user_name,
-                              group='authentication')
-        cfg.CONF.set_override('password', self.auth_password,
                               group='authentication')
         auth.auth_manager = auth._AuthManager()
 
@@ -744,16 +682,7 @@ class TestVnfPackageRequest(base.BaseTestCase):
         self.assert_auth_basic(history[0])
 
     def test_show_with_auth_client_credentials(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-
         cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
-                              group='authentication')
-        cfg.CONF.set_override('token_endpoint', self.token_endpoint,
-                              group='authentication')
-        cfg.CONF.set_override('client_id', self.auth_user_name,
-                              group='authentication')
-        cfg.CONF.set_override('client_password', self.auth_password,
                               group='authentication')
 
         self.requests_mock.register_uri('GET',
@@ -787,9 +716,6 @@ class TestVnfPackageRequest(base.BaseTestCase):
         self.assert_auth_client_credentials(history[1], "test_token")
 
     def test_show_raise_not_found(self):
-        cfg.CONF.set_override("base_url", self.url,
-                              group='connect_vnf_packages')
-
         self.requests_mock.register_uri(
             'GET',
             os.path.join(
@@ -834,6 +760,17 @@ class TestGrantRequest(base.BaseTestCase):
         self.auth_password = 'test_password'
 
         cfg.CONF.set_override('auth_type', None,
+                              group='authentication')
+        cfg.CONF.set_override("base_url", self.url, group='connect_grant')
+        cfg.CONF.set_override('user_name', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('password', self.auth_password,
+                              group='authentication')
+        cfg.CONF.set_override('token_endpoint', self.token_endpoint,
+                              group='authentication')
+        cfg.CONF.set_override('client_id', self.auth_user_name,
+                              group='authentication')
+        cfg.CONF.set_override('client_password', self.auth_password,
                               group='authentication')
         auth.auth_manager = auth._AuthManager()
         nfvo_client.GrantRequest._connector = nfvo_client._Connect(2, 1, 20)
@@ -890,14 +827,12 @@ class TestGrantRequest(base.BaseTestCase):
                     uuidsentinel.vnf_instance_id}}}
 
     def test_init(self):
-        self.assertEqual(None, cfg.CONF.connect_grant.base_url)
+        self.assertEqual(self.url, cfg.CONF.connect_grant.base_url)
         self.assertEqual(2, cfg.CONF.connect_grant.retry_num)
         self.assertEqual(30, cfg.CONF.connect_grant.retry_wait)
         self.assertEqual(20, cfg.CONF.connect_grant.timeout)
 
     def test_grants(self):
-        cfg.CONF.set_override("base_url", self.url, group='connect_grant')
-
         response_body = self.fake_response_body()
         self.requests_mock.register_uri(
             'POST',
@@ -916,8 +851,6 @@ class TestGrantRequest(base.BaseTestCase):
         self.assertEqual(1, req_count)
 
     def test_grants_with_retry_raise_bad_request(self):
-        cfg.CONF.set_override("base_url", self.url, group='connect_grant')
-
         response_body = self.fake_response_body()
         self.requests_mock.register_uri('POST', self.url, json=json.dumps(
             response_body), headers=self.headers, status_code=400)
@@ -934,7 +867,6 @@ class TestGrantRequest(base.BaseTestCase):
             cfg.CONF.connect_grant.retry_num + 1, req_count)
 
     def test_grants_with_retry_raise_timeout(self):
-        cfg.CONF.set_override("base_url", self.url, group='connect_grant')
         self.requests_mock.register_uri(
             'POST', self.url, exc=requests.exceptions.ConnectTimeout)
 
@@ -957,13 +889,7 @@ class TestGrantRequest(base.BaseTestCase):
                           data={"test": "value1"})
 
     def test_grants_with_auth_basic(self):
-        cfg.CONF.set_override("base_url", self.url, group='connect_grant')
-
         cfg.CONF.set_override('auth_type', 'BASIC',
-                              group='authentication')
-        cfg.CONF.set_override('user_name', self.auth_user_name,
-                              group='authentication')
-        cfg.CONF.set_override('password', self.auth_password,
                               group='authentication')
         auth.auth_manager = auth._AuthManager()
 
@@ -986,15 +912,7 @@ class TestGrantRequest(base.BaseTestCase):
         self.assert_auth_basic(history[0])
 
     def test_grants_with_auth_client_credentials(self):
-        cfg.CONF.set_override("base_url", self.url, group='connect_grant')
-
         cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
-                              group='authentication')
-        cfg.CONF.set_override('token_endpoint', self.token_endpoint,
-                              group='authentication')
-        cfg.CONF.set_override('client_id', self.auth_user_name,
-                              group='authentication')
-        cfg.CONF.set_override('client_password', self.auth_password,
                               group='authentication')
 
         self.requests_mock.register_uri('GET',
