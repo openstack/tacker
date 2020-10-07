@@ -477,6 +477,8 @@ def get_instantiate_vnf_request_obj():
     ext_managed_virtual_link_data.vnf_virtual_link_desc_id = 'VL3'
     ext_managed_virtual_link_data.resource_id = \
         'f8c35bd0-4d67-4436-9f11-14b8a84c92aa'
+    ext_managed_virtual_link_data.vim_connection_id = \
+        'f8c35bd0-4d67-4436-9f11-14b8a84c92aa'
     instantiate_vnf_req.additional_params = None
     instantiate_vnf_req.deleted = 0
     instantiate_vnf_req.ext_managed_virtual_links = \

@@ -1151,7 +1151,6 @@ class ResourceHandle(base.TackerObject,
     # Version 1.0: Initial version
     VERSION = '1.0'
 
-    # TODO(esto-aln):Add vimConnectionId in Type:ResourceHandle
     fields = {
         'vim_connection_id': fields.StringField(nullable=True,
                                                 default=None),

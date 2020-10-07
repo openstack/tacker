@@ -661,6 +661,8 @@ def _build_vnf_virtual_link_resource_info(node_templates, instantiate_vnf_req,
         for ext_mg_vl in instantiate_vnf_req.ext_managed_virtual_links:
             if ext_mg_vl.vnf_virtual_link_desc_id == vl_node:
                 resource_handle.resource_id = ext_mg_vl.resource_id
+                resource_handle.vim_connection_id = \
+                    ext_mg_vl.vim_connection_id
                 # TODO(tpatil): This cannot be set here.
                 resource_handle.vim_level_resource_type = \
                     'OS::Neutron::Net'
@@ -672,6 +674,8 @@ def _build_vnf_virtual_link_resource_info(node_templates, instantiate_vnf_req,
             for ext_virt_link in instantiate_vnf_req.ext_virtual_links:
                 if ext_virt_link.id == vl_node:
                     resource_handle.resource_id = ext_virt_link.resource_id
+                    resource_handle.vim_connection_id = \
+                        ext_virt_link.vim_connection_id
                     # TODO(tpatil): This cannot be set here.
                     resource_handle.vim_level_resource_type = \
                         'OS::Neutron::Net'
@@ -692,6 +696,8 @@ def _build_vnf_virtual_link_resource_info(node_templates, instantiate_vnf_req,
                         if cpconfig.link_port_id:
                             resource_handle.resource_id = \
                                 cpconfig.link_port_id
+                            resource_handle.vim_connection_id = \
+                                ext_virt_link.vim_connection_id
                             # TODO(tpatil): This shouldn't be set here.
                             resource_handle.vim_level_resource_type = \
                                 'OS::Neutron::Port'
@@ -910,6 +916,7 @@ def _set_ext_virtual_link_info(instantiate_vnf_req, ext_cp_info):
     for ext_virtual_link in instantiate_vnf_req.ext_virtual_links:
         res_handle = objects.ResourceHandle()
         res_handle.resource_id = ext_virtual_link.resource_id
+        res_handle.vim_connection_id = ext_virtual_link.vim_connection_id
 
         ext_virtual_link_info = objects.ExtVirtualLinkInfo(
             id=ext_virtual_link.id,
@@ -953,6 +960,8 @@ def _build_ext_managed_virtual_link_info(instantiate_vnf_req, inst_vnf_info):
         # driver. It could be different for other infra drivers like
         # Kubernetes.
         resource_handle.vim_level_resource_type = 'OS::Neutron::Net'
+        resource_handle.vim_connection_id = \
+            ext_managed_vl.vim_connection_id
 
         return resource_handle
 

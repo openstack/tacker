@@ -894,11 +894,13 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         stack_resources = self._get_stack_resources(
             inst_vnf_info.instance_id, heatclient)
 
-        self._update_vnfc_resources(vnf_instance, stack_resources)
+        self._update_vnfc_resources(vnf_instance, stack_resources,
+                                    vim_connection_info)
         self._update_vnfc_info(vnf_instance)
 
     def _update_resource_handle(self, vnf_instance, resource_handle,
-                                stack_resources, resource_name):
+                                stack_resources, resource_name,
+                                vim_connection_info):
         if not stack_resources:
             LOG.warning("Failed to set resource handle for resource "
                     "%(resource)s for vnf %(id)s", {"resource": resource_name,
@@ -912,13 +914,15 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                         {"resource": resource_name, "id": vnf_instance.id})
             return
 
+        resource_handle.vim_connection_id = vim_connection_info.id
         resource_handle.resource_id = resource_data.get(
             'physical_resource_id')
         resource_handle.vim_level_resource_type = resource_data.get(
             'resource_type')
 
     def _update_vnfc_resource_info(self, vnf_instance, vnfc_res_info,
-            stack_resources, update_network_resource=True):
+            stack_resources, vim_connection_info,
+            update_network_resource=True):
         inst_vnf_info = vnf_instance.instantiated_vnf_info
 
         def _pop_stack_resources(resource_name):
@@ -949,6 +953,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                         vnf_virtual_link_desc_id)
 
                 resource_handle = vnf_vl_resource_info.network_resource
+                resource_handle.vim_connection_id = vim_connection_info.id
                 resource_handle.resource_id = \
                     vl_resource_data.get('physical_resource_id')
                 resource_handle.vim_level_resource_type = \
@@ -964,7 +969,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                         vl_link_port_found = True
                         self._update_resource_handle(vnf_instance,
                                 vl_link_port.resource_handle, pop_resources,
-                                vnfc_cp_info.cpd_id)
+                                vnfc_cp_info.cpd_id,
+                                vim_connection_info)
 
                 if vl_link_port_found:
                     yield vnf_vl_resource_info.vnf_virtual_link_desc_id
@@ -978,7 +984,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                         self._update_resource_handle(vnf_instance,
                                 vir_storage_res_info.storage_resource,
                                 pop_resources,
-                                vir_storage_res_info.virtual_storage_desc_id)
+                                vir_storage_res_info.virtual_storage_desc_id,
+                                vim_connection_info)
                         break
 
         stack_id, pop_resources = _pop_stack_resources(
@@ -986,7 +993,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
         self._update_resource_handle(vnf_instance,
                 vnfc_res_info.compute_resource, pop_resources,
-                vnfc_res_info.vdu_id)
+                vnfc_res_info.vdu_id, vim_connection_info)
 
         vnfc_res_info.metadata.update({"stack_id": stack_id})
         _populate_virtual_storage(vnfc_res_info, pop_resources)
@@ -1012,6 +1019,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             for ext_vl_port in ext_managed_vl_info.vnf_link_ports:
                 if vl_port.id == ext_vl_port.id:
                     # Update the resource_id
+                    ext_vl_port.resource_handle.vim_connection_id =\
+                        vl_port.resource_handle.vim_connection_id
                     ext_vl_port.resource_handle.resource_id =\
                         vl_port.resource_handle.resource_id
                     ext_vl_port.resource_handle.vim_level_resource_type =\
@@ -1038,11 +1047,12 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
         inst_vnf_info.vnfc_info = vnfc_info
 
-    def _update_vnfc_resources(self, vnf_instance, stack_resources):
+    def _update_vnfc_resources(self, vnf_instance, stack_resources,
+                               vim_connection_info):
         inst_vnf_info = vnf_instance.instantiated_vnf_info
         for vnfc_res_info in inst_vnf_info.vnfc_resource_info:
             self._update_vnfc_resource_info(vnf_instance, vnfc_res_info,
-                    stack_resources)
+                    stack_resources, vim_connection_info)
 
         # update vnf_link_ports of ext_managed_virtual_link_info using already
         # populated vnf_link_ports from vnf_virtual_link_resource_info.
@@ -1232,7 +1242,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                                error=error)
 
             self._update_vnfc_resource_info(vnf_instance, vnfc_res_info,
-                    {stack_id: resources}, update_network_resource=False)
+                {stack_id: resources}, vim_connection_info,
+                update_network_resource=False)
 
     @log.log
     def get_scale_ids(self, plugin, context, vnf_dict, auth_attr,

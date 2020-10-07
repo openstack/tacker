@@ -42,7 +42,8 @@ def _get_ext_managed_virtual_links(vnf_instantiated_info):
         ext_mng_vl_data = objects.ExtManagedVirtualLinkData(
             id=ext_mng_vl_info.id,
             vnf_virtual_link_desc_id=ext_mng_vl_info.vnf_virtual_link_desc_id,
-            resource_id=network_resource.resource_id)
+            resource_id=network_resource.resource_id,
+            vim_connection_id=network_resource.vim_connection_id)
 
         ext_managed_virtual_links.append(ext_mng_vl_data)
 
@@ -170,7 +171,8 @@ def _get_ext_virtual_link_data(vnf_instantiated_info):
         resource_handle = ext_vl_info.resource_handle
         ext_vl_data = objects.ExtVirtualLinkData(
             id=ext_vl_info.id,
-            resource_id=resource_handle.resource_id)
+            resource_id=resource_handle.resource_id,
+            vim_connection_id=resource_handle.vim_connection_id)
 
         # call vnf virtual link resource info
         cp_instances = _get_cp_instance_id(ext_vl_info.id,
@@ -293,12 +295,14 @@ class InstantiateVnfRequest(base.TackerObject):
 @base.TackerObjectRegistry.register
 class ExtManagedVirtualLinkData(base.TackerObject):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Added field for vim_connection_id
+    VERSION = '1.1'
 
     fields = {
         'id': fields.StringField(nullable=False),
         'vnf_virtual_link_desc_id': fields.StringField(nullable=False),
         'resource_id': fields.StringField(nullable=False),
+        'vim_connection_id': fields.StringField(nullable=True)
     }
 
     @classmethod
@@ -307,19 +311,22 @@ class ExtManagedVirtualLinkData(base.TackerObject):
         vnf_virtual_link_desc_id = data_dict.get(
             'vnf_virtual_link_desc_id')
         resource_id = data_dict.get('resource_id')
+        vim_connection_id = data_dict.get('vim_connection_id')
         obj = cls(id=id, vnf_virtual_link_desc_id=vnf_virtual_link_desc_id,
-                  resource_id=resource_id)
+                  resource_id=resource_id, vim_connection_id=vim_connection_id)
         return obj
 
 
 @base.TackerObjectRegistry.register
 class ExtVirtualLinkData(base.TackerObject):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Added field for vim_connection_id
+    VERSION = '1.1'
 
     fields = {
         'id': fields.StringField(nullable=False),
         'resource_id': fields.StringField(nullable=False),
+        'vim_connection_id': fields.StringField(nullable=True),
         'ext_cps': fields.ListOfObjectsField(
             'VnfExtCpData', nullable=True, default=[]),
         'ext_link_ports': fields.ListOfObjectsField(
@@ -354,11 +361,13 @@ class ExtVirtualLinkData(base.TackerObject):
     def _from_dict(cls, data_dict):
         id = data_dict.get('id')
         resource_id = data_dict.get('resource_id')
+        vim_connection_id = data_dict.get('vim_connection_id')
         ext_cps = data_dict.get('ext_cps', [])
         ext_link_ports = data_dict.get('ext_link_ports', [])
 
         obj = cls(id=id, resource_id=resource_id, ext_cps=ext_cps,
-                  ext_link_ports=ext_link_ports)
+                  ext_link_ports=ext_link_ports,
+                  vim_connection_id=vim_connection_id)
         return obj
 
 
