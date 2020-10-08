@@ -335,7 +335,7 @@ class VnfLcmController(wsgi.Controller):
                              placement_attr=placement_attr,
                              status=constants.INACTIVE,
                              error_reason=None,
-                             deleted_at=datetime.min)
+                             deleted_at=datetime.datetime.min)
                 context.session.add(vnf_db)
                 for key, value in attributes.items():
                     arg = vnfm_db.VNFAttribute(
@@ -421,6 +421,7 @@ class VnfLcmController(wsgi.Controller):
                 vnf_product_name=vnfd.vnf_product_name,
                 vnf_software_version=vnfd.vnf_software_version,
                 vnfd_version=vnfd.vnfd_version,
+                vnf_pkg_id=vnfd.package_uuid,
                 tenant_id=request.context.project_id,
                 vnf_metadata=req_body.get('metadata'))
 
@@ -442,7 +443,10 @@ class VnfLcmController(wsgi.Controller):
                     # roll back db changes
                     self._destroy_vnf(context, vnf_instance)
                     vnf_instance.destroy(context)
-                    self._update_package_usage_state(context, vnf_package)
+                    if 'vnf_package' not in locals():
+                        LOG.error("vnf_package is not assigned")
+                    else:
+                        self._update_package_usage_state(context, vnf_package)
 
             # create notification data
             notification = {

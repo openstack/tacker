@@ -554,8 +554,6 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
             # check if vnf package is used by any vnf instances.
             query = context.session.query(
                 func.count(models.VnfInstance.id)).\
-                filter_by(
-                instantiation_state=fields.VnfInstanceState.INSTANTIATED).\
                 filter_by(tenant_id=self.tenant_id).\
                 filter_by(vnfd_id=self.vnfd.vnfd_id).\
                 filter_by(deleted=False)

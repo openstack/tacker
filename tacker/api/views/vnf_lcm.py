@@ -154,7 +154,7 @@ class ViewBuilder(base.BaseViewBuilder):
         if isinstance(vnf_lcm_subscription.id, str):
             decode_id = vnf_lcm_subscription.id
         else:
-            decode_id = vnf_lcm_subscription.id.decode()
+            decode_id = vnf_lcm_subscription.id
         return {
             "_links": {
                 "self": {
@@ -168,12 +168,12 @@ class ViewBuilder(base.BaseViewBuilder):
             if 'filter' in vnf_lcm_subscription:
                 filter_dict = json.loads(vnf_lcm_subscription.filter)
                 return {
-                    'id': vnf_lcm_subscription.id.decode(),
+                    'id': vnf_lcm_subscription.id,
                     'filter': filter_dict,
                     'callbackUri': vnf_lcm_subscription.callback_uri.decode(),
                 }
             return {
-                'id': vnf_lcm_subscription.id.decode(),
+                'id': vnf_lcm_subscription.id,
                 'callbackUri': vnf_lcm_subscription.callback_uri.decode(),
             }
         else:

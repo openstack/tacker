@@ -1483,20 +1483,20 @@ class Conductor(manager.Manager):
 
             # Notification shipping
             for line in vnf_lcm_subscriptions:
-                notification['subscriptionId'] = line.id.decode()
+                notification['subscriptionId'] = line.id
                 if (notification.get('notificationType') ==
                         'VnfLcmOperationOccurrenceNotification'):
                     notification['_links'] = {}
                     notification['_links']['subscription'] = {}
                     notification['_links']['subscription']['href'] = \
                         CONF.vnf_lcm.endpoint_url + \
-                        "/vnflcm/v1/subscriptions/" + line.id.decode()
+                        "/vnflcm/v1/subscriptions/" + line.id
                 else:
                     notification['links'] = {}
                     notification['links']['subscription'] = {}
                     notification['links']['subscription']['href'] = \
                         CONF.vnf_lcm.endpoint_url + \
-                        "/vnflcm/v1/subscriptions/" + line.id.decode()
+                        "/vnflcm/v1/subscriptions/" + line.id
                 notification['timeStamp'] = datetime.datetime.utcnow(
                 ).isoformat()
                 try:
