@@ -23,25 +23,26 @@ This document describes how to install and run Tacker manually.
 
 .. note::
 
-   User is supposed to install on Ubuntu. Some examples are invalid on other
-   distirbutions. For example, you should replace ``/usr/local/bin/`` with
-   ``/usr/bin/`` on CentOS.
+   This installation guide contents are specific to Ubuntu distro.
+   Some steps in this installation guide may be invalid for other
+   distributions. For example, you should replace ``/usr/local/bin/``
+   with ``/usr/bin/`` on CentOS.
 
 Pre-requisites
 --------------
 
 #. Install required components.
 
-   Ensure that OpenStack components, Keystone, Mistral, Barbican and
-   Horizon are installed. Refer the list below for installation of
-   these OpenStack projects on different Operating Systems.
+   Ensure that all required OpenStack components i.e. Keystone, Mistral,
+   Barbican and Horizon are installed. Refer the list below for installation
+   of these OpenStack components on different Operating Systems.
 
    * https://docs.openstack.org/keystone/latest/install/index.html
    * https://docs.openstack.org/mistral/latest/admin/install/index.html
    * https://docs.openstack.org/barbican/latest/install/install.html
    * https://docs.openstack.org/horizon/latest/install/index.html
 
-#. Create ``admin-openrc.sh`` for env variables.
+#. Create ``admin-openrc.sh`` for environment variables.
 
    .. code-block:: shell
 
@@ -62,8 +63,8 @@ Installing Tacker Server
 
 .. note::
 
-   The ``<branch_name>`` in command examples is replaced with specific branch
-   name, such as ``stable/ussuri``.
+   Make sure to replace the ``<branch_name>`` in command examples with
+   specific branch name, such as ``stable/ussuri``.
 
 #. Create MySQL database and user.
 
@@ -71,7 +72,7 @@ Installing Tacker Server
 
        $ mysql -uroot -p
 
-   Create database ``tacker`` and grant provileges for ``tacker`` user with
+   Create database ``tacker`` and grant privileges to ``tacker`` user with
    password ``<TACKERDB_PASSWORD>`` on all tables.
 
    .. code-block::
@@ -123,7 +124,7 @@ Installing Tacker Server
          $ openstack endpoint create --region RegionOne nfv-orchestration \
                     admin http://<TACKER_NODE_IP>:9890/
 
-      Or keystone v2:
+      For keystone v2:
 
       .. code-block:: console
 
@@ -134,7 +135,7 @@ Installing Tacker Server
 
 #. Clone tacker repository.
 
-   You can use ``-b`` for specific release optionally.
+   You can use ``-b`` for specific release, optionally.
 
    .. code-block:: console
 
@@ -151,7 +152,7 @@ Installing Tacker Server
 
 #. Create directories for tacker.
 
-   Directories log, VNF packages and csar files are required.
+   Directories for storing logs, vnf packages and csar files are required.
 
    .. code-block:: console
 
@@ -261,6 +262,8 @@ Install Tacker Client
 
 #. Clone ``tacker-client`` repository.
 
+   You can use ``-b`` for specific release, optionally.
+
    .. code-block:: console
 
       $ cd ~/
@@ -277,6 +280,8 @@ Install Tacker horizon
 ----------------------
 
 #. Clone ``tacker-horizon`` repository.
+
+   You can use ``-b`` for specific release, optionally.
 
    .. code-block:: console
 
@@ -322,3 +327,4 @@ required because the console will be locked by a running process.
 .. code-block:: console
 
    $ sudo systemctl start tacker-conductor.service
+
