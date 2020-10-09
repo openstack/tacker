@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    Add new RESTful APIs for `Scale VNF`, `Update VNF`, and `Rollback VNF`
+    operation based on ETSI NFV specifications.
+
+  - |
+    Add new RESTful APIs for subscriptions and notifications based on ETSI
+    NFV specifications. The client can use these resource to subscribe to
+    notifications related to VNF lifecycle management, and to query its
+    subscriptions.
+
+  - |
+    Set `vnfPkgId` to related APIs in order to expand a wide range of NFV
+    related equipments. See the `spec`_ for more details.
+
+    .. _spec : https://opendev.org/openstack/tacker-specs/src/branch/master/specs/victoria/enhancement_enhance-vnf-lcm-api-support.rst
+
+  - |
+    Add following ETSI NFV SOL003 specification compliant operations
+    to cooperate with 3rd-Party NFVOs as VNFM.
+
+    - VNF package management interface to obtain VNF package information
+    - Granting interface to allow the VNFM to request a grant for
+      authorization of a VNF lifecycle operation.
