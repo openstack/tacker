@@ -3,12 +3,8 @@
 
 gettext [test]
 
-# Use mariadb instead of mysql
-# related to https://review.opendev.org/#/c/752294/
-#mysql-client [platform:dpkg]
-#mysql-server [platform:dpkg]
+mysql-client [platform:dpkg]
+mysql-server [platform:dpkg]
 postgresql
 postgresql-client [platform:dpkg]
 postgresql-server [platform:rpm]
-mariadb [platform:rpm]
-mariadb-server
