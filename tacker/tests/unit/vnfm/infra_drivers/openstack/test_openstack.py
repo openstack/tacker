@@ -23,7 +23,6 @@ from oslo_serialization import jsonutils
 from tacker import context
 from tacker.db.common_services import common_services_db_plugin
 from tacker.extensions import vnfm
-from tacker.tests.common import helpers
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
 from tacker.vnfm.infra_drivers.openstack import openstack
@@ -324,7 +323,7 @@ class TestOpenStack(base.TestCase):
         if is_monitor:
             if multi_vdus:
                 dvc['attributes'].update(
-                    {'monitoring_policy': helpers.compact_byte(
+                    {'monitoring_policy': bytes(
                      '{"vdus": {"VDU1": {"ping": '
                      '{"name": "ping", "actions": '
                      '{"failure": "respawn"}, '
@@ -337,10 +336,10 @@ class TestOpenStack(base.TestCase):
                      '"parameters": {"count": 3, '
                      '"interval": 10}, '
                      '"monitoring_params": {"count": 3, '
-                     '"interval": 10}}}}}')})
+                     '"interval": 10}}}}}', 'utf-8')})
             else:
                 dvc['attributes'].update(
-                    {'monitoring_policy': helpers.compact_byte(
+                    {'monitoring_policy': bytes(
                      '{"vdus": {"VDU1": {"ping": '
                      '{"name": "ping", "actions": '
                      '{"failure": "respawn"}, '
@@ -348,7 +347,7 @@ class TestOpenStack(base.TestCase):
                      '"interval": 10}, '
                      '"monitoring_params": '
                      '{"count": 3, '
-                     '"interval": 10}}}}}')})
+                     '"interval": 10}}}}}', 'utf-8')})
 
         return dvc
 
