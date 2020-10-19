@@ -12,10 +12,9 @@
 #    under the License.
 #
 
-from unittest import mock
-
-import six.moves.urllib.error as urlerr
 import testtools
+from unittest import mock
+from urllib import error as urlerr
 
 from tacker.vnfm.monitor_drivers.http_ping import http_ping
 
@@ -26,7 +25,7 @@ class TestVNFMonitorHTTPPing(testtools.TestCase):
         super(TestVNFMonitorHTTPPing, self).setUp()
         self.monitor_http_ping = http_ping.VNFMonitorHTTPPing()
 
-    @mock.patch('six.moves.urllib.request.urlopen')
+    @mock.patch('urllib.request.urlopen')
     def test_monitor_call_for_success(self, mock_urlopen):
         test_vnf = {}
         test_kwargs = {
@@ -36,7 +35,7 @@ class TestVNFMonitorHTTPPing(testtools.TestCase):
                                             test_kwargs)
         mock_urlopen.assert_called_once_with('http://a.b.c.d:80', timeout=5)
 
-    @mock.patch('six.moves.urllib.request.urlopen')
+    @mock.patch('urllib.request.urlopen')
     def test_monitor_call_for_failure(self, mock_urlopen):
         mock_urlopen.side_effect = urlerr.URLError("MOCK Error")
         test_vnf = {}

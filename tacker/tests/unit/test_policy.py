@@ -15,15 +15,14 @@
 
 """Test of Policy Engine For Tacker"""
 
-from unittest import mock
-
 import fixtures
-import six
+import io
+from unittest import mock
+from urllib import request as urlrequest
 
 from oslo_policy import policy as common_policy
 from oslo_serialization import jsonutils as json
 from oslo_utils import importutils
-from six.moves.urllib import request as urlrequest
 
 import tacker
 from tacker.api.v1 import attributes
@@ -127,7 +126,7 @@ class PolicyTestCase(base.BaseTestCase):
     def test_enforce_http_true(self):
 
         def fakeurlopen(url, post_data):
-            return six.StringIO("True")
+            return io.StringIO("True")
 
         with mock.patch.object(urlrequest, 'urlopen', new=fakeurlopen):
             action = "example:get_http"
@@ -138,7 +137,7 @@ class PolicyTestCase(base.BaseTestCase):
     def test_enforce_http_false(self):
 
         def fakeurlopen(url, post_data):
-            return six.StringIO("False")
+            return io.StringIO("False")
 
         with mock.patch.object(urlrequest, 'urlopen', new=fakeurlopen):
             action = "example:get_http"

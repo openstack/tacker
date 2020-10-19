@@ -15,13 +15,11 @@
 
 import abc
 
-import six
-
 from tacker.api import extensions
 
 
-@six.add_metaclass(abc.ABCMeta)
-class VnfScaleAbstractDriver(extensions.PluginInterface):
+class VnfScaleAbstractDriver(extensions.PluginInterface,
+        metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def scale(self,

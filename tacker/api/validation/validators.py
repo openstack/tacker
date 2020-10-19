@@ -23,7 +23,6 @@ from jsonschema import exceptions as jsonschema_exc
 import netaddr
 from oslo_utils import uuidutils
 import rfc3986
-import six
 import webob
 
 from tacker.common import exceptions as exception
@@ -65,7 +64,7 @@ def validate_mac_address_or_none(instance):
 
 def _validate_query_parameter_without_value(parameter_name, instance):
     """The query parameter is a flag without a value."""
-    if not (isinstance(instance, six.text_type) and len(instance)):
+    if not (isinstance(instance, str) and len(instance)):
         return True
 
     msg = _("The parameter '%s' is a flag. It shouldn't contain any value.")
@@ -156,5 +155,4 @@ class _SchemaValidator(object):
         except TypeError as ex:
             # NOTE: If passing non string value to patternProperties parameter,
             #       TypeError happens. Here is for catching the TypeError.
-            detail = six.text_type(ex)
-            raise exception.ValidationError(detail=detail)
+            raise exception.ValidationError(detail=str(ex))

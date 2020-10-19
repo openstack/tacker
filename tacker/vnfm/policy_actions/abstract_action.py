@@ -13,11 +13,9 @@
 #    under the License.
 
 import abc
-import six
 
 
-@six.add_metaclass(abc.ABCMeta)
-class AbstractPolicyAction(object):
+class AbstractPolicyAction(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_type(self):
         """Return one of predefined type of the hosting vnf drivers."""

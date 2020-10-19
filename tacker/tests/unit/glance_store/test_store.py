@@ -16,8 +16,8 @@
 from unittest import mock
 
 import glance_store
-from six.moves import urllib
-import six.moves.urllib.error as urlerr
+import urllib
+from urllib import error as urlerr
 
 from tacker.common import exceptions
 import tacker.conf

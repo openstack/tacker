@@ -12,13 +12,11 @@
 # under the License.
 
 import abc
-import six
 
 from tacker.extensions import vnfm
 
 
-@six.add_metaclass(abc.ABCMeta)
-class AbstractUserData(object):
+class AbstractUserData(object, metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod

@@ -19,11 +19,8 @@ Key manager API
 
 import abc
 
-import six
 
-
-@six.add_metaclass(abc.ABCMeta)
-class KeyManager(object):
+class KeyManager(object, metaclass=abc.ABCMeta):
     """Base Key Manager Interface
 
     A Key Manager is responsible for creating, reading, and deleting keys.

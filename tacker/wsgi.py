@@ -38,7 +38,6 @@ from oslo_service import systemd
 from oslo_utils import encodeutils
 from oslo_utils import excutils
 import routes.middleware
-import six
 import webob.dec
 import webob.exc
 
@@ -466,7 +465,7 @@ class JSONDictSerializer(DictSerializer):
 
     def default(self, data):
         def sanitizer(obj):
-            return six.text_type(obj)
+            return str(obj)
         return encode_body(jsonutils.dump_as_bytes(data, default=sanitizer))
 
 
@@ -955,26 +954,17 @@ class ResponseObject(object):
         response = webob.Response(body=body)
         response.status_int = self.code
         for hdr, val in self._headers.items():
-            if six.PY2:
-                # In Py2.X Headers must be a UTF-8 encode str.
-                response.headers[hdr] = encodeutils.safe_encode(val)
-            else:
-                # In Py3.X Headers must be a str that was first safely
-                # encoded to UTF-8 (to catch any bad encodings) and then
-                # decoded back to a native str.
-                response.headers[hdr] = encodeutils.safe_decode(
-                    encodeutils.safe_encode(val))
+            # Headers must be a str that was first safely
+            # encoded to UTF-8 (to catch any bad encodings) and then
+            # decoded back to a native str.
+            response.headers[hdr] = encodeutils.safe_decode(
+                encodeutils.safe_encode(val))
         # Deal with content_type
-        if not isinstance(content_type, six.text_type):
-            content_type = six.text_type(content_type)
-        if six.PY2:
-            # In Py2.X Headers must be a UTF-8 encode str.
-            response.headers['Content-Type'] = encodeutils.safe_encode(
-                content_type)
-        else:
-            # In Py3.X Headers must be a str.
-            response.headers['Content-Type'] = encodeutils.safe_decode(
-                encodeutils.safe_encode(content_type))
+        if not isinstance(content_type, str):
+            content_type = str(content_type)
+
+        response.headers['Content-Type'] = encodeutils.safe_decode(
+            encodeutils.safe_encode(content_type))
         return response
 
     @property
@@ -1140,7 +1130,7 @@ class Fault(webob.exc.HTTPException):
         self.wrapped_exc.charset = 'UTF-8'
 
         body = JSONDictSerializer().serialize(fault_data)
-        if isinstance(body, six.text_type):
+        if isinstance(body, str):
             body = body.encode('utf-8')
         self.wrapped_exc.body = body
 

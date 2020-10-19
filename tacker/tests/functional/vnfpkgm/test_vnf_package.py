@@ -16,9 +16,9 @@
 from copy import deepcopy
 import ddt
 import os
-from six.moves import urllib
 import tempfile
 import time
+import urllib
 import zipfile
 
 from oslo_serialization import jsonutils

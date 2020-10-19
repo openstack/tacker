@@ -19,7 +19,7 @@ from oslo_config import cfg
 import oslo_i18n
 from oslo_log import log as logging
 from oslo_policy import policy as oslo_policy
-from six.moves.urllib import parse as urllib_parse
+from urllib import parse as urllib_parse
 from webob import exc
 
 from tacker._i18n import _

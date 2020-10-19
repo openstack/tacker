@@ -12,15 +12,17 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-from unittest import mock
+
 
 import ddt
+from http import client as http_client
 import json
 import os
-from oslo_serialization import jsonutils
-from six.moves import http_client
-from six.moves import urllib
+from unittest import mock
+import urllib
 from webob import exc
+
+from oslo_serialization import jsonutils
 
 from tacker.api.vnfpkgm.v1 import controller
 from tacker.common import exceptions as tacker_exc

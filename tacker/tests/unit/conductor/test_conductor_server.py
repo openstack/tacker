@@ -21,15 +21,16 @@ import json
 import os
 import requests
 import shutil
-import six.moves.urllib.error as urlerr
 import sys
-import tacker.conf
+import unittest
+from unittest import mock
+import urllib
+from urllib import error as urlerr
 import yaml
 
 from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
 from oslo_serialization import jsonutils
-from six.moves import urllib
 
 from tacker import auth
 from tacker.common import coordination
@@ -37,6 +38,7 @@ from tacker.common import csar_utils
 from tacker.common import driver_manager
 from tacker.common import exceptions
 from tacker.conductor import conductor_server
+import tacker.conf
 from tacker import context
 from tacker import context as t_context
 from tacker.db.db_sqlalchemy import models
@@ -59,8 +61,6 @@ from tacker.tests import utils
 from tacker.tests import uuidsentinel
 from tacker.vnfm import nfvo_client as test_nfvo_client
 from tacker.vnfm import vim_client
-import unittest
-from unittest import mock
 
 
 CONF = tacker.conf.CONF

@@ -16,7 +16,6 @@
 import abc
 
 from oslo_log import log as logging
-import six
 
 from tacker._i18n import _
 from tacker.api import extensions
@@ -607,8 +606,7 @@ class Vnfm(extensions.ExtensionDescriptor):
         return version_map.get(version, {})
 
 
-@six.add_metaclass(abc.ABCMeta)
-class VNFMPluginBase(service_base.NFVPluginBase):
+class VNFMPluginBase(service_base.NFVPluginBase, metaclass=abc.ABCMeta):
     def get_plugin_name(self):
         return constants.VNFM
 

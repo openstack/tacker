@@ -15,8 +15,6 @@
 
 import abc
 
-import six
-
 from tacker._i18n import _
 from tacker.api import extensions
 from tacker.api.v1 import attributes as attr
@@ -870,8 +868,7 @@ class Nfvo(extensions.ExtensionDescriptor):
         return version_map.get(version, {})
 
 
-@six.add_metaclass(abc.ABCMeta)
-class NFVOPluginBase(service_base.NFVPluginBase):
+class NFVOPluginBase(service_base.NFVPluginBase, metaclass=abc.ABCMeta):
     def get_plugin_name(self):
         return constants.NFVO
 

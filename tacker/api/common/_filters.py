@@ -20,7 +20,6 @@ import abc
 from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
 
 from tacker.common import exceptions as exception
 
@@ -30,8 +29,7 @@ SUPPORTED_OP_ONE = ['eq', 'neq', 'gt', 'lt', 'gte', 'lte']
 SUPPORTED_OP_MULTI = ['in', 'nin', 'cont', 'ncont']
 
 
-@six.add_metaclass(abc.ABCMeta)
-class BaseFilter(object):
+class BaseFilter(object, metaclass=abc.ABCMeta):
     """Abstract base class for Filter classes."""
 
     @abc.abstractmethod
@@ -185,8 +183,7 @@ class Filter(BaseFilter):
 
         for value in self.values:
             error = False
-            if attribute_info[1] == 'string' and not isinstance(value,
-                    six.string_types):
+            if attribute_info[1] == 'string' and not isinstance(value, str):
                 error = True
             elif attribute_info[1] == 'number':
                 if not strutils.is_int_like(value):

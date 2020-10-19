@@ -19,8 +19,7 @@ from unittest import mock
 from oslo_config import cfg
 from oslo_policy import policy as common_policy
 from oslo_utils import uuidutils
-import six
-import six.moves.urllib.parse as urlparse
+from urllib import parse as urlparse
 import webob
 from webob import exc
 import webtest
@@ -932,8 +931,7 @@ class JSONV2TestCase(APIv2TestBase, testlib_api.WebTestCase):
         return_value.update(initial_input['port'])
 
         instance = self.plugin.return_value
-        instance.get_network.return_value = {'tenant_id':
-            six.text_type(tenant_id)}
+        instance.get_network.return_value = {'tenant_id': str(tenant_id)}
         instance.get_ports_count.return_value = 1
         instance.create_port.return_value = return_value
         res = self.api.post(_get_path('ports', fmt=self.fmt),

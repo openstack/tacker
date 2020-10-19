@@ -21,7 +21,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 import routes
-import six
 import webob.dec
 import webob.exc
 
@@ -35,8 +34,7 @@ from tacker import wsgi
 LOG = logging.getLogger(__name__)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class PluginInterface(object):
+class PluginInterface(object, metaclass=abc.ABCMeta):
 
     @classmethod
     def __subclasshook__(cls, klass):

@@ -16,7 +16,6 @@
 import copy
 import io
 import os
-import six
 import yaml
 
 from oslo_config import cfg
@@ -373,7 +372,7 @@ def _create_grant_request(vnfd_dict, package_uuid):
         artifacts = value.get('artifacts', {})
         for artifact, sw_image in artifacts.items():
             artifact_image_path = None
-            if isinstance(sw_image, six.string_types):
+            if isinstance(sw_image, str):
                 artifact_image_path = sw_image
             elif sw_image.get('type') == 'tosca.artifacts.nfv.SwImage':
                 artifact_image_path = sw_image.get('file', {})

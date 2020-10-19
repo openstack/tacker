@@ -16,7 +16,6 @@
 from unittest import mock
 
 import ddt
-import six
 from webob import exc
 
 from tacker.api.v1 import base as v1_base
@@ -126,7 +125,7 @@ class VIMCreateTestCase(base.TestCase):
         exp = self.assertRaises(exc.HTTPBadRequest,
                                 self.controller.create,
                                 request, vim_dict)
-        self.assertEqual(msg, six.text_type(exp))
+        self.assertEqual(msg, str(exp))
 
     @ddt.data("", " ", None, 123)
     def test_create_vim_with_invalid_type(self, value):
@@ -152,7 +151,7 @@ class VIMCreateTestCase(base.TestCase):
         exp = self.assertRaises(exc.HTTPBadRequest,
                                 self.controller.create,
                                 request, vim_dict)
-        self.assertEqual(msg, six.text_type(exp))
+        self.assertEqual(msg, str(exp))
 
     @ddt.data('', 'testing', {})
     def test_create_vim_invalid_vim_project(self, value):
@@ -167,4 +166,4 @@ class VIMCreateTestCase(base.TestCase):
         exp = self.assertRaises(exc.HTTPBadRequest,
                                 self.controller.create,
                                 request, vim_dict)
-        self.assertEqual(msg, six.text_type(exp))
+        self.assertEqual(msg, str(exp))

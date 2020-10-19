@@ -15,7 +15,6 @@
 
 import os
 import re
-import six
 import tempfile
 
 from cryptography import fernet
@@ -140,10 +139,7 @@ class KubernetesHTTPAPI(object):
         ca_cert = re.sub(r'END\nCERT', r'END CERT', ca_cert)
         try:
             with open(file_path, 'w') as f:
-                if six.PY2:
-                    f.write(ca_cert.decode('utf-8'))
-                else:
-                    f.write(ca_cert)
+                f.write(ca_cert)
                 LOG.debug('ca cert temp file successfully stored in %s',
                           file_path)
         except IOError:

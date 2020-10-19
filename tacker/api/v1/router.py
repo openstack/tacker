@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import routes as routes_mapper
-import six.moves.urllib.parse as urlparse
+from urllib import parse as urlparse
 import webob
 import webob.dec
 import webob.exc

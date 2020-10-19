@@ -17,7 +17,6 @@ from datetime import datetime
 import weakref
 
 from oslo_log import log as logging
-import six
 from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import sql
 
@@ -94,13 +93,13 @@ class CommonDbMixin(object):
         model_hooks = self._model_query_hooks.get(model, {})
         for _name, hooks in model_hooks.items():
             query_hook = hooks.get('query')
-            if isinstance(query_hook, six.string_types):
+            if isinstance(query_hook, str):
                 query_hook = getattr(self, query_hook, None)
             if query_hook:
                 query = query_hook(context, model, query)
 
             filter_hook = hooks.get('filter')
-            if isinstance(filter_hook, six.string_types):
+            if isinstance(filter_hook, str):
                 filter_hook = getattr(self, filter_hook, None)
             if filter_hook:
                 query_filter = filter_hook(context, model, query_filter)
@@ -146,7 +145,7 @@ class CommonDbMixin(object):
             model_hooks = self._model_query_hooks.get(model, {})
             for _name, hooks in model_hooks.items():
                 result_filter = hooks.get('result_filters', None)
-                if isinstance(result_filter, six.string_types):
+                if isinstance(result_filter, str):
                     result_filter = getattr(self, result_filter, None)
 
                 if result_filter:
@@ -159,7 +158,7 @@ class CommonDbMixin(object):
         for func in self._dict_extend_functions.get(
                 resource_type, []):
             args = (response, db_object)
-            if isinstance(func, six.string_types):
+            if isinstance(func, str):
                 func = getattr(self, func, None)
             else:
                 # must call unbound method - use self as 1st argument
