@@ -371,6 +371,10 @@ def get_volumes(template):
             continue
         volume_dict[node_name] = dict()
         block_properties = node_value.get('properties', {})
+        if 'volume_id' in block_properties:
+            volume_dict[node_name]['volume_id'] = block_properties['volume_id']
+            del node_tpl[node_name]
+            continue
         for prop_name, prop_value in block_properties.items():
             if prop_name == 'size':
                 prop_value = \
@@ -381,7 +385,7 @@ def get_volumes(template):
 
 
 @log.log
-def get_vol_attachments(template):
+def get_vol_attachments(template, volume_dict):
     vol_attach_dict = dict()
     node_tpl = template['topology_template']['node_templates']
     valid_properties = {
@@ -404,8 +408,12 @@ def get_vol_attachments(template):
                 vol_attach_dict[node_name]['instance_uuid'] = \
                     {'get_resource': req['virtualBinding']['node']}
             elif 'virtualAttachment' in req:
-                vol_attach_dict[node_name]['volume_id'] = \
-                    {'get_resource': req['virtualAttachment']['node']}
+                node = req['virtualAttachment']['node']
+                if 'volume_id' in volume_dict.get(node, {}):
+                    value = {'get_param': volume_dict[node]['volume_id']}
+                else:
+                    value = {'get_resource': node}
+                vol_attach_dict[node_name]['volume_id'] = value
         del node_tpl[node_name]
     return vol_attach_dict
 
@@ -413,8 +421,10 @@ def get_vol_attachments(template):
 @log.log
 def get_block_storage_details(template):
     block_storage_details = dict()
-    block_storage_details['volumes'] = get_volumes(template)
-    block_storage_details['volume_attachments'] = get_vol_attachments(template)
+    volume_dict = get_volumes(template)
+    block_storage_details['volumes'] = volume_dict
+    block_storage_details['volume_attachments'] = \
+        get_vol_attachments(template, volume_dict)
     return block_storage_details
 
 
@@ -938,6 +948,8 @@ def _convert_grant_info_vdu(heat_dict, vdu_name, vnf_resources):
 def add_volume_resources(heat_dict, vol_res):
     # Add cinder volumes
     for res_name, cinder_vol in vol_res['volumes'].items():
+        if 'volume_id' in cinder_vol:
+            continue
         heat_dict['resources'][res_name] = {
             'type': 'OS::Cinder::Volume',
             'properties': {}

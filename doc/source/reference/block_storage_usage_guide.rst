@@ -17,22 +17,22 @@
 Orchestrating VNFs with attached Volumes
 =========================================
 
-To support persistent volumes to VNF, TOSCA NFV profile supports new type
-of nodes. Tacker has now feature of parsing of those new nodes and creation
+To support persistent volumes to VNF, the TOSCA NFV profile supports a new type
+of nodes. Tacker has now the feature of parsing of those new nodes and creation
 of cinder volumes which are attached to the VDUs.
 
 
 Prerequisites
 ~~~~~~~~~~~~~
 To have persistent volume support to VDUs, we must enable cinder service in
-addition to the other services that needed by Tacker.
+addition to the other services needed by Tacker.
 
 VNFD Changes
 ~~~~~~~~~~~~
 
 There are two steps to have volume attached to VDU:
 
-* Create volume
+* Create volume or Use an existing volume.
 * Attach Volume to VDU
 
 Create Volume
@@ -46,6 +46,25 @@ To add volume, we need to add the below node to the VNFD:
     type: tosca.nodes.BlockStorage.Tacker
     properties:
       size: 1 GB
+
+Use Existing Volume
+~~~~~~~~~~~~~~~~~~~
+
+We can also attach an already created/existing volume with VNF by providing
+``volume_id`` in input.
+
+.. code-block:: yaml
+
+  topology_template:
+    inputs:
+      my_vol:
+        description: volume id
+        type: string
+
+    VB1:
+      type: tosca.nodes.BlockStorage.Tacker
+      properties:
+        volume_id: my_vol
 
 Attach volume to VDU
 ~~~~~~~~~~~~~~~~~~~~

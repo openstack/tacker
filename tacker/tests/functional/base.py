@@ -16,6 +16,7 @@ import time
 import yaml
 
 from blazarclient import client as blazar_client
+from cinderclient import client as cinder_client
 from glanceclient.v2 import client as glance_client
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
@@ -98,6 +99,7 @@ class BaseTackerTest(base.BaseTestCase):
         cls.http_client = cls.tacker_http_client()
         cls.h_client = cls.heatclient()
         cls.glance_client = cls.glanceclient()
+        cls.cinder_client = cls.cinderclient()
 
     @classmethod
     def get_credentials(cls):
@@ -201,6 +203,20 @@ class BaseTackerTest(base.BaseTestCase):
         return SessionClient(session=auth_session,
                              service_type='alarming',
                              region_name='RegionOne')
+
+    @classmethod
+    def cinderclient(cls):
+        vim_params = cls.get_credentials()
+        auth = v3.Password(auth_url=vim_params['auth_url'],
+            username=vim_params['username'],
+            password=vim_params['password'],
+            project_name=vim_params['project_name'],
+            user_domain_name=vim_params['user_domain_name'],
+            project_domain_name=vim_params['project_domain_name'])
+        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        auth_ses = session.Session(auth=auth, verify=verify)
+        return cinder_client.Client(constants.CINDER_CLIENT_VERSION,
+                                    session=auth_ses)
 
     def get_vdu_resource(self, stack_id, res_name):
         return self.h_client.resources.get(stack_id, res_name)
@@ -380,9 +396,29 @@ class BaseTackerTest(base.BaseTestCase):
                              "Key %(key)s expected: %(exp)r, actual %(act)r" %
                              {'key': k, 'exp': v, 'act': actual_superset[k]})
 
-    def vnfd_and_vnf_create(self, vnfd_file, vnf_name):
+    def create_cinder_volume(cls, vol_size, vol_name):
+        try:
+            cinder_volume = cls.cinder_client.volumes.create(vol_size,
+                    name=vol_name)
+        except Exception as e:
+            LOG.error("Failed to create cinder volume: %s", str(e))
+            return None
+
+        return cinder_volume.id
+
+    def delete_cinder_volume(cls, vol_id):
+        try:
+            cls.cinder_client.volumes.delete(vol_id)
+        except Exception as e:
+            LOG.error("Failed to delete cinder volume: %s", str(e))
+
+    def vnfd_and_vnf_create(self, vnfd_file, vnf_name, volume_id=None,
+            volume_name=None):
         input_yaml = read_file(vnfd_file)
         tosca_dict = yaml.safe_load(input_yaml)
+        if volume_id is not None:
+            volume_detail = tosca_dict['topology_template']['inputs']
+            volume_detail[volume_name]['default'] = volume_id
         tosca_arg = {'vnfd': {'name': vnf_name,
                               'attributes': {'vnfd': tosca_dict}}}
 

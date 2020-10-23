@@ -113,6 +113,7 @@ python-novaclient==9.1.0
 python-subunit==1.0.0
 python-swiftclient==3.5.0
 python-tackerclient==0.8.0
+python-cinderclient==3.3.0
 pytz==2018.3
 PyYAML==5.1
 repoze.lru==0.7

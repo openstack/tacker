@@ -298,3 +298,23 @@ class TestToscaUtils(testtools.TestCase):
         }
         volume_details = toscautils.get_block_storage_details(vnfd_dict)
         self.assertEqual(expected_dict, volume_details)
+
+    def test_get_block_storage_details_volume_id(self):
+        tosca_vol = _get_template(
+            'test-tosca-vnfd-existing-block-storage.yaml')
+        vnfd_dict = yaml.safe_load(tosca_vol)
+        expected_dict = {
+            'volumes': {
+                'VB1': {
+                    'volume_id': 'my_vol'
+                }
+            },
+            'volume_attachments': {
+                'CB1': {
+                    'instance_uuid': {'get_resource': 'VDU1'},
+                    'mountpoint': '/dev/vdb',
+                    'volume_id': {'get_param': 'my_vol'}}
+            }
+        }
+        volume_details = toscautils.get_block_storage_details(vnfd_dict)
+        self.assertEqual(expected_dict, volume_details)
