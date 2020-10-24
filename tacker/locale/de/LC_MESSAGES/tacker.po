@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tacker VERSION\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2020-04-29 11:10+0000\n"
+"POT-Creation-Date: 2020-10-23 16:38+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -1112,6 +1112,14 @@ msgstr ""
 "VNF-Skalierung fehlgeschlagen für Stapel %(stack)s mit Fehler %(error)s"
 
 #, python-format
+msgid ""
+"VNF scaling failed to complete within %{wait}s seconds while waiting for the "
+"stack %(stack)s to be scaled."
+msgstr ""
+"Die VNF-Skalierung konnte nicht innerhalb von %{wait}s Sekunden "
+"abgeschlossen werden, während auf die Stapelung von %(stack)s gewartet wurde."
+
+#, python-format
 msgid "VNFD %(vnfd_id)s could not be found"
 msgstr "VNFD %(vnfd_id)s konnte nicht gefunden werden"
 
@@ -1158,13 +1166,6 @@ msgid "Wait time (in seconds) between consecutive stack create/delete retries"
 msgstr ""
 "Wartezeit (in Sekunden) zwischen aufeinanderfolgenden Versuchen zum "
 "Erstellen/Löschen von Stapeln"
-
-msgid ""
-"When signal occurred within cool down window, no events generated from heat, "
-"so ignore it"
-msgstr ""
-"Wenn das Signal im Abkühlfenster auftrat, wurden keine Ereignisse durch Heat "
-"erzeugt, also ignoriere es"
 
 msgid ""
 "Where to store Tacker state files. This directory must be writable by the "

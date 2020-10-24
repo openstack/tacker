@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tacker VERSION\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2019-09-21 00:11+0000\n"
+"POT-Creation-Date: 2020-10-23 16:38+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -929,6 +929,14 @@ msgstr "Fallo la configuración de VNF"
 #, python-format
 msgid "VNF scaling failed for stack %(stack)s with error %(error)s"
 msgstr "Fallo escalado de VNF para pila %(stack)s con error %(error)s"
+
+#, python-format
+msgid ""
+"VNF scaling failed to complete within %{wait}s seconds while waiting for the "
+"stack %(stack)s to be scaled."
+msgstr ""
+"Fallo para completar escalado de VNF en %{wait}s segundos mientras esperaba "
+"a que la pila %(stack)s escalara."
 
 #, python-format
 msgid "VNFD %(vnfd_id)s could not be found"
