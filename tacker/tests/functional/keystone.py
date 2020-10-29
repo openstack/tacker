@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
+
 from keystoneauth1 import exceptions
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
@@ -24,6 +26,8 @@ from oslo_log import log as logging
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
+KEYSTONE_CLIENT_RETRIES = 3
+KEYSTONE_RETRY_WAIT = 5
 
 
 class Keystone(object):
@@ -51,5 +55,17 @@ class Keystone(object):
         verify = 'True' == kwargs.pop('cert_verify', 'False')
         auth_plugin = v3.Password(**kwargs)
         ses = self.get_session(auth_plugin=auth_plugin, verify=verify)
-        cli = client.Client('v3', session=ses)
+
+        client_retries = KEYSTONE_CLIENT_RETRIES
+        while client_retries > 0:
+            try:
+                cli = client.Client('v3', session=ses)
+                break
+            except exceptions.InternalServerError:
+                LOG.warning("keystone service responds with 500 "
+                            "(InternalServerError).")
+                client_retries = client_retries - 1
+                if client_retries == 0:
+                    raise
+                time.sleep(KEYSTONE_RETRY_WAIT)
         return cli
