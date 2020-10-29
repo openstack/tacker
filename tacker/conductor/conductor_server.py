@@ -387,9 +387,8 @@ class Conductor(manager.Manager):
         deploy_flavour.package_uuid = package_uuid
         deploy_flavour.flavour_id = flavour['flavour_id']
         deploy_flavour.flavour_description = flavour['flavour_description']
-        if flavour.get('instantiation_levels'):
-            deploy_flavour.instantiation_levels = \
-                flavour.get('instantiation_levels')
+        deploy_flavour.instantiation_levels = \
+            flavour.get('instantiation_levels')
         deploy_flavour.create()
 
         sw_images = flavour.get('sw_images')
