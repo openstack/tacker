@@ -1382,8 +1382,8 @@ class Conductor(manager.Manager):
 
         try:
             LOG.debug("Update vnf lcm %s %s",
-                      (vnf_lcm_op_occs_id,
-                      operation_state))
+                      vnf_lcm_op_occs_id,
+                      operation_state)
             vnf_notif = self._get_vnf_notify(context, vnf_lcm_op_occs_id)
             vnf_notif.operation_state = operation_state
             if operation_state == fields.LcmOccsOperationState.FAILED_TEMP:
