@@ -1333,9 +1333,8 @@ class Conductor(manager.Manager):
                                                      p_list)
 
     def _update_placement(self, context, vnf_dict, vnf_instance):
-        self.vnfm_plugin.update_placement_constraint(context,
-                                                     vnf_dict,
-                                                     vnf_instance)
+        self.vnfm_plugin.update_placement_constraint_heal(
+            context, vnf_dict, vnf_instance)
 
     def _delete_placement(self, context, vnf_instance_id):
         self.vnfm_plugin.delete_placement_constraint(context,

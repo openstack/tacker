@@ -544,10 +544,22 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
         instantiate_vnf_request = objects.InstantiateVnfRequest.\
             from_vnf_instance(vnf_instance)
+        vnf_instance.instantiated_vnf_info.reinitialize()
+        vnf_instance.task_state = fields.VnfInstanceTaskState.INSTANTIATING
+        vnfd_dict = vnflcm_utils._get_vnfd_dict(
+            context, vnf_instance.vnfd_id, instantiate_vnf_request.flavour_id)
+        vnflcm_utils._build_instantiated_vnf_info(
+            vnfd_dict, instantiate_vnf_request, vnf_instance,
+            vim_connection_info.vim_id)
 
         try:
             self._instantiate_vnf(context, vnf_instance, vnf_dict,
                                   vim_connection_info, instantiate_vnf_request)
+            self._vnf_manager.invoke(
+                vim_connection_info.vim_type, 'post_vnf_instantiation',
+                context=context, vnf_instance=vnf_instance,
+                vim_connection_info=vim_connection_info)
+
         except Exception as exc:
             with excutils.save_and_reraise_exception() as exc_ctxt:
                 exc_ctxt.reraise = False
