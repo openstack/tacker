@@ -235,7 +235,7 @@ def _vnf_lcm_subscriptions_create(context, values, filter):
         callbackUri = values.callback_uri
         if filter:
             notification_type = filter.get('notificationTypes')
-            operation_type = filter.get('operationTypese')
+            operation_type = filter.get('operationTypes')
 
             vnf_lcm_subscriptions_id = _vnf_lcm_subscriptions_id_get(
                 context,
