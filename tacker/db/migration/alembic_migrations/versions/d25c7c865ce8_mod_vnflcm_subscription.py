@@ -81,5 +81,3 @@ def upgrade(active_plugins=None, options=None):
 
     op.add_column('vnf_lcm_op_occs',
         sa.Column('deleted_at', sa.DateTime(), nullable=True))
-
-    pass

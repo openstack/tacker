@@ -249,6 +249,7 @@ def _fake_vnf_instance_not_instantiated_response(
         'vnfdId': uuidsentinel.vnfd_id,
         'vnfdVersion': '1.0',
         'vnfSoftwareVersion': '1.0',
+        'vnfPkgId': uuidsentinel.vnf_pkg_id,
         'id': uuidsentinel.vnf_instance_id,
         'metadata': {'key': 'value'}
     }
@@ -862,7 +863,7 @@ def vnflcm_rollback_insta(error_point=7):
         start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
                                      tzinfo=iso8601.UTC),
         vnf_instance_id=uuidsentinel.vnf_instance_id,
-        operation='INSTANTIATION',
+        operation='INSTANTIATE',
         operation_state='FAILED_TEMP',
         is_automatic_invocation=False,
         operation_params='{}',

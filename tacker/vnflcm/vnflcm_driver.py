@@ -273,7 +273,7 @@ def revert_to_error_rollback(function):
                                 jsonutils.dump_as_bytes(
                                     resource_dict.get(
                                         'affected_virtual_storages'))
-                    self.rpc_api.sendNotification(context, notification)
+                    self.rpc_api.send_notification(context, notification)
                 except Exception as e:
                     LOG.warning("Failed to revert scale info for vnf "
                                 "instance %(id)s. Error: %(error)s",
@@ -359,8 +359,9 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     error=encodeutils.exception_to_unicode(exp))
 
         if vnf_instance.instantiated_vnf_info and\
-           not vnf_instance.instantiated_vnf_info.instance_id:
+                vnf_instance.instantiated_vnf_info.instance_id != instance_id:
             vnf_instance.instantiated_vnf_info.instance_id = instance_id
+
         if vnf_dict['attributes'].get('scaling_group_names'):
             vnf_instance.instantiated_vnf_info.scale_status = \
                 vnf_dict['scale_status']
@@ -1330,14 +1331,18 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
     def _update_vnf_rollback(self, context, vnf_info,
                              vnf_instance, vnf_lcm_op_occs):
+        if vnf_lcm_op_occs.operation == 'SCALE':
+            status = 'ACTIVE'
+        else:
+            status = 'INACTIVE'
         self._vnfm_plugin._update_vnf_rollback(context, vnf_info,
                                               'ERROR',
-                                              'ACTIVE',
+                                              status,
                                               vnf_instance=vnf_instance,
                                               vnf_lcm_op_occ=vnf_lcm_op_occs)
 
     def _update_vnf_rollback_status_err(self, context, vnf_info):
-        self._vnfm_plugin._update_vnf_rollback_status_err(context, vnf_info)
+        self._vnfm_plugin.update_vnf_rollback_status_err(context, vnf_info)
 
     def _rollback_mgmt_call(self, context, vnf_info, kwargs):
         self._vnfm_plugin.mgmt_call(context, vnf_info, kwargs)
