@@ -12,8 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import six
-
 from tacker.objects import base
 from tacker.objects import fields
 from tacker.tests.unit import base as test_base
@@ -24,8 +22,6 @@ class TestString(test_base.TestCase):
         super(TestString, self).setUp()
         self.field = fields.StringField()
         self.coerce_good_values = [('foo', 'foo'), (1, '1'), (True, 'True')]
-        if six.PY2:
-            self.coerce_good_values.append((int(1), '1'))
         self.coerce_bad_values = [None]
 
     def test_stringify(self):

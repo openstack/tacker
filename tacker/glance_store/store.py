@@ -15,13 +15,13 @@
 
 import base64
 import os
+import urllib
 
 import glance_store
 from glance_store import exceptions as store_exceptions
 from oslo_log import log as logging
 from oslo_utils import encodeutils
 from oslo_utils import units
-from six.moves import urllib
 
 from tacker.common import exceptions
 from tacker.common import utils
@@ -148,8 +148,7 @@ def _get_csar_chunks(package_uuid, location, offset, chunk_size):
 def _add_basic_auth(request, username, password):
     """A helper function to add basic authentication.
 
-    This function adds basic authentication information to a six.moves.urllib
-    request.
+    This function adds basic authentication information to a urllib request.
     """
     auth_str = base64.encodestring(('%s:%s' % (
         username, password)).encode()).decode().strip()

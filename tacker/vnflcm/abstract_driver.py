@@ -15,11 +15,8 @@
 
 import abc
 
-import six
 
-
-@six.add_metaclass(abc.ABCMeta)
-class VnfInstanceAbstractDriver(object):
+class VnfInstanceAbstractDriver(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def instantiate_vnf(self, context, vnf_instance_id, instantiate_vnf_req):

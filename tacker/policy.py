@@ -23,7 +23,6 @@ from oslo_log import log as logging
 from oslo_policy import policy
 from oslo_utils import excutils
 from oslo_utils import importutils
-import six
 
 from tacker._i18n import _
 from tacker.api.v1 import attributes
@@ -297,7 +296,7 @@ class OwnerCheck(policy.Check):
                     LOG.exception('Policy check error while calling %s!', f)
         match = self.match % target
         if self.kind in creds:
-            return match == six.text_type(creds[self.kind])
+            return match == str(creds[self.kind])
         return False
 
 

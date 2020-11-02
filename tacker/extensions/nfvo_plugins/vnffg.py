@@ -14,13 +14,11 @@
 #    under the License.
 
 import abc
-import six
 
 from tacker.services import service_base
 
 
-@six.add_metaclass(abc.ABCMeta)
-class VNFFGPluginBase(service_base.NFVPluginBase):
+class VNFFGPluginBase(service_base.NFVPluginBase, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def create_vnffgd(self, context, vnffgd):

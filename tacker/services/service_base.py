@@ -15,13 +15,10 @@
 
 import abc
 
-import six
-
 from tacker.api import extensions
 
 
-@six.add_metaclass(abc.ABCMeta)
-class NFVPluginBase(extensions.PluginInterface):
+class NFVPluginBase(extensions.PluginInterface, metaclass=abc.ABCMeta):
     """Define base interface for any Advanced Service plugin."""
     supported_extension_aliases = []
 

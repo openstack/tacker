@@ -13,11 +13,11 @@
 #
 
 import netaddr
+from urllib import error as urlerr
+from urllib import request as urlreq
 
 from oslo_config import cfg
 from oslo_log import log as logging
-import six.moves.urllib.error as urlerr
-import six.moves.urllib.request as urlreq
 
 from tacker._i18n import _
 from tacker.common import log

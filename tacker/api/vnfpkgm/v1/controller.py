@@ -13,10 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from http import client as http_client
 from io import BytesIO
 import json
 import mimetypes
 import os
+import webob
+import zipfile
+from zipfile import ZipFile
 
 from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
@@ -24,11 +28,6 @@ from oslo_log import log as logging
 from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import uuidutils
-import six
-from six.moves import http_client
-import webob
-import zipfile
-from zipfile import ZipFile
 
 from tacker._i18n import _
 from tacker.api.schemas import vnf_packages
@@ -256,7 +255,7 @@ class VnfPkgmController(wsgi.Controller):
                                                     zip_file_size)
         else:
             chunk_size = zip_file_size
-        response.headers['Content-Length'] = six.text_type(chunk_size)
+        response.headers['Content-Length'] = str(chunk_size)
         return response
 
     def _get_csar_zip_data(self, uuid, location, offset=0, chunk_size=None):
@@ -489,8 +488,7 @@ class VnfPkgmController(wsgi.Controller):
                 get_vnf_package_vnfd(context, vnf_package)
         except exceptions.FailedToGetVnfdData as e:
             LOG.error(e.msg)
-            raise webob.exc.HTTPInternalServerError(
-                explanation=six.text_type(e.msg))
+            raise webob.exc.HTTPInternalServerError(explanation=str(e.msg))
 
         if 'text/plain' in accept_headers:
             # Checking for yaml files only. This is required when there is

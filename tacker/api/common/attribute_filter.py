@@ -16,7 +16,6 @@
 #    under the License.
 
 import re
-import six
 
 from tacker.api.common import _filters
 from tacker.common import exceptions as exception
@@ -68,8 +67,7 @@ class ParseStateMeta(type):
         return super(ParseStateMeta, mcs).__new__(mcs, name, bases, cls_dict)
 
 
-@six.add_metaclass(ParseStateMeta)
-class ParseState(object):
+class ParseState(object, metaclass=ParseStateMeta):
     """Implement the core of parsing the policy language.
 
     Uses a greedy reduction algorithm to reduce a sequence of tokens into

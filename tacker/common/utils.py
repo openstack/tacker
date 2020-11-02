@@ -28,6 +28,7 @@ import random
 import re
 import signal
 import socket
+from stevedore import driver
 import string
 import sys
 
@@ -38,9 +39,8 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
-from six.moves import urllib
-from six.moves.urllib import parse as urlparse
-from stevedore import driver
+import urllib
+from urllib import parse as urlparse
 try:
     from eventlet import sleep
 except ImportError:

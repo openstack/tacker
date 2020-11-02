@@ -18,7 +18,6 @@ from datetime import datetime
 import functools
 import inspect
 import re
-import six
 import time
 import traceback
 import yaml
@@ -533,7 +532,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                           "%(id)s before respawning. The vnf is in "
                           "inconsistent state. Error: %(error)s")
                 LOG.error(err_msg % {"id": vnf_instance.id,
-                          "error": six.text_type(exc)})
+                          "error": str(exc)})
                 raise exceptions.VnfHealFailed(id=vnf_instance.id,
                     error=encodeutils.exception_to_unicode(exc))
 
@@ -555,7 +554,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                           "%(id)s after termination. The vnf is in "
                           "inconsistent state. Error: %(error)s")
                 LOG.error(err_msg % {"id": vnf_instance.id,
-                          "error": six.text_type(exc)})
+                          "error": str(exc)})
                 raise exceptions.VnfHealFailed(id=vnf_instance.id,
                     error=encodeutils.exception_to_unicode(exc))
 

@@ -15,7 +15,6 @@
 #    under the License.
 
 import inspect
-import six
 import yaml
 
 import eventlet
@@ -336,8 +335,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             LOG.error("VNF Create failed for vnf_id %s", vnf_id)
             create_failed = True
             vnf_dict['status'] = constants.ERROR
-            self.set_vnf_error_status_reason(context, vnf_id,
-                                             six.text_type(e))
+            self.set_vnf_error_status_reason(context, vnf_id, str(e))
 
         if instance_id is None or create_failed:
             mgmt_ip_address = None
@@ -489,14 +487,13 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 self._vnf_monitor.delete_hosting_vnf(vnf_dict['id'])
                 self._vnf_maintenance_plugin.post(context, vnf_dict)
                 self.set_vnf_error_status_reason(context, vnf_dict['id'],
-                                                 six.text_type(e))
+                                                 str(e))
         except exceptions.MgmtDriverException as e:
             LOG.error('VNF configuration failed')
             new_status = constants.ERROR
             self._vnf_monitor.delete_hosting_vnf(vnf_dict['id'])
             self._vnf_maintenance_plugin.post(context, vnf_dict)
-            self.set_vnf_error_status_reason(context, vnf_dict['id'],
-                                             six.text_type(e))
+            self.set_vnf_error_status_reason(context, vnf_dict['id'], str(e))
 
         del vnf_dict['heal_stack_id']
         vnf_dict['status'] = new_status
@@ -536,13 +533,12 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 new_status = constants.ERROR
                 self._vnf_monitor.delete_hosting_vnf(vnf_dict['id'])
                 self.set_vnf_error_status_reason(context, vnf_dict['id'],
-                                                 six.text_type(e))
+                                                 str(e))
         except exceptions.MgmtDriverException as e:
             LOG.error('VNF configuration failed')
             new_status = constants.ERROR
             self._vnf_monitor.delete_hosting_vnf(vnf_dict['id'])
-            self.set_vnf_error_status_reason(context, vnf_dict['id'],
-                                             six.text_type(e))
+            self.set_vnf_error_status_reason(context, vnf_dict['id'], str(e))
         vnf_dict['status'] = new_status
         self.mgmt_update_post(context, vnf_dict)
         self._update_vnf_post(context, vnf_dict['id'], new_status,
@@ -595,9 +591,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             with excutils.save_and_reraise_exception():
                 vnf_dict['status'] = constants.ERROR
                 self._vnf_monitor.delete_hosting_vnf(vnf_id)
-                self.set_vnf_error_status_reason(context,
-                                                 vnf_dict['id'],
-                                                 six.text_type(e))
+                self.set_vnf_error_status_reason(context, vnf_dict['id'],
+                                                 str(e))
                 self.mgmt_update_post(context, vnf_dict)
                 self._update_vnf_post(context, vnf_id,
                                       constants.ERROR,
@@ -632,9 +627,8 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             with excutils.save_and_reraise_exception():
                 vnf_dict['status'] = constants.ERROR
                 self._vnf_monitor.delete_hosting_vnf(vnf_id)
-                self.set_vnf_error_status_reason(context,
-                                                 vnf_dict['id'],
-                                                 six.text_type(e))
+                self.set_vnf_error_status_reason(context, vnf_dict['id'],
+                                                 str(e))
                 self.mgmt_update_post(context, vnf_dict)
                 self._vnf_maintenance_plugin.post(context, vnf_dict)
                 self._update_vnf_post(context, vnf_id,
@@ -665,7 +659,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             except Exception as e_:
                 e = e_
                 vnf_dict['status'] = constants.ERROR
-                vnf_dict['error_reason'] = six.text_type(e)
+                vnf_dict['error_reason'] = str(e)
                 LOG.exception('_delete_vnf_wait')
                 self.set_vnf_error_status_reason(context, vnf_dict['id'],
                                                  vnf_dict['error_reason'])
@@ -708,7 +702,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             with excutils.save_and_reraise_exception():
                 if not force_delete:
                     vnf_dict['status'] = constants.ERROR
-                    vnf_dict['error_reason'] = six.text_type(e)
+                    vnf_dict['error_reason'] = str(e)
                     self.set_vnf_error_status_reason(context, vnf_dict['id'],
                                                      vnf_dict['error_reason'])
                     self.mgmt_delete_post(context, vnf_dict)
@@ -816,9 +810,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 with excutils.save_and_reraise_exception():
                     vnf['status'] = constants.ERROR
                     self.set_vnf_error_status_reason(
-                        context,
-                        policy['vnf']['id'],
-                        six.text_type(e))
+                        context, policy['vnf']['id'], str(e))
                     _handle_vnf_scaling_post(constants.ERROR)
 
         # wait
@@ -845,9 +837,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                           policy['name'])
                 with excutils.save_and_reraise_exception():
                     self.set_vnf_error_status_reason(
-                        context,
-                        policy['vnf']['id'],
-                        six.text_type(e))
+                        context, policy['vnf']['id'], str(e))
                     _handle_vnf_scaling_post(constants.ERROR)
 
         _validate_scaling_policy()

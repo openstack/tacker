@@ -12,26 +12,26 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
 from copy import deepcopy
 import hashlib
 import os
 import re
 import shutil
-
+from urllib.parse import urlparse
+from urllib import request as urllib2
 import yaml
+import zipfile
 
 from oslo_log import log as logging
 from oslo_utils import encodeutils
 from oslo_utils import excutils
-from six.moves.urllib.parse import urlparse
 from toscaparser.prereq.csar import CSAR
 from toscaparser.tosca_template import ToscaTemplate
-import zipfile
 
 from tacker.common import exceptions
 import tacker.conf
 from tacker.extensions import vnfm
-import urllib.request as urllib2
 
 
 HASH_DICT = {

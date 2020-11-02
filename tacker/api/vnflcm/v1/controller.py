@@ -15,7 +15,6 @@
 
 import datetime
 import requests
-import six
 import tacker.conf
 import webob
 
@@ -34,8 +33,8 @@ import json
 import re
 import traceback
 
-from six.moves import http_client
-from six.moves.urllib import parse
+from http import client as http_client
+from urllib import parse
 
 from tacker._i18n import _
 from tacker.api.schemas import vnf_lcm
@@ -186,9 +185,8 @@ class VnfLcmController(wsgi.Controller):
             raise webob.exc.HTTPNotFound(explanation=msg)
         except Exception as exc:
             msg = _("Encountered error while fetching vnf: %s") % id
-            LOG.debug("{}: {}".format(msg, six.text_type(exc)))
-            raise webob.exc.HTTPInternalServerError(explanation=six.
-                                                    text_type(exc))
+            LOG.debug("{}: {}".format(msg, str(exc)))
+            raise webob.exc.HTTPInternalServerError(explanation=str(exc))
         return vnf
 
     def _validate_flavour_and_inst_level(self, context, req_body,
@@ -463,11 +461,11 @@ class VnfLcmController(wsgi.Controller):
             return wsgi.ResponseObject(result, headers=headers)
 
         except nfvo.VimDefaultNotDefined as exc:
-            raise webob.exc.HTTPBadRequest(explanation=six.text_type(exc))
+            raise webob.exc.HTTPBadRequest(explanation=str(exc))
         except(sqlexc.SQLAlchemyError, Exception)\
                 as exc:
             raise webob.exc.HTTPInternalServerError(
-                explanation=six.text_type(exc))
+                explanation=str(exc))
         except webob.exc.HTTPNotFound as e:
             return self._make_problem_detail(str(e), 404,
                 'Not Found')
@@ -566,7 +564,7 @@ class VnfLcmController(wsgi.Controller):
             self._validate_flavour_and_inst_level(context, req_body,
                                                   vnf_instance)
         except exceptions.NotFound as ex:
-            raise webob.exc.HTTPBadRequest(explanation=six.text_type(ex))
+            raise webob.exc.HTTPBadRequest(explanation=str(ex))
 
         instantiate_vnf_request = \
             objects.InstantiateVnfRequest.obj_from_primitive(

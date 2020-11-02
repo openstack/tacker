@@ -15,13 +15,11 @@
 
 import abc
 
-import six
-
 from tacker.api import extensions
 
 
-@six.add_metaclass(abc.ABCMeta)
-class VNFMonitorAbstractDriver(extensions.PluginInterface):
+class VNFMonitorAbstractDriver(extensions.PluginInterface,
+        metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_type(self):
