@@ -19,7 +19,6 @@ from oslo_serialization import jsonutils
 from webob import Request
 
 from tacker.alarm_receiver import AlarmReceiver
-from tacker.tests.common import helpers
 from tacker.tests.unit import base
 
 
@@ -72,7 +71,7 @@ class TestAlarmReceiver(base.TestCase):
         req.method = 'POST'
         self.alarmrc.process_request(req)
 
-        self.assertEqual(helpers.compact_byte(''), req.body)
+        self.assertEqual(bytes('', 'utf-8'), req.body)
         self.assertEqual('fake_token', req.headers['X_AUTH_TOKEN'])
         self.assertIn(self.alarm_url['01_url_base'], req.environ['PATH_INFO'])
         self.assertIn('triggers', req.environ['PATH_INFO'])
