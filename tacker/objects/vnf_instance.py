@@ -34,7 +34,7 @@ from tacker.objects import base
 from tacker.objects import fields
 from tacker.objects import vnf_instantiated_info
 from tacker.objects import vnf_package as vnf_package_obj
-from tacker.objects import vnf_package_vnfd as vnf_package_vnfd
+from tacker.objects import vnf_package_vnfd
 
 
 LOG = logging.getLogger(__name__)
