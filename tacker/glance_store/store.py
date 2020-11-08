@@ -150,6 +150,6 @@ def _add_basic_auth(request, username, password):
 
     This function adds basic authentication information to a urllib request.
     """
-    auth_str = base64.encodestring(('%s:%s' % (
+    auth_str = base64.encodebytes(('%s:%s' % (
         username, password)).encode()).decode().strip()
     request.add_header('Authorization', 'Basic %s' % auth_str)
