@@ -88,8 +88,8 @@ topology_template:
             hash: b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
           container_format: bare
           disk_format: qcow2
-          min_disk: 1 GB
-          size: 1 GB
+          min_disk: 1000 MB
+          size: 1.75 GiB
 
       artifacts:
         sw_image:
@@ -141,9 +141,9 @@ topology_template:
             hash: b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
           container_format: bare
           disk_format: qcow2
-          min_disk: 2 GB
-          min_ram: 8192 MB
-          size: 2 GB
+          min_disk: 2000 MB
+          min_ram: 8192.5 MiB
+          size: 2000 MB
       artifacts:
         sw_image:
           type: tosca.artifacts.nfv.SwImage

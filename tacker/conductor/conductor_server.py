@@ -371,13 +371,12 @@ class Conductor(manager.Manager):
             vnf_sw_image.container_format = sw_image.get('container_format')
             vnf_sw_image.disk_format = sw_image.get('disk_format')
             if sw_image.get('min_ram'):
-                min_ram = sw_image.get('min_ram')
-                vnf_sw_image.min_ram = int(min_ram.split()[0])
+                vnf_sw_image.min_ram = sw_image.get('min_ram')
             else:
                 vnf_sw_image.min_ram = 0
-        vnf_sw_image.min_disk = int(sw_image.get('min_disk').split()[0])
-        vnf_sw_image.size = int(sw_image.get('size').split()[0])
-        vnf_sw_image.image_path = sw_image['image_path']
+        vnf_sw_image.min_disk = sw_image.get('min_disk')
+        vnf_sw_image.size = sw_image.get('size')
+        vnf_sw_image.image_path = ''
         vnf_sw_image.software_image_id = sw_image['software_image_id']
         vnf_sw_image.metadata = sw_image.get('metadata', dict())
         vnf_sw_image.create()

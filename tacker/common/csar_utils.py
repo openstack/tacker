@@ -26,6 +26,7 @@ import zipfile
 from oslo_log import log as logging
 from oslo_utils import encodeutils
 from oslo_utils import excutils
+from tacker.common import utils
 from toscaparser.prereq.csar import CSAR
 from toscaparser.tosca_template import ToscaTemplate
 
@@ -131,10 +132,28 @@ def _get_software_image(custom_defs, nodetemplate_name, node_tpl):
                 {'software_image_id': nodetemplate_name,
                 'image_path': image_path})
             sw_image_data = properties['sw_image_data']
+            _convert_software_images_prop_to_fixed_unit(sw_image_data)
+
             if 'metadata' in sw_image_artifact:
                 sw_image_data.update({'metadata':
                     sw_image_artifact['metadata']})
             return sw_image_data
+
+
+def _convert_software_images_prop_to_fixed_unit(sw_image_data):
+    """Update values of 'min_disk', 'min_ram' and 'size' to Bytes.
+
+    Since, the units like MB/MiB/GB/GiB is not stored in the database, we need
+    to convert 'min_disk', 'min_ram' and 'size' values to fixed unit before
+    saving it in database. Here its converting 'min_disk', 'min_ram', and
+    'size' values to Bytes.
+    """
+    for attribute in ['min_disk', 'min_ram', 'size']:
+        if sw_image_data.get(attribute):
+            updated_value = utils.MemoryUnit.convert_unit_size_to_num(
+                sw_image_data.get(attribute),
+                unit='B')
+            sw_image_data[attribute] = updated_value
 
 
 def _populate_flavour_data(tosca):

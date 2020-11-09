@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixes `bug 1879436`_. Users who build VNF packages can specify software
+    image properties like `min_disk`, `min_ram` and `size` in different units
+    as mentioned in section 3.2.6.4  of `TOSCA Simple Profile in YAML Version 1.2`_ template.
+    These property values are converted from various units to ``byte`` unit and
+    returned in `GET /vnfpkgm/v1/vnf_packages/{vnf_package_id}` API response.
+
+    .. note:: For old vnf packages, the software image properties are not converted
+            into ``byte`` unit.
+
+    .. _TOSCA Simple Profile in YAML Version 1.2: http://docs.oasis-open.org/tosca/TOSCA-Simple-Profile-YAML/v1.2/csprd01/TOSCA-Simple-Profile-YAML-v1.2-csprd01.html
+
+    .. _bug 1879436: https://bugs.launchpad.net/tacker/+bug/1879436
