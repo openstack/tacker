@@ -16,7 +16,7 @@
 """alter min_ram, min_disk columns of vnf_software_images
 
 Revision ID: 329cd1619d41
-Revises: d2e39e01d540
+Revises: d25c7c865ce8
 Create Date: 2020-05-28 03:54:52.871841
 
 """
@@ -26,7 +26,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '329cd1619d41'
-down_revision = '329cd1619d41'
+down_revision = 'd25c7c865ce8'
 
 
 def upgrade(active_plugins=None, options=None):
