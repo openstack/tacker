@@ -137,7 +137,36 @@ Help:
                   specify 'both' option value. Provide this option only when
                   --vnfd is set.
 
-4. List VNF Package
+4. Fetch VNF Package Artifacts
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnf package artifact download --file <FILE: /tmp/deployment.yaml> \
+      <ID: e712a702-741f-4093-a971-b3ad69411ac1> <artifact-path: Files/kubernetes/deployment.yaml>
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnf package artifact download --help
+  usage: openstack vnf package artifact download [-h] [--file <FILE>]
+                                                 <vnf-package> <artifact-path>
+
+  Download VNF package artifact of an on-boarded VNF package.
+
+  positional arguments:
+    <vnf-package>    VNF package ID
+    <artifact-path>  The artifact file's path
+
+  optional arguments:
+    -h, --help       show this help message and exit
+    --file <FILE>    Local file to save downloaded VNF Package artifact file
+                     data. If this is not specified and there is no redirection
+                     then data will not be saved.
+
+5. List VNF Package
 ^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
@@ -186,7 +215,7 @@ Help:
                           tacker server will throw bad request error
 
 
-5. Show VNF Package
+6. Show VNF Package
 ^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
@@ -198,30 +227,43 @@ Result:
 
 .. code-block:: console
 
-  +----------------------+------------------------------------------------------------------------------------------------------------+
-  | Field                | Value                                                                                                      |
-  +----------------------+------------------------------------------------------------------------------------------------------------+
-  | Checksum             | algorithm=sha512, hash=f8eb9883f04901af2d6e09d3621b7bbb37a36a89b076d322cc5994f3c5264854d1a0137efb23e61be96 |
-  |                      | 9a7ba60989715b3e3feced9d7c582ffaaec6b5a89e2b1                                                              |
-  | ID                   | e712a702-741f-4093-a971-b3ad69411ac1                                                                       |
-  | Links                | packageContent=href=/vnfpkgm/v1/vnf_packages/e712a702-741f-4093-a971-b3ad69411ac1/package_content,         |
-  |                      | self=href=/vnfpkgm/v1/vnf_packages/e712a702-741f-4093-a971-b3ad69411ac1                                    |
-  | Onboarding State     | ONBOARDED                                                                                                  |
-  | Operational State    | ENABLED                                                                                                    |
-  | Software Images      | [{'diskFormat': 'qcow2', 'minDisk': 1, 'minRam': 0, 'imagePath': '', 'size': 1, 'createdAt': '2020-05-28   |
-  |                      | 01:50:14+00:00', 'containerFormat': 'bare', 'version': '0.4.0', 'provider': '', 'id': 'VDU1', 'name':      |
-  |                      | 'Software of VDU1', 'checksum': {'algorithm': 'sha-256', 'hash': '6513f21e44aa3da349f248188a44bc304a3653a0 |
-  |                      | 4122d8fb4535423c8e1d14cd6a153f735bb0982e2161b5b5186106570c17a9e58b64dd39390617cd5a350f78'},                |
-  |                      | 'userMetadata': {}}]                                                                                       |
-  | Usage State          | NOT_IN_USE                                                                                                 |
-  | User Defined Data    |                                                                                                            |
-  | VNF Product Name     | Sample VNF                                                                                                 |
-  | VNF Provider         | Company                                                                                                    |
-  | VNF Software Version | 1.0                                                                                                        |
-  | VNFD ID              | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                       |
-  | VNFD Version         | 1.0                                                                                                        |
-  +----------------------+------------------------------------------------------------------------------------------------------------+
-
+  +----------------------+------------------------------------------------------------------------------------------------------------------------------------------------+
+  | Field                | Value                                                                                                                                          |
+  +----------------------+------------------------------------------------------------------------------------------------------------------------------------------------+
+  | Additional Artifacts | [                                                                                                                                              |
+  |                      |     {                                                                                                                                          |
+  |                      |         "artifactPath": "Files/kubernetes/deployment.yaml",                                                                                    |
+  |                      |         "checksum": {                                                                                                                          |
+  |                      |             "hash": "6a40dfb06764394fb604ae807d1198bc2e2ee8aece3b9483dfde48e53f316a58",                                                        |
+  |                      |             "algorithm": "SHA-256"                                                                                                             |
+  |                      |         },                                                                                                                                     |
+  |                      |         "metadata": {}                                                                                                                         |
+  |                      |     }                                                                                                                                          |
+  |                      | ]                                                                                                                                              |
+  | Checksum             | {                                                                                                                                              |
+  |                      |     "algorithm": "sha512",                                                                                                                     |
+  |                      |     "hash": "f51de874f4dd831986aff19b4d74b8e30009681683ff2d25b2969a2c679ae3a78f6bd79cc131d00e92a5e264cd8df02e2decb8b3f2acc6e877161977cdbdd304" |
+  |                      | }                                                                                                                                              |
+  | ID                   | e712a702-741f-4093-a971-b3ad69411ac1                                                                                                           |
+  | Links                | {                                                                                                                                              |
+  |                      |     "self": {                                                                                                                                  |
+  |                      |         "href": "/vnfpkgm/v1/vnf_packages/08d00a5c-e8aa-4219-9412-411458eaa7d2"                                                                |
+  |                      |     },                                                                                                                                         |
+  |                      |     "packageContent": {                                                                                                                        |
+  |                      |         "href": "/vnfpkgm/v1/vnf_packages/08d00a5c-e8aa-4219-9412-411458eaa7d2/package_content"                                                |
+  |                      |     }                                                                                                                                          |
+  |                      | }                                                                                                                                              |
+  | Onboarding State     | ONBOARDED                                                                                                                                      |
+  | Operational State    | ENABLED                                                                                                                                        |
+  | Software Images      |                                                                                                                                                |
+  | Usage State          | IN_USE                                                                                                                                         |
+  | User Defined Data    | {}                                                                                                                                             |
+  | VNF Product Name     | Sample VNF                                                                                                                                     |
+  | VNF Provider         | Company                                                                                                                                        |
+  | VNF Software Version | 1.0                                                                                                                                            |
+  | VNFD ID              | b1bb0ce7-ebca-4fa7-95ed-4840d7000003                                                                                                           |
+  | VNFD Version         | 1.0                                                                                                                                            |
+  +----------------------+------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Help:
 
@@ -243,7 +285,7 @@ Help:
     -h, --help            show this help message and exit
 
 
-6. Update VNF Package Info
+7. Update VNF Package Info
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
@@ -291,7 +333,7 @@ Help:
                           to set multiple user defined data)
 
 
-7. Delete VNF Package
+8. Delete VNF Package
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
