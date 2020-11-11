@@ -102,7 +102,9 @@ class VnfTestMaintenanceMonitor(base.BaseTackerTest):
 
                 time.sleep(constants.SCALE_SLEEP_TIME)
                 target_scaled = -1
-                if state == 'SCALE_IN':
+                if state == 'MAINTENANCE':
+                    target_scaled = 0
+                elif state == 'SCALE_IN':
                     target_scaled = 1
                     _wait_vnf_active_and_assert_vdu_count(2, scale_type='in')
                 elif state == 'MAINTENANCE_COMPLETE':
@@ -115,7 +117,7 @@ class VnfTestMaintenanceMonitor(base.BaseTackerTest):
                 self.assertEqual(int(scaled), target_scaled)
                 time.sleep(constants.SCALE_WINDOW_SLEEP_TIME)
 
-            time.sleep(constants.SCALE_WINDOW_SLEEP_TIME)
+            _request_maintenance_action('MAINTENANCE')
             _request_maintenance_action('SCALE_IN')
             _request_maintenance_action('MAINTENANCE_COMPLETE')
 
@@ -187,8 +189,8 @@ class VnfTestMaintenanceMonitor(base.BaseTackerTest):
         self.addCleanup(self.wait_until_vnf_delete, vnf_id,
                         constants.VNF_CIRROS_DELETE_TIMEOUT)
 
+    # TODO(kden): add a test for migration
     def test_vnf_alarm_maintenance(self):
-        # instance_maintenance = self._get_instance_maintenance()
         self._test_vnf_tosca_maintenance(
             'sample-tosca-vnfd-maintenance.yaml',
             'maintenance_vnf')
