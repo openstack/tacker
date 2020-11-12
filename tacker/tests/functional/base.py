@@ -23,6 +23,7 @@ from keystoneclient import adapter
 from neutronclient.v2_0 import client as neutron_client
 from novaclient import client as nova_client
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from tempest.lib import base
 
@@ -32,9 +33,11 @@ from tacker.tests.functional import clients
 from tacker.tests.utils import read_file
 from tacker import version
 
+from tackerclient.common import exceptions
 from tackerclient.v1_0 import client as tacker_client
 
 
+LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
 
@@ -125,7 +128,7 @@ class BaseTackerTest(base.BaseTestCase):
     @classmethod
     def tackerclient(cls):
         auth_session = cls.get_auth_session()
-        return tacker_client.Client(session=auth_session)
+        return tacker_client.Client(session=auth_session, retries=5)
 
     @classmethod
     def novaclient(cls):
@@ -204,11 +207,17 @@ class BaseTackerTest(base.BaseTestCase):
     def wait_until_vnf_status(self, vnf_id, target_status, timeout,
                               sleep_interval):
         start_time = int(time.time())
+        status = None
         while True:
-            vnf_result = self.client.show_vnf(vnf_id)
-            status = vnf_result['vnf']['status']
-            if (status == target_status) or (
-                    (int(time.time()) - start_time) > timeout):
+            try:
+                vnf_result = self.client.show_vnf(vnf_id)
+                status = vnf_result['vnf']['status']
+                if status == target_status:
+                    break
+            except exceptions.InternalServerError:
+                pass
+
+            if int(time.time()) - start_time > timeout:
                 break
             time.sleep(sleep_interval)
 
@@ -233,18 +242,24 @@ class BaseTackerTest(base.BaseTestCase):
                                   constants.VNF_CIRROS_CREATE_TIMEOUT,
                                   constants.ACTIVE_SLEEP_TIME)
 
-    def wait_until_vnf_delete(self, vnf_id, timeout):
+    def wait_until_vnf_delete(self, vnf_id, timeout, sleep_interval=1):
         start_time = int(time.time())
         while True:
+            status = None
             try:
                 vnf_result = self.client.show_vnf(vnf_id)
-                time.sleep(1)
-            except Exception:
+                status = vnf_result['vnf']['status']
+            except exceptions.NotFound:
                 return
-            status = vnf_result['vnf']['status']
-            if (status != 'PENDING_DELETE') or ((
-                    int(time.time()) - start_time) > timeout):
+            except Exception as e:
+                LOG.error("Failed to get vnf status: %s", str(e))
+
+            if status is not None and status != 'PENDING_DELETE':
                 raise Exception("Failed with status: %s" % status)
+            if int(time.time()) - start_time > timeout:
+                raise Exception("Timeout for deleting vnf %s.",
+                                vnf_id)
+            time.sleep(sleep_interval)
 
     def wait_until_vnf_dead(self, vnf_id, timeout, sleep_interval):
         self.wait_until_vnf_status(vnf_id, 'DEAD', timeout,
