@@ -1,20 +1,23 @@
 - nodeset:
-    name: openstack-2-nodes-focal
+    name: openstack-3-nodes-focal
     nodes:
       - name: controller
         label: ubuntu-focal
       - name: compute1
         label: ubuntu-focal
+      - name: compute2
+        label: ubuntu-focal
     groups:
       # Nodes running the compute service
       - name: compute
         nodes:
-          - controller
           - compute1
+          - compute2
       # Nodes that are not the controller
       - name: subnode
         nodes:
           - compute1
+          - compute2
       # Switch node for multinode networking setup
       - name: switch
         nodes:
@@ -23,13 +26,14 @@
       - name: peers
         nodes:
           - compute1
+          - compute2
 
 - job:
     name: tacker-functional-devstack-multinode-python3
     parent: devstack
     description: |
       Base multinodes job for devstack-based functional tests
-    nodeset: openstack-2-nodes-focal
+    nodeset: openstack-3-nodes-focal
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
     post-run: playbooks/devstack/post.yaml
@@ -108,7 +112,7 @@
           n-api: true
           n-api-meta: true
           n-cond: true
-          n-cpu: true
+          n-cpu: false
           n-novnc: true
           n-sch: true
           placement-api: true
