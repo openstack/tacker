@@ -176,5 +176,4 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - tacker-functional-devstack-multinode-python3:
-            voting: false
+        - tacker-functional-devstack-multinode-python3
