@@ -13,7 +13,6 @@
 #    under the License.
 
 import time
-import unittest
 import yaml
 
 from tacker.plugins.common import constants as evt_constants
@@ -158,7 +157,6 @@ class VnfmTestParam(base.BaseTackerTest):
             param_file='sample-tosca-vnf-values.yaml',
             vnf_name='test_vnf_with_parameters_tosca_template')
 
-    @unittest.skip("Until BUG 1847188")
     def test_vnf_param_with_artifacts_image_tosca_template(self):
         self._test_vnf_param_tosca_template(
             vnfd_name='cirros_vnfd_tosca_param_artifacts_image',

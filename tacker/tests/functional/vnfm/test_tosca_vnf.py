@@ -13,9 +13,9 @@
 #    under the License.
 
 import time
-import unittest
 import yaml
 
+from glanceclient import exc
 from novaclient import exceptions
 from oslo_config import cfg
 
@@ -180,7 +180,6 @@ class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
 
 class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
 
-    @unittest.skip("Until BUG 1673099")
     def test_create_delete_vnf_tosca_no_monitoring(self):
         vnf_name = 'tosca_vnfd_with_auto_image'
         vnfd_file = 'sample-tosca-vnfd-image.yaml'
@@ -208,8 +207,8 @@ class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
                 break
         self.assertIsNotNone(vdu_server)
         image_id = vdu_server.image["id"]
-        nova_images = self.novaclient().images
-        image = nova_images.get(image_id)
+        glanceclient = self.glanceclient()
+        image = glanceclient.images.get(image_id)
         self.assertIsNotNone(image)
         self.assertEqual(True, "VNFImage_image_func" in image.name)
         # Delete vnf_instance with vnf_id
@@ -223,5 +222,6 @@ class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
         self.verify_vnf_crud_events(vnf_id, evt_constants.RES_EVT_DELETE,
                                     evt_constants.PENDING_DELETE, cnt=2)
 
-        self.assertRaises(exceptions.NotFound, nova_images.delete,
+        self.assertRaises(exc.HTTPNotFound,
+                          glanceclient.images.delete,
                           [image_id])
