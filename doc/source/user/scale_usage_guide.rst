@@ -17,13 +17,13 @@
 VNF scaling
 ===========
 
-VNF resources in terms of CPU core and memory are hardcoded in VNFD template
-through image flavor settings. This result in either provisioning VNF for
-typical usage or for maximum usage. The former leads to service disruption
-when load exceeds provisioned capacity. And the later leads to underutilized
-resources and waste during normal system load. So tacker provides a
-way to seamlessly scale the number of VNFs on demand either manually or
-automatically.
+VNF resources in terms of CPU core and memory are hardcoded in the VNFD
+template through image flavor settings. This results in either provisioning
+VNF for typical usage or for maximum usage. The former leads to service
+disruption when the load exceeds provisioned capacity. And the latter leads
+to underutilized resources and waste during normal system load. So Tacker
+provides a way to seamlessly scale the number of VNFs on demand either
+manually or automatically.
 
 
 TOSCA schema for scaling policy
@@ -70,28 +70,20 @@ Tacker defines TOSCA schema for the scaling policy as given below:
 Sample TOSCA with scaling policy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Following TOSCA snippet shows the scaling policy used in VNFD, in which vdu1
-and vdu2 are already defined VDUs.
+The following TOSCA snippet shows the scaling policy used in VNFD, in which
+vdu1 and vdu2 are already defined VDUs.
 
 .. code-block:: yaml
 
      policies:
-
        - sp1:
-
            type: tosca.policies.tacker.Scaling
-
            description: Simple VDU scaling
-
            targets: [vdu1, vdu2]
-
            properties:
              min_instances: 1
-
              max_instances: 3
-
              default_instances: 2
-
              increment: 1
 
 Deploying scaling TOSCA template using Tacker
@@ -100,11 +92,10 @@ Deploying scaling TOSCA template using Tacker
 Once OpenStack/Devstack along with Tacker has been successfully installed,
 deploy a sample scaling template from location given
 below:
-https://github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd
+https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd
 
-Refer the 'Getting Started' link below on how to create a VNFD and deploy a
-VNF:
-https://docs.openstack.org/tacker/latest/install/getting_started.html
+How to create a VNFD and deploy a VNF refer to
+:doc:`../install/getting_started`.
 
 
 How to scale VNF using CLI
@@ -112,12 +103,10 @@ How to scale VNF using CLI
 
 Tacker provides following CLI for scaling.
 
-.. code-block::console
+.. code-block:: console
 
-**openstack vnf scale --vnf-id <vnf-id>**
-                  **--vnf-name <vnf name>**
-                  **--scaling-policy-name <policy name>**
-                  **--scaling-type <type>**
+  $ openstack vnf scale --vnf-id <vnf-id> --vnf-name <vnf name> \
+      --scaling-policy-name <policy name> --scaling-type <type>
 
 Here,
 
@@ -126,14 +115,13 @@ Here,
 * vnf-id - scaling VNF id
 * vnf-name - scaling VNF name
 
-For example, to scale-out policy 'sp1' defined above, this cli could be used
-as below:
+For example, to scale-out policy 'sp1' defined above, this command could be
+used as below:
 
-.. code-block::console
+.. code-block:: console
 
-**openstack vnf scale --vnf-name sample-vnf**
-                  **--scaling-policy-name sp1**
-                  **--scaling-type out**
+  $ openstack vnf scale --vnf-name sample-vnf --scaling-policy-name sp1 \
+      --scaling-type out
 
 How to scale VNF using REST API
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -144,9 +132,9 @@ Tacker provides following REST API for scaling.
 
 with body
 
-.. code-block::json
+.. code-block:: json
 
-**{"scale": { "type": "<type>", "policy" : "<scaling-policy-name>"}}**
+  {"scale": { "type": "<type>", "policy" : "<scaling-policy-name>"}}
 
 Here,
 
