@@ -52,6 +52,7 @@ Use cases
    enhanced_placement_awareness_usage_guide.rst
    etsi_vnf_deployment_as_vm_with_tosca.rst
    etsi_containerized_vnf_usage_guide.rst
+   etsi_vnf_healing.rst
    containerized_vnf_usage_guide.rst
    ../reference/mistral_workflows_usage_guide.rst
    multisite_vim_usage_guide.rst
