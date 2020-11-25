@@ -940,3 +940,45 @@ def fake_daemon_set_error():
             number_misscheduled=2,
         )
     )
+
+
+def fake_auth_attr():
+    return {
+        'username': 'fake_user_name',
+        'password': 'fake_password',
+        'ssl_ca_cert': '-----BEGIN CERTIFICATE-----\
+                        samplevalues\
+                        -----END CERTIFICATE-----',
+        'auth_url': 'http://fake-url/identity/v3'
+    }
+
+
+def fake_vnf_dict(updates=None):
+    vnf_dict = {
+        'id': 'fake-id,fake-name',
+        'status': 'fake-status',
+        'attributes': {
+            'monitoring_policy': 'fake-monitoring-policy',
+            'failure_count': '1',
+            'dead_instance_id_1': '00000000-0000-0000-0000-00000000001'},
+        'vim_id': 'fake-vim-id',
+        'vim_auth': 'fake-vim-auth',
+        'instance_id': '00000000-0000-0000-0000-000000000002',
+        'placement_attr': {
+            'region_name': 'fake-region-name'}}
+    if updates:
+        vnf_dict.update(updates)
+    return vnf_dict
+
+
+def fake_pod_list():
+    return client.V1PodList(
+        items=[client.V1Pod(
+            metadata=client.V1ObjectMeta(
+                name="fake-name"
+            ),
+            status=client.V1PodStatus(
+                phase="Successed"
+            )
+        )]
+    )

@@ -1257,7 +1257,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
 
     def instantiate_vnf(self, context, vnf_instance, vnfd_dict,
                         vim_connection_info, instantiate_vnf_req,
-                        grant_response, vnf_package_path, base_hot_dict):
+                        grant_response, vnf_package_path, base_hot_dict,
+                        plugin=None):
         target_k8s_files = self._get_target_k8s_files(instantiate_vnf_req)
         auth_attr = vim_connection_info.access_info
         if not target_k8s_files:
