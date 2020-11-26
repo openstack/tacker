@@ -32,15 +32,13 @@ if is_service_enabled tacker; then
             tacker_horizon_install
         fi
 
-        if [[ "${TACKER_MODE}" == "all" ]]; then
-            echo_summary "Modifying Heat policy.json file"
-            modify_heat_flavor_policy_rule
+        if [[ "${TACKER_MODE}" == "all" || -v IS_ZUUL_FT ]]; then
             echo_summary "Setup initial tacker network"
             tacker_create_initial_network
             echo_summary "Check and download images for tacker initial"
             tacker_check_and_download_images
-            echo_summary "Registering default VIM"
-            tacker_register_default_vim
+            echo_summary "Setup default VIM resources"
+            tacker_setup_default_vim_resources
 
             if is_service_enabled ceilometer; then
                 echo_summary "Configure maintenance event types"

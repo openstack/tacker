@@ -2,25 +2,7 @@ TACKER_MODE=${TACKER_MODE:-all}
 USE_BARBICAN=True
 KUBERNETES_VIM=${KUBERNETES_VIM:-False}
 
-if [ "${TACKER_MODE}" == "all" ]; then
-    # Nova
-    disable_service n-net
-    VIRT_DRIVER=libvirt
-
-    # TACKER_NEUTRON_AGENTS can be disabled by adding
-    # TACKER_NEUTRON_AGENTS='' in local.conf if neutron agents are running on a separate node
-    TACKER_NEUTRON_AGENTS=${TACKER_NEUTRON_AGENTS:-q-agt,q-dhcp,q-meta,q-l3}
-    for i in $(echo $TACKER_NEUTRON_AGENTS | sed 's/,/ /g')
-    do
-        enable_service $i
-    done
-
-    enable_service q-svc
-    enable_service neutron
-
-    enable_service tacker
-    # enable tacker-conductor will make systemctl enable conductor service
-    enable_service tacker-conductor
+if [ "${TACKER_MODE}" == "all" -o ${IS_ZUUL_FT+yes} ]; then
     MGMT_PHYS_NET=${MGMT_PHYS_NET:-mgmtphysnet0}
     # br-infra is created by devstack multi node job
     # https://opendev.org/zuul/zuul-jobs/src/branch/master/roles/multi-node-bridge
@@ -40,6 +22,27 @@ if [ "${TACKER_MODE}" == "all" ]; then
     SUBNET1=${SUBNET1:-subnet1}
     FIXED_RANGE1=${FIXED_RANGE1:-10.10.1.0/24}
     NETWORK_GATEWAY1=${NETWORK_GATEWAY1:-10.10.1.1}
+fi
+
+if [ "${TACKER_MODE}" == "all" ]; then
+    # Nova
+    disable_service n-net
+    VIRT_DRIVER=libvirt
+
+    # TACKER_NEUTRON_AGENTS can be disabled by adding
+    # TACKER_NEUTRON_AGENTS='' in local.conf if neutron agents are running on a separate node
+    TACKER_NEUTRON_AGENTS=${TACKER_NEUTRON_AGENTS:-q-agt,q-dhcp,q-meta,q-l3}
+    for i in $(echo $TACKER_NEUTRON_AGENTS | sed 's/,/ /g')
+    do
+        enable_service $i
+    done
+
+    enable_service q-svc
+    enable_service neutron
+
+    enable_service tacker
+    # enable tacker-conductor will make systemctl enable conductor service
+    enable_service tacker-conductor
 
     if [ "${KUBERNETES_VIM}" == "True" ]; then
         KURYR_NEUTRON_DEFAULT_PROJECT="default"
@@ -59,8 +62,9 @@ if [ "${TACKER_MODE}" == "all" ]; then
         done
     fi
 elif [ "${TACKER_MODE}" == "standalone" ]; then
-    # set the enabled services here. This will need tacker devstack plugin put as the last one in local.conf
-    ENABLED_SERVICES=key,horizon,tacker,tacker-conductor,mysql,dstat,barbican,mistral,mistral-api,mistral-engine,mistral-executor,mistral-event-engine
+    enable_service dstat
+    enable_service tacker
+    enable_service tacker-conductor
 else
     die $LINENO "invalid value: $TACKER_MODE for TACKER_MODE"
 fi

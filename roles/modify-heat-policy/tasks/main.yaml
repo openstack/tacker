@@ -1,0 +1,9 @@
+- name: Modify heat flavor policy rule
+  become: true
+  lineinfile:
+    path: /etc/heat/policy.yaml
+    regexp: '^"resource_types:OS::Nova::Flavor":'
+    line: '"resource_types:OS::Nova::Flavor": "role:admin"'
+    mode: 0644
+    create: true
+  when: devstack_plugins['heat']|default(false)
