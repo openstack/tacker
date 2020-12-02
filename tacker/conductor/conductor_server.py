@@ -1388,7 +1388,7 @@ class Conductor(manager.Manager):
                 error_details = objects.ProblemDetails(
                     context=context,
                     status=500,
-                    details=error
+                    detail=error
                 )
                 vnf_notif.error = error_details
             vnf_notif.save()
