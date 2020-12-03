@@ -31,8 +31,8 @@ class TestVnfResource(SqlTestCase):
                                'vim_type': 'openstack'}
         result = objects.VimConnectionInfo.obj_from_primitive(
             vim_connection_dict, self.context)
-        self.assertEqual(True, isinstance(result, objects.VimConnectionInfo))
+        self.assertIsInstance(result, objects.VimConnectionInfo)
         self.assertEqual('openstack', result.vim_type)
         vim_connection_dict = result.to_dict()
-        self.assertEqual(True, isinstance(vim_connection_dict, dict))
+        self.assertIsInstance(vim_connection_dict, dict)
         self.assertEqual('openstack', vim_connection_dict['vim_type'])

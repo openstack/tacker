@@ -187,8 +187,8 @@ class VnfPackageRequest:
                                         artifact_paths)
             else:
                 raise UndefinedExternalSettingException(
-                    "Vnf package the external setting to 'pipeline=<{}>' " +
-                    "not supported.".format(pipeline_type))
+                    "Vnf package the external setting to 'pipeline=<{}>'"
+                    " not supported.".format(pipeline_type))
 
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer,

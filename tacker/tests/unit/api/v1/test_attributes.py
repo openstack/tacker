@@ -60,10 +60,10 @@ class TestAttributes(base.BaseTestCase):
         self.assertIsNone(msg)
 
         msg = attributes._validate_values(7, [4, 6])
-        self.assertEqual("'7' is not in [4, 6]", msg)
+        self.assertNotIn(7, [4, 6], msg)
 
         msg = attributes._validate_values(7, (4, 6))
-        self.assertEqual("'7' is not in (4, 6)", msg)
+        self.assertNotIn(7, (4, 6), msg)
 
     def test_validate_not_empty_string(self):
         msg = attributes._validate_not_empty_string('    ', None)

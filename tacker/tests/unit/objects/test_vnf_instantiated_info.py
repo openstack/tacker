@@ -202,10 +202,10 @@ class TestInstantiatedVnfInfo(SqlTestCase):
         resource_handle = copy.deepcopy(fakes.resource_handle_info)
         result = objects.ResourceHandle.obj_from_primitive(
             resource_handle, self.context)
-        self.assertTrue(isinstance(result, objects.ResourceHandle))
+        self.assertIsInstance(result, objects.ResourceHandle)
         self.assertEqual('TEST', result.vim_level_resource_type)
         resource_handle_dict = result.to_dict()
-        self.assertTrue(isinstance(resource_handle_dict, dict))
+        self.assertIsInstance(resource_handle_dict, dict)
         self.assertEqual(
             'TEST', resource_handle_dict['vim_level_resource_type'])
 
@@ -214,65 +214,65 @@ class TestInstantiatedVnfInfo(SqlTestCase):
             fakes.virtual_storage_resource_info)
         result = objects.VirtualStorageResourceInfo.obj_from_primitive(
             virtual_storage_resource_info, self.context)
-        self.assertTrue(isinstance(result,
-            objects.VirtualStorageResourceInfo))
+        self.assertIsInstance(result,
+            objects.VirtualStorageResourceInfo)
         virt_strg_res_info_dict = result.to_dict()
-        self.assertTrue(isinstance(virt_strg_res_info_dict, dict))
+        self.assertIsInstance(virt_strg_res_info_dict, dict)
 
     def test_vnfc_cp_info_obj_from_primitive_and_obj_to_dict(self):
         vnfc_cp_info = copy.deepcopy(fakes.vnfc_cp_info)
         result = objects.VnfcCpInfo.obj_from_primitive(
             vnfc_cp_info, self.context)
-        self.assertTrue(isinstance(result, objects.VnfcCpInfo))
+        self.assertIsInstance(result, objects.VnfcCpInfo)
         vnfc_cp_info = result.to_dict()
-        self.assertTrue(isinstance(vnfc_cp_info, dict))
+        self.assertIsInstance(vnfc_cp_info, dict)
 
     def test_vnfc_resource_info_obj_from_primitive_and_obj_to_dict(self):
         vnfc_resource_info = copy.deepcopy(fakes.vnfc_resource_info)
         result = objects.VnfcResourceInfo.obj_from_primitive(
             vnfc_resource_info, self.context)
-        self.assertTrue(isinstance(result, objects.VnfcResourceInfo))
+        self.assertIsInstance(result, objects.VnfcResourceInfo)
         self.assertEqual({'key': 'value'}, result.metadata)
         vnfc_resource_info = result.to_dict()
-        self.assertTrue(isinstance(vnfc_resource_info, dict))
+        self.assertIsInstance(vnfc_resource_info, dict)
 
     def test_ext_mng_virt_link_obj_from_primitive_and_obj_to_dict(self):
         ext_managed_virtual_link_info = copy.deepcopy(
             fakes.ext_managed_virtual_link_info)
         result = objects.ExtManagedVirtualLinkInfo.obj_from_primitive(
             ext_managed_virtual_link_info, self.context)
-        self.assertTrue(isinstance(result, objects.ExtManagedVirtualLinkInfo))
+        self.assertIsInstance(result, objects.ExtManagedVirtualLinkInfo)
         ext_mng_virt_link = result.to_dict()
-        self.assertTrue(isinstance(ext_mng_virt_link, dict))
+        self.assertIsInstance(ext_mng_virt_link, dict)
 
     def test_ext_link_port_info_obj_from_primitive_and_obj_to_dict(self):
         ext_link_port_info_data = copy.deepcopy(fakes.ext_link_port_info)
         result = objects.ExtLinkPortInfo.obj_from_primitive(
             ext_link_port_info_data, self.context)
-        self.assertTrue(isinstance(result, objects.ExtLinkPortInfo))
+        self.assertIsInstance(result, objects.ExtLinkPortInfo)
         ext_link_port_info = result.to_dict()
-        self.assertTrue(isinstance(ext_link_port_info, dict))
+        self.assertIsInstance(ext_link_port_info, dict)
 
     def test_ext_virt_link_info_obj_from_primitive_and_obj_to_dict(self):
         ext_virtual_link_info = copy.deepcopy(fakes.ext_virtual_link_info)
         result = objects.ExtVirtualLinkInfo.obj_from_primitive(
             ext_virtual_link_info, self.context)
-        self.assertTrue(isinstance(result, objects.ExtVirtualLinkInfo))
+        self.assertIsInstance(result, objects.ExtVirtualLinkInfo)
         ext_virt_link_info = result.to_dict()
-        self.assertTrue(isinstance(ext_virt_link_info, dict))
+        self.assertIsInstance(ext_virt_link_info, dict)
 
     def test_vnf_ext_cp_info_obj_from_primitive_and_obj_to_dict(self):
         vnf_ext_cp_info = copy.deepcopy(fakes.vnf_ext_cp_info)
         result = objects.VnfExtCpInfo.obj_from_primitive(
             vnf_ext_cp_info, self.context)
-        self.assertTrue(isinstance(result, objects.VnfExtCpInfo))
+        self.assertIsInstance(result, objects.VnfExtCpInfo)
         ext_virt_link_info = result.to_dict()
-        self.assertTrue(isinstance(ext_virt_link_info, dict))
+        self.assertIsInstance(ext_virt_link_info, dict)
 
     def test_instantiated_info_obj_from_primitive_and_obj_to_dict(self):
         instantiated_vnf_info = copy.deepcopy(fakes.instantiated_vnf_info)
         result = objects.InstantiatedVnfInfo.obj_from_primitive(
             instantiated_vnf_info, self.context)
-        self.assertTrue(isinstance(result, objects.InstantiatedVnfInfo))
+        self.assertIsInstance(result, objects.InstantiatedVnfInfo)
         instantiated_vnf_info_dict = result.to_dict()
-        self.assertTrue(isinstance(instantiated_vnf_info_dict, dict))
+        self.assertIsInstance(instantiated_vnf_info_dict, dict)

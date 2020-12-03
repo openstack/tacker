@@ -162,7 +162,7 @@ class VnfTestToscaCreateFlavorCreation(base.BaseTackerTest):
         nova_flavors = self.novaclient().flavors
         flavor = nova_flavors.get(flavor_id)
         self.assertIsNotNone(flavor)
-        self.assertEqual(True, "VDU1_flavor_func_flavor" in flavor.name)
+        self.assertIn('VDU1_flavor_func_flavor', flavor.name)
         # Delete vnf_instance with vnf_id
         try:
             self.client.delete_vnf(vnf_id)
@@ -210,7 +210,7 @@ class VnfTestToscaCreateImageCreation(base.BaseTackerTest):
         glanceclient = self.glanceclient()
         image = glanceclient.images.get(image_id)
         self.assertIsNotNone(image)
-        self.assertEqual(True, "VNFImage_image_func" in image.name)
+        self.assertIn('VNFImage_image_func', image.name)
         # Delete vnf_instance with vnf_id
         try:
             self.client.delete_vnf(vnf_id)

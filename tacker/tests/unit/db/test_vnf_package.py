@@ -80,7 +80,7 @@ class TestVnfPackage(SqlTestCase):
         result = vnf_package._vnf_package_list(
             self.context, columns_to_join=[
                 'vnf_deployment_flavours', 'vnf_artifacts'])
-        self.assertTrue(isinstance(result, list))
+        self.assertIsInstance(result, list)
         self.assertTrue(result)
 
     def test_vnf_package_update(self):
