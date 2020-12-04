@@ -129,8 +129,7 @@ class TestUtils(testtools.TestCase):
 
     def test_create_vdu_flavor_dict(self):
         vnfd_dict = self._read_file('vnfd_lcm_user_data.yaml')
-        test_vnfd_dict = {'VNF': {}, 'VDU1':
-                {'ram': 512, 'vcpus': 1, 'disk': 1}, 'CP1': {}}
+        test_vnfd_dict = {'VDU1': {'ram': 512, 'vcpus': 1, 'disk': 1}}
         vdu_flavor_dict = utils.create_vdu_flavor_dict(vnfd_dict)
         self.assertEqual(test_vnfd_dict, vdu_flavor_dict)
 

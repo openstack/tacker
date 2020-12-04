@@ -221,7 +221,7 @@ def create_vdu_flavor_dict(vnfd_dict):
         vdu_flavor_props = val.get(
             'capabilities', {}).get(
                 'virtual_compute', {}).get('properties', {})
-        if vdu_flavor_props is not {}:
+        if vdu_flavor_props:
             flavor_dict = {}
             for key, val in vdu_flavor_props.items():
                 if key == 'virtual_cpu':
@@ -318,7 +318,7 @@ def create_vdu_flavor_capability_name_dict(vnfd_dict):
         vdu_flavor_props = val.get(
             'capabilities', {}).get(
                 'virtual_compute', {}).get('properties', {})
-        if vdu_flavor_props is not {}:
+        if vdu_flavor_props:
             for key, val in vdu_flavor_props.items():
                 if key == 'requested_additional_capabilities':
                     capability_props = val.get('properties', {})
@@ -347,7 +347,7 @@ def create_sw_image_dict(vnfd_dict):
     for vdu_name, val in node_templates.items():
         sw_image_data_props = val.get(
             'properties', {}).get('sw_image_data', {})
-        if sw_image_data_props is not {}:
+        if sw_image_data_props:
             if 'name' in sw_image_data_props.keys():
                 sw_image_data[vdu_name] = sw_image_data_props['name']
 
