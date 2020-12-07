@@ -194,7 +194,7 @@ class TestCSARUtils(testtools.TestCase):
         msg = (('The filename "%(manifest)s" is an invalid name.'
                 'The name must be the same as the main template '
                 'file name.') %
-               {'manifest': manifest_path, 'csar': file_path})
+               {'manifest': manifest_path})
         self.assertEqual(msg, exc.format_message())
 
     @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')

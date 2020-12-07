@@ -53,7 +53,7 @@ class TestTransformer(base.TestCase):
         k8s_obj = fakes.fake_k8s_dict()
         kubernetes_objects.append(k8s_obj)
         new_k8s_objs = self.transfromer.deploy_k8s(kubernetes_objects)
-        self.assertEqual(type(new_k8s_objs), list)
+        self.assertIsInstance(new_k8s_objs, list)
         self.assertIsNotNone(new_k8s_objs)
         self.assertEqual(new_k8s_objs[0]['status'], 'Creating')
 

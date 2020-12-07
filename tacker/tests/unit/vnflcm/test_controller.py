@@ -342,7 +342,7 @@ class TestController(base.TestCase):
         elif expected_type == 'object':
             expected_message = ("Invalid input for field/attribute "
                                 "{attribute}. " "Value: {value}. {value} is "
-                                "not of type 'object'".
+                                "not of type {expected_type}".
                 format(value=value, attribute=attribute,
                        expected_type=expected_type))
 

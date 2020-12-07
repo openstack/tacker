@@ -311,4 +311,4 @@ class PaginationEmulatedHelperTestcase(base.BaseTestCase):
         result = page_previous.get_links(items)
 
         self.assertEqual('previous', result[0]['rel'])
-        self.assertEqual(True, result[0]['href'] in expect_href)
+        self.assertIn(result[0]['href'], expect_href)

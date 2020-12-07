@@ -35,7 +35,7 @@ class TestTerminateVnfRequest(SqlTestCase):
         terminate_vnf_request = self._get_terminate_vnf_request()
         result = objects.TerminateVnfRequest.obj_from_primitive(
             terminate_vnf_request, self.context)
-        self.assertTrue(isinstance(result, objects.TerminateVnfRequest))
+        self.assertIsInstance(result, objects.TerminateVnfRequest)
         self.assertEqual('GRACEFUL', result.termination_type)
         self.assertEqual(terminate_vnf_request['graceful_termination_timeout'],
             result.graceful_termination_timeout)
@@ -46,6 +46,6 @@ class TestTerminateVnfRequest(SqlTestCase):
 
         result = objects.TerminateVnfRequest.obj_from_primitive(
             terminate_vnf_request, self.context)
-        self.assertTrue(isinstance(result, objects.TerminateVnfRequest))
+        self.assertIsInstance(result, objects.TerminateVnfRequest)
         self.assertEqual('GRACEFUL', result.termination_type)
         self.assertEqual(0, result.graceful_termination_timeout)
