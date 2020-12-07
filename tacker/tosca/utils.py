@@ -700,12 +700,15 @@ def convert_inst_req_info(heat_dict, inst_req_info, tosca):
     aspect_id_dict = {}
     # { vduId: initialDelta }
     vdu_delta_dict = {}
+    # { aspectId: maxScaleLevel }
+    aspect_max_level_dict = {}
 
     tosca_policies = tosca.topology_template.policies
     default_inst_level_id = _extract_policy_info(
         tosca_policies, inst_level_dict,
         aspect_delta_dict, aspect_id_dict,
-        aspect_vdu_dict, vdu_delta_dict)
+        aspect_vdu_dict, vdu_delta_dict,
+        aspect_max_level_dict)
 
     if inst_level_id is not None:
         # Case which instLevelId is defined.
@@ -848,7 +851,8 @@ def _convert_ext_mng_vl(heat_dict, vl_name, vl_id):
 
 def _extract_policy_info(tosca_policies, inst_level_dict,
                          aspect_delta_dict, aspect_id_dict,
-                         aspect_vdu_dict, vdu_delta_dict):
+                         aspect_vdu_dict, vdu_delta_dict,
+                         aspect_max_level_dict):
     default_inst_level_id = None
     if tosca_policies:
         for p in tosca_policies:
@@ -885,7 +889,8 @@ def _extract_policy_info(tosca_policies, inst_level_dict,
                     delta_names = aspect_val['step_deltas']
                     delta_name = delta_names[0]
                     aspect_id_dict[aspect_id] = delta_name
-
+                    aspect_max_level_dict[aspect_id] = \
+                        aspect_val['max_scale_level']
             elif p.type == ETSI_INITIAL_DELTA:
                 vdus = p.targets
                 initial_delta = \

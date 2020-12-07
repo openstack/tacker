@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add Container based VNF scale operation support with ETSI NFV-SOL003
+    v2.6.1 VNF Lifecycle Management. Users can scale the number of pod replicas
+    managed by controller resources such as Kubernetes Deployment, StatefulSet,
+    and ReplicaSet.

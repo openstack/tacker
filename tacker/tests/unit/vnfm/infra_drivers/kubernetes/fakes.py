@@ -15,6 +15,8 @@
 
 
 from kubernetes import client
+from tacker.db.db_sqlalchemy import models
+from tacker.tests import uuidsentinel
 
 CREATE_K8S_FALSE_VALUE = None
 
@@ -982,3 +984,44 @@ def fake_pod_list():
             )
         )]
     )
+
+
+def get_scale_policy(type, aspect_id='vdu1', delta_num=1):
+    policy = dict()
+    policy['vnf_instance_id'] = uuidsentinel.vnf_instance_id
+    policy['action'] = type
+    policy['name'] = aspect_id
+    policy['delta_num'] = delta_num
+    policy['vdu_defs'] = {
+        'VDU1': {
+            'type': 'tosca.nodes.nfv.Vdu.Compute',
+            'properties': {
+                'name': 'fake_name',
+                'description': 'test description',
+                'vdu_profile': {
+                    'min_number_of_instances': 1,
+                    'max_number_of_instances': 3}}}}
+
+    return policy
+
+
+def get_vnf_resource_list(kind, name='fake_name'):
+    vnf_resource = models.VnfResource()
+    vnf_resource.vnf_instance_id = uuidsentinel.vnf_instance_id
+    vnf_resource.resource_name = \
+        _("fake_namespace,{name}").format(name=name)
+    vnf_resource.resource_type = \
+        _("v1,{kind}").format(kind=kind)
+    return [vnf_resource]
+
+
+def get_fake_pod_info(kind, name='fake_name', pod_status='Running'):
+    if kind == 'Deployment':
+        pod_name = _('{name}-1234567890-abcde').format(name=name)
+    elif kind == 'ReplicaSet':
+        pod_name = _('{name}-12345').format(name=name)
+    elif kind == 'StatefulSet':
+        pod_name = _('{name}-1').format(name=name)
+    return client.V1Pod(
+        metadata=client.V1ObjectMeta(name=pod_name),
+        status=client.V1PodStatus(phase=pod_status))

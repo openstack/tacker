@@ -184,8 +184,9 @@ def return_vnf_instance(
         }
         instantiated_vnf_info = get_instantiated_vnf_info
 
-        s_status = {"aspect_id": "SP1", "scale_level": 1}
-        scale_status = objects.ScaleInfo(**s_status)
+        if scale_status == "scale_status":
+            s_status = {"aspect_id": "SP1", "scale_level": 1}
+            scale_status = objects.ScaleInfo(**s_status)
 
         instantiated_vnf_info.update(
             {"ext_cp_info": [],
@@ -792,10 +793,10 @@ def _get_vnf(**updates):
     return vnf_data
 
 
-def scale_request(type, number_of_steps, is_reverse):
+def scale_request(type, aspect_id, number_of_steps, is_reverse):
     scale_request_data = {
         'type': type,
-        'aspect_id': "SP1",
+        'aspect_id': aspect_id,
         'number_of_steps': number_of_steps,
         'scale_level': 1,
         'additional_params': {"is_reverse": is_reverse},
@@ -844,12 +845,41 @@ def vnf_scale():
         vim_id=uuidsentinel.vim_id)
 
 
-def vnflcm_rollback(error_point=7):
+def vnflcm_scale_in_cnf():
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
     return objects.VnfLcmOpOcc(
-        state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                             tzinfo=iso8601.UTC),
-        start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC),
+        state_entered_time=dt,
+        start_time=dt,
+        vnf_instance_id=uuidsentinel.vnf_instance_id,
+        operation='SCALE',
+        operation_state='STARTING',
+        is_automatic_invocation=False,
+        operation_params='{"type": "SCALE_IN", "aspect_id": "vdu1_aspect"}',
+        error_point=1,
+        id=constants.UUID,
+        created_at=dt)
+
+
+def vnflcm_scale_out_cnf():
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    return objects.VnfLcmOpOcc(
+        state_entered_time=dt,
+        start_time=dt,
+        vnf_instance_id=uuidsentinel.vnf_instance_id,
+        operation='SCALE',
+        operation_state='STARTING',
+        is_automatic_invocation=False,
+        operation_params='{"type": "SCALE_OUT", "aspect_id": "vdu1_aspect"}',
+        error_point=1,
+        id=constants.UUID,
+        created_at=dt)
+
+
+def vnflcm_rollback(error_point=7):
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    return objects.VnfLcmOpOcc(
+        state_entered_time=dt,
+        start_time=dt,
         vnf_instance_id=uuidsentinel.vnf_instance_id,
         operation='SCALE',
         operation_state='FAILED_TEMP',
@@ -857,16 +887,14 @@ def vnflcm_rollback(error_point=7):
         operation_params='{"type": "SCALE_OUT", "aspect_id": "SP1"}',
         error_point=error_point,
         id=constants.UUID,
-        created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC))
+        created_at=dt)
 
 
 def vnflcm_rollback_insta(error_point=7):
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
     return objects.VnfLcmOpOcc(
-        state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                             tzinfo=iso8601.UTC),
-        start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC),
+        state_entered_time=dt,
+        start_time=dt,
         vnf_instance_id=uuidsentinel.vnf_instance_id,
         operation='INSTANTIATE',
         operation_state='FAILED_TEMP',
@@ -874,16 +902,14 @@ def vnflcm_rollback_insta(error_point=7):
         operation_params='{}',
         error_point=error_point,
         id=constants.UUID,
-        created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC))
+        created_at=dt)
 
 
 def vnflcm_rollback_active():
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
     return objects.VnfLcmOpOcc(
-        state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                             tzinfo=iso8601.UTC),
-        start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC),
+        state_entered_time=dt,
+        start_time=dt,
         vnf_instance_id=uuidsentinel.vnf_instance_id,
         operation='SCALE',
         operation_state='ACTIVE',
@@ -891,16 +917,14 @@ def vnflcm_rollback_active():
         operation_params='{"type": "SCALE_OUT", "aspect_id": "SP1"}',
         error_point=7,
         id=constants.UUID,
-        created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC))
+        created_at=dt)
 
 
 def vnflcm_rollback_ope():
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
     return objects.VnfLcmOpOcc(
-        state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                             tzinfo=iso8601.UTC),
-        start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC),
+        state_entered_time=dt,
+        start_time=dt,
         vnf_instance_id=uuidsentinel.vnf_instance_id,
         operation='HEAL',
         operation_state='FAILED_TEMP',
@@ -908,16 +932,14 @@ def vnflcm_rollback_ope():
         operation_params='{}',
         error_point=7,
         id=constants.UUID,
-        created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC))
+        created_at=dt)
 
 
 def vnflcm_rollback_scale_in():
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
     return objects.VnfLcmOpOcc(
-        state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                             tzinfo=iso8601.UTC),
-        start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC),
+        state_entered_time=dt,
+        start_time=dt,
         vnf_instance_id=uuidsentinel.vnf_instance_id,
         operation='SCALE',
         operation_state='FAILED_TEMP',
@@ -925,8 +947,7 @@ def vnflcm_rollback_scale_in():
         operation_params='{"type": "SCALE_IN", "aspect_id": "SP1"}',
         error_point=7,
         id=constants.UUID,
-        created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC))
+        created_at=dt)
 
 
 def vnf_rollback():
@@ -1088,6 +1109,110 @@ def vnf_dict():
         }
     }
     return vnf_dict
+
+
+def vnf_dict_cnf():
+    vnf_dict = {
+        'attributes': {},
+        'status': 'ACTIVE',
+        'vnfd_id': 'e889e4fe-52fe-437d-b1e1-a690dc95e3f8',
+        'tenant_id': '13d2ca8de70d48b2a2e0dbac2c327c0b',
+        'vim_id': '3f41faa7-5630-47d2-9d4a-1216953c8887',
+        'instance_id': 'd1121d3c-368b-4ac2-b39d-835aa3e4ccd8',
+        'placement_attr': {'vim_name': 'kubernetes-vim'},
+        'id': '436aaa6e-2db6-4d6e-a3fc-e728b2f0ac56',
+        'name': 'cnf_create_1',
+        'vnfd': {
+            'attributes': {
+                'vnfd_simple': 'dummy'
+            }
+        }
+    }
+    return vnf_dict
+
+
+def vnfd_dict_cnf():
+    tacker_dir = os.getcwd()
+    def_dir = tacker_dir + "/samples/vnf_packages/Definitions/"
+    vnfd_dict = {
+        "tosca_definitions_version": "tosca_simple_yaml_1_2",
+        "description": "Sample VNF flavour for Sample VNF",
+        "imports": [
+            def_dir + "etsi_nfv_sol001_common_types.yaml",
+            def_dir + "etsi_nfv_sol001_vnfd_types.yaml",
+            def_dir + "helloworld3_types.yaml"],
+        "topology_template": {
+            "node_templates": {
+                "VNF": {
+                    "type": "company.provider.VNF",
+                    "properties": {
+                        "flavour_description": "A simple flavour"}},
+                "VDU1": {
+                    "type": "tosca.nodes.nfv.Vdu.Compute",
+                    "properties": {
+                        "name": "vdu1",
+                        "description": "vdu1 compute node",
+                        "vdu_profile": {
+                            "min_number_of_instances": 1,
+                            "max_number_of_instances": 3}}}},
+            "policies": [
+                {
+                    "scaling_aspects": {
+                        "type": "tosca.policies.nfv.ScalingAspects",
+                        "properties": {
+                            "aspects": {
+                                "vdu1_aspect": {
+                                    "name": "vdu1_aspect",
+                                    "description": "vdu1 scaling aspect",
+                                    "max_scale_level": 2,
+                                    "step_deltas": ["delta_1"]}}}}},
+                {
+                    "vdu1_initial_delta": {
+                        "type": "tosca.policies.nfv.VduInitialDelta",
+                        "properties": {
+                            "initial_delta": {
+                                "number_of_instances": 0}},
+                        "targets": ["VDU1"]}},
+                {
+                    "vdu1_scaling_aspect_deltas": {
+                        "type": "tosca.policies.nfv.VduScalingAspectDeltas",
+                        "properties": {
+                            "aspect": "vdu1_aspect",
+                            "deltas": {
+                                "delta_1": {
+                                    "number_of_instances": 1}}},
+                        "targets": ["VDU1"]}},
+                {
+                    "instantiation_levels": {
+                        "type": "tosca.policies.nfv.InstantiationLevels",
+                        "properties": {
+                            "levels": {
+                                "instantiation_level_1": {
+                                    "description": "Smallest size",
+                                    "scale_info": {
+                                        "vdu1_aspect": {
+                                            "scale_level": 0}}},
+                                "instantiation_level_2": {
+                                    "description": "Largest size",
+                                    "scale_info": {
+                                        "vdu1_aspect": {
+                                            "scale_level": 2}}}
+                            },
+                            "default_level": "instantiation_level_1"}}},
+                {
+                    "vdu1_instantiation_levels": {
+                        "type": "tosca.policies.nfv.VduInstantiationLevels",
+                        "properties": {
+                            "levels": {
+                                "instantiation_level_1": {
+                                    "number_of_instances": 0},
+                                "instantiation_level_2": {
+                                    "number_of_instances": 2}}},
+                        "targets": ["VDU1"]}}
+            ]
+        }
+    }
+    return vnfd_dict
 
 
 class InjectContext(wsgi.Middleware):
@@ -1294,13 +1419,12 @@ def fake_vnf_lcm_op_occs():
     }
     changed_info_obj = objects.VnfInfoModifications(**changed_info)
 
+    dt = datetime.datetime(1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
     vnf_lcm_op_occs = {
         'id': constants.UUID,
         'operation_state': 'COMPLETED',
-        'state_entered_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                tzinfo=iso8601.UTC),
-        'start_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                tzinfo=iso8601.UTC),
+        'state_entered_time': dt,
+        'start_time': dt,
         'vnf_instance_id': constants.UUID,
         'operation': 'MODIFY_INFO',
         'is_automatic_invocation': False,

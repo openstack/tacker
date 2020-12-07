@@ -411,7 +411,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         test_utils.copy_csar_files(fake_csar, "vnflcm4")
         self._mock_vnf_manager(fail_method_name='create_wait')
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {}}
+        scale_status = objects.ScaleInfo(aspect_id='SP1', scale_level=0)
+        vnf_dict = {"vnfd": {"attributes": {}},
+                    "attributes": {"scaling_group_names": {"SP1": "G1"}},
+                    "scale_status": [scale_status]}
         error = self.assertRaises(exceptions.VnfInstantiationWaitFailed,
             driver.instantiate_vnf, self.context, vnf_instance_obj, vnf_dict,
             instantiate_vnf_req_obj)
@@ -750,7 +753,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             uuidsentinel.instance_id
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"attributes": {}}
+        scale_status = objects.ScaleInfo(aspect_id='SP1', scale_level=0)
+        vnf_dict = {"attributes": {"scaling_group_names": {"SP1": "G1"}},
+                    "scale_status": [scale_status]}
         mock_make_final_vnf_dict.return_value = {}
         driver.heal_vnf(self.context, vnf_instance, vnf_dict, heal_vnf_req)
         self.assertEqual(1, mock_save.call_count)
@@ -1062,9 +1067,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             '{ \"SP1\": { \"vdu\": [\"VDU1\"], \"num\": ' + \
             '1, \"maxLevel\": 3, \"initialNum\": 0, ' + \
             '\"initialLevel\": 0, \"default\": 0 }}}'
-        scale_vnf_request = fakes.scale_request("SCALE_IN", 1, "True")
+        scale_vnf_request = fakes.scale_request("SCALE_IN", "SP1", 1, "True")
         vim_connection_info = vim_connection.VimConnectionInfo(
-            vim_type="fake_type")
+            vim_type="openstack")
         scale_name_list = ["fake"]
         grp_id = "fake_id"
         driver = vnflcm_driver.VnfLcmDriver()
@@ -1089,9 +1094,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             '{ \"SP1\": { \"vdu\": [\"VDU1\"], \"num\": ' + \
             '1, \"maxLevel\": 3, \"initialNum\": 0, ' + \
             '\"initialLevel\": 0, \"default\": 0 }}}'
-        scale_vnf_request = fakes.scale_request("SCALE_IN", 1, "False")
+        scale_vnf_request = fakes.scale_request("SCALE_IN", "SP1", 1, "False")
         vim_connection_info = vim_connection.VimConnectionInfo(
-            vim_type="fake_type")
+            vim_type="openstack")
         scale_name_list = ["fake"]
         grp_id = "fake_id"
         with open(vnf_info["attributes"]["heat_template"], "r") as f:
@@ -1119,9 +1124,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             '{ \"SP1\": { \"vdu\": [\"VDU1\"], \"num\": ' + \
             '1, \"maxLevel\": 3, \"initialNum\": 0, ' + \
             '\"initialLevel\": 0, \"default\": 0 }}}'
-        scale_vnf_request = fakes.scale_request("SCALE_OUT", 1, "False")
+        scale_vnf_request = fakes.scale_request("SCALE_OUT", "SP1", 1, "False")
         vim_connection_info = vim_connection.VimConnectionInfo(
-            vim_type="fake_type")
+            vim_type="openstack")
         scale_name_list = ["fake"]
         grp_id = "fake_id"
         with open(vnf_info["attributes"]["heat_template"], "r") as f:
@@ -1149,9 +1154,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             '{ \"SP1\": { \"vdu\": [\"VDU1\"], \"num\": ' + \
             '1, \"maxLevel\": 3, \"initialNum\": 0, ' + \
             '\"initialLevel\": 0, \"default\": 1 }}}'
-        scale_vnf_request = fakes.scale_request("SCALE_OUT", 1, "False")
+        scale_vnf_request = fakes.scale_request("SCALE_OUT", "SP1", 1, "False")
         vim_connection_info = vim_connection.VimConnectionInfo(
-            vim_type="fake_type")
+            vim_type="openstack")
         scale_name_list = ["fake"]
         grp_id = "fake_id"
         with open(vnf_info["attributes"]["heat_template"], "r") as f:
@@ -1160,6 +1165,108 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         driver = vnflcm_driver.VnfLcmDriver()
         driver.scale(self.context, vnf_info, scale_vnf_request,
         vim_connection_info, scale_name_list, grp_id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(yaml, "safe_load")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(driver_manager.DriverManager, "invoke")
+    def test_scale_in_cnf(self, mock_invoke, mock_vnf_instance_get_by_id,
+                    mock_lcm_save, mock_vim, mock_vnf_package_vnfd,
+                    mock_vnfd_dict, mock_yaml_safe_load, mock_init_hash,
+                    mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        vnf_info = fakes.vnf_dict_cnf()
+        vnf_info['vnf_lcm_op_occ'] = fakes.vnflcm_scale_in_cnf()
+        vnf_info['scale_level'] = 1
+        vnf_info['after_scale_level'] = 0
+        vnf_info['notification'] = {}
+        scale_vnf_request = fakes.scale_request(
+            "SCALE_IN", "vdu1_aspect", 1, "False")
+        vim_connection_info = vim_connection.VimConnectionInfo(
+            vim_type="kubernetes")
+        update = {'vim_connection_info': [vim_connection_info]}
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status=scale_status,
+            **update)
+        mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
+        mock_yaml_safe_load.return_value = fakes.vnfd_dict_cnf()
+        mock_invoke.side_effect = [
+            # Kubernetes.get_scale_in_ids called in _scale_vnf_pre()
+            [[], [], None, None],
+            # Kubernetes.scale called in scale()
+            None,
+            # Kubernetes.scale_wait called in scale()
+            None,
+            # scale_resource_update called in _scale_resource_update()
+            None]
+        mock_vnf_package_vnfd.return_value = fakes.return_vnf_package_vnfd()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'kubernetes',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost:8443',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+        self.vim_client.get_vim.return_value = vim_obj
+        driver.scale_vnf(self.context, vnf_info, vnf_instance,
+            scale_vnf_request)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(yaml, "safe_load")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(driver_manager.DriverManager, "invoke")
+    def test_scale_out_cnf(self, mock_invoke, mock_vnf_instance_get_by_id,
+                    mock_lcm_save, mock_vnf_package_vnfd, mock_vnfd_dict,
+                    mock_yaml_safe_load, mock_get_service_plugins):
+        vnf_info = fakes.vnf_dict_cnf()
+        vnf_info['vnf_lcm_op_occ'] = fakes.vnflcm_scale_out_cnf()
+        vnf_info['scale_level'] = 0
+        vnf_info['after_scale_level'] = 1
+        vnf_info['notification'] = {}
+        scale_vnf_request = fakes.scale_request(
+            "SCALE_OUT", "vdu1_aspect", 1, "False")
+        vim_connection_info = vim_connection.VimConnectionInfo(
+            vim_type="kubernetes")
+        update = {'vim_connection_info': [vim_connection_info]}
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status=scale_status,
+            **update)
+        mock_vnf_instance_get_by_id.return_value = vnf_instance
+        mock_vnf_package_vnfd.return_value = fakes.return_vnf_package_vnfd()
+        mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
+        mock_yaml_safe_load.return_value = fakes.vnfd_dict_cnf()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'kubernetes',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost:8443',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+        self.vim_client.get_vim.return_value = vim_obj
+        driver.scale_vnf(self.context, vnf_info, vnf_instance,
+            scale_vnf_request)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -2068,3 +2175,69 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual(1, mock_scale.call_count)
         self.assertEqual(1, mock_wait.call_count)
         self.assertEqual(2, mock_scale_resource.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(yaml, "safe_load")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(VNFLcmRPCAPI, "send_notification")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
+    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
+    def test_rollback_vnf_scale_cnf(
+            self,
+            mock_update,
+            mock_up,
+            mock_insta_save,
+            mock_notification,
+            mock_lcm_save,
+            mock_yaml_safe_load,
+            mock_vnfd_dict,
+            mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        vim_connection_info = vim_connection.VimConnectionInfo(
+            vim_type="kubernetes")
+        update = {'vim_connection_info': [vim_connection_info]}
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, **update)
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        vnf_instance.instantiated_vnf_info.scale_status = []
+        vnf_instance.instantiated_vnf_info.scale_status.append(
+            objects.ScaleInfo(aspect_id='vdu1_aspect', scale_level=0))
+        vnf_lcm_op_occs = fakes.vnflcm_rollback()
+        vnf_lcm_op_occs.operation_params = \
+            '{"type": "SCALE_OUT", "aspect_id": "vdu1_aspect"}'
+        vnf_info = fakes.vnf_dict_cnf()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        vnf_info['scale_level'] = 1
+        mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        mock_yaml_safe_load.return_value = fakes.vnfd_dict_cnf()
+        vim_obj = {'vim_id': uuidsentinel.vim_id,
+                   'vim_name': 'fake_vim',
+                   'vim_type': 'kubernetes',
+                   'vim_auth': {
+                       'auth_url': 'http://localhost:8443',
+                       'password': 'test_pw',
+                       'username': 'test_user',
+                       'project_name': 'test_project'}}
+        self.vim_client.get_vim.return_value = vim_obj
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+
+        driver.rollback_vnf(
+            self.context,
+            vnf_info,
+            vnf_instance,
+            operation_params)
+        self.assertEqual(1, mock_lcm_save.call_count)

@@ -26,6 +26,7 @@ from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from sqlalchemy import exc as sqlexc
+from toscaparser import tosca_template
 
 import ast
 import functools
@@ -53,6 +54,8 @@ from tacker.objects import fields
 from tacker.objects import vnf_lcm_subscriptions as subscription_obj
 from tacker.plugins.common import constants
 from tacker.policies import vnf_lcm as vnf_lcm_policies
+from tacker.tosca import utils as toscautils
+from tacker.vnflcm import utils as vnflcm_utils
 import tacker.vnfm.nfvo_client as nfvo_client
 from tacker.vnfm import vim_client
 from tacker import wsgi
@@ -977,7 +980,24 @@ class VnfLcmController(wsgi.Controller):
             return self._make_problem_detail(
                 str(e), 500, title='Internal Server Error')
 
-    def _scale(self, context, vnf_info, vnf_instance, request_body):
+    def _get_scale_max_level_from_vnfd(self, context, vnf_instance, aspect_id):
+        vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
+            vnf_instance.vnfd_id,
+            vnf_instance.instantiated_vnf_info.flavour_id)
+        tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
+                                             yaml_dict_tpl=vnfd_dict)
+        tosca_policies = tosca.topology_template.policies
+
+        aspect_max_level_dict = {}
+        toscautils._extract_policy_info(
+            tosca_policies, {}, {}, {}, {}, {}, aspect_max_level_dict)
+
+        return aspect_max_level_dict.get(aspect_id)
+
+    @check_vnf_state(action="scale",
+        instantiation_state=[fields.VnfInstanceState.INSTANTIATED],
+        task_state=[None])
+    def _scale(self, context, vnf_instance, vnf_info, request_body):
         req_body = utils.convert_camelcase_to_snakecase(request_body)
         scale_vnf_request = objects.ScaleVnfRequest.obj_from_primitive(
             req_body, context=context)
@@ -1005,18 +1025,34 @@ class VnfLcmController(wsgi.Controller):
         if not scale_vnf_request.additional_params.get('is_auto'):
             scale_vnf_request.additional_params['is_auto'] = "False"
 
+        vim_type = vnf_instance.vim_connection_info[0].vim_type
         if scale_vnf_request.type == 'SCALE_IN':
             if current_level == 0 or\
                current_level < scale_vnf_request.number_of_steps:
                 return self._make_problem_detail(
                     'can not scale_in', 400, title='can not scale_in')
+            if vim_type == "kubernetes" and\
+               scale_vnf_request.additional_params['is_reverse'] == "True":
+                return self._make_problem_detail(
+                    'is_reverse option is not supported when Kubernetes '
+                    'scale operation',
+                    400,
+                    title='is_reverse option is not supported when Kubernetes '
+                    'scale operation')
             scale_level = current_level - scale_vnf_request.number_of_steps
 
         elif scale_vnf_request.type == 'SCALE_OUT':
-            scaleGroupDict = jsonutils.loads(
-                vnf_info['attributes']['scale_group'])
-            max_level = (scaleGroupDict['scaleGroupDict']
-                [scale_vnf_request.aspect_id]['maxLevel'])
+            if vim_type == "kubernetes":
+                max_level = self._get_scale_max_level_from_vnfd(
+                    context=context,
+                    vnf_instance=vnf_instance,
+                    aspect_id=scale_vnf_request.aspect_id)
+            else:
+                scaleGroupDict = jsonutils.loads(
+                    vnf_info['attributes']['scale_group'])
+                max_level = (scaleGroupDict['scaleGroupDict']
+                    [scale_vnf_request.aspect_id]['maxLevel'])
+
             scale_level = current_level + scale_vnf_request.number_of_steps
             if max_level < scale_level:
                 return self._make_problem_detail(
@@ -1042,6 +1078,9 @@ class VnfLcmController(wsgi.Controller):
             operation_params=json.dumps(operation_params),
             error_point=1)
         vnf_lcm_op_occ.create()
+
+        vnf_instance.task_state = fields.VnfInstanceTaskState.SCALING
+        vnf_instance.save()
 
         vnflcm_url = CONF.vnf_lcm.endpoint_url + \
             "/vnflcm/v1/vnf_lcm_op_occs/" + vnf_lcm_op_occs_id
@@ -1096,7 +1135,7 @@ class VnfLcmController(wsgi.Controller):
             if not vnf_instance.instantiated_vnf_info.scale_status:
                 return self._make_problem_detail(
                     'NOT SCALE VNF', 409, title='NOT SCALE VNF')
-            return self._scale(context, vnf_info, vnf_instance, body)
+            return self._scale(context, vnf_instance, vnf_info, body)
         except vnfm.VNFNotFound as vnf_e:
             return self._make_problem_detail(
                 str(vnf_e), 404, title='VNF NOT FOUND')
