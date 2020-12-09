@@ -214,6 +214,24 @@
       controller-tacker:
         tox_envlist: dsvm-functional-sol
 
+- job:
+    name: tacker-functional-devstack-multinode-sol-separated-nfvo
+    parent: tacker-functional-devstack-multinode-sol
+    description: |
+      Multinodes job for SOL devstack-based functional tests
+      with separated NFVO
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              connect_vnf_packages:
+                base_url: http://127.0.0.1:9990/vnfpkgm/v1/vnf_packages
+                pipeline: package_content,vnfd,artifacts
+              connect_grant:
+                base_url: http://127.0.0.1:9990/grant/v1/grants
+        tox_envlist: dsvm-functional-sol-separated-nfvo
+
 - project:
     templates:
       - check-requirements
@@ -226,3 +244,4 @@
       jobs:
         - tacker-functional-devstack-multinode-legacy
         - tacker-functional-devstack-multinode-sol
+        - tacker-functional-devstack-multinode-sol-separated-nfvo
