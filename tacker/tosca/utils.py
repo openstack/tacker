@@ -840,7 +840,7 @@ def _extract_policy_info(tosca_policies, inst_level_dict,
                          aspect_delta_dict, aspect_id_dict,
                          aspect_vdu_dict, vdu_delta_dict):
     default_inst_level_id = None
-    if tosca_policies is not []:
+    if tosca_policies:
         for p in tosca_policies:
             if p.type == ETSI_SCALING_ASPECT_DELTA:
                 vdu_list = p.targets
