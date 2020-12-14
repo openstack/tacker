@@ -32,6 +32,36 @@
           - compute1
           - compute2
 
+- nodeset:
+    name: openstack-k8s-4-nodes-focal
+    nodes:
+      - name: controller
+        label: ubuntu-focal
+      - name: controller-tacker
+        label: ubuntu-focal
+      - name: controller-k8s
+        label: ubuntu-focal
+      - name: compute1
+        label: ubuntu-focal
+    groups:
+      - name: compute
+        nodes:
+          - controller-k8s
+          - compute1
+      - name: subnode
+        nodes:
+          - controller-tacker
+          - controller-k8s
+          - compute1
+      - name: switch
+        nodes:
+          - controller
+      - name: peers
+        nodes:
+          - controller-tacker
+          - controller-k8s
+          - compute1
+
 - job:
     name: tacker-functional-devstack-multinode-legacy
     parent: devstack
@@ -232,6 +262,193 @@
                 base_url: http://127.0.0.1:9990/grant/v1/grants
         tox_envlist: dsvm-functional-sol-separated-nfvo
 
+- job:
+    name: tacker-functional-devstack-multinode-sol-kubernetes
+    parent: devstack
+    description: |
+      Multinodes job for SOL devstack-based kubernetes functional tests
+    nodeset: openstack-k8s-4-nodes-focal
+    pre-run: playbooks/devstack/pre.yaml
+    run: playbooks/devstack/run.yaml
+    post-run: playbooks/devstack/post.yaml
+    roles:
+      - zuul: openstack-infra/devstack
+    timeout: 10800
+    required-projects:
+      - openstack/barbican
+      - openstack/cinder
+      - openstack/devstack-gate
+      - openstack/devstack-plugin-container
+      - openstack/glance
+      - openstack/heat
+      - openstack/horizon
+      - openstack/keystone
+      - openstack/kuryr-kubernetes
+      - openstack/mistral
+      - openstack/neutron
+      - openstack/nova
+      - openstack/octavia
+      - openstack/placement
+      - openstack/python-barbicanclient
+      - openstack/python-blazarclient
+      - openstack/python-mistralclient
+      - openstack/python-octaviaclient
+      - openstack/python-tackerclient
+      - openstack/tacker
+      - openstack/tacker-horizon
+    host-vars:
+      controller:
+        devstack_plugins:
+          barbican: https://opendev.org/openstack/barbican
+          heat: https://opendev.org/openstack/heat
+          mistral: https://opendev.org/openstack/mistral
+          octavia: https://opendev.org/openstack/octavia
+        devstack_services:
+          base: false
+          c-api: true
+          c-bak: false
+          c-sch: true
+          c-vol: true
+          cinder: true
+          coredns: false
+          etcd3: true
+          g-api: true
+          g-reg: true
+          horizon: false
+          key: true
+          mysql: true
+          n-api-meta: true
+          n-api: true
+          n-cond: true
+          n-cpu: false
+          n-novnc: true
+          n-sch: true
+          neutron: true
+          o-api: true
+          o-cw: true
+          o-hk: true
+          o-hm: true
+          octavia: true
+          placement-api: true
+          placement-client: true
+          q-agt: true
+          q-dhcp: true
+          q-l3: true
+          q-meta: true
+          q-metering: true
+          q-qos: true
+          q-svc: true
+          rabbit: true
+          s-account: false
+          s-container: false
+          s-object: false
+          s-proxy: false
+          swift: false
+          tempest: false
+          tls-proxy: false
+        tox_install_siblings: false
+      controller-tacker:
+        devstack_local_conf: {}
+        devstack_services:
+          q-agt: true
+          tacker: true
+          tacker-conductor: true
+        devstack_plugins:
+          tacker: https://opendev.org/openstack/tacker
+        tox_envlist: dsvm-functional-sol-kubernetes
+      controller-k8s:
+        devstack_local_conf: {}
+        devstack_plugins:
+          devstack-plugin-container: https://opendev.org/openstack/devstack-plugin-container
+          kuryr-kubernetes: https://opendev.org/openstack/kuryr-kubernetes
+        devstack_services:
+          etcd3: false
+          kubelet: true
+          kubernetes-api: true
+          kubernetes-controller-manager: true
+          kubernetes-scheduler: true
+          kuryr-daemon: true
+          kuryr-kubernetes: true
+          octavia: false
+          q-agt: true
+        tox_install_siblings: false
+    group-vars:
+      subnode:
+        devstack_localrc:
+          CELLSV2_SETUP: singleconductor
+          DATABASE_TYPE: mysql
+          IS_ZUUL_FT: True
+          KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          KURYR_FORCE_IMAGE_BUILD: true
+          KURYR_K8S_API_PORT: 8080
+          KURYR_K8S_API_URL: "http://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:${KURYR_K8S_API_PORT}"
+          KURYR_K8S_CLOUD_PROVIDER: false
+          KURYR_K8S_CONTAINERIZED_DEPLOYMENT: false
+          KURYR_K8S_MULTI_WORKER_TESTS: false
+          KURYR_NEUTRON_DEFAULT_SUBNETPOOL_ID: shared-default-subnetpool-v4
+          MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          OCTAVIA_AMP_IMAGE_FILE: "/tmp/test-only-amphora-x64-haproxy-ubuntu-bionic.qcow2"
+          OCTAVIA_AMP_IMAGE_NAME: "test-only-amphora-x64-haproxy-ubuntu-bionic"
+          OCTAVIA_AMP_IMAGE_SIZE: 3
+          OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
+          PHYSICAL_NETWORK: mgmtphysnet0
+          Q_DVR_MODE: dvr
+          TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
+          TACKER_MODE: standalone
+          USE_PYTHON3: true
+        devstack_services:
+          dstat: false
+          horizon: false
+          n-api-meta: false
+          n-api: false
+          n-cauth: false
+          n-cond: false
+          n-cpu: true
+          n-novnc: false
+          n-obj: false
+          n-sch: false
+          q-agt: true
+          tls-proxy: false
+    vars:
+      devstack_localrc:
+        CELLSV2_SETUP: singleconductor
+        DATABASE_TYPE: mysql
+        ETCD_USE_RAMDISK: true
+        IS_ZUUL_FT: True
+        KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+        L2_AGENT_EXTENSIONS: qos
+        MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+        OCTAVIA_AMP_IMAGE_FILE: "/tmp/test-only-amphora-x64-haproxy-ubuntu-bionic.qcow2"
+        OCTAVIA_AMP_IMAGE_NAME: "test-only-amphora-x64-haproxy-ubuntu-bionic"
+        OCTAVIA_AMP_IMAGE_SIZE: 3
+        OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
+        PHYSICAL_NETWORK: mgmtphysnet0
+        Q_DVR_MODE: dvr
+        Q_ML2_PLUGIN_EXT_DRIVERS: port_security,qos
+        Q_SERVICE_PLUGIN_CLASSES: router,neutron.services.metering.metering_plugin.MeteringPlugin,neutron.services.qos.qos_plugin.QoSPlugin,qos
+        TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
+        TACKER_MODE: standalone
+        USE_PYTHON3: true
+      devstack_local_conf:
+        post-config:
+          $NEUTRON_DHCP_CONF:
+            DEFAULT:
+              enable_isolated_metadata: True
+          $OCTAVIA_CONF:
+            controller_worker:
+              amp_active_retries: 9999
+      kuryr_k8s_api_url: "http://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:8080"
+      test_matrix_configs: [neutron]
+      zuul_work_dir: src/opendev.org/openstack/tacker
+      zuul_copy_output:
+        '{{ devstack_log_dir }}/kubernetes': 'logs'
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^releasenotes/.*$
+      - ^contrib/.*$
+    voting: false
+
 - project:
     templates:
       - check-requirements
@@ -245,3 +462,4 @@
         - tacker-functional-devstack-multinode-legacy
         - tacker-functional-devstack-multinode-sol
         - tacker-functional-devstack-multinode-sol-separated-nfvo
+        - tacker-functional-devstack-multinode-sol-kubernetes

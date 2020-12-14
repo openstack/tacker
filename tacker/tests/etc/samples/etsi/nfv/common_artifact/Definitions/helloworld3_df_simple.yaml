@@ -220,7 +220,7 @@ topology_template:
         properties:
           aspect: worker_instance
           deltas:
-            delta_2:
+            delta_1:
               number_of_instances: 1
         targets: [ VDU2 ]
 
