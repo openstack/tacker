@@ -15,6 +15,15 @@ if is_service_enabled tacker; then
         echo_summary "Installing Tacker"
         install_tacker
 
+        # NOTE(yasufum) We don't use pip packages of tosca-parser and
+        # heat-translator but cloned git repo for usnig the latest revision
+        # for development.
+        # If you install pip packages instead, comment out here, and activate
+        # entries in `requirements.txt` and `lower-constraints.txt`.
+        install_package_local_repo tosca-parser
+        install_package_local_repo heat-translator
+        . $DEST/tacker/devstack/lib/download_upper_consts
+
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         # Configure after the other layer 1 and 2 services have been configured
         echo_summary "Configuring Tacker"
