@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Enable VNF vendors to customize configuration methods
+    for applications via MgmtDriver. These customizations
+    are specified by "interface" definition in ETSI
+    NFV-SOL001 v2.6.1. With MgmtDriver, users can execute
+    preamble and postamble of the base LCM operation.
+    Customization of LCM itself is not supported by
+    MgmtDriver.

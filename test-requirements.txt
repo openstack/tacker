@@ -20,3 +20,4 @@ WebTest>=2.0.27 # MIT
 python-barbicanclient>=4.5.2 # Apache-2.0
 python-blazarclient>=1.0.1 # Apache-2.0
 requests-mock>=1.2.0 # Apache-2.0
+PyMySQL>=0.10.1 # MIT

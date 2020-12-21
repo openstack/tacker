@@ -16,7 +16,9 @@
 import copy
 from datetime import datetime
 import functools
+import hashlib
 import inspect
+import os
 import re
 import time
 import traceback
@@ -28,10 +30,9 @@ from oslo_serialization import jsonutils
 from oslo_utils import encodeutils
 from oslo_utils import excutils
 
-from tacker.common import log
-
 from tacker.common import driver_manager
 from tacker.common import exceptions
+from tacker.common import log
 from tacker.common import safe_utils
 from tacker.common import utils
 from tacker.conductor.conductorrpc import vnf_lcm_rpc
@@ -40,10 +41,10 @@ from tacker import objects
 from tacker.objects import fields
 from tacker.vnflcm import abstract_driver
 from tacker.vnflcm import utils as vnflcm_utils
-from tacker.vnfm.mgmt_drivers import constants as mgmt_constants
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
+DEFAULT_VNFLCM_MGMT_DRIVER = "vnflcm_noop"
 
 
 @utils.expects_func_args('vnf_info', 'vnf_instance', 'scale_vnf_request')
@@ -281,7 +282,24 @@ def revert_to_error_rollback(function):
     return decorated_function
 
 
+def config_opts():
+    return [('tacker', VnfLcmDriver.OPTS)]
+
+
 class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
+    OPTS = [
+        cfg.ListOpt(
+            'vnflcm_infra_driver', default=['openstack', 'kubernetes'],
+            help=_('Hosting vnf drivers tacker plugin will use')
+        ),
+        cfg.ListOpt(
+            'vnflcm_mgmt_driver', default=[DEFAULT_VNFLCM_MGMT_DRIVER],
+            help=_('MGMT driver to communicate with '
+                   'Hosting VNF/logical service '
+                   'instance tacker plugin will use')
+        )
+    ]
+    cfg.CONF.register_opts(OPTS, 'tacker')
 
     def __init__(self):
         super(VnfLcmDriver, self).__init__()
@@ -289,7 +307,18 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         self._vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
         self._vnf_manager = driver_manager.DriverManager(
             'tacker.tacker.vnfm.drivers',
-            cfg.CONF.tacker.infra_driver)
+            cfg.CONF.tacker.vnflcm_infra_driver)
+        self._mgmt_manager = driver_manager.DriverManager(
+            'tacker.tacker.mgmt.drivers', cfg.CONF.tacker.vnflcm_mgmt_driver)
+        self._mgmt_driver_hash = self._init_mgmt_driver_hash()
+
+    def _init_mgmt_driver_hash(self):
+
+        driver_hash = {}
+        for mgmt_driver in cfg.CONF.tacker.vnflcm_mgmt_driver:
+            path = inspect.getfile(self._mgmt_manager[mgmt_driver].__class__)
+            driver_hash[mgmt_driver] = self._get_file_hash(path)
+        return driver_hash
 
     def _vnf_instance_update(self, context, vnf_instance, **kwargs):
         """Update vnf instance in the database using kwargs as value."""
@@ -377,6 +406,57 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     id=vnf_instance.id,
                     error=encodeutils.exception_to_unicode(exp))
 
+    def _get_file_hash(self, path):
+        hash_obj = hashlib.sha256()
+        with open(path) as f:
+            hash_obj.update(f.read().encode('utf-8'))
+        return hash_obj.hexdigest()
+
+    def _check_mgmt_driver(self, artifact_mgmt_driver, artifacts_value,
+                           vnf_package_path):
+        # check implementation and artifacts exist in cfg.CONF.tacker
+        if artifact_mgmt_driver not in self._mgmt_driver_hash:
+            LOG.error('The {} specified in the VNFD '
+                      'is inconsistent with the MgmtDriver in '
+                      'the configuration file.'.format(artifact_mgmt_driver))
+            raise exceptions.MgmtDriverInconsistent(
+                MgmtDriver=artifact_mgmt_driver)
+
+        # check file content
+        pkg_mgmt_driver_path = os.path.join(vnf_package_path,
+            artifacts_value[artifact_mgmt_driver]['file'])
+        pkg_mgmt_driver_hash = self._get_file_hash(pkg_mgmt_driver_path)
+        if pkg_mgmt_driver_hash == \
+                self._mgmt_driver_hash[artifact_mgmt_driver]:
+            return artifact_mgmt_driver
+        else:
+            LOG.error('The hash verification of VNF Package MgmtDriver '
+                      'and Tacker MgmtDriver does not match.')
+            raise exceptions.MgmtDriverHashMatchFailure()
+
+    def _load_vnf_interface(self, context, method_name,
+                            vnf_instance, vnfd_dict):
+        VNF_value = vnfd_dict['topology_template']['node_templates']['VNF']
+        tacker_mgmt_driver = DEFAULT_VNFLCM_MGMT_DRIVER
+        interfaces_vnflcm_value = \
+            VNF_value.get('interfaces', {}).get('Vnflcm', {})
+        if not interfaces_vnflcm_value:
+            return tacker_mgmt_driver
+        artifacts_value = VNF_value.get('artifacts')
+        if not artifacts_value:
+            return tacker_mgmt_driver
+        vnf_package_path = vnflcm_utils._get_vnf_package_path(
+            context, vnf_instance.vnfd_id)
+
+        if interfaces_vnflcm_value.get(method_name):
+            artifact_mgmt_driver = interfaces_vnflcm_value.get(
+                method_name).get('implementation')
+            if artifact_mgmt_driver:
+                tacker_mgmt_driver = self._check_mgmt_driver(
+                    artifact_mgmt_driver, artifacts_value, vnf_package_path)
+
+        return tacker_mgmt_driver
+
     @log.log
     def instantiate_vnf(self, context, vnf_instance, vnf_dict,
             instantiate_vnf_req):
@@ -394,8 +474,25 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
             vim_info, context)
 
+        vnfd_dict = vnflcm_utils._get_vnfd_dict(
+            context, vnf_instance.vnfd_id, instantiate_vnf_req.flavour_id)
+
+        self._mgmt_manager.invoke(
+            self._load_vnf_interface(
+                context, 'instantiate_start', vnf_instance, vnfd_dict),
+            'instantiate_start', context=context,
+            vnf_instance=vnf_instance,
+            additional_params=instantiate_vnf_req.additional_params)
+
         self._instantiate_vnf(context, vnf_instance, vnf_dict,
                               vim_connection_info, instantiate_vnf_req)
+
+        self._mgmt_manager.invoke(
+            self._load_vnf_interface(
+                context, 'instantiate_end', vnf_instance, vnfd_dict),
+            'instantiate_end', context=context,
+            vnf_instance=vnf_instance,
+            additional_params=instantiate_vnf_req.additional_params)
 
     @log.log
     @revert_to_error_task_state
@@ -407,6 +504,16 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
             vim_info, context)
 
+        vnfd_dict = vnflcm_utils._get_vnfd_dict(
+            context, vnf_instance.vnfd_id,
+            vnf_instance.instantiated_vnf_info.flavour_id)
+
+        self._mgmt_manager.invoke(
+            self._load_vnf_interface(
+                context, 'terminate_start', vnf_instance, vnfd_dict),
+            'terminate_start', context=context,
+            vnf_instance=vnf_instance,
+            additional_params=terminate_vnf_req.additional_params)
         LOG.info("Terminating vnf %s", vnf_instance.id)
         try:
             self._delete_vnf_instance_resources(context, vnf_instance,
@@ -422,6 +529,12 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 LOG.error("Unable to terminate vnf '%s' instance. "
                           "Error: %s", vnf_instance.id,
                           encodeutils.exception_to_unicode(exp))
+        self._mgmt_manager.invoke(
+            self._load_vnf_interface(
+                context, 'terminate_end', vnf_instance, vnfd_dict),
+            'terminate_end', context=context,
+            vnf_instance=vnf_instance,
+            additional_params=terminate_vnf_req.additional_params)
 
     def _delete_vnf_instance_resources(self, context, vnf_instance,
             vim_connection_info, terminate_vnf_req=None,
@@ -578,6 +691,17 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
             vim_info, context)
 
+        vnfd_dict = vnflcm_utils._get_vnfd_dict(
+            context, vnf_instance.vnfd_id,
+            vnf_instance.instantiated_vnf_info.flavour_id)
+
+        self._mgmt_manager.invoke(
+            self._load_vnf_interface(
+                context, 'heal_start', vnf_instance, vnfd_dict),
+            'heal_start', context=context,
+            vnf_instance=vnf_instance,
+            additional_params=heal_vnf_request.additional_params)
+
         if not heal_vnf_request.vnfc_instance_id:
             self._respawn_vnf(context, vnf_instance, vnf_dict,
                              vim_connection_info, heal_vnf_request)
@@ -587,6 +711,12 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
         LOG.info("Request received for healing vnf '%s' is completed "
                  "successfully", vnf_instance.id)
+        self._mgmt_manager.invoke(
+            self._load_vnf_interface(
+                context, 'heal_end', vnf_instance, vnfd_dict),
+            'heal_end', context=context,
+            vnf_instance=vnf_instance,
+            additional_params=heal_vnf_request.additional_params)
 
     def _scale_vnf_pre(self, context, vnf_info, vnf_instance,
                       scale_vnf_request, vim_connection_info):
@@ -600,15 +730,10 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         grp_id = None
         vnf_info['policy_name'] = scale_vnf_request.aspect_id
         if scale_vnf_request.type == 'SCALE_IN':
-            vnfd_yaml = vnf_info['vnfd']['attributes'].get(
-                'vnfd_' + vnf_instance.instantiated_vnf_info.flavour_id, '')
-            vnfd_dict = yaml.safe_load(vnfd_yaml)
-            # mgmt_driver from vnfd
-            vnf_node = self._get_node_template_for_vnf(vnfd_dict)
-            if vnf_node and vnf_node.get('interfaces'):
-                if vnf_node['interfaces']['Vnflcm']['scale_start']:
-                    vnf_info['vnfd']['mgmt_driver'] = \
-                        vnf_node['interfaces']['Vnflcm']['scale_start']
+            vnfd_dict = vnflcm_utils._get_vnfd_dict(
+                context, vnf_instance.vnfd_id,
+                vnf_instance.instantiated_vnf_info.flavour_id)
+
             vnf_info['action'] = 'in'
             scale_id_list, scale_name_list, grp_id, res_num = \
                 self._vnf_manager.invoke(
@@ -627,21 +752,13 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vnf_info['res_num'] = res_num
 
             # mgmt_driver pre
-            if len(scale_id_list) != 0 and vnf_info['vnfd'].get('mgmt_driver'):
-                if len(scale_id_list) > 1:
-                    stack_value = []
-                    stack_value = scale_id_list
-                else:
-                    stack_value = scale_id_list[0]
-                kwargs = {
-                    mgmt_constants.KEY_ACTION:
-                        mgmt_constants.ACTION_SCALE_IN_VNF,
-                    mgmt_constants.KEY_KWARGS:
-                        {'vnf': vnf_info},
-                    mgmt_constants.KEY_SCALE:
-                        stack_value,
-                }
-                self._vnfm_plugin.mgmt_call(context, vnf_info, kwargs)
+            if len(scale_id_list) != 0:
+                self._mgmt_manager.invoke(
+                    self._load_vnf_interface(
+                        context, 'scale_start', vnf_instance, vnfd_dict),
+                    'scale_start', context=context,
+                    vnf_instance=vnf_instance,
+                    additional_params=scale_vnf_request.additional_params)
         else:
             vnf_info['action'] = 'out'
             scale_id_list = self._vnf_manager.invoke(
@@ -672,18 +789,10 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
         vnf_lcm_op_occ.error_point = 6
         if scale_vnf_request.type == 'SCALE_OUT':
-            vnfd_yaml =\
-                vnf_info['vnfd']['attributes'].\
-                get('vnfd_' + vnf_instance.instantiated_vnf_info.flavour_id,
-                '')
-            vnf_info['policy_name'] = scale_vnf_request.aspect_id
-            vnfd_dict = yaml.safe_load(vnfd_yaml)
-            # mgmt_driver from vnfd
-            vnf_node = self._get_node_template_for_vnf(vnfd_dict)
-            if vnf_node and vnf_node.get('interfaces'):
-                if vnf_node['interfaces']['Vnflcm']['scale_end']:
-                    vnf_info['vnfd']['mgmt_driver'] = \
-                        vnf_node['interfaces']['Vnflcm']['scale_end']
+            vnfd_dict = vnflcm_utils._get_vnfd_dict(
+                context, vnf_instance.vnfd_id,
+                vnf_instance.instantiated_vnf_info.flavour_id)
+
             scale_id_after = self._vnf_manager.invoke(
                 vim_connection_info.vim_type,
                 'get_scale_ids',
@@ -696,21 +805,13 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             id_list = []
             id_list = list(set(scale_id_after) - set(scale_id_list))
             vnf_info['res_num'] = len(scale_id_after)
-            if len(id_list) != 0 and vnf_info['vnfd'].get('mgmt_driver'):
-                if len(id_list) > 1:
-                    stack_value = []
-                    stack_value = id_list
-                else:
-                    stack_value = id_list[0]
-                kwargs = {
-                    mgmt_constants.KEY_ACTION:
-                        mgmt_constants.ACTION_SCALE_OUT_VNF,
-                    mgmt_constants.KEY_KWARGS:
-                        {'vnf': vnf_info},
-                    mgmt_constants.KEY_SCALE:
-                        stack_value,
-                }
-                self._vnfm_plugin.mgmt_call(context, vnf_info, kwargs)
+            if len(id_list) != 0:
+                self._mgmt_manager.invoke(
+                    self._load_vnf_interface(
+                        context, 'scale_end', vnf_instance, vnfd_dict),
+                    'scale_end', context=context,
+                    vnf_instance=vnf_instance,
+                    additional_params=scale_vnf_request.additional_params)
         vnf_lcm_op_occ.error_point = 7
         vnf_instance.instantiated_vnf_info.scale_level =\
             vnf_info['after_scale_level']
@@ -1214,57 +1315,32 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             )
         if vnf_lcm_op_occs.error_point == 7:
             if vnf_lcm_op_occs.operation == 'SCALE':
-                vnfd_yaml = vnf_info['vnfd']['attributes'].\
-                    get('vnfd_' +
-                        vnf_instance.instantiated_vnf_info.flavour_id, '')
-                vnfd_dict = yaml.safe_load(vnfd_yaml)
-                # mgmt_driver from vnfd
-                vnf_node = self._get_node_template_for_vnf(vnfd_dict)
-                if vnf_node and vnf_node.get('interfaces'):
-                    if vnf_node['interfaces'].get('Vnflcm'):
-                        if vnf_node['interfaces']['Vnflcm'].get('scale_start'):
-                            vnf_info['vnfd']['mgmt_driver'] = \
-                                vnf_node['interfaces']['Vnflcm']['scale_start']
+                vnfd_dict = vnflcm_utils._get_vnfd_dict(
+                    context, vnf_instance.vnfd_id,
+                    vnf_instance.instantiated_vnf_info.flavour_id)
+
                 vnf_info['action'] = 'in'
-                if len(scale_id_list) != 0 and vnf_info['vnfd'].get(
-                        'mgmt_driver'):
-                    if len(scale_id_list) > 1:
-                        stack_value = []
-                        stack_value = scale_id_list
-                    else:
-                        stack_value = scale_id_list[0]
-                    kwargs = {
-                        mgmt_constants.KEY_ACTION:
-                            mgmt_constants.ACTION_SCALE_IN_VNF,
-                        mgmt_constants.KEY_KWARGS:
-                            {'vnf': vnf_info},
-                        mgmt_constants.KEY_SCALE:
-                            stack_value,
-                    }
-                    self._rollback_mgmt_call(context, vnf_info, kwargs)
+                if len(scale_id_list) != 0:
+                    self._mgmt_manager.invoke(
+                        self._load_vnf_interface(context, 'scale_start',
+                                                 vnf_instance, vnfd_dict),
+                        'scale_start', context=context,
+                        vnf_instance=vnf_instance,
+                        additional_params=scale_vnf_request.additional_params)
 
             else:
-                vnfd_yaml = vnf_info['vnfd']['attributes'].\
-                    get('vnfd_' +
-                        vnf_instance.instantiated_vnf_info.flavour_id, '')
-                vnfd_dict = yaml.safe_load(vnfd_yaml)
-                # mgmt_driver from vnfd
-                vnf_node = self._get_node_template_for_vnf(vnfd_dict)
-                if vnf_node and vnf_node.get('interfaces'):
-                    if vnf_node['interfaces'].get('Vnflcm'):
-                        if vnf_node['interfaces']['Vnflcm'].get(
-                                'termination_start'):
-                            vnf_info['vnfd']['mgmt_driver'] = vnf_node[
-                                'interfaces']['Vnflcm']['termination_start']
-                if len(scale_id_list) != 0 and vnf_info['vnfd'].get(
-                        'mgmt_driver'):
-                    kwargs = {
-                        mgmt_constants.KEY_ACTION:
-                            mgmt_constants.ACTION_DELETE_VNF,
-                        mgmt_constants.KEY_KWARGS:
-                            {'vnf': vnf_info}
-                    }
-                    self._rollback_mgmt_call(context, vnf_info, kwargs)
+                vnfd_dict = vnflcm_utils._get_vnfd_dict(
+                    context, vnf_instance.vnfd_id,
+                    vnf_instance.instantiated_vnf_info.flavour_id)
+
+                if len(scale_id_list) != 0:
+                    self._mgmt_manager.invoke(
+                        self._load_vnf_interface(
+                            context, 'terminate_start',
+                            vnf_instance, vnfd_dict),
+                        'terminate_start', context=context,
+                        vnf_instance=vnf_instance,
+                        additional_params=scale_vnf_request.additional_params)
             vnf_lcm_op_occs.error_point = 6
 
         return scale_name_list, grp_id
@@ -1335,9 +1411,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
     def _update_vnf_rollback_status_err(self, context, vnf_info):
         self._vnfm_plugin.update_vnf_rollback_status_err(context, vnf_info)
-
-    def _rollback_mgmt_call(self, context, vnf_info, kwargs):
-        self._vnfm_plugin.mgmt_call(context, vnf_info, kwargs)
 
     def _rollback_vnf_post(
             self,
