@@ -51,6 +51,7 @@ Use cases
    dynamic_vnffg_usage_guide.rst
    enhanced_placement_awareness_usage_guide.rst
    etsi_vnf_deployment_as_vm_with_tosca.rst
+   etsi_vnf_deployment_as_vm_with_user_data.rst
    etsi_containerized_vnf_usage_guide.rst
    etsi_vnf_healing.rst
    containerized_vnf_usage_guide.rst
