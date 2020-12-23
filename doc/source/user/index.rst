@@ -53,6 +53,7 @@ Use cases
    etsi_vnf_deployment_as_vm_with_tosca.rst
    etsi_vnf_deployment_as_vm_with_user_data.rst
    etsi_containerized_vnf_usage_guide.rst
+   etsi_vnf_error_handling.rst
    etsi_vnf_healing.rst
    containerized_vnf_usage_guide.rst
    ../reference/mistral_workflows_usage_guide.rst
