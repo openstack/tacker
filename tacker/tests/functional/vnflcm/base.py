@@ -128,7 +128,7 @@ def _create_and_upload_vnf_package(
             break
 
         if ((int(time.time()) - start_time) > timeout):
-            raise Exception("Failed to onboard vnf package")
+            raise TimeoutError("Failed to onboard vnf package")
 
         time.sleep(1)
 
@@ -159,7 +159,7 @@ def _show_vnf_package(tacker_client, vnf_package_id):
             return resp, body
 
         if ((int(time.time()) - start_time) > timeout):
-            raise Exception("Failed to onboard vnf package")
+            raise TimeoutError("Failed to onboard vnf package")
 
         time.sleep(1)
 
@@ -175,7 +175,7 @@ def _list_vnf_package(tacker_client, **kwargs):
             return resp, body
 
         if ((int(time.time()) - start_time) > timeout):
-            raise Exception("Failed to onboard vnf package")
+            raise TimeoutError("Failed to onboard vnf package")
 
         time.sleep(1)
 
@@ -228,8 +228,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         if self.is_setup_error:
             self.fail("Faild, not exists pre-registered image.")
 
-        callback_url = \
-            os.path.join(MOCK_NOTIFY_CALLBACK_URL, self._testMethodName)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
         FAKE_SERVER_MANAGER.clear_history(callback_url)
         FAKE_SERVER_MANAGER.set_callback(
             'POST',
@@ -417,8 +418,20 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         return resp, body
 
     def _heal_vnf_instance(self, vnf_instance_id, request_body):
-        url = \
-            os.path.join(self.base_vnf_instances_url, vnf_instance_id, "heal")
+        url = os.path.join(
+            self.base_vnf_instances_url,
+            vnf_instance_id,
+            "heal")
+        resp, body = self.http_client.do_request(url, "POST",
+                body=jsonutils.dumps(request_body))
+
+        return resp, body
+
+    def _scale_vnf_instance(self, vnf_instance_id, request_body):
+        url = os.path.join(
+            self.base_vnf_instances_url,
+            vnf_instance_id,
+            "scale")
         resp, body = self.http_client.do_request(url, "POST",
                 body=jsonutils.dumps(request_body))
 
@@ -437,6 +450,24 @@ class BaseVnfLcmTest(base.BaseTackerTest):
                 body=jsonutils.dumps(request_body))
 
         return resp, body
+
+    def _rollback_op_occs(self, vnf_lcm_op_occs_id):
+        rollback_url = os.path.join(
+            self.base_vnf_lcm_op_occs_url,
+            vnf_lcm_op_occs_id, 'rollback')
+        resp, response_body = self.http_client.do_request(
+            rollback_url, "POST")
+
+        return resp, response_body
+
+    def _show_op_occs(self, vnf_lcm_op_occs_id):
+        show_url = os.path.join(
+            self.base_vnf_lcm_op_occs_url,
+            vnf_lcm_op_occs_id)
+        resp, response_body = self.http_client.do_request(
+            show_url, "GET")
+
+        return resp, response_body
 
     def _wait_terminate_vnf_instance(self, id, timeout=None):
         start_time = int(time.time())
@@ -631,8 +662,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             expected_operation_status=None,
             vnf_instance_id=None):
         start_time = int(time.time())
-        callback_url = \
-            os.path.join(MOCK_NOTIFY_CALLBACK_URL, self._testMethodName)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
 
         while True:
             actual_status = None
@@ -700,8 +732,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             fields.VnfInstanceState.NOT_INSTANTIATED)
 
         # FT-checkpoint: Notification
-        callback_url = \
-            os.path.join(MOCK_NOTIFY_CALLBACK_URL, self._testMethodName)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
         notify_mock_responses = self._filter_notify_history(callback_url,
             vnf_instance.get('id'))
 
@@ -717,8 +750,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         self.assertEqual(404, resp.status_code)
 
         # FT-checkpoint: Notification
-        callback_url = \
-            os.path.join(MOCK_NOTIFY_CALLBACK_URL, self._testMethodName)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
         notify_mock_responses = self._filter_notify_history(callback_url,
             vnf_instance_id)
 
@@ -742,8 +776,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             expected_resource_status='CREATE_COMPLETE')
 
         # FT-checkpoint: Notification
-        callback_url = \
-            os.path.join(MOCK_NOTIFY_CALLBACK_URL, self._testMethodName)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
         notify_mock_responses = self._filter_notify_history(callback_url,
             vnf_instance_id)
 
@@ -779,8 +814,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             expected_stack_status=expected_stack_status)
 
         # FT-checkpoint: Notification
-        callback_url = \
-            os.path.join(MOCK_NOTIFY_CALLBACK_URL, self._testMethodName)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
         notify_mock_responses = self._filter_notify_history(callback_url,
             vnf_instance_id)
 
@@ -824,8 +860,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             glance_image_id_list=glance_image_id_list)
 
         # FT-checkpoint: Notification
-        callback_url = \
-            os.path.join(MOCK_NOTIFY_CALLBACK_URL, self._testMethodName)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
         notify_mock_responses = self._filter_notify_history(callback_url,
             vnf_instance_id)
 
@@ -844,6 +881,84 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             notify_mock_responses[2],
             'VnfLcmOperationOccurrenceNotification',
             'COMPLETED')
+
+    def assert_scale_vnf(
+            self,
+            resp,
+            vnf_instance_id,
+            pre_stack_resource_list,
+            post_stack_resource_list,
+            scale_type='SCALE_OUT',
+            expected_stack_status='CREATE_COMPLETE'):
+        self.assertEqual(202, resp.status_code)
+        self.assert_http_header_location_for_lcm_op_occs(resp.headers)
+
+        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
+        self.assert_vnf_state(vnf_instance)
+        self.assert_instantiation_state(vnf_instance)
+
+        # check: scaling stack resource count
+        if scale_type == 'SCALE_OUT':
+            self.assertTrue(len(pre_stack_resource_list) <
+                            len(post_stack_resource_list))
+        else:
+            self.assertTrue(len(pre_stack_resource_list) >
+                            len(post_stack_resource_list))
+
+        # check scaleStatus
+        scale_status = vnf_instance['instantiatedVnfInfo']['scaleStatus']
+        self.assertTrue(len(scale_status) > 0)
+        for status in scale_status:
+            self.assertIsNotNone(status.get('aspectId'))
+            self.assertIsNotNone(status.get('scaleLevel'))
+
+        self.assert_heat_stack_status(
+            vnf_instance['id'],
+            expected_stack_status=expected_stack_status)
+
+        # FT-checkpoint: Notification
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id)
+
+        self.assertEqual(3, len(notify_mock_responses))
+        self.assert_notification_mock_response(
+            notify_mock_responses[0],
+            'VnfLcmOperationOccurrenceNotification',
+            'STARTING')
+
+        self.assert_notification_mock_response(
+            notify_mock_responses[1],
+            'VnfLcmOperationOccurrenceNotification',
+            'PROCESSING')
+
+        self.assert_notification_mock_response(
+            notify_mock_responses[2],
+            'VnfLcmOperationOccurrenceNotification',
+            'COMPLETED')
+
+    def assert_rollback_vnf(self, resp, vnf_instance_id):
+        self.assertEqual(202, resp.status_code)
+
+        # FT-checkpoint: Notification
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id)
+
+        self.assertEqual(2, len(notify_mock_responses))
+        self.assert_notification_mock_response(
+            notify_mock_responses[0],
+            'VnfLcmOperationOccurrenceNotification',
+            'ROLLING_BACK')
+
+        self.assert_notification_mock_response(
+            notify_mock_responses[1],
+            'VnfLcmOperationOccurrenceNotification',
+            'ROLLED_BACK')
 
     def assert_update_vnf(
             self,
@@ -864,8 +979,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             expected_stack_status=expected_stack_status)
 
         # FT-checkpoint: Notification
-        callback_url = \
-            os.path.join(MOCK_NOTIFY_CALLBACK_URL, self._testMethodName)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
         notify_mock_responses = self._filter_notify_history(callback_url,
             vnf_instance_id)
 
