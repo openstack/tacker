@@ -93,7 +93,7 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
         'instance_id': fields.StringField(nullable=True, default=None),
         'instantiation_level_id': fields.StringField(nullable=True,
             default=None),
-        'additional_params': fields.DictOfStringsField(nullable=True,
+        'additional_params': fields.DictOfNullableField(nullable=True,
                                                        default={})
     }
 
