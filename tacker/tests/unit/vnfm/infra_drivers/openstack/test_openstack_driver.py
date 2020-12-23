@@ -191,13 +191,22 @@ class TestOpenStack(base.FixturedTestCase):
                 grant_info=grant_info_test,
                 vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.vnfm.vim_client.VimClient.get_vim')
     @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
                 '.OpenStack._format_base_hot')
     @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_grant(self, mock_OpenstackClients_heat,
                           mock_get_base_hot_dict,
-                          mock_format_base_hot):
+                          mock_format_base_hot,
+                          mock_get_vim):
+        mock_get_vim.return_value = {
+            'vim_id': uuidsentinel.vnfd_id,
+            'vim_type': 'test',
+            'vim_auth': {'username': 'test', 'password': 'test'},
+            'placement_attr': {'region': 'TestRegionOne'},
+            'tenant': 'test'
+        }
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
