@@ -20,6 +20,7 @@ import sys
 from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
+from oslo_policy import opts
 from oslo_policy import policy
 from oslo_utils import excutils
 from oslo_utils import importutils
@@ -34,6 +35,12 @@ LOG = logging.getLogger(__name__)
 
 _ENFORCER = None
 ADMIN_CTX_POLICY = 'context_is_admin'
+
+# TODO(gmann): Remove setting the default value of config policy_file
+# once oslo_policy change the default value to 'policy.yaml'.
+# https://github.com/openstack/oslo.policy/blob/a626ad12fe5a3abd49d70e3e5b95589d279ab578/oslo_policy/opts.py#L49
+DEFAULT_POLICY_FILE = 'policy.yaml'
+opts.set_defaults(cfg.CONF, DEFAULT_POLICY_FILE)
 
 
 def reset():
@@ -203,7 +210,7 @@ def _build_match_rule(action, target, pluralized):
 # This check is registered as 'tenant_id' so that it can override
 # GenericCheck which was used for validating parent resource ownership.
 # This will prevent us from having to handling backward compatibility
-# for policy.json
+# for policy.yaml
 # TODO(salv-orlando): Reinstate GenericCheck for simple tenant_id checks
 @policy.register('tenant_id')
 class OwnerCheck(policy.Check):
@@ -457,7 +464,7 @@ def get_enforcer():
         i += 1
 
     # 'project' must be 'tacker' so that get_enforcer looks at
-    # /etc/tacker/policy.json by default.
+    # /etc/tacker/policy.yaml by default.
     cfg.CONF(conf_args, project='tacker')
     init()
     return _ENFORCER

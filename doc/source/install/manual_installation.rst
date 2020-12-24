@@ -195,7 +195,7 @@ Installing Tacker Server
 
       [DEFAULT]
       auth_strategy = keystone
-      policy_file = /etc/tacker/policy.json
+      policy_file = /etc/tacker/policy.yaml
       debug = True
       use_syslog = False
       bind_host = <TACKER_NODE_IP>

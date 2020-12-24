@@ -19,7 +19,7 @@ Tacker Configuration Guide
 ==========================
 
 The static configuration for tacker lives in three main files:
-``api-paste.ini``, ``tacker.conf`` and ``policy.json``.
+``api-paste.ini``, ``tacker.conf`` and ``policy.yaml``.
 These are described below. For a bigger picture view on configuring
 tacker to solve specific problems.
 
