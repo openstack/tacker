@@ -116,12 +116,13 @@ class VnfTestCreate(base.BaseTackerTest):
 
     def test_vnf_with_placement_policy_invalid(self):
         exc = self.assertRaises(
-            exceptions.InternalServerError,
+            exceptions.BadRequest,
             self._test_create_delete_vnf,
             vnf_name='test_vnf_with_placement_policy_invalid',
             vnfd_name='sample-tosca-vnfd-placement-policy-invalid',
             vdu_name='invalid-placement-policy-vdu',
             placement_policy='invalid')
-        self.assertIn('["invalid"]', exc.message)
-        self.assertIn('is not an allowed value ["anti-affinity", "affinity", '
-                      '"soft-anti-affinity", "soft-affinity"]', exc.message)
+        self.assertIn('"invalid"', exc.message)
+        self.assertIn('The value "invalid" of property "policy" is '
+                      'not valid. Expected a value from "[affinity, '
+                      'anti-affinity]".', exc.message)

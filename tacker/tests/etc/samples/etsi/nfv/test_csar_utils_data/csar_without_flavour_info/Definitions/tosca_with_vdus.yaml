@@ -91,3 +91,16 @@ topology_template:
   policies:
     - instantiation_levels:
         type: tosca.policies.nfv.InstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              description: Smallest size
+              scale_info:
+                worker_instance:
+                  scale_level: 0
+            instantiation_level_2:
+              description: Largest size
+              scale_info:
+                worker_instance:
+                  scale_level: 2
+          default_level: instantiation_level_1

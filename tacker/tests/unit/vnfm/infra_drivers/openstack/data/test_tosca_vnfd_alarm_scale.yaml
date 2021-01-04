@@ -46,7 +46,7 @@ topology_template:
           min_instances: 1
           max_instances: 3
           default_instances: 2
-          targets: [VDU1]
+        targets: [ VDU1 ]
 
     - vdu1_cpu_usage_monitoring_policy:
         type: tosca.policies.tacker.Alarming

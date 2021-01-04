@@ -408,6 +408,17 @@ node_types:
         entry_schema:
           type: tosca.datatypes.nfv.ScaleInfo
 
+  tosca.datatypes.nfv.ScaleInfo:
+    derived_from: tosca.datatypes.Root
+    description: Indicates for a given scaleAspect the corresponding scaleLevel
+    properties:
+      scale_level:
+        type: integer
+        description: The scale level for a particular aspect
+        required: true
+        constraints:
+          - greater_or_equal: 0
+
   # capability type definitions
   tosca.capabilities.nfv.VirtualLinkable:
     derived_from: tosca.capabilities.Node
@@ -884,6 +895,15 @@ node_types:
         constraints:
           - min_length: 1
     targets: [ tosca.nodes.nfv.VnfVirtualLink ]
+
+  tosca.datatypes.nfv.VirtualLinkBitrateLevel:
+    derived_from: tosca.datatypes.Root
+    description: Describes bitrate requirements applicable to the virtual link instantiated from a particicular VnfVirtualLink
+    properties:
+      bitrate_requirements:
+        type: tosca.datatypes.nfv.LinkBitrateRequirements
+        description: Virtual link bitrate requirements for an instantiation level or bitrate delta for a scaling step
+        required: true
 
   # interface type definitions
   tosca.interfaces.nfv.Vnflcm:
