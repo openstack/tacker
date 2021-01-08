@@ -171,6 +171,7 @@ _vimConnectionInfo = {
             'id': parameter_types.identifier,
             'vimId': parameter_types.identifier,
             'vimType': {'type': 'string', 'minLength': 1, 'maxLength': 255},
+            'interfaceInfo': parameter_types.keyvalue_pairs,
             'accessInfo': parameter_types.keyvalue_pairs,
         },
         'required': ['id', 'vimType'],
