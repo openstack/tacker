@@ -159,7 +159,7 @@ class VnfPackageTest(base.BaseTackerTest):
 
     def _get_csar_dir_path(self, csar_name):
         csar_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                   "../../etc/samples/etsi/nfv", csar_name))
+                                   "../../../etc/samples/etsi/nfv", csar_name))
         return csar_dir
 
     def _create_and_upload_vnf(self, sample_name):

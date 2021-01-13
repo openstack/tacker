@@ -39,7 +39,7 @@ def _create_and_upload_vnf_package(tacker_client, csar_package_name,
         '/vnfpkgm/v1/vnf_packages', "POST", body=body)
 
     # upload vnf package
-    csar_package_path = "../../etc/samples/etsi/nfv/%s" % csar_package_name
+    csar_package_path = "../../../etc/samples/etsi/nfv/%s" % csar_package_name
     file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              csar_package_path))
 
@@ -826,7 +826,7 @@ class VnfLcmTest(base.BaseTackerTest):
             self):
         instance_file_dir = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            '../../etc/samples/etsi/nfv/test_create_vnf_instance_'
+            '../../../etc/samples/etsi/nfv/test_create_vnf_instance_'
             'and_instantiate_and_terminate_cnf_with_artifact_is_url/'
         )
         artifact_file_dir = os.path.join(

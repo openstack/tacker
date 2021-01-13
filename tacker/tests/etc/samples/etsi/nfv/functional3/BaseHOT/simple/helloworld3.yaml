@@ -39,6 +39,7 @@ resources:
       adjustment_type: change_in_capacity
   VDU2_scale_group:
     type: OS::Heat::AutoScalingGroup
+    depends_on: VDU1_scale_group
     properties:
       min_size: 2
       max_size: 2

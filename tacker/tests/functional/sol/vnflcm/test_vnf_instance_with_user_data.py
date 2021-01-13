@@ -14,8 +14,8 @@
 import os
 from oslo_utils import uuidutils
 from tacker.objects import fields
-from tacker.tests.functional.vnflcm import base as vnflcm_base
-from tacker.tests.functional.vnflcm import fake_vnflcm
+from tacker.tests.functional.sol.vnflcm import base as vnflcm_base
+from tacker.tests.functional.sol.vnflcm import fake_vnflcm
 import tempfile
 import time
 
@@ -128,7 +128,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
@@ -260,7 +260,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
@@ -307,7 +307,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
@@ -403,7 +403,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
@@ -452,7 +452,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
@@ -512,7 +512,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_user_data_common(
             csar_package_path)
@@ -563,7 +563,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_user_data_common(
             csar_package_path)
@@ -616,7 +616,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_user_data_common(
             csar_package_path)
@@ -670,7 +670,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_user_data_common(
             csar_package_path)
@@ -725,7 +725,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_user_data_common(
             csar_package_path)
@@ -796,7 +796,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
@@ -891,7 +891,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../../etc/samples/etsi/nfv",
+                "../../../etc/samples/etsi/nfv",
                 sample_name))
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)

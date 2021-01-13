@@ -33,7 +33,7 @@
           - compute2
 
 - job:
-    name: tacker-functional-devstack-multinode-python3
+    name: tacker-functional-devstack-multinode-legacy
     parent: devstack
     description: |
       Base multinodes job for devstack-based functional tests
@@ -157,7 +157,7 @@
           # Tacker services
           tacker: true
           tacker-conductor: true
-        tox_envlist: dsvm-functional
+        tox_envlist: dsvm-functional-legacy
     group-vars:
       compute:
         # Since a VirtualInterfaceCreateException occurs during a test,
@@ -205,6 +205,15 @@
           # To override the parent job's definitions.
           tls-proxy: false
 
+- job:
+    name: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-legacy
+    description: |
+      Multinodes job for SOL devstack-based functional tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-sol
+
 - project:
     templates:
       - check-requirements
@@ -215,4 +224,5 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - tacker-functional-devstack-multinode-python3
+        - tacker-functional-devstack-multinode-legacy
+        - tacker-functional-devstack-multinode-sol
