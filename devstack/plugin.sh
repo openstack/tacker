@@ -41,7 +41,7 @@ if is_service_enabled tacker; then
             tacker_horizon_install
         fi
 
-        if [[ "${TACKER_MODE}" == "all" || -v IS_ZUUL_FT ]]; then
+        if [[ "${TACKER_MODE}" == "all" || "${IS_ZUUL_FT}" == "True" ]]; then
             echo_summary "Setup initial tacker network"
             tacker_create_initial_network
             echo_summary "Check and download images for tacker initial"

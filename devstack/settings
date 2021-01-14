@@ -1,8 +1,9 @@
 TACKER_MODE=${TACKER_MODE:-all}
 USE_BARBICAN=True
 KUBERNETES_VIM=${KUBERNETES_VIM:-False}
+IS_ZUUL_FT=${IS_ZUUL_FT:-False}
 
-if [ "${TACKER_MODE}" == "all" -o ${IS_ZUUL_FT+yes} ]; then
+if [ "${TACKER_MODE}" == "all" -o "${IS_ZUUL_FT}" == "True" ]; then
     MGMT_PHYS_NET=${MGMT_PHYS_NET:-mgmtphysnet0}
     # br-infra is created by devstack multi node job
     # https://opendev.org/zuul/zuul-jobs/src/branch/master/roles/multi-node-bridge
