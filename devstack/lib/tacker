@@ -258,7 +258,7 @@ function configure_tacker {
     iniset $TACKER_CONF DEFAULT auth_strategy $TACKER_AUTH_STRATEGY
     _tacker_setup_keystone $TACKER_CONF keystone_authtoken
 
-    if [[ "${TACKER_MODE}" == "all" || -v IS_ZUUL_FT ]]; then
+    if [[ "${TACKER_MODE}" == "all" || "${IS_ZUUL_FT}" == "True" ]]; then
         iniset "/$Q_PLUGIN_CONF_FILE" ml2_type_flat flat_networks $PUBLIC_PHYSICAL_NETWORK,$MGMT_PHYS_NET
         iniset "/$Q_PLUGIN_CONF_FILE" ovs bridge_mappings $PUBLIC_PHYSICAL_NETWORK:$PUBLIC_BRIDGE,$MGMT_PHYS_NET:$BR_MGMT
 
