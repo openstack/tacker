@@ -1,0 +1,4 @@
+# This module evaluates 'devstack_localrc', which is defined as an entry in
+# zuul job.vars and contains jinja2 templates. These default values are to
+# avoid its evaluation falure.
+external_bridge_mtu: -1

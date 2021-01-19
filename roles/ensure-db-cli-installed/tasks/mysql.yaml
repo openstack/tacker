@@ -1,0 +1,23 @@
+- name: set db cli package name (mysql-community-client)
+  set_fact:
+    db_cli_package_name: mysql-community-client
+  when: ansible_distribution == 'OracleLinux'
+- name: set db cli package name (mariadb-client)
+  set_fact:
+    db_cli_package_name: mariadb-client
+  when:
+    - ansible_distribution != 'OracleLinux'
+    - ansible_os_family in ['RedHat', 'Suse']
+- name: set db cli package name (mysql-client)
+  set_fact:
+    db_cli_package_name: mysql-client
+  when: ansible_os_family == 'Debian'
+- name: fail if db cli package is not resolved
+  fail:
+    msg: mysql client to install cannot be determined
+  when: db_cli_package_name is not defined
+- name: install db cli package
+  become: true
+  package:
+    name: "{{ db_cli_package_name }}"
+    state: present
