@@ -167,7 +167,8 @@
     templates:
       - check-requirements
       - openstack-cover-jobs
-      - openstack-lower-constraints-jobs
+      # TODO(yasufum): Revert after https://review.opendev.org/c/openstack/tacker/+/770536 is merged.
+      #- penstack-lower-constraints-jobs
       - openstack-python3-victoria-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
