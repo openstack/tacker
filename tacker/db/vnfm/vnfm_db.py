@@ -522,6 +522,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
             raise vnfm.VNFInUse(vnf_id=vnf_id)
         return True
 
+    def update_vnf_fail_status(self,
+                               context,
+                               vnf_id,
+                               status):
+        with context.session.begin(subtransactions=True):
+            self._update_vnf_status_db(
+                context, vnf_id, ['ERROR'], status)
+
     def _update_vnf_scaling_status(self,
                                    context,
                                    policy,

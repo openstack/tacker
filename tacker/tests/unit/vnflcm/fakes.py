@@ -905,6 +905,22 @@ def vnflcm_rollback_insta(error_point=7):
         created_at=dt)
 
 
+def vnflcm_fail_insta(error_point=7):
+    default_datetime = datetime.datetime(
+        2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    return objects.VnfLcmOpOcc(
+        state_entered_time=default_datetime,
+        start_time=default_datetime,
+        vnf_instance_id=uuidsentinel.vnf_instance_id,
+        operation='INSTANTIATE',
+        operation_state='FAILED_TEMP',
+        is_automatic_invocation=False,
+        operation_params='{}',
+        error_point=error_point,
+        id=constants.UUID,
+        created_at=default_datetime)
+
+
 def vnflcm_rollback_active():
     dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
     return objects.VnfLcmOpOcc(

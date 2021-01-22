@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import datetime
 import requests
 import tacker.conf
@@ -258,47 +259,66 @@ class VnfLcmController(wsgi.Controller):
                 % vim_id
             raise webob.exc.HTTPBadRequest(explanation=msg)
 
-    def _notification_process(self, context, vnf_instance,
-                              lcm_operation, request, body, is_auto=False):
-        vnf_lcm_op_occs_id = uuidutils.generate_uuid()
-        error_point = 0
-        operation_params = jsonutils.dumps(body)
-        try:
-            # call create lcm op occs here
-            LOG.debug('Create LCM OP OCCS')
-            vnf_lcm_op_occs = objects.VnfLcmOpOcc(
-                context=context,
-                id=vnf_lcm_op_occs_id,
-                operation_state=fields.LcmOccsOperationState.STARTING,
-                start_time=timeutils.utcnow(),
-                state_entered_time=timeutils.utcnow(),
-                vnf_instance_id=vnf_instance.id,
-                is_cancel_pending=is_auto,
-                operation=lcm_operation,
-                is_automatic_invocation=is_auto,
-                operation_params=operation_params,
-                error_point=error_point)
-            vnf_lcm_op_occs.create()
-        except Exception:
-            msg = _("Failed to create LCM occurrence")
-            raise webob.exc.HTTPInternalServerError(explanation=msg)
+    def _notification_process(
+            self, context, vnf_instance, lcm_operation, request, body,
+            vnf_lcm_op_occs=None,
+            operation_state=fields.LcmOccsOperationState.STARTING,
+            notification_status=fields.LcmOccsNotificationStatus.START,
+            affected_resources=None, is_auto=False):
+        LOG.debug('START NOTIFICATION PROCESS')
+        vnf_url = self._get_vnf_instance_href(vnf_instance)
 
-        vnf_lcm_url = self._get_vnf_lcm_op_occs_href(vnf_lcm_op_occs_id)
         notification = {
             'notificationType':
                 fields.LcmOccsNotificationType.VNF_OP_OCC_NOTIFICATION,
-            'notificationStatus': fields.LcmOccsNotificationStatus.START,
-            'operationState': fields.LcmOccsOperationState.STARTING,
+            'notificationStatus': notification_status,
+            'operationState': operation_state,
             'vnfInstanceId': vnf_instance.id,
             'operation': lcm_operation,
             'isAutomaticInvocation': is_auto,
-            'vnfLcmOpOccId': vnf_lcm_op_occs_id,
             '_links': {
                 'vnfInstance': {
-                    'href': self._get_vnf_instance_href(vnf_instance)},
-                'vnfLcmOpOcc': {
-                    'href': vnf_lcm_url}}}
+                    'href': vnf_url},
+                'vnfLcmOpOcc': {}}}
 
+        if operation_state is fields.LcmOccsOperationState.FAILED:
+            vnf_lcm_op_occs_id = vnf_lcm_op_occs.id
+
+            notification['affectedVnfcs'] = affected_resources.get(
+                'affectedVnfcs', [])
+            notification['affectedVirtualLinks'] = affected_resources.get(
+                'affectedVirtualLinks', [])
+            notification['affectedVirtualStorages'] = affected_resources.get(
+                'affectedVirtualStorages', [])
+            notification['error'] = str(vnf_lcm_op_occs.error)
+
+        else:
+            vnf_lcm_op_occs_id = uuidutils.generate_uuid()
+            error_point = 0
+            operation_params = jsonutils.dumps(body)
+            try:
+                # call create lcm op occs here
+                LOG.debug('Create LCM OP OCCS')
+                vnf_lcm_op_occs = objects.VnfLcmOpOcc(
+                    context=context,
+                    id=vnf_lcm_op_occs_id,
+                    operation_state=operation_state,
+                    start_time=timeutils.utcnow(),
+                    state_entered_time=timeutils.utcnow(),
+                    vnf_instance_id=vnf_instance.id,
+                    is_cancel_pending=is_auto,
+                    operation=lcm_operation,
+                    is_automatic_invocation=is_auto,
+                    operation_params=operation_params,
+                    error_point=error_point)
+                vnf_lcm_op_occs.create()
+            except Exception:
+                msg = _("Failed to create LCM occurrence")
+                raise webob.exc.HTTPInternalServerError(explanation=msg)
+
+        vnf_lcm_url = self._get_vnf_lcm_op_occs_href(vnf_lcm_op_occs_id)
+        notification['vnfLcmOpOccId'] = vnf_lcm_op_occs_id
+        notification['_links']['vnfLcmOpOcc']['href'] = vnf_lcm_url
         # call send notification
         try:
             self.rpc_api.send_notification(context, notification)
@@ -1234,6 +1254,101 @@ class VnfLcmController(wsgi.Controller):
             LOG.error(traceback.format_exc())
             return self._make_problem_detail(
                 str(e), 500, title='Internal Server Error')
+
+    # TODO(esto-aln): For adding it to make it consistent
+    # We change vnf status here. In near future, we plan to
+    # delete this method.
+    def _update_vnf_fail_status(self, context, vnf_instance_id,
+            new_status):
+        self._vnfm_plugin.update_vnf_fail_status(
+            context, vnf_instance_id, new_status)
+
+    @wsgi.response(http_client.OK)
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
+                           http_client.NOT_FOUND))
+    def fail(self, request, id):
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'fail')
+
+        try:
+            vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
+            operation = vnf_lcm_op_occs.operation
+
+            if vnf_lcm_op_occs.operation_state != 'FAILED_TEMP':
+                return self._make_problem_detail(
+                    'State is not FAILED_TEMP', 409, title='Conflict')
+
+            vnf_instance_id = vnf_lcm_op_occs.vnf_instance_id
+            vnf_instance = self._get_vnf_instance(context, vnf_instance_id)
+        except webob.exc.HTTPNotFound as e:
+            return self._make_problem_detail(
+                str(e), 404, title='VNF NOT FOUND')
+        except exceptions.NotFound as e:
+            return self._make_problem_detail(
+                str(e), 404, title='VNF LCM NOT FOUND')
+        except Exception as e:
+            LOG.error(traceback.format_exc())
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
+
+        try:
+            old_vnf_instance = copy.deepcopy(vnf_instance)
+
+            vnf_lcm_op_occs.operation_state = "FAILED"
+            vnf_lcm_op_occs.state_entered_time = \
+                datetime.datetime.utcnow().isoformat()
+            vnf_lcm_op_occs.updated_at = vnf_lcm_op_occs.state_entered_time
+
+            error_details = objects.ProblemDetails(
+                context=context,
+                status=500,
+                detail=str(vnf_lcm_op_occs.error)
+            )
+            vnf_lcm_op_occs.error = error_details
+
+            # TODO(esto-aln): For adding it to make it consistent
+            # We change vnf status here. In near future, we plan to
+            # delete this branch.
+            if vnf_instance.instantiation_state == \
+                    fields.VnfInstanceState.INSTANTIATED:
+                new_status = constants.ACTIVE
+            else:
+                new_status = constants.INACTIVE
+
+            self._update_vnf_fail_status(context, vnf_instance.id,
+                new_status)
+            vnf_instance.task_state = None
+            vnf_instance.save()
+
+            affected_resources = vnflcm_utils._get_affected_resources(
+                old_vnf_instance=old_vnf_instance,
+                new_vnf_instance=vnf_instance)
+            resource_change_obj = jsonutils.dumps(
+                utils.convert_camelcase_to_snakecase(affected_resources))
+            changed_resource = objects.ResourceChanges.obj_from_primitive(
+                resource_change_obj, context)
+            vnf_lcm_op_occs.resource_changes = changed_resource
+            vnf_lcm_op_occs.save()
+        except Exception as ex:
+            error_msg = "Error in VNF Fail for vnf {} because {}".format(
+                vnf_instance.id, encodeutils.exception_to_unicode(ex))
+            LOG.error(error_msg)
+            raise exceptions.TackerException(message=error_msg)
+
+        return self._fail(context, vnf_instance, vnf_lcm_op_occs,
+                          operation, affected_resources)
+
+    def _fail(self, context, vnf_instance, vnf_lcm_op_occs,
+              operation, affected_resources):
+
+        self._notification_process(
+            context, vnf_instance, operation, {}, {},
+            vnf_lcm_op_occs=vnf_lcm_op_occs,
+            operation_state=fields.LcmOccsOperationState.FAILED,
+            notification_status=fields.LcmOccsNotificationStatus.RESULT,
+            affected_resources=affected_resources)
+
+        return self._view_builder.show_lcm_op_occs(vnf_lcm_op_occs)
 
     def _make_problem_detail(
             self,

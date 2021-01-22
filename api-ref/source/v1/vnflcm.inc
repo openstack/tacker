@@ -810,6 +810,127 @@ Request Parameters
 
   - vnfLcmOpOccId: vnf_lcm_op_occ_id
 
+Fail a VNF lifecycle operation
+===================================
+
+.. rest_method::  POST /vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/fail
+
+The POST method marks a VNF lifecycle management operation occurrence as "finally failed" if that operation
+occurrence is in "FAILED_TEMP" state
+
+In case of success, the "operationState" attribute in the representation of the parent resource shall be changed to
+"FAILED" and the applicable "result" notification shall be emitted to indicate that the execution of the underlying
+VNF LCM operation occurrence has finally and unrecoverably failed.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 200
+
+.. rest_status_code:: error status.yaml
+
+  - 401
+  - 403
+  - 404
+  - 409
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfLcmOpOccId: vnf_lcm_op_occ_id
+
+Response Parameters
+-------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - id: vnf_lcm_op_occ_id_response
+  - operationState: operation_state
+  - stateEnteredTime: state_entered_time
+  - startTime: start_time
+  - vnfInstanceId: vnf_lcm_vnf_instance_id
+  - grantId: grant_id
+  - operation: operation
+  - isAutomaticInvocation: is_automatic_invocation
+  - operationParams: operation_params
+  - error: error
+  - title: error_title
+  - status: error_status
+  - detail: error_detail
+  - isCancelPending: is_cancel_pending
+  - _links: vnf_instance_links
+  - resourceChanges: resource_changes
+  - affectedVnfcs: affected_vnfcs
+  - id: affected_vnfcs_id
+  - vduId: affected_vnfcs_vdu_id
+  - changeType: affected_vnfcs_change_type
+  - computeResource: vnfc_resource_info_compute_resource
+  - vimConnectionId: vim_connection_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - affectedVnfcCpIds: affected_vnfc_cp_ids
+  - addedStorageResourceIds: added_storage_resource_ids
+  - removedStorageResourceIds: removed_storage_resource_ids
+  - affectedVirtualLinks: affected_virtual_links
+  - id: affected_virtual_links_id
+  - vnfVirtualLinkDescId: vnf_virtual_link_resource_info_vnf_virtual_link_desc_id
+  - changeType: affected_virtual_links_change_type
+  - networkResource: vnf_virtual_link_resource_info_network_resource
+  - vimConnectionId: vim_connection_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - affectedVirtualStorages: affected_virtual_storages
+  - id: affected_virtual_storages_id
+  - virtualStorageDescId: affected_virtual_storages_virtual_storage_desc_id
+  - changeType: affected_virtual_storages_change_type
+  - storageResource: virtual_storage_resource_info_storage_resource
+  - vimConnectionId: vim_connection_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - changedInfo: changed_info
+  - vnfInstanceName: changed_info_vnf_instance_name
+  - vnfInstanceDescription: changed_info_vnf_instance_description
+  - metadata: changed_info_metadata
+  - vimConnectionInfo: changed_info_vim_connection_info
+  - id: vim_connection_info_id
+  - vimId: vim_connection_info_vim_id
+  - vimType: vim_connection_info_vim_type
+  - interfaceInfo: vim_connection_info_interface_info
+  - endpoint: vim_connection_info_interface_info_endpoint
+  - accessInfo: vim_connection_info_access_info
+  - username: vim_connection_info_access_info_username
+  - region: vim_connection_info_access_info_region
+  - password: vim_connection_info_access_info_password
+  - tenant: vim_connection_info_access_info_tenant
+  - vnfPkgId: changed_info_vnf_pkg_id
+  - vnfdId: changed_info_vnfd_id
+  - vnfProvider: changed_info_vnf_provider
+  - vnfProductName: changed_info_vnf_product_name
+  - vnfSotwareVersion: changed_info_vnf_sotware_version
+  - vnfdVersion: changed_info_vnfd_version
+  - changedExtConnectivity: changed_ext_connectivity
+  - id: changed_ext_connectivity_id
+  - resourceHandle: resource_handle
+  - vimConnectionId: vim_connection_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - extLinkPorts: ext_link_ports
+  - id: ext_link_port_id
+  - resourceHandle: resource_handle
+  - vimConnectionId:  vim_connection_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - cpInstanceId: cp_instance_id
+
+Response Example
+----------------
+
+.. literalinclude:: samples/vnflcm/fail-vnf-instance-response.json
+   :language: javascript
+
 Create a new subscription
 =========================
 

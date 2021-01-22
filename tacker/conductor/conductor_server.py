@@ -1388,7 +1388,8 @@ class Conductor(manager.Manager):
                       operation_state)
             vnf_notif = self._get_vnf_notify(context, vnf_lcm_op_occs_id)
             vnf_notif.operation_state = operation_state
-            if operation_state == fields.LcmOccsOperationState.FAILED_TEMP:
+            if operation_state == fields.LcmOccsOperationState.FAILED_TEMP or \
+                    operation_state == fields.LcmOccsOperationState.FAILED:
                 vnf_notif.error_point = error_point
                 error_details = objects.ProblemDetails(
                     context=context,
@@ -1426,7 +1427,8 @@ class Conductor(manager.Manager):
                             % vnf_lcm_op_occs_id}}}
 
             if(operation_state == fields.LcmOccsOperationState.COMPLETED or
-               operation_state == fields.LcmOccsOperationState.FAILED_TEMP):
+               operation_state == fields.LcmOccsOperationState.FAILED_TEMP or
+               operation_state == fields.LcmOccsOperationState.FAILED):
                 affected_resources = vnflcm_utils._get_affected_resources(
                     old_vnf_instance=old_vnf_instance,
                     new_vnf_instance=vnf_instance)
@@ -1447,7 +1449,10 @@ class Conductor(manager.Manager):
                 notification_data['notificationStatus'] = \
                     fields.LcmOccsNotificationStatus.RESULT
 
-                if operation_state == fields.LcmOccsOperationState.FAILED_TEMP:
+                if operation_state == \
+                        fields.LcmOccsOperationState.FAILED_TEMP \
+                        or operation_state == \
+                        fields.LcmOccsOperationState.FAILED:
                     notification_data['error'] = error
 
             # send notification

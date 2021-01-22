@@ -3067,3 +3067,66 @@ class TestController(base.TestCase):
 
         resp = req.get_response(self.app)
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+
+    @mock.patch.object(controller.VnfLcmController,
+                       "_update_vnf_fail_status")
+    @mock.patch('tacker.api.views.vnf_lcm.ViewBuilder'
+                '._get_vnf_lcm_op_occs')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_fail_lcm_op_occs(self, mock_lcm_get_by_id,
+                              mock_lcm_save, mock_vnf_get_by_id,
+                              mock_vnf_save, mock_view,
+                              mock_update):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
+        mock_lcm_get_by_id.return_value = fakes.vnflcm_fail_insta()
+        mock_view.return_value = fakes.VNFLCMOPOCC_RESPONSE
+        res_dict = self.controller.fail(req, constants.UUID)
+        self.assertEqual(fakes.VNFLCMOPOCC_RESPONSE, res_dict)
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_fail_lcm_op_occs_not_found(self, mock_lcm_get_by_id,
+                                        mock_vnf_get_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
+        mock_lcm_get_by_id.side_effect = exceptions.NotFound()
+
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        res_dict = self.controller.fail(req, constants.UUID)
+
+        self.assertEqual(http_client.NOT_FOUND, res_dict.status_code)
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_fail_lcm_op_occs_vnf_not_found(self, mock_lcm_get_by_id,
+                                            mock_vnf_get_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
+        mock_lcm_get_by_id.return_value = fakes.vnflcm_fail_insta()
+        mock_vnf_get_by_id.side_effect = exceptions.VnfInstanceNotFound()
+
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        res_dict = self.controller.fail(req, constants.UUID)
+
+        self.assertEqual('VNF NOT FOUND', res_dict.json['title'])
+        self.assertEqual(http_client.NOT_FOUND, res_dict.status_code)
+
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_fail_lcm_op_occs_vnf_not_failed_temp(self, mock_lcm_get_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
+        vnflcm_fail_object = fakes.vnflcm_fail_insta()
+        vnflcm_fail_object.operation_state = 'STARTED'
+        mock_lcm_get_by_id.return_value = vnflcm_fail_object
+
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        res_dict = self.controller.fail(req, constants.UUID)
+
+        self.assertEqual(http_client.CONFLICT, res_dict.status_code)

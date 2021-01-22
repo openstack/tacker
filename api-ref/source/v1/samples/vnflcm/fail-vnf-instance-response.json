@@ -1,0 +1,32 @@
+{
+    "operation":"INSTANTIATE",
+    "stateEnteredTime":"2021-01-22 13:41:30.869833+00:00",
+    "id":"22962087-0494-484f-85e9-ef855e702633",
+    "isCancelPending":false,
+    "vnfInstanceId":"a9d0fe86-a3d0-4cbf-a117-578ff182fd7e",
+    "startTime":"2021-01-22 13:41:03+00:00",
+    "isAutomaticInvocation":false,
+    "operationState":"FAILED",
+    "operationParams":"{\"flavourId\": \"default\", \"instantiationLevelId\": \"n-msc-min\", \"additionalParams\": {\"lcm-operation-user-data\": \"./UserData/lcm_user_data.py\", \"lcm-operation-user-data-class\": \"SampleUserData\", \"sbc_name\": \"sbc\", \"slb_name\": \"slb\", \"image\": \"cirros-0.4.0-x86_64-disk\"}}",
+    "error":{
+        "status":500,
+        "detail":"MANUAL ERROR"
+    },
+    "_links":{
+        "self":{
+            "href":"https://sample1.com/vnflcm/v1/vnf_lcm_op_occs/22962087-0494-484f-85e9-ef855e702633"
+        },
+        "vnfInstance":{
+            "href":"https://sample1.com/vnflcm/v1/vnf_instances/a9d0fe86-a3d0-4cbf-a117-578ff182fd7e"
+        },
+        "retry":{
+            "href":"https://sample1.com/vnflcm/v1/vnf_lcm_op_occs/22962087-0494-484f-85e9-ef855e702633/retry"
+        },
+        "rollback":{
+            "href":"https://sample1.com/vnflcm/v1/vnf_lcm_op_occs/22962087-0494-484f-85e9-ef855e702633/rollback"
+        },
+        "fail":{
+            "href":"https://sample1.com/vnflcm/v1/vnf_lcm_op_occs/22962087-0494-484f-85e9-ef855e702633/fail"
+        }
+    }
+}

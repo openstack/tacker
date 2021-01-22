@@ -273,6 +273,21 @@ cause:
   in: body
   required: false
   type: string
+changed_ext_connectivity:
+  description: |
+    Information about changed external connectivity,
+    if applicable
+  in: body
+  required: false
+  type: object
+changed_ext_connectivity_id:
+  description: |
+    Identifier of the external VL and the related external VL
+    information instance. The identifier is assigned by the
+    NFV-MANO entity that manages this VL instance.
+  in: body
+  required: false
+  type: string
 changed_info:
   description: |
     Information about the changed VNF instance information,
@@ -659,6 +674,15 @@ graceful_termination_timeout:
     it is expected that the VNFM waits for the successful taking out of
     service of the VNF, no matter how long it takes, before shutting down
     the VNF and releasing the resources.
+  in: body
+  required: false
+  type: string
+grant_id:
+  description: |
+    Identifier of the grant related to this VNF LCM operation
+    occurrence. Shall be set to the value of the "id" attribute in
+    the "Grant" representing the associated "Individual Grant",
+    if such grant exists.
   in: body
   required: false
   type: string

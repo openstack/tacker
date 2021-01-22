@@ -460,6 +460,15 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
         return resp, response_body
 
+    def _fail_op_occs(self, vnf_lcm_op_occs_id):
+        fail_url = os.path.join(
+            self.base_vnf_lcm_op_occs_url,
+            vnf_lcm_op_occs_id, 'fail')
+        resp, response_body = self.http_client.do_request(
+            fail_url, "POST")
+
+        return resp, response_body
+
     def _show_op_occs(self, vnf_lcm_op_occs_id):
         show_url = os.path.join(
             self.base_vnf_lcm_op_occs_url,
@@ -504,6 +513,44 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             return None
 
         return target_stakcs[0]
+
+    def _delete_heat_stack(self, stack_id):
+        self.h_client.stacks.delete(stack_id)
+
+    def _wait_until_stack_ready(self, stack_id, expected_status):
+        start_time = time.time()
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+
+        while True:
+            stack = self.h_client.stacks.get(stack_id)
+            actual_status = stack.stack_status
+            print(
+                ("Wait:callback_url=<%s>, " +
+                "wait_status=<%s> ") %
+                (callback_url, actual_status),
+                flush=True)
+
+            if actual_status == expected_status:
+                return None
+
+            if time.time() - start_time > VNF_LCM_DONE_TIMEOUT:
+                if actual_status:
+                    error = (
+                        "LCM incomplete timeout, " +
+                        " stack %(stack_id)s" +
+                        " is %(actual)s," +
+                        "expected status should be %(expected)s")
+                    self.fail(
+                        error % {
+                            "stack_id": stack_id,
+                            "expected": expected_status,
+                            "actual": actual_status})
+                else:
+                    self.fail("LCM incomplete timeout")
+
+            time.sleep(RETRY_WAIT_TIME)
 
     def _get_heat_resource_list(self, stack_id, nested_depth=0):
         try:
@@ -959,6 +1006,22 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             notify_mock_responses[1],
             'VnfLcmOperationOccurrenceNotification',
             'ROLLED_BACK')
+
+    def assert_fail_vnf(self, resp, vnf_instance_id):
+        self.assertEqual(200, resp.status_code)
+
+        # FT-checkpoint: Notification
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id)
+
+        self.assertEqual(1, len(notify_mock_responses))
+        self.assert_notification_mock_response(
+            notify_mock_responses[0],
+            'VnfLcmOperationOccurrenceNotification',
+            'FAILED')
 
     def assert_update_vnf(
             self,
