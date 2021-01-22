@@ -940,6 +940,15 @@ class VnfLcmController(wsgi.Controller):
         filter_uni = subscription_request_data.get('filter')
         filter = ast.literal_eval(str(filter_uni).replace("'", "'"))
 
+        if CONF.vnf_lcm.test_callback_uri:
+            resp = self._test_notification(request.context,
+                vnf_lcm_subscription)
+            if resp == -1:
+                LOG.exception(traceback.format_exc())
+                return self._make_problem_detail(
+                    'Failed to Test Notification', 400,
+                    title='Bad Request')
+
         try:
             vnf_lcm_subscription = vnf_lcm_subscription.create(filter)
             LOG.debug("vnf_lcm_subscription %s" % vnf_lcm_subscription)
@@ -1525,6 +1534,11 @@ class VnfLcmController(wsgi.Controller):
         res.text = json.dumps(problem_details)
         res.status_int = status
         return res
+
+    def _test_notification(self, context, vnf_lcm_subscription):
+        resp = self.rpc_api.test_notification(context,
+            vnf_lcm_subscription, cast=False)
+        return resp
 
 
 def create_resource():

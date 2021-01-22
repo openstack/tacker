@@ -113,6 +113,17 @@ class VNFLcmRPCAPI(object):
         return rpc_method(context, 'send_notification',
                           notification=notification)
 
+    def test_notification(self, context,
+            vnf_lcm_subscription=None, cast=False):
+        serializer = objects_base.TackerObjectSerializer()
+
+        client = rpc.get_client(self.target, version_cap=None,
+                                serializer=serializer)
+        cctxt = client.prepare()
+        rpc_method = cctxt.cast if cast else cctxt.call
+        return rpc_method(context, 'test_notification',
+                          vnf_lcm_subscription=vnf_lcm_subscription)
+
     def rollback(self, context, vnf_info, vnf_instance,
             operation_params, cast=True):
         serializer = objects_base.TackerObjectSerializer()

@@ -1467,11 +1467,6 @@ class Conductor(manager.Manager):
                 "Failed to send notification {}. Details: {}".format(
                     vnf_lcm_op_occs_id, str(ex)))
 
-    def _retry_check(self, retry_count):
-        time.sleep(CONF.vnf_lcm.retry_wait)
-        if retry_count == CONF.vnf_lcm.retry_num:
-            LOG.warn("Number of retries exceeded retry count")
-
     def send_notification(self, context, notification):
         """Function to send notification to client
 
@@ -1573,6 +1568,65 @@ class Conductor(manager.Manager):
             LOG.warn(traceback.format_exc())
             return -2
         return 0
+
+    def _retry_check(self, retry_count):
+        time.sleep(CONF.vnf_lcm.retry_wait)
+        if retry_count == CONF.vnf_lcm.retry_num:
+            LOG.warn(
+                "Number of retries exceeded retry count [%s]" %
+                CONF.vnf_lcm.retry_num)
+
+    def test_notification(self, context, vnf_lcm_subscription=None):
+        """Function to send test notification to client
+
+           This function is used to send test notification
+           to client during Register Subscription.
+
+           :returns: 0 if status code of the response is 204
+                    or if CONF.vnf_lcm.test_callback_uri is False,
+                    -1 if status code of the response is not 204
+        """
+
+        if not CONF.vnf_lcm.test_callback_uri:
+            LOG.warning("Callback URI is %s", CONF.vnf_lcm.test_callback_uri)
+            return 0
+
+        # Notification shipping
+        for num in range(CONF.vnf_lcm.retry_num):
+            try:
+                auth_client = auth.auth_manager.get_auth_client(
+                    vnf_lcm_subscription.id)
+
+                notification = {}
+                response = auth_client.get(
+                    vnf_lcm_subscription.callback_uri,
+                    data=json.dumps(notification),
+                    timeout=CONF.vnf_lcm.retry_timeout)
+
+                if response.status_code == 204:
+                    return 0
+                else:
+                    LOG.warning(
+                        "Notification failed status[%s] \
+                            callback_uri[%s]" %
+                        (response.status_code,
+                        vnf_lcm_subscription.callback_uri))
+                    LOG.debug(
+                        "retry_wait %s" %
+                        CONF.vnf_lcm.retry_wait)
+                    self._retry_check(num)
+
+                    continue
+            except requests.Timeout as e:
+                LOG.warning("Notification request timed out."
+                    " callback_uri[%(uri)s]"
+                    " reason[%(reason)s]", {
+                        "uri": vnf_lcm_subscription.callback_uri,
+                        "reason": str(e)})
+                self._retry_check(num)
+
+        # return -1 since the response is not 204
+        return -1
 
     @coordination.synchronized('{vnf_instance[id]}')
     def instantiate(
