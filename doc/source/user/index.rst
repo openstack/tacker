@@ -55,6 +55,7 @@ Use cases
    etsi_containerized_vnf_usage_guide.rst
    etsi_vnf_error_handling.rst
    etsi_vnf_healing.rst
+   etsi_vnf_scaling.rst
    containerized_vnf_usage_guide.rst
    ../reference/mistral_workflows_usage_guide.rst
    multisite_vim_usage_guide.rst
