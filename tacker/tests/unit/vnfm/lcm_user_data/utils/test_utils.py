@@ -81,8 +81,14 @@ class TestUtils(testtools.TestCase):
         }
         vdu_flavor_dict = {'VDU1': {'ram': 'vdu1_flavor_ram_change'}}
         vdu_image_dict = {'VDU1': 'vdu1_image_uuid_change'}
-        cpd_vl_dict = {'CP1': {'cp1_network_id_change_1',
-                               'cp1_network_id_change_2'}}
+        cpd_vl_dict = {
+            'CP1': {
+                'network': {
+                    'cp1_network_id_change_1',
+                    'cp1_network_id_change_2'
+                }
+            }
+        }
         expected_final_param_dict = {
             'nfv': {
                 'CP': {

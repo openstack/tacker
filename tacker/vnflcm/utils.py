@@ -869,7 +869,7 @@ def _build_ip_over_ethernet_address_info(cp_protocol_data):
         ip_address_info = objects.vnf_instantiated_info.IpAddress(
             type=ip_address.type,
             addresses=ip_address.fixed_addresses,
-            is_dynamic=(False if ip_address.fixed_addresses else True),
+            is_dynamic=True if ip_address.num_dynamic_addresses else False,
             subnet_id=ip_address.subnet_id)
 
         ip_address_list.append(ip_address_info)

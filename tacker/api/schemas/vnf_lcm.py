@@ -43,7 +43,8 @@ _ipaddresses = {
         'properties': {
             'type': {'enum': fields.IpAddressType.ALL},
             'subnetId': parameter_types.identifier_in_vim,
-            'fixedAddresses': {'type': 'array'}
+            'fixedAddresses': {'type': 'array'},
+            'numDynamicAddresses': parameter_types.positive_integer
         },
         'if': {'properties': {'type': {'const': fields.IpAddressType.IPV4}}},
         'then': {
@@ -62,7 +63,11 @@ _ipaddresses = {
                 }
             }
         },
-        'required': ['type', 'fixedAddresses'],
+        'required': ['type'],
+        'oneOf': [
+            {'required': ['numDynamicAddresses']},
+            {'required': ['fixedAddresses']}
+        ],
         'additionalProperties': True
     }
 }

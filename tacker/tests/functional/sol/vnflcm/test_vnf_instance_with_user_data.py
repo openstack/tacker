@@ -151,9 +151,10 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Instantiate vnf instance
-        request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
-            self.vim['tenant_id'], self.ext_networks, self.ext_mngd_networks,
-            self.ext_link_ports, self.ext_subnets)
+        request_body = fake_vnflcm.VnfInstances.\
+            make_inst_request_body_include_num_dynamic(
+                self.vim['tenant_id'], self.ext_networks,
+                self.ext_mngd_networks, self.ext_link_ports, self.ext_subnets)
         resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
         self.assert_instantiate_vnf(resp, vnf_instance_id, vnf_package_id)

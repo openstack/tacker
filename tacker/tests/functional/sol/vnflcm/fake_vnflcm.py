@@ -47,6 +47,167 @@ class Subscription:
         }
 
 
+ext_vdu1_cp1 = {
+    "cpdId": "VDU1_CP1",
+    "cpConfig": [{
+        "linkPortId": uuidsentinel.elp1_id
+    }],
+}
+ext_vdu2_cp1 = {
+    "cpdId": "VDU2_CP1",
+    "cpConfig": [{
+        "linkPortId": uuidsentinel.elp2_id
+    }]
+}
+
+
+def _set_ext_link_port1(external_ports_id):
+    ext_link_port1 = {
+        "id": uuidsentinel.elp1_id,
+        "resourceHandle": {
+            "vimConnectionId": uuidsentinel.vim_connection_id,
+            "resourceId": external_ports_id[0]
+        }
+    }
+    return ext_link_port1
+
+
+def _set_ext_link_port2(external_ports_id):
+    ext_link_port2 = {
+        "id": uuidsentinel.elp2_id,
+        "resourceHandle": {
+            "vimConnectionId": uuidsentinel.vim_connection_id,
+            "resourceId": external_ports_id[1]
+        }
+    }
+    return ext_link_port2
+
+
+def _set_ext_virtual_link_cp1(networks_id, external_ports_id):
+    ext_virtual_link_cp1 = {
+        "id": uuidsentinel.evl1_id,
+        "resourceId": networks_id[0],
+        "extCps": [ext_vdu1_cp1, ext_vdu2_cp1],
+        "extLinkPorts": [
+            _set_ext_link_port1(external_ports_id),
+            _set_ext_link_port2(external_ports_id)]
+    }
+    return ext_virtual_link_cp1
+
+
+def _set_ext_cps_vdu1_cp2(external_subnets_id):
+    ext_cps_vdu1_cp2 = {
+        "cpdId": "VDU1_CP2",
+        "cpConfig": [{
+            "cpProtocolData": [{
+                "layerProtocol": "IP_OVER_ETHERNET",
+                "ipOverEthernet": {
+                    "ipAddresses": [{
+                        "type": "IPV4",
+                        "fixedAddresses": ["22.22.1.10"],
+                        "subnetId": external_subnets_id[1]
+                    }]
+                }
+            }]
+        }]
+    }
+    return ext_cps_vdu1_cp2
+
+
+def _set_ext_cps_vdu2_cp2(external_subnets_id):
+    ext_cps_vdu2_cp2 = {
+        "cpdId": "VDU2_CP2",
+        "cpConfig": [{
+            "cpProtocolData": [{
+                "layerProtocol": "IP_OVER_ETHERNET",
+                "ipOverEthernet": {
+                    "ipAddresses": [{
+                        "type": "IPV4",
+                        "fixedAddresses": ["22.22.1.20"],
+                        "subnetId": external_subnets_id[1]
+                    }]
+                }
+            }]
+        }]
+    }
+    return ext_cps_vdu2_cp2
+
+
+def _set_ext_cps_vdu1_cp2_in_num_dynamic(external_subnets_id):
+    ext_cps_vdu1_cp2_in_num_dynamic = {
+        "cpdId": "VDU1_CP2",
+        "cpConfig": [{
+            "cpProtocolData": [{
+                "layerProtocol": "IP_OVER_ETHERNET",
+                "ipOverEthernet": {
+                    "ipAddresses": [{
+                        "type": "IPV4",
+                        "numDynamicAddresses": 1,
+                        "subnetId": external_subnets_id[1]
+                    }]
+                }
+            }]
+        }]
+    }
+    return ext_cps_vdu1_cp2_in_num_dynamic
+
+
+def _set_ext_cps_vdu2_cp2_in_num_dynamic(external_subnets_id):
+    ext_cps_vdu2_cp2_in_num_dynamic = {
+        "cpdId": "VDU2_CP2",
+        "cpConfig": [{
+            "cpProtocolData": [{
+                "layerProtocol": "IP_OVER_ETHERNET",
+                "ipOverEthernet": {
+                    "ipAddresses": [{
+                        "type": "IPV4",
+                        "fixedAddresses": ["22.22.1.200"],
+                        "subnetId": external_subnets_id[1]
+                    }]
+                }
+            }]
+        }]
+    }
+    return ext_cps_vdu2_cp2_in_num_dynamic
+
+
+def _set_ext_virtual_link_cp2(networks_id, external_subnets_id):
+    ext_virtual_link_cp2 = {
+        "id": uuidsentinel.evl2_id,
+        "resourceId": networks_id[1],
+        "extCps": [
+            _set_ext_cps_vdu1_cp2(external_subnets_id),
+            _set_ext_cps_vdu2_cp2(external_subnets_id)
+        ]
+    }
+    return ext_virtual_link_cp2
+
+
+def _set_ext_virtual_link_cp2_in_num_dynamic(networks_id, external_subnets_id):
+    ext_virtual_link_cp2_in_num_dynamic = {
+        "id": uuidsentinel.evl2_id,
+        "resourceId": networks_id[1],
+        "extCps": [
+            _set_ext_cps_vdu1_cp2_in_num_dynamic(external_subnets_id),
+            _set_ext_cps_vdu2_cp2_in_num_dynamic(external_subnets_id)
+        ]
+    }
+    return ext_virtual_link_cp2_in_num_dynamic
+
+
+def _set_ext_mng_vtl_lnks(ext_mngd_networks_id):
+    ext_mng_vtl_lnks = [{
+        "id": uuidsentinel.emvl1_id,
+        "vnfVirtualLinkDescId": "internalVL1",
+        "resourceId": ext_mngd_networks_id[0]
+    }, {
+        "id": uuidsentinel.emvl2_id,
+        "vnfVirtualLinkDescId": "internalVL2",
+        "resourceId": ext_mngd_networks_id[1]
+    }]
+    return ext_mng_vtl_lnks
+
+
 class VnfInstances:
 
     @staticmethod
@@ -67,101 +228,56 @@ class VnfInstances:
             ext_mngd_networks_id,
             external_ports_id,
             external_subnets_id):
-        ext_vdu1_cp1 = {
-            "cpdId": "VDU1_CP1",
-            "cpConfig": [{
-                "linkPortId": uuidsentinel.elp1_id
-            }],
-        }
-        ext_vdu2_cp1 = {
-            "cpdId": "VDU2_CP1",
-            "cpConfig": [{
-                "linkPortId": uuidsentinel.elp2_id
-            }]
-        }
-
-        # set external port_id on vim.
-        ext_link_port1 = {
-            "id": uuidsentinel.elp1_id,
-            "resourceHandle": {
-                "vimConnectionId": uuidsentinel.vim_connection_id,
-                "resourceId": external_ports_id[0]
-            }
-        }
-        ext_link_port2 = {
-            "id": uuidsentinel.elp2_id,
-            "resourceHandle": {
-                "vimConnectionId": uuidsentinel.vim_connection_id,
-                "resourceId": external_ports_id[1]
-            }
-        }
-        ext_virtual_link_cp1 = {
-            "id": uuidsentinel.evl1_id,
-            # set external nw_id on vim.
-            "resourceId": networks_id[0],
-            "extCps": [ext_vdu1_cp1, ext_vdu2_cp1],
-            "extLinkPorts": [ext_link_port1, ext_link_port2]
-        }
-
-        # set external subet_id on vim.
-        ext_cps_vdu1_cp2 = {
-            "cpdId": "VDU1_CP2",
-            "cpConfig": [{
-                "cpProtocolData": [{
-                    "layerProtocol": "IP_OVER_ETHERNET",
-                    "ipOverEthernet": {
-                        "ipAddresses": [{
-                            "type": "IPV4",
-                            "fixedAddresses": ["22.22.2.10"],
-                            "subnetId": external_subnets_id[0]
-                        }]
-                    }
-                }]
-            }]
-        }
-        # set external subet_id on vim.
-        ext_cps_vdu2_cp2 = {
-            "cpdId": "VDU2_CP2",
-            "cpConfig": [{
-                "cpProtocolData": [{
-                    "layerProtocol": "IP_OVER_ETHERNET",
-                    "ipOverEthernet": {
-                        "ipAddresses": [{
-                            "type": "IPV4",
-                            "fixedAddresses": ["22.22.2.20"],
-                            "subnetId": external_subnets_id[1]
-                        }]
-                    }
-                }]
-            }]
-        }
-
-        ext_virtual_link_cp2 = {
-            "id": uuidsentinel.evl2_id,
-            "resourceId": networks_id[1],
-            "extCps": [
-                ext_cps_vdu1_cp2, ext_cps_vdu2_cp2
-            ]
-        }
-
-        # set extManaged internal nw_id on vim.
-        ext_mng_vtl_lnks = [{
-            "id": uuidsentinel.emvl1_id,
-            "vnfVirtualLinkDescId": "internalVL1",
-            "resourceId": ext_mngd_networks_id[0]
-        }, {
-            "id": uuidsentinel.emvl2_id,
-            "vnfVirtualLinkDescId": "internalVL2",
-            "resourceId": ext_mngd_networks_id[1]
-        }]
-
         data = {
             "flavourId": "simple",
             "instantiationLevelId": "instantiation_level_1",
             "extVirtualLinks": [
-                ext_virtual_link_cp1, ext_virtual_link_cp2
+                _set_ext_virtual_link_cp1(
+                    networks_id, external_ports_id),
+                _set_ext_virtual_link_cp2(
+                    networks_id, external_subnets_id)
             ],
-            "extManagedVirtualLinks": ext_mng_vtl_lnks,
+            "extManagedVirtualLinks": _set_ext_mng_vtl_lnks(
+                ext_mngd_networks_id),
+            "vimConnectionInfo": [{
+                "id": uuidsentinel.vim_connection_id,
+                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+                "vimConnectionId": uuidsentinel.vim_connection_id,
+                "interfaceInfo": {
+                    "endpoint": "http://127.0.0.1/identity"
+                },
+                "accessInfo": {
+                    "username": "nfv_user",
+                    "region": "RegionOne",
+                    "password": "devstack",
+                    "tenant": tenant_id
+                }
+            }],
+            "additionalParams": {
+                "lcm-operation-user-data": "./UserData/lcm_user_data.py",
+                "lcm-operation-user-data-class": "SampleUserData"
+            }
+        }
+
+        return data
+
+    @staticmethod
+    def make_inst_request_body_include_num_dynamic(
+            tenant_id,
+            networks_id,
+            ext_mngd_networks_id,
+            external_ports_id,
+            external_subnets_id):
+        data = {
+            "flavourId": "simple",
+            "instantiationLevelId": "instantiation_level_1",
+            "extVirtualLinks": [
+                _set_ext_virtual_link_cp1(networks_id, external_ports_id),
+                _set_ext_virtual_link_cp2_in_num_dynamic(
+                    networks_id, external_subnets_id)
+            ],
+            "extManagedVirtualLinks": _set_ext_mng_vtl_lnks(
+                ext_mngd_networks_id),
             "vimConnectionInfo": [{
                 "id": uuidsentinel.vim_connection_id,
                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",

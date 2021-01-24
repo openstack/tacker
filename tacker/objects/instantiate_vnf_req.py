@@ -99,18 +99,17 @@ def _get_cp_protocol_data_list(ext_cp_info):
     cp_protocol_data_list = []
 
     def _get_ip_addresses(ip_addresses):
-        ip_addresses = []
+        ip_addresses_list = []
         for ip_address in ip_addresses:
-            # TODO(nitin-uikey): How to determine num_dynamic_addresses
-            # back from InstantiatedVnfInfo->IpAddressReq.
             ip_address_data = IpAddressReq(
                 type=ip_address.type,
                 subnet_id=ip_address.subnet_id,
-                fixed_addresses=ip_address.addresses)
+                fixed_addresses=ip_address.addresses,
+                num_dynamic_addresses=1 if ip_address.is_dynamic else 0)
 
-            ip_addresses.append(ip_address_data)
+            ip_addresses_list.append(ip_address_data)
 
-        return ip_addresses
+        return ip_addresses_list
 
     for cp_protocol_info in ext_cp_info.cp_protocol_info:
         if cp_protocol_info.ip_over_ethernet:
@@ -532,7 +531,8 @@ class IpAddressReq(base.TackerObject):
         'type': fields.IpAddressTypeField(nullable=False),
         'subnet_id': fields.StringField(nullable=True, default=None),
         'fixed_addresses': fields.ListOfStringsField(nullable=True,
-            default=[])
+            default=[]),
+        'num_dynamic_addresses': fields.IntegerField(nullable=True, default=0)
     }
 
     @classmethod
@@ -540,9 +540,11 @@ class IpAddressReq(base.TackerObject):
         type = data_dict.get('type')
         subnet_id = data_dict.get('subnet_id')
         fixed_addresses = data_dict.get('fixed_addresses', [])
+        num_dynamic_addresses = data_dict.get('num_dynamic_addresses')
 
         obj = cls(type=type, subnet_id=subnet_id,
-                fixed_addresses=fixed_addresses)
+                  fixed_addresses=fixed_addresses,
+                  num_dynamic_addresses=num_dynamic_addresses)
 
         return obj
 
