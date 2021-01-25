@@ -387,9 +387,8 @@ class Conductor(manager.Manager):
         deploy_flavour.package_uuid = package_uuid
         deploy_flavour.flavour_id = flavour['flavour_id']
         deploy_flavour.flavour_description = flavour['flavour_description']
-        if flavour.get('instantiation_levels'):
-            deploy_flavour.instantiation_levels = \
-                flavour.get('instantiation_levels')
+        deploy_flavour.instantiation_levels = \
+            flavour.get('instantiation_levels')
         deploy_flavour.create()
 
         sw_images = flavour.get('sw_images')
@@ -1335,9 +1334,8 @@ class Conductor(manager.Manager):
                                                      p_list)
 
     def _update_placement(self, context, vnf_dict, vnf_instance):
-        self.vnfm_plugin.update_placement_constraint(context,
-                                                     vnf_dict,
-                                                     vnf_instance)
+        self.vnfm_plugin.update_placement_constraint_heal(
+            context, vnf_dict, vnf_instance)
 
     def _delete_placement(self, context, vnf_instance_id):
         self.vnfm_plugin.delete_placement_constraint(context,
@@ -1382,8 +1380,8 @@ class Conductor(manager.Manager):
 
         try:
             LOG.debug("Update vnf lcm %s %s",
-                      (vnf_lcm_op_occs_id,
-                      operation_state))
+                      vnf_lcm_op_occs_id,
+                      operation_state)
             vnf_notif = self._get_vnf_notify(context, vnf_lcm_op_occs_id)
             vnf_notif.operation_state = operation_state
             if operation_state == fields.LcmOccsOperationState.FAILED_TEMP:
@@ -1483,20 +1481,20 @@ class Conductor(manager.Manager):
 
             # Notification shipping
             for line in vnf_lcm_subscriptions:
-                notification['subscriptionId'] = line.id.decode()
+                notification['subscriptionId'] = line.id
                 if (notification.get('notificationType') ==
                         'VnfLcmOperationOccurrenceNotification'):
                     notification['_links'] = {}
                     notification['_links']['subscription'] = {}
                     notification['_links']['subscription']['href'] = \
                         CONF.vnf_lcm.endpoint_url + \
-                        "/vnflcm/v1/subscriptions/" + line.id.decode()
+                        "/vnflcm/v1/subscriptions/" + line.id
                 else:
                     notification['links'] = {}
                     notification['links']['subscription'] = {}
                     notification['links']['subscription']['href'] = \
                         CONF.vnf_lcm.endpoint_url + \
-                        "/vnflcm/v1/subscriptions/" + line.id.decode()
+                        "/vnflcm/v1/subscriptions/" + line.id
                 notification['timeStamp'] = datetime.datetime.utcnow(
                 ).isoformat()
                 try:

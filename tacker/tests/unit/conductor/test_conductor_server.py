@@ -130,7 +130,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                     self.subscription_authentication = json.dumps(
                         auth_params).encode()
 
-                self.id = uuidsentinel.lcm_subscription_id.encode()
+                self.id = uuidsentinel.lcm_subscription_id
                 self.callback_uri = 'https://localhost/callback'.encode()
 
             def __getattr__(self, name):

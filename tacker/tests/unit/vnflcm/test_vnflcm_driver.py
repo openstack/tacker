@@ -609,9 +609,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         # Vnf resource software images will be created during
         # instantiation.
         self.assertEqual(1, mock_resource_create.call_count)
-        # Invoke will be called 6 times, 3 for deleting the vnf
-        # resources  and 3 during instantiation.
-        self.assertEqual(6, self._vnf_manager.invoke.call_count)
+        # Invoke will be called 7 times, 3 for deleting the vnf
+        # resources  and 4 during instantiation.
+        self.assertEqual(7, self._vnf_manager.invoke.call_count)
         expected_msg = ("Request received for healing vnf '%s' "
                        "is completed successfully")
         mock_log.info.assert_called_with(expected_msg,

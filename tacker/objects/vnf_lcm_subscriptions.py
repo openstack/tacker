@@ -235,7 +235,7 @@ def _vnf_lcm_subscriptions_create(context, values, filter):
         callbackUri = values.callback_uri
         if filter:
             notification_type = filter.get('notificationTypes')
-            operation_type = filter.get('operationTypese')
+            operation_type = filter.get('operationTypes')
 
             vnf_lcm_subscriptions_id = _vnf_lcm_subscriptions_id_get(
                 context,
@@ -244,7 +244,7 @@ def _vnf_lcm_subscriptions_create(context, values, filter):
                 operation_type=operation_type)
 
             if vnf_lcm_subscriptions_id:
-                raise Exception("303" + vnf_lcm_subscriptions_id.id.decode())
+                raise Exception("303" + vnf_lcm_subscriptions_id)
 
             _add_filter_data(context, values.id, filter)
 
@@ -253,7 +253,7 @@ def _vnf_lcm_subscriptions_create(context, values, filter):
                                             callbackUri)
 
             if vnf_lcm_subscriptions_id:
-                raise Exception("303" + vnf_lcm_subscriptions_id.id.decode())
+                raise Exception("303" + vnf_lcm_subscriptions_id.id)
             _add_filter_data(context, values.id, {})
 
     return values

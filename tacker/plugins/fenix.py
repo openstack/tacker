@@ -415,6 +415,9 @@ class FenixPlugin(object):
             return attrs
 
         instances = []
+        if not vnf_dict['instance_id']:
+            return instances
+
         client = self._get_openstack_clients(context, vnf_dict)
         resources = client.heat.resources.list(vnf_dict['instance_id'],
                                                nested_depth=2)
