@@ -18,6 +18,8 @@ import inspect
 import json
 import os
 import threading
+import time
+from urllib.parse import urlparse
 
 from oslo_log import log as logging
 
@@ -114,12 +116,13 @@ class DummyRequestHander(http.server.CGIHTTPRequestHandler):
 
         return False
 
-    def _returned_callback(self, mock_info):
+    def _returned_callback(self, path, mock_info):
         """Send responses to client. Called in do_* methods.
 
         This method do not handle message when error is occured.
 
         Args:
+            path (str): URI path
             mock_info (tuple): callback informations from caller.
         """
         request_headers = dict(self.headers._headers)
@@ -145,7 +148,7 @@ class DummyRequestHander(http.server.CGIHTTPRequestHandler):
         if len(response_body_str) > 0:
             self.wfile.write(response_body_str)
 
-        FakeServerManager.get_instance().add_history(self.path, RequestHistory(
+        FakeServerManager.get_instance().add_history(path, RequestHistory(
             status_code=status_code,
             request_headers=request_headers,
             request_body=request_body,
@@ -206,8 +209,9 @@ class DummyRequestHander(http.server.CGIHTTPRequestHandler):
         # Check URI in request.
         if self._is_match_with_list():
             # Request is registered in our list.
-            self._returned_callback(
-                FakeServerManager.get_instance()._funcs_gets[self.path])
+            tplUri = urlparse(self.path)
+            self._returned_callback(tplUri.path,
+                FakeServerManager.get_instance()._funcs_gets[tplUri.path])
         else:
             # Unregistered URI is requested
             LOG.debug('GET Recv. Unknown URL: "%s"' % self.path)
@@ -228,8 +232,9 @@ class DummyRequestHander(http.server.CGIHTTPRequestHandler):
         # URI might have trailing uuid or not.
         if self._is_match_with_list():
             # Request is registered in our list.
-            self._returned_callback(
-                FakeServerManager.get_instance()._funcs_posts[self.path])
+            tplUri = urlparse(self.path)
+            self._returned_callback(tplUri.path,
+                FakeServerManager.get_instance()._funcs_posts[tplUri.path])
         else:
             # Unregistered URI is requested
             LOG.debug('POST Recv. Unknown URL: "%s"' % self.path)
@@ -267,6 +272,7 @@ class FakeServerManager(SingletonMixin):
     """Manager class to manage dummy server setting and control"""
 
     SERVER_PORT = 9990
+    SERVER_INVOKE_CHECK_INTERVAL = 10
 
     def __init__(self):
         # Initialize class-specific variables.
@@ -391,8 +397,16 @@ class FakeServerManager(SingletonMixin):
             '[Start] %s.%s()' %
             (self.__class__.__name__,
              inspect.currentframe().f_code.co_name))
-        self.objHttpd = http.server.HTTPServer(
-            (address, port), DummyRequestHander)
+        while True:
+            try:
+                self.objHttpd = http.server.HTTPServer(
+                    (address, port), DummyRequestHander)
+            except OSError:
+                time.sleep(self.SERVER_INVOKE_CHECK_INTERVAL)
+                continue
+            else:
+                break
+        self.thread_server = threading.Thread(None, self.run)
         LOG.debug(
             '[ End ] %s.%s()' %
             (self.__class__.__name__,
@@ -401,7 +415,7 @@ class FakeServerManager(SingletonMixin):
     def start_server(self):
         """Start server in thread."""
         LOG.debug('[START] %s()' % inspect.currentframe().f_code.co_name)
-        threading.Thread(None, self.run).start()
+        self.thread_server.start()
         LOG.debug('[ END ] %s()' % inspect.currentframe().f_code.co_name)
 
     def run(self):
@@ -411,10 +425,15 @@ class FakeServerManager(SingletonMixin):
             self.objHttpd.serve_forever()
         except KeyboardInterrupt:
             self.stop_server()
+        finally:
+            self.objHttpd.server_close()
         LOG.debug('[ END ] %s()' % inspect.currentframe().f_code.co_name)
 
     def stop_server(self):
         """Stop HTTP Server"""
         LOG.debug('[START] %s()' % inspect.currentframe().f_code.co_name)
-        self.objHttpd.shutdown()
+        thread_shutdown = threading.Thread(None, self.objHttpd.shutdown)
+        thread_shutdown.daemon = True
+        thread_shutdown.start()
+        self.thread_server.join()
         LOG.debug('[ END ] %s()' % inspect.currentframe().f_code.co_name)

@@ -437,7 +437,7 @@ class VnfPackageTest(base.BaseTackerTest):
                 id=self.package_id1, base_path=self.base_url),
             "GET", body={}, headers={})
         self.assertEqual(200, response[0].status_code)
-        self.assertEqual('12804568', response[0].headers['Content-Length'])
+        self.assertEqual('12804584', response[0].headers['Content-Length'])
 
     def test_fetch_vnf_package_content_combined_download(self):
         """Combine two partial downloads using 'Range' requests for csar zip"""
@@ -471,7 +471,7 @@ class VnfPackageTest(base.BaseTackerTest):
         size_2 = int(response_2[0].headers['Content-Length'])
         total_size = size_1 + size_2
         self.assertEqual(True, zipfile.is_zipfile(zip_file_path))
-        self.assertEqual(12804568, total_size)
+        self.assertEqual(12804569, total_size)
         zip_file_path.close()
 
     def test_fetch_vnf_package_artifacts(self):

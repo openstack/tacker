@@ -170,11 +170,11 @@ class ViewBuilder(base.BaseViewBuilder):
                 return {
                     'id': vnf_lcm_subscription.id,
                     'filter': filter_dict,
-                    'callbackUri': vnf_lcm_subscription.callback_uri.decode(),
+                    'callbackUri': vnf_lcm_subscription.callback_uri,
                 }
             return {
                 'id': vnf_lcm_subscription.id,
-                'callbackUri': vnf_lcm_subscription.callback_uri.decode(),
+                'callbackUri': vnf_lcm_subscription.callback_uri,
             }
         else:
             return {

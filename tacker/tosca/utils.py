@@ -1294,3 +1294,80 @@ def update_nested_scaling_resources(nested_resources, mgmt_ports, metadata,
         yaml.safe_dump(nested_resources_dict)
 
     return nested_tpl
+
+
+def get_policies_from_dict(vnfd_dict, policy_type=None):
+    final_policies = dict()
+    policies = vnfd_dict.get('topology_template', {}).get('policies', {})
+    for policy in policies:
+        for policy_name, policy_dict in policy.items():
+            if policy_type:
+                if policy_dict.get('type') == policy_type:
+                    final_policies.update({policy_name: policy_dict})
+            else:
+                final_policies.update({policy_name: policy_dict})
+    return final_policies
+
+
+@log.log
+def get_scale_group(vnf_dict, vnfd_dict, inst_req_info):
+    scaling_group_dict = dict()
+    data_dict = dict()
+    if vnf_dict['attributes'].get('scaling_group_names'):
+        for policy_name, policy_dict in \
+            get_policies_from_dict(vnfd_dict,
+                ETSI_SCALING_ASPECT_DELTA).items():
+            aspect = policy_dict['properties']['aspect']
+            vdu = policy_dict['targets']
+            deltas = policy_dict['properties']['deltas']
+            for delta_key, delta_dict in deltas.items():
+                num = delta_dict['number_of_instances']
+            data_dict.update({
+                aspect: {
+                    'vdu': vdu,
+                    'num': num
+                }
+            })
+
+        for aspect_name, aspect_dict in data_dict.items():
+            aspect_policy = \
+                get_policies_from_dict(vnfd_dict, ETSI_SCALING_ASPECT)
+            for policy_name, policy_dict in aspect_policy.items():
+                aspect = policy_dict['properties']['aspects'][aspect_name]
+                max_level = aspect.get('max_scale_level')
+                data_dict[aspect_name].update({'maxLevel': max_level})
+
+            delta_policy = \
+                get_policies_from_dict(vnfd_dict, ETSI_INITIAL_DELTA)
+            for policy_name, policy_dict in delta_policy.items():
+                for target in policy_dict['targets']:
+                    if target in aspect_dict['vdu']:
+                        delta = policy_dict['properties']['initial_delta']
+                        number_of_instances = delta['number_of_instances']
+                        data_dict[aspect_name].update(
+                            {'initialNum': number_of_instances})
+
+            level_policy = \
+                get_policies_from_dict(vnfd_dict, ETSI_INST_LEVEL)
+            for policy_name, policy_dict in level_policy.items():
+
+                instantiation_level_id = ""
+                if hasattr(inst_req_info, 'instantiation_level_id'):
+                    instantiation_level_id = \
+                        inst_req_info.instantiation_level_id
+
+                if not instantiation_level_id:
+                    instantiation_level_id = \
+                        policy_dict['properties']['default_level']
+
+                levels = policy_dict['properties']['levels']
+                scale_info = levels[instantiation_level_id]['scale_info']
+                initial_level = scale_info[aspect_name]['scale_level']
+                increase = aspect_dict['num'] * initial_level
+                default = aspect_dict['initialNum'] + increase
+                data_dict[aspect_name].update({'initialLevel': initial_level,
+                                               'default': default})
+
+        scaling_group_dict.update({'scaleGroupDict': data_dict})
+
+    return scaling_group_dict

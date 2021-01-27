@@ -371,13 +371,12 @@ class Conductor(manager.Manager):
             vnf_sw_image.container_format = sw_image.get('container_format')
             vnf_sw_image.disk_format = sw_image.get('disk_format')
             if sw_image.get('min_ram'):
-                min_ram = sw_image.get('min_ram')
-                vnf_sw_image.min_ram = int(min_ram.split()[0])
+                vnf_sw_image.min_ram = sw_image.get('min_ram')
             else:
                 vnf_sw_image.min_ram = 0
-        vnf_sw_image.min_disk = int(sw_image.get('min_disk').split()[0])
-        vnf_sw_image.size = int(sw_image.get('size').split()[0])
-        vnf_sw_image.image_path = sw_image['image_path']
+        vnf_sw_image.min_disk = sw_image.get('min_disk')
+        vnf_sw_image.size = sw_image.get('size')
+        vnf_sw_image.image_path = ''
         vnf_sw_image.software_image_id = sw_image['software_image_id']
         vnf_sw_image.metadata = sw_image.get('metadata', dict())
         vnf_sw_image.create()
@@ -642,8 +641,8 @@ class Conductor(manager.Manager):
                         updated_values['status'], vnf_model.status))
             vnf_model.update(updated_values)
 
-    def _update_vnf_attributes(self, context, vnf_dict, current_statuses,
-            new_status):
+    def _update_vnf_attributes(self, context, vnf_instance, vnf_dict,
+            current_statuses, new_status):
         with context.session.begin(subtransactions=True):
             try:
                 modified_attributes = {}
@@ -662,6 +661,12 @@ class Conductor(manager.Manager):
                         message='Cannot change status to {} while \
                             in {}'.format(updated_values['status'],
                             vnf_model.status))
+                if hasattr(vnf_instance.instantiated_vnf_info, 'instance_id'):
+                    instance_id = \
+                        vnf_instance.instantiated_vnf_info.instance_id
+                    if instance_id:
+                        # add instance_id info
+                        updated_values.update({'instance_id': instance_id})
                 vnf_model.update(updated_values)
 
                 for key, val in vnf_dict['attributes'].items():
@@ -1026,6 +1031,7 @@ class Conductor(manager.Manager):
             vim_info, context)
         if scale_vnf_request.type == 'SCALE_IN':
             vnf_dict['action'] = 'in'
+            vnf_dict['policy_name'] = scale_vnf_request.aspect_id
             reverse = scale_vnf_request.additional_params.get('is_reverse')
             region_name = vim_connection_info.access_info.get('region_name')
             scale_id_list, scale_name_list, grp_id, res_num = \
@@ -1389,7 +1395,7 @@ class Conductor(manager.Manager):
                 error_details = objects.ProblemDetails(
                     context=context,
                     status=500,
-                    details=error
+                    detail=error
                 )
                 vnf_notif.error = error_details
             vnf_notif.save()
@@ -1505,7 +1511,7 @@ class Conductor(manager.Manager):
                         auth_client = auth.auth_manager.get_auth_client(
                             notification['subscriptionId'])
                         response = auth_client.post(
-                            line.callback_uri.decode(),
+                            line.callback_uri,
                             data=json.dumps(notification))
                         if response.status_code == 204:
                             LOG.info(
@@ -1518,7 +1524,7 @@ class Conductor(manager.Manager):
                                     callback_uri[%s]" %
                                 (notification['id'],
                                 response.status_code,
-                                line.callback_uri.decode()))
+                                line.callback_uri))
                             LOG.debug(
                                 "retry_wait %s" %
                                 CONF.vnf_lcm.retry_wait)
@@ -1581,7 +1587,7 @@ class Conductor(manager.Manager):
                         instantiate_vnf_req=instantiate_vnf)
 
             vnf_dict['error_point'] = 7
-            self._update_vnf_attributes(context, vnf_dict,
+            self._update_vnf_attributes(context, vnf_instance, vnf_dict,
                                         _PENDING_STATUS, _ACTIVE_STATUS)
             self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
                         instantiation_state=fields.VnfInstanceState.
@@ -1605,6 +1611,8 @@ class Conductor(manager.Manager):
 
             self._build_instantiated_vnf_info(context, vnf_instance,
                 instantiate_vnf)
+            self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
+                        task_state=None)
 
             # Update vnf_lcm_op_occs table and send notification "FAILED_TEMP"
             self._send_lcm_op_occ_notification(

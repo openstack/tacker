@@ -122,12 +122,13 @@ def _create_and_upload_vnf_package(
     vnfd_id = None
     while True:
         resp, body = tacker_client.do_request(show_url, "GET")
-        if body['onboardingState'] == "ONBOARDED":
+        if (200 <= resp.status_code < 300) and (
+                body['onboardingState'] == "ONBOARDED"):
             vnfd_id = body['vnfdId']
             break
 
         if ((int(time.time()) - start_time) > timeout):
-            raise Exception("Failed to onboard vnf package")
+            raise TimeoutError("Failed to onboard vnf package")
 
         time.sleep(1)
 
@@ -158,7 +159,7 @@ def _show_vnf_package(tacker_client, vnf_package_id):
             return resp, body
 
         if ((int(time.time()) - start_time) > timeout):
-            raise Exception("Failed to onboard vnf package")
+            raise TimeoutError("Failed to onboard vnf package")
 
         time.sleep(1)
 
@@ -174,7 +175,7 @@ def _list_vnf_package(tacker_client, **kwargs):
             return resp, body
 
         if ((int(time.time()) - start_time) > timeout):
-            raise Exception("Failed to onboard vnf package")
+            raise TimeoutError("Failed to onboard vnf package")
 
         time.sleep(1)
 
@@ -204,6 +205,8 @@ def _create_instantiate_vnf_request_body(flavour_id,
 
 class BaseVnfLcmTest(base.BaseTackerTest):
 
+    is_setup_error = False
+
     @classmethod
     def setUpClass(cls):
         '''Set up test class.
@@ -214,12 +217,6 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         FAKE_SERVER_MANAGER.prepare_http_server()
         FAKE_SERVER_MANAGER.start_server()
 
-        FAKE_SERVER_MANAGER.set_callback(
-            'POST',
-            MOCK_NOTIFY_CALLBACK_URL,
-            status_code=204
-        )
-
     @classmethod
     def tearDownClass(cls):
         super(BaseVnfLcmTest, cls).tearDownClass()
@@ -227,6 +224,19 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
     def setUp(self):
         super(BaseVnfLcmTest, self).setUp()
+
+        if self.is_setup_error:
+            self.fail("Faild, not exists pre-registered image.")
+
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        FAKE_SERVER_MANAGER.clear_history(callback_url)
+        FAKE_SERVER_MANAGER.set_callback(
+            'POST',
+            callback_url,
+            status_code=204
+        )
 
         self.tacker_client = base.BaseTackerTest.tacker_http_client()
 
@@ -248,14 +258,17 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         for nw in networks.get('networks'):
             if nw['name'] == 'net0':
                 self.ext_networks.append(nw['id'])
+                self.ext_vl = _get_external_virtual_links(nw['id'])
             elif nw['name'] == 'net1':
                 self.ext_mngd_networks.append(nw['id'])
 
         # create new network.
-        self.ext_networks.append(
-            self._create_network("external_net"))
-        self.ext_mngd_networks.append(
-            self._create_network("external_managed_internal_net"))
+        ext_net_id, ext_net_name = \
+            self._create_network("external_net")
+        self.ext_networks.append(ext_net_id)
+        ext_mngd_net_id, _ = \
+            self._create_network("external_managed_internal_net")
+        self.ext_mngd_networks.append(ext_mngd_net_id)
 
         # Create external link ports in net0
         self.ext_link_ports = list()
@@ -265,21 +278,21 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         # Chack how many networks are created.
         networks = self.neutronclient().list_networks()
         for nw in networks.get('networks'):
-            if nw['name'] not in ['net0', 'external_net']:
-                continue
-            if self.vim['tenant_id'] != nw['tenant_id']:
+            if nw['name'] not in ['net0', ext_net_name]:
                 continue
 
-            self.ext_networks.append(nw['id'])
+            if nw['name'] == 'net0':
+                self.ext_subnets.append(nw['subnets'][0])
+            else:
+                self.ext_subnets.append(self._create_subnet(nw))
             self.ext_link_ports.append(self._create_port(nw['id']))
-            self.ext_subnets.append(self._create_subnet(nw))
 
     @classmethod
     def _list_glance_image(cls, filter_name='cirros-0.4.0-x86_64-disk'):
         try:
             images = cls.glance_client.images.list()
         except Exception:
-            print("glance-image does not exists.")
+            print("glance-image does not exists.", flush=True)
             return []
 
         if filter_name is None:
@@ -292,7 +305,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         try:
             image = cls.glance_client.images.get(image_id)
         except Exception:
-            print("glance-image does not exists.")
+            print("glance-image does not exists.", image_id, flush=True)
             return None
 
         return image
@@ -353,6 +366,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         return self._create_vnf_instance_from_body(request_body)
 
     def _create_vnf_instance_from_body(self, request_body):
+        request_body['vnfInstanceName'] = self._testMethodName
         resp, response_body = self.http_client.do_request(
             self.base_vnf_instances_url,
             "POST",
@@ -374,7 +388,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
     def _list_vnf_instance(self, **kwargs):
         resp, vnf_instances = self.http_client.do_request(
-            self.base_vnf_instances_url, "GET")
+            self.base_vnf_instances_url, "GET", **kwargs)
 
         return resp, vnf_instances
 
@@ -404,8 +418,20 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         return resp, body
 
     def _heal_vnf_instance(self, vnf_instance_id, request_body):
-        url = \
-            os.path.join(self.base_vnf_instances_url, vnf_instance_id, "heal")
+        url = os.path.join(
+            self.base_vnf_instances_url,
+            vnf_instance_id,
+            "heal")
+        resp, body = self.http_client.do_request(url, "POST",
+                body=jsonutils.dumps(request_body))
+
+        return resp, body
+
+    def _scale_vnf_instance(self, vnf_instance_id, request_body):
+        url = os.path.join(
+            self.base_vnf_instances_url,
+            vnf_instance_id,
+            "scale")
         resp, body = self.http_client.do_request(url, "POST",
                 body=jsonutils.dumps(request_body))
 
@@ -417,6 +443,31 @@ class BaseVnfLcmTest(base.BaseTackerTest):
                 body=jsonutils.dumps(request_body))
 
         return resp, body
+
+    def _update_vnf_instance(self, vnf_instance_id, request_body):
+        url = os.path.join(self.base_vnf_instances_url, vnf_instance_id)
+        resp, body = self.http_client.do_request(url, "PATCH",
+                body=jsonutils.dumps(request_body))
+
+        return resp, body
+
+    def _rollback_op_occs(self, vnf_lcm_op_occs_id):
+        rollback_url = os.path.join(
+            self.base_vnf_lcm_op_occs_url,
+            vnf_lcm_op_occs_id, 'rollback')
+        resp, response_body = self.http_client.do_request(
+            rollback_url, "POST")
+
+        return resp, response_body
+
+    def _show_op_occs(self, vnf_lcm_op_occs_id):
+        show_url = os.path.join(
+            self.base_vnf_lcm_op_occs_url,
+            vnf_lcm_op_occs_id)
+        resp, response_body = self.http_client.do_request(
+            show_url, "GET")
+
+        return resp, response_body
 
     def _wait_terminate_vnf_instance(self, id, timeout=None):
         start_time = int(time.time())
@@ -441,7 +492,6 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         try:
             stacks = self.h_client.stacks.list()
         except Exception:
-            print("heat-stacks does not exists.")
             return None
 
         target_stack_name = prefix_id + vnf_instance_id
@@ -460,7 +510,6 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             resources = self.h_client.resources.list(
                 stack_id, nested_depth=nested_depth)
         except Exception:
-            print("heat-stacks-resources does not exists.")
             return None
 
         return resources
@@ -470,7 +519,6 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             resource = self.h_client.resources.get(
                 stack_id, resource_name)
         except Exception:
-            print("heat-stacks-resource does not exists.")
             return None
 
         return resource
@@ -610,15 +658,29 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             image = self._get_glance_image(glance_image_id)
             self.assertIsNone(image)
 
-    def _wait_lcm_done(self, expected_operation_status=None):
+    def _wait_lcm_done(self,
+            expected_operation_status=None,
+            vnf_instance_id=None):
         start_time = int(time.time())
-        while True:
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
 
+        while True:
             actual_status = None
             vnf_lcm_op_occ_id = None
             notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
-                MOCK_NOTIFY_CALLBACK_URL)
+                callback_url)
+            print(
+                ("Wait:callback_url=<%s>, " +
+                "wait_status=<%s>, " +
+                "vnf_instance_id=<%s>") %
+                (callback_url, expected_operation_status, vnf_instance_id),
+                flush=True)
+
             for res in notify_mock_responses:
+                if vnf_instance_id != res.request_body.get('vnfInstanceId'):
+                    continue
 
                 if expected_operation_status is None:
                     return
@@ -631,8 +693,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             if ((int(time.time()) - start_time) > VNF_LCM_DONE_TIMEOUT):
                 if actual_status:
                     error = (
-                        "LCM incomplete timeout, %s is %s," +
-                        "expected status should be %s")
+                        "LCM incomplete timeout, %(vnf_lcm_op_occ_id)s" +
+                        " is %(actual)s," +
+                        "expected status should be %(expected)s")
                     self.fail(
                         error % {
                             "vnf_lcm_op_occ_id": vnf_lcm_op_occ_id,
@@ -669,9 +732,12 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             fields.VnfInstanceState.NOT_INSTANTIATED)
 
         # FT-checkpoint: Notification
-        notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
-            MOCK_NOTIFY_CALLBACK_URL)
-        FAKE_SERVER_MANAGER.clear_history(MOCK_NOTIFY_CALLBACK_URL)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance.get('id'))
+
         self.assertEqual(1, len(notify_mock_responses))
         self.assert_notification_mock_response(
             notify_mock_responses[0],
@@ -684,9 +750,12 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         self.assertEqual(404, resp.status_code)
 
         # FT-checkpoint: Notification
-        notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
-            MOCK_NOTIFY_CALLBACK_URL)
-        FAKE_SERVER_MANAGER.clear_history(MOCK_NOTIFY_CALLBACK_URL)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id)
+
         self.assertEqual(1, len(notify_mock_responses))
         self.assert_notification_mock_response(
             notify_mock_responses[0],
@@ -707,9 +776,11 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             expected_resource_status='CREATE_COMPLETE')
 
         # FT-checkpoint: Notification
-        notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
-            MOCK_NOTIFY_CALLBACK_URL)
-        FAKE_SERVER_MANAGER.clear_history(MOCK_NOTIFY_CALLBACK_URL)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id)
 
         self.assertEqual(3, len(notify_mock_responses))
         self.assert_notification_mock_response(
@@ -743,9 +814,11 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             expected_stack_status=expected_stack_status)
 
         # FT-checkpoint: Notification
-        notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
-            MOCK_NOTIFY_CALLBACK_URL)
-        FAKE_SERVER_MANAGER.clear_history(MOCK_NOTIFY_CALLBACK_URL)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id)
 
         self.assertEqual(3, len(notify_mock_responses))
         self.assert_notification_mock_response(
@@ -787,9 +860,11 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             glance_image_id_list=glance_image_id_list)
 
         # FT-checkpoint: Notification
-        notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
-            MOCK_NOTIFY_CALLBACK_URL)
-        FAKE_SERVER_MANAGER.clear_history(MOCK_NOTIFY_CALLBACK_URL)
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id)
 
         self.assertEqual(3, len(notify_mock_responses))
         self.assert_notification_mock_response(
@@ -804,6 +879,120 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
         self.assert_notification_mock_response(
             notify_mock_responses[2],
+            'VnfLcmOperationOccurrenceNotification',
+            'COMPLETED')
+
+    def assert_scale_vnf(
+            self,
+            resp,
+            vnf_instance_id,
+            pre_stack_resource_list,
+            post_stack_resource_list,
+            scale_type='SCALE_OUT',
+            expected_stack_status='CREATE_COMPLETE'):
+        self.assertEqual(202, resp.status_code)
+        self.assert_http_header_location_for_lcm_op_occs(resp.headers)
+
+        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
+        self.assert_vnf_state(vnf_instance)
+        self.assert_instantiation_state(vnf_instance)
+
+        # check: scaling stack resource count
+        if scale_type == 'SCALE_OUT':
+            self.assertTrue(len(pre_stack_resource_list) <
+                            len(post_stack_resource_list))
+        else:
+            self.assertTrue(len(pre_stack_resource_list) >
+                            len(post_stack_resource_list))
+
+        # check scaleStatus
+        scale_status = vnf_instance['instantiatedVnfInfo']['scaleStatus']
+        self.assertTrue(len(scale_status) > 0)
+        for status in scale_status:
+            self.assertIsNotNone(status.get('aspectId'))
+            self.assertIsNotNone(status.get('scaleLevel'))
+
+        self.assert_heat_stack_status(
+            vnf_instance['id'],
+            expected_stack_status=expected_stack_status)
+
+        # FT-checkpoint: Notification
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id)
+
+        self.assertEqual(3, len(notify_mock_responses))
+        self.assert_notification_mock_response(
+            notify_mock_responses[0],
+            'VnfLcmOperationOccurrenceNotification',
+            'STARTING')
+
+        self.assert_notification_mock_response(
+            notify_mock_responses[1],
+            'VnfLcmOperationOccurrenceNotification',
+            'PROCESSING')
+
+        self.assert_notification_mock_response(
+            notify_mock_responses[2],
+            'VnfLcmOperationOccurrenceNotification',
+            'COMPLETED')
+
+    def assert_rollback_vnf(self, resp, vnf_instance_id):
+        self.assertEqual(202, resp.status_code)
+
+        # FT-checkpoint: Notification
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id)
+
+        self.assertEqual(2, len(notify_mock_responses))
+        self.assert_notification_mock_response(
+            notify_mock_responses[0],
+            'VnfLcmOperationOccurrenceNotification',
+            'ROLLING_BACK')
+
+        self.assert_notification_mock_response(
+            notify_mock_responses[1],
+            'VnfLcmOperationOccurrenceNotification',
+            'ROLLED_BACK')
+
+    def assert_update_vnf(
+            self,
+            resp,
+            vnf_instance_id,
+            expected_stack_status='CREATE_COMPLETE'):
+        self.assertEqual(202, resp.status_code)
+        self.assert_http_header_location_for_lcm_op_occs(resp.headers)
+
+        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
+        self.assertEqual(200, resp.status_code)
+
+        self.assert_vnf_state(vnf_instance)
+        self.assert_instantiation_state(vnf_instance)
+
+        self.assert_heat_stack_status(
+            vnf_instance['id'],
+            expected_stack_status=expected_stack_status)
+
+        # FT-checkpoint: Notification
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id)
+
+        self.assertEqual(2, len(notify_mock_responses))
+        self.assert_notification_mock_response(
+            notify_mock_responses[0],
+            'VnfLcmOperationOccurrenceNotification',
+            'PROCESSING')
+
+        self.assert_notification_mock_response(
+            notify_mock_responses[1],
             'VnfLcmOperationOccurrenceNotification',
             'COMPLETED')
 
@@ -826,34 +1015,64 @@ class BaseVnfLcmTest(base.BaseTackerTest):
     def _create_network(self, name):
         # First, we have to check network name passed by caller is
         # already exists or not.
-        netlist = self.neutronclient().list_networks(name=name)
-        if netlist is not None:
-            print('%s is already exist' % name)
-
         # OK, we can create this.
-        net = self.neutronclient().create_network({'network': {'name': name}})
-        net_id = net['network']['id']
-        self.addCleanup(self.neutronclient().delete_network, net_id)
-
-        return net_id
+        try:
+            uniq_name = name + '-' + uuidutils.generate_uuid()
+            net = \
+                self.neutronclient().create_network(
+                    {'network': {'name': uniq_name}})
+            net_id = net['network']['id']
+            self.addCleanup(self._delete_network, net_id)
+            print("Create network success, %s" % uniq_name, flush=True)
+            return net_id, uniq_name
+        except Exception as e:
+            self.fail("Failed, create network=<%s>, %s" %
+                (uniq_name, e))
 
     def _create_subnet(self, network):
+        cidr_prefix = "22.22.{}".format(str(len(self.ext_subnets) + 1))
         body = {'subnet': {'network_id': network['id'],
                 'name': "subnet-%s" % uuidutils.generate_uuid(),
-                'cidr': "22.22.{}.0/24".format(str(len(self.ext_subnets) % 2)),
+                'cidr': "{}.0/24".format(cidr_prefix),
                 'ip_version': 4,
-                'gateway_ip': '22.22.0.1',
+                'gateway_ip': "{}.1".format(cidr_prefix),
                 "enable_dhcp": True}}
 
-        subnet = self.neutronclient().create_subnet(body=body)["subnet"]
-        self.addCleanup(self.neutronclient().delete_subnet, subnet['id'])
-        return subnet['id']
+        try:
+            subnet = self.neutronclient().create_subnet(body=body)["subnet"]
+            self.addCleanup(self._delete_subnet, subnet['id'])
+            return subnet['id']
+        except Exception as e:
+            self.fail("Failed, create subnet for net_id=<%s>, %s" %
+                (network['id'], e))
 
     def _create_port(self, network_id):
         body = {'port': {'network_id': network_id}}
-        port = self.neutronclient().create_port(body=body)["port"]
-        self.addCleanup(self.neutronclient().delete_port, port['id'])
-        return port['id']
+        try:
+            port = self.neutronclient().create_port(body=body)["port"]
+            self.addCleanup(self._delete_port, port['id'])
+            return port['id']
+        except Exception as e:
+            self.fail("Failed, create port for net_id=<%s>, %s" %
+                (network_id, e))
+
+    def _delete_network(self, network_id):
+        try:
+            self.neutronclient().delete_network(network_id)
+        except Exception:
+            print("Failed, delete network.", network_id, flush=True)
+
+    def _delete_subnet(self, subnet_id):
+        try:
+            self.neutronclient().delete_subnet(subnet_id)
+        except Exception:
+            print("Failed, delete subnet.", subnet_id, flush=True)
+
+    def _delete_port(self, port_id):
+        try:
+            self.neutronclient().delete_port(port_id)
+        except Exception:
+            print("Failed, delete port.", port_id, flush=True)
 
     def assert_subscription_show(self, resp, response_body):
         """Assert that subscription informations has mandatory keys."""
@@ -869,3 +1088,12 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         self.assertIsNotNone(_links)
         self.assertIsNotNone(_links.get('self'))
         self.assertIsNotNone(_links.get('self').get('href'))
+
+    def _filter_notify_history(self, callback_url, vnf_instance_id):
+        notify_histories = FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        FAKE_SERVER_MANAGER.clear_history(callback_url)
+
+        return [
+            h for h in notify_histories
+            if h.request_body.get('vnfInstanceId') == vnf_instance_id]

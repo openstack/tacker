@@ -97,6 +97,7 @@ class BaseTackerTest(base.BaseTestCase):
         cls.client = cls.tackerclient()
         cls.http_client = cls.tacker_http_client()
         cls.h_client = cls.heatclient()
+        cls.glance_client = cls.glanceclient()
 
     @classmethod
     def get_credentials(cls):

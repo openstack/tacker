@@ -40,6 +40,7 @@ from tacker.extensions import vnfm
 from tacker import objects
 from tacker.objects import fields
 from tacker.plugins.common import constants
+from tacker.tosca import utils as tosca_utils
 from tacker.tosca.utils import represent_odict
 from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnfm.infra_drivers import abstract_driver
@@ -136,9 +137,14 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         LOG.debug('vnf %s', vnf)
         if vnf.get('grant'):
             if vnf['grant'].vim_connections:
-                vim_con = vnf['grant'].vim_connections[0]
-                auth_attr = vim_con.access_info
-                region_name = auth_attr.get('region')
+                vim_info = vnflcm_utils._get_vim(
+                    context, vnf['grant'].vim_connections)
+                vim_connection_info = \
+                    objects.VimConnectionInfo.obj_from_primitive(
+                        vim_info, context)
+                auth_attr = vim_connection_info.access_info
+                region_name = \
+                    vim_connection_info.access_info.get('region_name')
             else:
                 region_name = vnf.get('placement_attr', {}).\
                     get('region_name', None)
@@ -183,6 +189,18 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             vnfd_dict = yaml.safe_load(vnfd_str)
             LOG.debug('VNFD: %s', vnfd_dict)
             LOG.debug('VNF package path: %s', vnf_package_path)
+            scaling_group_dict = {}
+            for name, rsc in base_hot_dict.get('resources').items():
+                if rsc['type'] == 'OS::Heat::AutoScalingGroup':
+                    key_name = name.replace('_group', '')
+                    scaling_group_dict[key_name] = name
+            if scaling_group_dict:
+                vnf['attributes']['scaling_group_names'] = \
+                    jsonutils.dump_as_bytes(scaling_group_dict)
+                scale_group_dict = \
+                    tosca_utils.get_scale_group(vnf, vnfd_dict, inst_req_info)
+                vnf['attributes']['scale_group'] = \
+                    jsonutils.dump_as_bytes(scale_group_dict)
             sys.path.append(vnf_package_path)
             user_data_module = os.path.splitext(
                 user_data_path.lstrip('./'))[0].replace('/', '.')
@@ -236,12 +254,18 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     "is not in dict format.")
                 raise vnfm.LCMUserDataFailed(reason=error_reason)
 
-            if vnf['attributes'].get('scale_group'):
-                scale_json = vnf['attributes']['scale_group']
-                scaleGroupDict = jsonutils.loads(scale_json)
-                for name, value in scaleGroupDict['scaleGroupDict'].items():
-                    hot_param_dict[name + '_desired_capacity'] = \
-                        value['default']
+            if scaling_group_dict:
+                scale_status_list = []
+                for name, value in scale_group_dict['scaleGroupDict'].items():
+                    key_name = name + '_desired_capacity'
+                    if base_hot_dict.get('parameters') and \
+                       base_hot_dict['parameters'].get(key_name):
+                        hot_param_dict[key_name] = value['default']
+                    scale_status = objects.ScaleInfo(
+                        aspect_id=name,
+                        scale_level=value['initialLevel'])
+                    scale_status_list.append(scale_status)
+                vnf['scale_status'] = scale_status_list
             if vnf.get('grant'):
                 grant = vnf['grant']
                 ins_inf = vnf_instance.instantiated_vnf_info.vnfc_resource_info
@@ -635,8 +659,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                 'status': rsc.resource_status}
                             LOG.warning(error_reason)
                             raise vnfm.VNFScaleWaitFailed(
-                                vnf_id=policy['vnf']['\
-                                    id'], reason=error_reason)
+                                vnf_id=policy['vnf']['id'],
+                                reason=error_reason)
                     events = heatclient.resource_event_list(
                         stack_id, policy_name, limit=1,
                         sort_dir='desc',
@@ -996,7 +1020,9 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 vnfc_res_info.compute_resource, pop_resources,
                 vnfc_res_info.vdu_id, vim_connection_info)
 
-        vnfc_res_info.metadata.update({"stack_id": stack_id})
+        if stack_id:
+            vnfc_res_info.metadata.update({"stack_id": stack_id})
+
         _populate_virtual_storage(vnfc_res_info, pop_resources)
 
         # Find out associated VLs, and CP used by vdu_id

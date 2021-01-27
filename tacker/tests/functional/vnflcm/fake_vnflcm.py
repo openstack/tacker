@@ -53,7 +53,7 @@ class VnfInstances:
     def make_create_request_body(vnfd_id):
         return {
             "vnfdId": vnfd_id,
-            "vnfInstanceName": "helloworld3",
+            "vnfInstanceName": "",
             "vnfInstanceDescription": "Sample VNF",
             "metadata": {
                 "samplekey": "samplevalue"
@@ -97,7 +97,6 @@ class VnfInstances:
         }
         ext_virtual_link_cp1 = {
             "id": uuidsentinel.evl1_id,
-            "vimConnectionId": uuidsentinel.vim_connection_id,
             # set external nw_id on vim.
             "resourceId": networks_id[0],
             "extCps": [ext_vdu1_cp1, ext_vdu2_cp1],
@@ -113,7 +112,7 @@ class VnfInstances:
                     "ipOverEthernet": {
                         "ipAddresses": [{
                             "type": "IPV4",
-                            "numDynamicAddresses": 1,
+                            "fixedAddresses": ["22.22.2.10"],
                             "subnetId": external_subnets_id[0]
                         }]
                     }
@@ -129,7 +128,7 @@ class VnfInstances:
                     "ipOverEthernet": {
                         "ipAddresses": [{
                             "type": "IPV4",
-                            "numDynamicAddresses": "1",
+                            "fixedAddresses": ["22.22.2.20"],
                             "subnetId": external_subnets_id[1]
                         }]
                     }
@@ -139,7 +138,6 @@ class VnfInstances:
 
         ext_virtual_link_cp2 = {
             "id": uuidsentinel.evl2_id,
-            "vimConnectionId": uuidsentinel.vim_connection_id,
             "resourceId": networks_id[1],
             "extCps": [
                 ext_cps_vdu1_cp2, ext_cps_vdu2_cp2
@@ -150,12 +148,10 @@ class VnfInstances:
         ext_mng_vtl_lnks = [{
             "id": uuidsentinel.emvl1_id,
             "vnfVirtualLinkDescId": "internalVL1",
-            "vimConnectionId": uuidsentinel.vim_connection_id,
             "resourceId": ext_mngd_networks_id[0]
         }, {
             "id": uuidsentinel.emvl2_id,
             "vnfVirtualLinkDescId": "internalVL2",
-            "vimConnectionId": uuidsentinel.vim_connection_id,
             "resourceId": ext_mngd_networks_id[1]
         }]
 
@@ -169,6 +165,7 @@ class VnfInstances:
             "vimConnectionInfo": [{
                 "id": uuidsentinel.vim_connection_id,
                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+                "vimConnectionId": uuidsentinel.vim_connection_id,
                 "interfaceInfo": {
                     "endpoint": "http://127.0.0.1/identity"
                 },
@@ -210,6 +207,52 @@ class VnfInstances:
         return {
             "terminationType": "GRACEFUL",
             "gracefulTerminationTimeout": 1,
+            "additionalParams": {
+                "samplekey": "samplevalue"
+            }
+        }
+
+    @staticmethod
+    def make_update_request_body(vnfd_id=None, vnf_package_id=None):
+        """Parameter selection policy.
+
+        vimConnectionInfo is not set.
+
+        Args:
+            vnfd_id (str, optional): vnfdId(2.6.1)
+            vnf_package_id (str, optional): vnfPkgId(2.4.1)
+
+        Returns:
+            dict: Request body
+        """
+        data = {
+            "vnfInstanceName": "helloworld3_modify",
+            "vnfInstanceDescription": "Sample VNF Modify",
+            "metadata": {
+                "samplekey": "samplevalue_modified"
+            }
+        }
+
+        if vnfd_id:
+            data["vnfdId"] = vnfd_id
+        elif vnf_package_id:
+            data["vnfPkgId"] = vnf_package_id
+
+        return data
+
+    def make_scale_request_body(scale_type):
+        """Parameter selection policy.
+
+        numberOfSteps specifies 1
+
+        Args:
+            scale_type (str): SCALE_OUT or SCALE_IN
+        """
+
+        return {
+            "type": scale_type,
+            "aspectId": "VDU1_scale",
+            "numberOfSteps": 1,
             "additionalParams": {
                 "samplekey": "samplevalue"
             }

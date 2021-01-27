@@ -258,18 +258,10 @@ class VnfLcmController(wsgi.Controller):
             raise webob.exc.HTTPBadRequest(explanation=msg)
 
     def _notification_process(self, context, vnf_instance,
-                              lcm_operation, request, is_auto=False):
+                              lcm_operation, request, body, is_auto=False):
         vnf_lcm_op_occs_id = uuidutils.generate_uuid()
         error_point = 0
-        if lcm_operation == fields.LcmOccsOperationType.HEAL:
-            request_dict = {
-                'vnfc_instance_id': request.vnfc_instance_id,
-                'cause': request.cause
-            }
-            operation_params = str(request_dict)
-        else:
-            # lcm is instantiation by default
-            operation_params = str(request.additional_params)
+        operation_params = jsonutils.dumps(body)
         try:
             # call create lcm op occs here
             LOG.debug('Create LCM OP OCCS')
@@ -468,8 +460,7 @@ class VnfLcmController(wsgi.Controller):
 
         except nfvo.VimDefaultNotDefined as exc:
             raise webob.exc.HTTPBadRequest(explanation=six.text_type(exc))
-        except(sqlexc.SQLAlchemyError, Exception)\
-                as exc:
+        except(sqlexc.SQLAlchemyError, Exception) as exc:
             raise webob.exc.HTTPInternalServerError(
                 explanation=six.text_type(exc))
         except webob.exc.HTTPNotFound as e:
@@ -586,7 +577,7 @@ class VnfLcmController(wsgi.Controller):
         vnf_lcm_op_occs_id = \
             self._notification_process(context, vnf_instance,
                                        fields.LcmOccsOperationType.INSTANTIATE,
-                                       instantiate_vnf_request)
+                                       instantiate_vnf_request, request_body)
         self.rpc_api.instantiate(context, vnf_instance, vnf,
                                  instantiate_vnf_request, vnf_lcm_op_occs_id)
 
@@ -620,7 +611,7 @@ class VnfLcmController(wsgi.Controller):
         vnf_lcm_op_occs_id = \
             self._notification_process(context, vnf_instance,
                                        fields.LcmOccsOperationType.TERMINATE,
-                                       terminate_vnf_req)
+                                       terminate_vnf_req, request_body)
 
         self.rpc_api.terminate(context, vnf_instance, vnf,
                                terminate_vnf_req, vnf_lcm_op_occs_id)
@@ -666,7 +657,7 @@ class VnfLcmController(wsgi.Controller):
         vnf_lcm_op_occs_id = \
             self._notification_process(context, vnf_instance,
                                        fields.LcmOccsOperationType.HEAL,
-                                       heal_vnf_request)
+                                       heal_vnf_request, request_body)
 
         self.rpc_api.heal(context, vnf_instance, vnf_dict, heal_vnf_request,
                           vnf_lcm_op_occs_id)
@@ -1063,8 +1054,7 @@ class VnfLcmController(wsgi.Controller):
         vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
         vnf_info['after_scale_level'] = scale_level
         vnf_info['scale_level'] = current_level
-
-        self.rpc_api.scale(context, vnf_info, vnf_instance, scale_vnf_request)
+        vnf_info['instance_id'] = inst_vnf_info.instance_id
 
         notification = {}
         notification['notificationType'] = \
@@ -1081,9 +1071,9 @@ class VnfLcmController(wsgi.Controller):
         notification['_links']['vnfInstance']['href'] = insta_url
         notification['_links']['vnfLcmOpOcc'] = {}
         notification['_links']['vnfLcmOpOcc']['href'] = vnflcm_url
-        self.rpc_api.send_notification(context, notification)
-
         vnf_info['notification'] = notification
+        self.rpc_api.send_notification(context, notification)
+        self.rpc_api.scale(context, vnf_info, vnf_instance, scale_vnf_request)
 
         res = webob.Response()
         res.status_int = 202
@@ -1161,12 +1151,12 @@ class VnfLcmController(wsgi.Controller):
                     409,
                     title='OperationState IS NOT FAILED_TEMP')
 
-            if vnf_lcm_op_occs.operation != 'INSTANTIATION' \
+            if vnf_lcm_op_occs.operation != 'INSTANTIATE' \
                     and vnf_lcm_op_occs.operation != 'SCALE':
                 return self._make_problem_detail(
-                    'OPERATION IS NOT INSTANTIATION/SCALE',
+                    'OPERATION IS NOT INSTANTIATE/SCALE',
                     409,
-                    title='OPERATION IS NOT INSTANTIATION/SCALE')
+                    title='OPERATION IS NOT INSTANTIATE/SCALE')
 
             operation_params = jsonutils.loads(
                 vnf_lcm_op_occs.operation_params)
@@ -1181,6 +1171,10 @@ class VnfLcmController(wsgi.Controller):
                 context, vnf_lcm_op_occs.vnf_instance_id)
             vnf_instance = self._get_vnf_instance(
                 context, vnf_lcm_op_occs.vnf_instance_id)
+
+            inst_vnf_info = vnf_instance.instantiated_vnf_info
+            if inst_vnf_info is not None:
+                vnf_info['instance_id'] = inst_vnf_info.instance_id
 
             vnf_lcm_op_occs.changed_info = None
             vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs

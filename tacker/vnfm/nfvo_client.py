@@ -197,7 +197,7 @@ class VnfPackageRequest:
             for pipeline_type in cfg.CONF.connect_vnf_packages.pipeline:
                 download_vnf_package(pipeline_type, vnf_package_zip)
 
-            zip_buffer.seek(0)
+        zip_buffer.seek(0)
         return zip_buffer
 
     @classmethod

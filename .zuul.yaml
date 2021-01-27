@@ -160,6 +160,15 @@
           PHYSICAL_NETWORK: mgmtphysnet0
           OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
           DATABASE_TYPE: mysql
+        # Since a VirtualInterfaceCreateException occurs during a test,
+        # the setting of network-vif-plugged is changed by the reference of
+        # the following URL.
+        #   https://bugs.launchpad.net/heat/+bug/1694371
+        devstack_local_conf:
+          post-config:
+            $NOVA_CONF:
+              DEFAULT:
+                vif_plugging_is_fatal: False
         devstack_services:
           q-agt: true
           n-api: false
