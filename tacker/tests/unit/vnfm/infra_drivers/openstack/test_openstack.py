@@ -82,8 +82,8 @@ class FakeHeatClient(mock.Mock):
 
     class Stack(mock.Mock):
         stack_status = 'CREATE_COMPLETE'
-        outputs = [{u'output_value': u'192.168.120.31', u'description':
-            u'management ip address', u'output_key': u'mgmt_ip-vdu1'}]
+        outputs = [{'output_value': '192.168.120.31', 'description':
+            'management ip address', 'output_key': 'mgmt_ip-vdu1'}]
 
     def create(self, *args, **kwargs):
         return {'stack': {'id': '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}}
@@ -148,59 +148,59 @@ class TestOpenStack(base.TestCase):
 
     def _get_expected_vnf_update_obj(self):
         return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
-            u'test_openwrt', 'tenant_id':
-        u'ad7ebc56538745a08ef7c5e97f8bd437', 'vnfd_id':
-        u'eb094833-995e-49f0-a047-dfb56aaf7c4e', 'vnfd': {
-            'service_types': [{'service_type': u'vnfd', 'id':
-            u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}], 'description':
-            u'OpenWRT with services', 'tenant_id':
-            u'ad7ebc56538745a08ef7c5e97f8bd437', 'mgmt_driver': u'openwrt',
-            'attributes': {u'vnfd': self.tosca_vnfd_openwrt},
-            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
-            u'openwrt_services'}, 'mgmt_ip_address': None,
+             'test_openwrt', 'tenant_id':
+        'ad7ebc56538745a08ef7c5e97f8bd437', 'vnfd_id':
+        'eb094833-995e-49f0-a047-dfb56aaf7c4e', 'vnfd': {
+            'service_types': [{'service_type': 'vnfd', 'id':
+            '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}], 'description':
+            'OpenWRT with services', 'tenant_id':
+            'ad7ebc56538745a08ef7c5e97f8bd437', 'mgmt_driver': 'openwrt',
+            'attributes': {'vnfd': self.tosca_vnfd_openwrt},
+            'id': 'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
+            'openwrt_services'}, 'mgmt_ip_address': None,
             'service_context': [],
             'attributes': {'config': utils.update_config_data},
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123', 'description':
-                u'OpenWRT with services'}
+                'OpenWRT with services'}
 
     def _get_expected_vnf_update_new_param_obj(self):
         return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
-            u'test_openwrt', 'tenant_id':
-        u'ad7ebc56538745a08ef7c5e97f8bd437', 'vnfd_id':
-        u'eb094833-995e-49f0-a047-dfb56aaf7c4e', 'vnfd': {
-            'service_types': [{'service_type': u'vnfd', 'id':
-            u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}], 'description':
-            u'OpenWRT with services', 'tenant_id':
-            u'ad7ebc56538745a08ef7c5e97f8bd437', 'mgmt_driver': u'openwrt',
-            'attributes': {u'vnfd': self.tosca_vnfd_openwrt_param},
-            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
-            u'openwrt_services'}, 'mgmt_url': None, 'service_context': [],
+            'test_openwrt', 'tenant_id':
+        'ad7ebc56538745a08ef7c5e97f8bd437', 'vnfd_id':
+        'eb094833-995e-49f0-a047-dfb56aaf7c4e', 'vnfd': {
+            'service_types': [{'service_type': 'vnfd', 'id':
+            '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}], 'description':
+            'OpenWRT with services', 'tenant_id':
+            'ad7ebc56538745a08ef7c5e97f8bd437', 'mgmt_driver': 'openwrt',
+            'attributes': {'vnfd': self.tosca_vnfd_openwrt_param},
+            'id': 'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
+            'openwrt_services'}, 'mgmt_url': None, 'service_context': [],
             'attributes': {'heat_template': utils.hot_data,
                            'param_values': utils.update_new_param_data},
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123', 'description':
-                u'OpenWRT with services'}
+                'OpenWRT with services'}
 
     def _get_expected_active_vnf(self):
         return {'status': 'ACTIVE',
                 'instance_id': None,
-                'name': u'test_openwrt',
-                'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                'name': 'test_openwrt',
+                'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+                'vnfd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
                 'vnfd': {
                     'service_types': [{
-                        'service_type': u'vnfd',
-                        'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
-                    'description': u'OpenWRT with services',
-                    'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                    'mgmt_driver': u'openwrt',
-                    'infra_driver': u'heat',
-                    'attributes': {u'vnfd': self.tosca_vnfd_openwrt},
-                    'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
-                    'name': u'openwrt_services'},
+                        'service_type': 'vnfd',
+                        'id': '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
+                    'description': 'OpenWRT with services',
+                    'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+                    'mgmt_driver': 'openwrt',
+                    'infra_driver': 'heat',
+                    'attributes': {'vnfd': self.tosca_vnfd_openwrt},
+                    'id': 'fb048660-dc1b-4f0f-bd89-b023666650ec',
+                    'name': 'openwrt_services'},
                 'mgmt_ip_address': '{"vdu1": "192.168.120.31"}',
                 'service_context': [],
                 'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
-                'description': u'OpenWRT with services'}
+                'description': 'OpenWRT with services'}
 
     def test_delete(self):
         vnf_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
@@ -305,7 +305,7 @@ class TestOpenStack(base.TestCase):
         tosca_hw_dict = yaml.safe_load(_get_template(hot_tpl_name))
         dvc = {
             'vnfd': exp_tmpl,
-            'description': u'OpenWRT with services',
+            'description': 'OpenWRT with services',
             'attributes': {
                 'heat_template': tosca_hw_dict,
                 'param_values': param_values
@@ -313,11 +313,11 @@ class TestOpenStack(base.TestCase):
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
             'instance_id': None,
             'mgmt_ip_address': None,
-            'name': u'test_openwrt',
+            'name': 'test_openwrt',
             'service_context': [],
             'status': 'PENDING_CREATE',
-            'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-            'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437'
+            'vnfd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+            'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437'
         }
         # Add monitoring attributes for those yaml, which are having it
         if is_monitor:

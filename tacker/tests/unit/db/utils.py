@@ -83,45 +83,45 @@ hot_scale_nest_initial = _get_template('hot_scale_nest_initial.yaml')
 
 
 def get_dummy_vnfd_obj():
-    return {u'vnfd': {u'service_types': [{u'service_type': u'vnfd'}],
-                      'name': 'dummy_vnfd',
-                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                      u'attributes': {u'vnfd': yaml.safe_load(
-                          tosca_vnfd_openwrt)},
-                      'description': 'dummy_vnfd_description',
-                      'template_source': 'onboarded',
-            u'auth': {u'tenantName': u'admin', u'passwordCredentials': {
-                u'username': u'admin', u'password': u'devstack'}}}}
+    return {'vnfd': {'service_types': [{'service_type': 'vnfd'}],
+                     'name': 'dummy_vnfd',
+                     'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+                     'attributes': {'vnfd': yaml.safe_load(
+                         tosca_vnfd_openwrt)},
+                     'description': 'dummy_vnfd_description',
+                     'template_source': 'onboarded',
+            'auth': {'tenantName': 'admin', 'passwordCredentials': {
+                'username': 'admin', 'password': 'devstack'}}}}
 
 
 def get_invalid_vnfd_obj():
-    return {u'vnfd': {u'service_types': [{u'service_type': u'vnfd'}],
-                      'name': 'dummy_vnfd',
-                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                      u'attributes': {u'vnfd': yaml.safe_load(
-                          tosca_invalid_vnfd)},
-                      'description': 'dummy_vnfd_description',
-                      'template_source': 'onboarded',
-            u'auth': {u'tenantName': u'admin', u'passwordCredentials': {
-                u'username': u'admin', u'password': u'devstack'}}}}
+    return {'vnfd': {'service_types': [{'service_type': 'vnfd'}],
+                     'name': 'dummy_vnfd',
+                     'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+                     'attributes': {'vnfd': yaml.safe_load(
+                         tosca_invalid_vnfd)},
+                     'description': 'dummy_vnfd_description',
+                     'template_source': 'onboarded',
+            'auth': {'tenantName': 'admin', 'passwordCredentials': {
+                'username': 'admin', 'password': 'devstack'}}}}
 
 
 def get_dummy_vnfd_obj_inline():
-    return {u'vnfd': {u'service_types': [{u'service_type': u'vnfd'}],
-                      'name': 'tmpl-koeak4tqgoqo8cr4-dummy_inline_vnf',
-                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                      u'attributes': {u'vnfd': yaml.safe_load(
-                          tosca_vnfd_openwrt)},
-                      'template_source': 'inline',
-            u'auth': {u'tenantName': u'admin', u'passwordCredentials': {
-                u'username': u'admin', u'password': u'devstack'}}}}
+    return {'vnfd': {'service_types': [{'service_type': 'vnfd'}],
+                     'name': 'tmpl-koeak4tqgoqo8cr4-dummy_inline_vnf',
+                     'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+                     'attributes': {'vnfd': yaml.safe_load(
+                         tosca_vnfd_openwrt)},
+                     'template_source': 'inline',
+            'auth': {'tenantName': 'admin', 'passwordCredentials': {
+                'username': 'admin', 'password': 'devstack'}}}}
 
 
 def get_dummy_inline_vnf_obj():
     return {'vnf': {'description': 'dummy_inline_vnf_description',
                     'vnfd_template': yaml.safe_load(tosca_vnfd_openwrt),
-                    'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                    'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                    'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                    'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                     'name': 'dummy_inline_vnf',
                     'attributes': {},
                     'vnfd_id': None}}
@@ -130,8 +130,8 @@ def get_dummy_inline_vnf_obj():
 def get_dummy_inline_cvnf_obj():
     return {'vnf': {'description': 'dummy_inline_cvnf_description',
                     'vnfd_template': yaml.safe_load(tosca_cvnf_vnfd),
-                    'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                    'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                    'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                    'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                     'name': 'dummy_cvnf',
                     'attributes': {},
                     'vnfd_id': None}}
@@ -139,9 +139,9 @@ def get_dummy_inline_cvnf_obj():
 
 def get_dummy_vnf_obj():
     return {'vnf': {'description': 'dummy_vnf_description',
-                    'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                    'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                    'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                    'vnfd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                    'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                    'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                     'name': 'dummy_vnf',
                     'deleted_at': datetime.min,
                     'attributes': {},
@@ -149,46 +149,46 @@ def get_dummy_vnf_obj():
 
 
 def get_dummy_vnf_config_obj():
-    return {'vnf': {u'attributes': {u'config': {'vdus': {'vdu1': {
+    return {'vnf': {'attributes': {'config': {'vdus': {'vdu1': {
         'config': {'firewall': 'dummy_firewall_values'}}}}}}}
 
 
 def get_dummy_vnf_invalid_config_type_obj():
-    return {'vnf': {u'attributes': {u'config': 'dummy_config'}}}
+    return {'vnf': {'attributes': {'config': 'dummy_config'}}}
 
 
 def get_dummy_vnf_invalid_param_content():
-    return {'vnf': {u'attributes': {u'param_values': {}}}}
+    return {'vnf': {'attributes': {'param_values': {}}}}
 
 
 def get_dummy_vnf_param_obj():
-    return {'vnf': {u'attributes': {u'param_values':
+    return {'vnf': {'attributes': {'param_values':
         {'flavor': 'm1.tiny',
          'reservation_id': '99999999-3925-4c9e-9074-239a902b68d7'}}}}
 
 
 def get_dummy_vnf_invalid_param_type_obj():
-    return {'vnf': {u'attributes': {u'param_values': 'dummy_param'}}}
+    return {'vnf': {'attributes': {'param_values': 'dummy_param'}}}
 
 
 def get_dummy_vnf(status='PENDING_CREATE', scaling_group=False,
                   instance_id=None):
     dummy_vnf = {'status': status, 'instance_id': instance_id, 'name':
-        u'test_openwrt', 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-        'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+        'test_openwrt', 'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+        'vnfd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
         'vnfd': {
-            'service_types': [{'service_type': u'vnfd',
-            'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
-            'description': u'OpenWRT with services',
-            'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-            'mgmt_driver': u'openwrt',
-            'attributes': {u'vnfd': tosca_vnfd_openwrt},
-            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
-            'name': u'openwrt_services'},
+            'service_types': [{'service_type': 'vnfd',
+            'id': '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
+            'description': 'OpenWRT with services',
+            'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+            'mgmt_driver': 'openwrt',
+            'attributes': {'vnfd': tosca_vnfd_openwrt},
+            'id': 'fb048660-dc1b-4f0f-bd89-b023666650ec',
+            'name': 'openwrt_services'},
         'mgmt_ip_address': None, 'service_context': [],
-        'attributes': {u'param_values': u''},
+        'attributes': {'param_values': ''},
         'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
-        'description': u'OpenWRT with services'}
+        'description': 'OpenWRT with services'}
     if scaling_group:
         dummy_vnf['attributes'].update({'scaling_group_names':
                                    '{"SP1": "SP1_group"}',
@@ -199,21 +199,21 @@ def get_dummy_vnf(status='PENDING_CREATE', scaling_group=False,
 def get_dummy_vnf_test(status='PENDING_CREATE', scaling_group=False,
                   instance_id=None):
     dummy_vnf = {'status': status, 'instance_id': instance_id, 'name':
-        u'test_openwrt', 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-        'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+        'test_openwrt', 'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+        'vnfd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
         'vnfd': {
-            'service_types': [{'service_type': u'vnfd',
-            'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
-            'description': u'OpenWRT with services',
-            'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-            'mgmt_driver': u'openwrt',
-            'attributes': {u'vnfd_simple': tosca_vnfd_openwrt},
-            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
-            'name': u'openwrt_services'},
+            'service_types': [{'service_type': 'vnfd',
+            'id': '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
+            'description': 'OpenWRT with services',
+            'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+            'mgmt_driver': 'openwrt',
+            'attributes': {'vnfd_simple': tosca_vnfd_openwrt},
+            'id': 'fb048660-dc1b-4f0f-bd89-b023666650ec',
+            'name': 'openwrt_services'},
         'mgmt_ip_address': None, 'service_context': [],
-        'attributes': {u'param_values': u''},
+        'attributes': {'param_values': ''},
         'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
-        'description': u'OpenWRT with services'}
+        'description': 'OpenWRT with services'}
     if scaling_group:
         dummy_vnf['attributes'].update({'scaling_group_names':
                                    '{"SP1": "SP1_group"}',
@@ -225,21 +225,21 @@ def get_dummy_vnf_etsi(status='PENDING_CREATE', scaling_group=False,
                        instance_id=None, flavour='Simple'):
     vnfd_key = 'vnfd_' + flavour
     dummy_vnf = {'status': status, 'instance_id': instance_id, 'name':
-        u'test_openwrt', 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-        'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+        'test_openwrt', 'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+        'vnfd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
         'vnfd': {
-            'service_types': [{'service_type': u'vnfd',
-            'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
-            'description': u'OpenWRT with services',
-            'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-            'mgmt_driver': u'openwrt',
+            'service_types': [{'service_type': 'vnfd',
+            'id': '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
+            'description': 'OpenWRT with services',
+            'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+            'mgmt_driver': 'openwrt',
             'attributes': {vnfd_key: etsi_vnfd},
-            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
-            'name': u'openwrt_services'},
+            'id': 'fb048660-dc1b-4f0f-bd89-b023666650ec',
+            'name': 'openwrt_services'},
         'mgmt_ip_address': None, 'service_context': [],
-        'attributes': {u'param_values': u''},
+        'attributes': {'param_values': ''},
         'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
-        'description': u'OpenWRT with services'}
+        'description': 'OpenWRT with services'}
     if scaling_group:
         dummy_vnf['attributes'].update({'scaling_group_names':
                                    '{"SP1": "SP1_group"}',
@@ -249,39 +249,39 @@ def get_dummy_vnf_etsi(status='PENDING_CREATE', scaling_group=False,
 
 def get_dummy_vnf_config_attr():
     return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
-        u'test_openwrt', 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-        'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-        'vnfd': {'service_types': [{'service_type': u'vnfd',
-            'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
-            'description': u'OpenWRT with services',
-            'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-            'mgmt_driver': u'openwrt',
-            'attributes': {u'vnfd': tosca_vnfd_openwrt},
-            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
-            u'openwrt_services'}, 'mgmt_ip_address': None,
+        'test_openwrt', 'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+        'vnfd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+        'vnfd': {'service_types': [{'service_type': 'vnfd',
+            'id': '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
+            'description': 'OpenWRT with services',
+            'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+            'mgmt_driver': 'openwrt',
+            'attributes': {'vnfd': tosca_vnfd_openwrt},
+            'id': 'fb048660-dc1b-4f0f-bd89-b023666650ec', 'name':
+            'openwrt_services'}, 'mgmt_ip_address': None,
             'service_context': [],
-            'attributes': {u'config': config_data},
+            'attributes': {'config': config_data},
             'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
-            'description': u'OpenWRT with services'}
+            'description': 'OpenWRT with services'}
 
 
 def get_dummy_vnf_param_attr():
     return {'status': 'PENDING_CREATE', 'instance_id': None, 'name':
-        u'test_openwrt', 'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-        'vnfd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-        'vnfd': {'service_types': [{'service_type': u'vnfd',
-            'id': u'4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
-            'description': u'OpenWRT with services',
-            'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-            'mgmt_driver': u'openwrt',
-            'attributes': {u'vnfd': tosca_vnfd_openwrt_param},
-            'id': u'fb048660-dc1b-4f0f-bd89-b023666650ec',
-            'name': u'openwrt_services'},
+        'test_openwrt', 'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+        'vnfd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+        'vnfd': {'service_types': [{'service_type': 'vnfd',
+            'id': '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}],
+            'description': 'OpenWRT with services',
+            'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+            'mgmt_driver': 'openwrt',
+            'attributes': {'vnfd': tosca_vnfd_openwrt_param},
+            'id': 'fb048660-dc1b-4f0f-bd89-b023666650ec',
+            'name': 'openwrt_services'},
         'mgmt_url': None, 'service_context': [],
         'attributes': {'heat_template': hot_data,
                        'param_values': param_data},
         'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
-        'description': u'OpenWRT with services'}
+        'description': 'OpenWRT with services'}
 
 
 def get_dummy_vnf_update_config():
@@ -327,75 +327,75 @@ def get_vim_auth_obj():
 
 
 def get_dummy_vnffgd_obj():
-    return {u'vnffgd': {'name': 'dummy_vnffgd',
-                        'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                        u'template': {u'vnffgd': vnffgd_tosca_template},
-                        'description': 'dummy_vnffgd_description',
-                        'template_source': 'onboarded'}}
+    return {'vnffgd': {'name': 'dummy_vnffgd',
+                       'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+                       'template': {'vnffgd': vnffgd_tosca_template},
+                       'description': 'dummy_vnffgd_description',
+                       'template_source': 'onboarded'}}
 
 
 def get_dummy_vnffgd_obj_inline():
-    return {u'vnffgd': {'name': 'dummy_vnffgd_inline',
-                        'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                        u'template': {u'vnffgd': vnffgd_tosca_template},
-                        'description': 'dummy_vnffgd_description_inline',
-                        'template_source': 'inline'}}
+    return {'vnffgd': {'name': 'dummy_vnffgd_inline',
+                       'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+                       'template': {'vnffgd': vnffgd_tosca_template},
+                       'description': 'dummy_vnffgd_description_inline',
+                       'template_source': 'inline'}}
 
 
 def get_dummy_vnffgd_obj_no_description():
-    return {u'vnffgd': {'name': 'dummy_vnffgd',
-                        'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                        u'template': {u'vnffgd': vnffgd_tosca_template},
-                        'template_source': 'onboarded'}}
+    return {'vnffgd': {'name': 'dummy_vnffgd',
+                       'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+                       'template': {'vnffgd': vnffgd_tosca_template},
+                       'template_source': 'onboarded'}}
 
 
 def get_dummy_vnffgd_obj_no_name():
-    return {u'vnffgd': {'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
-                        u'template': {u'vnffgd': vnffgd_tosca_template},
-                        'description': 'dummy_vnffgd_description',
-                        'template_source': 'onboarded'}}
+    return {'vnffgd': {'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
+                       'template': {'vnffgd': vnffgd_tosca_template},
+                       'description': 'dummy_vnffgd_description',
+                       'template_source': 'onboarded'}}
 
 
 def get_dummy_vnffg_obj():
     return {'vnffg': {'description': 'dummy_vnffg_description',
-                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'vnffgd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
-                      u'attributes': {u'template': vnffgd_tosca_template},
+                      'attributes': {'template': vnffgd_tosca_template},
                       'vnf_mapping': {},
                       'symmetrical': False}}
 
 
 def get_dummy_vnffg_no_classifier_obj():
     return {'vnffg': {'description': 'dummy_vnffg_no_classifier_description',
-                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'vnffgd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
-                      u'attributes': {
-                          u'template': vnffgd_tosca_no_classifier_template},
+                      'attributes': {
+                          'template': vnffgd_tosca_no_classifier_template},
                       'vnf_mapping': {},
                       'symmetrical': False}}
 
 
 def get_dummy_vnffg_obj_inline():
     return {'vnffg': {'description': 'dummy_vnffg_description_inline',
-                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg_inline',
-                      u'attributes': {u'template': vnffgd_tosca_template},
+                      'attributes': {'template': vnffgd_tosca_template},
                       'vnf_mapping': {},
                       'symmetrical': False,
                       'vnffgd_template': vnffgd_tosca_template}}
 
 
 def get_dummy_vnffg_obj_update_vnffgd_template():
-    return {'vnffg': {'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+    return {'vnffg': {'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
                       'symmetrical': False,
                       'vnffgd_template': vnffgd_tosca_template_for_update}}
 
 
 def get_dummy_vnffg_obj_legacy_vnffgd_template():
-    return {'vnffg': {'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+    return {'vnffg': {'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
                       'symmetrical': False,
                       'vnffgd_template': vnffgd_legacy_template}}
@@ -403,12 +403,12 @@ def get_dummy_vnffg_obj_legacy_vnffgd_template():
 
 def get_dummy_vnffg_param_obj():
     return {'vnffg': {'description': 'dummy_vnf_description',
-                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'vnffgd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
-                      u'attributes': {
-                          u'template': vnffgd_tosca_param_template,
-                          u'param_values':
+                      'attributes': {
+                          'template': vnffgd_tosca_param_template,
+                          'param_values':
                               yaml.safe_load(vnffg_params)
                       },
                       'vnf_mapping': {},
@@ -417,24 +417,24 @@ def get_dummy_vnffg_param_obj():
 
 def get_dummy_vnffg_str_param_obj():
     return {'vnffg': {'description': 'dummy_vnf_description',
-                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'vnffgd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
-                      u'attributes': {
-                          u'template': vnffgd_tosca_param_template,
-                          u'param_values': 'value not dict format'},
+                      'attributes': {
+                          'template': vnffgd_tosca_param_template,
+                          'param_values': 'value not dict format'},
                       'vnf_mapping': {},
                       'symmetrical': False}}
 
 
 def get_dummy_vnffg_multi_param_obj():
     return {'vnffg': {'description': 'dummy_vnf_description',
-                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'vnffgd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
-                      u'attributes': {
-                          u'template': vnffgd_tosca_multi_param_template,
-                          u'param_values':
+                      'attributes': {
+                          'template': vnffgd_tosca_multi_param_template,
+                          'param_values':
                               yaml.safe_load(vnffg_multi_params)
                       },
                       'vnf_mapping': {},
@@ -443,10 +443,10 @@ def get_dummy_vnffg_multi_param_obj():
 
 def get_dummy_vnffg_obj_vnf_mapping():
     return {'vnffg': {'description': 'dummy_vnf_description',
-                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'vnffgd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
-                      u'attributes': {u'template': vnffgd_tosca_template},
+                      'attributes': {'template': vnffgd_tosca_template},
                       'vnf_mapping': {
                           'VNF1': '91e32c20-6d1f-47a4-9ba7-08f5e5effe07',
                           'VNF3': '7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'
@@ -456,11 +456,11 @@ def get_dummy_vnffg_obj_vnf_mapping():
 
 def get_dummy_vnffg_obj_dupl_criteria():
     return {'vnffg': {'description': 'dummy_vnffg_description',
-                      'vnffgd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                      'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                      'vnffgd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                      'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                       'name': 'dummy_vnffg',
-                      u'attributes': {u'template':
-                                      vnffgd_tosca_dupl_criteria_template},
+                      'attributes': {'template':
+                                     vnffgd_tosca_dupl_criteria_template},
                       'vnf_mapping': {},
                       'symmetrical': False}}
 
@@ -468,25 +468,25 @@ def get_dummy_vnffg_obj_dupl_criteria():
 def get_dummy_nsd_obj():
     return {'nsd': {'description': 'dummy_nsd_description',
                     'name': 'dummy_NSD',
-                    'tenant_id': u'8819a1542a5948b68f94d4be0fd50496',
-                    'attributes': {u'nsd': nsd_tosca_template},
+                    'tenant_id': '8819a1542a5948b68f94d4be0fd50496',
+                    'attributes': {'nsd': nsd_tosca_template},
                     'template_source': 'onboarded'}}
 
 
 def get_dummy_nsd_obj_inline():
     return {'nsd': {'description': 'dummy_nsd_description_inline',
                     'name': 'dummy_NSD_inline',
-                    'tenant_id': u'8819a1542a5948b68f94d4be0fd50496',
-                    'attributes': {u'nsd': nsd_tosca_template},
+                    'tenant_id': '8819a1542a5948b68f94d4be0fd50496',
+                    'attributes': {'nsd': nsd_tosca_template},
                     'template_source': 'inline'}}
 
 
 def get_dummy_ns_obj():
     return {'ns': {'description': 'dummy_ns_description',
-                   'id': u'ba6bf017-f6f7-45f1-a280-57b073bf78ea',
-                   'nsd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                   'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                   'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                   'id': 'ba6bf017-f6f7-45f1-a280-57b073bf78ea',
+                   'nsd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                   'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                   'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                    'name': 'dummy_ns',
                    'attributes': {
                        'param_values': {'nsd': {'vl1_name': 'net_mgmt',
@@ -495,9 +495,9 @@ def get_dummy_ns_obj():
 
 def get_dummy_ns_obj_inline():
     return {'ns': {'description': 'dummy_ns_description_inline',
-                   'id': u'ff35e3f0-0a11-4071-bce6-279fdf1c8bf9',
-                   'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                   'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                   'id': 'ff35e3f0-0a11-4071-bce6-279fdf1c8bf9',
+                   'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                   'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                    'name': 'dummy_ns_inline',
                    'attributes': {
                        'param_values': {'nsd': {'vl1_name': 'net_mgmt',
@@ -507,10 +507,10 @@ def get_dummy_ns_obj_inline():
 
 def get_dummy_ns_obj_2():
     return {'ns': {'description': 'dummy_ns_description',
-                   'id': u'ba6bf017-f6f7-45f1-a280-57b073bf78ea',
-                   'nsd_id': u'eb094833-995e-49f0-a047-dfb56aaf7c4e',
-                   'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                   'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                   'id': 'ba6bf017-f6f7-45f1-a280-57b073bf78ea',
+                   'nsd_id': 'eb094833-995e-49f0-a047-dfb56aaf7c4e',
+                   'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                   'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                    'name': DUMMY_NS_2_NAME,
                    'attributes': {
                        'param_values': {'nsd': {'vl1_name': 'net_mgmt',

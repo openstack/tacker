@@ -77,8 +77,8 @@ class FakeHeatClient(mock.Mock):
 
     class Stack(mock.Mock):
         stack_status = 'CREATE_COMPLETE'
-        outputs = [{u'output_value': u'192.168.120.31', u'description':
-            u'management ip address', u'output_key': u'mgmt_ip-vdu1'}]
+        outputs = [{'output_value': '192.168.120.31', 'description':
+            'management ip address', 'output_key': 'mgmt_ip-vdu1'}]
 
     def create(self, *args, **kwargs):
         return {'stack': {'id': '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'}}

@@ -591,7 +591,7 @@ def post_process_heat_template(heat_tpl, mgmt_ports, metadata,
 
     yaml.SafeDumper.add_representer(OrderedDict,
     lambda dumper, value: represent_odict(dumper,
-                                          u'tag:yaml.org,2002:map', value))
+                                          'tag:yaml.org,2002:map', value))
 
     return yaml.safe_dump(heat_dict)
 
@@ -612,7 +612,7 @@ def post_process_heat_template_for_scaling(
 
     yaml.SafeDumper.add_representer(OrderedDict,
     lambda dumper, value: represent_odict(dumper,
-                                          u'tag:yaml.org,2002:map', value))
+                                          'tag:yaml.org,2002:map', value))
     return yaml.safe_dump(heat_dict)
 
 
@@ -1289,7 +1289,7 @@ def update_nested_scaling_resources(nested_resources, mgmt_ports, metadata,
 
     yaml.SafeDumper.add_representer(
         OrderedDict, lambda dumper, value: represent_odict(
-            dumper, u'tag:yaml.org,2002:map', value))
+            dumper, 'tag:yaml.org,2002:map', value))
     nested_tpl[nested_resource_name] =\
         yaml.safe_dump(nested_resources_dict)
 

@@ -359,7 +359,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     def _format_base_hot(self, base_hot_dict):
         yaml.SafeDumper.add_representer(OrderedDict,
         lambda dumper, value: represent_odict(dumper,
-                                              u'tag:yaml.org,2002:map', value))
+                                              'tag:yaml.org,2002:map', value))
 
         return yaml.safe_dump(base_hot_dict)
 

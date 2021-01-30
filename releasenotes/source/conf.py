@@ -53,7 +53,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-copyright = u'2016, Tacker Developers'
+copyright = '2016, Tacker Developers'
 
 # Release do not need a version number in the title, they
 # cover multiple versions.
@@ -183,8 +183,8 @@ htmlhelp_basename = 'tackerdoc'
 #  [howto/manual]).
 latex_documents = [
     ('index', 'TackerReleaseNotes.tex',
-     u'Tacker Release Notes Documentation',
-     u'Tacker Developers', 'manual'),
+     'Tacker Release Notes Documentation',
+     'Tacker Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -213,8 +213,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'tackerreleasenotes', u'Tacker Release Notes Documentation',
-     [u'Tacker Developers'], 1)
+    ('index', 'tackerreleasenotes', 'Tacker Release Notes Documentation',
+     ['Tacker Developers'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -227,8 +227,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'TackerReleaseNotes', u'Tacker Release Notes Documentation',
-     u'Tacker Developers', 'TackerReleaseNotes',
+    ('index', 'TackerReleaseNotes', 'Tacker Release Notes Documentation',
+     'Tacker Developers', 'TackerReleaseNotes',
      'Tacker Project.',
      'Miscellaneous'),
 ]

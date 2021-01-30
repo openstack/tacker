@@ -856,7 +856,7 @@ class VnfLcmController(wsgi.Controller):
             type(
                 subscription_request_data.get('filter')))
         filter_uni = subscription_request_data.get('filter')
-        filter = ast.literal_eval(str(filter_uni).replace("u'", "'"))
+        filter = ast.literal_eval(str(filter_uni).replace("'", "'"))
 
         try:
             vnf_lcm_subscription = vnf_lcm_subscription.create(filter)

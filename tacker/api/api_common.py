@@ -36,7 +36,7 @@ def get_filters(request, attr_info, skips=None):
     Returns a dict of lists for the filters:
     check=a&check=b&name=Bob&
     becomes:
-    {'check': [u'a', u'b'], 'name': [u'Bob']}
+    {'check': ['a', 'b'], 'name': ['Bob']}
     """
     res = {}
     skips = skips or []

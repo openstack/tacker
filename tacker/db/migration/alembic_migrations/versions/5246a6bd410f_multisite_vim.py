@@ -39,7 +39,7 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('name', sa.String(length=255), nullable=True),
         sa.Column('description', sa.String(length=255), nullable=True),
         sa.Column('placement_attr', sa.PickleType(), nullable=True),
-        sa.Column('shared', sa.Boolean(), server_default=sa.text(u'true'),
+        sa.Column('shared', sa.Boolean(), server_default=sa.text('true'),
                   nullable=False),
         sa.PrimaryKeyConstraint('id'),
         mysql_engine='InnoDB'
@@ -55,8 +55,8 @@ def upgrade(active_plugins=None, options=None):
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('auth_url')
     )
-    op.add_column(u'devices', sa.Column('placement_attr', sa.PickleType(),
+    op.add_column('devices', sa.Column('placement_attr', sa.PickleType(),
                                         nullable=True))
-    op.add_column(u'devices', sa.Column('vim_id', sa.String(length=36),
+    op.add_column('devices', sa.Column('vim_id', sa.String(length=36),
                                         nullable=False))
     op.create_foreign_key(None, 'devices', 'vims', ['vim_id'], ['id'])

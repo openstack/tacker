@@ -703,20 +703,20 @@ class TestVNFMPlugin(db_base.SqlTestCase):
     def _insert_dummy_ns_template(self):
         session = self.context.session
         attributes = {
-            u'nsd': 'imports: [VNF1, VNF2]\ntopology_template:\n  inputs:\n  '
-                    '  vl1_name: {default: net_mgmt, description: name of VL1'
-                    ' virtuallink, type: string}\n    vl2_name: {default: '
-                    'net0, description: name of VL2 virtuallink, type: string'
-                    '}\n  node_templates:\n    VL1:\n      properties:\n     '
-                    '   network_name: {get_input: vl1_name}\n        vendor: '
-                    'tacker\n      type: tosca.nodes.nfv.VL\n    VL2:\n      '
-                    'properties:\n        network_name: {get_input: vl2_name}'
-                    '\n        vendor: tacker\n      type: tosca.nodes.nfv.VL'
-                    '\n    VNF1:\n      requirements:\n      - {virtualLink1: '
-                    'VL1}\n      - {virtualLink2: VL2}\n      type: tosca.node'
-                    's.nfv.VNF1\n    VNF2: {type: tosca.nodes.nfv.VNF2}\ntosca'
-                    '_definitions_version: tosca_simple_profile_for_nfv_1_0_0'
-                    '\n'}
+            'nsd': 'imports: [VNF1, VNF2]\ntopology_template:\n  inputs:\n  '
+                   '  vl1_name: {default: net_mgmt, description: name of VL1'
+                   ' virtuallink, type: string}\n    vl2_name: {default: '
+                   'net0, description: name of VL2 virtuallink, type: string'
+                   '}\n  node_templates:\n    VL1:\n      properties:\n     '
+                   '   network_name: {get_input: vl1_name}\n        vendor: '
+                   'tacker\n      type: tosca.nodes.nfv.VL\n    VL2:\n      '
+                   'properties:\n        network_name: {get_input: vl2_name}'
+                   '\n        vendor: tacker\n      type: tosca.nodes.nfv.VL'
+                   '\n    VNF1:\n      requirements:\n      - {virtualLink1: '
+                   'VL1}\n      - {virtualLink2: VL2}\n      type: tosca.node'
+                   's.nfv.VNF1\n    VNF2: {type: tosca.nodes.nfv.VNF2}\ntosca'
+                   '_definitions_version: tosca_simple_profile_for_nfv_1_0_0'
+                   '\n'}
         nsd_template = ns_db.NSD(
             id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
