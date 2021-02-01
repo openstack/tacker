@@ -14,7 +14,6 @@
 #    under the License.
 
 import copy
-import io
 import os
 import yaml
 
@@ -64,10 +63,8 @@ def _get_vim(context, vim_connection_info):
 
 
 def _get_vnfd_dict(context, vnfd_id, flavour_id):
-    vnf_package_id = _get_vnf_package_id(context, vnfd_id)
-    vnf_package_base_path = cfg.CONF.vnf_package.vnf_package_csar_path
-    vnf_package_csar_path = vnf_package_base_path + '/' + vnf_package_id
-    vnfd_dict = _get_flavour_based_vnfd(vnf_package_csar_path, flavour_id)
+    vnfd_dict = _get_flavour_based_vnfd(
+        _get_vnf_package_path(context, vnfd_id), flavour_id)
 
     # Remove requirements from substitution mapping
     vnfd_dict.get('topology_template').get(
@@ -356,7 +353,7 @@ def _create_grant_request(vnfd_dict, package_uuid):
         return vnf_sw_image
 
     def _get_image_path(artifact_image_path, package_uuid):
-        vnf_package_path = cfg.CONF.vnf_package.vnf_package_csar_path
+        vnf_package_path = CONF.vnf_package.vnf_package_csar_path
         artifact_image_path = os.path.join(
             vnf_package_path, package_uuid,
             artifact_image_path.split('../')[-1])
@@ -412,14 +409,14 @@ def _make_final_vnf_dict(vnfd_dict, id, name, param_values, vnf_dict=None):
 
 
 def _get_flavour_based_vnfd(csar_path, flavour_id):
-    ext = [".yaml", ".yml"]
+    ext = (".yaml", ".yml")
     file_path_and_data = {}
     imp_list = []
     for item in os.listdir(csar_path):
         src_path = os.path.join(csar_path, item)
         if os.path.isdir(src_path):
             for file in os.listdir(src_path):
-                if file.endswith(tuple(ext)):
+                if file.endswith(ext):
                     source_file_path = os.path.join(src_path, file)
                     with open(source_file_path) as file_obj:
                         data = yaml.safe_load(file_obj)
@@ -436,8 +433,9 @@ def _get_flavour_based_vnfd(csar_path, flavour_id):
 
                         return data
 
-        elif src_path.endswith(tuple(ext)):
-            file_data = yaml.safe_load(io.open(src_path))
+        elif src_path.endswith(ext):
+            with open(src_path) as file_obj:
+                file_data = yaml.safe_load(file_obj)
             substitution_map = file_data.get(
                 'topology_template', {}).get('substitution_mappings', {})
             if substitution_map.get(
@@ -1040,53 +1038,29 @@ def _convert_desired_capacity(inst_level_id, vnfd_dict, vdu):
 
 
 def _get_vnf_package_path(context, vnfd_id):
-    vnf_package_id = _get_vnf_package_id(context, vnfd_id)
-    vnf_package_base_path = cfg.CONF.vnf_package.vnf_package_csar_path
-    vnf_package_path = vnf_package_base_path + '/' + vnf_package_id
-    return vnf_package_path
-
-
-def _get_base_hot_dict(context, vnfd_id):
-    vnf_package_id = _get_vnf_package_id(context, vnfd_id)
-    vnf_package_base_path = cfg.CONF.vnf_package.vnf_package_csar_path
-    vnf_package_csar_path = vnf_package_base_path + '/' + vnf_package_id
-    base_hot_dir = 'BaseHOT'
-    ext = [".yaml", ".yml"]
-
-    base_hot_path = vnf_package_csar_path + '/' + base_hot_dir
-    base_hot_dict = None
-    if os.path.exists(base_hot_path):
-        for file in os.listdir(base_hot_path):
-            if file.endswith(tuple(ext)):
-                source_file_path = os.path.join(base_hot_path, file)
-                base_hot_dict = yaml.safe_load(open(source_file_path))
-    LOG.debug("Loaded base hot: %s", base_hot_dict)
-    return base_hot_dict
+    return os.path.join(CONF.vnf_package.vnf_package_csar_path,
+                        _get_vnf_package_id(context, vnfd_id))
 
 
 def get_base_nest_hot_dict(context, flavour_id, vnfd_id):
-    vnf_package_id = _get_vnf_package_id(context, vnfd_id)
-    vnf_package_base_path = cfg.CONF.vnf_package.vnf_package_csar_path
-    vnf_package_csar_path = vnf_package_base_path + '/' + vnf_package_id
-    base_hot_dir = 'BaseHOT'
-    ext = [".yaml", ".yml"]
+    base_hot_path = os.path.join(_get_vnf_package_path(context, vnfd_id),
+                                 'BaseHOT', flavour_id)
+    nested_hot_path = os.path.join(base_hot_path, 'nested')
+    ext = (".yaml", ".yml")
 
-    base_hot_path = vnf_package_csar_path + '/' + \
-        base_hot_dir + '/' + flavour_id
     base_hot_dict = None
-    nested_hot_path = base_hot_path + '/nested'
     nested_hot_dict = {}
     if os.path.exists(base_hot_path):
         for file in os.listdir(base_hot_path):
-            if file.endswith(tuple(ext)):
-                source_file_path = os.path.join(base_hot_path, file)
-                base_hot_dict = yaml.safe_load(open(source_file_path))
+            if file.endswith(ext):
+                with open(os.path.join(base_hot_path, file)) as file_obj:
+                    base_hot_dict = yaml.safe_load(file_obj)
     if os.path.exists(nested_hot_path):
         for file in os.listdir(nested_hot_path):
-            if file.endswith(tuple(ext)):
-                source_file_path = os.path.join(nested_hot_path, file)
-                nested_hot = yaml.safe_load(open(source_file_path))
-                nested_hot_dict[file] = nested_hot
+            if file.endswith(ext):
+                with open(os.path.join(nested_hot_path, file)) as file_obj:
+                    nested_hot = yaml.safe_load(file_obj)
+                    nested_hot_dict[file] = nested_hot
     LOG.debug("Loaded base hot: %s", base_hot_dict)
     LOG.debug("Loaded nested_hot_dict: %s", nested_hot_dict)
     return base_hot_dict, nested_hot_dict
