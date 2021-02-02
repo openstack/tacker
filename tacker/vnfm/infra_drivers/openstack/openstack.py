@@ -131,7 +131,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
     @log.log
     def create(self, plugin, context, vnf, auth_attr,
-               base_hot_dict=None, vnf_package_path=None,
+               vnf_package_path=None,
                inst_req_info=None, grant_info=None,
                vnf_instance=None):
         LOG.debug('vnf %s', vnf)
@@ -177,9 +177,6 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             if base_hot_dict is None:
                 error_reason = _("failed to get Base HOT.")
                 raise vnfm.LCMUserDataFailed(reason=error_reason)
-
-            if base_hot_dict is None:
-                nested_hot_dict = {}
 
             for name, hot in nested_hot_dict.items():
                 vnf['attributes'][name] = self._format_base_hot(hot)
@@ -893,7 +890,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     def instantiate_vnf(self, context, vnf_instance, vnfd_dict,
                         vim_connection_info, instantiate_vnf_req,
                         grant_response, plugin,
-                        base_hot_dict=None, vnf_package_path=None):
+                        vnf_package_path=None):
         access_info = vim_connection_info.access_info
         region_name = access_info.get('region')
         placement_attr = vnfd_dict.get('placement_attr', {})
@@ -901,7 +898,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         vnfd_dict['placement_attr'] = placement_attr
 
         instance_id = self.create(plugin, context, vnfd_dict,
-            access_info, base_hot_dict, vnf_package_path,
+            access_info, vnf_package_path,
             inst_req_info=instantiate_vnf_req,
             grant_info=grant_response,
             vnf_instance=vnf_instance)

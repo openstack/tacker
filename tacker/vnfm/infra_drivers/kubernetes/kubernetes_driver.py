@@ -34,7 +34,6 @@ from tacker import objects
 from tacker.objects import vnf_package as vnf_package_obj
 from tacker.objects import vnf_package_vnfd as vnfd_obj
 from tacker.objects import vnf_resources as vnf_resource_obj
-from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnfm.infra_drivers import abstract_driver
 from tacker.vnfm.infra_drivers.kubernetes.k8s import translate_outputs
 from tacker.vnfm.infra_drivers.kubernetes import translate_template
@@ -1223,10 +1222,6 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                          bool(urlparse(target_k8s_file).netloc))):
                     file_content = urllib2.urlopen(target_k8s_file).read()
                 else:
-                    if vnf_package_path is None:
-                        vnf_package_path = \
-                            vnflcm_utils._get_vnf_package_path(
-                                context, vnf_instance.vnfd_id)
                     target_k8s_file_path = os.path.join(
                         vnf_package_path, target_k8s_file)
                     with open(target_k8s_file_path, 'r') as f:
@@ -1257,7 +1252,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
 
     def instantiate_vnf(self, context, vnf_instance, vnfd_dict,
                         vim_connection_info, instantiate_vnf_req,
-                        grant_response, vnf_package_path, base_hot_dict,
+                        grant_response, vnf_package_path,
                         plugin=None):
         target_k8s_files = self._get_target_k8s_files(instantiate_vnf_req)
         auth_attr = vim_connection_info.access_info
@@ -1270,9 +1265,6 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         else:
             auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
             k8s_client_dict = self.kubernetes.get_k8s_client_dict(auth_cred)
-            if vnf_package_path is None:
-                vnf_package_path = vnflcm_utils._get_vnf_package_path(
-                    context, vnf_instance.vnfd_id)
             transformer = translate_outputs.Transformer(
                 None, None, None, k8s_client_dict)
             deployment_dict_list = list()
