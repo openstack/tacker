@@ -17,6 +17,7 @@ import ddt
 import os
 
 from kubernetes import client
+from tacker.common.container import kubernetes_utils
 from tacker.common import exceptions
 from tacker import context
 from tacker.db.db_sqlalchemy import models
@@ -32,7 +33,10 @@ from tacker.tests.unit.db import utils
 from tacker.tests.unit.vnfm.infra_drivers.kubernetes import fakes
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import \
     fixture_data_utils as fd_utils
+from tacker.vnfm.infra_drivers.kubernetes.k8s import tosca_kube_object
+from tacker.vnfm.infra_drivers.kubernetes.k8s import translate_outputs
 from tacker.vnfm.infra_drivers.kubernetes import kubernetes_driver
+from tacker.vnfm.infra_drivers.kubernetes import translate_template
 from unittest import mock
 
 
@@ -1716,3 +1720,82 @@ class TestKubernetes(base.TestCase):
         mock_read_namespaced_service.assert_called()
         mock_read_namespaced_horizontal_pod_autoscaler.assert_called()
         mock_read_namespaced_deployment.assert_called()
+
+    @mock.patch.object(translate_template.TOSCAToKubernetes,
+                       'deploy_kubernetes_objects')
+    def test_instantiate_vnf_without_target_k8s_files(
+            self, mock_deploy_kubernetes_objects):
+        vnf = {
+            'vnfd': {
+                'attributes': {
+                    'vnfd': {
+                        'tosca_definitions_version': 'tosca_simple_yaml_1_0'}
+                }}}
+        vim_connection_info = objects.VimConnectionInfo(
+            access_info={'auth_url': 'http://fake-url/identity/v3'})
+        vnfd_dict = fakes.fake_vnf_dict()
+        test_tosca_kube_object = tosca_kube_object.ToscaKubeObject(
+            namespace='test_namespace', name='test_name')
+        test_deployment_name = (
+            test_tosca_kube_object.namespace + "," +
+            test_tosca_kube_object.name)
+        mock_deploy_kubernetes_objects.return_value = \
+            test_deployment_name
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            additional_params={'dummy_key': ["dummy_value"]})
+        grant_response = None
+        base_hot_dict = None
+        vnf_package_path = self.yaml_path
+        result = self.kubernetes.instantiate_vnf(
+            self.context, vnf, vnfd_dict, vim_connection_info,
+            instantiate_vnf_req, grant_response, vnf_package_path,
+            base_hot_dict)
+        self.assertEqual(result, "test_namespace,test_name")
+
+    @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
+    @mock.patch.object(translate_outputs.Transformer, 'deploy_k8s')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment')
+    @mock.patch.object(kubernetes_utils.KubernetesHTTPAPI,
+                       'get_k8s_client_dict')
+    @mock.patch.object(kubernetes_driver.Kubernetes, 'create_wait_k8s')
+    def test_instantiate_vnf_with_target_k8s_files(
+            self,
+            mock_create_wait_k8s,
+            mock_get_k8s_client_dict,
+            mock_read_namespaced_deployment,
+            mock_deploy_k8s,
+            mock_get_k8s_objs_from_yaml):
+        vnf = {
+            'vnfd': {
+                'attributes': {
+                    'vnfd': {
+                        'tosca_definitions_version': 'tosca_simple_yaml_1_0'}
+                }}}
+        vim_connection_info = objects.VimConnectionInfo(
+            access_info={'auth_url': 'http://fake-url/identity/v3'})
+        deployment_obj = fakes.fake_v1_deployment()
+        mock_read_namespaced_deployment.return_value = deployment_obj
+        mock_get_k8s_objs_from_yaml.return_value = \
+            fakes.fake_k8s_objs_deployment()
+
+        mock_deploy_k8s.return_value = fakes.fake_k8s_objs_deployment()
+        mock_get_k8s_client_dict.retrun_value = fakes.fake_k8s_client_dict()
+
+        mock_create_wait_k8s.return_value = fakes.fake_k8s_objs_deployment()
+
+        vnfd_dict = fakes.fake_vnf_dict()
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            additional_params={
+                'lcm-kubernetes-def-files': 'test-file'})
+        grant_response = None
+        base_hot_dict = None
+        vnf_package_path = self.yaml_path
+        result = self.kubernetes.instantiate_vnf(
+            self.context, vnf, vnfd_dict, vim_connection_info,
+            instantiate_vnf_req, grant_response, vnf_package_path,
+            base_hot_dict)
+        self.assertEqual(
+            result,
+            "{'namespace': 'test', 'name': " +
+            "'curry-test001', 'apiVersion': 'apps/v1', " +
+            "'kind': 'Deployment', 'status': 'Creating'}")
