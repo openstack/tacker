@@ -376,6 +376,11 @@ node_types:
       image:
         type: string
         required: false
+      size:
+        type: scalar-unit.size
+        required: false
+        constraints:
+          - greater_or_equal: 1 MB
 
   tosca.nodes.BlockStorageAttachment:
     derived_from: tosca.nodes.Root

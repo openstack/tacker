@@ -1,0 +1,11 @@
+---
+prelude: >
+    This release contains a new feature to attach an already created
+    or existing volume with VNF. Enhancement to an existing feature
+    that supports attachment of persistent volumes to VNF.
+
+features:
+  - |
+    This feature allows users to attach an already created or existing
+    volume with VNF by providing volume_id in the TOSCA template.
+    In this case, no new volume is created while vnf deployment.
