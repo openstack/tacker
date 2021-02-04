@@ -67,11 +67,11 @@ class TestAttributes(base.BaseTestCase):
 
     def test_validate_not_empty_string(self):
         msg = attributes._validate_not_empty_string('    ', None)
-        self.assertEqual(u"'    ' Blank strings are not permitted", msg)
+        self.assertEqual("'    ' Blank strings are not permitted", msg)
 
     def test_validate_not_empty_string_or_none(self):
         msg = attributes._validate_not_empty_string_or_none('    ', None)
-        self.assertEqual(u"'    ' Blank strings are not permitted", msg)
+        self.assertEqual("'    ' Blank strings are not permitted", msg)
 
         msg = attributes._validate_not_empty_string_or_none(None, None)
         self.assertIsNone(msg)
@@ -697,11 +697,11 @@ class TestAttributes(base.BaseTestCase):
     def test_validate_dict_or_not_empty(self):
         dictionary, constraints = self._construct_dict_and_constraints()
         msg = attributes._validate_dict_not_empty({}, constraints)
-        self.assertEqual(msg, u"'{}' is not a valid dictionary or it is"
-                              u" an empty dictionary")
+        self.assertEqual(msg, "'{}' is not a valid dictionary or it is"
+                              " an empty dictionary")
         msg = attributes._validate_dict_not_empty("", constraints)
-        self.assertEqual(msg, u"'' is not a valid dictionary or it is an"
-                              u" empty dictionary")
+        self.assertEqual(msg, "'' is not a valid dictionary or it is an"
+                              " empty dictionary")
 
     def test_validate_non_negative(self):
         for value in (-1, '-2'):

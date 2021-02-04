@@ -218,7 +218,7 @@ class TestEtsiTranslateTemplate(base.TestCase):
 
         param_yaml = self._get_template(param_file)
         dev_attrs = {
-            u'param_values': param_yaml
+            'param_values': param_yaml
         }
 
         self.assertRaises(vnfm.ParamYAMLNotWellFormed,

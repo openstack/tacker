@@ -85,14 +85,14 @@ def get_by_name():
 
 
 def dummy_get_vim_auth(*args, **kwargs):
-    return {'vim_auth': {u'username': u'admin', 'password': 'devstack',
-                         u'project_name': u'nfv', u'user_id': u'',
-                         u'user_domain_name': u'Default',
-                         u'auth_url': u'http://10.0.4.207/identity/v3',
-                         u'project_id': u'',
-                         u'project_domain_name': u'Default'},
-            'vim_id': u'96025dd5-ca16-49f3-9823-958eb04260c4',
-            'vim_type': u'openstack', 'vim_name': u'VIM0'}
+    return {'vim_auth': {'username': 'admin', 'password': 'devstack',
+                         'project_name': 'nfv', 'user_id': '',
+                         'user_domain_name': 'Default',
+                         'auth_url': 'http://10.0.4.207/identity/v3',
+                         'project_id': '',
+                         'project_domain_name': 'Default'},
+            'vim_id': '96025dd5-ca16-49f3-9823-958eb04260c4',
+            'vim_type': 'openstack', 'vim_name': 'VIM0'}
 
 
 class FakeClient(mock.Mock):
@@ -184,32 +184,32 @@ class FakeVNFMPlugin(mock.Mock):
     def get_dummy_vnf1(self):
         return {'description': 'dummy_vnf_description',
                 'vnfd_id': self.vnf1_vnfd_id,
-                'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                 'name': 'dummy_vnf1',
                 'attributes': {}}
 
     def get_dummy_vnf1_update(self):
         return {'description': 'dummy_vnf_description',
                 'vnfd_id': self.vnf1_vnfd_id,
-                'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                 'name': 'dummy_vnf1_update',
                 'attributes': {}}
 
     def get_dummy_vnf3(self):
         return {'description': 'dummy_vnf_description',
                 'vnfd_id': self.vnf3_vnfd_id,
-                'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                 'name': 'dummy_vnf2',
                 'attributes': {}}
 
     def get_dummy_vnf3_update(self):
         return {'description': 'dummy_vnf_description',
                 'vnfd_id': self.vnf3_vnfd_id,
-                'vim_id': u'6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                'tenant_id': u'ad7ebc56538745a08ef7c5e97f8bd437',
+                'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
                 'name': 'dummy_vnf_update',
                 'attributes': {}}
 
@@ -307,7 +307,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
 
     def test_delete_vim(self):
         self._insert_dummy_vim()
-        vim_type = u'openstack'
+        vim_type = 'openstack'
         vim_id = '6261579e-d6f3-49ad-8bc3-a9cb974778ff'
         self.context.tenant_id = 'ad7ebc56538745a08ef7c5e97f8bd437'
         vim_obj = self.nfvo_plugin._get_vim(self.context, vim_id)
@@ -339,7 +339,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                             'vim_project': {'name': 'new_project'},
                             'auth_cred': {'username': 'new_user',
                                           'password': 'new_password'}}}
-        vim_type = u'openstack'
+        vim_type = 'openstack'
         vim_auth_username = vim_dict['vim']['auth_cred']['username']
         vim_project = vim_dict['vim']['vim_project']
         self._insert_dummy_vim()
@@ -378,7 +378,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                             'vim_project': {'name': 'new_project'},
                             'auth_cred': {'username': 'new_user',
                                           'password': 'new_password'}}}
-        vim_type = u'openstack'
+        vim_type = 'openstack'
         vim_auth_username = vim_dict['vim']['auth_cred']['username']
         vim_project = vim_dict['vim']['vim_project']
         self._insert_dummy_vim_barbican()
@@ -422,7 +422,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_template',
             description='fake_template_description',
-            template={u'vnffgd': utils.vnffgd_tosca_template},
+            template={'vnffgd': utils.vnffgd_tosca_template},
             template_source='onboarded')
         session.add(vnffg_template)
         session.flush()
@@ -435,7 +435,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='dummy_vnffgd_inline',
             description='dummy_vnffgd_description_inline',
-            template={u'vnffgd': utils.vnffgd_tosca_template},
+            template={'vnffgd': utils.vnffgd_tosca_template},
             template_source='inline')
         session.add(vnffg_template)
         session.flush()
@@ -448,7 +448,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_template',
             description='fake_template_description',
-            template={u'vnffgd': utils.vnffgd_tosca_param_template})
+            template={'vnffgd': utils.vnffgd_tosca_param_template})
         session.add(vnffg_template)
         session.flush()
         return vnffg_template
@@ -460,7 +460,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_template',
             description='fake_template_description',
-            template={u'vnffgd': utils.vnffgd_tosca_multi_param_template})
+            template={'vnffgd': utils.vnffgd_tosca_multi_param_template})
         session.add(vnffg_template)
         session.flush()
         return vnffg_template
@@ -472,7 +472,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_template',
             description='fake_template_description',
-            template={u'vnffgd': utils.vnffgd_tosca_no_classifier_template})
+            template={'vnffgd': utils.vnffgd_tosca_no_classifier_template})
         session.add(vnffg_template)
         session.flush()
         return vnffg_template
@@ -484,7 +484,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='fake_template',
             description='fake_template_description',
-            template={u'vnffgd': utils.vnffgd_tosca_dupl_criteria_template})
+            template={'vnffgd': utils.vnffgd_tosca_dupl_criteria_template})
         session.add(vnffg_template)
         session.flush()
         return vnffg_template
@@ -1007,20 +1007,20 @@ class TestNfvoPlugin(db_base.SqlTestCase):
     def _insert_dummy_ns_template(self):
         session = self.context.session
         attributes = {
-            u'nsd': 'imports: [VNF1, VNF2]\ntopology_template:\n  inputs:\n  '
-                    '  vl1_name: {default: net_mgmt, description: name of VL1'
-                    ' virtuallink, type: string}\n    vl2_name: {default: '
-                    'net0, description: name of VL2 virtuallink, type: string'
-                    '}\n  node_templates:\n    VL1:\n      properties:\n     '
-                    '   network_name: {get_input: vl1_name}\n        vendor: '
-                    'tacker\n      type: tosca.nodes.nfv.VL\n    VL2:\n      '
-                    'properties:\n        network_name: {get_input: vl2_name}'
-                    '\n        vendor: tacker\n      type: tosca.nodes.nfv.VL'
-                    '\n    VNF1:\n      requirements:\n      - {virtualLink1: '
-                    'VL1}\n      - {virtualLink2: VL2}\n      type: tosca.node'
-                    's.nfv.VNF1\n    VNF2: {type: tosca.nodes.nfv.VNF2}\ntosca'
-                    '_definitions_version: tosca_simple_profile_for_nfv_1_0_0'
-                    '\n'}
+            'nsd': 'imports: [VNF1, VNF2]\ntopology_template:\n  inputs:\n  '
+                   '  vl1_name: {default: net_mgmt, description: name of VL1'
+                   ' virtuallink, type: string}\n    vl2_name: {default: '
+                   'net0, description: name of VL2 virtuallink, type: string'
+                   '}\n  node_templates:\n    VL1:\n      properties:\n     '
+                   '   network_name: {get_input: vl1_name}\n        vendor: '
+                   'tacker\n      type: tosca.nodes.nfv.VL\n    VL2:\n      '
+                   'properties:\n        network_name: {get_input: vl2_name}'
+                   '\n        vendor: tacker\n      type: tosca.nodes.nfv.VL'
+                   '\n    VNF1:\n      requirements:\n      - {virtualLink1: '
+                   'VL1}\n      - {virtualLink2: VL2}\n      type: tosca.node'
+                   's.nfv.VNF1\n    VNF2: {type: tosca.nodes.nfv.VNF2}\ntosca'
+                   '_definitions_version: tosca_simple_profile_for_nfv_1_0_0'
+                   '\n'}
         nsd_template = ns_db.NSD(
             id='eb094833-995e-49f0-a047-dfb56aaf7c4e',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
@@ -1044,20 +1044,20 @@ class TestNfvoPlugin(db_base.SqlTestCase):
     def _insert_dummy_ns_template_inline(self):
         session = self.context.session
         attributes = {
-            u'nsd': 'imports: [VNF1, VNF2]\ntopology_template:\n  inputs:\n  '
-                    '  vl1_name: {default: net_mgmt, description: name of VL1'
-                    ' virtuallink, type: string}\n    vl2_name: {default: '
-                    'net0, description: name of VL2 virtuallink, type: string'
-                    '}\n  node_templates:\n    VL1:\n      properties:\n     '
-                    '   network_name: {get_input: vl1_name}\n        vendor: '
-                    'tacker\n      type: tosca.nodes.nfv.VL\n    VL2:\n      '
-                    'properties:\n        network_name: {get_input: vl2_name}'
-                    '\n        vendor: tacker\n      type: tosca.nodes.nfv.VL'
-                    '\n    VNF1:\n      requirements:\n      - {virtualLink1: '
-                    'VL1}\n      - {virtualLink2: VL2}\n      type: tosca.node'
-                    's.nfv.VNF1\n    VNF2: {type: tosca.nodes.nfv.VNF2}\ntosca'
-                    '_definitions_version: tosca_simple_profile_for_nfv_1_0_0'
-                    '\n'}
+            'nsd': 'imports: [VNF1, VNF2]\ntopology_template:\n  inputs:\n  '
+                   '  vl1_name: {default: net_mgmt, description: name of VL1'
+                   ' virtuallink, type: string}\n    vl2_name: {default: '
+                   'net0, description: name of VL2 virtuallink, type: string'
+                   '}\n  node_templates:\n    VL1:\n      properties:\n     '
+                   '   network_name: {get_input: vl1_name}\n        vendor: '
+                   'tacker\n      type: tosca.nodes.nfv.VL\n    VL2:\n      '
+                   'properties:\n        network_name: {get_input: vl2_name}'
+                   '\n        vendor: tacker\n      type: tosca.nodes.nfv.VL'
+                   '\n    VNF1:\n      requirements:\n      - {virtualLink1: '
+                   'VL1}\n      - {virtualLink2: VL2}\n      type: tosca.node'
+                   's.nfv.VNF1\n    VNF2: {type: tosca.nodes.nfv.VNF2}\ntosca'
+                   '_definitions_version: tosca_simple_profile_for_nfv_1_0_0'
+                   '\n'}
         nsd_template = ns_db.NSD(
             id='be18005d-5656-4d81-b499-6af4d4d8437f',
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',

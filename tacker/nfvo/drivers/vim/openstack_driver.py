@@ -171,9 +171,9 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         """Validate and set VIM placements."""
 
         if 'key_type' in vim_obj['auth_cred']:
-            vim_obj['auth_cred'].pop(u'key_type')
+            vim_obj['auth_cred'].pop('key_type')
         if 'secret_uuid' in vim_obj['auth_cred']:
-            vim_obj['auth_cred'].pop(u'secret_uuid')
+            vim_obj['auth_cred'].pop('secret_uuid')
 
         ks_client = self.authenticate_vim(vim_obj)
         self.discover_placement_attr(vim_obj, ks_client)

@@ -43,7 +43,7 @@ class RequestTestCase(base.BaseTestCase):
 class ResourceTestCase(base.BaseTestCase):
 
     def test_unmapped_tacker_error_with_json(self):
-        msg = u'\u7f51\u7edc'
+        msg = '\u7f51\u7edc'
 
         class TestException(n_exc.TackerException):
             message = msg
@@ -86,7 +86,7 @@ class ResourceTestCase(base.BaseTestCase):
                       str(wsgi.JSONDeserializer().deserialize(res.body)))
 
     def test_mapped_tacker_error_with_json(self):
-        msg = u'\u7f51\u7edc'
+        msg = '\u7f51\u7edc'
 
         class TestException(n_exc.TackerException):
             message = msg

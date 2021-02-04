@@ -18,32 +18,32 @@ from tacker.tests.unit import base
 
 
 def get_dummy_ns():
-    return {u'ns': {'description': '',
-                    'tenant_id': u'a81900a92bda40588c52699e1873a92f',
-                    'vim_id': u'96025dd5-ca16-49f3-9823-958eb04260c4',
-                    'vnf_ids': '', u'attributes': {},
-                    u'nsd_id': u'b8587afb-6099-4f56-abce-572c62e3d61d',
-                    u'name': u'test_create_ns'},
-            'vnfd_details': {u'vnf1': {'instances': ['VNF1'],
-                             'id': u'dec09ed4-f355-4ec8-a00b-8548f6575a80'},
-            u'vnf2': {'instances': ['VNF2'],
-                      'id': u'9f8f2af7-6407-4f79-a6fe-302c56172231'}},
+    return {'ns': {'description': '',
+                   'tenant_id': 'a81900a92bda40588c52699e1873a92f',
+                   'vim_id': '96025dd5-ca16-49f3-9823-958eb04260c4',
+                   'vnf_ids': '', 'attributes': {},
+                   'nsd_id': 'b8587afb-6099-4f56-abce-572c62e3d61d',
+                   'name': 'test_create_ns'},
+            'vnfd_details': {'vnf1': {'instances': ['VNF1'],
+                             'id': 'dec09ed4-f355-4ec8-a00b-8548f6575a80'},
+            'vnf2': {'instances': ['VNF2'],
+                     'id': '9f8f2af7-6407-4f79-a6fe-302c56172231'}},
             'placement_attr': {}}
 
 
 def get_dummy_vnffg_ns():
     return {
-        u'ns': {
+        'ns': {
             'description': '',
-            'vim_id': u'96025dd5-ca16-49f3-9823-958eb04260c4',
-            'vnf_ids': '', u'attributes': {},
-            u'nsd_id': u'b8587afb-6099-4f56-abce-572c62e3d61d',
-            u'name': u'test_create_ns'},
+            'vim_id': '96025dd5-ca16-49f3-9823-958eb04260c4',
+            'vnf_ids': '', 'attributes': {},
+            'nsd_id': 'b8587afb-6099-4f56-abce-572c62e3d61d',
+            'name': 'test_create_ns'},
         'vnfd_details': {
-            u'vnf1': {'instances': ['VNF1'],
-                      'id': u'dec09ed4-f355-4ec8-a00b-8548f6575a80'},
-            u'vnf2': {'instances': ['VNF2'],
-                      'id': u'9f8f2af7-6407-4f79-a6fe-302c56172231'}},
+            'vnf1': {'instances': ['VNF1'],
+                     'id': 'dec09ed4-f355-4ec8-a00b-8548f6575a80'},
+            'vnf2': {'instances': ['VNF2'],
+                     'id': '9f8f2af7-6407-4f79-a6fe-302c56172231'}},
         'placement_attr': {},
         'vnffgd_templates': {
             'VNFFG1': {
@@ -97,16 +97,16 @@ def get_dummy_vnffg_ns():
 
 
 def get_dummy_param():
-    return {u'vnf1': {'substitution_mappings': {u'VL1b8587afb-60': {
+    return {'vnf1': {'substitution_mappings': {'VL1b8587afb-60': {
             'type': 'tosca.nodes.nfv.VL', 'properties': {
-                'network_name': u'net_mgmt',
+                'network_name': 'net_mgmt',
                 'vendor': 'tacker'}}, 'requirements': {
-                    'virtualLink2': u'VL2b8587afb-60',
-                    'virtualLink1': u'VL1b8587afb-60'}, u'VL2b8587afb-60': {
+                    'virtualLink2': 'VL2b8587afb-60',
+                    'virtualLink1': 'VL1b8587afb-60'}, 'VL2b8587afb-60': {
                         'type': 'tosca.nodes.nfv.VL',
-                        'properties': {'network_name': u'net0',
+                        'properties': {'network_name': 'net0',
                             'vendor': 'tacker'}}}},
-            u'nsd': {u'vl2_name': u'net0', u'vl1_name': u'net_mgmt'}}
+            'nsd': {'vl2_name': 'net0', 'vl1_name': 'net_mgmt'}}
 
 
 def get_dummy_create_workflow():
@@ -294,13 +294,13 @@ def get_dummy_create_vnffg_ns_workflow():
 
 
 def dummy_delete_ns_obj():
-    return {'vnf_ids': u"{'VNF1': '5de5eca6-3e21-4bbd-a9d7-86458de75f0c'}",
-            'vnffg_ids': u"{}"}
+    return {'vnf_ids': "{'VNF1': '5de5eca6-3e21-4bbd-a9d7-86458de75f0c'}",
+            'vnffg_ids': "{}"}
 
 
 def dummy_delete_vnffg_ns_obj():
-    return {'vnf_ids': u"{'VNF1': '5de5eca6-3e21-4bbd-a9d7-86458de75f0c'}",
-            'vnffg_ids': u"{'VNFFG1': '99066f25-3124-44f1-bc5d-bc0bf236b012'}"}
+    return {'vnf_ids': "{'VNF1': '5de5eca6-3e21-4bbd-a9d7-86458de75f0c'}",
+            'vnffg_ids': "{'VNFFG1': '99066f25-3124-44f1-bc5d-bc0bf236b012'}"}
 
 
 def get_dummy_delete_workflow():

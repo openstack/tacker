@@ -29,7 +29,7 @@ class TestVNFMonitorZabbix(testtools.TestCase):
     def test_add_to_appmonitor(self, mock_ac):
         mock_ac.return_value = None
 
-        test_vnf = {'vnfd': {'tenant_id': u'd1e6919c73074d18ab6cd49a02e08391'},
+        test_vnf = {'vnfd': {'tenant_id': 'd1e6919c73074d18ab6cd49a02e08391'},
                     'id': 'b9af3cb5-6e43-4b2c-a056-67bda3f71e1a'}
         test_kwargs = {'vdus': {'VDU1':
                                 {'parameters':
