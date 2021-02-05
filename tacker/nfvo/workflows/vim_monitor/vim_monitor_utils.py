@@ -44,7 +44,7 @@ def prepare_and_create_workflow(mistral_client, vim_id, action,
 
 def execute_workflow(mistral_client, workflow):
     return mistral_client.executions.create(
-        workflow_identifier=workflow['id'],
+        wf_identifier=workflow['id'],
         workflow_input=workflow['input'],
         wf_params={})
 

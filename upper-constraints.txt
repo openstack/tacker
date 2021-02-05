@@ -50,7 +50,7 @@ microversion-parse===1.0.1
 Pint===0.16.1
 oslo.i18n===5.0.1
 jsonpath-rw-ext===1.2.2
-python-mistralclient===4.1.1
+python-mistralclient===4.2.0
 oslo.context===3.1.1
 python-senlinclient===2.2.0
 rcssmin===1.0.6
