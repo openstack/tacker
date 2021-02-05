@@ -16,6 +16,7 @@
 import os
 import re
 import time
+import unittest
 
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
@@ -355,6 +356,7 @@ class VnfLcmTest(base.BaseTackerTest):
         self._terminate_vnf_instance(vnf_instance['id'], terminate_req_body)
         self._delete_vnf_instance(vnf_instance['id'])
 
+    @unittest.skip("Until BUG 1910327")
     def test_inst_term_cnf_with_controller_revision(self):
         # Create vnf instance
         vnf_instance_name = "vnf_with_instantiation_level-%s" % \
