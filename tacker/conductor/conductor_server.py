@@ -1463,6 +1463,9 @@ class Conductor(manager.Manager):
         try:
             LOG.debug("send_notification start notification[%s]"
                       % notification)
+
+            notification = utils.convert_snakecase_to_camelcase(notification)
+
             if (notification.get('notificationType') ==
                     'VnfLcmOperationOccurrenceNotification'):
                 vnf_lcm_subscriptions = \

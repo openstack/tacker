@@ -378,8 +378,34 @@ def convert_snakecase_to_camelcase(request_data):
     This method takes care only keys in a `dict` or `dicts in a list`.
     For simple list with string items, the elements which are actual values
     are ignored during conversion.
+    Also, Snake case is a notation method that uses underscores to connect
+    words. For that reason, if the initial word of the key in dict starts
+    with '_', this function ignore to convert the key.
 
     :param request_data: dict with keys or list with items, in snake_case.
+
+    Example:
+        Before::
+
+            [
+                {"vnf_lcm_op_occ_id" : "uuid"},
+                {
+                    "_links" : {
+                        "vnf_lcm_op_occ": {"href": "resource_link"}
+                    }
+                }
+            ]
+
+        After::
+
+            [
+                {"vnfLcmOpOccId": "uuid"},
+                {
+                    "_links": {
+                        "vnfLcmOpOcc": {"href": "resource_link"}
+                    }
+                }
+            ]
     """
     def convert(name):
         return re.sub('_([a-z])',
@@ -389,7 +415,7 @@ def convert_snakecase_to_camelcase(request_data):
         new_dict = {}
         for key, property_value in request_data.items():
             property_value = convert_snakecase_to_camelcase(property_value)
-            camelcase = convert(key)
+            camelcase = key if key.startswith('_') else convert(key)
             new_dict[camelcase] = property_value
         return new_dict
 
