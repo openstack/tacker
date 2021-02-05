@@ -1179,6 +1179,7 @@ VNFLCMOPOCC_RESPONSE = {
         }]
     },
     'changedInfo': {
+        'metadata': {},
         'vimConnectionInfo': [],
         'vimConnectionInfoDeleteIds': [],
         'vnfPkgId': None,
