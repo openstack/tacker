@@ -230,6 +230,8 @@
                 pipeline: package_content,vnfd,artifacts
               connect_grant:
                 base_url: http://127.0.0.1:9990/grant/v1/grants
+              openstack_vim:
+                stack_retries: 120
         tox_envlist: dsvm-functional-sol-separated-nfvo
 
 - project:
