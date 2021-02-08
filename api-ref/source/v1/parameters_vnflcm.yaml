@@ -631,6 +631,18 @@ filter_notification_types:
   in: body
   required: false
   type: string
+filter_operation_states:
+  description: |
+    Match particular LCM operation state
+    values as reported in notifications of type
+    VnfLcmOperationOccurrenceNotification.
+    May be present if the "notificationTypes"
+    attribute contains the value
+    "VnfLcmOperationOccurrenceNotification" and
+    shall be absent otherwise.
+  in: body
+  required: false
+  type: string
 filter_operation_types:
   description: |
     Match particular VNF lifecycle operation types for
@@ -1237,6 +1249,13 @@ vnf_instance_name:
   in: body
   required: false
   type: string
+vnf_instance_subscription_filter:
+  description: |
+    Filter criteria to select VNF instances
+    about which to notify.
+  in: body
+  required: false
+  type: object
 vnf_instance_vim_connection_info:
   description: |
     Information about VIM connections to be used for managing the resources

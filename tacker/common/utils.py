@@ -337,6 +337,17 @@ def chunkiter(fp, chunk_size=65536):
             break
 
 
+# TODO(esto.aln): Consider to move this function to
+# convert_camelcase_to_snakecase(). We will consider the correct approach
+# to modify the common function so as not to introduce degrade.
+def convert_string_to_snakecase(name):
+    """Converts a string from camelCase to snake_case."""
+    name_with_underscores = re.sub(
+        '(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2',
+                  name_with_underscores).lower()
+
+
 def convert_camelcase_to_snakecase(request_data):
     """Converts dict keys or list of dict keys from camelCase to snake_case.
 
@@ -347,17 +358,11 @@ def convert_camelcase_to_snakecase(request_data):
 
     :param request_data: dict with keys or list with items, in camelCase.
     """
-    def convert(name):
-        name_with_underscores = re.sub(
-            '(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2',
-                      name_with_underscores).lower()
-
     if isinstance(request_data, dict):
         new_dict = {}
         for key, property_value in request_data.items():
             property_value = convert_camelcase_to_snakecase(property_value)
-            underscore_joined = convert(key)
+            underscore_joined = convert_string_to_snakecase(key)
             new_dict[underscore_joined] = property_value
         return new_dict
 

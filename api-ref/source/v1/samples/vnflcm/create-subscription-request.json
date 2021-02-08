@@ -2,7 +2,24 @@
   "filter": {
     "notificationTypes": [
       "VnfLcmOperationOccurrenceNotification"
-    ]
+    ],
+    "vnfInstanceSubscriptionFilter": {
+      "vnfdIds": [],
+      "vnfProductsFromProviders": {
+        "vnfProvider": "Vnf Provider 1",
+        "vnfProducts": [
+          {
+            "vnfProductName": "Vnf Product 1",
+            "versions": [
+              {
+                  "vnfSoftwareVersion": "v1",
+                  "vnfdVersions": ["vnfd.v1.1"]
+              }
+            ]
+          }
+        ]
+      }
+    }
   },
   "callbackUri": "http://sample1.com/notification"
 }

@@ -30,6 +30,23 @@ class Subscription:
         """
         return {
             "filter": {
+                "vnfInstanceSubscriptionFilter": {
+                    "vnfdIds": ["b1bb0ce7-ebca-4fa7-95ed-4840d7000000"],
+                    "vnfProductsFromProviders": {
+                        "vnfProvider": "Company",
+                        "vnfProducts": [
+                            {
+                                "vnfProductName": "Sample VNF",
+                                "versions": [
+                                    {
+                                        "vnfSoftwareVersion": "1.0",
+                                        "vnfdVersions": ["1.0"]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
                 "notificationTypes": [
                     "VnfLcmOperationOccurrenceNotification",
                     "VnfIdentifierCreationNotification",
@@ -42,7 +59,8 @@ class Subscription:
                     "HEAL",
                     "MODIFY_INFO",
                     "CHANGE_EXT_CONN"
-                ]
+                ],
+                "operationStates": ["STARTING"]
             },
             "callbackUri": callback_uri
         }

@@ -1,6 +1,23 @@
 {
   "id": "76057f8e65ab37fb82d9382dfc3f3c8b",
   "filter": {
+    "vnfInstanceSubscriptionFilter": {
+      "vnfdIds": [],
+      "vnfProductsFromProviders": {
+          "vnfProvider": "Vnf Provider 1",
+          "vnfProducts": [
+            {
+              "vnfProductName": "Vnf Product 1",
+              "versions": [
+                  {
+                      "vnfSoftwareVersion": "v1",
+                      "vnfdVersions": ["vnfd.v1.1"]
+                  }
+              ]
+            }
+          ]
+      }
+    },
     "notificationTypes": [
       "VnfLcmOperationOccurrenceNotification"
     ]
