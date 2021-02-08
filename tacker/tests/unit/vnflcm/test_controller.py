@@ -3946,6 +3946,27 @@ class TestController(base.TestCase):
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
                        test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch.object(objects.LccnSubscriptionRequest,
+                       "vnf_lcm_subscriptions_show")
+    def test_subscription_show(self, mock_get_subscription,
+            mock_get_service_plugins):
+        mock_get_subscription.return_value =\
+            fakes.return_subscription_obj()
+
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions/%s' % uuidsentinel.subscription_id)
+        req.method = 'GET'
+
+        resp = req.get_response(self.app)
+
+        expected_vnf = fakes.fake_subscription_response()
+
+        self.assertEqual(http_client.OK, resp.status_code)
+        self.assertEqual(expected_vnf, resp.json)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
     @mock.patch.object(vnf_subscription_view.ViewBuilder,
                        "subscription_list")
     @mock.patch.object(vnf_subscription_view.ViewBuilder,
@@ -4002,6 +4023,26 @@ class TestController(base.TestCase):
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
                        test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch.object(objects.LccnSubscriptionRequest,
+                       "vnf_lcm_subscriptions_show")
+    def test_subscription_show_not_found(self, mock_get_subscription,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions/%s' % uuidsentinel.subscription_id)
+        req.method = 'GET'
+
+        mock_get_subscription.return_value = None
+
+        msg = _("Can not find requested vnf lcm subscriptions: %s"
+                % uuidsentinel.subscription_id)
+        res = self._make_problem_detail(msg, 404, title='Not Found')
+
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
     def test_subscription_list_filter_error(self,
             mock_get_service_plugins):
 
@@ -4011,3 +4052,19 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
 
         self.assertEqual(400, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch.object(objects.LccnSubscriptionRequest,
+                       "vnf_lcm_subscriptions_show")
+    def test_subscription_show_error(self, mock_get_subscription,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions/%s' % uuidsentinel.subscription_id)
+        req.method = 'GET'
+
+        mock_get_subscription.side_effect = Exception
+
+        resp = req.get_response(self.app)
+        self.assertEqual(500, resp.status_code)

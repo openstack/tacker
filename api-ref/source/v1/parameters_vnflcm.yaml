@@ -655,6 +655,13 @@ filter_operation_types:
   in: body
   required: false
   type: string
+filter_vnf_instance_subscription_filter:
+  description: |
+    This type represents subscription filter
+    criteria to match VNF instances.
+  in: body
+  required: false
+  type: object
 fixed_addresses:
   description: |
     Fixed addresses to assign (from the subnet defined by "subnetId"

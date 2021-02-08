@@ -16,6 +16,7 @@
 from copy import deepcopy
 import datetime
 import iso8601
+import json
 import os
 import webob
 
@@ -1692,10 +1693,27 @@ def _fake_subscription_obj(**updates):
                 "vnfInstanceNames": ["Vnf Name 1"]
             },
             "notificationTypes": [
-                "VnfLcmOperationOccurrenceNotification"
+                "VnfLcmOperationOccurrenceNotification",
+                "VnfIdentifierCreationNotification",
+                "VnfIdentifierDeletionNotification"
             ],
-            "operationTypes": ["INSTANTIATE"],
-            "operationStates": ["STARTING"]
+            "operationTypes": [
+                "INSTANTIATE",
+                "SCALE",
+                "TERMINATE",
+                "HEAL",
+                "CHANGE_EXT_CONN",
+                "MODIFY_INFO"
+            ],
+            "operationStates": [
+                "STARTING",
+                "PROCESSING",
+                "COMPLETED",
+                "FAILED_TEMP",
+                "FAILED",
+                "ROLLING_BACK",
+                "ROLLED_BACK"
+            ]
         },
         'callback_uri': 'http://localhost/sample_callback_uri'}
 
@@ -1713,3 +1731,34 @@ def return_subscription_object(**updates):
 def return_vnf_subscription_list(**updates):
     vnc_lcm_subscription = return_subscription_object(**updates)
     return [vnc_lcm_subscription]
+
+
+def _subscription_links(subscription_dict):
+    links = {
+        "_links": {
+            "self": {
+                "href": "%(endpoint)s/vnflcm/v1/subscriptions/%(id)s"
+                        % {'id': subscription_dict['id'],
+                           'endpoint': CONF.vnf_lcm.endpoint_url}
+            }
+        }
+    }
+    subscription_dict.update(links)
+
+    return subscription_dict
+
+
+def return_subscription_obj(**updates):
+    subscription = _fake_subscription_obj(**updates)
+    subscription['filter'] = json.dumps(subscription['filter'])
+    obj = objects.LccnSubscriptionRequest(**subscription)
+
+    return obj
+
+
+def fake_subscription_response(**updates):
+    data = _fake_subscription_obj(**updates)
+    data = utils.convert_snakecase_to_camelcase(data)
+    data = _subscription_links(data)
+
+    return data

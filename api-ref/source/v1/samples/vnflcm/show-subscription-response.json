@@ -1,8 +1,46 @@
 {
   "id": "76057f8e65ab37fb82d9382dfc3f3c8b",
   "filter": {
+    "vnfInstanceSubscriptionFilter": {
+      "vnfdIds": [],
+      "vnfProductsFromProviders": {
+        "vnfProvider": "Vnf Provider 1",
+        "vnfProducts": [
+          {
+            "vnfProductName": "Vnf Product 1",
+            "versions": [
+              {
+                "vnfSoftwareVersion": "v1",
+                "vnfdVersions": [
+                  "vnfd.v1.1"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
     "notificationTypes": [
-      "VnfLcmOperationOccurrenceNotification"
+      "VnfLcmOperationOccurrenceNotification",
+      "VnfIdentifierCreationNotification",
+      "VnfIdentifierDeletionNotification"
+    ],
+    "operationTypes": [
+      "INSTANTIATE",
+      "SCALE",
+      "TERMINATE",
+      "HEAL",
+      "CHANGE_EXT_CONN",
+      "MODIFY_INFO"
+    ],
+    "operationStates": [
+      "STARTING",
+      "PROCESSING",
+      "COMPLETED",
+      "FAILED_TEMP",
+      "FAILED",
+      "ROLLING_BACK",
+      "ROLLED_BACK"
     ]
   },
   "callbackUri": "http://sample1.com/notification",
