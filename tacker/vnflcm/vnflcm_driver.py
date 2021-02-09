@@ -302,15 +302,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vim_connection_info, instantiate_vnf_req):
         vnfd_dict = vnflcm_utils._get_vnfd_dict(context, vnf_instance.vnfd_id,
                 instantiate_vnf_req.flavour_id)
-        base_hot_dict, nested_hot_dict = \
-            vnflcm_utils.get_base_nest_hot_dict(
-                context,
-                instantiate_vnf_req.flavour_id,
-                vnf_instance.vnfd_id)
-        vnf_package_path = None
-        if base_hot_dict is not None:
-            vnf_package_path = vnflcm_utils._get_vnf_package_path(
-                context, vnf_instance.vnfd_id)
+        vnf_package_path = vnflcm_utils._get_vnf_package_path(
+            context, vnf_instance.vnfd_id)
 
         param_for_subs_map = vnflcm_utils._get_param_data(vnfd_dict,
                 instantiate_vnf_req)
@@ -344,7 +337,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 vnf_instance=vnf_instance,
                 vnfd_dict=final_vnf_dict, grant_response=vnf_resources,
                 vim_connection_info=vim_connection_info,
-                base_hot_dict=base_hot_dict,
                 vnf_package_path=vnf_package_path,
                 instantiate_vnf_req=instantiate_vnf_req)
         except Exception as exp:

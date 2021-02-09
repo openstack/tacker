@@ -166,7 +166,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -187,7 +186,6 @@ class TestOpenStack(base.FixturedTestCase):
         self.openstack.create(self.plugin, self.context, vnf,
                 self.auth_attr, inst_req_info=inst_req_info_test,
                 vnf_package_path=vnf_package_path_test,
-                base_hot_dict=base_hot_dict_test,
                 grant_info=grant_info_test,
                 vnf_instance=vnf_instance)
 
@@ -210,7 +208,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -295,7 +292,6 @@ class TestOpenStack(base.FixturedTestCase):
         self.openstack.create(self.plugin, self.context, vnf,
                 self.auth_attr, inst_req_info=inst_req_info_test,
                 vnf_package_path=vnf_package_path_test,
-                base_hot_dict=base_hot_dict_test,
                 grant_info=grant_info_test,
                 vnf_instance=vnf_instance)
 
@@ -303,16 +299,14 @@ class TestOpenStack(base.FixturedTestCase):
     def test_create_heat_stack(self, mock_OpenstackClients_heat):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict = None
         vnf_package_path = None
         self.openstack.create(self.plugin, self.context, vnf,
-                self.auth_attr, base_hot_dict, vnf_package_path)
+                self.auth_attr, vnf_package_path)
 
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_userdata_none(self, mock_OpenstackClients_heat):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -329,7 +323,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, base_hot_dict_test,
+                          self.auth_attr,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
                           grant_info=grant_info_test)
@@ -338,7 +332,6 @@ class TestOpenStack(base.FixturedTestCase):
     def test_create_userdataclass_none(self, mock_OpenstackClients_heat):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -355,7 +348,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, base_hot_dict_test,
+                          self.auth_attr,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
                           grant_info=grant_info_test)
@@ -367,7 +360,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -389,7 +381,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, base_hot_dict_test,
+                          self.auth_attr,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
                           grant_info=grant_info_test,
@@ -402,7 +394,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -424,7 +415,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, base_hot_dict_test,
+                          self.auth_attr,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
                           grant_info=grant_info_test,
@@ -437,7 +428,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -458,7 +448,7 @@ class TestOpenStack(base.FixturedTestCase):
             self.assertRaises(vnfm.LCMUserDataFailed,
                               self.openstack.create,
                               self.plugin, self.context, vnf,
-                              self.auth_attr, base_hot_dict_test,
+                              self.auth_attr,
                               vnf_package_path_test,
                               inst_req_info=inst_req_info_test,
                               grant_info=grant_info_test,
@@ -471,7 +461,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -492,7 +481,7 @@ class TestOpenStack(base.FixturedTestCase):
             self.assertRaises(vnfm.LCMUserDataFailed,
                               self.openstack.create,
                               self.plugin, self.context, vnf,
-                              self.auth_attr, base_hot_dict_test,
+                              self.auth_attr,
                               vnf_package_path_test,
                               inst_req_info=inst_req_info_test,
                               grant_info=grant_info_test,
@@ -505,7 +494,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -528,7 +516,6 @@ class TestOpenStack(base.FixturedTestCase):
                           self.plugin, self.context, vnf,
                           self.auth_attr, inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
-                          base_hot_dict=base_hot_dict_test,
                           grant_info=grant_info_test,
                           vnf_instance=vnf_instance)
 
@@ -539,7 +526,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -564,7 +550,6 @@ class TestOpenStack(base.FixturedTestCase):
                           self.plugin, self.context, vnf,
                           self.auth_attr, inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
-                          base_hot_dict=base_hot_dict_test,
                           grant_info=grant_info_test,
                           vnf_instance=vnf_instance)
 
@@ -580,7 +565,6 @@ class TestOpenStack(base.FixturedTestCase):
             'instantiate_vnf_request_lcm_userdata.json')
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.flavour_id = test_json['flavourId']
-        base_hot_dict_test = None
         vnf_package_path_test = None
         grant_info_test = None
         nested_hot_dict = {}
@@ -590,7 +574,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, base_hot_dict_test,
+                          self.auth_attr,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
                           grant_info=grant_info_test,
@@ -603,7 +587,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -626,7 +609,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, base_hot_dict_test,
+                          self.auth_attr,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
                           grant_info=grant_info_test,
@@ -640,7 +623,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -663,7 +645,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, base_hot_dict_test,
+                          self.auth_attr,
                           vnf_package_path_test,
                           inst_req_info=inst_req_info_test,
                           grant_info=grant_info_test,
@@ -676,7 +658,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -704,7 +685,6 @@ class TestOpenStack(base.FixturedTestCase):
                           self.plugin, self.context, vnf,
                           self.auth_attr, inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
-                          base_hot_dict=base_hot_dict_test,
                           grant_info=grant_info_test,
                           vnf_instance=vnf_instance)
 
@@ -727,11 +707,10 @@ class TestOpenStack(base.FixturedTestCase):
 
         inst_req_info_test.additional_params = test_json['additionalParams']
         inst_req_info_test.ext_virtual_links = test_json['extVirtualLinks']
-        base_hot_dict = None
         self.assertRaises(BaseException,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, base_hot_dict,
+                          self.auth_attr,
                           vnf_package_path=vnf_package_path_test,
                           inst_req_info=inst_req_info_test)
 
@@ -746,11 +725,10 @@ class TestOpenStack(base.FixturedTestCase):
         inst_req_info_test = type('', (), {})
         inst_req_info_test.additional_params = None
         inst_req_info_test.ext_virtual_links = None
-        base_hot_dict = None
         self.assertRaises(BaseException,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, base_hot_dict,
+                          self.auth_attr,
                           vnf_package_path=vnf_package_path_test,
                           inst_req_info=inst_req_info_test)
 
@@ -761,7 +739,6 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        base_hot_dict_test = self._read_file()
         vnf_package_path_test = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
                          "../../../../etc/samples/etsi/nfv",
@@ -786,7 +763,6 @@ class TestOpenStack(base.FixturedTestCase):
                           self.plugin, self.context, vnf,
                           self.auth_attr, inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
-                          base_hot_dict=base_hot_dict_test,
                           grant_info=grant_info_test,
                           vnf_instance=vnf_instance)
 
