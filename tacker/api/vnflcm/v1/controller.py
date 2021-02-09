@@ -43,6 +43,7 @@ from tacker.api.schemas import vnf_lcm
 from tacker.api import validation
 from tacker.api.views import vnf_lcm as vnf_lcm_view
 from tacker.api.views import vnf_lcm_op_occs as vnf_op_occs_view
+from tacker.api.views import vnf_subscriptions as vnf_subscription_view
 from tacker.api.vnflcm.v1 import sync_resource
 from tacker.common import exceptions
 from tacker.common import utils
@@ -162,6 +163,26 @@ def check_vnf_status_and_error_point(action, status=None):
 
 class VnfLcmController(wsgi.Controller):
 
+    notification_type_list = ['VnfLcmOperationOccurrenceNotification',
+                          'VnfIdentifierCreationNotification',
+                          'VnfIdentifierDeletionNotification']
+    operation_type_list = ['INSTANTIATE',
+                       'SCALE',
+                       'SCALE_TO_LEVEL',
+                       'CHANGE_FLAVOUR',
+                       'TERMINATE',
+                       'HEAL',
+                       'OPERATE',
+                       'CHANGE_EXT_CONN',
+                       'MODIFY_INFO']
+    operation_state_list = ['STARTING',
+                        'PROCESSING',
+                        'COMPLETED',
+                        'FAILED_TEMP',
+                        'FAILED',
+                        'ROLLING_BACK',
+                        'ROLLED_BACK']
+
     _view_builder_class = vnf_lcm_view.ViewBuilder
 
     def __init__(self):
@@ -169,6 +190,7 @@ class VnfLcmController(wsgi.Controller):
         self.rpc_api = vnf_lcm_rpc.VNFLcmRPCAPI()
         self._vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
         self._view_builder_op_occ = vnf_op_occs_view.ViewBuilder()
+        self._view_builder_subscription = vnf_subscription_view.ViewBuilder()
 
     def _get_vnf_instance_href(self, vnf_instance):
         return '/vnflcm/v1/vnf_instances/%s' % vnf_instance.id
@@ -958,13 +980,13 @@ class VnfLcmController(wsgi.Controller):
     def subscription_list(self, request):
         nextpage_opaque_marker = ""
         paging = 1
+        filter_string = ""
 
         re_url = request.path_url
         query_params = request.query_string
+
         if query_params:
             query_params = parse.unquote(query_params)
-        LOG.debug("query_params %s" % query_params)
-        if query_params:
             query_param_list = query_params.split('&')
             for query_param in query_param_list:
                 query_param_key_value = query_param.split('=')
@@ -972,18 +994,57 @@ class VnfLcmController(wsgi.Controller):
                     msg = _("Request query parameter error")
                     return self._make_problem_detail(
                         msg, 400, title='Bad Request')
+                if query_param_key_value[0] == 'filter':
+                    filter_string = query_param_key_value[1]
                 if query_param_key_value[0] == 'nextpage_opaque_marker':
                     nextpage_opaque_marker = query_param_key_value[1]
                 if query_param_key_value[0] == 'page':
                     paging = int(query_param_key_value[1])
 
+            if filter_string:
+                # check enumerations columns
+                for filter_segment in filter_string.split(';'):
+                    filter_segment = re.sub(
+                        r'\(|\)|\'', '', filter_segment)
+                    filter_name = filter_segment.split(',')[1]
+                    filter_value = filter_segment.split(',')[2]
+                    if filter_name == 'notificationTypes':
+                        if filter_value not in self.notification_type_list:
+                            msg = (_("notificationTypes value mismatch: %s")
+                                % filter_value)
+                            return self._make_problem_detail(msg, 400,
+                                title='Bad Request')
+                    elif filter_name == 'operationTypes':
+                        if filter_value not in self.operation_type_list:
+                            msg = (_("operationTypes value mismatch: %s")
+                                % filter_value)
+                            return self._make_problem_detail(msg, 400,
+                                title='Bad Request')
+                    elif filter_name == 'operationStates':
+                        if filter_value not in self.operation_state_list:
+                            msg = (_("operationStates value mismatch: %s")
+                                % filter_value)
+                            return self._make_problem_detail(msg, 400,
+                                title='Bad Request')
+
         try:
-            vnf_lcm_subscriptions = (
-                subscription_obj.LccnSubscriptionRequest.
-                vnf_lcm_subscriptions_list(request.context))
+            filter_string_parsed = self._view_builder_subscription. \
+                validate_filter(filter_string)
+            if nextpage_opaque_marker:
+                start_index = paging - 1
+            else:
+                start_index = None
+
+            vnf_lcm_subscriptions, last = (
+                subscription_obj.LccnSubscriptionList.
+                get_by_filters(request.context,
+                               read_deleted='no',
+                               filters=filter_string_parsed,
+                               nextpage_opaque_marker=start_index))
+
             LOG.debug("vnf_lcm_subscriptions %s" % vnf_lcm_subscriptions)
-            subscription_data, last = self._view_builder.subscription_list(
-                vnf_lcm_subscriptions, nextpage_opaque_marker, paging)
+            subscription_data = self._view_builder_subscription. \
+                subscription_list(vnf_lcm_subscriptions)
             LOG.debug("last %s" % last)
         except Exception as e:
             LOG.error(traceback.format_exc())

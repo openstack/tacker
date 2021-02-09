@@ -670,3 +670,13 @@ def str_to_num(value):
             return float(value)
         except ValueError:
             return None
+
+
+def str_to_bytes(value):
+    """Convert string to bytes"""
+    if isinstance(value, str):
+        value = bytes(value, 'utf-8')
+    elif value is not None:
+        value = bytes(value)
+
+    return value

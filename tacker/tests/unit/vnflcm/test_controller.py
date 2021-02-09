@@ -27,6 +27,7 @@ from webob import exc
 from oslo_config import cfg
 from oslo_serialization import jsonutils
 
+from tacker.api.views import vnf_subscriptions as vnf_subscription_view
 from tacker.api.vnflcm.v1 import controller
 from tacker.api.vnflcm.v1 import sync_resource
 from tacker.common import exceptions
@@ -3873,3 +3874,140 @@ class TestController(base.TestCase):
 
         resp = req.get_response(self.app)
         self.assertEqual(http_client.CREATED, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch.object(vnf_subscription_view.ViewBuilder,
+                       "subscription_list")
+    @mock.patch.object(vnf_subscription_view.ViewBuilder,
+                       "validate_filter")
+    @mock.patch.object(objects.LccnSubscriptionList,
+                       "get_by_filters")
+    def test_subscription_list_all(self,
+            mock_subscription_list,
+            mock_subscription_filter,
+            mock_subscription_view,
+            mock_get_service_plugins):
+        mock_subscription_filter.return_value = None
+        last = True
+        req = fake_request.HTTPRequest.blank('/subscriptions')
+        req.method = 'GET'
+        mock_subscription_list.return_value = [fakes.
+            return_vnf_subscription_list(), last]
+        mock_subscription_view.return_value = fakes. \
+            return_vnf_subscription_list()
+        resp = req.get_response(self.app)
+        expected_result = fakes.return_vnf_subscription_list()
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(expected_result, resp.json)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch.object(vnf_subscription_view.ViewBuilder,
+                       "subscription_list")
+    @mock.patch.object(vnf_subscription_view.ViewBuilder,
+                       "validate_filter")
+    @mock.patch.object(objects.LccnSubscriptionList,
+                       "get_by_filters")
+    def test_subscription_list_empty(self,
+            mock_subscription_list,
+            mock_subscription_filter,
+            mock_subscription_view,
+            mock_get_service_plugins):
+        mock_subscription_filter.return_value = None
+        last = True
+        req = fake_request.HTTPRequest.blank('/subscriptions')
+        req.method = 'GET'
+        mock_subscription_list.return_value = [fakes.
+            return_vnf_subscription_list(), last]
+        mock_subscription_view.return_value = []
+        resp = req.get_response(self.app)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual([], resp.json)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch.object(vnf_subscription_view.ViewBuilder,
+                       "validate_filter")
+    def test_subscription_list_error(self,
+            mock_subscription_filter,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions')
+        req.method = 'GET'
+        mock_subscription_filter.side_effect = Exception
+
+        resp = req.get_response(self.app)
+        self.assertEqual(500, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch.object(vnf_subscription_view.ViewBuilder,
+                       "subscription_list")
+    @mock.patch.object(vnf_subscription_view.ViewBuilder,
+                       "validate_filter")
+    @mock.patch.object(objects.LccnSubscriptionList,
+                       "get_by_filters")
+    @ddt.data(
+        {'operator': "eq", 'key': 'id',
+         'value': uuidsentinel.subscription_id},
+        {'operator': "cont", 'key': 'callbackUri',
+         'value': 'http://localhost/sample_callback_uri'},
+        {'operator': "neq", 'key': 'id',
+         'value': uuidsentinel.subscription_id},
+        {'operator': "eq", 'key': 'notificationTypes',
+         'value': 'VnfLcmOperationOccurrenceNotification'},
+        {'operator': "neq", 'key': 'operationTypes', 'value': 'INSTANTIATE'},
+        {'operator': "cont", 'key': 'operationStates', 'value': 'STARTING'}
+    )
+    @ddt.unpack
+    def test_subscription_list_filter(self,
+            mock_subscription_list,
+            mock_subscription_filter,
+            mock_subscription_view,
+            mock_get_service_plugins,
+            operator, key, value):
+        """Tests all supported operators in filter expression."""
+        filters = {
+            'filter': ("(%s,%s,%s)" % (operator, key, value))
+        }
+        query = urllib.parse.urlencode(filters)
+
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions?' + query)
+        req.method = 'GET'
+        body_2 = {}
+        mock_subscription_filter.return_value = filters
+        last = True
+        if operator == 'neq':
+            body_2 = {key: uuidsentinel.subscription_id_2}
+
+        mock_subscription_list.return_value = [fakes.
+            return_vnf_subscription_list(), last]
+        mock_subscription_view.return_value = fakes. \
+            return_vnf_subscription_list()
+
+        resp = req.get_response(self.app)
+        expected_result = fakes.return_vnf_subscription_list(**body_2)
+
+        if operator == 'neq':
+            self.assertNotEqual(expected_result, resp.json)
+        else:
+            self.assertEqual(expected_result, resp.json)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    def test_subscription_list_filter_error(self,
+            mock_get_service_plugins):
+
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions?filter')
+        req.method = 'GET'
+        resp = req.get_response(self.app)
+
+        self.assertEqual(400, resp.status_code)
