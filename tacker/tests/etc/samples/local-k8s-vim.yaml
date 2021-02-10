@@ -1,0 +1,6 @@
+auth_url: "https://127.0.0.1:6443"
+username: "admin"
+password: "admin"
+project_name: "default"
+ssl_ca_cert: None
+type: "kubernetes"

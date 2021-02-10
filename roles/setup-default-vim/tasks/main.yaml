@@ -65,3 +65,81 @@
 
   when:
     - inventory_hostname == 'controller-tacker'
+
+- block:
+  - name: Copy tools/test-setup-k8s-vim.sh
+    copy:
+       remote_src=True
+       src={{ devstack_base_dir }}/tacker/tools/test-setup-k8s-vim.sh
+       dest={{ zuul_work_dir }}/tools/test-setup-k8s-vim.sh
+       mode=0755
+
+  - name: Copy test k8s vim file
+    copy:
+       remote_src=True
+       src={{ devstack_base_dir }}/tacker/tacker/tests/etc/samples/local-k8s-vim.yaml
+       dest={{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml
+
+  - name: Check if project's tools/test-setup-k8s-vim.sh exists
+    stat:
+      path: "{{ zuul_work_dir }}/tools/test-setup-k8s-vim.sh"
+    register: p
+  - fail:
+      msg: >
+            {{ zuul_work_dir }}/tools/test-setup-k8s-vim.sh doesn't exists
+            or it doesn't have execute permission.
+    when:  p.stat.exists != True or p.stat.executable != True
+
+  - name: Get stackenv from devstack environment
+    slurp:
+      src: "{{ devstack_base_dir }}/devstack/.stackenv"
+    register: stackenv
+
+  - name: Set a keystone authentication uri
+    set_fact:
+      auth_uri: "{{
+                stackenv.content
+                | b64decode
+                | regex_replace('\n', ' ')
+                | regex_replace('^.*KEYSTONE_SERVICE_URI=([^ ]+).*$', '\\1')
+                }}"
+    when:
+      - p.stat.exists
+
+  - name: Replace keystone auth uri in test-setup-k8s-vim.sh
+    replace:
+       path: "{{ item }}"
+       regexp: "http://127.0.0.1/identity"
+       replace: "{{ auth_uri }}"
+    with_items:
+       - "{{ zuul_work_dir }}/tools/test-setup-k8s-vim.sh"
+    when:
+      - p.stat.exists
+
+  - name: Replace k8s auth uri in local-k8s-vim.yaml
+    replace:
+       path: "{{ item }}"
+       regexp: "https://127.0.0.1:6443"
+       replace: "{{ kuryr_k8s_api_url }}"
+    with_items:
+       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml"
+    when:
+      - p.stat.exists
+
+  - name: Replace the config file path in the test-setup-k8s-vim.sh
+    replace:
+       path: "{{ zuul_work_dir }}/tools/test-setup-k8s-vim.sh"
+       regexp: '(?<=config-file )([^ ]+)(?= )'
+       replace: "{{ ansible_env.HOME }}/{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml"
+
+  - name: Run tools/test-setup-k8s-vim.sh
+    command: tools/test-setup-k8s-vim.sh
+    args:
+      chdir: "{{ zuul_work_dir }}"
+    when:
+      - p.stat.exists
+      - p.stat.executable
+
+  when:
+    - inventory_hostname == 'controller-tacker'
+    - kuryr_k8s_api_url is defined
