@@ -17,19 +17,16 @@ A default VIM should be registered according to :doc:`cli-legacy-vim`.
 CLI Reference for VNF Lifecycle Management
 ------------------------------------------
 
-.. TODO(yoshito-ito): add heal CLI reference.
-
-.. TODO(yoshito-ito): add scale CLI reference.
 
 1. Create VNF Identifier
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-The `<VNFD_ID>` should be replaced with the VNFD ID in VNF Package. In the
+The `VNFD_ID` should be replaced with the VNFD ID in VNF Package. In the
 following sample, `b1bb0ce7-ebca-4fa7-95ed-4840d70a1177` is used.
 
 .. code-block:: console
 
-  $ openstack vnflcm create <VNFD_ID>
+  $ openstack vnflcm create VNFD_ID
 
 
 Result:
@@ -87,7 +84,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm instantiate <ID: 725f625e-f6b7-4bcd-b1b7-7184039fde45> \
+  $ openstack vnflcm instantiate VNF_INSTANCE_ID \
        ./sample_param_file.json
 
 
@@ -114,7 +111,7 @@ Help:
   optional arguments:
     -h, --help      show this help message and exit
 
-4. List VNF
+3. List VNF
 ^^^^^^^^^^^
 
 .. code-block:: console
@@ -150,12 +147,12 @@ Help:
     -h, --help            show this help message and exit
 
 
-5. Show VNF
+4. Show VNF
 ^^^^^^^^^^^
 
 .. code-block:: console
 
-  $ openstack vnflcm show <ID: 725f625e-f6b7-4bcd-b1b7-7184039fde45>
+  $ openstack vnflcm show VNF_INSTANCE_ID
 
 
 Result:
@@ -207,12 +204,12 @@ Help:
     -h, --help            show this help message and exit
 
 
-6. Terminate VNF
+5. Terminate VNF
 ^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
-  $ openstack vnflcm terminate <ID: 725f625e-f6b7-4bcd-b1b7-7184039fde45>
+  $ openstack vnflcm terminate VNF_INSTANCE_ID
 
 
 Result:
@@ -251,12 +248,12 @@ Help:
                           termination
 
 
-7. Delete VNF Identifier
+6. Delete VNF Identifier
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
-  $ openstack vnflcm delete <ID: 725f625e-f6b7-4bcd-b1b7-7184039fde45>
+  $ openstack vnflcm delete VNF_INSTANCE_ID
 
 
 Result:
@@ -280,3 +277,118 @@ Help:
 
   optional arguments:
     -h, --help      show this help message and exit
+
+
+7. Heal VNF
+^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm heal VNF_INSTANCE_ID
+
+
+Result:
+
+.. code-block:: console
+
+  Heal request for VNF Instance 725f625e-f6b7-4bcd-b1b7-7184039fde45 has been accepted.
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm heal --help
+  usage: openstack vnflcm heal [-h] [--cause CAUSE]
+                              [--vnfc-instance <vnfc-instance-id> [<vnfc-instance-id> ...]]
+                              <vnf-instance>
+
+  Heal VNF Instance
+
+  positional arguments:
+    <vnf-instance>        VNF instance ID to heal
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    --cause CAUSE         Specify the reason why a healing procedure is
+                          required.
+    --vnfc-instance <vnfc-instance-id> [<vnfc-instance-id> ...]
+                          List of VNFC instances requiring a healing action.
+
+
+8. Scale VNF
+^^^^^^^^^^^^
+
+The `worker_instance` is the ID for the target scaling group.
+See `About aspect id`_ for details.
+
+.. code-block:: console
+
+  $ openstack vnflcm scale --type SCALE_OUT --aspect-id worker_instance \
+       VNF_INSTANCE_ID
+
+
+Result:
+
+.. code-block:: console
+
+  Scale request for VNF Instance 725f625e-f6b7-4bcd-b1b7-7184039fde45 has been accepted.
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm scale --help
+  usage: openstack vnflcm scale [-h] [--number-of-steps <number-of-steps>]
+                                [--additional-param-file <additional-param-file>]
+                                --type <type> --aspect-id <aspect-id>
+                                <vnf-instance>
+
+  Scale a VNF Instance
+
+  positional arguments:
+    <vnf-instance>        VNF instance ID to scale
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    --number-of-steps <number-of-steps>
+                          Number of scaling steps to be executed as part of this Scale VNF operation.
+    --additional-param-file <additional-param-file>
+                          Additional parameters passed by the NFVO as input to the scaling process.
+
+  require arguments:
+    --type <type>         SCALE_OUT or SCALE_IN for type of scale operation.
+    --aspect-id <aspect-id>
+                          Identifier of the scaling aspect.
+
+
+9. Rollback VNF Lifecycle Management Operation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm op rollback VNF_LCM_OP_OCC_ID
+
+
+Result:
+
+.. code-block:: console
+
+  Rollback request for LCM operation 304538dd-d754-4661-9f17-5496dab9693d has been accepted
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm op rollback -h
+  usage: openstack vnflcm op rollback [-h] <vnf-lcm-op-occ-id>
+
+  positional arguments:
+    <vnf-lcm-op-occ-id>  VNF lifecycle management operation occurrence ID.
+
+  optional arguments:
+    -h, --help           show this help message and exit
+
+
+.. _About aspect id : https://docs.openstack.org/tacker/latest/user/etsi_vnf_scaling.html#how-to-identify-aspect-id
