@@ -36,7 +36,7 @@ class VnfTestToscaVNFC(base.BaseTackerTest):
         input_yaml = read_file('sample_tosca_vnfc.yaml')
         tosca_dict = yaml.safe_load(input_yaml)
         path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), "../../etc/samples"))
+            os.path.dirname(__file__), "../../../etc/samples"))
         vnfd_name = 'sample-tosca-vnfc'
         tosca_dict['topology_template']['node_templates'
                                         ]['firewall_vnfc'

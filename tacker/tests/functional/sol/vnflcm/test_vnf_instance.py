@@ -95,7 +95,7 @@ def _create_and_upload_vnf_package(tacker_client, csar_package_name,
         '/vnfpkgm/v1/vnf_packages', "POST", body=body)
 
     # upload vnf package
-    csar_package_path = "../../etc/samples/etsi/nfv/%s" % csar_package_name
+    csar_package_path = "../../../etc/samples/etsi/nfv/%s" % csar_package_name
     file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
         csar_package_path))
 

@@ -1,0 +1,61 @@
+heat_template_version: 2013-05-23
+description: 'VDU2 HOT for Sample VNF'
+
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  zone:
+    type: string
+  net1:
+    type: string
+  net2:
+    type: string
+  net3:
+    type: string
+  net4:
+    type: string
+  net5:
+    type: string
+
+resources:
+  VDU2:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: flavor }
+      name: VDU2
+      image: { get_param: image }
+      networks:
+      - port:
+          get_resource: VDU2_CP1
+      - port:
+          get_resource: VDU2_CP2
+      - port:
+          get_resource: VDU2_CP3
+      - port:
+          get_resource: VDU2_CP4
+      - port:
+          get_resource: VDU2_CP5
+      availability_zone: { get_param: zone }
+
+  VDU2_CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net1 }
+  VDU2_CP2:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net2 }
+  VDU2_CP3:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net3 }
+  VDU2_CP4:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net4 }
+  VDU2_CP5:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net5 }

@@ -1,7 +1,9 @@
 - nodeset:
-    name: openstack-3-nodes-focal
+    name: openstack-4-nodes-focal
     nodes:
       - name: controller
+        label: ubuntu-focal
+      - name: controller-tacker
         label: ubuntu-focal
       - name: compute1
         label: ubuntu-focal
@@ -16,6 +18,7 @@
       # Nodes that are not the controller
       - name: subnode
         nodes:
+          - controller-tacker
           - compute1
           - compute2
       # Switch node for multinode networking setup
@@ -25,15 +28,16 @@
       # Peer nodes for multinode networking setup
       - name: peers
         nodes:
+          - controller-tacker
           - compute1
           - compute2
 
 - job:
-    name: tacker-functional-devstack-multinode-python3
+    name: tacker-functional-devstack-multinode-legacy
     parent: devstack
     description: |
       Base multinodes job for devstack-based functional tests
-    nodeset: openstack-3-nodes-focal
+    nodeset: openstack-4-nodes-focal
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
     post-run: playbooks/devstack/post.yaml
@@ -75,8 +79,15 @@
     vars:
       devstack_localrc:
         CELLSV2_SETUP: singleconductor
+        PHYSICAL_NETWORK: mgmtphysnet0
+        OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
         Q_DVR_MODE: dvr
         DATABASE_TYPE: mysql
+        KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+        MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+        TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
+        TACKER_MODE: standalone
+        IS_ZUUL_FT: True
         Q_SERVICE_PLUGIN_CLASSES: router,neutron.services.metering.metering_plugin.MeteringPlugin,networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,neutron.services.qos.qos_plugin.QoSPlugin,qos
         Q_ML2_PLUGIN_EXT_DRIVERS: port_security,qos
         L2_AGENT_EXTENSIONS: qos
@@ -101,7 +112,6 @@
           #   https://storyboard.openstack.org/#!/story/2007732
           # barbican: https://opendev.org/openstack/barbican
           mistral: https://opendev.org/openstack/mistral
-          tacker: https://opendev.org/openstack/tacker
           blazar: https://opendev.org/openstack/blazar
           fenix: https://opendev.org/x/fenix
         devstack_services:
@@ -138,9 +148,6 @@
           c-sch: true
           c-vol: true
           cinder: true
-          # Tacker services
-          tacker: true
-          tacker-conductor: true
           # Services we don't need.
           # This section is not really needed, it's for readability.
           horizon: false
@@ -152,14 +159,33 @@
           s-proxy: false
           c-bak: false
         tox_install_siblings: false
-        tox_envlist: dsvm-functional
+      controller-tacker:
+        devstack_local_conf: {}
+        devstack_services:
+          q-agt: true
+          # Tacker services
+          tacker: true
+          tacker-conductor: true
+        devstack_plugins:
+          # Temporarily remove because of Ubuntu Focal Migration issue
+          #   https://storyboard.openstack.org/#!/story/2008121
+          #   https://review.opendev.org/#/c/752294/
+          # ceilometer: https://opendev.org/openstack/ceilometer
+          tacker: https://opendev.org/openstack/tacker
+        tox_envlist: dsvm-functional-legacy
     group-vars:
       subnode:
         devstack_localrc:
           CELLSV2_SETUP: singleconductor
           PHYSICAL_NETWORK: mgmtphysnet0
           OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
+          Q_DVR_MODE: dvr
           DATABASE_TYPE: mysql
+          KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
+          TACKER_MODE: standalone
+          IS_ZUUL_FT: True
         # Since a VirtualInterfaceCreateException occurs during a test,
         # the setting of network-vif-plugged is changed by the reference of
         # the following URL.
@@ -182,6 +208,35 @@
           horizon: false
           tls-proxy: false
 
+- job:
+    name: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-legacy
+    description: |
+      Multinodes job for SOL devstack-based functional tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-sol
+
+- job:
+    name: tacker-functional-devstack-multinode-sol-separated-nfvo
+    parent: tacker-functional-devstack-multinode-sol
+    description: |
+      Multinodes job for SOL devstack-based functional tests
+      with separated NFVO
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              connect_vnf_packages:
+                base_url: http://127.0.0.1:9990/vnfpkgm/v1/vnf_packages
+                pipeline: package_content,vnfd,artifacts
+              connect_grant:
+                base_url: http://127.0.0.1:9990/grant/v1/grants
+              openstack_vim:
+                stack_retries: 120
+        tox_envlist: dsvm-functional-sol-separated-nfvo
+
 - project:
     templates:
       - check-requirements
@@ -192,4 +247,6 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - tacker-functional-devstack-multinode-python3
+        - tacker-functional-devstack-multinode-legacy
+        - tacker-functional-devstack-multinode-sol
+        - tacker-functional-devstack-multinode-sol-separated-nfvo

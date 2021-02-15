@@ -1,6 +1,7 @@
 - hosts: all
   roles:
     - orchestrate-devstack
+    - modify-heat-policy
     - setup-default-vim
     - role: bindep
       bindep_profile: test

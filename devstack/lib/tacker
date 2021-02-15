@@ -80,7 +80,6 @@ TACKER_NOVA_URL=${TACKER_NOVA_URL:-http://127.0.0.1:8774/v2}
 TACKER_NOVA_CA_CERTIFICATES_FILE=${TACKER_NOVA_CA_CERTIFICATES_FILE:-}
 TACKER_NOVA_API_INSECURE=${TACKER_NOVA_API_INSECURE:-False}
 
-HEAT_CONF_DIR=/etc/heat
 CEILOMETER_CONF_DIR=/etc/ceilometer
 
 source ${TACKER_DIR}/tacker/tests/contrib/post_test_hook_lib.sh
@@ -91,18 +90,33 @@ GLANCE_DEFAULT_BACKEND=${GLANCE_DEFAULT_BACKEND:=file}
 
 # Functions
 # ---------
-# Test if any Tacker services are enabled
-# is_tacker_enabled
-function is_tacker_enabled {
-    [[ ,${ENABLED_SERVICES} =~ ,"tacker" ]] && return 0
-    return 1
-}
-
 # create_tacker_cache_dir() - Part of the _tacker_setup_keystone() process
 function create_tacker_cache_dir {
     # Create cache dir
     sudo install -d -o $STACK_USER $TACKER_AUTH_CACHE_DIR
     rm -f $TACKER_AUTH_CACHE_DIR/*
+}
+
+# function install_db_client_mysql() - ensure mysql client is installed
+function install_db_client_mysql {
+    if is_oraclelinux; then
+        install_package mysql-community-client
+    elif is_fedora || is_suse; then
+        install_package mariadb-client
+    elif is_ubuntu; then
+        install_package mysql-client
+    else
+        exit_distro_not_supported "mysql client installation"
+    fi
+}
+
+# function install_db_client_postgresql() - ensure postgresql client is installed
+function install_db_client_postgresql {
+    if is_ubuntu || is_fedora || is_suse; then
+        install_package postgresql-client
+    else
+        exit_distro_not_supported "postgresql client installation"
+    fi
 }
 
 # create_tacker_accounts() - Set up common required tacker accounts
@@ -123,9 +137,9 @@ function create_tacker_accounts {
             "nfv-orchestration" "Tacker NFV Orchestration Service")
         get_or_create_endpoint $tacker_service \
             "$REGION_NAME" \
-            "$TACKER_PROTOCOL://$SERVICE_HOST:$TACKER_PORT/" \
-            "$TACKER_PROTOCOL://$SERVICE_HOST:$TACKER_PORT/" \
-            "$TACKER_PROTOCOL://$SERVICE_HOST:$TACKER_PORT/"
+            "$TACKER_PROTOCOL://$TACKER_HOST:$TACKER_PORT/" \
+            "$TACKER_PROTOCOL://$TACKER_HOST:$TACKER_PORT/" \
+            "$TACKER_PROTOCOL://$TACKER_HOST:$TACKER_PORT/"
     fi
 }
 
@@ -134,6 +148,9 @@ function create_tacker_accounts {
 
 # init_tacker() - Initialize databases, etc.
 function init_tacker {
+    # In case db service is disabled, which would have installed cli commands.
+    install_db_client_$DATABASE_TYPE
+
     recreate_database $TACKER_DB_NAME
 
     # Run Tacker db migrations
@@ -241,7 +258,7 @@ function configure_tacker {
     iniset $TACKER_CONF DEFAULT auth_strategy $TACKER_AUTH_STRATEGY
     _tacker_setup_keystone $TACKER_CONF keystone_authtoken
 
-    if [[ "${TACKER_MODE}" == "all" ]]; then
+    if [[ "${TACKER_MODE}" == "all" || -v IS_ZUUL_FT ]]; then
         iniset "/$Q_PLUGIN_CONF_FILE" ml2_type_flat flat_networks $PUBLIC_PHYSICAL_NETWORK,$MGMT_PHYS_NET
         iniset "/$Q_PLUGIN_CONF_FILE" ovs bridge_mappings $PUBLIC_PHYSICAL_NETWORK:$PUBLIC_BRIDGE,$MGMT_PHYS_NET:$BR_MGMT
 
@@ -417,9 +434,9 @@ function tacker_create_initial_network {
     sudo ip address add ${NETWORK_GATEWAY_MGMT_IP} dev ${BR_MGMT}
 }
 
-function tacker_register_default_vim {
+function tacker_setup_default_vim_resources {
     # Note: These must be the same as in tacker/tests/etc/samples/local-vim.yaml
-    # and devstack/lib/tacker/vim_config.yaml
+    # and devstack/vim_config.yaml
     DEFAULT_VIM_PROJECT_NAME="nfv"
     DEFAULT_VIM_USER="nfv_user"
     DEFAULT_VIM_PASSWORD="devstack"
@@ -473,13 +490,6 @@ function tacker_register_default_vim {
           security group rule create \
           --ingress --protocol tcp --dst-port 22 test_secgrp
 
-}
-
-function modify_heat_flavor_policy_rule {
-    local policy_file=$HEAT_CONF_DIR/policy.yaml
-    touch $policy_file
-    # Allow non-admin projects with 'admin' roles to create flavors in Heat
-    echo '"resource_types:OS::Nova::Flavor": "role:admin"' >> $policy_file
 }
 
 function configure_maintenance_event_types {
