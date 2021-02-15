@@ -1,0 +1,19 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml
+
+Name: Files/kubernetes/pod_heal.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 08fabdd52e8a386669f177c0a7a8a351b036bcde3bf399ca1816455d81dd191c
+
+Name: Files/kubernetes/deployment_heal_simple.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 39c9b301d04714c6b124b333057a22d316835c3cb340c4e2ebfadc296c3fbfbc
+
+Name: Files/kubernetes/deployment_heal_complex.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 06c018b9f4b231a604a6cd223a2552fecc4c6dc8bedf9325e84f7fe2b6fe8492

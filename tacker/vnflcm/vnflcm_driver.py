@@ -611,7 +611,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             self._vnf_manager.invoke(
                 vim_connection_info.vim_type, 'heal_vnf_wait',
                 context=context, vnf_instance=vnf_instance,
-                vim_connection_info=vim_connection_info)
+                vim_connection_info=vim_connection_info,
+                heal_vnf_request=heal_vnf_request)
         except Exception as exp:
             LOG.error("Failed to update vnf %(id)s resources for instance "
                       "%(instance)s. Error: %(error)s",
@@ -675,7 +676,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             self._vnf_manager.invoke(
                 vim_connection_info.vim_type, 'post_vnf_instantiation',
                 context=context, vnf_instance=vnf_instance,
-                vim_connection_info=vim_connection_info)
+                vim_connection_info=vim_connection_info,
+                instantiate_vnf_req=instantiate_vnf_request)
 
         except Exception as exc:
             with excutils.save_and_reraise_exception() as exc_ctxt:

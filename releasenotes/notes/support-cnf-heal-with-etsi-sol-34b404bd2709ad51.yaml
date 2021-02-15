@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Add Container based VNF heal operation support with ETSI NFV-SOL002 and
+    SOL003 v2.6.1 VNF Lifecycle Management. For "Heal VNFC with SOL002", users
+    can heal Pod (mapped as VNFC) that is singleton or created using controller
+    resources such as Kubernetes Deployment, DaemonSet, StatefulSet, and
+    ReplicaSet. For "Heal VNF instance with SOL003", users can heal entire VNF
+    instance by termination and instantiation of the VNF. And the VNFC resource
+    information are stored and updated for the heal operation of the Pod.

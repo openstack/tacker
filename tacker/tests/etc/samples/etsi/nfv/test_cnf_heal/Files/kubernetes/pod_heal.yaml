@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Pod
 metadata:
+  name: vdu2-heal
   namespace: default
-  name: vdu1
 spec:
   containers:
-  - image: celebdor/kuryr-demo
+  - image: nginx
     imagePullPolicy: IfNotPresent
-    name: web-server
+    name: webserver2
     ports:
     - containerPort: 8080

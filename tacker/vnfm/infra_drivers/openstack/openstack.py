@@ -907,7 +907,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
     @log.log
     def post_vnf_instantiation(self, context, vnf_instance,
-            vim_connection_info):
+            vim_connection_info, instantiate_vnf_req):
         inst_vnf_info = vnf_instance.instantiated_vnf_info
         access_info = vim_connection_info.access_info
 
@@ -1221,7 +1221,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         heatclient.update(stack_id=inst_vnf_info.instance_id, existing=True)
 
     @log.log
-    def heal_vnf_wait(self, context, vnf_instance, vim_connection_info):
+    def heal_vnf_wait(self, context, vnf_instance, vim_connection_info,
+                      heal_vnf_request):
         """Check vnf is healed successfully"""
 
         access_info = vim_connection_info.access_info

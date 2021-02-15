@@ -1382,10 +1382,11 @@ class TestOpenStack(base.FixturedTestCase):
                 vnf_link_ports[0].resource_handle.vim_level_resource_type,
             'physical_resource_id': uuidsentinel.cp1_resource_id}]
 
+        inst_req_info = fd_utils.get_instantiate_vnf_request()
         self._responses_in_stack_list(inst_vnf_info.instance_id,
             resources=resources)
         self.openstack.post_vnf_instantiation(
-            self.context, vnf_instance, vim_connection_info)
+            self.context, vnf_instance, vim_connection_info, inst_req_info)
         self.assertEqual(vnf_instance.instantiated_vnf_info.
             vnfc_resource_info[0].metadata['stack_id'],
             inst_vnf_info.instance_id)
@@ -1453,8 +1454,9 @@ class TestOpenStack(base.FixturedTestCase):
             'physical_resource_id': uuidsentinel.v_l_resource_info_id}]
         self._responses_in_stack_list(inst_vnf_info.instance_id,
             resources=resources)
+        inst_req_info = fd_utils.get_instantiate_vnf_request()
         self.openstack.post_vnf_instantiation(
-            self.context, vnf_instance, vim_connection_info)
+            self.context, vnf_instance, vim_connection_info, inst_req_info)
         self.assertEqual(vnf_instance.instantiated_vnf_info.
             vnfc_resource_info[0].metadata['stack_id'],
             inst_vnf_info.instance_id)
@@ -1623,7 +1625,7 @@ class TestOpenStack(base.FixturedTestCase):
                                                  "UPDATE_COMPLETE"])
 
         stack = self.openstack.heal_vnf_wait(
-            self.context, vnf_instance, vim_connection_info)
+            self.context, vnf_instance, vim_connection_info, None)
         self.assertEqual('UPDATE_COMPLETE', stack.stack_status)
 
     def test_heal_vnf_wait_fail(self):
@@ -1640,7 +1642,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.openstack.STACK_RETRIES = 1
         result = self.assertRaises(vnfm.VNFHealWaitFailed,
             self.openstack.heal_vnf_wait, self.context, vnf_instance,
-            vim_connection_info)
+            vim_connection_info, None)
 
         expected_msg = ("VNF Heal action is not completed within 10 seconds "
                        "on stack %s") % inst_vnf_info.instance_id

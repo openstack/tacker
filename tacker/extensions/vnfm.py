@@ -117,6 +117,14 @@ class CNFScaleWaitFailed(exceptions.TackerException):
     message = _('CNF Scale Wait Failed with reason: %(reason)s')
 
 
+class CNFHealFailed(exceptions.TackerException):
+    message = _('%(reason)s')
+
+
+class CNFHealWaitFailed(exceptions.TackerException):
+    message = _('%(reason)s')
+
+
 class ServiceTypeNotFound(exceptions.NotFound):
     message = _('service type %(service_type_id)s could not be found')
 
