@@ -100,7 +100,6 @@
       - x/fenix
     vars:
       devstack_localrc:
-        CELLSV2_SETUP: singleconductor
         PHYSICAL_NETWORK: mgmtphysnet0
         OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
         Q_DVR_MODE: dvr
@@ -111,6 +110,7 @@
         Q_SERVICE_PLUGIN_CLASSES: router,neutron.services.metering.metering_plugin.MeteringPlugin,networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,neutron.services.qos.qos_plugin.QoSPlugin,qos
         Q_ML2_PLUGIN_EXT_DRIVERS: port_security,qos
         L2_AGENT_EXTENSIONS: qos
+        DEVSTACK_PARALLEL: True
       test_matrix_configs: [neutron]
       zuul_work_dir: src/opendev.org/openstack/tacker
     host-vars:
@@ -201,7 +201,6 @@
                 vif_plugging_is_fatal: False
       subnode:
         devstack_localrc:
-          CELLSV2_SETUP: singleconductor
           PHYSICAL_NETWORK: mgmtphysnet0
           OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
           Q_DVR_MODE: dvr
@@ -377,7 +376,6 @@
     group-vars:
       subnode:
         devstack_localrc:
-          CELLSV2_SETUP: singleconductor
           DATABASE_TYPE: mysql
           IS_ZUUL_FT: True
           KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
@@ -413,7 +411,6 @@
           tls-proxy: false
     vars:
       devstack_localrc:
-        CELLSV2_SETUP: singleconductor
         DATABASE_TYPE: mysql
         ETCD_USE_RAMDISK: true
         IS_ZUUL_FT: True
@@ -431,6 +428,7 @@
         TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
         TACKER_MODE: standalone
         USE_PYTHON3: true
+        DEVSTACK_PARALLEL: True
       devstack_local_conf:
         post-config:
           $NEUTRON_DHCP_CONF:
