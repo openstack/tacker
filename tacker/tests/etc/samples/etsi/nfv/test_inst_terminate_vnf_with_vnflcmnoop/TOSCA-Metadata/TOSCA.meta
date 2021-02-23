@@ -1,0 +1,12 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml
+
+Name: Files/images/cirros-0.4.0-x86_64-disk.img
+Content-type: application/x-iso9066-image
+
+Name: Scripts/vnflcm_noop.py
+Content-Type: text/x-python
+Algorithm: SHA-256
+Hash: ffea638bfdbde3fb01f191bbe75b031859b18d663b127100eb72b19eecd7ed51

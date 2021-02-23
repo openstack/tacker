@@ -39,6 +39,11 @@ import tacker.conf
 CONF = tacker.conf.CONF
 
 
+def return_vnf_interfaces():
+    vnf_interface = 'vnflcm_noop'
+    return vnf_interface
+
+
 def return_default_vim():
     default_vim = {
         'vim_auth': {

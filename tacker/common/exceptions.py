@@ -376,3 +376,33 @@ class DBAccessError(TackerException):
 
 class SeeOther(TackerException):
     code = 303
+
+
+class MgmtDriverHashMatchFailure(TackerException):
+    message = _('The hash verification of VNF Package MgmtDriver '
+                'and Tacker MgmtDriver does not match.')
+
+
+class MgmtDriverInconsistent(TackerException):
+    message = _('The %(MgmtDriver)s specified in the VNFD is inconsistent '
+                'with the MgmtDriver in the configuration file.')
+
+
+class MgmtDriverNotFound(TackerException):
+    message = _('The %(param)s in the additionalParams does not exist.')
+
+
+class MgmtDriverParamInvalid(TackerException):
+    message = _('The %(param)s in the additionalParams is invalid.')
+
+
+class MgmtDriverRemoteCommandError(TackerException):
+    message = _('Failed to execute remote command.')
+
+
+class MgmtDriverRemoteCommandTimeOut(TackerException):
+    message = _('The execution of the remote command timed out.')
+
+
+class MgmtDriverOtherError(TackerException):
+    message = _('An error occurred in MgmtDriver: %(error_message)s.')

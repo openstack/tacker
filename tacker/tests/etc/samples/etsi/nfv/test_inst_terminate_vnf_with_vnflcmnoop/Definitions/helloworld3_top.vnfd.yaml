@@ -1,0 +1,31 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: Sample VNF
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - helloworld3_types.yaml
+  - helloworld3_df_simple.yaml
+
+topology_template:
+  inputs:
+    selected_flavour:
+      type: string
+      description: VNF deployment flavour selected by the consumer. It is provided in the API
+
+  node_templates:
+    VNF:
+      type: company.provider.VNF
+      properties:
+        flavour_id: { get_input: selected_flavour }
+        descriptor_id: b1bb0ce7-ebca-4fa7-95ed-4840d7000000
+        provider: Company
+        product_name: Sample VNF
+        software_version: '1.0'
+        descriptor_version: '1.0'
+        vnfm_info:
+          - Tacker
+      requirements:
+        #- virtual_link_external # mapped in lower-level templates
+        #- virtual_link_internal # mapped in lower-level templates
