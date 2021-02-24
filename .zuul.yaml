@@ -100,6 +100,7 @@
       - x/fenix
     vars:
       devstack_localrc:
+        CELLSV2_SETUP: singleconductor
         PHYSICAL_NETWORK: mgmtphysnet0
         OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
         Q_DVR_MODE: dvr
@@ -201,6 +202,7 @@
                 vif_plugging_is_fatal: False
       subnode:
         devstack_localrc:
+          CELLSV2_SETUP: singleconductor
           PHYSICAL_NETWORK: mgmtphysnet0
           OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
           Q_DVR_MODE: dvr
@@ -376,6 +378,7 @@
     group-vars:
       subnode:
         devstack_localrc:
+          CELLSV2_SETUP: singleconductor
           DATABASE_TYPE: mysql
           IS_ZUUL_FT: True
           KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
@@ -411,6 +414,7 @@
           tls-proxy: false
     vars:
       devstack_localrc:
+        CELLSV2_SETUP: singleconductor
         DATABASE_TYPE: mysql
         ETCD_USE_RAMDISK: true
         IS_ZUUL_FT: True
