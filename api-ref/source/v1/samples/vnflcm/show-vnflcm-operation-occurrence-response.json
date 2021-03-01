@@ -4,6 +4,7 @@
   "stateEnteredTime": "2020-08-02T06:50:50.883373",
   "startTime": "2020-08-02T06:41:34.883483",
   "vnfInstanceId": "0b7b95a9-21d5-4ac4-80c8-9ae9f7323787",
+  "grantId": "3432cebe-db0a-11e8-9023-005056317abe",
   "operation": "INSTANTIATE",
   "isAutomaticInvocation": false,
   "operationParams": "{
@@ -65,6 +66,15 @@
     },
     "grant": {
       "href": "/grant/v1/grants/3432cebe-db0a-11e8-9023-005056317abe"
+    },
+    "retry":{
+      "href":"http://sample1.com/vnflcm/v1/vnf_lcm_op_occs/d85c6ae4-af16-42c0-96fc-82f7c014c468/retry"
+    },
+    "rollback":{
+      "href":"http://sample1.com/vnflcm/v1/vnf_lcm_op_occs/d85c6ae4-af16-42c0-96fc-82f7c014c468/rollback"
+    },
+    "fail":{
+      "href":"http://sample1.com/vnflcm/v1/vnf_lcm_op_occs/d85c6ae4-af16-42c0-96fc-82f7c014c468/fail"
     }
   }
 }

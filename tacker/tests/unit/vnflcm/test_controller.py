@@ -3366,3 +3366,141 @@ class TestController(base.TestCase):
 
         resp = req.get_response(self.app)
         self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
+
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
+    def test_op_occ_list(self, mock_op_occ_list):
+        req = fake_request.HTTPRequest.blank('/vnflcm/v1/vnf_lcm_op_occs')
+
+        complex_attributes = [
+            'error',
+            'resourceChanges',
+            'operationParams',
+            'changedInfo']
+
+        vnf_lcm_op_occ = fakes.return_vnf_lcm_opoccs_list()
+        expected_result = fakes.index_response(
+            remove_attrs=complex_attributes)
+        mock_op_occ_list.return_value = vnf_lcm_op_occ
+        res_dict = self.controller.list_lcm_op_occs(req)
+
+        self.assertEqual(expected_result, res_dict)
+
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
+    @ddt.data(
+        {'filter': '(eq,id,f26f181d-7891-4720-b022-b074ec1733ef)'},
+        {'filter': '(neq,operationState,COMPLETED)'},
+        {'filter': '(gte,stateEnteredTime,2020-03-14 04:10:15+00:00)'},
+        {'filter': '(eq,isAutomaticInvocation,False)'},
+        {'filter': '(lt,errorPoint,4)'},
+        {'filter':
+            """(eq,error,'"{"title": "ERROR",
+            "status": 500, "detail": "ERROR"}"')"""},
+        {'filter':
+        """(in,changedInfo,'"{"vnfInstanceName": "test"}"')"""},
+        {'filter':
+            """(neq,operationParams,'"{"terminationType": "FORCEFUL"}"')"""},
+    )
+    def test_op_occ_filter_attributes(self, filter_params,
+                                      mock_op_occ_list):
+        query = urllib.parse.urlencode(filter_params)
+        req = fake_request.HTTPRequest.blank(
+            '/vnflcm/v1/vnf_lcm_op_occs?' + query)
+
+        complex_attributes = [
+            'error',
+            'resourceChanges',
+            'operationParams',
+            'changedInfo']
+
+        vnf_lcm_op_occ = fakes.return_vnf_lcm_opoccs_list()
+        expected_result = fakes.index_response(
+            remove_attrs=complex_attributes)
+        mock_op_occ_list.return_value = vnf_lcm_op_occ
+        res_dict = self.controller.list_lcm_op_occs(req)
+
+        self.assertEqual(expected_result, res_dict)
+
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
+    def test_op_occ_filter_attributes_invalid_filter(self, mock_op_occ_list):
+        query = urllib.parse.urlencode({'filter': '(lt,non_existing,4)'})
+        req = fake_request.HTTPRequest.blank(
+            '/vnflcm/v1/vnf_lcm_op_occs?' + query)
+
+        vnf_lcm_op_occ = fakes.return_vnf_lcm_opoccs_list()
+        mock_op_occ_list.return_value = vnf_lcm_op_occ
+        self.assertRaises(
+            exceptions.ValidationError, self.controller.list_lcm_op_occs, req)
+
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
+    def test_op_occ_attribute_selector_all_fields(self, mock_op_occ_list):
+        params = {'all_fields': 'True'}
+        query = urllib.parse.urlencode(params)
+        req = fake_request.HTTPRequest.blank('/vnflcm/v1/vnf_lcm_op_occs?' +
+            query)
+
+        vnf_lcm_op_occ = fakes.return_vnf_lcm_opoccs_list()
+        expected_result = fakes.index_response()
+        mock_op_occ_list.return_value = vnf_lcm_op_occ
+        res_dict = self.controller.list_lcm_op_occs(req)
+
+        self.assertEqual(expected_result, res_dict)
+
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
+    @ddt.data(
+        {'fields': 'error'},
+        {'fields': 'resourceChanges'},
+        {'fields': 'operationParams'},
+        {'fields': 'changedInfo'}
+    )
+    def test_op_occ_attribute_selector_fields(self, filter_params,
+                                              mock_op_occ_list):
+        query = urllib.parse.urlencode(filter_params)
+        req = fake_request.HTTPRequest.blank(
+            '/vnflcm/v1/vnf_lcm_op_occs?' + query)
+
+        complex_attributes = [
+            'error',
+            'resourceChanges',
+            'operationParams',
+            'changedInfo']
+
+        remove_attributes = [
+            x for x in complex_attributes if x != filter_params['fields']]
+
+        vnf_lcm_op_occ = fakes.return_vnf_lcm_opoccs_list()
+        expected_result = fakes.index_response(remove_attrs=remove_attributes)
+        mock_op_occ_list.return_value = vnf_lcm_op_occ
+        res_dict = self.controller.list_lcm_op_occs(req)
+        self.assertEqual(expected_result, res_dict)
+
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
+    @ddt.data(
+        {'exclude_fields': 'error'},
+        {'exclude_fields': 'resourceChanges'},
+        {'exclude_fields': 'operationParams'},
+        {'exclude_fields': 'changedInfo'}
+    )
+    def test_op_occ_attribute_selector_exclude_fields(self, filter_params,
+                                              mock_op_occ_list):
+        query = urllib.parse.urlencode(filter_params)
+        req = fake_request.HTTPRequest.blank(
+            '/vnflcm/v1/vnf_lcm_op_occs?' + query)
+
+        remove_attributes = [filter_params['exclude_fields']]
+
+        vnf_lcm_op_occ = fakes.return_vnf_lcm_opoccs_list()
+        expected_result = fakes.index_response(remove_attrs=remove_attributes)
+        mock_op_occ_list.return_value = vnf_lcm_op_occ
+        res_dict = self.controller.list_lcm_op_occs(req)
+        self.assertEqual(expected_result, res_dict)
+
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
+    def test_op_occ_attribute_selector_fields_error(self, mock_op_occ_list):
+        query = urllib.parse.urlencode({'fields': 'non_existent_column'})
+        req = fake_request.HTTPRequest.blank(
+            '/vnflcm/v1/vnf_lcm_op_occs?' + query)
+
+        vnf_lcm_op_occ = fakes.return_vnf_lcm_opoccs_list()
+        mock_op_occ_list.return_value = vnf_lcm_op_occ
+        self.assertRaises(
+            exceptions.ValidationError, self.controller.list_lcm_op_occs, req)

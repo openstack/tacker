@@ -305,6 +305,7 @@ class VnfLcmOpOccs(model_base.BASE, models.SoftDeleteMixin,
     vnf_instance_id = sa.Column(sa.String(36),
                                 sa.ForeignKey('vnf_instances.id'),
                                 nullable=False)
+    grant_id = sa.Column(sa.String(36), nullable=True)
     state_entered_time = sa.Column(sa.DateTime(), nullable=False)
     start_time = sa.Column(sa.DateTime(), nullable=False)
     operation_state = sa.Column(sa.String(length=255), nullable=False)
@@ -315,6 +316,7 @@ class VnfLcmOpOccs(model_base.BASE, models.SoftDeleteMixin,
     error = sa.Column(sa.JSON(), nullable=True)
     resource_changes = sa.Column(sa.JSON(), nullable=True)
     changed_info = sa.Column(sa.JSON(), nullable=True)
+    changed_ext_connectivity = sa.Column(sa.JSON(), nullable=True)
     error_point = sa.Column(sa.Integer, nullable=False)
 
 

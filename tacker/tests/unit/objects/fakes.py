@@ -512,3 +512,23 @@ def get_vnf(vnfd_id, vim_id):
         'placement_attr': "test_placement_attr",
         'vim_id': vim_id
     }
+
+
+def get_changed_ext_conn_data():
+    return [{
+        "id": uuidsentinel.change_ext_conn_id,
+        "resource_handle": {
+            "vim_connection_id": uuidsentinel.vim_connection_id,
+            "resource_id": uuidsentinel.vl_resource_id,
+            "vim_level_resource_type": "OS::Neutron::Net",
+        },
+        "ext_link_ports": [{
+            "id": uuidsentinel.ext_link_ports_id,
+            "resource_handle": {
+                "vim_connection_id": uuidsentinel.vim_connection_id,
+                "resource_id": uuidsentinel.port_resource_id,
+                "vim_level_resource_type": "OS::Neutron::Port",
+            },
+            "cp_instance_id": uuidsentinel.cp_instance_id,
+        }]
+    }]

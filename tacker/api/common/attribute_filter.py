@@ -163,6 +163,18 @@ def _parse_filter(filter_rule):
     try:
         tokens = filter_rule.split(',')
         filter_type = None
+
+        # TODO(esto-aln): This condition and the lines below will be removed
+        # if JSON will be supported via OR Mapping. Currently this condition
+        # allows support of JSON strings '"{...}"' for filtering
+        if (tokens[2].startswith("'\"{") and
+                tokens[len(tokens) - 1].endswith("}\"'")):
+            tokens[2] = ','.join(tokens[2:])
+
+            # retain first 3 indices and remove the rest
+            # to process as string
+            tokens = tokens[0:3]
+
         if len(tokens) >= 3:
             if tokens[0] in _filters.SUPPORTED_OP_ONE:
                 filter_type = 'simple_filter_expr_one'

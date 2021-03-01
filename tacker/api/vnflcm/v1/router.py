@@ -138,3 +138,15 @@ class VnflcmAPIRouter(wsgi.Router):
         methods = {"GET": "subscription_show", "DELETE": "delete_subscription"}
         self._setup_route(mapper, "/subscriptions/{subscriptionId}",
                 methods, controller, default_resource)
+
+        # {apiRoot}/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/retry resource
+        methods = {"POST": "retry"}
+        self._setup_route(mapper,
+                "/vnf_lcm_op_occs/{id}/retry",
+                methods, controller, default_resource)
+
+        # Allowed methods on
+        # {apiRoot}/vnflcm/v1/vnf_lcm_op_occs resource
+        methods = {"GET": "list_lcm_op_occs"}
+        self._setup_route(mapper, "/vnf_lcm_op_occs",
+                          methods, controller, default_resource)

@@ -15,10 +15,13 @@ from datetime import datetime
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
+from oslo_versionedobjects import base as ovoo_base
 from sqlalchemy import exc
 from sqlalchemy.orm import joinedload
+from sqlalchemy_filters import apply_filters
 
 from tacker.common import exceptions
+from tacker.common import utils
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
@@ -55,9 +58,32 @@ def _vnf_lcm_op_occ_update(context, values):
         if values.changed_info:
             update.update({'changed_info': jsonutils.dumps(
                 values.changed_info.to_dict())})
+    if 'changed_ext_connectivity' in values:
+        if values.changed_ext_connectivity:
+            update.update({'changed_ext_connectivity': jsonutils.dumps(
+                [chg_ext_conn.to_dict() for chg_ext_conn in
+                values.changed_ext_connectivity])})
     api.model_query(context, models.VnfLcmOpOccs). \
         filter_by(id=values.id). \
         update(update, synchronize_session=False)
+
+
+def _make_vnf_lcm_op_occs_list(context, op_occ_list,
+                               db_op_occ_list):
+    lcm_op_occ_class = VnfLcmOpOcc
+
+    op_occ_list.objects = []
+    for db_op_occ in db_op_occ_list:
+        if(db_op_occ['changed_info'] and
+                isinstance(db_op_occ['changed_info'], str)):
+            db_op_occ['changed_info'] = jsonutils.loads(
+                db_op_occ['changed_info'])
+        vnf_lcm_op_occ_obj = lcm_op_occ_class._from_db_object(
+            context, lcm_op_occ_class(context), db_op_occ)
+        op_occ_list.objects.append(vnf_lcm_op_occ_obj)
+
+    op_occ_list.obj_reset_changes()
+    return op_occ_list
 
 
 @db_api.context_manager.reader
@@ -89,6 +115,19 @@ def _vnf_lcm_op_occs_get_by_vnf_instance_id(context, vnf_instance_id):
         raise exceptions.VnfInstanceNotFound(id=vnf_instance_id)
 
     return result
+
+
+@db_api.context_manager.reader
+def _vnf_lcm_op_occs_get_by_filters(context, read_deleted=None,
+                                    filters=None):
+
+    query = api.model_query(context, models.VnfLcmOpOccs,
+                            read_deleted=read_deleted, project_only=True)
+
+    if filters:
+        query = apply_filters(query, filters)
+
+    return query.all()
 
 
 @db_api.context_manager.reader
@@ -170,6 +209,7 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
         'state_entered_time': fields.DateTimeField(nullable=False),
         'start_time': fields.DateTimeField(nullable=False),
         'vnf_instance_id': fields.StringField(nullable=False),
+        'grant_id': fields.StringField(nullable=True),
         'operation': fields.StringField(nullable=False),
         'is_automatic_invocation': fields.BooleanField(default=False),
         'operation_params': fields.StringField(nullable=True),
@@ -180,8 +220,39 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
             'ResourceChanges', nullable=True, default=None),
         'changed_info': fields.ObjectField(
             'VnfInfoModifications', nullable=True, default=None),
+        'changed_ext_connectivity': fields.ListOfObjectsField(
+            'ExtVirtualLinkInfo', nullable=True, default=[]),
         'error_point': fields.IntegerField(nullable=True, default=0)
     }
+
+    ALL_ATTRIBUTES = {
+        'id': ('id', 'string', 'VnfLcmOpOccs'),
+        'operationState': ('operation_state', 'string', 'VnfLcmOpOccs'),
+        'stateEnteredTime':
+            ('state_entered_time', 'datetime', 'VnfLcmOpOccs'),
+        'startTime': ('start_time', 'datetime', 'VnfLcmOpOccs'),
+        'vnfInstanceId': ('vnf_instance_id', 'string', 'VnfLcmOpOccs'),
+        'grantId': ('grant_id', 'string', 'VnfLcmOpOccs'),
+        'operation': ('operation', 'string', 'VnfLcmOpOccs'),
+        'isAutomaticInvocation':
+            ('is_automatic_invocation', 'boolean', 'VnfLcmOpOccs'),
+        'isCancelPending': ('is_cancel_pending', 'string', 'VnfLcmOpOccs'),
+        'errorPoint': ('error_point', 'number', 'VnfLcmOpOccs'),
+        'operationParams': ('operation_params', 'string', 'VnfLcmOpOccs'),
+        'error': ('error', 'string', 'VnfLcmOpOccs'),
+        'resourceChanges': ('resource_changes', 'string', 'VnfLcmOpOccs'),
+        'changedInfo': ('changed_info', 'string', 'VnfLcmOpOccs')
+    }
+
+    FLATTEN_ATTRIBUTES = utils.flatten_dict(ALL_ATTRIBUTES.copy())
+
+    SIMPLE_ATTRIBUTES = ['id', 'operationState', 'stateEnteredTime',
+                         'startTime', 'vnfInstanceId', 'grantId', 'operation',
+                         'isAutomaticInvocation',
+                         'isCancelPending', 'errorPoint']
+
+    COMPLEX_ATTRIBUTES = ['error', 'resourceChanges', 'changedInfo',
+                          'operationParams', 'changedExtConnectivity']
 
     @base.remotable
     def create(self):
@@ -197,7 +268,9 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
     def _from_db_object(context, vnf_lcm_op_occ_obj, db_vnf_lcm_op_occ):
 
         special_fields = ['error',
-                          'resource_changes', 'changed_info']
+                          'resource_changes',
+                          'changed_info',
+                          'changed_ext_connectivity']
         for key in vnf_lcm_op_occ_obj.fields:
             if key in special_fields:
                 continue
@@ -214,6 +287,12 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
             changed_info = VnfInfoModifications.obj_from_primitive(
                 db_vnf_lcm_op_occ['changed_info'], context)
             vnf_lcm_op_occ_obj.changed_info = changed_info
+        if db_vnf_lcm_op_occ['changed_ext_connectivity']:
+            changed_ext_conn = \
+                [objects.ExtVirtualLinkInfo.obj_from_primitive(
+                 chg_ext_conn, context) for chg_ext_conn in
+                 db_vnf_lcm_op_occ['changed_ext_connectivity']]
+            vnf_lcm_op_occ_obj.changed_ext_connectivity = changed_ext_conn
 
         vnf_lcm_op_occ_obj._context = context
         vnf_lcm_op_occ_obj.obj_reset_changes()
@@ -238,6 +317,11 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
                 obj_data = VnfInfoModifications._from_dict(
                     primitive.get('changed_info'))
                 primitive.update({'changed_info': obj_data})
+            if 'changed_ext_connectivity' in primitive.keys():
+                obj_data = [objects.ExtVirtualLinkInfo.obj_from_primitive(
+                    chg_ext_conn, context) for chg_ext_conn in
+                    primitive.get('changed_ext_connectivity')]
+                primitive.update({'changed_ext_connectivity': obj_data})
             vnf_lcm_op_occ = VnfLcmOpOcc._from_dict(primitive)
 
         return vnf_lcm_op_occ
@@ -252,6 +336,7 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
         state_entered_time = data_dict.get('state_entered_time')
         start_time = data_dict.get('start_time')
         vnf_instance_id = data_dict.get('vnf_instance_id')
+        grant_id = data_dict.get('grant_id')
         operation = data_dict.get('operation')
         is_automatic_invocation = data_dict.get('is_automatic_invocation')
         operation_params = data_dict.get('operation_params')
@@ -259,12 +344,14 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
         error = data_dict.get('error')
         resource_changes = data_dict.get('resource_changes')
         changed_info = data_dict.get('changed_info')
+        changed_ext_connectivity = data_dict.get('changed_ext_connectivity')
         error_point = data_dict.get('error_point')
 
         obj = cls(operation_state=operation_state,
                   state_entered_time=state_entered_time,
                   start_time=start_time,
                   vnf_instance_id=vnf_instance_id,
+                  grant_id=grant_id,
                   operation=operation,
                   is_automatic_invocation=is_automatic_invocation,
                   operation_params=operation_params,
@@ -272,28 +359,76 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
                   error=error,
                   resource_changes=resource_changes,
                   changed_info=changed_info,
+                  changed_ext_connectivity=changed_ext_connectivity,
                   error_point=error_point
                   )
 
         return obj
 
-    def to_dict(self):
-        data = {'id': self.id,
-                'operation_state': self.operation_state,
-                'state_entered_time': self.state_entered_time,
-                'start_time': self.start_time,
-                'vnf_instance_id': self.vnf_instance_id,
-                'operation': self.operation,
-                'is_automatic_invocation': self.is_automatic_invocation,
-                'operation_params': self.operation_params,
-                'is_cancel_pending': self.is_cancel_pending,
-                'error_point': self.error_point}
+    def _get_error(self, include_fields=None):
+        key = 'error'
+        if key in include_fields:
+            return {key: self.error.to_dict()}
+
+    def _get_resource_changes(self, include_fields=None):
+        key = 'resourceChanges'
+        if key in include_fields:
+            return {key: self.resource_changes.to_dict()}
+
+    def _get_changed_info(self, include_fields=None):
+        key = 'changedInfo'
+        if key in include_fields:
+            return {key: self.changed_info.to_dict()}
+
+    def _get_operation_params(self, include_fields=None):
+        key = 'operationParams'
+        if key in include_fields:
+            return {key: self.operation_params}
+
+    def _get_changed_ext_connectivity(self, include_fields=None):
+        key = 'changedExtConnectivity'
+        return {key: [chg_ext_conn.to_dict() for chg_ext_conn in
+                      self.changed_ext_connectivity]}
+
+    def to_dict(self, include_fields=None):
+        data = dict()
+        if not include_fields:
+            include_fields = set(self.FLATTEN_ATTRIBUTES.keys())
+
+        # add simple fields
+        to_fields = set(self.SIMPLE_ATTRIBUTES).intersection(include_fields)
+        for field in to_fields:
+            data[field] = getattr(self, self.FLATTEN_ATTRIBUTES[field][0])
+
+        # add complex attributes
         if self.error:
-            data.update({'error': self.error.to_dict()})
+            error = self._get_error(include_fields=include_fields)
+            if error:
+                data.update(error)
+
         if self.resource_changes:
-            data.update({'resource_changes': self.resource_changes.to_dict()})
+            resource_changes = self._get_resource_changes(
+                include_fields=include_fields)
+            if resource_changes:
+                data.update(resource_changes)
+
         if self.changed_info:
-            data.update({'changed_info': self.changed_info.to_dict()})
+            changed_info = self._get_changed_info(
+                include_fields=include_fields)
+            if changed_info:
+                data.update(changed_info)
+
+        if self.operation_params:
+            operation_params = self._get_operation_params(
+                include_fields=include_fields)
+            if operation_params:
+                data.update(operation_params)
+
+        if self.changed_ext_connectivity:
+            changed_ext_connectivity = self._get_changed_ext_connectivity(
+                include_fields=include_fields)
+            if changed_ext_connectivity:
+                data.update(changed_ext_connectivity)
 
         return data
 
@@ -307,6 +442,22 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
         db_vnf_lcm_op_occs = _vnf_lcm_op_occs_get_by_vnf_instance_id(
             context, id)
         return cls._from_db_object(context, cls(), db_vnf_lcm_op_occs)
+
+
+@base.TackerObjectRegistry.register
+class VnfLcmOpOccList(ovoo_base.ObjectListBase, base.TackerObject):
+
+    VERSION = '1.0'
+
+    fields = {
+        'objects': fields.ListOfObjectsField('VnfLcmOpOcc')
+    }
+
+    @base.remotable_classmethod
+    def get_by_filters(cls, context, read_deleted=None, filters=None):
+        db_vnf_lcm_op_occs = _vnf_lcm_op_occs_get_by_filters(
+            context, read_deleted=read_deleted, filters=filters)
+        return _make_vnf_lcm_op_occs_list(context, cls(), db_vnf_lcm_op_occs)
 
 
 @base.TackerObjectRegistry.register

@@ -89,6 +89,8 @@ class ViewBuilder(base.BaseViewBuilder):
 
         return vim_connections
 
+    # TODO(esto-aln): This method will be transferred to
+    # tacker/api/views/vnf_lcm_op_occs.py in the future
     def _get_lcm_op_occs_links(self, vnf_lcm_op_occs):
         _links = {
             "self": {
@@ -101,6 +103,12 @@ class ViewBuilder(base.BaseViewBuilder):
                 % {"endpoint": CONF.vnf_lcm.endpoint_url,
                     "id": vnf_lcm_op_occs.vnf_instance_id}
             },
+            "retry": {
+                "href":
+                '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s/retry'
+                % {"endpoint": CONF.vnf_lcm.endpoint_url,
+                    "id": vnf_lcm_op_occs.id}
+            },
             "rollback": {
                 "href":
                 '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s/rollback'
@@ -109,6 +117,12 @@ class ViewBuilder(base.BaseViewBuilder):
             },
             "grant": {
                 "href": '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s/grant'
+                % {"endpoint": CONF.vnf_lcm.endpoint_url,
+                    "id": vnf_lcm_op_occs.id}
+            },
+            "fail": {
+                "href":
+                '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s/fail'
                 % {"endpoint": CONF.vnf_lcm.endpoint_url,
                     "id": vnf_lcm_op_occs.id}
             }
@@ -129,11 +143,13 @@ class ViewBuilder(base.BaseViewBuilder):
         vnf_instance_dict.update(links)
         return vnf_instance_dict
 
+    # TODO(esto-aln): This method will be transferred to
+    # tacker/api/views/vnf_lcm_op_occs.py in the future
     def _get_vnf_lcm_op_occs(self, vnf_lcm_op_occs):
         vnf_lcm_op_occs_dict = vnf_lcm_op_occs.to_dict()
-        vnf_lcm_op_occs_dict.pop('error_point')
         vnf_lcm_op_occs_dict = utils.convert_snakecase_to_camelcase(
             vnf_lcm_op_occs_dict)
+        vnf_lcm_op_occs_dict.pop('errorPoint')
 
         links = self._get_lcm_op_occs_links(vnf_lcm_op_occs)
 
@@ -257,5 +273,7 @@ class ViewBuilder(base.BaseViewBuilder):
     def subscription_show(self, vnf_lcm_subscriptions):
         return self._get_vnf_lcm_subscription(vnf_lcm_subscriptions)
 
+    # TODO(esto-aln): This method will be transferred to
+    # tacker/api/views/vnf_lcm_op_occs.py in the future
     def show_lcm_op_occs(self, vnf_lcm_op_occs):
         return self._get_vnf_lcm_op_occs(vnf_lcm_op_occs)
