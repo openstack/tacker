@@ -14,6 +14,7 @@
 #    under the License.
 
 import codecs
+import copy
 import ddt
 from http import client as http_client
 import json
@@ -3504,3 +3505,52 @@ class TestController(base.TestCase):
         mock_op_occ_list.return_value = vnf_lcm_op_occ
         self.assertRaises(
             exceptions.ValidationError, self.controller.list_lcm_op_occs, req)
+
+    @mock.patch.object(controller.VnfLcmController,
+                       "_update_vnf_fail_status")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_fail_lcm_op_occs_changed_info_missing(self, mock_lcm_get_by_id,
+                              mock_lcm_save, mock_vnf_get_by_id,
+                              mock_vnf_save, mock_update):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
+        mock_lcm_get_by_id.return_value = \
+            fakes.vnflcm_fail_insta()
+
+        res_dict = self.controller.fail(req, constants.UUID)
+        ref_dict = copy.deepcopy(fakes.VNFLCMOPOCC_RESPONSE)
+        del ref_dict["changedInfo"]
+        self.assertEqual(ref_dict.keys(), res_dict.keys())
+        mock_lcm_get_by_id.assert_called_once()
+        mock_vnf_get_by_id.assert_called_once()
+
+    @mock.patch.object(controller.VnfLcmController,
+                       "_update_vnf_fail_status")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_fail_lcm_op_occs_check_added_params(self, mock_lcm_get_by_id,
+                              mock_lcm_save, mock_vnf_get_by_id,
+                              mock_vnf_save, mock_update):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
+        mock_lcm_get_by_id.return_value = \
+            fakes.vnflcm_fail_check_added_params()
+
+        res_dict = self.controller.fail(req, constants.UUID)
+        ref_dict = fakes.VNFLCMOPOCC_RESPONSE
+
+        self.assertEqual(ref_dict.keys(), res_dict.keys())
+        self.assertEqual(
+            res_dict.get('changedInfo').keys(),
+            ref_dict.get('changedInfo').keys())
+        self.assertEqual(
+            res_dict.get('_links').keys(),
+            ref_dict.get('_links').keys())
+
+        mock_lcm_get_by_id.assert_called_once()
+        mock_vnf_get_by_id.assert_called_once()
