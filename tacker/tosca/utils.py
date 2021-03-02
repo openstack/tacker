@@ -1266,6 +1266,9 @@ def update_nested_scaling_resources(nested_resources, mgmt_ports, metadata,
                                     res_tpl, unsupported_res_prop=None,
                                     grant_info=None, inst_req_info=None):
     nested_tpl = dict()
+    yaml.SafeDumper.add_representer(
+        OrderedDict, lambda dumper, value: represent_odict(
+            dumper, 'tag:yaml.org,2002:map', value))
     for nested_resource_name, nested_resources_yaml in \
             nested_resources.items():
         nested_resources_dict =\
@@ -1304,11 +1307,8 @@ def update_nested_scaling_resources(nested_resources, mgmt_ports, metadata,
                     nested_resources_dict['outputs'] = output
                 LOG.debug(_('Added output for %s'), outputname)
 
-    yaml.SafeDumper.add_representer(
-        OrderedDict, lambda dumper, value: represent_odict(
-            dumper, 'tag:yaml.org,2002:map', value))
-    nested_tpl[nested_resource_name] =\
-        yaml.safe_dump(nested_resources_dict)
+        nested_tpl[nested_resource_name] =\
+            yaml.safe_dump(nested_resources_dict)
 
     return nested_tpl
 
