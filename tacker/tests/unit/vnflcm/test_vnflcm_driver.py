@@ -33,6 +33,7 @@ from tacker.db.common_services import common_services_db_plugin
 from tacker.manager import TackerManager
 from tacker import objects
 from tacker.objects import fields
+from tacker.objects.fields import ErrorPoint as EP
 from tacker.objects import vim_connection
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.nfvo.test_nfvo_plugin import FakeVNFMPlugin
@@ -216,12 +217,239 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         test_utils.copy_csar_files(fake_csar, "vnflcm4")
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {}}
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INITIAL}
         driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
                                instantiate_vnf_req_obj)
 
         self.assertEqual(1, mock_vnf_instance_save.call_count)
         self.assertEqual(5, self._vnf_manager.invoke.call_count)
+        shutil.rmtree(fake_csar)
+
+    @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfResource, 'create')
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_instantiate_vnf_with_error_point_vnf_config_start(
+            self, mock_vnf_interfaces, mock_vnfd_dict,
+            mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_package_vnfd = fakes.return_vnf_package_vnfd()
+        vnf_package_id = vnf_package_vnfd.package_uuid
+        mock_vnf_package_vnfd.return_value = vnf_package_vnfd
+        instantiate_vnf_req_dict = fakes.get_dummy_instantiate_vnf_request()
+        instantiate_vnf_req_obj = \
+            objects.InstantiateVnfRequest.obj_from_primitive(
+                instantiate_vnf_req_dict, self.context)
+        vnf_instance_obj = fakes.return_vnf_instance()
+
+        fake_csar = os.path.join(self.temp_dir, vnf_package_id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
+                              group='vnf_package')
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.VNF_CONFIG_START}
+        driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
+                               instantiate_vnf_req_obj)
+
+        self.assertEqual(1, mock_vnf_instance_save.call_count)
+        self.assertEqual(5, self._vnf_manager.invoke.call_count)
+        shutil.rmtree(fake_csar)
+
+    @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfResource, 'create')
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_instantiate_vnf_with_error_point_pre_vim_control(
+            self, mock_vnf_interfaces, mock_vnfd_dict,
+            mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_package_vnfd = fakes.return_vnf_package_vnfd()
+        vnf_package_id = vnf_package_vnfd.package_uuid
+        mock_vnf_package_vnfd.return_value = vnf_package_vnfd
+        instantiate_vnf_req_dict = fakes.get_dummy_instantiate_vnf_request()
+        instantiate_vnf_req_obj = \
+            objects.InstantiateVnfRequest.obj_from_primitive(
+                instantiate_vnf_req_dict, self.context)
+        vnf_instance_obj = fakes.return_vnf_instance()
+
+        fake_csar = os.path.join(self.temp_dir, vnf_package_id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
+                              group='vnf_package')
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.PRE_VIM_CONTROL}
+        driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
+                               instantiate_vnf_req_obj)
+
+        self.assertEqual(1, mock_vnf_instance_save.call_count)
+        self.assertEqual(4, self._vnf_manager.invoke.call_count)
+        shutil.rmtree(fake_csar)
+
+    @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfResource, 'create')
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_instantiate_vnf_with_error_point_post_vim_control(
+            self, mock_vnf_interfaces, mock_vnfd_dict,
+            mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_package_vnfd = fakes.return_vnf_package_vnfd()
+        vnf_package_id = vnf_package_vnfd.package_uuid
+        mock_vnf_package_vnfd.return_value = vnf_package_vnfd
+        instantiate_vnf_req_dict = fakes.get_dummy_instantiate_vnf_request()
+        instantiate_vnf_req_obj = \
+            objects.InstantiateVnfRequest.obj_from_primitive(
+                instantiate_vnf_req_dict, self.context)
+        vnf_instance_obj = fakes.return_vnf_instance()
+
+        fake_csar = os.path.join(self.temp_dir, vnf_package_id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
+                              group='vnf_package')
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.POST_VIM_CONTROL}
+        driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
+                               instantiate_vnf_req_obj)
+
+        self.assertEqual(1, mock_vnf_instance_save.call_count)
+        self.assertEqual(4, self._vnf_manager.invoke.call_count)
+        shutil.rmtree(fake_csar)
+
+    @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfResource, 'create')
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_instantiate_vnf_with_error_point_internal_processing(
+            self, mock_vnf_interfaces, mock_vnfd_dict,
+            mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_package_vnfd = fakes.return_vnf_package_vnfd()
+        vnf_package_id = vnf_package_vnfd.package_uuid
+        mock_vnf_package_vnfd.return_value = vnf_package_vnfd
+        instantiate_vnf_req_dict = fakes.get_dummy_instantiate_vnf_request()
+        instantiate_vnf_req_obj = \
+            objects.InstantiateVnfRequest.obj_from_primitive(
+                instantiate_vnf_req_dict, self.context)
+        vnf_instance_obj = fakes.return_vnf_instance()
+
+        fake_csar = os.path.join(self.temp_dir, vnf_package_id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
+                              group='vnf_package')
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INTERNAL_PROCESSING}
+        driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
+                               instantiate_vnf_req_obj)
+
+        self.assertEqual(1, mock_vnf_instance_save.call_count)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
+        shutil.rmtree(fake_csar)
+
+    @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfResource, 'create')
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_instantiate_vnf_with_error_point_vnf_config_end(
+            self, mock_vnf_interfaces, mock_vnfd_dict,
+            mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_package_vnfd = fakes.return_vnf_package_vnfd()
+        vnf_package_id = vnf_package_vnfd.package_uuid
+        mock_vnf_package_vnfd.return_value = vnf_package_vnfd
+        instantiate_vnf_req_dict = fakes.get_dummy_instantiate_vnf_request()
+        instantiate_vnf_req_obj = \
+            objects.InstantiateVnfRequest.obj_from_primitive(
+                instantiate_vnf_req_dict, self.context)
+        vnf_instance_obj = fakes.return_vnf_instance()
+
+        fake_csar = os.path.join(self.temp_dir, vnf_package_id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
+                              group='vnf_package')
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.VNF_CONFIG_END}
+        driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
+                               instantiate_vnf_req_obj)
+
+        self.assertEqual(1, mock_vnf_instance_save.call_count)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
         shutil.rmtree(fake_csar)
 
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
@@ -261,7 +489,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         test_utils.copy_csar_files(fake_csar, "vnflcm4")
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {}}
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INITIAL}
         driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
                                instantiate_vnf_req_obj)
 
@@ -306,7 +536,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         test_utils.copy_csar_files(fake_csar, "vnflcm4")
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {}}
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INITIAL}
         driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
                                instantiate_vnf_req_obj)
 
@@ -351,7 +583,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         test_utils.copy_csar_files(fake_csar, "vnflcm4")
         self._mock_vnf_manager(fail_method_name="instantiate_vnf")
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {}}
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INITIAL}
         error = self.assertRaises(exceptions.VnfInstantiationFailed,
             driver.instantiate_vnf, self.context, vnf_instance_obj, vnf_dict,
             instantiate_vnf_req_obj)
@@ -414,7 +648,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         scale_status = objects.ScaleInfo(aspect_id='SP1', scale_level=0)
         vnf_dict = {"vnfd": {"attributes": {}},
                     "attributes": {"scaling_group_names": {"SP1": "G1"}},
-                    "scale_status": [scale_status]}
+                    "scale_status": [scale_status],
+                    "before_error_point": EP.INITIAL}
         error = self.assertRaises(exceptions.VnfInstantiationWaitFailed,
             driver.instantiate_vnf, self.context, vnf_instance_obj, vnf_dict,
             instantiate_vnf_req_obj)
@@ -468,7 +703,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             fake_csar, "sample_vnf_package_csar_with_short_notation")
         self._mock_vnf_manager(vnf_resource_count=2)
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {}}
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INITIAL}
         driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
                                instantiate_vnf_req_obj)
         self.assertEqual(2, mock_create.call_count)
@@ -514,7 +751,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             fake_csar, "sample_vnfpkg_no_meta_single_vnfd")
         self._mock_vnf_manager(vnf_resource_count=2)
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {}}
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INITIAL}
         driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
                                instantiate_vnf_req_obj)
         self.assertEqual(2, mock_create.call_count)
@@ -553,10 +792,213 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
-        driver.terminate_vnf(self.context, vnf_instance, terminate_vnf_req)
+        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {},
+                    "before_error_point": EP.INITIAL}
+        driver.terminate_vnf(self.context, vnf_instance, terminate_vnf_req,
+                             vnf_dict)
         self.assertEqual(2, mock_vnf_instance_save.call_count)
         self.assertEqual(1, mock_resource_destroy.call_count)
         self.assertEqual(5, self._vnf_manager.invoke.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfResource, "destroy")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_terminate_vnf_error_point_vnf_config_start(
+            self, mock_vnf_interfaces, mock_vnfd_dict,
+            mock_resource_destroy, mock_resource_list,
+            mock_vim, mock_vnf_instance_save, mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+
+        mock_resource_list.return_value = [fakes.return_vnf_resource()]
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.FORCEFUL)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {},
+                    "before_error_point": EP.VNF_CONFIG_START}
+        driver.terminate_vnf(self.context, vnf_instance, terminate_vnf_req,
+                             vnf_dict)
+        self.assertEqual(2, mock_vnf_instance_save.call_count)
+        self.assertEqual(1, mock_resource_destroy.call_count)
+        self.assertEqual(5, self._vnf_manager.invoke.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfResource, "destroy")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_terminate_vnf_error_point_pre_vim_control(
+            self, mock_vnf_interfaces, mock_vnfd_dict,
+            mock_resource_destroy, mock_resource_list,
+            mock_vim, mock_vnf_instance_save, mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+
+        mock_resource_list.return_value = [fakes.return_vnf_resource()]
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.FORCEFUL)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {},
+                    "before_error_point": EP.PRE_VIM_CONTROL}
+        driver.terminate_vnf(self.context, vnf_instance, terminate_vnf_req,
+                             vnf_dict)
+        self.assertEqual(2, mock_vnf_instance_save.call_count)
+        self.assertEqual(1, mock_resource_destroy.call_count)
+        self.assertEqual(4, self._vnf_manager.invoke.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfResource, "destroy")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_terminate_vnf_error_point_post_vim_control(
+            self, mock_vnf_interfaces, mock_vnfd_dict,
+            mock_resource_destroy, mock_resource_list,
+            mock_vim, mock_vnf_instance_save, mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+
+        mock_resource_list.return_value = [fakes.return_vnf_resource()]
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.FORCEFUL)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {},
+                    "before_error_point": EP.POST_VIM_CONTROL}
+        driver.terminate_vnf(self.context, vnf_instance, terminate_vnf_req,
+                             vnf_dict)
+        self.assertEqual(2, mock_vnf_instance_save.call_count)
+        self.assertEqual(1, mock_resource_destroy.call_count)
+        self.assertEqual(4, self._vnf_manager.invoke.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfResource, "destroy")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_terminate_vnf_error_point_internal_processing(
+            self, mock_vnf_interfaces, mock_vnfd_dict,
+            mock_resource_destroy, mock_resource_list,
+            mock_vim, mock_vnf_instance_save, mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+
+        mock_resource_list.return_value = [fakes.return_vnf_resource()]
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.FORCEFUL)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {},
+                    "before_error_point": EP.INTERNAL_PROCESSING}
+        driver.terminate_vnf(self.context, vnf_instance, terminate_vnf_req,
+                             vnf_dict)
+        self.assertEqual(1, mock_vnf_instance_save.call_count)
+        self.assertEqual(0, mock_resource_destroy.call_count)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfResource, "destroy")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_terminate_vnf_error_point_vnf_config_end(
+            self, mock_vnf_interfaces, mock_vnfd_dict,
+            mock_resource_destroy, mock_resource_list,
+            mock_vim, mock_vnf_instance_save, mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+
+        mock_resource_list.return_value = [fakes.return_vnf_resource()]
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.FORCEFUL)
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {},
+                    "before_error_point": EP.VNF_CONFIG_END}
+        driver.terminate_vnf(self.context, vnf_instance, terminate_vnf_req,
+                             vnf_dict)
+        self.assertEqual(1, mock_vnf_instance_save.call_count)
+        self.assertEqual(0, mock_resource_destroy.call_count)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -590,7 +1032,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
-        driver.terminate_vnf(self.context, vnf_instance, terminate_vnf_req)
+        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {},
+                    "before_error_point": EP.POST_VIM_CONTROL}
+        driver.terminate_vnf(self.context, vnf_instance, terminate_vnf_req,
+                             vnf_dict)
         self.assertEqual(2, mock_vnf_instance_save.call_count)
         self.assertEqual(1, mock_resource_destroy.call_count)
 
@@ -621,11 +1066,13 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         self._mock_vnf_manager(fail_method_name='delete')
         driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {},
+                    "before_error_point": EP.POST_VIM_CONTROL}
         error = self.assertRaises(InfraDriverException, driver.terminate_vnf,
-            self.context, vnf_instance, terminate_vnf_req)
+            self.context, vnf_instance, terminate_vnf_req, vnf_dict)
         self.assertEqual("delete failed", str(error))
         self.assertEqual(1, mock_vnf_instance_save.call_count)
-        self.assertEqual(2, self._vnf_manager.invoke.call_count)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -654,11 +1101,13 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         self._mock_vnf_manager(fail_method_name='delete_wait')
         driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {},
+                    "before_error_point": EP.POST_VIM_CONTROL}
         error = self.assertRaises(InfraDriverException, driver.terminate_vnf,
-            self.context, vnf_instance, terminate_vnf_req)
+            self.context, vnf_instance, terminate_vnf_req, vnf_dict)
         self.assertEqual("delete_wait failed", str(error))
         self.assertEqual(2, mock_vnf_instance_save.call_count)
-        self.assertEqual(3, self._vnf_manager.invoke.call_count)
+        self.assertEqual(2, self._vnf_manager.invoke.call_count)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -690,11 +1139,13 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         mock_resource_list.return_value = [fakes.return_vnf_resource()]
         self._mock_vnf_manager(fail_method_name='delete_vnf_resource')
         driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {},
+                    "before_error_point": EP.POST_VIM_CONTROL}
         error = self.assertRaises(InfraDriverException, driver.terminate_vnf,
-            self.context, vnf_instance, terminate_vnf_req)
+            self.context, vnf_instance, terminate_vnf_req, vnf_dict)
         self.assertEqual("delete_vnf_resource failed", str(error))
         self.assertEqual(2, mock_vnf_instance_save.call_count)
-        self.assertEqual(4, self._vnf_manager.invoke.call_count)
+        self.assertEqual(3, self._vnf_manager.invoke.call_count)
 
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
@@ -755,7 +1206,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         driver = vnflcm_driver.VnfLcmDriver()
         scale_status = objects.ScaleInfo(aspect_id='SP1', scale_level=0)
         vnf_dict = {"attributes": {"scaling_group_names": {"SP1": "G1"}},
-                    "scale_status": [scale_status]}
+                    "scale_status": [scale_status],
+                    "before_error_point": EP.PRE_VIM_CONTROL}
         mock_make_final_vnf_dict.return_value = {}
         driver.heal_vnf(self.context, vnf_instance, vnf_dict, heal_vnf_req)
         self.assertEqual(1, mock_save.call_count)
@@ -767,7 +1219,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual(1, mock_resource_create.call_count)
         # Invoke will be called 7 times, 3 for deleting the vnf
         # resources  and 4 during instantiation.
-        self.assertEqual(9, self._vnf_manager.invoke.call_count)
+        self.assertEqual(8, self._vnf_manager.invoke.call_count)
         expected_msg = ("Request received for healing vnf '%s' "
                        "is completed successfully")
         mock_log.info.assert_called_with(expected_msg,
@@ -802,18 +1254,17 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             uuidsentinel.instance_id
         self._mock_vnf_manager(fail_method_name='delete')
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"fake": "fake_dict", "grant": None}
+        vnf_dict = {
+            "fake": "fake_dict", "grant": None,
+            "before_error_point": EP.PRE_VIM_CONTROL}
         self.assertRaises(exceptions.VnfHealFailed,
             driver.heal_vnf, self.context, vnf_instance,
             vnf_dict, heal_vnf_req)
         self.assertEqual(1, mock_save.call_count)
-        self.assertEqual(2, self._vnf_manager.invoke.call_count)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
         self.assertEqual(fields.VnfInstanceTaskState.ERROR,
             vnf_instance.task_state)
-        expected_msg = ('Failed to delete vnf resources for vnf instance %s '
-                        'before respawning. The vnf is in inconsistent '
-                        'state. Error: delete failed')
-        mock_log.error.assert_called_with(expected_msg % vnf_instance.id)
+        self.assertEqual(mock_log.error.call_count, 2)
 
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
@@ -861,7 +1312,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             uuidsentinel.instance_id
         self._mock_vnf_manager(fail_method_name='instantiate_vnf')
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"fake": "fake_dict"}
+        vnf_dict = {"fake": "fake_dict",
+            "before_error_point": EP.PRE_VIM_CONTROL}
         mock_make_final_vnf_dict.return_value = {}
         self.assertRaises(exceptions.VnfHealFailed,
                           driver.heal_vnf, self.context,
@@ -874,15 +1326,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         # instantiation.
         self.assertEqual(1, mock_resource_create.call_count)
 
-        self.assertEqual(6, self._vnf_manager.invoke.call_count)
+        self.assertEqual(5, self._vnf_manager.invoke.call_count)
         self.assertEqual(fields.VnfInstanceTaskState.ERROR,
             vnf_instance.task_state)
-        expected_msg = ('Failed to instantiate vnf instance %s '
-                        'after termination. The vnf is in inconsistent '
-                        'state. Error: Vnf instantiation failed for vnf %s, '
-                        'error: instantiate_vnf failed')
-        mock_log.error.assert_called_with(expected_msg % (vnf_instance.id,
-            vnf_instance.id))
+        self.assertEqual(mock_log.error.call_count, 3)
         mock_final_vnf_dict.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -909,9 +1356,12 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             fields.VnfInstanceState.INSTANTIATED,
             task_state=fields.VnfInstanceTaskState.HEALING)
 
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INITIAL}
+
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"grant": None}
         driver.heal_vnf(self.context, vnf_instance, vnf_dict, heal_vnf_req)
         self.assertEqual(1, mock_save.call_count)
         self.assertEqual(5, self._vnf_manager.invoke.call_count)
@@ -921,6 +1371,201 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                        "is completed successfully")
         mock_log.info.assert_called_with(expected_msg,
             vnf_instance.id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_heal_vnf_with_vnfc_instance_error_point_vnf_config_start(
+            self, mock_vnf_interfaces, mock_vnfd_dict, mock_log, mock_save,
+            mock_init_hash, mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        heal_vnf_req = objects.HealVnfRequest(vnfc_instance_id=[
+            uuidsentinel.vnfc_instance_id_1])
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.HEALING)
+
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.VNF_CONFIG_START,
+            "grant": None}
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.heal_vnf(self.context, vnf_instance, vnf_dict, heal_vnf_req)
+        self.assertEqual(1, mock_save.call_count)
+        self.assertEqual(5, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(None, vnf_instance.task_state)
+        expected_msg = ("Request received for healing vnf '%s' "
+                       "is completed successfully")
+        mock_log.info.assert_called_with(expected_msg,
+            vnf_instance.id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_heal_vnf_with_vnfc_instance_error_point_pre_vim_control(
+            self, mock_vnf_interfaces, mock_vnfd_dict, mock_log, mock_save,
+            mock_init_hash, mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        heal_vnf_req = objects.HealVnfRequest(vnfc_instance_id=[
+            uuidsentinel.vnfc_instance_id_1])
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.HEALING)
+
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.PRE_VIM_CONTROL}
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.heal_vnf(self.context, vnf_instance, vnf_dict, heal_vnf_req)
+        self.assertEqual(1, mock_save.call_count)
+        self.assertEqual(4, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(None, vnf_instance.task_state)
+        expected_msg = ("Request received for healing vnf '%s' "
+                       "is completed successfully")
+        mock_log.info.assert_called_with(expected_msg,
+            vnf_instance.id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_heal_vnf_with_vnfc_instance_error_point_post_vim_control(
+            self, mock_vnf_interfaces, mock_vnfd_dict, mock_log, mock_save,
+            mock_init_hash, mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        heal_vnf_req = objects.HealVnfRequest(vnfc_instance_id=[
+            uuidsentinel.vnfc_instance_id_1])
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.HEALING)
+
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.POST_VIM_CONTROL}
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.heal_vnf(self.context, vnf_instance, vnf_dict, heal_vnf_req)
+        self.assertEqual(1, mock_save.call_count)
+        self.assertEqual(4, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(None, vnf_instance.task_state)
+        expected_msg = ("Request received for healing vnf '%s' "
+                       "is completed successfully")
+        mock_log.info.assert_called_with(expected_msg,
+            vnf_instance.id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_heal_vnf_with_vnfc_instance_error_point_internal_processing(
+            self, mock_vnf_interfaces, mock_vnfd_dict, mock_log, mock_save,
+            mock_init_hash, mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        heal_vnf_req = objects.HealVnfRequest(vnfc_instance_id=[
+            uuidsentinel.vnfc_instance_id_1])
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=None)
+
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INTERNAL_PROCESSING}
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.heal_vnf(self.context, vnf_instance, vnf_dict, heal_vnf_req)
+        self.assertEqual(0, mock_save.call_count)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(None, vnf_instance.task_state)
+        self.assertEqual(1, mock_log.info.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_heal_vnf_with_vnfc_instance_error_point_vnf_config_end(
+            self, mock_vnf_interfaces, mock_vnfd_dict, mock_log, mock_save,
+            mock_init_hash, mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        heal_vnf_req = objects.HealVnfRequest(vnfc_instance_id=[
+            uuidsentinel.vnfc_instance_id_1])
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=None)
+
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.VNF_CONFIG_END}
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.heal_vnf(self.context, vnf_instance, vnf_dict, heal_vnf_req)
+        self.assertEqual(0, mock_save.call_count)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(None, vnf_instance.task_state)
+        self.assertEqual(1, mock_log.info.call_count)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -945,9 +1590,15 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             fields.VnfInstanceState.INSTANTIATED,
             task_state=fields.VnfInstanceTaskState.HEALING)
         mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+
+        vnf_dict = mock.ANY
+
         self._mock_vnf_manager(fail_method_name='heal_vnf')
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"grant": None}
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INITIAL,
+            "grant": None}
         self.assertRaises(exceptions.VnfHealFailed,
             driver.heal_vnf, self.context, vnf_instance,
             vnf_dict, heal_vnf_req)
@@ -956,10 +1607,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         self.assertEqual(fields.VnfInstanceTaskState.ERROR,
             vnf_instance.task_state)
-        expected_msg = ("Failed to heal vnf %(id)s in infra driver. "
-                       "Error: %(error)s")
-        mock_log.error.assert_called_with(expected_msg,
-            {'id': vnf_instance.id, 'error': 'heal_vnf failed'})
+        self.assertEqual(mock_log.error.call_count, 2)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -987,10 +1635,13 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         vnf_instance.instantiated_vnf_info.instance_id =\
             uuidsentinel.instance_id
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INITIAL,
+            "grant": None}
         self._mock_vnf_manager(fail_method_name='heal_vnf_wait')
         driver = vnflcm_driver.VnfLcmDriver()
 
-        vnf_dict = {"grant": None}
         # It won't raise any exception if infra driver raises
         # heal_vnf_wait because there is a possibility the vnfc
         # resources could go into inconsistent state so it would
@@ -1037,9 +1688,12 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         vnf_instance.instantiated_vnf_info.instance_id =\
             uuidsentinel.instance_id
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INITIAL,
+            "grant": None}
         self._mock_vnf_manager(fail_method_name='post_heal_vnf')
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"grant": None}
         self.assertRaises(exceptions.VnfHealFailed,
             driver.heal_vnf, self.context, vnf_instance,
             vnf_dict, heal_vnf_req)
@@ -1048,13 +1702,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         self.assertEqual(fields.VnfInstanceTaskState.ERROR,
             vnf_instance.task_state)
-        expected_msg = ('Failed to store updated resources information for '
-                        'instance %(instance)s for vnf %(id)s. '
-                        'Error: %(error)s')
-        mock_log.error.assert_called_with(expected_msg,
-            {'instance': vnf_instance.instantiated_vnf_info.instance_id,
-             'id': vnf_instance.id,
-             'error': 'post_heal_vnf failed'})
+        self.assertEqual(mock_log.error.call_count, 2)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -1073,6 +1721,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             '1, \"maxLevel\": 3, \"initialNum\": 0, ' + \
             '\"initialLevel\": 0, \"default\": 0 }}}'
         scale_vnf_request = fakes.scale_request("SCALE_IN", "SP1", 1, "True")
+        vnf_info['vnf_lcm_op_occ'] = mock.ANY
         vim_connection_info = vim_connection.VimConnectionInfo(
             vim_type="openstack")
         scale_name_list = ["fake"]
@@ -1100,6 +1749,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             '1, \"maxLevel\": 3, \"initialNum\": 0, ' + \
             '\"initialLevel\": 0, \"default\": 0 }}}'
         scale_vnf_request = fakes.scale_request("SCALE_IN", "SP1", 1, "False")
+        vnf_info['vnf_lcm_op_occ'] = mock.ANY
         vim_connection_info = vim_connection.VimConnectionInfo(
             vim_type="openstack")
         scale_name_list = ["fake"]
@@ -1130,6 +1780,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             '1, \"maxLevel\": 3, \"initialNum\": 0, ' + \
             '\"initialLevel\": 0, \"default\": 0 }}}'
         scale_vnf_request = fakes.scale_request("SCALE_OUT", "SP1", 1, "False")
+        vnf_info['vnf_lcm_op_occ'] = mock.ANY
         vim_connection_info = vim_connection.VimConnectionInfo(
             vim_type="openstack")
         scale_name_list = ["fake"]
@@ -1160,6 +1811,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             '1, \"maxLevel\": 3, \"initialNum\": 0, ' + \
             '\"initialLevel\": 0, \"default\": 1 }}}'
         scale_vnf_request = fakes.scale_request("SCALE_OUT", "SP1", 1, "False")
+        vnf_info['vnf_lcm_op_occ'] = mock.ANY
         vim_connection_info = vim_connection.VimConnectionInfo(
             vim_type="openstack")
         scale_name_list = ["fake"]
@@ -1195,6 +1847,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         vnf_info['scale_level'] = 1
         vnf_info['after_scale_level'] = 0
         vnf_info['notification'] = {}
+        vnf_info['before_error_point'] = EP.INITIAL
         scale_vnf_request = fakes.scale_request(
             "SCALE_IN", "vdu1_aspect", 1, "False")
         vim_connection_info = vim_connection.VimConnectionInfo(
@@ -1246,6 +1899,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         vnf_info['scale_level'] = 0
         vnf_info['after_scale_level'] = 1
         vnf_info['notification'] = {}
+        vnf_info['before_error_point'] = EP.INITIAL
         scale_vnf_request = fakes.scale_request(
             "SCALE_OUT", "vdu1_aspect", 1, "False")
         vim_connection_info = vim_connection.VimConnectionInfo(

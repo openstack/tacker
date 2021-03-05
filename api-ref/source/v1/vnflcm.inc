@@ -1119,3 +1119,40 @@ Response Example
 
 .. literalinclude:: samples/vnflcm/list-subscription-response.json
    :language: javascript
+
+Retry
+=================
+
+.. rest_method::  POST /vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/retry
+
+The POST method initiates retrying a VNF lifecycle operation if that
+operation has experienced a temporary failure, i.e. the related
+"Individual VNF LCM operation occurrence" resource
+is in "FAILED_TEMP" state.
+
+In case of success of processing the asynchronous request,
+the "operationState" attribute in the representation of the
+parent resource shall be changed to "PROCESSING" and
+the applicable "start" notification shall be emitted to indicate
+that the underlying VNF LCM operation occurrence proceeds.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 202
+
+.. rest_status_code:: error status.yaml
+
+  - 401
+  - 403
+  - 404
+  - 409
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfLcmOpOccId: vnf_lcm_op_occ_id

@@ -103,12 +103,15 @@ cfg.CONF.register_opts(OPTS, 'keystone_authtoken')
 
 LOG = logging.getLogger(__name__)
 
-_INACTIVE_STATUS = ('INACTIVE')
-_ACTIVE_STATUS = ('ACTIVE')
+_INACTIVE_STATUS = ('INACTIVE',)
+_ACTIVE_STATUS = ('ACTIVE',)
 _PENDING_STATUS = ('PENDING_CREATE',
                    'PENDING_TERMINATE',
                    'PENDING_DELETE',
                    'PENDING_HEAL')
+_ERROR_STATUS = ('ERROR',)
+_ALL_STATUSES = _ACTIVE_STATUS + _INACTIVE_STATUS + _PENDING_STATUS + \
+    _ERROR_STATUS
 
 
 def _delete_csar(context, vnf_package):
@@ -1559,13 +1562,12 @@ class Conductor(manager.Manager):
             instantiate_vnf,
             vnf_lcm_op_occs_id):
 
-        vnf_dict['error_point'] = 1
-
-        self._instantiate_grant(context,
-            vnf_instance,
-            vnf_dict,
-            instantiate_vnf,
-            vnf_lcm_op_occs_id)
+        if vnf_dict['before_error_point'] == fields.ErrorPoint.INITIAL:
+            self._instantiate_grant(context,
+                vnf_instance,
+                vnf_dict,
+                instantiate_vnf,
+                vnf_lcm_op_occs_id)
 
         try:
             # Update vnf_lcm_op_occs table and send notification "PROCESSING"
@@ -1576,24 +1578,32 @@ class Conductor(manager.Manager):
                 vnf_instance=vnf_instance,
                 request_obj=instantiate_vnf
             )
+            vnf_dict['current_error_point'] = \
+                fields.ErrorPoint.NOTIFY_PROCESSING
 
-            # change vnf_status
-            if vnf_dict['status'] == 'INACTIVE':
-                vnf_dict['status'] = 'PENDING_CREATE'
-            self._change_vnf_status(context, vnf_instance.id,
-                            _INACTIVE_STATUS, 'PENDING_CREATE')
+            if vnf_dict['before_error_point'] <= \
+               fields.ErrorPoint.NOTIFY_PROCESSING:
+                # change vnf_status
+                if vnf_dict['status'] == 'INACTIVE':
+                    vnf_dict['status'] = 'PENDING_CREATE'
+                self._change_vnf_status(context, vnf_instance.id,
+                                _INACTIVE_STATUS, 'PENDING_CREATE')
 
-            vnf_dict['error_point'] = 3
-            self.vnflcm_driver.instantiate_vnf(context, vnf_instance,
-                                               vnf_dict, instantiate_vnf)
-            vnf_dict['error_point'] = 5
-            self._build_instantiated_vnf_info(context,
-                        vnf_instance,
-                        instantiate_vnf_req=instantiate_vnf)
+            if vnf_dict['before_error_point'] <= \
+               fields.ErrorPoint.VNF_CONFIG_END:
+                self.vnflcm_driver.instantiate_vnf(context, vnf_instance,
+                                                vnf_dict, instantiate_vnf)
 
-            vnf_dict['error_point'] = 7
-            self._update_vnf_attributes(context, vnf_instance, vnf_dict,
-                                        _PENDING_STATUS, _ACTIVE_STATUS)
+                self._build_instantiated_vnf_info(context,
+                            vnf_instance,
+                            instantiate_vnf_req=instantiate_vnf)
+
+                self._update_vnf_attributes(context, vnf_instance, vnf_dict,
+                                            _PENDING_STATUS, _ACTIVE_STATUS)
+
+            vnf_dict['current_error_point'] = \
+                fields.ErrorPoint.NOTIFY_COMPLETED
+
             self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
                         instantiation_state=fields.VnfInstanceState.
                         INSTANTIATED, task_state=None)
@@ -1611,8 +1621,14 @@ class Conductor(manager.Manager):
             )
 
         except Exception as ex:
+            if vnf_dict['current_error_point'] == \
+                    fields.ErrorPoint.PRE_VIM_CONTROL:
+                if hasattr(vnf_instance.instantiated_vnf_info, 'instance_id'):
+                    if vnf_instance.instantiated_vnf_info.instance_id:
+                        vnf_dict['current_error_point'] = \
+                            fields.ErrorPoint.POST_VIM_CONTROL
             self._change_vnf_status(context, vnf_instance.id,
-                            _PENDING_STATUS, 'ERROR')
+                            _ALL_STATUSES, 'ERROR')
 
             self._build_instantiated_vnf_info(context, vnf_instance,
                 instantiate_vnf)
@@ -1628,16 +1644,17 @@ class Conductor(manager.Manager):
                 request_obj=instantiate_vnf,
                 operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
                 error=str(ex),
-                error_point=vnf_dict['error_point']
+                error_point=vnf_dict['current_error_point']
             )
 
     @coordination.synchronized('{vnf_instance[id]}')
     def terminate(self, context, vnf_lcm_op_occs_id,
                   vnf_instance, terminate_vnf_req, vnf_dict):
 
-        self._terminate_grant(context,
-            vnf_instance,
-            vnf_lcm_op_occs_id)
+        if vnf_dict['before_error_point'] == fields.ErrorPoint.INITIAL:
+            self._terminate_grant(context,
+                vnf_instance,
+                vnf_lcm_op_occs_id)
 
         try:
             old_vnf_instance = copy.deepcopy(vnf_instance)
@@ -1652,16 +1669,26 @@ class Conductor(manager.Manager):
                 operation=fields.LcmOccsOperationType.TERMINATE
             )
 
-            self._change_vnf_status(context, vnf_instance.id,
-                            _ACTIVE_STATUS, 'PENDING_TERMINATE')
+            vnf_dict['current_error_point'] = \
+                fields.ErrorPoint.NOTIFY_PROCESSING
 
-            self.vnflcm_driver.terminate_vnf(context, vnf_instance,
-                                             terminate_vnf_req)
+            if vnf_dict['before_error_point'] <= \
+               fields.ErrorPoint.NOTIFY_PROCESSING:
+                self._change_vnf_status(context, vnf_instance.id,
+                                _ACTIVE_STATUS, 'PENDING_TERMINATE')
 
-            self._delete_placement(context, vnf_instance.id)
+            if vnf_dict['before_error_point'] <= \
+               fields.ErrorPoint.VNF_CONFIG_END:
+                self.vnflcm_driver.terminate_vnf(context, vnf_instance,
+                                                 terminate_vnf_req, vnf_dict)
 
-            self._change_vnf_status(context, vnf_instance.id,
-                            _PENDING_STATUS, 'INACTIVE')
+                self._delete_placement(context, vnf_instance.id)
+
+                self._change_vnf_status(context, vnf_instance.id,
+                                _PENDING_STATUS, 'INACTIVE')
+
+            vnf_dict['current_error_point'] = \
+                fields.ErrorPoint.NOTIFY_COMPLETED
 
             self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
                 vim_connection_info=[], task_state=None,
@@ -1682,7 +1709,7 @@ class Conductor(manager.Manager):
         except Exception as exc:
             # set vnf_status to error
             self._change_vnf_status(context, vnf_instance.id,
-                            _PENDING_STATUS, 'ERROR')
+                            _ALL_STATUSES, 'ERROR')
 
             # Update vnf_lcm_op_occs table and send notification "FAILED_TEMP"
             self._send_lcm_op_occ_notification(
@@ -1693,7 +1720,8 @@ class Conductor(manager.Manager):
                 request_obj=terminate_vnf_req,
                 operation=fields.LcmOccsOperationType.TERMINATE,
                 operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
-                error=str(exc)
+                error=str(exc),
+                error_point=vnf_dict['current_error_point']
             )
 
     @coordination.synchronized('{vnf_instance[id]}')
@@ -1704,11 +1732,12 @@ class Conductor(manager.Manager):
              heal_vnf_request,
              vnf_lcm_op_occs_id):
 
-        self._heal_grant(context,
-            vnf_instance,
-            vnf_dict,
-            heal_vnf_request,
-            vnf_lcm_op_occs_id)
+        if vnf_dict['before_error_point'] == fields.ErrorPoint.INITIAL:
+            self._heal_grant(context,
+                vnf_instance,
+                vnf_dict,
+                heal_vnf_request,
+                vnf_lcm_op_occs_id)
 
         try:
             old_vnf_instance = copy.deepcopy(vnf_instance)
@@ -1723,19 +1752,32 @@ class Conductor(manager.Manager):
                 operation=fields.LcmOccsOperationType.HEAL
             )
 
-            # update vnf status to PENDING_HEAL
-            self._change_vnf_status(context, vnf_instance.id,
-                            _ACTIVE_STATUS, constants.PENDING_HEAL)
-            self.vnflcm_driver.heal_vnf(context, vnf_instance,
-                                        vnf_dict, heal_vnf_request)
-            self._update_instantiated_vnf_info(context, vnf_instance,
-                                               heal_vnf_request)
+            vnf_dict['current_error_point'] = \
+                fields.ErrorPoint.NOTIFY_PROCESSING
 
-            # update instance_in in vnf_table
-            self._add_additional_vnf_info(context, vnf_instance)
-            # update vnf status to ACTIVE
-            self._change_vnf_status(context, vnf_instance.id,
-                            _PENDING_STATUS, constants.ACTIVE)
+            if vnf_dict['before_error_point'] <= \
+               fields.ErrorPoint.NOTIFY_PROCESSING:
+                # update vnf status to PENDING_HEAL
+                self._change_vnf_status(context, vnf_instance.id,
+                                _ACTIVE_STATUS, constants.PENDING_HEAL)
+
+            if vnf_dict['before_error_point'] <= \
+               fields.ErrorPoint.VNF_CONFIG_END:
+                self.vnflcm_driver.heal_vnf(context, vnf_instance,
+                                            vnf_dict, heal_vnf_request)
+
+                self._update_instantiated_vnf_info(context, vnf_instance,
+                                                   heal_vnf_request)
+
+                # update instance_in in vnf_table
+                self._add_additional_vnf_info(context, vnf_instance)
+
+                # update vnf status to ACTIVE
+                self._change_vnf_status(context, vnf_instance.id,
+                                _PENDING_STATUS, constants.ACTIVE)
+
+            vnf_dict['current_error_point'] = \
+                fields.ErrorPoint.NOTIFY_COMPLETED
 
             # during .save() ,instantiated_vnf_info is also saved to DB
             self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
@@ -1755,8 +1797,8 @@ class Conductor(manager.Manager):
             )
         except Exception as ex:
             # update vnf_status to 'ERROR' and create event with 'ERROR' status
-            self._change_vnf_status(context, vnf_instance,
-                        _PENDING_STATUS, constants.ERROR, str(ex))
+            self._change_vnf_status(context, vnf_instance.id,
+                        _ALL_STATUSES, constants.ERROR, str(ex))
 
             # call _update_instantiated_vnf_info for notification
             self._update_instantiated_vnf_info(context, vnf_instance,
@@ -1771,7 +1813,8 @@ class Conductor(manager.Manager):
                 request_obj=heal_vnf_request,
                 operation=fields.LcmOccsOperationType.HEAL,
                 operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
-                error=str(ex)
+                error=str(ex),
+                error_point=vnf_dict['current_error_point']
             )
 
     @coordination.synchronized('{vnf_instance[id]}')
@@ -1779,12 +1822,13 @@ class Conductor(manager.Manager):
         vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
         vnf_lcm_op_occ_id = vnf_lcm_op_occ.id
 
-        self._scale_grant(
-            context,
-            vnf_info,
-            vnf_instance,
-            scale_vnf_request,
-            vnf_lcm_op_occ_id)
+        if vnf_info['before_error_point'] == fields.ErrorPoint.INITIAL:
+            self._scale_grant(
+                context,
+                vnf_info,
+                vnf_instance,
+                scale_vnf_request,
+                vnf_lcm_op_occ_id)
 
         self.vnflcm_driver.scale_vnf(
             context, vnf_info, vnf_instance, scale_vnf_request)

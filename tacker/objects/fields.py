@@ -233,8 +233,9 @@ class LcmOccsOperationType(BaseTackerEnum):
     INSTANTIATE = 'INSTANTIATE'
     TERMINATE = 'TERMINATE'
     HEAL = 'HEAL'
+    SCALE = 'SCALE'
 
-    ALL = (INSTANTIATE, TERMINATE, HEAL)
+    ALL = (INSTANTIATE, TERMINATE, HEAL, SCALE)
 
 
 class LcmOccsNotificationStatus(BaseTackerEnum):
@@ -269,3 +270,14 @@ class VnfStatus(BaseTackerEnum):
 
 class InstanceOperation(BaseTackerEnum):
     MODIFY_INFO = 'MODIFY_INFO'
+
+
+class ErrorPoint(BaseTackerEnum):
+    INITIAL = 0
+    NOTIFY_PROCESSING = 1
+    VNF_CONFIG_START = 2
+    PRE_VIM_CONTROL = 3
+    POST_VIM_CONTROL = 4
+    INTERNAL_PROCESSING = 5
+    VNF_CONFIG_END = 6
+    NOTIFY_COMPLETED = 7

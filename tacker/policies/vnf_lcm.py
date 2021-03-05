@@ -154,6 +154,17 @@ rules = [
             }
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name=VNFLCM % 'retry',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Retry a VNF instance.",
+        operations=[
+            {
+                'method': 'POST',
+                'path': '/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/retry'
+            }
+        ]
+    ),
 ]
 
 

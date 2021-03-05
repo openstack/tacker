@@ -23,6 +23,7 @@ from oslo_serialization import jsonutils
 from tacker import context
 from tacker.db.common_services import common_services_db_plugin
 from tacker.extensions import vnfm
+from tacker.objects import fields
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
 from tacker.vnfm.infra_drivers.openstack import openstack
@@ -377,9 +378,11 @@ class TestOpenStack(base.TestCase):
                                                     input_params,
                                                     is_monitor,
                                                     multi_vdus)
+        vnf['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
         result = self.infra_driver.create(plugin=None, context=self.context,
                                          vnf=vnf,
                                          auth_attr=utils.get_vim_auth_obj())
+        del vnf['before_error_point']
         actual_fields = self.heat_client.create.call_args[0][0]
         actual_fields["template"] = yaml.safe_load(actual_fields["template"])
         expected_fields["template"] = \

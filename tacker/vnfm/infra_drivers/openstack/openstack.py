@@ -297,18 +297,67 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             for name, value in nested_hot_dict.items():
                 vnf['attributes'].update({name: self._format_base_hot(value)})
 
-            vnf['error_point'] = 4
-            # Create heat-stack with BaseHOT and parameters
-            stack = self._create_stack_with_user_data(
-                heatclient, vnf, base_hot_dict,
-                nested_hot_dict, hot_param_dict)
+            stack = None
+            if 'before_error_point' not in vnf or \
+               vnf['before_error_point'] <= fields.ErrorPoint.PRE_VIM_CONTROL:
+                # Create heat-stack with BaseHOT and parameters
+                stack = self._create_stack_with_user_data(
+                    heatclient, vnf, base_hot_dict,
+                    nested_hot_dict, hot_param_dict)
+            elif vnf['before_error_point'] == \
+                    fields.ErrorPoint.POST_VIM_CONTROL:
+                stack_found = None
+                try:
+                    # Find existing stack
+                    filters = {"name": "vnflcm_" + vnf["id"]}
+                    stack_found = heatclient.find_stack(**filters)
+                except Exception as exc:
+                    LOG.error("Stack name %s was not found due to %s",
+                        ("vnflcm_" + vnf["id"]), str(exc))
+
+                if stack_found:
+                    # Update heat-stack with BaseHOT and parameters
+                    self._update_stack_with_user_data(heatclient, vnf,
+                                                    base_hot_dict,
+                                                    nested_hot_dict,
+                                                    hot_param_dict,
+                                                    stack_found.id)
+                    return stack_found.id
 
         elif user_data_path is None and user_data_class is None:
             LOG.info('Execute heat-translator and create heat-stack.')
             tth = translate_template.TOSCAToHOT(vnf, heatclient,
                                                 inst_req_info, grant_info)
             tth.generate_hot()
-            stack = self._create_stack(heatclient, tth.vnf, tth.fields)
+            stack = None
+            if 'before_error_point' not in vnf or \
+               vnf['before_error_point'] <= fields.ErrorPoint.PRE_VIM_CONTROL:
+                stack = self._create_stack(heatclient, tth.vnf, tth.fields)
+            elif vnf['before_error_point'] == \
+                    fields.ErrorPoint.POST_VIM_CONTROL:
+                stack_found = None
+                try:
+                    # Find existing stack
+                    name_filter = None
+                    if 'stack_name' in vnf['attributes'].keys():
+                        name_filter = vnf['attributes']['stack_name']
+                    else:
+                        name_filter = (vnf['name'].replace(' ', '_')
+                            + '_' + vnf['id'])
+                        if vnf['attributes'].get('failure_count'):
+                            name_filter += ('-RESPAWN-%s') \
+                                % str(vnf['attributes']['failure_count'])
+                    filters = {"name": name_filter}
+                    stack_found = heatclient.find_stack(**filters)
+                except Exception as exc:
+                    LOG.error("Stack name %s was not found due to %s",
+                        name_filter, str(exc))
+
+                if stack_found:
+                    # Update heat-stack
+                    self._update_stack(heatclient, stack_found.id, tth.fields)
+
+                    return stack_found.id
         else:
             error_reason = _(
                 "failed to get lcm-operation-user-data or "
@@ -330,6 +379,26 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 break
             mp_list = mp_list[0:-1]
         LOG.debug('Remove sys.modules: %s', sys.modules)
+
+    @log.log
+    def _update_stack_with_user_data(self, heatclient, vnf,
+                                     base_hot_dict, nested_hot_dict,
+                                     hot_param_dict, stack_id):
+        try:
+            stack_update_param = {
+                'parameters': hot_param_dict,
+                'template': self._format_base_hot(base_hot_dict),
+                'stack_name': ("vnflcm_" + vnf["id"]),
+                'timeout_mins': (
+                    self.STACK_RETRIES * self.STACK_RETRY_WAIT // 60)}
+            if nested_hot_dict:
+                files_dict = {}
+                for name, value in nested_hot_dict.items():
+                    files_dict[name] = self._format_base_hot(value)
+                stack_update_param['files'] = files_dict
+            heatclient.update(stack_id, **stack_update_param)
+        except Exception as exc:
+            LOG.error("Error during update due to %s", str(exc))
 
     @log.log
     def _create_stack_with_user_data(self, heatclient, vnf,
@@ -361,6 +430,13 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         return yaml.safe_dump(base_hot_dict)
 
     @log.log
+    def _update_stack(self, heatclient, stack_id, fields):
+        fields['timeout_mins'] = (
+            self.STACK_RETRIES * self.STACK_RETRY_WAIT // 60)
+
+        heatclient.update(stack_id, **fields)
+
+    @log.log
     def _create_stack(self, heatclient, vnf, fields):
         if 'stack_name' not in fields:
             name = vnf['name'].replace(' ', '_') + '_' + vnf['id']
@@ -377,6 +453,21 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         LOG.debug('fields: %s', fields)
         LOG.debug('template: %s', fields['template'])
         stack = heatclient.create(fields)
+
+        return stack
+
+    @log.log
+    def update_stack_wait(self, plugin, context, vnf_dict, stack_id,
+            auth_attr):
+        """Check stack is updateded successfully"""
+
+        region_name = vnf_dict.get('placement_attr', {}).get(
+            'region_name', None)
+
+        stack = self._wait_until_stack_ready(stack_id,
+            auth_attr, infra_cnst.STACK_UPDATE_IN_PROGRESS,
+            infra_cnst.STACK_UPDATE_COMPLETE,
+            vnfm.VNFUpdateWaitFailed, region_name=region_name)
 
         return stack
 
@@ -1130,6 +1221,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         region_name = access_info.get('region')
         inst_vnf_info = vnf_instance.instantiated_vnf_info
         heatclient = hc.HeatClient(access_info, region_name=region_name)
+        vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_vnf_instance_id(
+            context, vnf_instance.id)
 
         def _get_storage_resources(vnfc_resource):
             # Prepare list of storage resources to be marked unhealthy
@@ -1212,8 +1305,9 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     "statuses": ",".join(stack_statuses),
                     "status": stack.stack_status})
 
-        _get_stack_status()
-        _resource_mark_unhealthy()
+        if vnf_lcm_op_occs.error_point <= fields.ErrorPoint.PRE_VIM_CONTROL:
+            _get_stack_status()
+            _resource_mark_unhealthy()
 
         LOG.info("Updating stack %(stack)s for vnf instance %(id)s",
                 {"stack": inst_vnf_info.instance_id, "id": vnf_instance.id})

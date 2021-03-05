@@ -40,6 +40,7 @@ from tacker.conductor.conductorrpc import vnf_lcm_rpc
 from tacker import manager
 from tacker import objects
 from tacker.objects import fields
+from tacker.objects.fields import ErrorPoint as EP
 from tacker.vnflcm import abstract_driver
 from tacker.vnflcm import utils as vnflcm_utils
 
@@ -109,6 +110,8 @@ def revert_to_error_scale(function):
                     vnf_lcm_op_occ.state_entered_time = timestamp
                     vnf_lcm_op_occ.resource_changes = resource_changes
                     vnf_lcm_op_occ.error = problem
+                    vnf_lcm_op_occ.error_point = \
+                        vnf_info['current_error_point']
                     vnf_lcm_op_occ.save()
                 except Exception as e:
                     LOG.warning("Failed to update vnf_lcm_op_occ for vnf "
@@ -361,6 +364,9 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vnfd_dict_to_create_final_dict, vnf_instance.id,
             vnf_instance.vnf_instance_name, param_for_subs_map, vnf_dict)
 
+        final_vnf_dict['before_error_point'] = \
+            vnf_dict['before_error_point']
+
         try:
             instance_id = self._vnf_manager.invoke(
                 vim_connection_info.vim_type, 'instantiate_vnf',
@@ -398,24 +404,44 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 vnf_instance.instantiated_vnf_info.scale_status = \
                     default_scale_status
 
-        try:
-            self._vnf_manager.invoke(
-                vim_connection_info.vim_type, 'create_wait',
-                plugin=self._vnfm_plugin, context=context,
-                vnf_dict=final_vnf_dict,
-                vnf_id=final_vnf_dict['instance_id'],
-                auth_attr=vim_connection_info.access_info)
+        if vnf_dict['before_error_point'] <= EP.PRE_VIM_CONTROL:
+            try:
+                self._vnf_manager.invoke(
+                    vim_connection_info.vim_type, 'create_wait',
+                    plugin=self._vnfm_plugin, context=context,
+                    vnf_dict=final_vnf_dict,
+                    vnf_id=final_vnf_dict['instance_id'],
+                    auth_attr=vim_connection_info.access_info)
 
-        except Exception as exp:
-            with excutils.save_and_reraise_exception():
-                exp.reraise = False
-                LOG.error("Vnf creation wait failed for vnf instance "
-                    "%(id)s due to error : %(error)s",
-                    {"id": vnf_instance.id, "error":
-                    encodeutils.exception_to_unicode(exp)})
-                raise exceptions.VnfInstantiationWaitFailed(
-                    id=vnf_instance.id,
-                    error=encodeutils.exception_to_unicode(exp))
+            except Exception as exp:
+                with excutils.save_and_reraise_exception():
+                    exp.reraise = False
+                    LOG.error("Vnf creation wait failed for vnf instance "
+                        "%(id)s due to error : %(error)s",
+                        {"id": vnf_instance.id, "error":
+                        encodeutils.exception_to_unicode(exp)})
+                    raise exceptions.VnfInstantiationWaitFailed(
+                        id=vnf_instance.id,
+                        error=encodeutils.exception_to_unicode(exp))
+        elif vnf_dict['before_error_point'] == EP.POST_VIM_CONTROL:
+            try:
+                self._vnf_manager.invoke(
+                    vim_connection_info.vim_type, 'update_stack_wait',
+                    plugin=self._vnfm_plugin, context=context,
+                    vnf_dict=final_vnf_dict,
+                    stack_id=instance_id,
+                    auth_attr=vim_connection_info.access_info)
+
+            except Exception as exp:
+                with excutils.save_and_reraise_exception():
+                    exp.reraise = False
+                    LOG.error("Vnf update wait failed for vnf instance "
+                        "%(id)s due to error : %(error)s",
+                        {"id": vnf_instance.id, "error":
+                        encodeutils.exception_to_unicode(exp)})
+                    raise exceptions.VnfInstantiationWaitFailed(
+                        id=vnf_instance.id,
+                        error=encodeutils.exception_to_unicode(exp))
 
     def _get_file_hash(self, path):
         hash_obj = hashlib.sha256()
@@ -472,6 +498,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
     def instantiate_vnf(self, context, vnf_instance, vnf_dict,
             instantiate_vnf_req):
 
+        vnf_dict['current_error_point'] = EP.VNF_CONFIG_START
         vim_connection_info_list = vnflcm_utils.\
             _get_vim_connection_info_from_vnf_req(vnf_instance,
                     instantiate_vnf_req)
@@ -488,38 +515,46 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vnfd_dict = vnflcm_utils._get_vnfd_dict(
             context, vnf_instance.vnfd_id, instantiate_vnf_req.flavour_id)
 
-        # TODO(LiangLu): grant_request here is planned to pass
-        # as a parameter, however due to grant_request is not
-        # passed from conductor to vnflcm_driver, thus we put Null
-        # value to grant_reqeust temporary.
-        # This part will be updated in next release.
-        self._mgmt_manager.invoke(
-            self._load_vnf_interface(
-                context, 'instantiate_start', vnf_instance, vnfd_dict),
-            'instantiate_start', context=context,
-            vnf_instance=vnf_instance,
-            instantiate_vnf_request=instantiate_vnf_req,
-            grant=vnf_dict.get('grant'), grant_request=None)
+        if vnf_dict['before_error_point'] <= EP.VNF_CONFIG_START:
+            # TODO(LiangLu): grant_request here is planned to pass
+            # as a parameter, however due to grant_request is not
+            # passed from conductor to vnflcm_driver, thus we put Null
+            # value to grant_reqeust temporary.
+            # This part will be updated in next release.
+            self._mgmt_manager.invoke(
+                self._load_vnf_interface(
+                    context, 'instantiate_start', vnf_instance, vnfd_dict),
+                'instantiate_start', context=context,
+                vnf_instance=vnf_instance,
+                instantiate_vnf_request=instantiate_vnf_req,
+                grant=vnf_dict.get('grant'), grant_request=None)
 
-        self._instantiate_vnf(context, vnf_instance, vnf_dict,
-                              vim_connection_info, instantiate_vnf_req)
+        vnf_dict['current_error_point'] = EP.PRE_VIM_CONTROL
+        if vnf_dict['before_error_point'] <= EP.POST_VIM_CONTROL:
+            self._instantiate_vnf(context, vnf_instance, vnf_dict,
+                                vim_connection_info, instantiate_vnf_req)
 
-        # TODO(LiangLu): grant_request here is planned to pass
-        # as a parameter, however due to grant_request is not
-        # passed from conductor to vnflcm_driver, thus we put Null
-        # value to grant_reqeust temporary.
-        # This part will be updated in next release.
-        self._mgmt_manager.invoke(
-            self._load_vnf_interface(
-                context, 'instantiate_end', vnf_instance, vnfd_dict),
-            'instantiate_end', context=context,
-            vnf_instance=vnf_instance,
-            instantiate_vnf_request=instantiate_vnf_req,
-            grant=vnf_dict.get('grant'), grant_request=None)
+        vnf_dict['current_error_point'] = EP.INTERNAL_PROCESSING
+        vnf_dict['current_error_point'] = EP.VNF_CONFIG_END
+        if vnf_dict['before_error_point'] <= EP.VNF_CONFIG_END:
+            # TODO(LiangLu): grant_request here is planned to pass
+            # as a parameter, however due to grant_request is not
+            # passed from conductor to vnflcm_driver, thus we put Null
+            # value to grant_reqeust temporary.
+            # This part will be updated in next release.
+            self._mgmt_manager.invoke(
+                self._load_vnf_interface(
+                    context, 'instantiate_end', vnf_instance, vnfd_dict),
+                'instantiate_end', context=context,
+                vnf_instance=vnf_instance,
+                instantiate_vnf_request=instantiate_vnf_req,
+                grant=vnf_dict.get('grant'), grant_request=None)
 
     @log.log
     @revert_to_error_task_state
-    def terminate_vnf(self, context, vnf_instance, terminate_vnf_req):
+    def terminate_vnf(self, context, vnf_instance, terminate_vnf_req,
+            vnf_dict):
+        vnf_dict['current_error_point'] = EP.VNF_CONFIG_START
 
         vim_info = vnflcm_utils._get_vim(context,
             vnf_instance.vim_connection_info)
@@ -531,23 +566,30 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             context, vnf_instance.vnfd_id,
             vnf_instance.instantiated_vnf_info.flavour_id)
 
-        # TODO(LiangLu): grant_request and grant here is planned to
-        # pass as a parameter, however due to they are not
-        # passed from conductor to vnflcm_driver, thus we put Null
-        # value to grant and grant_reqeust temporary.
-        # This part will be updated in next release.
-        self._mgmt_manager.invoke(
-            self._load_vnf_interface(
-                context, 'terminate_start', vnf_instance, vnfd_dict),
-            'terminate_start', context=context,
-            vnf_instance=vnf_instance,
-            terminate_vnf_request=terminate_vnf_req,
-            grant=None, grant_request=None)
+        if vnf_dict['before_error_point'] <= EP.VNF_CONFIG_START:
+            # TODO(LiangLu): grant_request and grant here is planned to
+            # pass as a parameter, however due to they are not
+            # passed from conductor to vnflcm_driver, thus we put Null
+            # value to grant and grant_reqeust temporary.
+            # This part will be updated in next release.
+            self._mgmt_manager.invoke(
+                self._load_vnf_interface(
+                    context, 'terminate_start', vnf_instance, vnfd_dict),
+                'terminate_start', context=context,
+                vnf_instance=vnf_instance,
+                terminate_vnf_request=terminate_vnf_req,
+                grant=None, grant_request=None)
+
+        vnf_dict['current_error_point'] = EP.PRE_VIM_CONTROL
+
         LOG.info("Terminating vnf %s", vnf_instance.id)
         try:
-            self._delete_vnf_instance_resources(context, vnf_instance,
-                    vim_connection_info, terminate_vnf_req=terminate_vnf_req)
+            if vnf_dict['before_error_point'] <= EP.POST_VIM_CONTROL:
+                self._delete_vnf_instance_resources(context, vnf_instance,
+                        vim_connection_info,
+                        terminate_vnf_req=terminate_vnf_req)
 
+            vnf_dict['current_error_point'] = EP.INTERNAL_PROCESSING
             vnf_instance.instantiated_vnf_info.reinitialize()
             self._vnf_instance_update(context, vnf_instance,
                 vim_connection_info=[], task_state=None)
@@ -555,21 +597,31 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             LOG.info("Vnf terminated %s successfully", vnf_instance.id)
         except Exception as exp:
             with excutils.save_and_reraise_exception():
+                if vnf_dict['current_error_point'] == EP.PRE_VIM_CONTROL:
+                    if hasattr(vnf_instance.instantiated_vnf_info,
+                            'instance_id'):
+                        if vnf_instance.instantiated_vnf_info.instance_id:
+                            vnf_dict['current_error_point'] = \
+                                EP.POST_VIM_CONTROL
+
                 LOG.error("Unable to terminate vnf '%s' instance. "
                           "Error: %s", vnf_instance.id,
                           encodeutils.exception_to_unicode(exp))
-        # TODO(LiangLu): grant_request and grant here is planned to
-        # pass as a parameter, however due to they are not
-        # passed from conductor to vnflcm_driver, thus we put Null
-        # value to grant and grant_reqeust temporary.
-        # This part will be updated in next release.
-        self._mgmt_manager.invoke(
-            self._load_vnf_interface(
-                context, 'terminate_end', vnf_instance, vnfd_dict),
-            'terminate_end', context=context,
-            vnf_instance=vnf_instance,
-            terminate_vnf_request=terminate_vnf_req,
-            grant=None, grant_request=None)
+
+        vnf_dict['current_error_point'] = EP.VNF_CONFIG_END
+        if vnf_dict['before_error_point'] <= EP.VNF_CONFIG_END:
+            # TODO(LiangLu): grant_request and grant here is planned to
+            # pass as a parameter, however due to they are not
+            # passed from conductor to vnflcm_driver, thus we put Null
+            # value to grant and grant_reqeust temporary.
+            # This part will be updated in next release.
+            self._mgmt_manager.invoke(
+                self._load_vnf_interface(
+                    context, 'terminate_end', vnf_instance, vnfd_dict),
+                'terminate_end', context=context,
+                vnf_instance=vnf_instance,
+                terminate_vnf_request=terminate_vnf_req,
+                grant=None, grant_request=None)
 
     def _delete_vnf_instance_resources(self, context, vnf_instance,
             vim_connection_info, terminate_vnf_req=None,
@@ -614,7 +666,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vnf_resource.destroy(context)
 
     def _heal_vnf(self, context, vnf_instance, vim_connection_info,
-            heal_vnf_request):
+            heal_vnf_request, vnf):
         inst_vnf_info = vnf_instance.instantiated_vnf_info
         try:
             self._vnf_manager.invoke(
@@ -630,6 +682,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                           encodeutils.exception_to_unicode(exp)})
                 raise exceptions.VnfHealFailed(id=vnf_instance.id,
                     error=encodeutils.exception_to_unicode(exp))
+
+        vnf['current_error_point'] = EP.POST_VIM_CONTROL
 
         try:
             self._vnf_manager.invoke(
@@ -665,19 +719,21 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
     def _respawn_vnf(self, context, vnf_instance, vnf_dict,
                     vim_connection_info, heal_vnf_request):
-        try:
-            self._delete_vnf_instance_resources(context, vnf_instance,
-                vim_connection_info, update_instantiated_state=False)
-        except Exception as exc:
-            with excutils.save_and_reraise_exception() as exc_ctxt:
-                exc_ctxt.reraise = False
-                err_msg = ("Failed to delete vnf resources for vnf instance "
-                          "%(id)s before respawning. The vnf is in "
-                          "inconsistent state. Error: %(error)s")
-                LOG.error(err_msg % {"id": vnf_instance.id,
-                          "error": str(exc)})
-                raise exceptions.VnfHealFailed(id=vnf_instance.id,
-                    error=encodeutils.exception_to_unicode(exc))
+        if vnf_dict['before_error_point'] != EP.POST_VIM_CONTROL:
+            try:
+                self._delete_vnf_instance_resources(context, vnf_instance,
+                    vim_connection_info, update_instantiated_state=False)
+            except Exception as exc:
+                with excutils.save_and_reraise_exception() as exc_ctxt:
+                    exc_ctxt.reraise = False
+                    err_msg = ("Failed to delete vnf resources for "
+                              "vnf instance %(id)s before respawning. "
+                              "The vnf is in inconsistent state. "
+                              "Error: %(error)s")
+                    LOG.error(err_msg % {"id": vnf_instance.id,
+                              "error": str(exc)})
+                    raise exceptions.VnfHealFailed(id=vnf_instance.id,
+                        error=encodeutils.exception_to_unicode(exc))
 
         # InstantiateVnfRequest is not stored in the db as it's mapped
         # to InstantiatedVnfInfo version object. Convert InstantiatedVnfInfo
@@ -721,6 +777,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
     @log.log
     @revert_to_error_task_state
     def heal_vnf(self, context, vnf_instance, vnf_dict, heal_vnf_request):
+        vnf_dict['current_error_point'] = EP.VNF_CONFIG_START
+
         LOG.info("Request received for healing vnf '%s'", vnf_instance.id)
         vim_info = vnflcm_utils._get_vim(context,
             vnf_instance.vim_connection_info)
@@ -731,47 +789,76 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vnfd_dict = vnflcm_utils._get_vnfd_dict(
             context, vnf_instance.vnfd_id,
             vnf_instance.instantiated_vnf_info.flavour_id)
-        # TODO(LiangLu): grant_request here is planned to pass
-        # as a parameter, however due to grant_request are not
-        # passed from conductor to vnflcm_driver, thus we put Null
-        # value to grant and grant_reqeust temporary.
-        # This part will be updated in next release.
-        self._mgmt_manager.invoke(
-            self._load_vnf_interface(
-                context, 'heal_start', vnf_instance, vnfd_dict),
-            'heal_start', context=context,
-            vnf_instance=vnf_instance,
-            heal_vnf_request=heal_vnf_request,
-            grant=vnf_dict.get('grant'), grant_request=None)
 
-        if not heal_vnf_request.vnfc_instance_id:
-            self._respawn_vnf(context, vnf_instance, vnf_dict,
-                             vim_connection_info, heal_vnf_request)
-        else:
-            self._heal_vnf(context, vnf_instance, vim_connection_info,
-                      heal_vnf_request)
+        if vnf_dict['before_error_point'] <= EP.VNF_CONFIG_START:
+            # TODO(LiangLu): grant_request here is planned to pass
+            # as a parameter, however due to grant_request are not
+            # passed from conductor to vnflcm_driver, thus we put Null
+            # value to grant and grant_reqeust temporary.
+            # This part will be updated in next release.
+            self._mgmt_manager.invoke(
+                self._load_vnf_interface(
+                    context, 'heal_start', vnf_instance, vnfd_dict),
+                'heal_start', context=context,
+                vnf_instance=vnf_instance,
+                heal_vnf_request=heal_vnf_request,
+                grant=vnf_dict.get('grant'), grant_request=None)
 
-        LOG.info("Request received for healing vnf '%s' is completed "
-                 "successfully", vnf_instance.id)
-        # TODO(LiangLu): grant_request here is planned to pass
-        # as a parameter, however due to grant_request are not
-        # passed from conductor to vnflcm_driver, thus we put Null
-        # value to grant and grant_reqeust temporary.
-        # This part will be updated in next release.
-        self._mgmt_manager.invoke(
-            self._load_vnf_interface(
-                context, 'heal_end', vnf_instance, vnfd_dict),
-            'heal_end', context=context,
-            vnf_instance=vnf_instance,
-            heal_vnf_request=heal_vnf_request,
-            grant=vnf_dict.get('grant'), grant_request=None)
+        vnf_dict['current_error_point'] = EP.PRE_VIM_CONTROL
+
+        try:
+            heal_flag = False
+            if vnf_dict['before_error_point'] <= EP.POST_VIM_CONTROL:
+                if not heal_vnf_request.vnfc_instance_id:
+                    self._respawn_vnf(context, vnf_instance, vnf_dict,
+                                    vim_connection_info, heal_vnf_request)
+                else:
+                    heal_flag = True
+                    self._heal_vnf(context, vnf_instance, vim_connection_info,
+                            heal_vnf_request, vnf_dict)
+
+                LOG.info("Request received for healing vnf '%s' is completed "
+                        "successfully", vnf_instance.id)
+        except Exception as exp:
+            with excutils.save_and_reraise_exception():
+                if vnf_dict['current_error_point'] == EP.PRE_VIM_CONTROL:
+                    if not heal_flag:
+                        if hasattr(vnf_instance.instantiated_vnf_info,
+                                'instance_id'):
+                            if vnf_instance.instantiated_vnf_info.instance_id:
+                                vnf_dict['current_error_point'] = \
+                                    EP.POST_VIM_CONTROL
+
+                LOG.error("Unable to heal vnf '%s' instance. "
+                          "Error: %s", heal_vnf_request.vnfc_instance_id,
+                          encodeutils.exception_to_unicode(exp))
+
+                raise exceptions.VnfHealFailed(id=vnf_instance.id,
+                    error=encodeutils.exception_to_unicode(exp))
+
+        vnf_dict['current_error_point'] = EP.VNF_CONFIG_END
+
+        if vnf_dict['before_error_point'] <= EP.VNF_CONFIG_END:
+            # TODO(LiangLu): grant_request here is planned to pass
+            # as a parameter, however due to grant_request are not
+            # passed from conductor to vnflcm_driver, thus we put Null
+            # value to grant and grant_reqeust temporary.
+            # This part will be updated in next release.
+            self._mgmt_manager.invoke(
+                self._load_vnf_interface(
+                    context, 'heal_end', vnf_instance, vnfd_dict),
+                'heal_end', context=context,
+                vnf_instance=vnf_instance,
+                heal_vnf_request=heal_vnf_request,
+                grant=vnf_dict.get('grant'), grant_request=None)
 
     def _scale_vnf_pre(self, context, vnf_info, vnf_instance,
                       scale_vnf_request, vim_connection_info):
-        self._vnfm_plugin._update_vnf_scaling(
-            context, vnf_info, 'ACTIVE', 'PENDING_' + scale_vnf_request.type)
-        vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
-        vnf_lcm_op_occ.error_point = 2
+        if vnf_info['before_error_point'] <= EP.NOTIFY_PROCESSING:
+            self._vnfm_plugin._update_vnf_scaling(
+                context, vnf_info, 'ACTIVE', 'PENDING_'
+                + scale_vnf_request.type)
+        vnf_info['current_error_point'] = EP.VNF_CONFIG_START
 
         scale_id_list = []
         scale_name_list = []
@@ -798,21 +885,23 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     number_of_steps=scale_vnf_request.number_of_steps
                 )
             vnf_info['res_num'] = res_num
-            # TODO(LiangLu): grant_request here is planned to pass
-            # as a parameter, however due to grant_request are not
-            # passed from conductor to vnflcm_driver, thus we put Null
-            # value to grant and grant_reqeust temporary.
-            # This part will be updated in next release.
-            if len(scale_id_list) != 0:
-                kwargs = {'scale_name_list': scale_name_list}
-                self._mgmt_manager.invoke(
-                    self._load_vnf_interface(
-                        context, 'scale_start', vnf_instance, vnfd_dict),
-                    'scale_start', context=context,
-                    vnf_instance=vnf_instance,
-                    scale_vnf_request=scale_vnf_request,
-                    grant=vnf_info.get('grant'), grant_request=None,
-                    **kwargs)
+
+            if vnf_info['before_error_point'] <= EP.VNF_CONFIG_START:
+                # TODO(LiangLu): grant_request here is planned to pass
+                # as a parameter, however due to grant_request are not
+                # passed from conductor to vnflcm_driver, thus we put Null
+                # value to grant and grant_reqeust temporary.
+                # This part will be updated in next release.
+                if len(scale_id_list) != 0:
+                    kwargs = {'scale_name_list': scale_name_list}
+                    self._mgmt_manager.invoke(
+                        self._load_vnf_interface(
+                            context, 'scale_start', vnf_instance, vnfd_dict),
+                        'scale_start', context=context,
+                        vnf_instance=vnf_instance,
+                        scale_vnf_request=scale_vnf_request,
+                        grant=vnf_info.get('grant'), grant_request=None,
+                        **kwargs)
         else:
             vnf_info['action'] = 'out'
             scale_id_list = self._vnf_manager.invoke(
@@ -824,7 +913,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 auth_attr=vim_connection_info.access_info,
                 region_name=vim_connection_info.access_info.get('region_name')
             )
-        vnf_lcm_op_occ.error_point = 3
+
+        vnf_info['current_error_point'] = EP.PRE_VIM_CONTROL
         return scale_id_list, scale_name_list, grp_id
 
     def _get_node_template_for_vnf(self, vnfd_dict):
@@ -841,7 +931,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                        scale_id_list,
                        resource_changes):
         vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
-        vnf_lcm_op_occ.error_point = 6
+        vnf_info['current_error_point'] = EP.VNF_CONFIG_END
         if scale_vnf_request.type == 'SCALE_OUT':
             vnfd_dict = vnflcm_utils._get_vnfd_dict(
                 context, vnf_instance.vnfd_id,
@@ -859,22 +949,24 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             id_list = []
             id_list = list(set(scale_id_after) - set(scale_id_list))
             vnf_info['res_num'] = len(scale_id_after)
-            # TODO(LiangLu): grant_request here is planned to pass
-            # as a parameter, however due to grant_request are not
-            # passed from conductor to vnflcm_driver, thus we put Null
-            # value to grant and grant_reqeust temporary.
-            # This part will be updated in next release.
-            if len(id_list) != 0:
-                kwargs = {'scale_out_id_list': id_list}
-                self._mgmt_manager.invoke(
-                    self._load_vnf_interface(
-                        context, 'scale_end', vnf_instance, vnfd_dict),
-                    'scale_end', context=context,
-                    vnf_instance=vnf_instance,
-                    scale_vnf_request=scale_vnf_request,
-                    grant=vnf_info.get('grant'), grant_request=None,
-                    **kwargs)
-        vnf_lcm_op_occ.error_point = 7
+
+            if vnf_info['before_error_point'] <= EP.VNF_CONFIG_END:
+                # TODO(LiangLu): grant_request here is planned to pass
+                # as a parameter, however due to grant_request are not
+                # passed from conductor to vnflcm_driver, thus we put Null
+                # value to grant and grant_reqeust temporary.
+                # This part will be updated in next release.
+                if len(id_list) != 0:
+                    kwargs = {'scale_out_id_list': id_list}
+                    self._mgmt_manager.invoke(
+                        self._load_vnf_interface(
+                            context, 'scale_end', vnf_instance, vnfd_dict),
+                        'scale_end', context=context,
+                        vnf_instance=vnf_instance,
+                        scale_vnf_request=scale_vnf_request,
+                        grant=vnf_info.get('grant'), grant_request=None,
+                        **kwargs)
+
         vnf_instance.instantiated_vnf_info.scale_level =\
             vnf_info['after_scale_level']
         if vim_connection_info.vim_type != 'kubernetes':
@@ -888,15 +980,18 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 vnf_info['res_num']
             vnf_info['attributes']['scale_group'] =\
                 jsonutils.dump_as_bytes(scaleGroupDict)
-        vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
-        vnf_lcm_op_occ.operation_state = 'COMPLETED'
-        vnf_lcm_op_occ.resource_changes = resource_changes
-        vnf_instance.task_state = None
-        self._vnfm_plugin._update_vnf_scaling(context, vnf_info,
-                                          'PENDING_' + scale_vnf_request.type,
-                                          'ACTIVE',
-                                          vnf_instance=vnf_instance,
-                                          vnf_lcm_op_occ=vnf_lcm_op_occ)
+
+        if vnf_info['before_error_point'] < EP.NOTIFY_COMPLETED:
+            vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
+            vnf_lcm_op_occ.operation_state = 'COMPLETED'
+            vnf_lcm_op_occ.resource_changes = resource_changes
+            vnf_instance.task_state = None
+            self._vnfm_plugin._update_vnf_scaling(context, vnf_info,
+                                    'PENDING_' + scale_vnf_request.type,
+                                    'ACTIVE', vnf_instance=vnf_instance,
+                                    vnf_lcm_op_occ=vnf_lcm_op_occ)
+
+        vnf_info['current_error_point'] = EP.NOTIFY_COMPLETED
 
         notification = vnf_info['notification']
         notification['notificationStatus'] = 'RESULT'
@@ -1073,11 +1168,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         # action_driver
         LOG.debug("vnf_info['vnfd']['attributes'] %s",
         vnf_info['vnfd']['attributes'])
-        vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
-        vnf_lcm_op_occ.error_point = 4
         self.scale(context, vnf_info, scale_vnf_request,
                    vim_connection_info, scale_name_list, grp_id)
-        vnf_lcm_op_occ.error_point = 5
 
     @log.log
     @revert_to_error_scale
@@ -1096,6 +1188,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         notification['operationState'] = 'PROCESSING'
         self.rpc_api.send_notification(context, notification)
 
+        vnf_info['current_error_point'] = EP.NOTIFY_PROCESSING
         vim_info = vnflcm_utils._get_vim(context,
             vnf_instance.vim_connection_info)
 
@@ -1108,16 +1201,19 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             scale_vnf_request,
             vim_connection_info)
 
-        self._scale_vnf(context, vnf_info,
-                        vnf_instance,
-                        scale_vnf_request,
-                        vim_connection_info,
-                        scale_name_list, grp_id)
+        if vnf_info['before_error_point'] <= EP.POST_VIM_CONTROL:
+            self._scale_vnf(context, vnf_info,
+                            vnf_instance,
+                            scale_vnf_request,
+                            vim_connection_info,
+                            scale_name_list, grp_id)
 
-        resource_changes = self._scale_resource_update(context, vnf_info,
+            resource_changes = self._scale_resource_update(context, vnf_info,
                                     vnf_instance,
                                     scale_vnf_request,
                                     vim_connection_info)
+
+        vnf_info['current_error_point'] = EP.INTERNAL_PROCESSING
 
         self._scale_vnf_post(context, vnf_info,
                              vnf_instance,
@@ -1192,6 +1288,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 scale_name_list=scale_name_list,
                 grp_id=grp_id
             )
+            vnf_info['current_error_point'] = EP.POST_VIM_CONTROL
             self._vnf_manager.invoke(
                 vim_connection_info.vim_type,
                 'scale_update_wait',
@@ -1212,6 +1309,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 scale_vnf_request=scale_vnf_request,
                 region_name=vim_connection_info.access_info.get('region_name')
             )
+            vnf_info['current_error_point'] = EP.POST_VIM_CONTROL
             self._vnf_manager.invoke(
                 vim_connection_info.vim_type,
                 'scale_update_wait',
@@ -1259,6 +1357,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     region_name=vim_connection_info.access_info.get('\
                         region_name')
                 )
+                vnf_info['current_error_point'] = EP.POST_VIM_CONTROL
                 self._vnf_manager.invoke(
                     vim_connection_info.vim_type,
                     'scale_wait',
@@ -1402,7 +1501,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     vnf_info['after_scale_level'] = scale.scale_level
                     break
         if vnf_lcm_op_occs.operation == 'SCALE' \
-                and vnf_lcm_op_occs.error_point >= 4:
+           and vnf_lcm_op_occs.error_point >= EP.POST_VIM_CONTROL:
             scale_id_list, scale_name_list, grp_id = self._vnf_manager.invoke(
                 vim_connection_info.vim_type,
                 'get_rollback_ids',
@@ -1413,7 +1512,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 auth_attr=vim_connection_info.access_info,
                 region_name=vim_connection_info.access_info.get('region_name')
             )
-        if vnf_lcm_op_occs.error_point == 7:
+        if vnf_lcm_op_occs.error_point == EP.NOTIFY_COMPLETED:
             if vnf_lcm_op_occs.operation == 'SCALE':
                 vnfd_dict = vnflcm_utils._get_vnfd_dict(
                     context, vnf_instance.vnfd_id,
@@ -1454,7 +1553,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                         vnf_instance=vnf_instance,
                         terminate_vnf_request=None,
                         grant=None, grant_request=None)
-            vnf_lcm_op_occs.error_point = 6
+            vnf_lcm_op_occs.error_point = EP.VNF_CONFIG_END
 
         return scale_name_list, grp_id
 
@@ -1468,7 +1567,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             scale_name_list,
             grp_id):
         vnf_lcm_op_occs = vnf_info['vnf_lcm_op_occ']
-        if vnf_lcm_op_occs.error_point >= 4:
+        if vnf_lcm_op_occs.error_point >= EP.POST_VIM_CONTROL:
             if vnf_lcm_op_occs.operation == 'SCALE':
                 scale_vnf_request = objects.ScaleVnfRequest.obj_from_primitive(
                     operation_params, context=context)
@@ -1505,7 +1604,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     'delete_wait', plugin=self, context=context,
                     vnf_id=instance_id, auth_attr=access_info)
 
-        vnf_lcm_op_occs.error_point = 3
+        vnf_lcm_op_occs.error_point = EP.PRE_VIM_CONTROL
 
     def _update_vnf_rollback_pre(self, context, vnf_info):
         self._vnfm_plugin._update_vnf_rollback_pre(context, vnf_info)
@@ -1548,7 +1647,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             resource_changes = self._term_resource_update(
                 context, vnf_info, vnf_instance)
 
-        vnf_lcm_op_occs.error_point = 2
+        vnf_lcm_op_occs.error_point = EP.VNF_CONFIG_START
 
         timestamp = datetime.utcnow()
         vnf_lcm_op_occs.operation_state = 'ROLLED_BACK'

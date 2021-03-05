@@ -1364,32 +1364,6 @@ class TestController(base.TestCase):
                        test_nfvo_plugin.FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
-    @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
-    def test_terminate_incorrect_instantiation_state(
-            self, mock_vnf_by_id, mock_get_vnf, mock_get_service_plugins):
-        mock_vnf_by_id.return_value = fakes.return_vnf_instance()
-        body = {"terminationType": "FORCEFUL"}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/terminate' % uuidsentinel.vnf_instance_id)
-        req.body = jsonutils.dump_as_bytes(body)
-        req.headers['Content-Type'] = 'application/json'
-        req.method = 'POST'
-
-        resp = req.get_response(self.app)
-
-        self.assertEqual(http_client.CONFLICT, resp.status_code)
-        expected_msg = ("Vnf instance %s in instantiation_state "
-                        "NOT_INSTANTIATED. Cannot terminate while the vnf "
-                        "instance is in this state.")
-        self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-                         resp.json['conflictingRequest']['message'])
-        mock_get_vnf.assert_called_once()
-
-    @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
-    @mock.patch('tacker.api.vnflcm.v1.controller.'
-                'VnfLcmController._get_vnf')
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_terminate_incorrect_task_state(
             self,
@@ -3130,3 +3104,265 @@ class TestController(base.TestCase):
         res_dict = self.controller.fail(req, constants.UUID)
 
         self.assertEqual(http_client.CONFLICT, res_dict.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_instantiate")
+    def test_retry_instantiate_vnf_instance(
+            self, mock_instantiate, mock_vnf_instance, mock_get_vnf,
+            mock_lcm_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_data()
+        mock_get_vnf.return_value = vnf_obj
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_instance.return_value = vnf_instance
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_instantiate.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_terminate")
+    def test_retry_terminate_vnf_instance(
+            self, mock_terminate, mock_vnf_instance, mock_get_vnf,
+            mock_lcm_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data(
+            operation='TERMINATE')
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_data()
+        mock_get_vnf.return_value = vnf_obj
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_instance.return_value = vnf_instance
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_terminate.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_heal")
+    def test_retry_heal_vnf_instance(
+            self, mock_heal, mock_vnf_instance, mock_get_vnf, mock_lcm_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data(operation='HEAL')
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_data()
+        mock_get_vnf.return_value = vnf_obj
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_instance.return_value = vnf_instance
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_heal.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_scale")
+    def test_retry_scale_vnf_instance(
+            self, mock_scale, mock_vnf_instance, mock_get_vnf, mock_lcm_by_id,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data(operation='SCALE')
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_data()
+        mock_get_vnf.return_value = vnf_obj
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_instance.return_value = vnf_instance
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_scale.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_retry_vnf_lcm_occ_not_found(
+            self, mock_lcm_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        mock_lcm_by_id.side_effect = exceptions.NotFound
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_retry_vnf_lcm_occ_error(
+            self, mock_lcm_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        mock_lcm_by_id.side_effect = Exception
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_retry_vnf_lcm_occ_conflict(
+            self, mock_lcm_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data(
+            operation_state='invalid operation state')
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_vnf")
+    def test_retry_vnf_not_found(
+            self, mock_get_vnf, mock_lcm_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+
+        mock_get_vnf.side_effect = exc.HTTPNotFound
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_vnf")
+    def test_retry_vnf_error(
+            self, mock_get_vnf, mock_lcm_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+
+        mock_get_vnf.side_effect = exc.HTTPInternalServerError
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_retry_vnf_instance_not_found(
+            self, mock_get_vnf_instance, mock_get_vnf,
+            mock_lcm_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_data()
+        mock_get_vnf.return_value = vnf_obj
+
+        mock_get_vnf_instance.side_effect = exceptions.VnfInstanceNotFound
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_retry_vnf_instance_error(
+            self, mock_get_vnf_instance, mock_get_vnf,
+            mock_lcm_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data()
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_data()
+        mock_get_vnf.return_value = vnf_obj
+
+        mock_get_vnf_instance.side_effect = Exception
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_retry_invalid_operation_type(
+            self, mock_get_vnf_instance, mock_get_vnf,
+            mock_lcm_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data(
+            operation='Invalid operation type')
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_data()
+        mock_get_vnf.return_value = vnf_obj
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)

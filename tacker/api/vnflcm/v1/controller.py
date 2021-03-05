@@ -127,6 +127,36 @@ def check_vnf_status(action, status=None):
     return outer
 
 
+def check_vnf_status_and_error_point(action, status=None):
+    """Decorator to check vnf status are valid for particular action.
+
+    If the vnf has the wrong status with the wrong error point,
+    it will raise conflict exception.
+    """
+
+    if status is not None and not isinstance(status, set):
+        status = set(status)
+
+    def outer(f):
+        @functools.wraps(f)
+        def inner(self, context, vnf_instance, vnf, *args, **kw):
+            vnf['current_error_point'] = fields.ErrorPoint.INITIAL
+
+            if 'before_error_point' not in vnf:
+                vnf['before_error_point'] = fields.ErrorPoint.INITIAL
+
+            if status is not None and vnf['status'] not in status and \
+                    vnf['before_error_point'] == fields.ErrorPoint.INITIAL:
+                raise exceptions.VnfConflictStateWithErrorPoint(
+                    uuid=vnf['id'],
+                    state=vnf['status'],
+                    action=action,
+                    error_point=vnf['before_error_point'])
+            return f(self, context, vnf_instance, vnf, *args, **kw)
+        return inner
+    return outer
+
+
 class VnfLcmController(wsgi.Controller):
 
     notification_type_list = ['VnfLcmOperationOccurrenceNotification',
@@ -573,10 +603,12 @@ class VnfLcmController(wsgi.Controller):
     @check_vnf_state(action="instantiate",
         instantiation_state=[fields.VnfInstanceState.NOT_INSTANTIATED],
         task_state=[None])
-    @check_vnf_status(action="instantiate",
+    @check_vnf_status_and_error_point(action="instantiate",
         status=[constants.INACTIVE])
     def _instantiate(self, context, vnf_instance, vnf, request_body):
         req_body = utils.convert_camelcase_to_snakecase(request_body)
+
+        vnf_lcm_op_occs_id = vnf.get('vnf_lcm_op_occs_id')
 
         try:
             self._validate_flavour_and_inst_level(context, req_body,
@@ -595,12 +627,16 @@ class VnfLcmController(wsgi.Controller):
         vnf_instance.save()
 
         # lcm op process
-        vnf_lcm_op_occs_id = \
-            self._notification_process(context, vnf_instance,
-                                       fields.LcmOccsOperationType.INSTANTIATE,
-                                       instantiate_vnf_request, request_body)
-        self.rpc_api.instantiate(context, vnf_instance, vnf,
-                                 instantiate_vnf_request, vnf_lcm_op_occs_id)
+        if vnf['before_error_point'] == fields.ErrorPoint.INITIAL:
+            vnf_lcm_op_occs_id = \
+                self._notification_process(context, vnf_instance,
+                            fields.LcmOccsOperationType.INSTANTIATE,
+                            instantiate_vnf_request, request_body)
+
+        if vnf_lcm_op_occs_id:
+            self.rpc_api.instantiate(context, vnf_instance, vnf,
+                                    instantiate_vnf_request,
+                                    vnf_lcm_op_occs_id)
 
     @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,
@@ -617,9 +653,12 @@ class VnfLcmController(wsgi.Controller):
 
     @check_vnf_state(action="terminate",
                      instantiation_state=[
-                         fields.VnfInstanceState.INSTANTIATED],
+                         fields.VnfInstanceState.INSTANTIATED,
+                         fields.VnfInstanceState.NOT_INSTANTIATED],
                      task_state=[None])
-    def _terminate(self, context, vnf_instance, request_body, vnf):
+    @check_vnf_status_and_error_point(action="terminate",
+        status=[constants.ACTIVE])
+    def _terminate(self, context, vnf_instance, vnf, request_body):
         req_body = utils.convert_camelcase_to_snakecase(request_body)
         terminate_vnf_req = \
             objects.TerminateVnfRequest.obj_from_primitive(
@@ -628,14 +667,18 @@ class VnfLcmController(wsgi.Controller):
         vnf_instance.task_state = fields.VnfInstanceTaskState.TERMINATING
         vnf_instance.save()
 
-        # lcm op process
-        vnf_lcm_op_occs_id = \
-            self._notification_process(context, vnf_instance,
-                                       fields.LcmOccsOperationType.TERMINATE,
-                                       terminate_vnf_req, request_body)
+        vnf_lcm_op_occs_id = vnf.get('vnf_lcm_op_occs_id')
 
-        self.rpc_api.terminate(context, vnf_instance, vnf,
-                               terminate_vnf_req, vnf_lcm_op_occs_id)
+        # lcm op process
+        if vnf['before_error_point'] == fields.ErrorPoint.INITIAL:
+            vnf_lcm_op_occs_id = \
+                self._notification_process(context, vnf_instance,
+                                        fields.LcmOccsOperationType.TERMINATE,
+                                        terminate_vnf_req, request_body)
+
+        if vnf_lcm_op_occs_id:
+            self.rpc_api.terminate(context, vnf_instance, vnf,
+                                terminate_vnf_req, vnf_lcm_op_occs_id)
 
     @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
@@ -647,12 +690,9 @@ class VnfLcmController(wsgi.Controller):
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
-        self._terminate(context, vnf_instance, body, vnf)
+        self._terminate(context, vnf_instance, vnf, body)
 
-    @check_vnf_state(action="heal",
-        instantiation_state=[fields.VnfInstanceState.INSTANTIATED],
-        task_state=[None])
-    @check_vnf_status(action="heal",
+    @check_vnf_status_and_error_point(action="heal",
         status=[constants.ACTIVE])
     def _heal(self, context, vnf_instance, vnf_dict, request_body):
         req_body = utils.convert_camelcase_to_snakecase(request_body)
@@ -661,6 +701,8 @@ class VnfLcmController(wsgi.Controller):
         vnfc_resource_info_ids = [
             vnfc_resource_info.id for vnfc_resource_info in
             inst_vnf_info.vnfc_resource_info]
+
+        vnf_lcm_op_occs_id = vnf_dict.get('vnf_lcm_op_occs_id')
 
         for vnfc_id in heal_vnf_request.vnfc_instance_id:
             # check if vnfc_id exists in vnfc_resource_info
@@ -675,13 +717,15 @@ class VnfLcmController(wsgi.Controller):
         vnf_instance.save()
 
         # call notification process
-        vnf_lcm_op_occs_id = \
-            self._notification_process(context, vnf_instance,
-                                       fields.LcmOccsOperationType.HEAL,
-                                       heal_vnf_request, request_body)
+        if vnf_dict['before_error_point'] == fields.ErrorPoint.INITIAL:
+            vnf_lcm_op_occs_id = \
+                self._notification_process(context, vnf_instance,
+                                        fields.LcmOccsOperationType.HEAL,
+                                        heal_vnf_request, request_body)
 
-        self.rpc_api.heal(context, vnf_instance, vnf_dict, heal_vnf_request,
-                          vnf_lcm_op_occs_id)
+        if vnf_lcm_op_occs_id:
+            self.rpc_api.heal(context, vnf_instance, vnf_dict,
+                            heal_vnf_request, vnf_lcm_op_occs_id)
 
     @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
@@ -693,6 +737,21 @@ class VnfLcmController(wsgi.Controller):
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
+
+        if vnf_instance.instantiation_state not in \
+           [fields.VnfInstanceState.INSTANTIATED]:
+            raise exceptions.VnfInstanceConflictState(
+                attr='instantiation_state',
+                uuid=vnf_instance.id,
+                state=vnf_instance.instantiation_state,
+                action='heal')
+        if vnf_instance.task_state not in [None]:
+            raise exceptions.VnfInstanceConflictState(
+                attr='task_state',
+                uuid=vnf_instance.id,
+                state=vnf_instance.task_state,
+                action='heal')
+
         self._heal(context, vnf_instance, vnf, body)
 
     @wsgi.response(http_client.OK)
@@ -1017,11 +1076,16 @@ class VnfLcmController(wsgi.Controller):
     @check_vnf_state(action="scale",
         instantiation_state=[fields.VnfInstanceState.INSTANTIATED],
         task_state=[None])
+    @check_vnf_status_and_error_point(action="scale",
+        status=[constants.ACTIVE])
     def _scale(self, context, vnf_instance, vnf_info, request_body):
         req_body = utils.convert_camelcase_to_snakecase(request_body)
         scale_vnf_request = objects.ScaleVnfRequest.obj_from_primitive(
             req_body, context=context)
         inst_vnf_info = vnf_instance.instantiated_vnf_info
+
+        if 'vnf_lcm_op_occs_id' in vnf_info:
+            vnf_lcm_op_occs_id = vnf_info['vnf_lcm_op_occs_id']
 
         aspect = False
         current_level = 0
@@ -1077,27 +1141,47 @@ class VnfLcmController(wsgi.Controller):
             if max_level < scale_level:
                 return self._make_problem_detail(
                     'can not scale_out', 400, title='can not scale_out')
+            if 'vnf_lcm_op_occs_id' in vnf_info:
+                num = (scaleGroupDict['scaleGroupDict']
+                    [scale_vnf_request.aspect_id]['num'])
+                default = (scaleGroupDict['scaleGroupDict']
+                    [scale_vnf_request.aspect_id]['default'])
+                vnf_info['res_num'] = (num *
+                    scale_vnf_request.number_of_steps + default)
 
-        vnf_lcm_op_occs_id = uuidutils.generate_uuid()
-        timestamp = datetime.datetime.utcnow()
-        operation_params = {
-            'type': scale_vnf_request.type,
-            'aspect_id': scale_vnf_request.aspect_id,
-            'number_of_steps': scale_vnf_request.number_of_steps,
-            'additional_params': scale_vnf_request.additional_params}
-        vnf_lcm_op_occ = objects.VnfLcmOpOcc(
-            context=context,
-            id=vnf_lcm_op_occs_id,
-            operation_state='STARTING',
-            state_entered_time=timestamp,
-            start_time=timestamp,
-            vnf_instance_id=inst_vnf_info.vnf_instance_id,
-            operation='SCALE',
-            is_automatic_invocation=scale_vnf_request.additional_params.get('\
-                is_auto'),
-            operation_params=json.dumps(operation_params),
-            error_point=1)
-        vnf_lcm_op_occ.create()
+        if vnf_info['before_error_point'] == fields.ErrorPoint.INITIAL:
+            vnf_lcm_op_occs_id = uuidutils.generate_uuid()
+            timestamp = datetime.datetime.utcnow()
+            operation_params = {
+                'type': scale_vnf_request.type,
+                'aspect_id': scale_vnf_request.aspect_id,
+                'number_of_steps': scale_vnf_request.number_of_steps,
+                'additional_params': scale_vnf_request.additional_params}
+
+            vnf_lcm_op_occ = objects.VnfLcmOpOcc(
+                context=context,
+                id=vnf_lcm_op_occs_id,
+                operation_state='STARTING',
+                state_entered_time=timestamp,
+                start_time=timestamp,
+                vnf_instance_id=inst_vnf_info.vnf_instance_id,
+                operation='SCALE',
+                is_automatic_invocation=scale_vnf_request.additional_params.get('\
+                    is_auto'),
+                operation_params=json.dumps(operation_params),
+                error_point=1)
+            vnf_lcm_op_occ.create()
+        else:
+            try:
+                vnf_lcm_op_occ = objects.VnfLcmOpOcc.get_by_id(
+                    context, vnf_lcm_op_occs_id)
+            except exceptions.NotFound as lcm_e:
+                return self._make_problem_detail(str(lcm_e),
+                    404, title='Not Found')
+            except (sqlexc.SQLAlchemyError, Exception) as exc:
+                LOG.exception(exc)
+                return self._make_problem_detail(str(exc),
+                    500, title='Internal Server Error')
 
         vnf_instance.task_state = fields.VnfInstanceTaskState.SCALING
         vnf_instance.save()
@@ -1129,7 +1213,9 @@ class VnfLcmController(wsgi.Controller):
         notification['_links']['vnfLcmOpOcc'] = {}
         notification['_links']['vnfLcmOpOcc']['href'] = vnflcm_url
         vnf_info['notification'] = notification
-        self.rpc_api.send_notification(context, notification)
+
+        if vnf_info['before_error_point'] == fields.ErrorPoint.INITIAL:
+            self.rpc_api.send_notification(context, notification)
         self.rpc_api.scale(context, vnf_info, vnf_instance, scale_vnf_request)
 
         res = webob.Response()
@@ -1349,6 +1435,73 @@ class VnfLcmController(wsgi.Controller):
             affected_resources=affected_resources)
 
         return self._view_builder.show_lcm_op_occs(vnf_lcm_op_occs)
+
+    @wsgi.response(http_client.ACCEPTED)
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
+                           http_client.NOT_FOUND, http_client.CONFLICT))
+    def retry(self, request, id):
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'retry')
+
+        try:
+            vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
+        except exceptions.NotFound as lcm_e:
+            return self._make_problem_detail(str(lcm_e),
+                404, title='Not Found')
+        except (sqlexc.SQLAlchemyError, Exception) as exc:
+            LOG.exception(exc)
+            return self._make_problem_detail(str(exc),
+                500, title='Internal Server Error')
+
+        # operation state checking
+        if vnf_lcm_op_occs.operation_state != \
+           fields.LcmOccsOperationState.FAILED_TEMP:
+            error_msg = ('Cannot proceed with operation_state %s'
+                % vnf_lcm_op_occs.operation_state)
+            return self._make_problem_detail(error_msg,
+                409, title='Conflict')
+
+        # get vnf
+        try:
+            vnf = self._get_vnf(context, vnf_lcm_op_occs.vnf_instance_id)
+        except webob.exc.HTTPNotFound as lcm_e:
+            return self._make_problem_detail(str(lcm_e),
+                404, title='Not Found')
+        except Exception as exc:
+            LOG.exception(exc)
+            return self._make_problem_detail(str(exc),
+                500, title='Internal Server Error')
+
+        # get vnf instance
+        try:
+            vnf_instance = objects.VnfInstance.get_by_id(
+                context, vnf_lcm_op_occs.vnf_instance_id)
+        except exceptions.VnfInstanceNotFound:
+            msg = (_("Can not find requested vnf instance: %s")
+                % vnf_lcm_op_occs.vnf_instance_id)
+            return self._make_problem_detail(msg,
+                404, title='Not Found')
+        except Exception as exc:
+            LOG.exception(exc)
+            return self._make_problem_detail(str(exc),
+                500, title='Internal Server Error')
+
+        operation = vnf_lcm_op_occs.operation
+        body = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        vnf['before_error_point'] = vnf_lcm_op_occs.error_point
+        vnf['vnf_lcm_op_occs_id'] = id
+        if operation == fields.LcmOccsOperationType.INSTANTIATE:
+            self._instantiate(context, vnf_instance, vnf, body)
+        elif operation == fields.LcmOccsOperationType.TERMINATE:
+            self._terminate(context, vnf_instance, vnf, body)
+        elif operation == fields.LcmOccsOperationType.HEAL:
+            self._heal(context, vnf_instance, vnf, body)
+        elif operation == fields.LcmOccsOperationType.SCALE:
+            self._scale(context, vnf_instance, vnf, body)
+        else:
+            error_msg = 'Operation type %s is inavalid' % operation
+            return self._make_problem_detail(error_msg,
+                500, title='Internal Server Error')
 
     def _make_problem_detail(
             self,

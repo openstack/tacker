@@ -330,3 +330,19 @@ def get_grant_response_dict():
             resource_name='VirtualStorage')]}
 
     return grant_response_dict
+
+
+def get_lcm_op_occs_object(operation="INSTANTIATE",
+        error_point=0):
+    vnf_lcm_op_occs = objects.VnfLcmOpOcc(
+        id=uuidsentinel.lcm_op_occs_id,
+        tenant_id=uuidsentinel.tenant_id,
+        operation_state='PROCESSING',
+        state_entered_time='2019-03-06T05:44:27Z',
+        start_time='2019-03-06T05:44:27Z',
+        operation=operation,
+        is_automatic_invocation=0,
+        is_cancel_pending=0,
+        error_point=error_point)
+
+    return vnf_lcm_op_occs
