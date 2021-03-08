@@ -108,8 +108,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription.
             - Show subscription.
         """
-        vnf_package_info = self._register_vnf_package_mock_response(
-            package_dir="functional5")
+        vnf_package_info = self._register_vnf_package_mock_response()
         glance_image = self._list_glance_image()[0]
 
         # Create subscription and register it.
@@ -143,9 +142,10 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
                 self.vim['tenant_id'], glance_image.id))
 
         # Instantiate vnf instance
-        request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
-            self.vim['tenant_id'], self.ext_networks, self.ext_mngd_networks,
-            self.ext_link_ports, self.ext_subnets)
+        request_body = fake_vnflcm.VnfInstances.\
+            make_inst_request_body_include_num_dynamic(
+                self.vim['tenant_id'], self.ext_networks,
+                self.ext_mngd_networks, self.ext_link_ports, self.ext_subnets)
         resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
         self._assert_instantiate_vnf(resp, vnf_instance_id)
@@ -284,12 +284,14 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
                 self.vim['tenant_id'], glance_image.id))
 
         # Instantiate vnf instance
-        request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
-            self.vim['tenant_id'], self.ext_networks, self.ext_mngd_networks,
-            self.ext_link_ports, self.ext_subnets)
+        request_body = fake_vnflcm.VnfInstances.\
+            make_inst_request_body_include_num_dynamic(
+                self.vim['tenant_id'], self.ext_networks,
+                self.ext_mngd_networks, self.ext_link_ports, self.ext_subnets)
         resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
         self._assert_instantiate_vnf(resp, vnf_instance_id)
+        self._assert_stack_template(vnf_instance_id)
 
         # Show vnf instance
         resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
@@ -303,15 +305,19 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
                 self.vim['tenant_id'], glance_image.id))
 
         # Heal vnf (exists vnfc_instace_id)
-        vnfc_instance_id_list = [
-            vnfc.get('id') for vnfc in vnf_instance.get(
-                'instantiatedVnfInfo', {}).get(
-                'vnfcResourceInfo', [])]
+        vnfc_instance_id_list = []
+
+        for vnfc in vnf_instance.get('instantiatedVnfInfo', {}).\
+                get('vnfcResourceInfo', []):
+            if vnfc.get('vduId') == 'VDU1':
+                vnfc_instance_id_list.append(vnfc.get('id'))
+
         request_body = fake_vnflcm.VnfInstances.make_heal_request_body(
             vnfc_instance_id_list)
         resp, _ = self._heal_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
         self._assert_heal_vnf(resp, vnf_instance_id)
+        self._assert_stack_template(vnf_instance_id)
 
         # Set Fake server response for Grant-Req(Terminate)
         vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
@@ -522,3 +528,14 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             ans_list.append(detail.attributes['fixed_ips'])
 
         return ans_list
+
+    def _assert_stack_template(self, vnf_instance_id):
+        stack = self._get_heat_stack(vnf_instance_id)
+        resources_list\
+            = self._get_heat_resource_list(stack.id, nested_depth=2)
+        stack_name_wd = vnf_instance_id + "-VDU2"
+        physical_resource_id = [r.physical_resource_id for r
+        in resources_list if stack_name_wd in r.stack_name]
+        template = self._get_heat_stack_template(physical_resource_id[0])
+        template_count = str(template).count("zone")
+        self.assertEqual(template_count, 3)
