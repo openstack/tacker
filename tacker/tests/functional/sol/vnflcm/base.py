@@ -626,6 +626,14 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
         return resource
 
+    def _get_heat_stack_template(self, stack_id, nested_depth=0):
+        try:
+            template = self.h_client.stacks.template(stack_id)
+        except Exception:
+            return None
+
+        return template
+
     def _get_image_id_from_resource_attributes(self, stack_resource_details):
         if stack_resource_details is None:
             return None
