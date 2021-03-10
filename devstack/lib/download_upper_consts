@@ -13,4 +13,6 @@ function download_upper_constraints_file {
         > upper-constraints.txt
 }
 
-download_upper_constraints_file
+# TODO(yasufum) Uncomment if install tosca-parser and heat-translator from git
+#     repo.
+# download_upper_constraints_file
