@@ -60,6 +60,10 @@ class ViewBuilder(base.BaseViewBuilder):
                 "heal": {
                     "href": '/vnflcm/v1/vnf_instances/%s/heal'
                             % vnf_instance.id
+                },
+                "changeExtConn": {
+                    "href": '/vnflcm/v1/vnf_instances/%s/change_ext_conn'
+                            % vnf_instance.id
                 }
             }
 

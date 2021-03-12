@@ -233,8 +233,9 @@ class LcmOccsOperationType(BaseTackerEnum):
     TERMINATE = 'TERMINATE'
     HEAL = 'HEAL'
     SCALE = 'SCALE'
+    CHANGE_EXT_CONN = 'CHANGE_EXT_CONN'
 
-    ALL = (INSTANTIATE, TERMINATE, HEAL, SCALE)
+    ALL = (INSTANTIATE, TERMINATE, HEAL, SCALE, CHANGE_EXT_CONN)
 
 
 class LcmOccsNotificationStatus(BaseTackerEnum):

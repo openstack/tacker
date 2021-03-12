@@ -131,3 +131,35 @@ class VnfAbstractDriver(extensions.PluginInterface, metaclass=abc.ABCMeta):
                            parameters passed in the heal request
         """
         pass
+
+    @abc.abstractmethod
+    def change_ext_conn_vnf(self, context, vnf_instance, vnf_dict,
+                            vim_connection_info, change_ext_conn_req):
+        """Change external VNF connectivity
+
+        :param context: A RequestContext
+        :param vnf_instance: tacker.objects.VnfInstance to be changed
+        :param vnf_dict:
+        :param vim_connection_info: Credentials to initialize Vim connection
+        :param change_ext_conn_req: tacker.objects.ChangeExtconnRequest object
+                                    containing parameters passed in the
+                                    change_ext_conn request
+        """
+        pass
+
+    @abc.abstractmethod
+    def change_ext_conn_vnf_wait(self, context, vnf_instance,
+                                 vim_connection_info):
+        """Check vnf external connnectivity is changed successfully"""
+        pass
+
+    @abc.abstractmethod
+    def post_change_ext_conn_vnf(self, context, vnf_instance,
+                                 vim_connection_info):
+        """Update resource information for each external VL/LINKPORT resources
+
+        :param context: A RequestContext
+        :param vnf_instance: tacker.objects.VnfInstance to be changed
+        :param vim_connection_info: Credentials to initialize Vim connection
+        """
+        pass

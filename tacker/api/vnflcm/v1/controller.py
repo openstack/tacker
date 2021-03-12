@@ -53,6 +53,7 @@ from tacker.extensions import vnfm
 from tacker import manager
 from tacker import objects
 from tacker.objects import fields
+from tacker.objects.fields import ErrorPoint as EP
 from tacker.objects import vnf_lcm_op_occs as vnf_lcm_op_occs_obj
 from tacker.objects import vnf_lcm_subscriptions as subscription_obj
 from tacker.plugins.common import constants
@@ -1576,6 +1577,49 @@ class VnfLcmController(wsgi.Controller):
         resp = self.rpc_api.test_notification(context,
             vnf_lcm_subscription, cast=False)
         return resp
+
+    @wsgi.response(http_client.ACCEPTED)
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
+                           http_client.NOT_FOUND, http_client.CONFLICT))
+    @validation.schema(vnf_lcm.change_ext_conn)
+    def change_ext_conn(self, request, id, body):
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'change_ext_conn')
+
+        vnf = self._get_vnf(context, id)
+        vnf_instance = self._get_vnf_instance(context, id)
+        if (vnf_instance.instantiation_state !=
+                fields.VnfInstanceState.INSTANTIATED):
+            return self._make_problem_detail(
+                'VNF is not instantiated',
+                409,
+                title='VNF IS NOT INSTANTIATED')
+        vnf['before_error_point'] = EP.INITIAL
+        self._change_ext_conn(context, vnf_instance, vnf, body)
+
+    def _change_ext_conn(self, context, vnf_instance, vnf, request_body):
+        req_body = utils.convert_camelcase_to_snakecase(request_body)
+        change_ext_conn_req = objects.ChangeExtConnRequest.obj_from_primitive(
+            req_body, context)
+
+        # call notification process
+        if vnf['before_error_point'] == EP.INITIAL:
+            vnf_lcm_op_occs_id = self._notification_process(
+                context,
+                vnf_instance,
+                fields.LcmOccsOperationType.CHANGE_EXT_CONN,
+                change_ext_conn_req,
+                request_body)
+        else:
+            vnf_lcm_op_occs_id = vnf['vnf_lcm_op_occs_id']
+
+        # Call Conductor server.
+        self.rpc_api.change_ext_conn(
+            context,
+            vnf_instance,
+            vnf,
+            change_ext_conn_req,
+            vnf_lcm_op_occs_id)
 
 
 def create_resource():

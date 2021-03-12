@@ -1742,3 +1742,101 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vnf_instance,
             operation_params,
             vim_connection_info)
+
+    def _change_ext_conn_vnf(self, context, vnf_instance, vnf_dict,
+            vim_connection_info, change_ext_conn_req):
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        try:
+            self._vnf_manager.invoke(
+                vim_connection_info.vim_type, 'change_ext_conn_vnf',
+                context=context, vnf_instance=vnf_instance, vnf_dict=vnf_dict,
+                vim_connection_info=vim_connection_info,
+                change_ext_conn_req=change_ext_conn_req)
+        except Exception as exp:
+            with excutils.save_and_reraise_exception() as exc_ctxt:
+                exc_ctxt.reraise = False
+                LOG.error("Failed to change external connectivity "
+                          "vnf %(id)s in infra driver. "
+                          "Error: %(error)s", {"id": vnf_instance.id, "error":
+                          encodeutils.exception_to_unicode(exp)})
+                raise exceptions.VnfChangeExtConnFailed(id=vnf_instance.id,
+                    error=encodeutils.exception_to_unicode(exp))
+        vnf_dict['current_error_point'] = fields.ErrorPoint.POST_VIM_CONTROL
+        try:
+            self._vnf_manager.invoke(
+                vim_connection_info.vim_type, 'change_ext_conn_vnf_wait',
+                context=context, vnf_instance=vnf_instance,
+                vim_connection_info=vim_connection_info)
+        except Exception as exp:
+            LOG.error("Failed to update vnf %(id)s resources for instance "
+                      "%(instance)s. Error: %(error)s",
+                      {'id': vnf_instance.id, 'instance':
+                      inst_vnf_info.instance_id, 'error':
+                      encodeutils.exception_to_unicode(exp)})
+            raise exceptions.VnfChangeExtConnWaitFailed(
+                id=vnf_instance.id,
+                error=encodeutils.exception_to_unicode(exp))
+
+    @log.log
+    @revert_to_error_task_state
+    def change_ext_conn_vnf(
+            self,
+            context,
+            vnf_instance,
+            vnf_dict,
+            change_ext_conn_req):
+        LOG.info("Request received for changing external connectivity "
+                 "vnf '%s'", vnf_instance.id)
+
+        vnfd_dict = vnflcm_utils._get_vnfd_dict(
+            context, vnf_instance.vnfd_id,
+            vnf_instance.instantiated_vnf_info.flavour_id)
+
+        vnf_dict['current_error_point'] = EP.VNF_CONFIG_START
+        if vnf_dict['before_error_point'] <= EP.VNF_CONFIG_START:
+            # TODO(esto-aln): grant_request here is planned to pass
+            # as a parameter, however due to grant_request are not
+            # passed from conductor to vnflcm_driver, thus we put Null
+            # value to grant and grant_reqeust temporary.
+            # This part will be updated in next release.
+            self._mgmt_manager.invoke(
+                self._load_vnf_interface(
+                    context, 'change_external_connectivity_start',
+                    vnf_instance, vnfd_dict),
+                'change_external_connectivity_start', context=context,
+                vnf_instance=vnf_instance,
+                change_ext_conn_request=change_ext_conn_req,
+                grant=vnf_dict.get('grant'), grant_request=None)
+
+        vnf_dict['current_error_point'] = EP.PRE_VIM_CONTROL
+        if vnf_dict['before_error_point'] <= EP.POST_VIM_CONTROL:
+            vim_info = vnflcm_utils._get_vim(context,
+                vnf_instance.vim_connection_info)
+
+            vim_connection_info = \
+                objects.VimConnectionInfo.obj_from_primitive(
+                    vim_info, context)
+
+            self._change_ext_conn_vnf(context, vnf_instance, vnf_dict,
+                vim_connection_info, change_ext_conn_req)
+
+        # Since there is no processing corresponding to
+        # EP.INTERNAL_PROCESSING, it transitions to EP.VNF_CONFIG_END.
+        vnf_dict['current_error_point'] = EP.VNF_CONFIG_END
+        if vnf_dict['before_error_point'] <= EP.VNF_CONFIG_END:
+            # TODO(esto-aln): grant_request here is planned to pass
+            # as a parameter, however due to grant_request are not
+            # passed from conductor to vnflcm_driver, thus we put Null
+            # value to grant and grant_reqeust temporary.
+            # This part will be updated in next release.
+            self._mgmt_manager.invoke(
+                self._load_vnf_interface(
+                    context, 'change_external_connectivity_end',
+                    vnf_instance, vnfd_dict),
+                'change_external_connectivity_end', context=context,
+                vnf_instance=vnf_instance,
+                change_ext_conn_request=change_ext_conn_req,
+                grant=vnf_dict.get('grant'), grant_request=None)
+
+        LOG.info("Request received for changing external connectivity "
+                 "vnf '%s' is completed successfully", vnf_instance.id)

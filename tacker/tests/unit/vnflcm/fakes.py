@@ -20,9 +20,11 @@ import os
 import webob
 
 from tacker.api.vnflcm.v1.router import VnflcmAPIRouter
+from tacker.common import utils
 from tacker import context
 from tacker.db.db_sqlalchemy import models
 from tacker import objects
+from tacker.objects.change_ext_conn_req import ChangeExtConnRequest
 from tacker.objects import fields
 from tacker.objects.instantiate_vnf_req import ExtManagedVirtualLinkData
 from tacker.objects.instantiate_vnf_req import ExtVirtualLinkData
@@ -229,7 +231,10 @@ def _instantiated_vnf_links(vnf_instance_id):
         "terminate": {"href": "/vnflcm/v1/vnf_instances/%s/terminate" %
                       vnf_instance_id},
         "heal": {"href": "/vnflcm/v1/vnf_instances/%s/heal" %
-                 vnf_instance_id}}
+                 vnf_instance_id},
+        "changeExtConn": {"href":
+                          "/vnflcm/v1/vnf_instances/%s/change_ext_conn" %
+                          vnf_instance_id}}
 
     return links
 
@@ -1598,3 +1603,62 @@ def return_vnf_lcm_opoccs_list():
     obj = objects.VnfLcmOpOcc(**vnf_lcm_op_occs)
 
     return [obj]
+
+
+def get_change_ext_conn_request_body():
+    change_ext_conn_req_body = {
+        "extVirtualLinks": [{
+            "id": 'f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+            "vimConnectionId": '2b3beeff-d4a1-4dc7-a1f8-066f92cfcb75',
+            "resourceId": 'e08f5e67-55de-4c4a-815b-cf3f1e2bae04',
+            "extCps": [{
+                "cpdId": 'VDU2_CP2',
+                "cpConfig": [{
+                    "cpInstanceId": '924d0ea7-786d-468b-bf45-65bfd483ee79',
+                    "linkPortId": 'f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+                    "cpProtocolData": [{
+                        "layerProtocol": 'IP_OVER_ETHERNET',
+                        "ipOverEthernet": {
+                            "macAddress":
+                                'fa:16:3e:11:11:11',
+                            "ipAddresses": [{
+                                "type": "IPV4",
+                                "fixedAddresses": ["22.22.1.20"],
+                                "subnetId":
+                                    '497b7a75-6c10-4a74-85fa-83d498da2501'
+                            }]
+                        }
+                    }]
+                }]
+            }],
+            "extLinkPorts": [{
+                "id": 'decd78d2-993c-4112-9a8f-1ad54cade4d7',
+                "resourceHandle": {
+                    "resourceId": 'cb602960-05ee-4e03-8fe2-ea0b64e08332',
+                    "vimConnectionId": '2b3beeff-d4a1-4dc7-a1f8-066f92cfcb75',
+                    "vimLevelResourceType":
+                        'f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+                }
+            }],
+            "vimConnectionInfo": [{
+                "id": '2b3beeff-d4a1-4dc7-a1f8-066f92cfcb75',
+                "vimId": 'f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+                "vimType": 'openstack',
+                "interfaceInfo": {"key1": 'value1', "key2": 'value2'},
+                "accessInfo": {"key1": 'value1', "key2": 'value2'}
+            }],
+        }]
+    }
+
+    return change_ext_conn_req_body
+
+
+def get_change_ext_conn_request_obj():
+    """Return ChangeExtConnRequest Object
+
+    obj_from_primitive() needs snake_case dictionary
+    """
+    body = utils.convert_camelcase_to_snakecase(
+        get_change_ext_conn_request_body())
+    return ChangeExtConnRequest.obj_from_primitive(
+        body, context)

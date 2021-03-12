@@ -33,8 +33,12 @@ class Grant(base.TackerObject):
             'GrantInfo', nullable=True, default=[]),
         'remove_resources': fields.ListOfObjectsField(
             'GrantInfo', nullable=True, default=[]),
+        'update_resources': fields.ListOfObjectsField(
+            'GrantInfo', nullable=True, default=[]),
         'vim_assets': fields.ObjectField(
-            'VimAssets', nullable=True)
+            'VimAssets', nullable=True),
+        'ext_virtual_links': fields.ListOfObjectsField(
+            'ExtVirtualLinkData', nullable=True, default=[]),
     }
 
     @classmethod
@@ -65,11 +69,20 @@ class Grant(base.TackerObject):
                     remove_rsc) for remove_rsc in primitive.get(
                     'remove_resources', [])]
                 primitive.update({'remove_resources': obj_data})
+            if 'update_resources' in primitive.keys():
+                obj_data = [GrantInfo._from_dict(
+                    update_rsc) for update_rsc in primitive.get(
+                    'update_resources', [])]
+                primitive.update({'update_resources': obj_data})
             if 'vim_assets' in primitive.keys():
                 obj_data = VimAssets.obj_from_primitive(
                     primitive.get('vim_assets'), context)
                 primitive.update({'vim_assets': obj_data})
-
+            if 'ext_virtual_links' in primitive.keys():
+                obj_data = [objects.ExtVirtualLinkData.obj_from_primitive(
+                    ext_vir_link, context) for ext_vir_link in primitive.get(
+                    'ext_virtual_links', [])]
+                primitive.update({'ext_virtual_links': obj_data})
             obj_grant = Grant._from_dict(primitive)
 
         return obj_grant
@@ -83,7 +96,9 @@ class Grant(base.TackerObject):
         zones = data_dict.get('zones', [])
         add_resources = data_dict.get('add_resources', [])
         remove_resources = data_dict.get('remove_resources', [])
+        update_resources = data_dict.get('update_resources', [])
         vim_assets = data_dict.get('vim_assets')
+        ext_virtual_links = data_dict.get('ext_virtual_links', [])
 
         obj = cls(
             id=id,
@@ -93,7 +108,9 @@ class Grant(base.TackerObject):
             zones=zones,
             add_resources=add_resources,
             remove_resources=remove_resources,
-            vim_assets=vim_assets)
+            update_resources=update_resources,
+            vim_assets=vim_assets,
+            ext_virtual_links=ext_virtual_links)
         return obj
 
 

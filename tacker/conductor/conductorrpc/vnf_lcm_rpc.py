@@ -136,3 +136,25 @@ class VNFLcmRPCAPI(object):
                           vnf_info=vnf_info,
                           vnf_instance=vnf_instance,
                           operation_params=operation_params)
+
+    def change_ext_conn(
+            self,
+            context,
+            vnf_instance,
+            vnf_dict,
+            change_ext_conn_req,
+            vnf_lcm_op_occs_id,
+            cast=True):
+        serializer = objects_base.TackerObjectSerializer()
+
+        client = rpc.get_client(self.target, version_cap=None,
+                                serializer=serializer)
+        cctxt = client.prepare()
+        rpc_method = cctxt.cast if cast else cctxt.call
+        return rpc_method(
+            context,
+            'change_ext_conn',
+            vnf_instance=vnf_instance,
+            vnf_dict=vnf_dict,
+            change_ext_conn_req=change_ext_conn_req,
+            vnf_lcm_op_occs_id=vnf_lcm_op_occs_id)

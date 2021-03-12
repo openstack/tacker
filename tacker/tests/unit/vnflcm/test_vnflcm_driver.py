@@ -136,6 +136,14 @@ class FakeDriverManager(mock.Mock):
                 raise InfraDriverException("post_heal_vnf failed")
         if 'get_rollback_ids' in args:
             return [], [], ""
+        if 'change_ext_conn_vnf' in args:
+            if self.fail_method_name and \
+                    self.fail_method_name == 'change_ext_conn_vnf':
+                raise InfraDriverException("change_ext_conn_vnf failed")
+        elif 'change_ext_conn_vnf_wait' in args:
+            if self.fail_method_name and \
+                    self.fail_method_name == 'change_ext_conn_vnf_wait':
+                raise InfraDriverException("change_ext_conn_vnf_wait failed")
 
 
 class FakeVimClient(mock.Mock):
@@ -2900,3 +2908,348 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             vnf_instance,
             operation_params)
         self.assertEqual(1, mock_lcm_save.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_change_ext_conn_vnf(self, mock_vnf_interfaces, mock_vnfd_dict,
+                                 mock_log, mock_save, mock_init_hash,
+                                 mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        change_ext_conn_vnf_req = objects.ChangeExtConnRequest(
+            vim_connection_info=[],
+            ext_virtual_links=[],
+            additional_params={})
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_dict = {'before_error_point': 0, 'grant': None}
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.change_ext_conn_vnf(self.context,
+                                   vnf_instance,
+                                   vnf_dict,
+                                   change_ext_conn_vnf_req)
+        self.assertEqual(4, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(None, vnf_instance.task_state)
+        expected_msg = ("Request received for changing external "
+                       "connectivity vnf '%s' is completed successfully")
+        mock_log.info.assert_called_with(expected_msg,
+            vnf_instance.id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_change_ext_conn_vnf_fail(self, mock_vnf_interfaces,
+            mock_vnfd_dict, mock_log, mock_save, mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        change_ext_conn_vnf_req = objects.ChangeExtConnRequest(
+            vim_connection_info=[],
+            ext_virtual_links=[],
+            additional_params={})
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_dict = {'before_error_point': 0, 'grant': None}
+
+        self._mock_vnf_manager(fail_method_name='change_ext_conn_vnf')
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(exceptions.VnfChangeExtConnFailed,
+            driver.change_ext_conn_vnf, self.context, vnf_instance,
+            vnf_dict, change_ext_conn_vnf_req)
+        self.assertEqual(2, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(fields.VnfInstanceTaskState.ERROR,
+            vnf_instance.task_state)
+        expected_msg = ("Failed to change external connectivity "
+                       "vnf %(id)s in infra driver. "
+                       "Error: %(error)s")
+        mock_log.error.assert_called_with(expected_msg,
+            {'id': vnf_instance.id, 'error': 'change_ext_conn_vnf failed'})
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_change_ext_conn_vnf_wait_fail(self, mock_vnf_interfaces,
+            mock_vnfd_dict, mock_log, mock_save, mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        change_ext_conn_vnf_req = objects.ChangeExtConnRequest(
+            vim_connection_info=[],
+            ext_virtual_links=[],
+            additional_params={})
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_dict = {'before_error_point': 0, 'grant': None}
+
+        vnf_instance.instantiated_vnf_info.instance_id =\
+            uuidsentinel.instance_id
+        self._mock_vnf_manager(fail_method_name='change_ext_conn_vnf_wait')
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(exceptions.VnfChangeExtConnWaitFailed,
+            driver.change_ext_conn_vnf, self.context, vnf_instance,
+            vnf_dict, change_ext_conn_vnf_req)
+        self.assertEqual(3, self._vnf_manager.invoke.call_count)
+
+        self.assertEqual(
+            fields.VnfInstanceTaskState.ERROR,
+            vnf_instance.task_state)
+        expected_msg = ('Failed to update vnf %(id)s resources for '
+                        'instance %(instance)s. Error: %(error)s')
+        mock_log.error.assert_called_with(expected_msg,
+            {'id': vnf_instance.id,
+             'instance': vnf_instance.instantiated_vnf_info.instance_id,
+             'error': 'change_ext_conn_vnf_wait failed'})
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_change_ext_conn_vnf_retry_error_point_2(
+            self,
+            mock_vnf_interfaces,
+            mock_vnfd_dict,
+            mock_log,
+            mock_save,
+            mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        change_ext_conn_vnf_req = objects.ChangeExtConnRequest(
+            vim_connection_info=[],
+            ext_virtual_links=[],
+            additional_params={})
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_dict = {'before_error_point': 2, 'grant': None}
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.change_ext_conn_vnf(self.context,
+                                   vnf_instance,
+                                   vnf_dict,
+                                   change_ext_conn_vnf_req)
+
+        self.assertEqual(4, self._vnf_manager.invoke.call_count)
+        self.assertEqual(None, vnf_instance.task_state)
+        expected_msg = ("Request received for changing external "
+                       "connectivity vnf '%s' is completed successfully")
+        mock_log.info.assert_called_with(expected_msg,
+            vnf_instance.id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_change_ext_conn_vnf_retry_error_point_3(
+            self,
+            mock_vnf_interfaces,
+            mock_vnfd_dict,
+            mock_log,
+            mock_save,
+            mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        change_ext_conn_vnf_req = objects.ChangeExtConnRequest(
+            vim_connection_info=[],
+            ext_virtual_links=[],
+            additional_params={})
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_dict = {'before_error_point': 3, 'grant': None}
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.change_ext_conn_vnf(self.context,
+                                   vnf_instance,
+                                   vnf_dict,
+                                   change_ext_conn_vnf_req)
+
+        self.assertEqual(3, self._vnf_manager.invoke.call_count)
+        self.assertEqual(None, vnf_instance.task_state)
+        expected_msg = ("Request received for changing external "
+                       "connectivity vnf '%s' is completed successfully")
+        mock_log.info.assert_called_with(expected_msg,
+            vnf_instance.id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_change_ext_conn_vnf_retry_error_point_4(
+            self,
+            mock_vnf_interfaces,
+            mock_vnfd_dict,
+            mock_log,
+            mock_save,
+            mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        change_ext_conn_vnf_req = objects.ChangeExtConnRequest(
+            vim_connection_info=[],
+            ext_virtual_links=[],
+            additional_params={})
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_dict = {'before_error_point': 4, 'grant': None}
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.change_ext_conn_vnf(self.context,
+                                   vnf_instance,
+                                   vnf_dict,
+                                   change_ext_conn_vnf_req)
+
+        self.assertEqual(3, self._vnf_manager.invoke.call_count)
+        self.assertEqual(None, vnf_instance.task_state)
+        expected_msg = ("Request received for changing external "
+                       "connectivity vnf '%s' is completed successfully")
+        mock_log.info.assert_called_with(expected_msg,
+            vnf_instance.id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_change_ext_conn_vnf_retry_error_point_5(
+            self,
+            mock_vnf_interfaces,
+            mock_vnfd_dict,
+            mock_log,
+            mock_save,
+            mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        change_ext_conn_vnf_req = objects.ChangeExtConnRequest(
+            vim_connection_info=[],
+            ext_virtual_links=[],
+            additional_params={})
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_dict = {'before_error_point': 5, 'grant': None}
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.change_ext_conn_vnf(self.context,
+                                   vnf_instance,
+                                   vnf_dict,
+                                   change_ext_conn_vnf_req)
+
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
+        self.assertEqual(None, vnf_instance.task_state)
+        expected_msg = ("Request received for changing external "
+                       "connectivity vnf '%s' is completed successfully")
+        mock_log.info.assert_called_with(expected_msg,
+            vnf_instance.id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.vnflcm_driver.LOG')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_change_ext_conn_vnf_retry_error_point_6(
+            self,
+            mock_vnf_interfaces,
+            mock_vnfd_dict,
+            mock_log,
+            mock_save,
+            mock_init_hash,
+            mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        change_ext_conn_vnf_req = objects.ChangeExtConnRequest(
+            vim_connection_info=[],
+            ext_virtual_links=[],
+            additional_params={})
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_dict = {'before_error_point': 6, 'grant': None}
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.change_ext_conn_vnf(self.context,
+                                   vnf_instance,
+                                   vnf_dict,
+                                   change_ext_conn_vnf_req)
+
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
+        self.assertEqual(None, vnf_instance.task_state)
+        expected_msg = ("Request received for changing external "
+                       "connectivity vnf '%s' is completed successfully")
+        mock_log.info.assert_called_with(expected_msg,
+            vnf_instance.id)

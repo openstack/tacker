@@ -44,3 +44,4 @@ def register_all():
     __import__('tacker.objects.grant')
     __import__('tacker.objects.grant_request')
     __import__('tacker.objects.vnfd_attribute')
+    __import__('tacker.objects.change_ext_conn_req')

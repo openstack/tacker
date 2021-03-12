@@ -291,7 +291,8 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
             changed_ext_conn = \
                 [objects.ExtVirtualLinkInfo.obj_from_primitive(
                  chg_ext_conn, context) for chg_ext_conn in
-                 db_vnf_lcm_op_occ['changed_ext_connectivity']]
+                 jsonutils.loads(
+                    db_vnf_lcm_op_occ['changed_ext_connectivity'])]
             vnf_lcm_op_occ_obj.changed_ext_connectivity = changed_ext_conn
 
         vnf_lcm_op_occ_obj._context = context

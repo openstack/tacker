@@ -40,7 +40,8 @@ class Subscription:
                     "SCALE",
                     "TERMINATE",
                     "HEAL",
-                    "MODIFY_INFO"
+                    "MODIFY_INFO",
+                    "CHANGE_EXT_CONN"
                 ]
             },
             "callbackUri": callback_uri
@@ -373,3 +374,56 @@ class VnfInstances:
                 "samplekey": "samplevalue"
             }
         }
+
+    @staticmethod
+    def make_change_ext_conn_request_body(
+            tenant_id,
+            networks_id,
+            external_subnets_id):
+
+        # set external subnet_id on vim.
+        ext_cps_vdu2_cp2 = {
+            "cpdId": "VDU2_CP2",
+            "cpConfig": [{
+                "cpProtocolData": [{
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                        "ipAddresses": [{
+                            "type": "IPV4",
+                            "fixedAddresses": ["22.22.2.200"],
+                            "subnetId": external_subnets_id[0]
+                        }]
+                    }
+                }]
+            }]
+        }
+
+        ext_virtual_link_cp2 = {
+            "id": uuidsentinel.evl2_id,
+            "resourceId": networks_id[0],
+            "extCps": [
+                ext_cps_vdu2_cp2
+            ]
+        }
+
+        data = {
+            "extVirtualLinks": [
+                ext_virtual_link_cp2
+            ],
+            "vimConnectionInfo": [{
+                "id": uuidsentinel.vim_connection_id,
+                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+                "vimConnectionId": uuidsentinel.vim_connection_id,
+                "interfaceInfo": {
+                    "endpoint": "http://127.0.0.1/identity"
+                },
+                "accessInfo": {
+                    "username": "nfv_user",
+                    "region": "RegionOne",
+                    "password": "devstack",
+                    "tenant": tenant_id
+                }
+            }],
+        }
+
+        return data

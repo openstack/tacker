@@ -121,6 +121,9 @@
             $NEUTRON_DHCP_CONF:
               DEFAULT:
                 enable_isolated_metadata: True
+            $CINDER_CONF:
+              lvmdriver-1:
+                image_volume_cache_enabled: False
         devstack_plugins:
           heat: https://opendev.org/openstack/heat
           networking-sfc: https://opendev.org/openstack/networking-sfc

@@ -1596,6 +1596,48 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             expected_usage_state,
             vnf_package_info['usageState'])
 
+    def _get_fixed_ips(self, vnf_instance_id, request_body):
+        res_name = None
+        for extvirlink in request_body['extVirtualLinks']:
+            if 'extCps' not in extvirlink:
+                continue
+            for extcps in extvirlink['extCps']:
+                if 'cpdId' in extcps:
+                    if res_name is None:
+                        res_name = list()
+                    res_name.append(extcps['cpdId'])
+                    break
+        if res_name is None:
+            return []
+
+        stack = self._get_heat_stack(vnf_instance_id)
+        stack_id = stack.id
+
+        stack_resource = self._get_heat_resource_list(stack_id, nested_depth=2)
+
+        releations = dict()
+        for elmt in stack_resource:
+            if elmt.resource_type != 'OS::Neutron::Port':
+                continue
+            if elmt.resource_name not in res_name:
+                continue
+            releations[elmt.parent_resource] = elmt.resource_name
+
+        details = list()
+        for (parent_name, resource_name) in releations.items():
+            for elmt in stack_resource:
+                if parent_name != elmt.resource_name:
+                    continue
+                detail_stack = self._get_heat_resource(
+                    elmt.physical_resource_id, resource_name)
+                details.append(detail_stack)
+
+        ans_list = list()
+        for detail in details:
+            ans_list.append(detail.attributes['fixed_ips'])
+
+        return ans_list
+
     def _assert_occ_show(self, resp, op_occs_info):
         self.assertEqual(200, resp.status_code)
 
@@ -1684,3 +1726,146 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             self.assertIsNotNone(_links.get('rollback').get('href'))
         if _links.get('grant') is not None:
             self.assertIsNotNone(_links.get('grant').get('href'))
+
+    def test_inst_chgextconn_term(self):
+        """Test basic life cycle operations with sample VNFD.
+
+        In this test case, we do following steps.
+            - Create subscription.
+            - Show subscriptions.
+            - Get list of subscriptions.
+            - Create VNF package.
+            - Upload VNF package.
+            - Create VNF instance.
+            - Instantiate VNF.
+            - Get list of VNF instances.
+            - Get VNF informations.
+            - Change External VNF Connectivity.
+            - Get opOccs informations.
+            - Terminate VNF
+            - Delete VNF
+            - Delete subscription
+        """
+        # Create subscription and register it.
+        request_body = fake_vnflcm.Subscription.make_create_request_body(
+            'http://localhost:{}{}'.format(
+                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                    self._testMethodName)))
+        resp, response_body = self._register_subscription(request_body)
+        self.assertEqual(201, resp.status_code)
+        self.assert_http_header_location_for_subscription(resp.headers)
+        subscription_id = response_body.get('id')
+        self.addCleanup(
+            self._delete_subscription,
+            subscription_id)
+
+        # Subscription show
+        resp, body = self._wait_show_subscription(subscription_id)
+        self.assert_subscription_show(resp, body)
+
+        # Subscription list
+        resp, _ = self._list_subscription()
+        self.assertEqual(200, resp.status_code)
+
+        # Pre Setting: Create vnf package.
+        sample_name = 'functional5'
+        csar_package_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "../../../etc/samples/etsi/nfv",
+                sample_name))
+        tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
+            csar_package_path)
+        # upload vnf package
+        vnf_package_id, vnfd_id = vnflcm_base._create_and_upload_vnf_package(
+            self.tacker_client, user_defined_data={
+                "key": sample_name}, temp_csar_path=tempname)
+
+        # Post Setting: Reserve deleting vnf package.
+        self.addCleanup(vnflcm_base._delete_vnf_package, self.tacker_client,
+            vnf_package_id)
+
+        # Create vnf instance
+        resp, vnf_instance = self._create_vnf_instance_from_body(
+            fake_vnflcm.VnfInstances.make_create_request_body(vnfd_id))
+        vnf_instance_id = vnf_instance['id']
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
+        vnf_instance_name = vnf_instance['vnfInstanceName']
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
+
+        # Instantiate vnf instance
+        request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
+            self.vim['tenant_id'], self.ext_networks, self.ext_mngd_networks,
+            self.ext_link_ports, self.ext_subnets)
+        resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_instantiate_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # List vnf instance
+        filter_expr = {
+            'filter': "(eq,id,{});(eq,vnfInstanceName,{})".format(
+                vnf_instance_id, vnf_instance_name)}
+        resp, vnf_instances = self._list_vnf_instance(params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(1, len(vnf_instances))
+
+        # Show vnf instance
+        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
+        self.assertEqual(200, resp.status_code)
+
+        # Change external connectivity
+        request_body = \
+            fake_vnflcm.VnfInstances.make_change_ext_conn_request_body(
+                self.vim['tenant_id'], self.changed_ext_networks,
+                self.changed_ext_subnets)
+        before_fixed_ips = self._get_fixed_ips(vnf_instance_id, request_body)
+        resp, _ = \
+            self._change_ext_conn_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        after_fixed_ips = self._get_fixed_ips(vnf_instance_id, request_body)
+        self.assertNotEqual(before_fixed_ips, after_fixed_ips)
+
+        callback_url = os.path.join(
+            vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = vnflcm_base.FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            callback_url)
+        vnflcm_op_occ_id = notify_mock_responses[0].request_body.get(
+            'vnfLcmOpOccId')
+        self.assertIsNotNone(vnflcm_op_occ_id)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(callback_url)
+
+        # occ-show(chgextconn)
+        resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
+        self._assert_occ_show(resp, op_occs_info)
+
+        # Terminate VNF
+        stack = self._get_heat_stack(vnf_instance_id)
+        resources_list = self._get_heat_resource_list(stack.id)
+        resource_name_list = [r.resource_name for r in resources_list]
+        glance_image_id_list = \
+            self._get_glance_image_list_from_stack_resource(
+                stack.id, resource_name_list)
+
+        terminate_req_body = fake_vnflcm.VnfInstances.make_term_request_body()
+        resp, _ = self._terminate_vnf_instance(
+            vnf_instance_id, terminate_req_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_terminate_vnf(resp, vnf_instance_id, stack.id,
+            resource_name_list, glance_image_id_list, vnf_package_id)
+
+        # Delete VNF
+        resp, _ = self._delete_vnf_instance(vnf_instance_id)
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Subscription delete
+        resp, response_body = self._delete_subscription(subscription_id)
+        self.assertEqual(204, resp.status_code)
+
+        resp, _ = self._show_subscription(subscription_id)
+        self.assertEqual(404, resp.status_code)

@@ -23,7 +23,7 @@ from tacker.tests.functional.sol_separated_nfvo.vnflcm import fake_vnfpkgm
 
 class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
 
-    def _register_vnf_package_mock_response(self):
+    def _register_vnf_package_mock_response(self, package_dir="functional6"):
         """Prepare VNF package for test.
 
         Register VNF package response to fake NFVO server and Cleanups.
@@ -32,7 +32,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             Response: VNF Package information
         """
         # Pre Setting: Create vnf package.
-        sample_name = "functional6"
+        sample_name = package_dir
         csar_package_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
@@ -91,6 +91,152 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             content=tempname)
 
         return vnf_package_info
+
+    def test_inst_chgextconn_term(self):
+        """Test basic life cycle operations with sample VNFD with UserData.
+
+        In this test case, we do following steps.
+            - Create subscription.
+            - Create VNF instance.
+            - Instantiate VNF.
+            - List VNF instances.
+            - Show VNF instance.
+            - Change External VNF Connectivity.
+            - Get opOccs information.
+            - Terminate VNF.
+            - Delete VNF.
+            - Delete subscription.
+            - Show subscription.
+        """
+        vnf_package_info = self._register_vnf_package_mock_response(
+            package_dir="functional5")
+        glance_image = self._list_glance_image()[0]
+
+        # Create subscription and register it.
+        request_body = fake_vnflcm.Subscription.make_create_request_body(
+            'http://localhost:{}{}'.format(
+                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                os.path.join(
+                    vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                    self._testMethodName)))
+        resp, response_body = self._register_subscription(request_body)
+        self.assertEqual(201, resp.status_code)
+        self.assert_http_header_location_for_subscription(resp.headers)
+        subscription_id = response_body.get('id')
+        self.addCleanup(self._delete_subscription, subscription_id)
+
+        # Create vnf instance
+        resp, vnf_instance = self._create_vnf_instance_from_body(
+            fake_vnflcm.VnfInstances.make_create_request_body(
+                vnf_package_info['vnfdId']))
+        vnf_instance_id = vnf_instance.get('id')
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self._assert_create_vnf(resp, vnf_instance)
+        vnf_instance_name = vnf_instance['vnfInstanceName']
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
+
+        # Set Fake server response for Grant-Req(Instantiate)
+        vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
+            fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
+            callback=lambda req_headers,
+            req_body: fake_grant.Grant.make_inst_response_body(req_body,
+                self.vim['tenant_id'], glance_image.id))
+
+        # Instantiate vnf instance
+        request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
+            self.vim['tenant_id'], self.ext_networks, self.ext_mngd_networks,
+            self.ext_link_ports, self.ext_subnets)
+        resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self._assert_instantiate_vnf(resp, vnf_instance_id)
+
+        # List vnf instances
+        filter_expr = {
+            'filter': "(eq,id,{});(eq,vnfInstanceName,{})".format(
+                vnf_instance_id, vnf_instance_name)}
+        resp, vnf_instances = self._list_vnf_instance(params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(1, len(vnf_instances))
+
+        # Show vnf instance
+        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
+        self.assertEqual(200, resp.status_code)
+
+        # Set Fake server response for Grant-Req(Chnage-ext-conn)
+        vnflcm_base.FAKE_SERVER_MANAGER.set_callback(
+            'POST',
+            fake_grant.Grant.GRANT_REQ_PATH,
+            status_code=201,
+            callback=lambda req_headers,
+            req_body: fake_grant.Grant.make_change_ext_conn_response_body(
+                req_body,
+                self.vim['tenant_id'],
+                glance_image.id))
+
+        # Change external connectivity
+        request_body = \
+            fake_vnflcm.VnfInstances.make_change_ext_conn_request_body(
+                self.vim['tenant_id'], self.changed_ext_networks,
+                self.changed_ext_subnets)
+        before_fixed_ips = self._get_fixed_ips(vnf_instance_id, request_body)
+        resp, _ = \
+            self._change_ext_conn_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        after_fixed_ips = self._get_fixed_ips(vnf_instance_id, request_body)
+        self.assertNotEqual(before_fixed_ips, after_fixed_ips)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            fake_grant.Grant.GRANT_REQ_PATH)
+
+        # get vnflcm_op_occ_id
+        callback_url = os.path.join(
+            vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = vnflcm_base.FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            callback_url)
+
+        vnflcm_op_occ_id = notify_mock_responses[0].request_body.get(
+            'vnfLcmOpOccId')
+        self.assertIsNotNone(vnflcm_op_occ_id)
+
+        # occ-show(chgextconn)
+        resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
+        self._assert_occ_show(resp, op_occs_info)
+
+        # Set Fake server response for Grant-Req(Terminate)
+        vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
+            fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
+            callback=lambda req_headers,
+            req_body: fake_grant.Grant.make_term_response_body(req_body))
+
+        # Get stack informations to terminate.
+        stack = self._get_heat_stack(vnf_instance_id)
+        resources_list = self._get_heat_resource_list(stack.id)
+        resource_name_list = [r.resource_name for r in resources_list]
+        glance_image_id_list = self._get_glance_image_list_from_stack_resource(
+            stack.id, resource_name_list)
+
+        # Terminate VNF
+        terminate_req_body = fake_vnflcm.VnfInstances.make_term_request_body()
+        resp, _ = self._terminate_vnf_instance(vnf_instance_id,
+                terminate_req_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self._assert_terminate_vnf(resp, vnf_instance_id, stack.id,
+             resource_name_list, glance_image_id_list)
+
+        # Delete VNF
+        resp, _ = self._delete_vnf_instance(vnf_instance_id)
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_delete_vnf(resp, vnf_instance_id)
+
+        # Delete Subscription
+        resp, response_body = self._delete_subscription(subscription_id)
+        self.assertEqual(204, resp.status_code)
+
+        # Check subscription was deleted
+        resp, show_body = self._show_subscription(subscription_id)
+        self.assertEqual(404, resp.status_code)
 
     def test_inst_heal_term(self):
         """Test basic life cycle operations with sample VNFD with UserData.
@@ -315,3 +461,64 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         self.assertEqual(
             '{} {}'.format(expected_auth_type, expected_token_value),
             actual_auth)
+
+    def _assert_occ_show(self, resp, op_occs_info):
+        self.assertEqual(200, resp.status_code)
+
+        # Only check required parameters.
+        self.assertIsNotNone(op_occs_info.get('id'))
+        self.assertIsNotNone(op_occs_info.get('operationState'))
+        self.assertIsNotNone(op_occs_info.get('stateEnteredTime'))
+        self.assertIsNotNone(op_occs_info.get('vnfInstanceId'))
+        self.assertIsNotNone(op_occs_info.get('operation'))
+        self.assertIsNotNone(op_occs_info.get('isAutomaticInvocation'))
+        self.assertIsNotNone(op_occs_info.get('isCancelPending'))
+
+        _links = op_occs_info.get('_links')
+        self.assertIsNotNone(_links.get('self'))
+        self.assertIsNotNone(_links.get('self').get('href'))
+        self.assertIsNotNone(_links.get('vnfInstance'))
+        self.assertIsNotNone(_links.get('vnfInstance').get('href'))
+        self.assertIsNotNone(_links.get('grant'))
+        self.assertIsNotNone(_links.get('grant').get('href'))
+
+    def _get_fixed_ips(self, vnf_instance_id, request_body):
+        res_name = None
+        for extvirlink in request_body['extVirtualLinks']:
+            if 'extCps' not in extvirlink:
+                continue
+            for extcps in extvirlink['extCps']:
+                if 'cpdId' in extcps:
+                    if res_name is None:
+                        res_name = list()
+                    res_name.append(extcps['cpdId'])
+                    break
+        self.assertTrue(res_name)
+
+        stack = self._get_heat_stack(vnf_instance_id)
+        stack_id = stack.id
+
+        stack_resource = self._get_heat_resource_list(stack_id, nested_depth=2)
+
+        releations = dict()
+        for elmt in stack_resource:
+            if elmt.resource_type != 'OS::Neutron::Port':
+                continue
+            if elmt.resource_name not in res_name:
+                continue
+            releations[elmt.parent_resource] = elmt.resource_name
+
+        details = list()
+        for (parent_name, resource_name) in releations.items():
+            for elmt in stack_resource:
+                if parent_name != elmt.resource_name:
+                    continue
+                detail_stack = self._get_heat_resource(
+                    elmt.physical_resource_id, resource_name)
+                details.append(detail_stack)
+
+        ans_list = list()
+        for detail in details:
+            ans_list.append(detail.attributes['fixed_ips'])
+
+        return ans_list

@@ -996,21 +996,6 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         vnfd_dict['instance_id'] = instance_id
         return instance_id
 
-    @log.log
-    def post_vnf_instantiation(self, context, vnf_instance,
-            vim_connection_info, instantiate_vnf_req):
-        inst_vnf_info = vnf_instance.instantiated_vnf_info
-        access_info = vim_connection_info.access_info
-
-        heatclient = hc.HeatClient(access_info,
-            region_name=access_info.get('region'))
-        stack_resources = self._get_stack_resources(
-            inst_vnf_info.instance_id, heatclient)
-
-        self._update_vnfc_resources(vnf_instance, stack_resources,
-                                    vim_connection_info)
-        self._update_vnfc_info(vnf_instance)
-
     def _update_resource_handle(self, vnf_instance, resource_handle,
                                 stack_resources, resource_name,
                                 vim_connection_info):
@@ -2033,3 +2018,101 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             return_rs_list = before_rs_list
 
         return return_list, return_rs_list, grp.physical_resource_id
+
+    @log.log
+    def change_ext_conn_vnf(self, context, vnf_instance, vnf_dict,
+            vim_connection_info, change_ext_conn_req):
+
+        base_hot_dict, nested_hot_dict = \
+            vnflcm_utils.get_base_nest_hot_dict(
+                context,
+                vnf_instance.instantiated_vnf_info.flavour_id,
+                vnf_instance.vnfd_id)
+        stack_param = yaml.safe_load(
+            vnf_dict['attributes']['stack_param'])
+
+        LOG.debug('before stack_param: {}'.format(stack_param))
+        cp_param = stack_param['nfv']['CP']
+
+        for ext_virtual_link in change_ext_conn_req.ext_virtual_links:
+            for ext_cp in ext_virtual_link.ext_cps:
+                if ext_cp.cpd_id not in cp_param.keys():
+                    continue
+                cpd_id = ext_cp.cpd_id
+                network = cp_param[cpd_id].get('network', None)
+                if network and network != ext_virtual_link.resource_id:
+                    cp_param[cpd_id].update(
+                        dict(network=ext_virtual_link.resource_id))
+
+                try:
+                    ip_addr = ext_cp.cp_config[0].cp_protocol_data[0].\
+                        ip_over_ethernet.ip_addresses[0]
+                except IndexError:
+                    # If the element under ext_cp does not exist,
+                    # and ip_addresses cannot get, do nothing
+                    continue
+
+                fixed_ips = dict()
+                updated_fixed_ips = []
+                if ip_addr.fixed_addresses:
+                    for address in ip_addr.fixed_addresses:
+                        fixed_ips = dict(ip_address=address)
+                        if ip_addr.subnet_id:
+                            fixed_ips.update(dict(subnet=ip_addr.subnet_id))
+                        updated_fixed_ips.append(fixed_ips)
+                elif ip_addr.num_dynamic_addresses > 0:
+                    if ip_addr.subnet_id:
+                        fixed_ips.update(dict(subnet=ip_addr.subnet_id))
+                        updated_fixed_ips.append(fixed_ips)
+                if updated_fixed_ips:
+                    cp_param[cpd_id].update(
+                        dict(fixed_ips=updated_fixed_ips))
+
+        LOG.debug('after stack_param: {}'.format(stack_param))
+
+        access_info = vim_connection_info.access_info
+        heatclient = hc.HeatClient(access_info,
+            region_name=access_info.get('region'))
+
+        # Update heat-stack with BaseHOT and parameters
+        self._update_stack_with_user_data(
+            heatclient, vnf_instance, base_hot_dict, nested_hot_dict,
+            stack_param, vnf_instance.instantiated_vnf_info.instance_id)
+        vnf_dict['attributes'].update({'stack_param': str(stack_param)})
+
+    @log.log
+    def change_ext_conn_vnf_wait(self, context, vnf_instance,
+            vim_connection_info):
+        access_info = vim_connection_info.access_info
+        region_name = access_info.get('region')
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        stack = self._wait_until_stack_ready(inst_vnf_info.instance_id,
+                    access_info, infra_cnst.STACK_UPDATE_IN_PROGRESS,
+                    infra_cnst.STACK_UPDATE_COMPLETE,
+                    vnfm.VNFChangeExtConnWaitFailed,
+                    region_name=region_name)
+        return stack
+
+    def _update_vnfc_resources_and_info(self, context, vnf_instance,
+            vim_connection_info):
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        access_info = vim_connection_info.access_info
+        heatclient = hc.HeatClient(access_info,
+            region_name=access_info.get('region'))
+        stack_resources = self._get_stack_resources(
+            inst_vnf_info.instance_id, heatclient)
+        self._update_vnfc_resources(vnf_instance, stack_resources,
+                                    vim_connection_info)
+        self._update_vnfc_info(vnf_instance)
+
+    @log.log
+    def post_vnf_instantiation(self, context, vnf_instance,
+            vim_connection_info, instantiate_vnf_req):
+        self._update_vnfc_resources_and_info(
+            context, vnf_instance, vim_connection_info)
+
+    @log.log
+    def post_change_ext_conn_vnf(self, context, vnf_instance,
+            vim_connection_info):
+        self._update_vnfc_resources_and_info(
+            context, vnf_instance, vim_connection_info)

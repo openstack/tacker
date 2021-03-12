@@ -150,3 +150,8 @@ class VnflcmAPIRouter(wsgi.Router):
         methods = {"GET": "list_lcm_op_occs"}
         self._setup_route(mapper, "/vnf_lcm_op_occs",
                           methods, controller, default_resource)
+
+        # {apiRoot}/vnf_instances/{vnfInstanceId}/change_ext_conn resource
+        methods = {"POST": "change_ext_conn"}
+        self._setup_route(mapper, "/vnf_instances/{id}/change_ext_conn",
+                methods, controller, default_resource)

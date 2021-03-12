@@ -176,6 +176,18 @@ rules = [
             }
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name=VNFLCM % 'change_ext_conn',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Change external VNF connectivity.",
+        operations=[
+            {
+                'method': 'POST',
+                'path':
+                    '/vnflcm/v1/vnf_instances/{vnfInstanceId}/change_ext_conn'
+            }
+        ]
+    ),
 ]
 
 

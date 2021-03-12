@@ -305,6 +305,16 @@ class VnfHealFailed(TackerException):
     message = _("Heal Vnf failed for vnf %(id)s, error: %(error)s")
 
 
+class VnfChangeExtConnFailed(TackerException):
+    message = _("Change external connectivity failed "
+                "for vnf %(id)s, error: %(error)s")
+
+
+class VnfChangeExtConnWaitFailed(TackerException):
+    message = _("Change external connectivity wait failed "
+                "for vnf %(id)s, error: %(error)s")
+
+
 class LockCreationFailed(TackerException):
     message = _('Unable to create lock. Coordination backend not started.')
 

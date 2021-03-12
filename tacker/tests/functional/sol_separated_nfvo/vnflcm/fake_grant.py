@@ -77,6 +77,17 @@ class Grant:
         return res_remove_resources
 
     @staticmethod
+    def _make_update_resources(req_update_resources):
+        res_update_resources = []
+        for req_update_resource in req_update_resources:
+            res_update_resource = {
+                "resourceDefinitionId": req_update_resource['id']
+            }
+            res_update_resources.append(res_update_resource)
+
+        return res_update_resources
+
+    @staticmethod
     def _make_vim_assets(image_id, flavour_id="1"):
         # set m1.tiny="1" for flavour_id
         vim_assets = {
@@ -201,5 +212,19 @@ class Grant:
         if 'removeResources' in request_body.keys():
             res["removeResources"] = Grant._make_remove_resources(
                 request_body['removeResources'])
+
+        return res
+
+    @staticmethod
+    def make_change_ext_conn_response_body(request_body, tenant_id, image_id):
+        request_body = Grant._convert_body_to_dict(request_body)
+        res = Grant._make_response_template(request_body)
+        res["vimConnections"] = Grant._make_vim_connection_info(tenant_id)
+        res["zones"] = Grant.ZONES
+        if 'updateResources' in request_body.keys():
+            res["updateResources"] = Grant._make_update_resources(
+                request_body['updateResources'])
+        res["vimAssets"] = Grant._make_vim_assets(image_id)
+        res["additionalParams"] = Grant.ADDITIONAL_PARAMS
 
         return res

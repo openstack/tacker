@@ -1,0 +1,69 @@
+{
+  "extVirtualLinks": [
+    {
+      "id": "ext-vl-uuid-VL1",
+      "resourceId": "neutron-network-uuid_VL1",
+      "extCps": [
+        {
+          "cpdId": "CP1",
+          "cpConfig": [
+            {
+              "cpProtocolData": [
+                {
+                  "layerProtocol": "IP_OVER_ETHERNET",
+                  "ipOverEthernet": {
+                    "ipAddresses": [
+                      {
+                        "type": "IPV4",
+                        "numDynamicAddresses": 1,
+                        "subnetId": "subnet-uuid"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "cpdId": "CP2",
+          "cpConfig": [
+            {
+              "cpProtocolData": [
+                {
+                  "layerProtocol": "IP_OVER_ETHERNET",
+                  "ipOverEthernet": {
+                    "ipAddresses": [
+                      {
+                        "type": "IPV4",
+                        "fixedAddresses": [
+                          "10.0.0.1"
+                        ],
+                        "subnetId": "subnet-uuid"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "vimConnectionInfo": [
+    {
+      "id": "vim-uuid",
+      "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+      "vimConnectionId": "dummy-vimid",
+      "interfaceInfo": {
+        "key1": "value1",
+        "key2": "value2"
+      },
+      "accessInfo": {
+        "key1": "value1",
+        "key2": "value2"
+      }
+    }
+  ]
+}
