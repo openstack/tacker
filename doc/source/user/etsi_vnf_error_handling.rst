@@ -23,8 +23,8 @@ Execute up to "Instantiate VNF" in the procedure of
 In other words, the procedure after "Terminate VNF" is not executed.
 
 
-VNF error-handling procedure
-----------------------------
+VNF Error-handling Procedures
+-----------------------------
 
 As mentioned in Prerequisites, the VNF must be created
 before performing error-handling.
@@ -43,10 +43,42 @@ VNF_LCM_OP_OCC_ID, which is the ID for the target LCM operation.
 First, the method of specifying the ID will be described.
 
 
-How to identify VNF_LCM_OP_OCC_ID
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Identify VNF_LCM_OP_OCC_ID
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To identify the VNF_LCM_OP_OCC_ID, you need to perform the following APIs.
+To identify the VNF_LCM_OP_OCC_ID, you can get with the following ways.
+
+* to check with CLI
+* to check with notification API body
+
+You can choose both ways.
+
+This case uses openstack CLI:
+
+Details of CLI commands are described in
+:doc:`../cli/cli-etsi-vnflcm`.
+
+Before checking the "VNF_LCM_OP_OCC_ID", you should get VNF_INSTANCE_ID first.
+
+.. code-block:: console
+
+  $ openstack vnflcm op list
+
+
+Result:
+
+.. code-block:: console
+
+  +--------------------------------------+-----------------+--------------------------------------+-----------------+
+  | ID                                   | Operation State | VNF Instance ID                      | Operation       |
+  +--------------------------------------+-----------------+--------------------------------------+-----------------+
+  | 304538dd-d754-4661-9f17-5496dab9693d | FAILED_TEMP     | 3aa5c054-c162-4d5e-9808-0bc30f92a4c7 | INSTANTIATE     |
+  +--------------------------------------+-----------------+--------------------------------------+-----------------+
+
+
+For this case, check notification API body:
+
+In checking with Notification API, you should execute the following steps:
 
 * Create a new subscription
 * Execute LCM operations, such as 'Creates a new VNF instance resource'.
@@ -202,8 +234,8 @@ to VNF_LCM_OP_OCC_ID.
 See `Tacker API reference`_. for details on the APIs used here.
 
 
-How to rollback VNF lifecycle management operation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Rollback VNF LCM Operation
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This manual describes the following operations as use cases for
 rollback operations.
@@ -257,10 +289,90 @@ Result:
   Vnf instance '3aa5c054-c162-4d5e-9808-0bc30f92a4c7' deleted successfully
 
 
-.. TODO(hiroo-kitamura): "How to fail VNF lifecycle management operation"
-                          describe after development in wallaby.
-.. TODO(hiroo-kitamura): "How to retry VNF lifecycle management operation"
-                          describe after development in wallaby.
+Fail VNF LCM Operation
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This manual describes the following operations as use cases for
+fail operations.
+
+* "Instantiate VNF" fails
+* Fail VNF lifecycle management operation
+* Delete VNF
+
+As shown below, if "Instantiate VNF" fails, "Delete VNF" cannot be executed
+after executing "Fail VNF lifecycle management operation".
+
+.. code-block:: console
+
+  $ openstack vnflcm delete VNF_INSTANCE_ID
+
+
+Result:
+
+.. code-block:: console
+
+  Failed to delete vnf instance with ID '3aa5c054-c162-4d5e-9808-0bc30f92a4c7': Vnf 3aa5c054-c162-4d5e-9808-0bc30f92a4c7 in status ERROR. Cannot delete while the vnf is in this state.
+
+
+Therefore, "Fail VNF lifecycle management operation" with
+the following CLI command.
+
+.. code-block:: console
+
+  $ openstack vnflcm op fail VNF_LCM_OP_OCC_ID
+
+
+Result:
+
+.. code-block:: console
+
+  Fail request for LCM operation 304538dd-d754-4661-9f17-5496dab9693d has been accepted
+
+
+If "Fail VNF lifecycle management operation" is successful,
+then "Delete VNF" is also successful.
+
+.. code-block:: console
+
+  $ openstack vnflcm delete VNF_INSTANCE_ID
+
+
+Result:
+
+.. code-block:: console
+
+  Vnf instance '3aa5c054-c162-4d5e-9808-0bc30f92a4c7' deleted successfully
+
+
+Retry VNF LCM Operation
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This manual describes the following operations as use cases for
+retry operations.
+
+* "Instantiate VNF" fails
+* Retry VNF lifecycle management operation
+
+As shown below, if "Instantiate VNF" fails, If you want re-execute
+previous(failed) operation , you execute "Retry" operation.
+
+Therefore, "Retry VNF lifecycle management operation" with
+the following CLI command.
+
+.. code-block:: console
+
+  $ openstack vnflcm op retry VNF_LCM_OP_OCC_ID
+
+
+Result:
+
+.. code-block:: console
+
+  Retry request for LCM operation 304538dd-d754-4661-9f17-5496dab9693d has been accepted
+
+
+If "Retry VNF lifecycle management operation" is successful,
+then another LCM can be operational.
 
 .. _Tacker API reference : https://docs.openstack.org/api-ref/nfv-orchestration/v1/index.html
 .. _Keystone API reference : https://docs.openstack.org/api-ref/identity/v3/#password-authentication-with-scoped-authorization
