@@ -1511,6 +1511,8 @@ class VnfLcmController(wsgi.Controller):
             self._heal(context, vnf_instance, vnf, body)
         elif operation == fields.LcmOccsOperationType.SCALE:
             self._scale(context, vnf_instance, vnf, body)
+        elif operation == fields.LcmOccsOperationType.CHANGE_EXT_CONN:
+            self._change_ext_conn(context, vnf_instance, vnf, body)
         else:
             error_msg = 'Operation type %s is inavalid' % operation
             return self._make_problem_detail(error_msg,
