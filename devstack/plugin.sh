@@ -20,9 +20,9 @@ if is_service_enabled tacker; then
         # for development.
         # If you install pip packages instead, comment out here, and activate
         # entries in `requirements.txt` and `lower-constraints.txt`.
-        install_package_local_repo tosca-parser
-        install_package_local_repo heat-translator
-        . $DEST/tacker/devstack/lib/download_upper_consts
+        #install_package_local_repo tosca-parser
+        #install_package_local_repo heat-translator
+        #. $DEST/tacker/devstack/lib/download_upper_consts
 
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         # Configure after the other layer 1 and 2 services have been configured
