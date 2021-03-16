@@ -7,6 +7,14 @@ content_type:
   in: header
   required: true
   type: string
+fetch_artifact_content_type:
+  description: |
+    According to the artifact file extension, it is automatically set to
+    the corresponding Mime-Type in the response header. When the
+    corresponding Mime-Type is not found, set as `application/octet-stream`.
+  in: header
+  required: true
+  type: string
 fetch_content_type:
   description: |
     The fetched VNF Package will be returned with Content-Type set
@@ -23,13 +31,18 @@ range:
   type: string
 
 # variables in path
+artifact_path:
+  description: |
+    The artifact file's path in the VNF package.
+  in: path
+  required: true
+  type: string
 vnf_package_id_path:
   description: |
     The UUID of the VNF Package.
   in: path
   required: true
   type: string
-
 # variables in query
 
 # variables in body
