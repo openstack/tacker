@@ -305,6 +305,7 @@
           barbican: https://opendev.org/openstack/barbican
           heat: https://opendev.org/openstack/heat
           mistral: https://opendev.org/openstack/mistral
+          neutron: https://opendev.org/openstack/neutron
           octavia: https://opendev.org/openstack/octavia
         devstack_services:
           base: false
@@ -451,7 +452,6 @@
       - ^doc/.*$
       - ^releasenotes/.*$
       - ^contrib/.*$
-    voting: false
 
 - project:
     templates:
