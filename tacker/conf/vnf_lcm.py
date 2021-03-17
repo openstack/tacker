@@ -31,7 +31,11 @@ OPTS = [
     cfg.IntOpt(
         'retry_wait',
         default=10,
-        help="Retry interval(sec)")]
+        help="Retry interval(sec)"),
+    cfg.IntOpt(
+        'retry_timeout',
+        default=10,
+        help="Retry Timeout(sec)")]
 
 vnf_lcm_group = cfg.OptGroup('vnf_lcm',
     title='vnf_lcm options',
