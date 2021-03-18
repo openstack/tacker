@@ -490,6 +490,67 @@ class TestKubernetes(base.TestCase):
         )
         self.assertEqual(msg, exc.format_message())
 
+    @mock.patch.object(translate_template.TOSCAToKubernetes,
+                       'deploy_kubernetes_objects')
+    def test_create(self, mock_deploy_kubernetes_objects):
+        auth_attr = fakes.fake_auth_attr()
+        vnf = {
+            'vnfd': {
+                'attributes': {
+                    'vnfd': {
+                        'tosca_definitions_version': 'tosca_simple_yaml_1_0'}
+                }}}
+        plugin = ""
+        mock_deploy_kubernetes_objects.return_value = \
+            tosca_kube_object.ToscaKubeObject(
+                namespace='namespace').namespace
+        result = self.kubernetes.create(plugin, self.context, vnf, auth_attr)
+        self.assertEqual("namespace", result)
+
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_service')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_create_wait(
+            self, mock_list_namespaced_pod, mock_read_namespaced_service):
+        vnf_dict = fakes.fake_vnf_dict()
+        fake_podlist = fakes.fake_pod_list()
+        mock_list_namespaced_pod.return_value = fake_podlist
+        mock_read_namespaced_service.return_value = fakes.fake_service()
+        vnf_id = vnf_dict['id']
+        plugin = ""
+        auth_attr = utils.get_vim_auth_obj()
+        self.kubernetes.create_wait(plugin,
+                            self.context, vnf_dict, vnf_id, auth_attr)
+
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_config_map')
+    @mock.patch.object(client.CoreV1Api, 'patch_namespaced_config_map')
+    def test_update(self, mock_read_namespaced_config_map,
+                    mock_patch_namespaced_config_map):
+        vnf_dict = fakes.fake_vnf_dict()
+        vnf = {
+            'vnf': {
+                'attributes': {
+                    'vnfd': {
+                        'tosca_definitions_version': 'tosca_simple_yaml_1_0'},
+                    'config': 'config'}}}
+        mock_read_namespaced_config_map.return_value = client.V1ConfigMap(
+            data={'abc': 'abc', 'test': 'test'})
+        mock_patch_namespaced_config_map.return_value = client.V1ConfigMap(
+            data={'abc': 'abc', 'test': 'test'})
+        vnf_id = vnf_dict['id']
+        plugin = ""
+        auth_attr = utils.get_vim_auth_obj()
+        with mock.patch('yaml.safe_load') as mock_safe_load:
+            mock_safe_load.return_value = {
+                'config': 'test_config', 'test': {
+                    'test1': 'test1'}}
+            self.kubernetes.update(
+                plugin,
+                self.context,
+                vnf_id,
+                vnf_dict,
+                vnf,
+                auth_attr)
+
     def test_pre_instantiation_vnf_artifacts_file_none(self):
         instantiate_vnf_req = objects.InstantiateVnfRequest(
             additional_params={'a': ["Files/kubernets/pod.yaml"]})
