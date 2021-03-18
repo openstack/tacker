@@ -453,8 +453,6 @@ class Conductor(manager.Manager):
                 yaml.dump(flavour.get('tpl_dict'), default_flow_style=False)
             vnfd_attribute.create()
 
-            break
-
     @revert_upload_vnf_package
     def upload_vnf_package_content(self, context, vnf_package):
         vnf_package.onboarding_state = (

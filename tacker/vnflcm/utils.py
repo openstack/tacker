@@ -994,6 +994,7 @@ def _convert_desired_capacity(inst_level_id, vnfd_dict, vdu):
     inst_level_dict = {}
     aspect_id_dict = {}
     vdu_delta_dict = {}
+    aspect_max_level_dict = {}
     desired_capacity = 1
 
     tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
@@ -1002,7 +1003,8 @@ def _convert_desired_capacity(inst_level_id, vnfd_dict, vdu):
     default_inst_level_id = toscautils._extract_policy_info(
         tosca_policies, inst_level_dict,
         aspect_delta_dict, aspect_id_dict,
-        aspect_vdu_dict, vdu_delta_dict)
+        aspect_vdu_dict, vdu_delta_dict,
+        aspect_max_level_dict)
 
     if vdu_delta_dict.get(vdu) is None:
         return desired_capacity
@@ -1064,3 +1066,89 @@ def get_base_nest_hot_dict(context, flavour_id, vnfd_id):
     LOG.debug("Loaded base hot: %s", base_hot_dict)
     LOG.debug("Loaded nested_hot_dict: %s", nested_hot_dict)
     return base_hot_dict, nested_hot_dict
+
+
+def get_extract_policy_infos(tosca):
+    aspect_delta_dict = {}
+    aspect_vdu_dict = {}
+    inst_level_dict = {}
+    aspect_id_dict = {}
+    vdu_delta_dict = {}
+    aspect_max_level_dict = {}
+
+    tosca_policies = tosca.topology_template.policies
+    default_inst_level_id = toscautils._extract_policy_info(
+        tosca_policies, inst_level_dict,
+        aspect_delta_dict, aspect_id_dict,
+        aspect_vdu_dict, vdu_delta_dict,
+        aspect_max_level_dict)
+
+    extract_policy_infos = dict()
+    extract_policy_infos['inst_level_dict'] = inst_level_dict
+    extract_policy_infos['aspect_delta_dict'] = aspect_delta_dict
+    extract_policy_infos['aspect_id_dict'] = aspect_id_dict
+    extract_policy_infos['aspect_vdu_dict'] = aspect_vdu_dict
+    extract_policy_infos['vdu_delta_dict'] = vdu_delta_dict
+    extract_policy_infos['aspect_max_level_dict'] = aspect_max_level_dict
+    extract_policy_infos['default_inst_level_id'] = default_inst_level_id
+
+    return extract_policy_infos
+
+
+def get_scale_delta_num(extract_policy_infos, aspect_id):
+    delta_num = 1
+
+    if extract_policy_infos['aspect_id_dict'] is None:
+        return delta_num
+    delta_id = extract_policy_infos['aspect_id_dict'].get(aspect_id)
+    if delta_id is None:
+        return delta_num
+    delta_num = \
+        extract_policy_infos['aspect_delta_dict'].get(aspect_id).get(delta_id)
+
+    return delta_num
+
+
+def get_default_scale_status(context, vnf_instance, vnfd_dict):
+    default_scale_status = None
+
+    vnfd_dict = _get_vnfd_dict(context,
+        vnf_instance.vnfd_id,
+        vnf_instance.instantiated_vnf_info.flavour_id)
+    tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
+                                         yaml_dict_tpl=vnfd_dict)
+    extract_policy_infos = get_extract_policy_infos(tosca)
+
+    if extract_policy_infos['inst_level_dict'] is None:
+        return default_scale_status
+    default_inst_level_id = extract_policy_infos['default_inst_level_id']
+    default_al_dict = \
+        extract_policy_infos['inst_level_dict'].get(default_inst_level_id)
+    if default_al_dict is None:
+        return default_scale_status
+    default_scale_status = []
+    for aspect_id, level_num in default_al_dict.items():
+        default_scale_status.append(
+            objects.ScaleInfo(
+                aspect_id=aspect_id,
+                scale_level=level_num))
+
+    return default_scale_status
+
+
+def get_target_vdu_def_dict(extract_policy_infos, aspect_id, tosca):
+    vdu_def_dict = {}
+
+    tosca_node_tpls = tosca.topology_template.nodetemplates
+
+    if extract_policy_infos['aspect_vdu_dict'] is None:
+        return vdu_def_dict
+    vdus = extract_policy_infos['aspect_vdu_dict'].get(aspect_id)
+    if vdus is None:
+        return vdu_def_dict
+    for nt in tosca_node_tpls:
+        for node_name, node_value in nt.templates.items():
+            if node_name in vdus:
+                vdu_def_dict[node_name] = node_value
+
+    return vdu_def_dict

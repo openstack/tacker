@@ -213,6 +213,9 @@ class FakeVNFMPlugin(mock.Mock):
                 'name': 'dummy_vnf_update',
                 'attributes': {}}
 
+    def _update_vnf_scaling(self, *args, **kwargs):
+        pass
+
 
 class TestNfvoPlugin(db_base.SqlTestCase):
     def setUp(self):

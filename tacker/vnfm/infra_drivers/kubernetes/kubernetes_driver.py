@@ -23,6 +23,7 @@ from kubernetes import client
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
+from toscaparser import tosca_template
 
 from tacker._i18n import _
 from tacker.common.container import kubernetes_utils
@@ -34,6 +35,7 @@ from tacker import objects
 from tacker.objects import vnf_package as vnf_package_obj
 from tacker.objects import vnf_package_vnfd as vnfd_obj
 from tacker.objects import vnf_resources as vnf_resource_obj
+from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnfm.infra_drivers import abstract_driver
 from tacker.vnfm.infra_drivers.kubernetes.k8s import translate_outputs
 from tacker.vnfm.infra_drivers.kubernetes import translate_template
@@ -1019,6 +1021,96 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         finally:
             self.clean_authenticate_vim(auth_cred, file_descriptor)
 
+    def _scale_legacy(self, policy, auth_cred):
+        LOG.debug("VNF are scaled by updating instance of deployment")
+
+        app_v1_api_client = self.kubernetes.get_app_v1_api_client(
+            auth=auth_cred)
+        scaling_api_client = self.kubernetes.get_scaling_api_client(
+            auth=auth_cred)
+        deployment_names = policy['instance_id'].split(COMMA_CHARACTER)
+        policy_name = policy['name']
+        policy_action = policy['action']
+
+        for i in range(0, len(deployment_names), 2):
+            namespace = deployment_names[i]
+            deployment_name = deployment_names[i + 1]
+            deployment_info = app_v1_api_client.\
+                read_namespaced_deployment(namespace=namespace,
+                                           name=deployment_name)
+            scaling_info = scaling_api_client.\
+                read_namespaced_horizontal_pod_autoscaler(
+                    namespace=namespace,
+                    name=deployment_name)
+
+            replicas = deployment_info.status.replicas
+            scale_replicas = replicas
+            vnf_scaling_name = deployment_info.metadata.labels.\
+                get("scaling_name")
+            if vnf_scaling_name == policy_name:
+                if policy_action == 'out':
+                    scale_replicas = replicas + 1
+                elif policy_action == 'in':
+                    scale_replicas = replicas - 1
+
+            min_replicas = scaling_info.spec.min_replicas
+            max_replicas = scaling_info.spec.max_replicas
+            if (scale_replicas < min_replicas) or \
+                    (scale_replicas > max_replicas):
+                LOG.debug("Scaling replicas is out of range. The number of"
+                          " replicas keeps %(number)s replicas",
+                          {'number': replicas})
+                scale_replicas = replicas
+            deployment_info.spec.replicas = scale_replicas
+            app_v1_api_client.patch_namespaced_deployment_scale(
+                namespace=namespace,
+                name=deployment_name,
+                body=deployment_info)
+
+    def _call_read_scale_api(self, app_v1_api_client, namespace, name, kind):
+        """select kubernetes read scale api and call"""
+        def convert(name):
+            name_with_underscores = re.sub(
+                '(.)([A-Z][a-z]+)', r'\1_\2', name)
+            return re.sub('([a-z0-9])([A-Z])', r'\1_\2',
+                        name_with_underscores).lower()
+        snake_case_kind = convert(kind)
+        try:
+            read_scale_api = eval('app_v1_api_client.'
+                              'read_namespaced_%s_scale' % snake_case_kind)
+            response = read_scale_api(name=name, namespace=namespace)
+        except Exception as e:
+            error_reason = _("Failed the request to read a scale information."
+                             " namespace: {namespace}, name: {name},"
+                             " kind: {kind}, Reason: {exception}").format(
+                namespace=namespace, name=name, kind=kind, exception=e)
+            raise vnfm.CNFScaleFailed(reason=error_reason)
+
+        return response
+
+    def _call_patch_scale_api(self, app_v1_api_client, namespace, name,
+                              kind, body):
+        """select kubernetes patch scale api and call"""
+        def convert(name):
+            name_with_underscores = re.sub(
+                '(.)([A-Z][a-z]+)', r'\1_\2', name)
+            return re.sub('([a-z0-9])([A-Z])', r'\1_\2',
+                        name_with_underscores).lower()
+        snake_case_kind = convert(kind)
+        try:
+            patch_scale_api = eval('app_v1_api_client.'
+                              'patch_namespaced_%s_scale' % snake_case_kind)
+            response = patch_scale_api(name=name, namespace=namespace,
+                                       body=body)
+        except Exception as e:
+            error_reason = _("Failed the request to update a scale information"
+                             ". namespace: {namespace}, name: {name},"
+                             " kind: {kind}, Reason: {exception}").format(
+                namespace=namespace, name=name, kind=kind, exception=e)
+            raise vnfm.CNFScaleFailed(reason=error_reason)
+
+        return response
+
     @log.log
     def scale(self, context, plugin, auth_attr, policy, region_name):
         """Scale function
@@ -1027,57 +1119,153 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         The min_replicas and max_replicas is limited by the number of replicas
         of policy scaling when user define VNF descriptor.
         """
-        LOG.debug("VNF are scaled by updating instance of deployment")
         # initialize Kubernetes APIs
         auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
+            context, policy['vnf_instance_id'])
         try:
-            app_v1_api_client = self.kubernetes.get_app_v1_api_client(
-                auth=auth_cred)
-            scaling_api_client = self.kubernetes.get_scaling_api_client(
-                auth=auth_cred)
-            deployment_names = policy['instance_id'].split(COMMA_CHARACTER)
-            policy_name = policy['name']
-            policy_action = policy['action']
+            if not vnf_resources:
+                # execute legacy scale method
+                self._scale_legacy(policy, auth_cred)
+            else:
+                app_v1_api_client = self.kubernetes.get_app_v1_api_client(
+                    auth=auth_cred)
+                aspect_id = policy['name']
+                vdu_defs = policy['vdu_defs']
+                is_found = False
+                error_reason = None
+                for vnf_resource in vnf_resources:
+                    # The resource that matches the following is the resource
+                    # to be scaled:
+                    # The `name` of the resource stored in vnf_resource (the
+                    # name defined in `metadata.name` of Kubernetes object
+                    # file) matches the value of `properties.name` of VDU
+                    # defined in VNFD.
+                    name = vnf_resource.resource_name.\
+                        split(COMMA_CHARACTER)[1]
+                    for vdu_id, vdu_def in vdu_defs.items():
+                        vdu_properties = vdu_def.get('properties')
+                        if name == vdu_properties.get('name'):
+                            namespace = vnf_resource.resource_name.\
+                                split(COMMA_CHARACTER)[0]
+                            kind = vnf_resource.resource_type.\
+                                split(COMMA_CHARACTER)[1]
+                            is_found = True
+                            break
+                    if is_found:
+                        break
+                else:
+                    error_reason = _(
+                        "Target VnfResource for aspectId"
+                        " {aspect_id} is not found in DB").format(
+                        aspect_id=aspect_id)
+                    raise vnfm.CNFScaleFailed(reason=error_reason)
 
-            for i in range(0, len(deployment_names), 2):
-                namespace = deployment_names[i]
-                deployment_name = deployment_names[i + 1]
-                deployment_info = app_v1_api_client.\
-                    read_namespaced_deployment(namespace=namespace,
-                                               name=deployment_name)
-                scaling_info = scaling_api_client.\
-                    read_namespaced_horizontal_pod_autoscaler(
-                        namespace=namespace,
-                        name=deployment_name)
+                target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
+                if kind not in target_kinds:
+                    error_reason = _(
+                        "Target kind {kind} is out of scale target").\
+                        format(kind=kind)
+                    raise vnfm.CNFScaleFailed(reason=error_reason)
 
-                replicas = deployment_info.status.replicas
-                scale_replicas = replicas
-                vnf_scaling_name = deployment_info.metadata.labels.\
-                    get("scaling_name")
-                if vnf_scaling_name == policy_name:
-                    if policy_action == 'out':
-                        scale_replicas = replicas + 1
-                    elif policy_action == 'in':
-                        scale_replicas = replicas - 1
+                scale_info = self._call_read_scale_api(
+                    app_v1_api_client=app_v1_api_client,
+                    namespace=namespace,
+                    name=name,
+                    kind=kind)
 
-                min_replicas = scaling_info.spec.min_replicas
-                max_replicas = scaling_info.spec.max_replicas
+                current_replicas = scale_info.status.replicas
+                vdu_profile = vdu_properties.get('vdu_profile')
+                if policy['action'] == 'out':
+                    scale_replicas = current_replicas + policy['delta_num']
+                elif policy['action'] == 'in':
+                    scale_replicas = current_replicas - policy['delta_num']
+
+                max_replicas = vdu_profile.get('max_number_of_instances')
+                min_replicas = vdu_profile.get('min_number_of_instances')
                 if (scale_replicas < min_replicas) or \
                         (scale_replicas > max_replicas):
-                    LOG.debug("Scaling replicas is out of range. The number of"
-                              " replicas keeps %(number)s replicas",
-                              {'number': replicas})
-                    scale_replicas = replicas
-                deployment_info.spec.replicas = scale_replicas
-                app_v1_api_client.patch_namespaced_deployment_scale(
+                    error_reason = _(
+                        "The number of target replicas after"
+                        " scaling [{after_replicas}] is out of range").\
+                        format(
+                            after_replicas=scale_replicas)
+                    raise vnfm.CNFScaleFailed(reason=error_reason)
+
+                scale_info.spec.replicas = scale_replicas
+                self._call_patch_scale_api(
+                    app_v1_api_client=app_v1_api_client,
                     namespace=namespace,
-                    name=deployment_name,
-                    body=deployment_info)
+                    name=name,
+                    kind=kind,
+                    body=scale_info)
         except Exception as e:
             LOG.error('Scaling VNF got an error due to %s', e)
             raise
         finally:
             self.clean_authenticate_vim(auth_cred, file_descriptor)
+
+    def _scale_wait_legacy(self, policy, auth_cred):
+        core_v1_api_client = self.kubernetes.get_core_v1_api_client(
+            auth=auth_cred)
+        deployment_info = policy['instance_id'].split(",")
+
+        pods_information = self._get_pods_information(
+            core_v1_api_client=core_v1_api_client,
+            deployment_info=deployment_info)
+        status = self._get_pod_status(pods_information)
+
+        stack_retries = self.STACK_RETRIES
+        error_reason = None
+        while status == 'Pending' and stack_retries > 0:
+            time.sleep(self.STACK_RETRY_WAIT)
+
+            pods_information = self._get_pods_information(
+                core_v1_api_client=core_v1_api_client,
+                deployment_info=deployment_info)
+            status = self._get_pod_status(pods_information)
+
+            # LOG.debug('status: %s', status)
+            stack_retries = stack_retries - 1
+
+        LOG.debug('VNF initializing status: %(service_name)s %(status)s',
+                  {'service_name': str(deployment_info), 'status': status})
+
+        if stack_retries == 0 and status != 'Running':
+            error_reason = _("Resource creation is not completed within"
+                             " {wait} seconds as creation of stack {stack}"
+                             " is not completed").format(
+                wait=(self.STACK_RETRIES *
+                      self.STACK_RETRY_WAIT),
+                stack=policy['instance_id'])
+            LOG.error("VNF Creation failed: %(reason)s",
+                      {'reason': error_reason})
+            raise vnfm.VNFCreateWaitFailed(reason=error_reason)
+
+        elif stack_retries != 0 and status != 'Running':
+            raise vnfm.VNFCreateWaitFailed(reason=error_reason)
+
+    def _is_match_pod_naming_rule(self, rsc_kind, rsc_name, pod_name):
+        match_result = None
+        if rsc_kind == 'Deployment':
+            # Expected example: name-012789abef-019az
+            match_result = re.match(
+                rsc_name + '-([0-9a-f]{10})-([0-9a-z]{5})+$',
+                pod_name)
+        elif rsc_kind == 'ReplicaSet':
+            # Expected example: name-019az
+            match_result = re.match(
+                rsc_name + '-([0-9a-z]{5})+$',
+                pod_name)
+        elif rsc_kind == 'StatefulSet':
+            # Expected example: name-0
+            match_result = re.match(
+                rsc_name + '-[0-9]+$',
+                pod_name)
+        if match_result:
+            return True
+        else:
+            return False
 
     def scale_wait(self, context, plugin, auth_attr, policy, region_name,
                    last_event_id):
@@ -1088,47 +1276,87 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         """
         # initialize Kubernetes APIs
         auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
+            context, policy['vnf_instance_id'])
         try:
-            core_v1_api_client = self.kubernetes.get_core_v1_api_client(
-                auth=auth_cred)
-            deployment_info = policy['instance_id'].split(",")
+            if not vnf_resources:
+                # execute legacy scale_wait method
+                self._scale_wait_legacy(policy, auth_cred)
+            else:
+                core_v1_api_client = self.kubernetes.get_core_v1_api_client(
+                    auth=auth_cred)
+                app_v1_api_client = self.kubernetes.get_app_v1_api_client(
+                    auth=auth_cred)
+                aspect_id = policy['name']
+                vdu_defs = policy['vdu_defs']
+                is_found = False
+                error_reason = None
+                for vnf_resource in vnf_resources:
+                    name = vnf_resource.resource_name.\
+                        split(COMMA_CHARACTER)[1]
+                    for vdu_id, vdu_def in vdu_defs.items():
+                        vdu_properties = vdu_def.get('properties')
+                        if name == vdu_properties.get('name'):
+                            namespace = vnf_resource.resource_name.\
+                                split(COMMA_CHARACTER)[0]
+                            kind = vnf_resource.resource_type.\
+                                split(COMMA_CHARACTER)[1]
+                            is_found = True
+                            break
+                    if is_found:
+                        break
+                else:
+                    error_reason = _(
+                        "Target VnfResource for aspectId {aspect_id}"
+                        " is not found in DB").format(
+                        aspect_id=aspect_id)
+                    raise vnfm.CNFScaleWaitFailed(reason=error_reason)
 
-            pods_information = self._get_pods_information(
-                core_v1_api_client=core_v1_api_client,
-                deployment_info=deployment_info)
-            status = self._get_pod_status(pods_information)
+                scale_info = self._call_read_scale_api(
+                    app_v1_api_client=app_v1_api_client,
+                    namespace=namespace,
+                    name=name,
+                    kind=kind)
+                status = 'Pending'
+                stack_retries = self.STACK_RETRIES
+                error_reason = None
+                while status == 'Pending' and stack_retries > 0:
+                    pods_information = list()
+                    respone = core_v1_api_client.list_namespaced_pod(
+                        namespace=namespace)
+                    for pod in respone.items:
+                        match_result = self._is_match_pod_naming_rule(
+                            kind, name, pod.metadata.name)
+                        if match_result:
+                            pods_information.append(pod)
 
-            stack_retries = self.STACK_RETRIES
-            error_reason = None
-            while status == 'Pending' and stack_retries > 0:
-                time.sleep(self.STACK_RETRY_WAIT)
+                    status = self._get_pod_status(pods_information)
+                    if status == 'Running' and \
+                       scale_info.spec.replicas != len(pods_information):
+                        status = 'Pending'
 
-                pods_information = self._get_pods_information(
-                    core_v1_api_client=core_v1_api_client,
-                    deployment_info=deployment_info)
-                status = self._get_pod_status(pods_information)
+                    if status == 'Pending':
+                        stack_retries = stack_retries - 1
+                        time.sleep(self.STACK_RETRY_WAIT)
+                    elif status == 'Unknown':
+                        error_reason = _(
+                            "CNF Scale failed caused by the Pod status"
+                            " is Unknown")
+                        raise vnfm.CNFScaleWaitFailed(reason=error_reason)
 
-                # LOG.debug('status: %s', status)
-                stack_retries = stack_retries - 1
-
-            LOG.debug('VNF initializing status: %(service_name)s %(status)s',
-                      {'service_name': str(deployment_info), 'status': status})
-
-            if stack_retries == 0 and status != 'Running':
-                error_reason = _("Resource creation is not completed within"
-                                 " {wait} seconds as creation of stack {stack}"
-                                 " is not completed").format(
-                    wait=(self.STACK_RETRIES *
-                          self.STACK_RETRY_WAIT),
-                    stack=policy['instance_id'])
-                LOG.error("VNF Creation failed: %(reason)s",
-                          {'reason': error_reason})
-                raise vnfm.VNFCreateWaitFailed(reason=error_reason)
-
-            elif stack_retries != 0 and status != 'Running':
-                raise vnfm.VNFCreateWaitFailed(reason=error_reason)
+                if stack_retries == 0 and status != 'Running':
+                    error_reason = _(
+                        "CNF Scale failed to complete within"
+                        " {wait} seconds while waiting for the aspect_id"
+                        " {aspect_id} to be scaled").format(
+                        wait=(self.STACK_RETRIES *
+                              self.STACK_RETRY_WAIT),
+                        aspect_id=aspect_id)
+                    LOG.error("CNF Scale failed: %(reason)s",
+                            {'reason': error_reason})
+                    raise vnfm.CNFScaleWaitFailed(reason=error_reason)
         except Exception as e:
-            LOG.error('Scaling wait VNF got an error due to %s', e)
+            LOG.error('Scaling wait CNF got an error due to %s', e)
             raise
         finally:
             self.clean_authenticate_vim(auth_cred, file_descriptor)
@@ -1315,7 +1543,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                       vnf_dict,
                       auth_attr,
                       region_name):
-        pass
+        return_id_list = []
+        return return_id_list
 
     def get_scale_in_ids(self,
                          plugin,
@@ -1325,7 +1554,11 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                          auth_attr,
                          region_name,
                          number_of_steps):
-        pass
+        return_id_list = []
+        return_name_list = []
+        return_grp_id = None
+        return_res_num = None
+        return return_id_list, return_name_list, return_grp_id, return_res_num
 
     def scale_resource_update(self, context, vnf_instance,
                               scale_vnf_request,
@@ -1341,7 +1574,33 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
               region_name,
               scale_name_list,
               grp_id):
-        pass
+        # NOTE(ueha): The `is_reverse` option is not supported in kubernetes
+        # VIM, and returns an error response to the user if `is_reverse` is
+        # true. However, since this method is called in the sequence of
+        # rollback operation, implementation is required.
+        vnf_instance_id = vnf_info['vnf_lcm_op_occ'].vnf_instance_id
+        aspect_id = scale_vnf_request.aspect_id
+        vnf_instance = objects.VnfInstance.get_by_id(context, vnf_instance_id)
+        vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
+            vnf_instance.vnfd_id,
+            vnf_instance.instantiated_vnf_info.flavour_id)
+        tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
+                                             yaml_dict_tpl=vnfd_dict)
+        extract_policy_infos = vnflcm_utils.get_extract_policy_infos(tosca)
+
+        policy = dict()
+        policy['name'] = aspect_id
+        policy['action'] = 'in'
+        policy['vnf_instance_id'] = vnf_instance_id
+        policy['vdu_defs'] = vnflcm_utils.get_target_vdu_def_dict(
+            extract_policy_infos=extract_policy_infos,
+            aspect_id=scale_vnf_request.aspect_id,
+            tosca=tosca)
+        policy['delta_num'] = vnflcm_utils.get_scale_delta_num(
+            extract_policy_infos=extract_policy_infos,
+            aspect_id=scale_vnf_request.aspect_id)
+
+        self.scale(context, plugin, auth_attr, policy, region_name)
 
     def scale_out_initial(self,
               context,
@@ -1358,7 +1617,30 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                    auth_attr,
                    vnf_info,
                    region_name):
-        pass
+        lcm_op_occ = vnf_info.get('vnf_lcm_op_occ')
+        vnf_instance_id = lcm_op_occ.get('vnf_instance_id')
+        operation_params = jsonutils.loads(lcm_op_occ.get('operation_params'))
+        scale_vnf_request = objects.ScaleVnfRequest.obj_from_primitive(
+            operation_params, context=context)
+        aspect_id = scale_vnf_request.aspect_id
+        vnf_instance = objects.VnfInstance.get_by_id(context, vnf_instance_id)
+        vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
+            vnf_instance.vnfd_id,
+            vnf_instance.instantiated_vnf_info.flavour_id)
+        tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
+                                             yaml_dict_tpl=vnfd_dict)
+        extract_policy_infos = vnflcm_utils.get_extract_policy_infos(tosca)
+
+        policy = dict()
+        policy['name'] = aspect_id
+        policy['vnf_instance_id'] = lcm_op_occ.get('vnf_instance_id')
+        policy['vdu_defs'] = vnflcm_utils.get_target_vdu_def_dict(
+            extract_policy_infos=extract_policy_infos,
+            aspect_id=scale_vnf_request.aspect_id,
+            tosca=tosca)
+
+        self.scale_wait(context, plugin, auth_attr, policy,
+                        region_name, None)
 
     def get_cinder_list(self,
                         vnf_info):
@@ -1380,4 +1662,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                          aspect_id,
                          auth_attr,
                          region_name):
-        pass
+        return_id_list = []
+        return_name_list = []
+        return_grp_id = None
+        return return_id_list, return_name_list, return_grp_id
