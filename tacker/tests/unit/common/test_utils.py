@@ -68,9 +68,11 @@ class TestCamelToSnakeCase(testtools.TestCase):
 class TestSnakeToCamelCase(testtools.TestCase):
     def test_convert_snakecase_to_camelcase_dict(self):
         """Only the dict keys from list should be converted to camelcase"""
-        actual_val = utils.convert_snakecase_to_camelcase(
-            {"snake_case_key": "snake_case_value"})
-        expected_val = {"snakeCaseKey": "snake_case_value"}
+        data = {"snake_case_key": "snake_case_value",
+                "_key": "ignore_key_value"}
+        actual_val = utils.convert_snakecase_to_camelcase(data)
+        expected_val = {"snakeCaseKey": "snake_case_value",
+                        "_key": "ignore_key_value"}
         self.assertEqual(expected_val, actual_val)
 
     def test_convert_snakecase_to_camelcase_list_with_dict_items(self):
