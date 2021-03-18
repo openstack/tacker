@@ -1028,7 +1028,7 @@ def _convert_desired_capacity(inst_level_id, vnfd_dict, vdu):
 
         vdus = aspect_vdu_dict.get(aspect_id)
         initial_delta = None
-        for vdu in vdus:
+        if vdu in vdus:
             initial_delta = vdu_delta_dict.get(vdu)
 
         if initial_delta is not None:
