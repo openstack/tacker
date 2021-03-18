@@ -598,6 +598,7 @@ class VnfInfoModifications(base.TackerObject,
     fields = {
         'vnf_instance_name': fields.StringField(nullable=True),
         'vnf_instance_description': fields.StringField(nullable=True),
+        'metadata': fields.DictOfStringsField(nullable=True, default={}),
         'vim_connection_info': fields.ListOfObjectsField(
             'VimConnectionInfo', nullable=True, default=[]),
         'vim_connection_info_delete_ids':
@@ -630,6 +631,7 @@ class VnfInfoModifications(base.TackerObject,
     def _from_dict(cls, data_dict):
         vnf_instance_name = data_dict.get('vnf_instance_name')
         vnf_instance_description = data_dict.get('vnf_instance_description')
+        metadata = data_dict.get('metadata')
         vim_connection_info = data_dict.get('vim_connection_info', [])
         vim_connection_info_delete_ids = data_dict.get(
             'vim_connection_info_delete_ids')
@@ -643,6 +645,7 @@ class VnfInfoModifications(base.TackerObject,
         obj = cls(
             vnf_instance_name=vnf_instance_name,
             vnf_instance_description=vnf_instance_description,
+            metadata=metadata,
             vim_connection_info=vim_connection_info,
             vim_connection_info_delete_ids=vim_connection_info_delete_ids,
             vnf_pkg_id=vnf_pkg_id,
@@ -658,6 +661,7 @@ class VnfInfoModifications(base.TackerObject,
         return {
             'vnf_instance_name': self.vnf_instance_name,
             'vnf_instance_description': self.vnf_instance_description,
+            'metadata': self.metadata,
             'vim_connection_info': self.vim_connection_info,
             'vim_connection_info_delete_ids':
                 self.vim_connection_info_delete_ids,

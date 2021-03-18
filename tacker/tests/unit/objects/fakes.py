@@ -490,6 +490,7 @@ def get_changed_info_data():
     return {
         "vnf_instance_name": "",
         "vnf_instance_description": "",
+        "metadata": {"test:": "test_value"},
         "vnf_configurable_properties": {"test": "test_value"},
         "vnfc_info_modifications_delete_ids": ["test1"],
         "vnfd_id": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
