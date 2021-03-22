@@ -802,7 +802,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             uuidsentinel.instance_id
         self._mock_vnf_manager(fail_method_name='delete')
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"fake": "fake_dict"}
+        vnf_dict = {"fake": "fake_dict", "grant": None}
         self.assertRaises(exceptions.VnfHealFailed,
             driver.heal_vnf, self.context, vnf_instance,
             vnf_dict, heal_vnf_req)
@@ -911,7 +911,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
-        driver.heal_vnf(self.context, vnf_instance, mock.ANY, heal_vnf_req)
+        vnf_dict = {"grant": None}
+        driver.heal_vnf(self.context, vnf_instance, vnf_dict, heal_vnf_req)
         self.assertEqual(1, mock_save.call_count)
         self.assertEqual(5, self._vnf_manager.invoke.call_count)
 
@@ -946,9 +947,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
         self._mock_vnf_manager(fail_method_name='heal_vnf')
         driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {"grant": None}
         self.assertRaises(exceptions.VnfHealFailed,
             driver.heal_vnf, self.context, vnf_instance,
-            mock.ANY, heal_vnf_req)
+            vnf_dict, heal_vnf_req)
         self.assertEqual(1, mock_save.call_count)
         self.assertEqual(2, self._vnf_manager.invoke.call_count)
 
@@ -987,6 +989,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             uuidsentinel.instance_id
         self._mock_vnf_manager(fail_method_name='heal_vnf_wait')
         driver = vnflcm_driver.VnfLcmDriver()
+
+        vnf_dict = {"grant": None}
         # It won't raise any exception if infra driver raises
         # heal_vnf_wait because there is a possibility the vnfc
         # resources could go into inconsistent state so it would
@@ -994,7 +998,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         # it will work and vnflcm can update the vnfc resources
         # properly and hence the _vnf_manager.invoke.call_count
         # should be 3 instead of 2.
-        driver.heal_vnf(self.context, vnf_instance, mock.ANY,
+        driver.heal_vnf(self.context, vnf_instance, vnf_dict,
                         heal_vnf_req)
         self.assertEqual(1, mock_save.call_count)
         self.assertEqual(5, self._vnf_manager.invoke.call_count)
@@ -1035,9 +1039,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             uuidsentinel.instance_id
         self._mock_vnf_manager(fail_method_name='post_heal_vnf')
         driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {"grant": None}
         self.assertRaises(exceptions.VnfHealFailed,
             driver.heal_vnf, self.context, vnf_instance,
-            mock.ANY, heal_vnf_req)
+            vnf_dict, heal_vnf_req)
         self.assertEqual(1, mock_save.call_count)
         self.assertEqual(4, self._vnf_manager.invoke.call_count)
 

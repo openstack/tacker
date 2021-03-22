@@ -488,22 +488,34 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vnfd_dict = vnflcm_utils._get_vnfd_dict(
             context, vnf_instance.vnfd_id, instantiate_vnf_req.flavour_id)
 
+        # TODO(LiangLu): grant_request here is planned to pass
+        # as a parameter, however due to grant_request is not
+        # passed from conductor to vnflcm_driver, thus we put Null
+        # value to grant_reqeust temporary.
+        # This part will be updated in next release.
         self._mgmt_manager.invoke(
             self._load_vnf_interface(
                 context, 'instantiate_start', vnf_instance, vnfd_dict),
             'instantiate_start', context=context,
             vnf_instance=vnf_instance,
-            additional_params=instantiate_vnf_req.additional_params)
+            instantiate_vnf_request=instantiate_vnf_req,
+            grant=vnf_dict.get('grant'), grant_request=None)
 
         self._instantiate_vnf(context, vnf_instance, vnf_dict,
                               vim_connection_info, instantiate_vnf_req)
 
+        # TODO(LiangLu): grant_request here is planned to pass
+        # as a parameter, however due to grant_request is not
+        # passed from conductor to vnflcm_driver, thus we put Null
+        # value to grant_reqeust temporary.
+        # This part will be updated in next release.
         self._mgmt_manager.invoke(
             self._load_vnf_interface(
                 context, 'instantiate_end', vnf_instance, vnfd_dict),
             'instantiate_end', context=context,
             vnf_instance=vnf_instance,
-            additional_params=instantiate_vnf_req.additional_params)
+            instantiate_vnf_request=instantiate_vnf_req,
+            grant=vnf_dict.get('grant'), grant_request=None)
 
     @log.log
     @revert_to_error_task_state
@@ -519,12 +531,18 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             context, vnf_instance.vnfd_id,
             vnf_instance.instantiated_vnf_info.flavour_id)
 
+        # TODO(LiangLu): grant_request and grant here is planned to
+        # pass as a parameter, however due to they are not
+        # passed from conductor to vnflcm_driver, thus we put Null
+        # value to grant and grant_reqeust temporary.
+        # This part will be updated in next release.
         self._mgmt_manager.invoke(
             self._load_vnf_interface(
                 context, 'terminate_start', vnf_instance, vnfd_dict),
             'terminate_start', context=context,
             vnf_instance=vnf_instance,
-            additional_params=terminate_vnf_req.additional_params)
+            terminate_vnf_request=terminate_vnf_req,
+            grant=None, grant_request=None)
         LOG.info("Terminating vnf %s", vnf_instance.id)
         try:
             self._delete_vnf_instance_resources(context, vnf_instance,
@@ -540,12 +558,18 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 LOG.error("Unable to terminate vnf '%s' instance. "
                           "Error: %s", vnf_instance.id,
                           encodeutils.exception_to_unicode(exp))
+        # TODO(LiangLu): grant_request and grant here is planned to
+        # pass as a parameter, however due to they are not
+        # passed from conductor to vnflcm_driver, thus we put Null
+        # value to grant and grant_reqeust temporary.
+        # This part will be updated in next release.
         self._mgmt_manager.invoke(
             self._load_vnf_interface(
                 context, 'terminate_end', vnf_instance, vnfd_dict),
             'terminate_end', context=context,
             vnf_instance=vnf_instance,
-            additional_params=terminate_vnf_req.additional_params)
+            terminate_vnf_request=terminate_vnf_req,
+            grant=None, grant_request=None)
 
     def _delete_vnf_instance_resources(self, context, vnf_instance,
             vim_connection_info, terminate_vnf_req=None,
@@ -705,13 +729,18 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vnfd_dict = vnflcm_utils._get_vnfd_dict(
             context, vnf_instance.vnfd_id,
             vnf_instance.instantiated_vnf_info.flavour_id)
-
+        # TODO(LiangLu): grant_request here is planned to pass
+        # as a parameter, however due to grant_request are not
+        # passed from conductor to vnflcm_driver, thus we put Null
+        # value to grant and grant_reqeust temporary.
+        # This part will be updated in next release.
         self._mgmt_manager.invoke(
             self._load_vnf_interface(
                 context, 'heal_start', vnf_instance, vnfd_dict),
             'heal_start', context=context,
             vnf_instance=vnf_instance,
-            additional_params=heal_vnf_request.additional_params)
+            heal_vnf_request=heal_vnf_request,
+            grant=vnf_dict.get('grant'), grant_request=None)
 
         if not heal_vnf_request.vnfc_instance_id:
             self._respawn_vnf(context, vnf_instance, vnf_dict,
@@ -722,12 +751,18 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
         LOG.info("Request received for healing vnf '%s' is completed "
                  "successfully", vnf_instance.id)
+        # TODO(LiangLu): grant_request here is planned to pass
+        # as a parameter, however due to grant_request are not
+        # passed from conductor to vnflcm_driver, thus we put Null
+        # value to grant and grant_reqeust temporary.
+        # This part will be updated in next release.
         self._mgmt_manager.invoke(
             self._load_vnf_interface(
                 context, 'heal_end', vnf_instance, vnfd_dict),
             'heal_end', context=context,
             vnf_instance=vnf_instance,
-            additional_params=heal_vnf_request.additional_params)
+            heal_vnf_request=heal_vnf_request,
+            grant=vnf_dict.get('grant'), grant_request=None)
 
     def _scale_vnf_pre(self, context, vnf_info, vnf_instance,
                       scale_vnf_request, vim_connection_info):
@@ -761,15 +796,21 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     number_of_steps=scale_vnf_request.number_of_steps
                 )
             vnf_info['res_num'] = res_num
-
-            # mgmt_driver pre
+            # TODO(LiangLu): grant_request here is planned to pass
+            # as a parameter, however due to grant_request are not
+            # passed from conductor to vnflcm_driver, thus we put Null
+            # value to grant and grant_reqeust temporary.
+            # This part will be updated in next release.
             if len(scale_id_list) != 0:
+                kwargs = {'scale_name_list': scale_name_list}
                 self._mgmt_manager.invoke(
                     self._load_vnf_interface(
                         context, 'scale_start', vnf_instance, vnfd_dict),
                     'scale_start', context=context,
                     vnf_instance=vnf_instance,
-                    additional_params=scale_vnf_request.additional_params)
+                    scale_vnf_request=scale_vnf_request,
+                    grant=vnf_info.get('grant'), grant_request=None,
+                    **kwargs)
         else:
             vnf_info['action'] = 'out'
             scale_id_list = self._vnf_manager.invoke(
@@ -816,13 +857,21 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             id_list = []
             id_list = list(set(scale_id_after) - set(scale_id_list))
             vnf_info['res_num'] = len(scale_id_after)
+            # TODO(LiangLu): grant_request here is planned to pass
+            # as a parameter, however due to grant_request are not
+            # passed from conductor to vnflcm_driver, thus we put Null
+            # value to grant and grant_reqeust temporary.
+            # This part will be updated in next release.
             if len(id_list) != 0:
+                kwargs = {'scale_out_id_list': id_list}
                 self._mgmt_manager.invoke(
                     self._load_vnf_interface(
                         context, 'scale_end', vnf_instance, vnfd_dict),
                     'scale_end', context=context,
                     vnf_instance=vnf_instance,
-                    additional_params=scale_vnf_request.additional_params)
+                    scale_vnf_request=scale_vnf_request,
+                    grant=vnf_info.get('grant'), grant_request=None,
+                    **kwargs)
         vnf_lcm_op_occ.error_point = 7
         vnf_instance.instantiated_vnf_info.scale_level =\
             vnf_info['after_scale_level']
@@ -1370,18 +1419,30 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
                 vnf_info['action'] = 'in'
                 if len(scale_id_list) != 0:
+                    kwargs = {'scale_name_list': scale_name_list}
+                    # TODO(LiangLu): grant_request here is planned to pass
+                    # as a parameter, however due to grant_request are not
+                    # passed from conductor to vnflcm_driver, thus we put Null
+                    # value to grant and grant_reqeust temporary.
+                    # This part will be updated in next release.
                     self._mgmt_manager.invoke(
                         self._load_vnf_interface(context, 'scale_start',
                                                  vnf_instance, vnfd_dict),
                         'scale_start', context=context,
                         vnf_instance=vnf_instance,
-                        additional_params=scale_vnf_request.additional_params)
+                        scale_vnf_request=scale_vnf_request,
+                        grant=vnf_info.get('grant'), grant_request=None,
+                        **kwargs)
 
             else:
                 vnfd_dict = vnflcm_utils._get_vnfd_dict(
                     context, vnf_instance.vnfd_id,
                     vnf_instance.instantiated_vnf_info.flavour_id)
-
+                # TODO(LiangLu): grant_request and grant here is planned to
+                # pass as a parameter, however due to they are not
+                # passed from conductor to vnflcm_driver, thus we put Null
+                # value to grant and grant_reqeust temporary.
+                # This part will be updated in next release.
                 if len(scale_id_list) != 0:
                     self._mgmt_manager.invoke(
                         self._load_vnf_interface(
@@ -1389,7 +1450,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                             vnf_instance, vnfd_dict),
                         'terminate_start', context=context,
                         vnf_instance=vnf_instance,
-                        additional_params=scale_vnf_request.additional_params)
+                        terminate_vnf_request=None,
+                        grant=None, grant_request=None)
             vnf_lcm_op_occs.error_point = 6
 
         return scale_name_list, grp_id

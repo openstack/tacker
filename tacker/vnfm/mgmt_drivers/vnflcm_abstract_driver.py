@@ -38,40 +38,48 @@ class VnflcmMgmtAbstractDriver(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def instantiate_start(self, context, vnf_instance,
-                          additional_params, **kwargs):
+                          instantiate_vnf_request, grant,
+                          grant_request, **kwargs):
         pass
 
     @abc.abstractmethod
     def instantiate_end(self, context, vnf_instance,
-                        additional_params, **kwargs):
+                        instantiate_vnf_request, grant,
+                        grant_request, **kwargs):
         pass
 
     @abc.abstractmethod
     def terminate_start(self, context, vnf_instance,
-                        additional_params, **kwargs):
+                        terminate_vnf_request, grant,
+                        grant_request, **kwargs):
         pass
 
     @abc.abstractmethod
     def terminate_end(self, context, vnf_instance,
-                      additional_params, **kwargs):
+                      terminate_vnf_request, grant,
+                      grant_request, **kwargs):
         pass
 
     @abc.abstractmethod
     def scale_start(self, context, vnf_instance,
-                    additional_params, **kwargs):
+                    scale_vnf_request, grant,
+                    grant_request, **kwargs):
         pass
 
     @abc.abstractmethod
     def scale_end(self, context, vnf_instance,
-                  additional_params, **kwargs):
+                  scale_vnf_request, grant,
+                  grant_request, **kwargs):
         pass
 
     @abc.abstractmethod
     def heal_start(self, context, vnf_instance,
-                   additional_params, **kwargs):
+                   heal_vnf_request, grant,
+                   grant_request, **kwargs):
         pass
 
     @abc.abstractmethod
     def heal_end(self, context, vnf_instance,
-                 additional_params, **kwargs):
+                 heal_vnf_request, grant,
+                 grant_request, **kwargs):
         pass
