@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Support ETSI NFV compliant automated testing by using the Robot Framework
+    and ETSI NFV-TST API test codes. This feature uses the Robot Framework
+    which utilizes the ETSI NFV-TST API test codes to test tacker for ETSI
+    NFV compliance in a Black Box testing level. This is an additional quality
+    test measure to ensure that the added tacker features comply to the ETSI
+    NFV standards.
+issues:
+  - |
+    Regarding ETSI NFV compliant automated testing, some of the tests are
+    failing due to bugs (1) Tacker Bug and (2) Issues in the ETSI NFV-TST API
+    test codes.
+    (1) Tacker Bug such as Bug-#1945387 was detected in this compliance test
+    and the corresponding test is currently failing. Test will pass once the
+    bug is fixed.
+    (2) Issues in the ETSI NFV-TST API test codes such as schema and mock
+    server location issues also caused some tests to fail. Tests will pass once
+    the issues are resolved.
+    Due to these existing failed items, this test is currently non-voting.
