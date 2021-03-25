@@ -1378,11 +1378,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                             rsc_info = heatclient.resource_get(
                                 scale_rsc.physical_resource_id,
                                 rsc.resource_name)
-                            meta = heatclient.resource_metadata(
-                                scale_rsc.physical_resource_id,
-                                rsc.resource_name)
                             LOG.debug("rsc %s", rsc_info)
-                            LOG.debug("meta %s", meta)
                             if 'COMPLETE' in rsc.resource_status and '\
                             INIT_COMPLETE' != rsc.resource_status:
                                 vnfc_resource_info = objects.VnfcResourceInfo()
@@ -1397,8 +1393,9 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                 resource.vim_level_resource_type = '\
                                     OS::Nova::Server'
                                 vnfc_resource_info.compute_resource = resource
-                                if meta:
-                                    vnfc_resource_info.metadata = meta
+                                vnfc_resource_info.metadata.update(
+                                    {"stack_id":
+                                        scale_rsc.physical_resource_id})
                                 vnfc_resource_info.vnfc_cp_info = []
                                 volumes_attached = rsc_info.attributes.get(
                                     'os-extended-volumes:volumes_attached')
