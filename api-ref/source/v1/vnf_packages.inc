@@ -417,6 +417,54 @@ Response
 
   - Content-Type: fetch_content_type
 
+Fetch an on-boarded VNF package Artifacts with HTTP_RANGE
+=========================================================
+
+.. rest_method::  GET /vnfpkgm/v1/vnf_packages/{vnf_package_id}/artifacts/{artifact_path}
+
+Fetch an on-boarded VNF package Artifacts with HTTP_RANGE.
+
+The GET method fetches the content of an artifact within
+a VNF package.
+
+The 'HTTP_RANGE' header is inspected for a valid value.
+If it is present and valid, then the artifact content within
+the range is fetched. If not present the entire content is
+fetched.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 200
+  - 206
+
+.. rest_status_code:: error status.yaml
+
+  - 401
+  - 403
+  - 404
+  - 409
+  - 416
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnf_packages.yaml
+
+  - vnf_package_id: vnf_package_id_path
+  - artifact_path: artifact_path
+  - Accept: fetch_artifact_content_type
+  - Range: range
+
+Response
+--------
+
+.. rest_parameters:: parameters_vnf_packages.yaml
+
+  - Content-Type: fetch_artifact_content_type
+
 Reference
 ---------
 
