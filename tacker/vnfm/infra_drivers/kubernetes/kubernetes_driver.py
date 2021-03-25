@@ -1249,8 +1249,13 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         match_result = None
         if rsc_kind == 'Deployment':
             # Expected example: name-012789abef-019az
+            # NOTE(horie): The naming rule of Pod in deployment is
+            # "(deployment name)-(pod template hash)-(5 charactors)".
+            # The "pod template hash" string is generated from 32 bit hash.
+            # This may be from 1 to 10 caracters but not sure the lower limit
+            # from the source code of Kubernetes.
             match_result = re.match(
-                rsc_name + '-([0-9a-f]{10})-([0-9a-z]{5})+$',
+                rsc_name + '-([0-9a-f]{1,10})-([0-9a-z]{5})+$',
                 pod_name)
         elif rsc_kind == 'ReplicaSet':
             # Expected example: name-019az
