@@ -486,6 +486,12 @@ class Transformer(object):
 
         return sorted_k8s_objs
 
+    def get_object_meta(self, content):
+        must_param = {}
+        v1_object_meta = client.V1ObjectMeta()
+        self._init_k8s_obj(v1_object_meta, content, must_param)
+        return v1_object_meta
+
     # config_labels configures label
     def config_labels(self, deployment_name=None, scaling_name=None):
         label = dict()

@@ -97,7 +97,7 @@ class VnfAbstractDriver(extensions.PluginInterface, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def post_vnf_instantiation(self, context, vnf_instance,
-                               vim_connection_info):
+                               vim_connection_info, instantiate_vnf_req):
         pass
 
     @abc.abstractmethod
@@ -114,7 +114,8 @@ class VnfAbstractDriver(extensions.PluginInterface, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def heal_vnf_wait(self, context, vnf_instance, vim_connection_info):
+    def heal_vnf_wait(self, context, vnf_instance, vim_connection_info,
+                      heal_vnf_request):
         """Check vnf is healed successfully"""
         pass
 

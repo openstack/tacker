@@ -23,6 +23,7 @@ from kubernetes import client
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
+from oslo_utils import uuidutils
 from toscaparser import tosca_template
 
 from tacker._i18n import _
@@ -46,6 +47,7 @@ from urllib.parse import urlparse
 CNF_TARGET_FILES_KEY = 'lcm-kubernetes-def-files'
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
+VNFC_POD_NOT_FOUND = "POD_NOT_FOUND"
 
 OPTS = [
     cfg.IntOpt('stack_retries',
@@ -1247,7 +1249,11 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
 
     def _is_match_pod_naming_rule(self, rsc_kind, rsc_name, pod_name):
         match_result = None
-        if rsc_kind == 'Deployment':
+        if rsc_kind == 'Pod':
+            # Expected example: name
+            if rsc_name == pod_name:
+                match_result = True
+        elif rsc_kind == 'Deployment':
             # Expected example: name-012789abef-019az
             # NOTE(horie): The naming rule of Pod in deployment is
             # "(deployment name)-(pod template hash)-(5 charactors)".
@@ -1257,7 +1263,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             match_result = re.match(
                 rsc_name + '-([0-9a-f]{1,10})-([0-9a-z]{5})+$',
                 pod_name)
-        elif rsc_kind == 'ReplicaSet':
+        elif rsc_kind == 'ReplicaSet' or rsc_kind == 'DaemonSet':
             # Expected example: name-019az
             match_result = re.match(
                 rsc_name + '-([0-9a-z]{5})+$',
@@ -1528,19 +1534,501 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             return resource_info_str
 
     def post_vnf_instantiation(self, context, vnf_instance,
-                               vim_connection_info):
-        pass
+                               vim_connection_info, instantiate_vnf_req):
+        """Initially store VnfcResourceInfo after instantiation
+
+        After instantiation, this function gets pods information from
+        Kubernetes VIM and store information such as pod name and resource kind
+        and metadata, and vdu id.
+        """
+        auth_attr = vim_connection_info.access_info
+        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        try:
+            # get Kubernetes object files
+            target_k8s_files = self._get_target_k8s_files(instantiate_vnf_req)
+            vnf_package_path = vnflcm_utils._get_vnf_package_path(
+                context, vnf_instance.vnfd_id)
+            # initialize Transformer
+            transformer = translate_outputs.Transformer(
+                None, None, None, None)
+            # get Kubernetes object
+            k8s_objs = transformer.get_k8s_objs_from_yaml(
+                target_k8s_files, vnf_package_path)
+            # get TOSCA node templates
+            vnfd_dict = vnflcm_utils._get_vnfd_dict(
+                context, vnf_instance.vnfd_id,
+                vnf_instance.instantiated_vnf_info.flavour_id)
+            tosca = tosca_template.ToscaTemplate(
+                parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict)
+            tosca_node_tpls = tosca.topology_template.nodetemplates
+            # get vdu_ids dict {vdu_name(as pod_name): vdu_id}
+            vdu_ids = {}
+            for node_tpl in tosca_node_tpls:
+                for node_name, node_value in node_tpl.templates.items():
+                    if node_value.get('type') == "tosca.nodes.nfv.Vdu.Compute":
+                        vdu_id = node_name
+                        vdu_name = node_value.get('properties').get('name')
+                        vdu_ids[vdu_name] = vdu_id
+            # initialize Kubernetes APIs
+            core_v1_api_client = self.kubernetes.get_core_v1_api_client(
+                auth=auth_cred)
+            target_kinds = ["Pod", "Deployment", "DaemonSet", "StatefulSet",
+                            "ReplicaSet"]
+            pod_list_dict = {}
+            vnfc_resource_list = []
+            for k8s_obj in k8s_objs:
+                rsc_kind = k8s_obj.get('object').kind
+                if rsc_kind not in target_kinds:
+                    # Skip if rsc_kind is not target kind
+                    continue
+                rsc_name = k8s_obj.get('object').metadata.name
+                namespace = k8s_obj.get('object').metadata.namespace
+                if not namespace:
+                    namespace = "default"
+                # get V1PodList by namespace
+                if namespace in pod_list_dict.keys():
+                    pod_list = pod_list_dict.get(namespace)
+                else:
+                    pod_list = core_v1_api_client.list_namespaced_pod(
+                        namespace=namespace)
+                    pod_list_dict[namespace] = pod_list
+                # get initially store VnfcResourceInfo after instantiation
+                for pod in pod_list.items:
+                    pod_name = pod.metadata.name
+                    match_result = self._is_match_pod_naming_rule(
+                        rsc_kind, rsc_name, pod_name)
+                    if match_result:
+                        # get metadata
+                        metadata = {}
+                        metadata[rsc_kind] = jsonutils.dumps(
+                            k8s_obj.get('object').metadata.to_dict())
+                        if rsc_kind != 'Pod':
+                            metadata['Pod'] = jsonutils.dumps(
+                                k8s_obj.get('object').spec.template.metadata.
+                                to_dict())
+                        # generate VnfcResourceInfo
+                        vnfc_resource = objects.VnfcResourceInfo()
+                        vnfc_resource.id = uuidutils.generate_uuid()
+                        vnfc_resource.vdu_id = vdu_ids.get(rsc_name)
+                        resource = objects.ResourceHandle()
+                        resource.resource_id = pod_name
+                        resource.vim_level_resource_type = rsc_kind
+                        vnfc_resource.compute_resource = resource
+                        vnfc_resource.metadata = metadata
+                        vnfc_resource_list.append(vnfc_resource)
+
+            if vnfc_resource_list:
+                inst_vnf_info = vnf_instance.instantiated_vnf_info
+                inst_vnf_info.vnfc_resource_info = vnfc_resource_list
+        except Exception as e:
+            LOG.error('Update vnfc resource info got an error due to %s', e)
+            raise
+        finally:
+            self.clean_authenticate_vim(auth_cred, file_descriptor)
+
+    def _get_vnfc_rscs_with_vnfc_id(self, inst_vnf_info, heal_vnf_request):
+        if not heal_vnf_request.vnfc_instance_id:
+            # include all vnfc resources
+            return [resource for resource in inst_vnf_info.vnfc_resource_info]
+
+        vnfc_resources = []
+        for vnfc_resource in inst_vnf_info.vnfc_resource_info:
+            if vnfc_resource.id in heal_vnf_request.vnfc_instance_id:
+                vnfc_resources.append(vnfc_resource)
+        return vnfc_resources
+
+    def _get_added_pod_names(self, core_v1_api_client, inst_vnf_info, vdu_id,
+                             vnfc_resource, pod_list_dict):
+        compute_resource = vnfc_resource.compute_resource
+        rsc_kind = compute_resource.vim_level_resource_type
+        rsc_metadata = jsonutils.loads(
+            vnfc_resource.metadata.get(rsc_kind))
+        namespace = rsc_metadata.get('namespace')
+        if not namespace:
+            namespace = "default"
+        rsc_name = rsc_metadata.get('name')
+        # Get pod list from kubernetes
+        if namespace in pod_list_dict.keys():
+            pod_list = pod_list_dict.get(namespace)
+        else:
+            pod_list = core_v1_api_client.list_namespaced_pod(
+                namespace=namespace)
+            pod_list_dict[namespace] = pod_list
+        # Sort by newest creation_timestamp
+        sorted_pod_list = sorted(pod_list.items, key=lambda x:
+            x.metadata.creation_timestamp, reverse=True)
+        # Get the associated pod name that runs with the actual kubernetes
+        actual_pod_names = list()
+        for pod in sorted_pod_list:
+            match_result = self._is_match_pod_naming_rule(
+                rsc_kind, rsc_name, pod.metadata.name)
+            if match_result:
+                actual_pod_names.append(pod.metadata.name)
+        # Get the associated pod name stored in vnfcResourceInfo
+        stored_pod_names = []
+        for vnfc_rsc_info in inst_vnf_info.vnfc_resource_info:
+            if vnfc_rsc_info.vdu_id == vnfc_resource.vdu_id:
+                stored_pod_names.append(
+                    vnfc_rsc_info.compute_resource.resource_id)
+        # Get the added pod name that does not exist in vnfcResourceInfo
+        added_pod_names = [
+            actl_pn for actl_pn in actual_pod_names
+            if actl_pn not in stored_pod_names
+        ]
+        return actual_pod_names, added_pod_names
 
     def heal_vnf(self, context, vnf_instance, vim_connection_info,
                  heal_vnf_request):
-        raise NotImplementedError()
+        """Heal function
 
-    def heal_vnf_wait(self, context, vnf_instance, vim_connection_info):
-        raise NotImplementedError()
+        This function heals vnfc instances (mapped as Pod),
+        and update vnfcResourceInfo which are not the target of healing
+        before healing operation.
+
+        """
+        # initialize Kubernetes APIs
+        auth_attr = vim_connection_info.access_info
+        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        try:
+            core_v1_api_client = self.kubernetes.get_core_v1_api_client(
+                auth=auth_cred)
+            # get vnfc_resource_info list for healing
+            vnfc_resources = self._get_vnfc_rscs_with_vnfc_id(
+                inst_vnf_info=inst_vnf_info,
+                heal_vnf_request=heal_vnf_request
+            )
+            # Updates resource_id in vnfc_resource_info which are not the
+            # target of healing before heal operation because they may have
+            # been re-created by kubelet of Kubernetes automatically and their
+            # resource_id (as Pod name) have been already changed
+            updated_vdu_ids = []
+            pod_list_dict = {}
+            for vnfc_resource in vnfc_resources:
+                vdu_id = vnfc_resource.vdu_id
+                if vdu_id in updated_vdu_ids:
+                    # For updated vdu_id, go to the next Loop
+                    continue
+                actual_pod_names, added_pod_names = self._get_added_pod_names(
+                    core_v1_api_client, inst_vnf_info, vdu_id, vnfc_resource,
+                    pod_list_dict)
+
+                if added_pod_names:
+                    heal_target_ids = heal_vnf_request.vnfc_instance_id
+                    for vnfc_rsc in inst_vnf_info.vnfc_resource_info:
+                        stored_pod_name = vnfc_rsc.compute_resource.resource_id
+                        # Updated vnfcResourceInfo of the same vdu_id other
+                        # than heal target
+                        if (vnfc_rsc.id not in heal_target_ids) and\
+                                (vdu_id == vnfc_rsc.vdu_id) and\
+                                (stored_pod_name not in actual_pod_names):
+                            pod_name = added_pod_names.pop()
+                            vnfc_rsc.compute_resource.resource_id = pod_name
+                            LOG.warning("Update resource_id before healing,"
+                                        " vnfc_resource_info.id:%(vnfc_id)s,"
+                                        " pod_name:%(pod_name)s",
+                                        {'vnfc_id': vnfc_rsc.id,
+                                        'pod_name': pod_name})
+                        if not added_pod_names:
+                            break
+                updated_vdu_ids.append(vdu_id)
+
+            for vnfc_resource in vnfc_resources:
+                body = client.V1DeleteOptions(propagation_policy='Foreground')
+                compute_resource = vnfc_resource.compute_resource
+                rsc_kind = compute_resource.vim_level_resource_type
+                pod_name = compute_resource.resource_id
+                rsc_metadata = jsonutils.loads(
+                    vnfc_resource.metadata.get(rsc_kind))
+                namespace = rsc_metadata.get('namespace')
+                if not namespace:
+                    namespace = "default"
+
+                if rsc_kind == 'Pod':
+                    rsc_name = rsc_metadata.get('name')
+                    # Get pod information for re-creation before deletion
+                    pod_info = core_v1_api_client.read_namespaced_pod(
+                        namespace=namespace,
+                        name=rsc_name
+                    )
+                    # Delete Pod
+                    core_v1_api_client.delete_namespaced_pod(
+                        namespace=namespace,
+                        name=pod_name,
+                        body=body
+                    )
+                    # Check and wait that the Pod is deleted
+                    stack_retries = self.STACK_RETRIES
+                    for cnt in range(self.STACK_RETRIES):
+                        try:
+                            core_v1_api_client.read_namespaced_pod(
+                                namespace=namespace,
+                                name=pod_name
+                            )
+                        except Exception as e:
+                            if e.status == 404:
+                                break
+                            else:
+                                error_reason = _("Failed the request to read a"
+                                    " Pod information. namespace: {namespace},"
+                                    " pod_name: {name}, kind: {kind}, Reason: "
+                                    "{exception}").format(
+                                        namespace=namespace, name=pod_name,
+                                        kind=rsc_kind, exception=e)
+                                raise vnfm.CNFHealFailed(reason=error_reason)
+                        stack_retries = stack_retries - 1
+                        time.sleep(self.STACK_RETRY_WAIT)
+
+                    # Number of retries exceeded retry count
+                    if stack_retries == 0:
+                        error_reason = _("Resource healing is not completed"
+                            "within {wait} seconds").format(wait=(
+                                self.STACK_RETRIES * self.STACK_RETRY_WAIT))
+                        LOG.error("CNF Healing failed: %(reason)s",
+                                  {'reason': error_reason})
+                        raise vnfm.CNFHealFailed(reason=error_reason)
+
+                    # Recreate pod using retained pod_info
+                    transformer = translate_outputs.Transformer(
+                        None, None, None, None)
+                    metadata = transformer.get_object_meta(rsc_metadata)
+                    body = client.V1Pod(metadata=metadata, spec=pod_info.spec)
+                    core_v1_api_client.create_namespaced_pod(
+                        namespace=namespace,
+                        body=body
+                    )
+                elif (rsc_kind in ['Deployment', 'DaemonSet', 'StatefulSet',
+                                   'ReplicaSet']):
+                    try:
+                        # Delete Pod (Pod is automatically re-created)
+                        core_v1_api_client.delete_namespaced_pod(
+                            namespace=namespace,
+                            name=pod_name,
+                            body=body
+                        )
+                    except Exception as e:
+                        if e.status == 404:
+                            # If when the pod to be deleted does not exist,
+                            # change resource_id to "POD_NOT_FOUND"
+                            compute_resource = vnfc_resource.compute_resource
+                            compute_resource.resource_id = VNFC_POD_NOT_FOUND
+                            LOG.warning("Target pod to delete is not found,"
+                                        " vnfc_resource_info.id:%(vnfc_id)s,"
+                                        " pod_name:%(pod_name)s",
+                                        {'vnfc_id': vnfc_resource.id,
+                                        'pod_name': pod_name})
+                        else:
+                            error_reason = _("Failed the request to delete a "
+                                "Pod. namespace: {namespace}, pod_name: {name}"
+                                ", kind: {kind}, Reason: {exception}").format(
+                                    namespace=namespace, name=pod_name,
+                                    kind=rsc_kind, exception=e)
+                            raise vnfm.CNFHealFailed(reason=error_reason)
+                else:
+                    error_reason = _(
+                        "{vnfc_instance_id} is a kind of Kubertnetes"
+                        " resource that is not covered").format(
+                        vnfc_instance_id=vnfc_resource.id)
+                    LOG.error("CNF Heal failed: %(reason)s",
+                              {'reason': error_reason})
+                    raise vnfm.CNFHealFailed(reason=error_reason)
+        except Exception as e:
+            LOG.error('Healing CNF got an error due to %s', e)
+            raise
+        finally:
+            self.clean_authenticate_vim(auth_cred, file_descriptor)
+
+    def heal_vnf_wait(self, context, vnf_instance,
+                      vim_connection_info, heal_vnf_request):
+        """heal wait function
+
+        Wait until all status from Pod objects is RUNNING.
+        """
+        # initialize Kubernetes APIs
+        auth_attr = vim_connection_info.access_info
+        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        try:
+            core_v1_api_client = self.kubernetes.get_core_v1_api_client(
+                auth=auth_cred)
+            app_v1_api_client = self.kubernetes.get_app_v1_api_client(
+                auth=auth_cred)
+            vnfc_resources = self._get_vnfc_rscs_with_vnfc_id(
+                inst_vnf_info=vnf_instance.instantiated_vnf_info,
+                heal_vnf_request=heal_vnf_request)
+            # Exclude entries where pods were not found when heal
+            vnfc_resources = [rsc for rsc in vnfc_resources
+                              if rsc.compute_resource.
+                              resource_id != VNFC_POD_NOT_FOUND]
+
+            if not vnfc_resources:
+                # If heal is not running, wait is no need
+                return
+
+            # Get kubernetes resource information from target vnfcResourceInfo
+            k8s_resources = list()
+            for vnfc_resource in vnfc_resources:
+                info = {}
+                compute_resource = vnfc_resource.compute_resource
+                info['kind'] = compute_resource.vim_level_resource_type
+                rsc_metadata = jsonutils.loads(
+                    vnfc_resource.metadata.get(info['kind']))
+                info['name'] = rsc_metadata.get('name')
+                info['namespace'] = rsc_metadata.get('namespace')
+                k8s_resources.append(info)
+            # exclude duplicate entries
+            k8s_resources = list(map(jsonutils.loads,
+                                 set(map(jsonutils.dumps, k8s_resources))))
+            # get replicas of scalable resources for checking number of pod
+            scalable_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
+            for k8s_resource in k8s_resources:
+                if k8s_resource.get('kind') in scalable_kinds:
+                    scale_info = self._call_read_scale_api(
+                        app_v1_api_client=app_v1_api_client,
+                        namespace=k8s_resource.get('namespace'),
+                        name=k8s_resource.get('name'),
+                        kind=k8s_resource.get('kind'))
+                    k8s_resource['replicas'] = scale_info.spec.replicas
+            stack_retries = self.STACK_RETRIES
+            status = 'Pending'
+            while status == 'Pending' and stack_retries > 0:
+                pods_information = []
+                pod_list_dict = {}
+                is_unmatch_pods_num = False
+                # Get related pod information and check status
+                for k8s_resource in k8s_resources:
+                    namespace = k8s_resource.get('namespace')
+                    if namespace in pod_list_dict.keys():
+                        pod_list = pod_list_dict.get(namespace)
+                    else:
+                        pod_list = core_v1_api_client.list_namespaced_pod(
+                            namespace=k8s_resource.get('namespace'))
+                        pod_list_dict[namespace] = pod_list
+                    tmp_pods_info = list()
+                    for pod in pod_list.items:
+                        match_result = self._is_match_pod_naming_rule(
+                            k8s_resource.get('kind'),
+                            k8s_resource.get('name'),
+                            pod.metadata.name)
+                        if match_result:
+                            tmp_pods_info.append(pod)
+                    # NOTE(ueha): The status of pod being deleted is retrieved
+                    # as "Running", which cause incorrect information to be
+                    # stored in vnfcResouceInfo. Therefore, for the scalable
+                    # kinds, by comparing the actual number of pods with the
+                    # replicas, it can wait until the pod deletion is complete
+                    # and store correct information to vnfcResourceInfo.
+                    if k8s_resource.get('kind') in scalable_kinds and \
+                            k8s_resource.get('replicas') != len(tmp_pods_info):
+                        LOG.warning("Unmatch number of pod. (kind: %(kind)s,"
+                            " name: %(name)s, replicas: %(replicas)s,"
+                            " actual_pod_num: %(actual_pod_num)s)", {
+                                'kind': k8s_resource.get('kind'),
+                                'name': k8s_resource.get('name'),
+                                'replicas': str(k8s_resource.get('replicas')),
+                                'actual_pod_num': str(len(tmp_pods_info))})
+                        is_unmatch_pods_num = True
+                    pods_information.extend(tmp_pods_info)
+                status = self._get_pod_status(pods_information)
+
+                if status == 'Unknown':
+                    error_reason = _("Pod status is found Unknown")
+                    LOG.warning("CNF Healing failed: %(reason)s",
+                                {'reason': error_reason})
+                    raise vnfm.CNFHealWaitFailed(reason=error_reason)
+                elif status == 'Pending' or is_unmatch_pods_num:
+                    time.sleep(self.STACK_RETRY_WAIT)
+                    stack_retries = stack_retries - 1
+                    status = 'Pending'
+
+            if stack_retries == 0 and status != 'Running':
+                error_reason = _("Resource healing is not completed within"
+                                " {wait} seconds").format(
+                    wait=(self.STACK_RETRIES *
+                        self.STACK_RETRY_WAIT))
+                LOG.error("CNF Healing failed: %(reason)s",
+                    {'reason': error_reason})
+                raise vnfm.CNFHealWaitFailed(reason=error_reason)
+        except Exception as e:
+            LOG.error('Healing wait CNF got an error due to %s', e)
+            raise
+        finally:
+            self.clean_authenticate_vim(auth_cred, file_descriptor)
 
     def post_heal_vnf(self, context, vnf_instance, vim_connection_info,
                       heal_vnf_request):
-        raise NotImplementedError()
+        """Update VnfcResourceInfo after healing"""
+        # initialize Kubernetes APIs
+        auth_attr = vim_connection_info.access_info
+        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        try:
+            core_v1_api_client = self.kubernetes.get_core_v1_api_client(
+                auth=auth_cred)
+            vnfc_resources = self._get_vnfc_rscs_with_vnfc_id(
+                inst_vnf_info=inst_vnf_info,
+                heal_vnf_request=heal_vnf_request
+            )
+            # initialize
+            updated_vdu_ids = []
+            pod_list_dict = {}
+            for vnfc_resource in vnfc_resources:
+                vdu_id = vnfc_resource.vdu_id
+                if vdu_id in updated_vdu_ids:
+                    # For updated vdu_id, go to the next Loop
+                    continue
+                compute_resource = vnfc_resource.compute_resource
+                rsc_kind = compute_resource.vim_level_resource_type
+                pod_name = compute_resource.resource_id
+
+                if rsc_kind == 'Pod' or rsc_kind == 'StatefulSet':
+                    # No update required as the pod name does not change
+                    continue
+
+                # Update vnfcResourceInfo when other rsc_kind
+                # (Deployment, DaemonSet, ReplicaSet)
+                actual_pod_names, added_pod_names = self._get_added_pod_names(
+                    core_v1_api_client, inst_vnf_info, vdu_id, vnfc_resource,
+                    pod_list_dict)
+
+                updated_vnfc_ids = []
+                # Update entries that pod was not found when heal_vnf method
+                if added_pod_names:
+                    for vnfc_rsc in vnfc_resources:
+                        rsc_id = vnfc_rsc.compute_resource.resource_id
+                        if vdu_id == vnfc_rsc.vdu_id and \
+                                rsc_id == VNFC_POD_NOT_FOUND:
+                            pod_name = added_pod_names.pop()
+                            vnfc_rsc.compute_resource.resource_id = pod_name
+                            LOG.warning("Update resource_id of the"
+                                        " entry where the pod was not found,"
+                                        " vnfc_resource_info.id:%(vnfc_id)s,"
+                                        " new podname:%(pod_name)s",
+                                        {'vnfc_id': vnfc_rsc.id,
+                                        'pod_name': pod_name})
+                            updated_vnfc_ids.append(vnfc_rsc.id)
+                        if not added_pod_names:
+                            break
+                # Update entries that was healed successful
+                if added_pod_names:
+                    for vnfc_rsc_id in heal_vnf_request.vnfc_instance_id:
+                        if vnfc_rsc_id in updated_vnfc_ids:
+                            # If the entry has already been updated,
+                            # go to the next loop
+                            continue
+                        for vnfc_rsc in vnfc_resources:
+                            if vdu_id == vnfc_rsc.vdu_id and \
+                                    vnfc_rsc_id == vnfc_rsc.id:
+                                pod_name = added_pod_names.pop()
+                                compute_resource = vnfc_rsc.compute_resource
+                                compute_resource.resource_id = pod_name
+                            if not added_pod_names:
+                                break
+                updated_vdu_ids.append(vdu_id)
+        except Exception as e:
+            LOG.error('Post healing CNF got an error due to %s', e)
+            raise
+        finally:
+            self.clean_authenticate_vim(auth_cred, file_descriptor)
 
     def get_scale_ids(self,
                       plugin,
@@ -1568,7 +2056,90 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
     def scale_resource_update(self, context, vnf_instance,
                               scale_vnf_request,
                               vim_connection_info):
-        pass
+        """Update VnfcResourceInfo after scaling"""
+        auth_attr = vim_connection_info.access_info
+        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        try:
+            # initialize Kubernetes APIs
+            core_v1_api_client = self.kubernetes.get_core_v1_api_client(
+                auth=auth_cred)
+            vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
+                context, vnf_instance.id)
+            # get scale target informations
+            vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
+                vnf_instance.vnfd_id,
+                inst_vnf_info.flavour_id)
+            tosca = tosca_template.ToscaTemplate(parsed_params={},
+                                                 a_file=False,
+                                                 yaml_dict_tpl=vnfd_dict)
+            extract_policy_infos = vnflcm_utils.get_extract_policy_infos(tosca)
+            vdu_defs = vnflcm_utils.get_target_vdu_def_dict(
+                extract_policy_infos=extract_policy_infos,
+                aspect_id=scale_vnf_request.aspect_id,
+                tosca=tosca)
+            is_found = False
+            for vnf_resource in vnf_resources:
+                # For CNF operations, Kubernetes resource information is
+                # stored in vnfc_resource as follows:
+                #   - resource_name : "namespace,name"
+                #   - resource_type : "api_version,kind"
+                rsc_name = vnf_resource.resource_name.split(',')[1]
+                for vdu_id, vdu_def in vdu_defs.items():
+                    vdu_properties = vdu_def.get('properties')
+                    if rsc_name == vdu_properties.get('name'):
+                        is_found = True
+                        namespace = vnf_resource.resource_name.split(',')[0]
+                        rsc_kind = vnf_resource.resource_type.split(',')[1]
+                        target_vdu_id = vdu_id
+                        break
+                if is_found:
+                    break
+            # extract stored Pod names by vdu_id
+            stored_pod_list = []
+            metadata = None
+            for vnfc_resource in inst_vnf_info.vnfc_resource_info:
+                if vnfc_resource.vdu_id == target_vdu_id:
+                    stored_pod_list.append(
+                        vnfc_resource.compute_resource.resource_id)
+                    if not metadata:
+                        # get metadata for new VnfcResourceInfo entry
+                        metadata = vnfc_resource.metadata
+            # get actual Pod name list
+            pod_list = core_v1_api_client.list_namespaced_pod(
+                namespace=namespace)
+            actual_pod_list = []
+            for pod in pod_list.items:
+                match_result = self._is_match_pod_naming_rule(
+                    rsc_kind, rsc_name, pod.metadata.name)
+                if match_result:
+                    actual_pod_list.append(pod.metadata.name)
+            # Remove the reduced pods from VnfcResourceInfo
+            del_index = []
+            for index, vnfc in enumerate(inst_vnf_info.vnfc_resource_info):
+                if vnfc.compute_resource.resource_id not in actual_pod_list \
+                        and vnfc.vdu_id == target_vdu_id:
+                    del_index.append(index)
+            for ind in reversed(del_index):
+                inst_vnf_info.vnfc_resource_info.pop(ind)
+            # Add the increased pods to VnfcResourceInfo
+            for actual_pod_name in actual_pod_list:
+                if actual_pod_name not in stored_pod_list:
+                    add_vnfc_resource = objects.VnfcResourceInfo()
+                    add_vnfc_resource.id = uuidutils.generate_uuid()
+                    add_vnfc_resource.vdu_id = target_vdu_id
+                    resource = objects.ResourceHandle()
+                    resource.resource_id = actual_pod_name
+                    resource.vim_level_resource_type = rsc_kind
+                    add_vnfc_resource.compute_resource = resource
+                    add_vnfc_resource.metadata = metadata
+                    inst_vnf_info.vnfc_resource_info.append(
+                        add_vnfc_resource)
+        except Exception as e:
+            LOG.error('Update vnfc resource info got an error due to %s', e)
+            raise
+        finally:
+            self.clean_authenticate_vim(auth_cred, file_descriptor)
 
     def scale_in_reverse(self,
               context,

@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: curry-ns-statefulset
+  name: vdu2
   namespace: default
 spec:
   selector:

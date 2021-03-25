@@ -13,9 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
 
 from kubernetes import client
+from oslo_serialization import jsonutils
+from oslo_utils import uuidutils
 from tacker.db.db_sqlalchemy import models
+from tacker import objects
+from tacker.objects import vim_connection
 from tacker.tests import uuidsentinel
 
 CREATE_K8S_FALSE_VALUE = None
@@ -485,6 +490,17 @@ def fake_v1_deployment():
         status=client.V1DeploymentStatus(
             replicas=1,
             ready_replicas=1
+        ),
+        spec=client.V1DeploymentSpec(
+            replicas=2,
+            selector=client.V1LabelSelector(
+                match_labels={'app': 'webserver'}
+            ),
+            template=client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    labels={'app': 'webserver'}
+                )
+            )
         )
     )
 
@@ -515,6 +531,17 @@ def fake_v1_replica_set():
         status=client.V1ReplicaSetStatus(
             replicas=1,
             ready_replicas=1
+        ),
+        spec=client.V1ReplicaSetSpec(
+            replicas=2,
+            selector=client.V1LabelSelector(
+                match_labels={'app': 'webserver'}
+            ),
+            template=client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    labels={'app': 'webserver'}
+                )
+            )
         )
     )
 
@@ -923,6 +950,16 @@ def fake_daemon_set():
             desired_number_scheduled=13,
             current_number_scheduled=4,
             number_misscheduled=2,
+        ),
+        spec=client.V1DaemonSetSpec(
+            selector=client.V1LabelSelector(
+                match_labels={'app': 'webserver'}
+            ),
+            template=client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    labels={'app': 'webserver'}
+                )
+            )
         )
     )
 
@@ -1015,13 +1052,65 @@ def get_vnf_resource_list(kind, name='fake_name'):
     return [vnf_resource]
 
 
-def get_fake_pod_info(kind, name='fake_name', pod_status='Running'):
-    if kind == 'Deployment':
-        pod_name = _('{name}-1234567890-abcde').format(name=name)
-    elif kind == 'ReplicaSet':
-        pod_name = _('{name}-12345').format(name=name)
-    elif kind == 'StatefulSet':
-        pod_name = _('{name}-1').format(name=name)
+def get_fake_pod_info(kind, name='fake_name', pod_status='Running',
+                      pod_name=None):
+    if not pod_name:
+        if kind == 'Deployment':
+            pod_name = _('{name}-1234567890-abcde').format(name=name)
+        elif kind == 'ReplicaSet' or kind == 'DaemonSet':
+            pod_name = _('{name}-12345').format(name=name)
+        elif kind == 'StatefulSet':
+            pod_name = _('{name}-1').format(name=name)
+        elif kind == 'Pod':
+            pod_name = name
     return client.V1Pod(
-        metadata=client.V1ObjectMeta(name=pod_name),
+        metadata=client.V1ObjectMeta(name=pod_name,
+            creation_timestamp=datetime.datetime.now().isoformat('T')),
         status=client.V1PodStatus(phase=pod_status))
+
+
+def fake_vnfc_resource_info(vdu_id='VDU1', rsc_kind='Deployment',
+                            rsc_name='fake_name', pod_name=None,
+                            namespace=None):
+    def _get_metadata_str(name, namespace="fake_namespace"):
+        if namespace == "brank":
+            namespace = ""
+        metadata = {
+            'name': name,
+            'namespace': namespace}
+        return jsonutils.dumps(metadata)
+
+    vnfc_obj = objects.VnfcResourceInfo()
+    vnfc_obj.id = uuidutils.generate_uuid()
+    vnfc_obj.vdu_id = vdu_id
+    if not pod_name:
+        v1_pod = get_fake_pod_info(rsc_kind, rsc_name)
+        pod_name = v1_pod.metadata.name
+    compute_resource = objects.ResourceHandle(
+        resource_id=pod_name,
+        vim_level_resource_type=rsc_kind)
+    vnfc_obj.compute_resource = compute_resource
+    metadata = {}
+    if namespace:
+        metadata['Pod'] = _get_metadata_str(
+            name=pod_name, namespace=namespace)
+        if rsc_kind != 'Pod':
+            metadata[rsc_kind] = _get_metadata_str(
+                name=rsc_name, namespace=namespace)
+    else:
+        metadata['Pod'] = _get_metadata_str(name=pod_name)
+        if rsc_kind != 'Pod':
+            metadata[rsc_kind] = _get_metadata_str(name=rsc_name)
+    vnfc_obj.metadata = metadata
+
+    return vnfc_obj
+
+
+def fake_vim_connection_info():
+    access_info = {
+        'auth_url': 'http://fake_url:6443',
+        'ssl_ca_cert': None}
+
+    return vim_connection.VimConnectionInfo(
+        vim_type="kubernetes",
+        access_info=access_info)

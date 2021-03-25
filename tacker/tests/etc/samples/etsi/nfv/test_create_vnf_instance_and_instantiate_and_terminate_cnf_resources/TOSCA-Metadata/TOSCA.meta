@@ -26,12 +26,12 @@ Hash: 4042352e0de6aa0ad28d44354bd8e0d62fc8e753c8f52b7edf69d2a7a25d8f8d
 Name: Files/kubernetes/daemon-set.yaml
 Content-Type: test-data
 Algorithm: SHA-256
-Hash: c0750df79c9ba2824b032b6a485764486b014021aa6dade5ef61f1c10569412f
+Hash: f8ed04536a8795af4828b2f731225abc34986f9ea30237d9652669ca57d9d217
 
 Name: Files/kubernetes/deployment.yaml
 Content-Type: test-data
 Algorithm: SHA-256
-Hash: 6a40dfb06764394fb604ae807d1198bc2e2ee8aece3b9483dfde48e53f316a58
+Hash: 80f160c9bdd9daa6d0111c8d40b5575946b8c0f23696aa8d91d20f313adae087
 
 Name: Files/kubernetes/horizontal-pod-autoscaler.yaml
 Content-Type: test-data
@@ -91,12 +91,12 @@ Hash: 5d4d3d399e04cdba1f9c691ac7e690e295ff02b7c935abae873b68a83a858c50
 Name: Files/kubernetes/pod.yaml
 Content-Type: test-data
 Algorithm: SHA-256
-Hash: a708dcf5ba4d3a7c675f18b71484a32b7e4446e80e57dcc3035b8a921c3f659d
+Hash: 6c97b1a8fc8d21a6a9e7ab1c383b49d3ec31f79a83de218f5537d18531ddfbd8
 
 Name: Files/kubernetes/replicaset_service_secret.yaml
 Content-Type: test-data
 Algorithm: SHA-256
-Hash: 8ed52e5e167890efd7fba29c748f717dff01d68b60ff9a06af178cbafdfdc765
+Hash: 7d83ba61def65be3203b164b496057e4d062249804df82eba1831111cc4614a0
 
 Name: Files/kubernetes/resource-quota.yaml
 Content-Type: test-data
@@ -116,7 +116,7 @@ Hash: 83bd9c40db8c798d0cab0e793a4b40a4ac7eca4fec4fba89ab4257d0f397db40
 Name: Files/kubernetes/statefulset.yaml
 Content-Type: test-data
 Algorithm: SHA-256
-Hash: d0beddd39f6808cb62094146778961b068871393df3474e0787145639a94f649
+Hash: 6829939e8b30a36c69d0e84c65b36701712c89bfbe827536cba8c0cdb15a816b
 
 Name: Files/kubernetes/storage-class.yaml
 Content-Type: test-data

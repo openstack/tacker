@@ -13,10 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import ddt
 import os
 
 from kubernetes import client
+from oslo_serialization import jsonutils
 from tacker.common.container import kubernetes_utils
 from tacker.common import exceptions
 from tacker import context
@@ -1862,6 +1864,350 @@ class TestKubernetes(base.TestCase):
             "'curry-test001', 'apiVersion': 'apps/v1', " +
             "'kind': 'Deployment', 'status': 'Creating'}")
 
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_post_vnf_instantiation_with_pod(self, mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_get_k8s_objs_from_yaml,
+                            mock_list_namespaced_pod):
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        k8s_objs_pod = fakes.fake_k8s_objs_pod()
+        k8s_objs_pod[0].get('object').metadata.name = "vdu1"
+        mock_get_k8s_objs_from_yaml.return_value = k8s_objs_pod
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Pod', name='vdu1')])
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            additional_params={'lcm-kubernetes-def-files': ["dummy.yaml"]})
+        self.kubernetes.post_vnf_instantiation(
+            context=self.context,
+            vnf_instance=self.vnf_instance,
+            vim_connection_info=fakes.fake_vim_connection_info(),
+            instantiate_vnf_req=instantiate_vnf_req)
+        self.assertEqual(mock_list_namespaced_pod.call_count, 1)
+        # validate stored VnfcResourceInfo
+        vnfc_resource_info_after = \
+            self.vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(len(vnfc_resource_info_after), 1)
+        self.assertEqual(
+            vnfc_resource_info_after[0].compute_resource.resource_id, 'vdu1')
+        self.assertEqual(vnfc_resource_info_after[0].compute_resource.
+            vim_level_resource_type, 'Pod')
+        self.assertEqual(vnfc_resource_info_after[0].vdu_id, 'VDU1')
+        metadata_after = vnfc_resource_info_after[0].metadata
+        self.assertEqual(
+            jsonutils.loads(metadata_after.get('Pod')).get('name'), 'vdu1')
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_post_vnf_instantiation_with_deployment(self, mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_get_k8s_objs_from_yaml,
+                            mock_list_namespaced_pod):
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        k8s_objs_deployment = fakes.fake_k8s_objs_deployment()
+        k8s_objs_deployment[0].get('object').metadata.name = "vdu1"
+        mock_get_k8s_objs_from_yaml.return_value = k8s_objs_deployment
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Deployment', name='vdu1')])
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            additional_params={'lcm-kubernetes-def-files': ["dummy.yaml"]})
+        self.kubernetes.post_vnf_instantiation(
+            context=self.context,
+            vnf_instance=self.vnf_instance,
+            vim_connection_info=fakes.fake_vim_connection_info(),
+            instantiate_vnf_req=instantiate_vnf_req)
+        self.assertEqual(mock_list_namespaced_pod.call_count, 1)
+        # validate stored VnfcResourceInfo
+        vnfc_resource_info_after = \
+            self.vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(len(vnfc_resource_info_after), 1)
+        expected_pod = fakes.get_fake_pod_info('Deployment', 'vdu1')
+        self.assertEqual(
+            vnfc_resource_info_after[0].compute_resource.resource_id,
+            expected_pod.metadata.name)
+        self.assertEqual(vnfc_resource_info_after[0].compute_resource.
+            vim_level_resource_type, 'Deployment')
+        self.assertEqual(vnfc_resource_info_after[0].vdu_id, 'VDU1')
+        metadata_after = vnfc_resource_info_after[0].metadata
+        self.assertEqual(jsonutils.loads(
+            metadata_after.get('Deployment')).get('name'), 'vdu1')
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_post_vnf_instantiation_with_replicaset(self, mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_get_k8s_objs_from_yaml,
+                            mock_list_namespaced_pod):
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        k8s_objs_replicaset = fakes.fake_k8s_objs_replica_set()
+        k8s_objs_replicaset[0].get('object').metadata.name = "vdu1"
+        mock_get_k8s_objs_from_yaml.return_value = k8s_objs_replicaset
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='ReplicaSet', name='vdu1')])
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            additional_params={'lcm-kubernetes-def-files': ["dummy.yaml"]})
+        self.kubernetes.post_vnf_instantiation(
+            context=self.context,
+            vnf_instance=self.vnf_instance,
+            vim_connection_info=fakes.fake_vim_connection_info(),
+            instantiate_vnf_req=instantiate_vnf_req)
+        self.assertEqual(mock_list_namespaced_pod.call_count, 1)
+        # validate stored VnfcResourceInfo
+        vnfc_resource_info_after = \
+            self.vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(len(vnfc_resource_info_after), 1)
+        expected_pod = fakes.get_fake_pod_info('ReplicaSet', 'vdu1')
+        self.assertEqual(
+            vnfc_resource_info_after[0].compute_resource.resource_id,
+            expected_pod.metadata.name)
+        self.assertEqual(vnfc_resource_info_after[0].compute_resource.
+            vim_level_resource_type, 'ReplicaSet')
+        self.assertEqual(vnfc_resource_info_after[0].vdu_id, 'VDU1')
+        metadata_after = vnfc_resource_info_after[0].metadata
+        self.assertEqual(jsonutils.loads(
+            metadata_after.get('ReplicaSet')).get('name'), 'vdu1')
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_post_vnf_instantiation_with_daemonset(self, mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_get_k8s_objs_from_yaml,
+                            mock_list_namespaced_pod):
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        k8s_objs_daemonset = fakes.fake_k8s_objs_daemon_set()
+        k8s_objs_daemonset[0].get('object').metadata.name = "vdu1"
+        mock_get_k8s_objs_from_yaml.return_value = k8s_objs_daemonset
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='DaemonSet', name='vdu1')])
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            additional_params={'lcm-kubernetes-def-files': ["dummy.yaml"]})
+        self.kubernetes.post_vnf_instantiation(
+            context=self.context,
+            vnf_instance=self.vnf_instance,
+            vim_connection_info=fakes.fake_vim_connection_info(),
+            instantiate_vnf_req=instantiate_vnf_req)
+        self.assertEqual(mock_list_namespaced_pod.call_count, 1)
+        # validate stored VnfcResourceInfo
+        vnfc_resource_info_after = \
+            self.vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(len(vnfc_resource_info_after), 1)
+        expected_pod = fakes.get_fake_pod_info('DaemonSet', 'vdu1')
+        self.assertEqual(
+            vnfc_resource_info_after[0].compute_resource.resource_id,
+            expected_pod.metadata.name)
+        self.assertEqual(vnfc_resource_info_after[0].compute_resource.
+            vim_level_resource_type, 'DaemonSet')
+        self.assertEqual(vnfc_resource_info_after[0].vdu_id, 'VDU1')
+        metadata_after = vnfc_resource_info_after[0].metadata
+        self.assertEqual(jsonutils.loads(
+            metadata_after.get('DaemonSet')).get('name'), 'vdu1')
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_post_vnf_instantiation_with_statefulset(self, mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_get_k8s_objs_from_yaml,
+                            mock_list_namespaced_pod):
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        k8s_objs_statefulset = fakes.fake_k8s_objs_stateful_set()
+        k8s_objs_statefulset[0].get('object').metadata.name = "vdu1"
+        mock_get_k8s_objs_from_yaml.return_value = k8s_objs_statefulset
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='StatefulSet', name='vdu1')])
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            additional_params={'lcm-kubernetes-def-files': ["dummy.yaml"]})
+        self.kubernetes.post_vnf_instantiation(
+            context=self.context,
+            vnf_instance=self.vnf_instance,
+            vim_connection_info=fakes.fake_vim_connection_info(),
+            instantiate_vnf_req=instantiate_vnf_req)
+        self.assertEqual(mock_list_namespaced_pod.call_count, 1)
+        # validate stored VnfcResourceInfo
+        vnfc_resource_info_after = \
+            self.vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(len(vnfc_resource_info_after), 1)
+        expected_pod = fakes.get_fake_pod_info('StatefulSet', 'vdu1')
+        self.assertEqual(
+            vnfc_resource_info_after[0].compute_resource.resource_id,
+            expected_pod.metadata.name)
+        self.assertEqual(vnfc_resource_info_after[0].compute_resource.
+            vim_level_resource_type, 'StatefulSet')
+        self.assertEqual(vnfc_resource_info_after[0].vdu_id, 'VDU1')
+        metadata_after = vnfc_resource_info_after[0].metadata
+        self.assertEqual(jsonutils.loads(
+            metadata_after.get('StatefulSet')).get('name'), 'vdu1')
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_post_vnf_instantiation_with_multiple_pod(self, mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_get_k8s_objs_from_yaml,
+                            mock_list_namespaced_pod):
+        vnfd_dict = vnflcm_fakes.vnfd_dict_cnf()
+        node_tpls = vnfd_dict.get('topology_template').get('node_templates')
+        node_tpls['VDU2'] = copy.deepcopy(node_tpls['VDU1'])
+        node_tpls['VDU2']['properties']['name'] = "vdu2"
+        mock_vnfd_dict.return_value = vnfd_dict
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        # use multiple pod with default namespace
+        k8s_objs_pod = fakes.fake_k8s_objs_pod()
+        k8s_objs_pod[0].get('object').metadata.name = "vdu1"
+        k8s_objs_pod[0].get('object').metadata.namespace = None
+        k8s_objs_pod[0]['namespace'] = None
+        k8s_objs_pod.append(copy.deepcopy(k8s_objs_pod[0]))
+        k8s_objs_pod[1].get('object').metadata.name = "vdu2"
+        k8s_objs_pod[1].get('object').metadata.namespace = None
+        k8s_objs_pod[1]['namespace'] = None
+        mock_get_k8s_objs_from_yaml.return_value = k8s_objs_pod
+        mock_list_namespaced_pod.return_value = \
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Pod', name='vdu1'),
+                fakes.get_fake_pod_info(kind='Pod', name='vdu2')])
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            additional_params={'lcm-kubernetes-def-files': ["dummy.yaml"]})
+        self.kubernetes.post_vnf_instantiation(
+            context=self.context,
+            vnf_instance=self.vnf_instance,
+            vim_connection_info=fakes.fake_vim_connection_info(),
+            instantiate_vnf_req=instantiate_vnf_req)
+        self.assertEqual(mock_list_namespaced_pod.call_count, 1)
+        # validate stored VnfcResourceInfo
+        vnfc_resource_info_after = \
+            self.vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(len(vnfc_resource_info_after), 2)
+        self.assertEqual(
+            vnfc_resource_info_after[0].compute_resource.resource_id, 'vdu1')
+        self.assertEqual(vnfc_resource_info_after[0].compute_resource.
+            vim_level_resource_type, 'Pod')
+        self.assertEqual(vnfc_resource_info_after[0].vdu_id, 'VDU1')
+        metadata_after = vnfc_resource_info_after[0].metadata
+        self.assertEqual(
+            jsonutils.loads(metadata_after.get('Pod')).get('name'), 'vdu1')
+        self.assertEqual(
+            vnfc_resource_info_after[1].compute_resource.resource_id, 'vdu2')
+        self.assertEqual(vnfc_resource_info_after[1].compute_resource.
+            vim_level_resource_type, 'Pod')
+        self.assertEqual(vnfc_resource_info_after[1].vdu_id, 'VDU2')
+        metadata_after = vnfc_resource_info_after[1].metadata
+        self.assertEqual(
+            jsonutils.loads(metadata_after.get('Pod')).get('name'), 'vdu2')
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_post_vnf_instantiation_without_pod_creation(self, mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_get_k8s_objs_from_yaml,
+                            mock_list_namespaced_pod):
+        vnfd_dict = vnflcm_fakes.vnfd_dict_cnf()
+        node_tpls = vnfd_dict.get('topology_template').get('node_templates')
+        # delete definition of VDU and policies from vnfd
+        del node_tpls['VDU1']
+        del vnfd_dict.get('topology_template')['policies']
+        mock_vnfd_dict.return_value = vnfd_dict
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        # use service object
+        mock_get_k8s_objs_from_yaml.return_value = \
+            fakes.fake_k8s_objs_api_service()
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            additional_params={'lcm-kubernetes-def-files': ["dummy.yaml"]})
+        self.kubernetes.post_vnf_instantiation(
+            context=self.context,
+            vnf_instance=self.vnf_instance,
+            vim_connection_info=fakes.fake_vim_connection_info(),
+            instantiate_vnf_req=instantiate_vnf_req)
+        self.assertEqual(mock_list_namespaced_pod.call_count, 0)
+        # validate stored VnfcResourceInfo
+        vnfc_resource_info_after = \
+            self.vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(len(vnfc_resource_info_after), 0)
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_post_vnf_instantiation_without_naming_rule_match(self,
+                            mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_get_k8s_objs_from_yaml,
+                            mock_list_namespaced_pod):
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        k8s_objs_pod = fakes.fake_k8s_objs_pod()
+        k8s_objs_pod[0].get('object').metadata.name = "vdu1"
+        mock_get_k8s_objs_from_yaml.return_value = k8s_objs_pod
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Pod', name='vdu2')])
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            additional_params={'lcm-kubernetes-def-files': ["dummy.yaml"]})
+        self.kubernetes.post_vnf_instantiation(
+            context=self.context,
+            vnf_instance=self.vnf_instance,
+            vim_connection_info=fakes.fake_vim_connection_info(),
+            instantiate_vnf_req=instantiate_vnf_req)
+        self.assertEqual(mock_list_namespaced_pod.call_count, 1)
+        # validate stored VnfcResourceInfo
+        vnfc_resource_info_after = \
+            self.vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(len(vnfc_resource_info_after), 0)
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_post_vnf_instantiation_api_fail(self,
+                            mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_get_k8s_objs_from_yaml,
+                            mock_list_namespaced_pod):
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        k8s_objs_pod = fakes.fake_k8s_objs_pod()
+        k8s_objs_pod[0].get('object').metadata.name = "vdu1"
+        mock_get_k8s_objs_from_yaml.return_value = k8s_objs_pod
+        mock_list_namespaced_pod.side_effect = \
+            client.rest.ApiException(status=500)
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            additional_params={'lcm-kubernetes-def-files': ["dummy.yaml"]})
+        self.assertRaises(client.rest.ApiException,
+                          self.kubernetes.post_vnf_instantiation,
+                          self.context, self.vnf_instance,
+                          fakes.fake_vim_connection_info(),
+                          instantiate_vnf_req)
+
     @mock.patch.object(client.AppsV1Api, 'patch_namespaced_deployment_scale')
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
@@ -2348,3 +2694,894 @@ class TestKubernetes(base.TestCase):
                                    vnf_info=vnf_info,
                                    region_name=None)
         mock_list_namespaced_pod.assert_called_once()
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_scale_resource_update_scale_out(self, mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_vnf_resource_list,
+                            mock_list_namespaced_pod):
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        vnf_resource_list = []
+        vnf_resource_list.append(models.VnfResource())
+        vnf_resource_list[0].vnf_instance_id = self.vnf_instance.id
+        vnf_resource_list[0].resource_name = "default,vdu0"
+        vnf_resource_list[0].resource_type = "apps/v1,Deployment"
+        vnf_resource_list.append(copy.deepcopy(vnf_resource_list[0]))
+        vnf_resource_list[1].resource_name = "default,vdu1"
+        mock_vnf_resource_list.return_value = vnf_resource_list
+        vnfc_resource_info = []
+        vnfc_resource_info.append(
+            fakes.fake_vnfc_resource_info(rsc_name="vdu1"))
+        vnfc_resource_info.append(
+            fakes.fake_vnfc_resource_info(vdu_id="VDU2", rsc_name="vdu2"))
+        self.vnf_instance.instantiated_vnf_info.vnfc_resource_info = \
+            vnfc_resource_info
+        fake_pod_list = []
+        fake_pod_list.append(
+            fakes.get_fake_pod_info(kind='Deployment', name='vdu1'))
+        fake_pod_list.append(
+            fakes.get_fake_pod_info(kind='Deployment', name='vdu1',
+                pod_name="vdu1-1234567890-dummy"))
+        fake_pod_list.append(
+            fakes.get_fake_pod_info(kind='Deployment', name='vdu2',
+                pod_name="vdu2-abcdef0123-fakes"))
+        vnfc_resource_info = []
+        vnfc_resource_info.append(
+            fakes.fake_vnfc_resource_info(rsc_name="vdu1"))
+        vnfc_resource_info.append(
+            fakes.fake_vnfc_resource_info(vdu_id="VDU2", rsc_name="vdu2"))
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=fake_pod_list)
+        scale_vnf_req = objects.ScaleVnfRequest(type='SCALE_OUT',
+                                                aspect_id='vdu1_aspect',
+                                                number_of_steps=1)
+        self.kubernetes.scale_resource_update(
+            context=self.context,
+            vnf_instance=self.vnf_instance,
+            scale_vnf_request=scale_vnf_req,
+            vim_connection_info=fakes.fake_vim_connection_info())
+        self.assertEqual(mock_list_namespaced_pod.call_count, 1)
+        # validate added VnfcResourceInfo
+        vnfc_resource_info_after = \
+            self.vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(len(vnfc_resource_info_after), 3)
+        expected_pod = fake_pod_list[1]
+        self.assertEqual(
+            vnfc_resource_info_after[2].compute_resource.resource_id,
+            expected_pod.metadata.name)
+        self.assertEqual(vnfc_resource_info_after[2].compute_resource.
+            vim_level_resource_type, 'Deployment')
+        self.assertEqual(vnfc_resource_info_after[2].vdu_id, 'VDU1')
+        metadata_after = vnfc_resource_info_after[2].metadata
+        self.assertEqual(jsonutils.loads(
+            metadata_after.get('Deployment')).get('name'), 'vdu1')
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_scale_resource_update_scale_in(self, mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_vnf_resource_list,
+                            mock_list_namespaced_pod):
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        vnf_resource = models.VnfResource()
+        vnf_resource.vnf_instance_id = self.vnf_instance.id
+        vnf_resource.resource_name = "default,vdu1"
+        vnf_resource.resource_type = "apps/v1,Deployment"
+        mock_vnf_resource_list.return_value = [vnf_resource]
+        vnfc_resource_info = []
+        vnfc_resource_info.append(
+            fakes.fake_vnfc_resource_info(rsc_name="vdu1"))
+        vnfc_resource_info.append(
+            fakes.fake_vnfc_resource_info(rsc_name="vdu1",
+                pod_name="vdu1-1234567890-dummy"))
+        self.vnf_instance.instantiated_vnf_info.vnfc_resource_info = \
+            vnfc_resource_info
+        fake_pod_list = []
+        fake_pod_list.append(
+            fakes.get_fake_pod_info(kind='Deployment', name='vdu1'))
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=fake_pod_list)
+        scale_vnf_req = objects.ScaleVnfRequest(type='SCALE_IN',
+                                                aspect_id='vdu1_aspect',
+                                                number_of_steps=1)
+        self.kubernetes.scale_resource_update(
+            context=self.context,
+            vnf_instance=self.vnf_instance,
+            scale_vnf_request=scale_vnf_req,
+            vim_connection_info=fakes.fake_vim_connection_info())
+        self.assertEqual(mock_list_namespaced_pod.call_count, 1)
+        # validate VnfcResourceInfo
+        vnfc_resource_info_after = \
+            self.vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(len(vnfc_resource_info_after), 1)
+        expected_pod = fake_pod_list[0]
+        self.assertEqual(
+            vnfc_resource_info_after[0].compute_resource.resource_id,
+            expected_pod.metadata.name)
+        self.assertEqual(vnfc_resource_info_after[0].compute_resource.
+            vim_level_resource_type, 'Deployment')
+        self.assertEqual(vnfc_resource_info_after[0].vdu_id, 'VDU1')
+        metadata_after = vnfc_resource_info_after[0].metadata
+        self.assertEqual(jsonutils.loads(
+            metadata_after.get('Deployment')).get('name'), 'vdu1')
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_scale_resource_update_api_fail(self, mock_vnfd_dict,
+                            mock_vnf_package_vnfd_get_by_id,
+                            mock_vnf_resource_list,
+                            mock_list_namespaced_pod):
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = \
+            vnflcm_fakes.return_vnf_package_vnfd()
+        vnf_resource = models.VnfResource()
+        vnf_resource.vnf_instance_id = self.vnf_instance.id
+        vnf_resource.resource_name = "default,vdu1"
+        vnf_resource.resource_type = "apps/v1,Deployment"
+        mock_vnf_resource_list.return_value = [vnf_resource]
+        vnfc_resource_info = []
+        vnfc_resource_info.append(
+            fakes.fake_vnfc_resource_info(rsc_name="vdu1"))
+        self.vnf_instance.instantiated_vnf_info.vnfc_resource_info =\
+            vnfc_resource_info
+        mock_list_namespaced_pod.side_effect = \
+            client.rest.ApiException(status=500)
+        scale_vnf_req = objects.ScaleVnfRequest(type='SCALE_OUT',
+                                                aspect_id='vdu1_aspect',
+                                                number_of_steps=1)
+        self.assertRaises(client.rest.ApiException,
+                          self.kubernetes.scale_resource_update,
+                          self.context, self.vnf_instance,
+                          scale_vnf_req,
+                          fakes.fake_vim_connection_info())
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_api_fail(
+            self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.side_effect =\
+            client.rest.ApiException(status=500)
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.assertRaises(client.rest.ApiException,
+                          self.kubernetes.heal_vnf,
+                          context=self.context,
+                          vnf_instance=vnf_instance_obj,
+                          vim_connection_info=vim_connection_object,
+                          heal_vnf_request=heal_request_data_obj)
+
+    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_pod_stack_retries_false(
+            self, mock_list_namespaced_pod,
+            mock_read_namespaced_pod,
+            mock_delete_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Pod')])
+        mock_read_namespaced_pod.return_value = fakes.fake_pod()
+        mock_delete_namespaced_pod.return_value = client.V1Status()
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.assertRaises(vnfm.CNFHealFailed,
+                          self.kubernetes.heal_vnf,
+                          context=self.context,
+                          vnf_instance=vnf_instance_obj,
+                          vim_connection_info=vim_connection_object,
+                          heal_vnf_request=heal_request_data_obj)
+
+    @mock.patch.object(client.CoreV1Api, 'create_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_pod(
+            self, mock_list_namespaced_pod,
+            mock_read_namespaced_pod,
+            mock_delete_namespaced_pod,
+            mock_create_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Pod')])
+        mock_read_namespaced_pod.side_effect = [
+            fakes.fake_pod(),
+            client.rest.ApiException(status=404)]
+        mock_delete_namespaced_pod.return_value = client.V1Status()
+        mock_create_namespaced_pod.return_value = client.V1Status()
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.heal_vnf(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_delete_namespaced_pod.assert_called_once()
+
+    @mock.patch.object(client.CoreV1Api, 'create_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_pod_api_fail_code_500(
+            self, mock_list_namespaced_pod,
+            mock_read_namespaced_pod,
+            mock_delete_namespaced_pod,
+            mock_create_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Pod')])
+        mock_read_namespaced_pod.side_effect = [
+            fakes.fake_pod(),
+            client.rest.ApiException(status=500)]
+        mock_delete_namespaced_pod.return_value = client.V1Status()
+        mock_create_namespaced_pod.return_value = client.V1Status()
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.assertRaises(vnfm.CNFHealFailed,
+                          self.kubernetes.heal_vnf,
+                          context=self.context,
+                          vnf_instance=vnf_instance_obj,
+                          vim_connection_info=vim_connection_object,
+                          heal_vnf_request=heal_request_data_obj)
+        mock_delete_namespaced_pod.assert_called_once()
+
+    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_deployment(
+            self, mock_list_namespaced_pod,
+            mock_delete_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Deployment')])
+        mock_delete_namespaced_pod.return_value = client.V1Status()
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='Deployment')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.heal_vnf(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_delete_namespaced_pod.assert_called_once()
+        self.assertEqual(len(vnf_instance_obj.instantiated_vnf_info.
+                        vnfc_resource_info), 1)
+
+    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_deployment_target_pod_not_found(
+            self, mock_list_namespaced_pod,
+            mock_delete_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Deployment')])
+        mock_delete_namespaced_pod.side_effect =\
+            client.rest.ApiException(status=404)
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='Deployment')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.heal_vnf(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_delete_namespaced_pod.assert_called_once()
+        self.assertEqual("POD_NOT_FOUND",
+                        vnf_instance_obj.instantiated_vnf_info.
+                        vnfc_resource_info[0].compute_resource.
+                        resource_id)
+
+    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_deployment_api_failed_code_500(
+            self, mock_list_namespaced_pod,
+            mock_delete_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Deployment')])
+        mock_delete_namespaced_pod.side_effect =\
+            client.rest.ApiException(status=500)
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='Deployment')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.assertRaises(vnfm.CNFHealFailed,
+                          self.kubernetes.heal_vnf,
+                          context=self.context,
+                          vnf_instance=vnf_instance_obj,
+                          vim_connection_info=vim_connection_object,
+                          heal_vnf_request=heal_request_data_obj)
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_with_not_supported_kind(
+            self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='ReplicaSet')])
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='ReplicaSet')
+        # change Kubernetes resource kind to Job (for illegal route)
+        vnfc_resource_info_obj.compute_resource.vim_level_resource_type = "Job"
+        vnfc_resource_info_obj.metadata["Job"] =\
+            vnfc_resource_info_obj.metadata.pop("ReplicaSet")
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.assertRaises(vnfm.CNFHealFailed,
+                          self.kubernetes.heal_vnf,
+                          context=self.context,
+                          vnf_instance=vnf_instance_obj,
+                          vim_connection_info=vim_connection_object,
+                          heal_vnf_request=heal_request_data_obj)
+
+    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_deployment_update_vnfc_before_heal(
+            self, mock_list_namespaced_pod,
+            mock_delete_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Deployment', name='fake_name',
+                    pod_name="fake_name-1234567890-strp1"),
+                fakes.get_fake_pod_info(kind='Deployment', name='fake_name',
+                    pod_name="fake_name-1234567890-added"),
+                fakes.get_fake_pod_info(kind='Deployment', name='fake_name',
+                    pod_name="fake_name-1234567890-strp3")]
+            )
+        mock_delete_namespaced_pod.return_value = client.V1Status()
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info = []
+        vnfc_resource_info.append(fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment', rsc_name='fake_name',
+            pod_name="fake_name-1234567890-strp1", namespace="brank"))
+        vnfc_resource_info.append(fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment', rsc_name='fake_name',
+            pod_name="fake_name-1234567890-strp2", namespace="brank"))
+        vnfc_resource_info.append(fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment', rsc_name='fake_name',
+            pod_name="fake_name-1234567890-strp3", namespace="brank"))
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            vnfc_resource_info
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[
+                vnfc_resource_info[0].id, vnfc_resource_info[2].id])
+        before_vnfc = \
+            vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info
+        self.kubernetes.heal_vnf(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        after_vnfc = \
+            vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(before_vnfc[0], after_vnfc[0])
+        self.assertEqual(
+            "fake_name-1234567890-added",
+            after_vnfc[1].compute_resource.resource_id)
+        self.assertEqual(before_vnfc[2], after_vnfc[2])
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_wait_api_fail(
+            self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.side_effect =\
+            client.rest.ApiException(status=500)
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.assertRaises(client.rest.ApiException,
+                          self.kubernetes.heal_vnf_wait,
+                          context=self.context,
+                          vnf_instance=vnf_instance_obj,
+                          vim_connection_info=vim_connection_object,
+                          heal_vnf_request=heal_request_data_obj)
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_wait_pod(self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Pod')])
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.heal_vnf_wait(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_list_namespaced_pod.assert_called_once()
+
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_wait_deployment(self, mock_list_namespaced_pod,
+            mock_read_namespaced_deployment_scale):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Deployment')])
+        mock_read_namespaced_deployment_scale.return_value = \
+            client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
+                           status=client.V1ScaleStatus(replicas=1))
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='Deployment')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.heal_vnf_wait(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_list_namespaced_pod.assert_called_once()
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_wait_daemon_set(self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='DaemonSet')])
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='DaemonSet')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.heal_vnf_wait(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_list_namespaced_pod.assert_called_once()
+
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_stateful_set_scale')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_wait_stateful_set(self, mock_list_namespaced_pod,
+            mock_read_namespaced_stateful_set_scale):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='StatefulSet')])
+        mock_read_namespaced_stateful_set_scale.return_value = \
+            client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
+                           status=client.V1ScaleStatus(replicas=1))
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='StatefulSet')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.heal_vnf_wait(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_list_namespaced_pod.assert_called_once()
+
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set_scale')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_wait_replica_set(self, mock_list_namespaced_pod,
+            mock_read_namespaced_replica_set_scale):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='ReplicaSet')])
+        mock_read_namespaced_replica_set_scale.return_value = \
+            client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
+                           status=client.V1ScaleStatus(replicas=1))
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='ReplicaSet')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.heal_vnf_wait(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_list_namespaced_pod.assert_called_once()
+
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_wait_deployment_same_namespace(
+            self, mock_list_namespaced_pod,
+            mock_read_namespaced_deployment_scale):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Deployment')])
+        mock_read_namespaced_deployment_scale.return_value = \
+            client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
+                           status=client.V1ScaleStatus(replicas=1))
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_list = [
+            fakes.fake_vnfc_resource_info(rsc_kind='Deployment'),
+            fakes.fake_vnfc_resource_info(
+                vdu_id='VDU2', rsc_kind='Deployment', rsc_name='fake_name')]
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            vnfc_resource_info_list
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[
+                vnfc_resource_info_list[0].id,
+                vnfc_resource_info_list[1].id])
+        self.kubernetes.heal_vnf_wait(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_list_namespaced_pod.assert_called_once()
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_wait_deployment_no_need_waiting(self,
+            mock_list_namespaced_pod):
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='Deployment', pod_name="POD_NOT_FOUND")
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.heal_vnf_wait(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        self.assertEqual(mock_list_namespaced_pod.call_count, 0)
+
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_wait_retry_over(self, mock_list_namespaced_pod,
+            mock_read_namespaced_deployment_scale):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[fakes.get_fake_pod_info(
+                kind='Deployment', pod_status='Pending')])
+        mock_read_namespaced_deployment_scale.return_value = \
+            client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
+                           status=client.V1ScaleStatus(replicas=1))
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = \
+            fakes.fake_vnfc_resource_info(rsc_kind='Deployment')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.assertRaises(vnfm.CNFHealWaitFailed,
+                          self.kubernetes.heal_vnf_wait,
+                          context=self.context,
+                          vnf_instance=vnf_instance_obj,
+                          vim_connection_info=vim_connection_object,
+                          heal_vnf_request=heal_request_data_obj)
+
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_wait_unknown_pod_status(self, mock_list_namespaced_pod,
+            mock_read_namespaced_deployment_scale):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[fakes.get_fake_pod_info(
+                kind='Deployment', pod_status='Unknown')])
+        mock_read_namespaced_deployment_scale.return_value = \
+            client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
+                           status=client.V1ScaleStatus(replicas=1))
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = \
+            fakes.fake_vnfc_resource_info(rsc_kind='Deployment')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.assertRaises(vnfm.CNFHealWaitFailed,
+                          self.kubernetes.heal_vnf_wait,
+                          context=self.context,
+                          vnf_instance=vnf_instance_obj,
+                          vim_connection_info=vim_connection_object,
+                          heal_vnf_request=heal_request_data_obj)
+
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_heal_vnf_wait_retry_over_unmatch_pod_num(self,
+            mock_list_namespaced_pod, mock_read_namespaced_deployment_scale):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Deployment'),
+                fakes.get_fake_pod_info(kind='Deployment')])
+        mock_read_namespaced_deployment_scale.return_value = \
+            client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
+                           status=client.V1ScaleStatus(replicas=1))
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = \
+            fakes.fake_vnfc_resource_info(rsc_kind='Deployment')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.assertRaises(vnfm.CNFHealWaitFailed,
+                          self.kubernetes.heal_vnf_wait,
+                          context=self.context,
+                          vnf_instance=vnf_instance_obj,
+                          vim_connection_info=vim_connection_object,
+                          heal_vnf_request=heal_request_data_obj)
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_post_heal_vnf_api_fail(
+            self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.side_effect =\
+            client.rest.ApiException(status=500)
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='Deployment')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.assertRaises(client.rest.ApiException,
+                          self.kubernetes.post_heal_vnf,
+                          context=self.context,
+                          vnf_instance=vnf_instance_obj,
+                          vim_connection_info=vim_connection_object,
+                          heal_vnf_request=heal_request_data_obj)
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_post_heal_vnf_deployment_exist_added_pod_names(
+            self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Deployment',
+                    name='fake_name', pod_name="fake_name-1234567890-actp1"),
+                fakes.get_fake_pod_info(kind='Deployment',
+                    name='fake_name', pod_name="fake_name-1234567890-actp2"),
+                fakes.get_fake_pod_info(kind='Deployment',
+                    name='fake_name', pod_name="fake_name-1234567890-actp3")])
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_list = [
+            fakes.fake_vnfc_resource_info(rsc_kind='Deployment',
+                rsc_name='fake_name', pod_name="fake_name-1234567890-strp1"),
+            fakes.fake_vnfc_resource_info(rsc_kind='Deployment',
+                rsc_name='fake_name', pod_name="fake_name-1234567890-strp2"),
+            fakes.fake_vnfc_resource_info(rsc_kind='Deployment',
+                rsc_name='fake_name', pod_name="POD_NOT_FOUND")]
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info =\
+            vnfc_resource_info_list
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_list[0].id,
+                              vnfc_resource_info_list[1].id,
+                              vnfc_resource_info_list[2].id])
+        self.kubernetes.post_heal_vnf(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_list_namespaced_pod.assert_called_once()
+        # oldest creation Pod is set to POD_NOT_FOUND entry
+        self.assertEqual(
+            vnfc_resource_info_list[2].compute_resource.resource_id,
+            mock_list_namespaced_pod.return_value.items[0].metadata.name)
+        # newest creation Pod is set to healed entry
+        self.assertEqual(
+            vnfc_resource_info_list[1].compute_resource.resource_id,
+            mock_list_namespaced_pod.return_value.items[2].metadata.name)
+        self.assertEqual(
+            vnfc_resource_info_list[0].compute_resource.resource_id,
+            mock_list_namespaced_pod.return_value.items[1].metadata.name)
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_post_heal_vnf_deployment_with_pod_not_found_entry(
+            self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Deployment',
+                    name='fake_name', pod_name="fake_name-1234567890-abcdf")])
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_list = [
+            fakes.fake_vnfc_resource_info(rsc_kind='Deployment',
+                rsc_name='fake_name', pod_name="POD_NOT_FOUND")]
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info =\
+            vnfc_resource_info_list
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_list[0].id])
+        self.kubernetes.post_heal_vnf(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_list_namespaced_pod.assert_called_once()
+        self.assertEqual(
+            vnfc_resource_info_list[0].compute_resource.resource_id,
+            mock_list_namespaced_pod.return_value.items[0].metadata.name)
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_post_heal_vnf_daemon_set_exist_added_pod_names(
+            self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='DaemonSet',
+                name='fake_name', pod_name="fake_name-12346")])
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='DaemonSet',
+            rsc_name='fake_name')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.post_heal_vnf(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_list_namespaced_pod.assert_called_once()
+        self.assertEqual(
+            len(vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info), 1)
+        after_vnfc = vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info
+        self.assertEqual(
+            mock_list_namespaced_pod.return_value.items[0].metadata.name,
+            after_vnfc[0].compute_resource.resource_id)
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_post_heal_vnf_deployment_no_exist_added_pod_names(
+            self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Deployment',
+                name='fake_name')])
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='Deployment',
+            rsc_name='fake_name')
+        vnf_instance_obj_before =\
+            jsonutils.loads(vnfc_resource_info_obj.metadata.
+            get("Pod")).get("name")
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.post_heal_vnf(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_list_namespaced_pod.assert_called_once()
+        self.assertEqual(len(vnf_instance_obj.instantiated_vnf_info.
+                        vnfc_resource_info), 1)
+        self.assertEqual(vnf_instance_obj_before,
+                        vnf_instance_obj.instantiated_vnf_info.
+                        vnfc_resource_info[0].compute_resource.
+                        resource_id)
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_post_heal_vnf_daemon_set(self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='DaemonSet')])
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='DaemonSet')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.post_heal_vnf(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        mock_list_namespaced_pod.assert_called_once()
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_post_heal_vnf_pod(self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='Pod')])
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info =\
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.post_heal_vnf(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        self.assertEqual(mock_list_namespaced_pod.call_count, 0)
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_post_heal_vnf_stateful_set(self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.return_value =\
+            client.V1PodList(items=[
+                fakes.get_fake_pod_info(kind='StatefulSet')])
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
+            rsc_kind='StatefulSet')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info =\
+            [vnfc_resource_info_obj]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        heal_request_data_obj = objects.heal_vnf_request.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info_obj.id])
+        self.kubernetes.post_heal_vnf(context=self.context,
+                        vnf_instance=vnf_instance_obj,
+                        vim_connection_info=vim_connection_object,
+                        heal_vnf_request=heal_request_data_obj)
+        self.assertEqual(mock_list_namespaced_pod.call_count, 0)

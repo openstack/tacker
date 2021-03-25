@@ -737,7 +737,8 @@ class Conductor(manager.Manager):
                     self.vnf_manager.invoke(vim_connection_info.vim_type,
                                 'post_vnf_instantiation', context=context,
                                 vnf_instance=vnf_instance,
-                                vim_connection_info=vim_connection_info)
+                                vim_connection_info=vim_connection_info,
+                                instantiate_vnf_req=instantiate_vnf_req)
 
         except Exception as ex:
             try:
