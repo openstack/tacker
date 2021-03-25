@@ -1,0 +1,73 @@
+heat_template_version: 2013-05-23
+description: 'Simple Base HOT for Sample VNF'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  master_instance_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 3
+      max_size: 5
+      desired_capacity: 3
+      resource:
+        type: complex_nested_master.yaml
+        properties:
+          flavor: { get_param: [ nfv, VDU, masterNode, flavor ] }
+          image: { get_param: [ nfv, VDU, masterNode, image ] }
+          net1: { get_param: [ nfv, CP, masterNode_CP1, network ] }
+          vip_port_ip: { get_attr: [vip_CP, fixed_ips, 0, ip_address] }
+
+  master_instance_scale_out:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: 1
+      auto_scaling_group_id:
+        get_resource: master_instance_group
+      adjustment_type: change_in_capacity
+
+  master_instance_scale_in:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: -1
+      auto_scaling_group_id:
+        get_resource: master_instance_group
+      adjustment_type: change_in_capacity
+
+  worker_instance_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 2
+      max_size: 4
+      desired_capacity: 2
+      resource:
+        type: complex_nested_worker.yaml
+        properties:
+          flavor: { get_param: [ nfv, VDU, workerNode, flavor ] }
+          image: { get_param: [ nfv, VDU, workerNode, image ] }
+          net1: { get_param: [ nfv, CP, workerNode_CP2, network ] }
+
+  worker_instance_scale_out:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: 1
+      auto_scaling_group_id:
+        get_resource: worker_instance_group
+      adjustment_type: change_in_capacity
+
+  worker_instance_scale_in:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: -1
+      auto_scaling_group_id:
+        get_resource: worker_instance_group
+      adjustment_type: change_in_capacity
+
+  vip_CP:
+    type: OS::Neutron::Port
+    properties:
+      network: net0
+
+outputs: {}

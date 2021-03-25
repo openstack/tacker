@@ -1,0 +1,32 @@
+---
+features:
+  - |
+    MgmtDriver function configures applications provided by VNF vendors.
+    VNF vendors can customize configuration methods for applications via
+    MgmtDriver. These customizations are specified by "interface" definition
+    in ETSI NFV-SOL001 v2.6.1. We provide the sample of MgmtDriver and
+    scripts which can be used to deploy a Kubernetes cluster. The sample
+    script for deploying Kubernetes cluster can be used in two cases.
+    One is to deploy one master node with worker nodes. Under this case,
+    it supports to scale worker node and heal worker node. The other is to
+    deploy a high availability cluster, there are three(or more) master
+    nodes with worker nodes. Under this case, it supports to scale worker
+    node and to heal worker node and master node. In all the above cases,
+    kubeadm is used for deploying Kubernetes in the sample script. We also
+    provide a user guide to help users understand how to use this feature.
+
+    Instantiate single master node kubernetes cluster:
+    The Kubernetes cluster can be instantiated with VNF Lifecycle
+    Management Interface in ETSI NFV-SOL 003 v2.6.1.
+
+    Instantiate multi-master nodes kubernetes cluster:
+    A Kubenrnetes cluster with a high availability (HA) configuration
+    can be deployed.
+
+    Scale kubernetes worker node:
+    Scaling operations on the Worker-nodes for the VNF including
+    Kubernetes cluster is supported with MgmtDriver.
+
+    Heal kubernetes master and worker nodes:
+    Healing operations on the Master-nodes and Worker-nodes for the
+    VNF including Kubernetes cluster is supported with MgmtDriver.

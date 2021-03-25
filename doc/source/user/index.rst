@@ -68,6 +68,7 @@ Use cases
    vnffg_usage_guide_advanced.rst
    vnfm_usage_guide.rst
    placement_policy_usage_guide.rst
+   mgmt_driver_deploy_k8s_usage_guide.rst
 
 Feature Documentation
 ---------------------
