@@ -4068,3 +4068,57 @@ class TestController(base.TestCase):
 
         resp = req.get_response(self.app)
         self.assertEqual(500, resp.status_code)
+
+    @mock.patch.object(vim_client.VimClient, "get_vim")
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._update_package_usage_state')
+    @mock.patch.object(objects.VnfPackage, 'get_by_id')
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch.object(objects.vnf_instance, '_vnf_instance_create')
+    @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd, 'get_by_id')
+    def test_create_using_internal_methods(
+            self, mock_get_by_id,
+            mock_vnf_instance_create,
+            mock_get_service_plugins,
+            mock_package_save,
+            mock_vnf_package_get_by_id,
+            mock_update_package_usage_state,
+            mock_get_vim):
+        mock_get_vim.return_value = self.vim_info
+        mock_get_by_id.return_value = fakes.return_vnf_package_vnfd()
+        mock_vnf_package_get_by_id.return_value = \
+            fakes.return_vnf_package_with_deployment_flavour()
+
+        updates = {'vnfd_id': uuidsentinel.vnfd_id,
+                'vnf_instance_description': 'SampleVnf Description',
+                'vnf_instance_name': 'SampleVnf',
+                'vnf_pkg_id': uuidsentinel.vnf_pkg_id,
+                'vnf_metadata': {"key": "value"}}
+
+        mock_vnf_instance_create.return_value =\
+            fakes.return_vnf_instance_model(**updates)
+
+        body = {'vnfdId': uuidsentinel.vnfd_id,
+                "vnfInstanceName": "SampleVnf",
+                "vnfInstanceDescription": "SampleVnf Description",
+                'metadata': {"key": "value"}}
+        req = fake_request.HTTPRequest.blank('/vnf_instances')
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        req.environ['tacker.context'] = self.context
+
+        # Call Create API
+        resp = req.get_response(self.app)
+
+        self.assertEqual(500, resp.status_code)
+
+        expected_vnf = {'tackerFault': {'code': 500,
+                 'message': 'Unexpected API Error. Please report this at '
+                            'http://bugs.launchpad.net/tacker/ and attach the '
+                            'Tacker API log if possible.\n'
+                            "<class 'webob.exc.HTTPInternalServerError'>"}}
+        self.assertEqual(expected_vnf, resp.json)

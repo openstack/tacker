@@ -992,7 +992,8 @@ class TestController(base.TestCase):
 
     def test_fetch_vnf_package_content_valid_range(self):
         request = fake_request.HTTPRequest.blank(
-            '/vnf_packages/%s/package_content/')
+            '/vnf_packages/%s/package_content/'
+            % constants.UUID)
         request.headers["Range"] = 'bytes=10-99'
         range_ = self.controller._get_range_from_request(request, 120)
         self.assertEqual(10, range_.start)
@@ -1000,7 +1001,8 @@ class TestController(base.TestCase):
 
     def test_fetch_vnf_package_content_invalid_range(self):
         request = fake_request.HTTPRequest.blank(
-            '/vnf_packages/%s/package_content/')
+            '/vnf_packages/%s/package_content/'
+            % constants.UUID)
         request.headers["Range"] = 'bytes=150-'
         self.assertRaises(exc.HTTPRequestRangeNotSatisfiable,
                           self.controller._get_range_from_request,
@@ -1008,11 +1010,95 @@ class TestController(base.TestCase):
 
     def test_fetch_vnf_package_content_invalid_multiple_range(self):
         request = fake_request.HTTPRequest.blank(
-            '/vnf_packages/%s/package_content/')
+            '/vnf_packages/%s/package_content/'
+            % constants.UUID)
         request.headers["Range"] = 'bytes=10-20,21-30'
         self.assertRaises(exc.HTTPBadRequest,
                           self.controller._get_range_from_request, request,
                           120)
+
+    @mock.patch.object(controller.VnfPkgmController, "_download")
+    @mock.patch.object(controller.VnfPkgmController, "_get_range_from_request")
+    @mock.patch.object(glance_store, 'get_csar_size')
+    @mock.patch.object(controller.VnfPkgmController, '_get_vnf_package')
+    @mock.patch.object(vnf_package.VnfPackage, 'save')
+    def test_fetch_vnf_package_content(
+            self,
+            mock_save,
+            mock_get_vnf_package,
+            mock_get_csar_size,
+            mock_get_range,
+            mock_download):
+        request = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content/'
+            % constants.UUID)
+        request.headers["Range"] = 'bytes=10-20,21-30'
+        request.response = ""
+        mock_get_vnf_package.return_value = fakes.return_vnfpkg_obj()
+        mock_get_csar_size.return_value = 1000
+        mock_get_range.return_value = "10-20, 21-30"
+        mock_download.return_value = "Response"
+        id = constants.UUID
+        result = self.controller.fetch_vnf_package_content(request, id)
+        self.assertEqual(result, "Response")
+        mock_get_csar_size.assert_called_once_with(
+            id, fakes.return_vnfpkg_obj().location_glance_store)
+        mock_get_vnf_package.assert_called_once_with(
+            id, request)
+        mock_get_range.assert_called_once_with(
+            request, 1000)
+
+    @mock.patch.object(controller.VnfPkgmController, '_get_vnf_package')
+    def test_fetch_vnf_package_content_invalid_onboarding(
+            self, mock_get):
+        request = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content/'
+            % constants.UUID)
+        request.headers["Range"] = 'bytes=10-20,21-30'
+        request.response = ""
+        pkgobj = fakes.return_vnfpkg_obj()
+        pkgobj.onboarding_state = fields.PackageOnboardingStateType.PROCESSING
+        mock_get.return_value = pkgobj
+        id = constants.UUID
+        self.assertRaises(exc.HTTPConflict,
+                          self.controller.fetch_vnf_package_content, request,
+                          id)
+
+    @mock.patch.object(controller.VnfPkgmController, '_get_vnf_package')
+    def test_fetch_vnf_package_content_not_present(self, mock_get):
+        request = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content/'
+            % constants.UUID)
+        request.headers["Range"] = 'bytes=10-20,21-30'
+        request.response = ""
+        pkgobj = fakes.return_vnfpkg_obj()
+        mock_get.return_value = pkgobj
+        id = constants.UUID
+        self.assertRaises(exc.HTTPNotFound,
+                          self.controller.fetch_vnf_package_content, request,
+                          id)
+
+    @mock.patch.object(controller.VnfPkgmController, "_download")
+    @mock.patch.object(controller.VnfPkgmController, "_get_range_from_request")
+    @mock.patch.object(controller.VnfPkgmController, '_get_vnf_package')
+    def test_fetch_vnf_package_content_with_size(
+            self,
+            mock_get,
+            mock_get_range,
+            mock_download):
+        request = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content/'
+            % constants.UUID)
+        request.headers["Range"] = 'bytes=10-20,21-30'
+        request.response = ""
+        pkgobj = fakes.return_vnfpkg_obj()
+        pkgobj.size = 1000
+        mock_get_range.return_value = "10-20, 21-30"
+        mock_download.return_value = 1000
+        mock_get.return_value = pkgobj
+        id = constants.UUID
+        result = self.controller.fetch_vnf_package_content(request, id)
+        self.assertEqual(result, 1000)
 
     def test_fetch_vnf_package_artifacts_with_invalid_uuid(
             self):
