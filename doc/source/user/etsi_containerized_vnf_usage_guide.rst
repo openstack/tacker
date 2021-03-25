@@ -1,5 +1,5 @@
 ===================================================================
-(ETSI NFV-SOL) Experimenting CNF with Kubernetes VIM
+ETSI NFV-SOL CNF (Containerized VNF) Deployment
 ===================================================================
 
 This section covers how to deploy ETSI NFV-SOL containerized VNF
@@ -184,6 +184,13 @@ The following is a simple example of `deployment` resource.
             - containerPort: 8080
               protocol: TCP
 
+.. note:: `metadata.name` in this file should be the same as
+          `properties.name` of the corresponding VDU in the deployment flavor
+          definition file.
+          For the example in this procedure, `metadata.name` is same as
+          `topology_template.node_templates.VDU1.properties.name`
+          in the helloworld3_df_simple.yaml file.
+
 3. Create a TOSCA.meta file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The TOSCA.Meta file contains version information for the TOSCA.Meta file, CSAR,
@@ -367,6 +374,75 @@ values of the VNF.
           type: company.provider.VNF
           properties:
             flavour_description: A simple flavour
+
+        VDU1:
+          type: tosca.nodes.nfv.Vdu.Compute
+          properties:
+            name: curry-probe-test001
+            description: kubernetes controller resource as VDU
+            vdu_profile:
+              min_number_of_instances: 1
+              max_number_of_instances: 3
+
+      policies:
+        - scaling_aspects:
+            type: tosca.policies.nfv.ScalingAspects
+            properties:
+              aspects:
+                vdu1_aspect:
+                  name: vdu1_aspect
+                  description: vdu1 scaling aspect
+                  max_scale_level: 2
+                  step_deltas:
+                    - delta_1
+
+        - vdu1_initial_delta:
+            type: tosca.policies.nfv.VduInitialDelta
+            properties:
+              initial_delta:
+                number_of_instances: 1
+            targets: [ VDU1 ]
+
+        - vdu1_scaling_aspect_deltas:
+            type: tosca.policies.nfv.VduScalingAspectDeltas
+            properties:
+              aspect: vdu1_aspect
+              deltas:
+                delta_1:
+                  number_of_instances: 1
+            targets: [ VDU1 ]
+
+        - instantiation_levels:
+            type: tosca.policies.nfv.InstantiationLevels
+            properties:
+              levels:
+                instantiation_level_1:
+                  description: Smallest size
+                  scale_info:
+                    vdu1_aspect:
+                      scale_level: 0
+                instantiation_level_2:
+                  description: Largest size
+                  scale_info:
+                    vdu1_aspect:
+                      scale_level: 2
+              default_level: instantiation_level_1
+
+        - vdu1_instantiation_levels:
+            type: tosca.policies.nfv.VduInstantiationLevels
+            properties:
+              levels:
+                instantiation_level_1:
+                  number_of_instances: 1
+                instantiation_level_2:
+                  number_of_instances: 3
+            targets: [ VDU1 ]
+
+.. note:: `VDU1.properties.name` should be same as `metadata.name` that
+          defined in Kubernetes object file.
+          Therefore, `VDU1.properties.name` should be followed naming rules of
+          Kubernetes resource name. About detail of naming rules, please
+          refer to Kubernetes document [#fifth]_.
 
 6. Compress VNF Package
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -604,7 +680,25 @@ successful.
     | Instantiated Vnf Info    | {                                                                                         |
     |                          |     "flavourId": "simple",                                                                |
     |                          |     "vnfState": "STARTED",                                                                |
+    |                          |     "scaleStatus": [                                                                      |
+    |                          |         {                                                                                 |
+    |                          |             "aspectId": "vdu1_aspect",                                                    |
+    |                          |             "scaleLevel": 0                                                               |
+    |                          |         }                                                                                 |
+    |                          |     ],                                                                                    |
     |                          |     "extCpInfo": [],                                                                      |
+    |                          |     "vnfcResourceInfo": [                                                                 |
+    |                          |         {                                                                                 |
+    |                          |             "id": "686b356f-8096-4e24-99e5-3c81d36341be",                                 |
+    |                          |             "vduId": "VDU1",                                                              |
+    |                          |             "computeResource": {                                                          |
+    |                          |                 "vimConnectionId": null,                                                  |
+    |                          |                 "resourceId": "curry-probe-test001-766bdd79bf-wgc7m",                     |
+    |                          |                 "vimLevelResourceType": "Deployment"                                      |
+    |                          |             },                                                                            |
+    |                          |             "storageResourceIds": []                                                      |
+    |                          |         }                                                                                 |
+    |                          |     ],                                                                                    |
     |                          |     "additionalParams": {}                                                                |
     |                          | }                                                                                         |
     | Instantiation State      | INSTANTIATED                                                                              |
@@ -624,6 +718,7 @@ successful.
     |                          |         "id": "8a3adb69-0784-43c7-833e-aab0b6ab4470",                                     |
     |                          |         "vimId": "8d8373fe-6977-49ff-83ac-7756572ed186",                                  |
     |                          |         "vimType": "kubernetes",                                                          |
+    |                          |         "interfaceInfo": {},                                                              |
     |                          |         "accessInfo": {}                                                                  |
     |                          |     }                                                                                     |
     |                          | ]                                                                                         |
@@ -654,3 +749,4 @@ References
 .. [#second] https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/unit/vnfm/infra_drivers/kubernetes/kubernetes_api_resource
 .. [#third] https://specs.openstack.org/openstack/tacker-specs/specs/victoria/container-network-function.html#kubernetes-resource-kind-support
 .. [#fourth] https://docs.openstack.org/tacker/latest/user/vnfd-sol001.html
+.. [#fifth] https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names
