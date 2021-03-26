@@ -15,6 +15,7 @@ from oslo_utils import timeutils
 from sqlalchemy.sql import text
 
 from tacker.common import exceptions
+from tacker.common.utils import convert_string_to_snakecase
 import tacker.conf
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api
@@ -26,6 +27,50 @@ _NO_DATA_SENTINEL = object()
 
 LOG = logging.getLogger(__name__)
 CONF = tacker.conf.CONF
+
+
+VNF_INSTANCE_SUBSCRIPTION_FILTER = [
+    "vnfdIds", "vnfProvider", "vnfProductName",
+    "vnfSoftwareVersion", "vnfdVersions", "vnfInstanceIds",
+    "vnfInstanceNames"
+]
+
+
+VNF_INSTANCE_SUBSCRIPTION_FILTER_LISTS = [
+    "vnfdIds", "vnfdVersions", "vnfInstanceIds", "vnfInstanceNames"
+]
+
+
+def _get_vnf_subscription_filter_values(vnf_subscription_filter):
+    vnfd_ids = vnf_subscription_filter.get('vnfdIds', [])
+    vnf_instance_ids = vnf_subscription_filter.get('vnfInstanceIds', [])
+    vnf_instance_names = vnf_subscription_filter.get('vnfInstanceNames', [])
+
+    vnfd_products_from_providers = vnf_subscription_filter.get(
+        'vnfProductsFromProviders', {})
+    vnf_provider = vnfd_products_from_providers.get('vnfProvider', "")
+    vnf_products = vnfd_products_from_providers.get('vnfProducts', [])
+
+    vnf_product_name = ""
+    vnf_software_version = ""
+    vnfd_versions = []
+    if vnf_products:
+        vnf_product_name = vnf_products[0].get('vnfProductName', "")
+        versions = vnf_products[0].get('versions', [])
+        if versions:
+            vnf_software_version = versions[0].get('vnfSoftwareVersion', "")
+            vnfd_versions = versions[0].get('vnfdVersions', [])
+
+    vnf_subscription_array = [
+        {'vnfdIds': vnfd_ids},
+        {'vnfInstanceIds': vnf_instance_ids},
+        {'vnfInstanceNames': vnf_instance_names},
+        {'vnfProvider': vnf_provider},
+        {'vnfProductName': vnf_product_name},
+        {'vnfSoftwareVersion': vnf_software_version},
+        {'vnfdVersions': vnfd_versions}]
+
+    return vnf_subscription_array
 
 
 def _make_list(value):
@@ -165,7 +210,9 @@ def _get_by_subscriptionid(context, subscriptionsId):
 def _vnf_lcm_subscriptions_id_get(context,
                                   callbackUri,
                                   notification_type=None,
-                                  operation_type=None
+                                  operation_type=None,
+                                  operation_state=None,
+                                  vnf_instance_subscription_filter=None
                                   ):
 
     sql = ("select "
@@ -175,11 +222,47 @@ def _vnf_lcm_subscriptions_id_get(context,
            "(select subscription_uuid from vnf_lcm_filters "
            "where ")
 
+    if vnf_instance_subscription_filter:
+        included_in_filter = []
+        column_list = _get_vnf_subscription_filter_values(
+            vnf_instance_subscription_filter)
+
+        for column in column_list:
+            for key in column:
+                if key in VNF_INSTANCE_SUBSCRIPTION_FILTER:
+                    value = column[key]
+                    if key in VNF_INSTANCE_SUBSCRIPTION_FILTER_LISTS:
+                        value = _make_list(value)
+                    else:
+                        value = '"{}"'.format(value)
+                    sql = (sql + " JSON_CONTAINS({}, '{}') and ".format(
+                        convert_string_to_snakecase(key),
+                        value
+                    ))
+                    included_in_filter.append(key)
+
+        not_included_in_filter = list(
+            set(VNF_INSTANCE_SUBSCRIPTION_FILTER_LISTS) -
+            set(included_in_filter))
+
+        # items not being searched for is excluded by adding
+        # <name>_len=0 to the sql query
+        for key in not_included_in_filter:
+            sql = sql + " {}_len=0 and ".format(
+                convert_string_to_snakecase(key))
+
     if notification_type:
         sql = (sql + " JSON_CONTAINS(notification_types, '" +
                _make_list(notification_type) + "') ")
     else:
         sql = sql + " notification_types_len=0 "
+    sql = sql + "and "
+
+    if operation_state:
+        sql = (sql + " JSON_CONTAINS(operation_states, '" +
+               _make_list(operation_state) + "') ")
+    else:
+        sql = sql + " operation_states_len=0 "
     sql = sql + "and "
 
     if operation_type:
@@ -200,14 +283,25 @@ def _vnf_lcm_subscriptions_id_get(context,
             return line
     except exceptions.NotFound:
         return ''
+    except Exception as exc:
+        LOG.error("SQL Error: %s" % str(exc))
+        return ''
 
 
 def _add_filter_data(context, subscription_id, filter):
     with db_api.context_manager.writer.using(context):
+        vnf_instance_subscription_filter = \
+            filter.get('vnfInstanceSubscriptionFilter')
+
+        vnf_products_from_providers = \
+            vnf_instance_subscription_filter.get(
+                'vnfProductsFromProviders')
 
         new_entries = []
         new_entries.append({"subscription_uuid": subscription_id,
-                            "filter": filter})
+                            "filter": filter,
+                            "vnf_products_from_providers":
+                                vnf_products_from_providers})
 
         context.session.execute(
             models.VnfLcmFilters.__table__.insert(None),
@@ -236,12 +330,16 @@ def _vnf_lcm_subscriptions_create(context, values, filter):
         if filter:
             notification_type = filter.get('notificationTypes')
             operation_type = filter.get('operationTypes')
+            operation_state = filter.get('operationStates')
+            subscription_filter = filter.get('vnfInstanceSubscriptionFilter')
 
             vnf_lcm_subscriptions_id = _vnf_lcm_subscriptions_id_get(
                 context,
                 callbackUri,
                 notification_type=notification_type,
-                operation_type=operation_type)
+                operation_type=operation_type,
+                operation_state=operation_state,
+                vnf_instance_subscription_filter=subscription_filter)
 
             if vnf_lcm_subscriptions_id:
                 raise Exception("303" + vnf_lcm_subscriptions_id)

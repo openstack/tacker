@@ -162,26 +162,6 @@ def check_vnf_status_and_error_point(action, status=None):
 
 class VnfLcmController(wsgi.Controller):
 
-    notification_type_list = ['VnfLcmOperationOccurrenceNotification',
-                          'VnfIdentifierCreationNotification',
-                          'VnfIdentifierDeletionNotification']
-    operation_type_list = ['INSTANTIATE',
-                       'SCALE',
-                       'SCALE_TO_LEVEL',
-                       'CHANGE_FLAVOUR',
-                       'TERMINATE',
-                       'HEAL',
-                       'OPERATE',
-                       'CHANGE_EXT_CONN',
-                       'MODIFY_INFO']
-    operation_state_list = ['STARTING',
-                        'PROCESSING',
-                        'COMPLETED',
-                        'FAILED_TEMP',
-                        'FAILED',
-                        'ROLLING_BACK',
-                        'ROLLED_BACK']
-
     _view_builder_class = vnf_lcm_view.ViewBuilder
 
     def __init__(self):
@@ -904,28 +884,6 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.register_subscription)
     def register_subscription(self, request, body):
         subscription_request_data = body
-        if subscription_request_data.get('filter'):
-            # notificationTypes check
-            notification_types = subscription_request_data.get(
-                "filter").get("notificationTypes")
-            for notification_type in notification_types:
-                if notification_type not in self.notification_type_list:
-                    msg = (
-                        _("notificationTypes value mismatch: %s") %
-                        notification_type)
-                    return self._make_problem_detail(
-                        msg, 400, title='Bad Request')
-
-            # operationTypes check
-            operation_types = subscription_request_data.get(
-                "filter").get("operationTypes")
-            for operation_type in operation_types:
-                if operation_type not in self.operation_type_list:
-                    msg = (
-                        _("operationTypes value mismatch: %s") %
-                        operation_type)
-                    return self._make_problem_detail(
-                        msg, 400, title='Bad Request')
 
         subscription_id = uuidutils.generate_uuid()
 

@@ -184,6 +184,109 @@ _vimConnectionInfo = {
     }
 }
 
+_versions = {
+    'type': 'array',
+    'items': {
+        'type': 'objects',
+        'properties': {
+            'vnfSoftwareVersion': {'type': 'string'},
+            'vnfdVersions': {
+                'type': 'array',
+                'items': {'type': 'string'}
+            }
+        },
+        'required': ['vnfSoftwareVersion']
+    }
+}
+
+_vnf_products = {
+    'type': 'array',
+    'items': {
+        'type': 'object',
+        'properties': {
+            'vnfProductName': {'type': 'string'},
+            'versions': _versions
+        },
+        'required': ['vnfProductName']
+    }
+}
+
+_vnf_products_from_providers = {
+    'type': 'object',
+    'properties': {
+        'type': 'object',
+        'properties': {
+            'vnfProvider': {'type': 'string'},
+            'vnfProducts': _vnf_products
+        }
+    },
+    'required': ['vnfProvider']
+}
+
+_lifecycle_change_notifications_filter = {
+    'type': 'object',
+    'properties': {
+        'vnfInstanceSubscriptionFilter': {
+            'type': 'object',
+            'properties': {
+                'vnfdIds': {
+                    'type': 'array',
+                    'items': parameter_types.identifier
+                },
+                'vnfProductsFromProviders': _vnf_products_from_providers,
+                'vnfInstanceIds': {
+                    'type': 'array',
+                    'items': parameter_types.identifier
+                },
+                'vnfInstanceNames': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                }
+            }
+        },
+        'notificationTypes': {
+            'type': 'array',
+            'items': {
+                'type': 'string',
+                'enum': [
+                    'VnfLcmOperationOccurrenceNotification',
+                    'VnfIdentifierCreationNotification',
+                    'VnfIdentifierDeletionNotification']
+            }
+        },
+        'operationTypes': {
+            'type': 'array',
+            'items': {
+                'type': 'string',
+                'enum': [
+                    'INSTANTIATE',
+                    'SCALE',
+                    'SCALE_TO_LEVEL',
+                    'CHANGE_FLAVOUR',
+                    'TERMINATE',
+                    'HEAL',
+                    'OPERATE',
+                    'CHANGE_EXT_CONN',
+                    'MODIFY_INFO']
+            }
+        },
+        'operationStates': {
+            'type': 'array',
+            'items': {
+                'type': 'string',
+                'enum': [
+                    'STARTING',
+                    'PROCESSING',
+                    'COMPLETED',
+                    'FAILED_TEMP',
+                    'FAILED',
+                    'ROLLING_BACK',
+                    'ROLLED_BACK']
+            }
+        }
+    }
+}
+
 create = {
     'type': 'object',
     'properties': {
@@ -241,7 +344,7 @@ heal = {
 register_subscription = {
     'type': 'object',
     'properties': {
-        'filter': parameter_types.keyvalue_pairs,
+        'filter': _lifecycle_change_notifications_filter,
         'callbackUri': {'type': 'string', 'maxLength': 255},
         'authentication': parameter_types.keyvalue_pairs,
     },

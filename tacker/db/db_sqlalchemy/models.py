@@ -287,6 +287,7 @@ class VnfLcmFilters(model_base.BASE):
                             sa.ForeignKey('vnf_lcm_subscriptions.id'),
                             nullable=False)
     filter = sa.Column(sa.JSON, nullable=False)
+    vnf_products_from_providers = sa.Column(sa.JSON, nullable=True)
     notification_types = sa.Column(sa.VARBINARY(255), nullable=True)
     notification_types_len = sa.Column(sa.Integer, nullable=True)
     operation_types = sa.Column(

@@ -24,6 +24,7 @@ import urllib
 import webob
 from webob import exc
 
+from oslo_config import cfg
 from oslo_serialization import jsonutils
 
 from tacker.api.vnflcm.v1 import controller
@@ -37,6 +38,7 @@ from tacker.extensions import vnfm
 from tacker.manager import TackerManager
 from tacker import objects
 from tacker.objects import fields
+from tacker.objects import vnf_lcm_subscriptions as subscription_obj
 from tacker.tests import constants
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
@@ -3731,3 +3733,143 @@ class TestController(base.TestCase):
         self.assertEqual(
             "Can not find requested vnf: %s" % constants.INVALID_UUID,
             resp.json['itemNotFound']['message'])
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @ddt.data('operationTypes', 'operationStates')
+    def test_register_subscription_operation_mismatch(
+            self, attribute, mock_get_service_plugins):
+        body = {
+            'callbackUri': 'http://sample_callback_uri',
+            'filter': {
+                'notificationType': [
+                    'VnfLcmOperationOccurrenceNotification'],
+                attribute: ['sample_operation']
+            }
+        }
+
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions')
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    def test_register_subscription_operation_notification_mismatch(
+            self, mock_get_service_plugins):
+        body = {
+            'callbackUri': 'http://sample_callback_uri',
+            'filter': {
+                'notificationTypes': ['sample_notification'],
+            }
+        }
+
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions')
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+
+    @mock.patch.object(subscription_obj.LccnSubscriptionRequest, 'create')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    def test_register_subscription_vnf_instance_subscription_filter(
+            self, mock_get_service_plugins, mock_create):
+        cfg.CONF.set_override('test_callback_uri', False,
+                              group='vnf_lcm')
+        body = {
+            'callbackUri': 'http://sample_callback_uri',
+            'filter': {
+                'notificationTypes': ['VnfLcmOperationOccurrenceNotification'],
+                'vnfInstanceSubscriptionFilter': {
+                    "vnfdIds": [],
+                    "vnfProductsFromProviders": {
+                        "vnfProvider": "Vnf Provider 1",
+                        "vnfProducts": [
+                            {
+                                "vnfProductName": "Vnf Product 1",
+                                "versions": [
+                                    {
+                                        "vnfSoftwareVersion": "v1",
+                                        "vnfdVersions": ["vnfd.v1.1"]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions')
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.CREATED, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    def test_register_subscription_vnf_instance_subscription_filter_error(
+            self, mock_get_service_plugins):
+        body = {
+            'callbackUri': 'http://sample_callback_uri',
+            'filter': {
+                'notificationTypes': ['VnfLcmOperationOccurrenceNotification'],
+                'vnfInstanceSubscriptionFilter': {
+                    "vnfdIds": [],
+                    "vnfProductsFromProviders": {
+                        "vnfProducts": [
+                            {
+                                "vnfProductName": "Vnf Product 1",
+                                "versions": [
+                                    {
+                                        "vnfSoftwareVersion": "v1",
+                                        "vnfdVersions": ["vnfd.v1.1"]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions')
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+
+    @mock.patch.object(subscription_obj.LccnSubscriptionRequest, 'create')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    def test_register_subscription(
+            self, mock_get_service_plugins, mock_save):
+        cfg.CONF.set_override('test_callback_uri', False,
+                              group='vnf_lcm')
+        body = {
+            'callbackUri': 'http://sample_callback_uri'
+        }
+
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions')
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.CREATED, resp.status_code)
