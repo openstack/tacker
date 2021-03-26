@@ -362,8 +362,41 @@ Help:
                           Identifier of the scaling aspect.
 
 
-9. Rollback VNF Lifecycle Management Operation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+9. Change External VNF Connectivity
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm change_ext_conn VNF_INSTANCE_ID \
+       ./sample_param_file.json
+
+
+Result:
+
+.. code-block:: console
+
+  Change External VNF Connectivity for VNF Instance 725f625e-f6b7-4bcd-b1b7-7184039fde45 has been accepted.
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm change_ext_conn --help
+  usage: openstack vnflcm change_ext_conn [-h] <vnf-instance> <param-file>
+
+  Change External VNF Connectivity
+
+  positional arguments:
+    <vnf-instance>  VNF instance ID to Change External VNF Connectivity
+    <param-file>    Specify change_ext_conn request parameters in a json file.
+
+  optional arguments:
+    -h, --help      show this help message and exit
+
+
+10. Rollback VNF Lifecycle Management Operation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
@@ -390,5 +423,276 @@ Help:
   optional arguments:
     -h, --help           show this help message and exit
 
+
+11. Retry
+^^^^^^^^^
+
+  The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
+
+.. code-block:: console
+
+  $ openstack vnflcm op retry VNF_LCM_OP_OCC_ID
+
+
+Result:
+
+.. code-block:: console
+
+  Retry request for LCM operation 304538dd-d754-4661-9f17-5496dab9693d has been accepted.
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm op retry --help
+  usage: openstack vnflcm op retry [-h] <vnf-lcm-op-occ-id>
+
+  Retry
+
+  positional arguments:
+    <vnf-lcm-op-occ-id>  VNF lifecycle management operation occurrence ID.
+
+  optional arguments:
+    -h, --help           show this help message and exit
+
+
+12. Fail
+^^^^^^^^
+
+  The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
+
+.. code-block:: console
+
+  $ openstack vnflcm op fail VNF_LCM_OP_OCC_ID
+
+
+Result:
+
+.. code-block:: console
+
+  +-------------------------+-------------------------------------------------------------------------------+
+  | Field                   | Value                                                                         |
+  +-------------------------+-------------------------------------------------------------------------------+
+  | Error                   | {                                                                             |
+  |                         |     "title": "",                                                              |
+  |                         |     "status": 500,                                                            |
+  |                         |     "detail": "ProblemDetails(created_at=<?>,deleted=False,deleted_at=<?>,    |
+  |                         | detail='Vnf instantiation wait failed for vnf 725f625e-f6b7-4bcd-b1b7-7184039 |
+  |                         | fde45, error: VNF Create Stack DELETE started',status=500,title='',updated_at |
+  |                         | =<?>)"                                                                        |
+  |                         | }                                                                             |
+  | ID                      | 303a5d45-9186-4c6f-bed2-54d5bcd49cee                                          |
+  | Is Automatic Invocation | False                                                                         |
+  | Is Cancel Pending       | False                                                                         |
+  | Links                   | {                                                                             |
+  |                         |     "self": {                                                                 |
+  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_lcm_op_occs/303a5d45-91 |
+  |                         | 86-4c6f-bed2-54d5bcd49cee"                                                    |
+  |                         |     },                                                                        |
+  |                         |     "vnfInstance": {                                                          |
+  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_instances/725f625e-f6b7 |
+  |                         | -4bcd-b1b7-7184039fde45                                                       |
+  |                         | "                                                                             |
+  |                         |     },                                                                        |
+  |                         |     "retry": {                                                                |
+  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_lcm_op_occs/303a5d45-91 |
+  |                         | 86-4c6f-bed2-54d5bcd49cee/retry"                                              |
+  |                         |     },                                                                        |
+  |                         |     "rollback": {                                                             |
+  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_lcm_op_occs/303a5d45-91 |
+  |                         | 86-4c6f-bed2-54d5bcd49cee/rollback"                                           |
+  |                         |     },                                                                        |
+  |                         |     "grant": {                                                                |
+  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_lcm_op_occs/303a5d45-91 |
+  |                         | 86-4c6f-bed2-54d5bcd49cee/grant"                                              |
+  |                         |     },                                                                        |
+  |                         |     "fail": {                                                                 |
+  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_lcm_op_occs/303a5d45-91 |
+  |                         |86-4c6f-bed2-54d5bcd49cee/fail"                                                |
+  |                         |     }                                                                         |
+  |                         | }                                                                             |
+  | Operation               | INSTANTIATE                                                                   |
+  | Operation State         | FAILED                                                                        |
+  | Start Time              | 2021-04-11 23:55:00+00:00                                                     |
+  | State Entered Time      | 2021-04-12 00:00:00.700855+00:00                                              |
+  | VNF Instance ID         | 725f625e-f6b7-4bcd-b1b7-7184039fde45                                          |
+  | grantId                 | None                                                                          |
+  | operationParams         | "{\"flavourId\": \"simple\", \"instantiationLevelId\":                        |
+  |                         | \"instantiation_level_1\", \"extVirtualLinks\": [{\"id\":                     |
+  |                         | \"0b12944d-c04c-4ff9-aa4f-b2092e9048d2\", \"resourceId\":                     |
+  |                         | \"5e0e451c-4c9a-4406-9ded-4007fd488e6c\", \"extCps\": [{\"cpdId\":            |
+  |                         | \"VDU1_CP1\", \"cpConfig\": [{\"linkPortId\":                                 |
+  |                         | \"0f862451-3943-4b04-8621-49b491da97f2\"}]},                                  |
+  |                         | {\"cpdId\": \"VDU2_CP1\", \"cpConfig\": [{\"linkPortId\":                     |
+  |                         | \"6c77dd1d-e37d-4371-9ad3-1b4db2ac8543\"}]}], \"extLinkPorts\": [{\"id\":     |
+  |                         | \"0f862451-3943-4b04-8621-49b491da97f2\",                                     |
+  |                         | \"resourceHandle\": {\"vimConnectionId\":                                     |
+  |                         | \"2217719b-9dd6-4e38-be00-ec92511199cc\", \"resourceId\":                     |
+  |                         | \"27b6edbe-9e2d-4d74-a538-f7c1e9b6af5f\"}},                                   |
+  |                         | {\"id\": \"6c77dd1d-e37d-4371-9ad3-1b4db2ac8543\",                            |
+  |                         | \"resourceHandle\": {\"vimConnectionId\":                                     |
+  |                         | \"2217719b-9dd6-4e38-be00-ec92511199cc\", \"resourceId\":                     |
+  |                         | \"05d11117-ce0b-4886-a867-4ebf035e976c\"}}]},                                 |
+  |                         | {\"id\": \"a3e37a7d-fe6c-42f3-ba37-09ff8b73ddf3\", \"resourceId\":            |
+  |                         | \"a3fdc55b-b6e4-403e-a1a1-d25c345594f8\",                                     |
+  |                         | \"extCps\": [{\"cpdId\": \"VDU1_CP2\", \"cpConfig\": [{\"cpProtocolData\":    |
+  |                         | [{\"layerProtocol\": \"IP_OVER_ETHERNET\",                                    |
+  |                         | \"ipOverEthernet\": {\"ipAddresses\": [{\"type\":                             |
+  |                         | \"IPV4\", \"fixedAddresses\": [\"22.22.1.10\"], \"subnetId\":                 |
+  |                         | \"4d95f793-145e-404b-a7a7-4fea4f5ef131\"}]}}]}]},                             |
+  |                         | {\"cpdId\": \"VDU2_CP2\", \"cpConfig\": [{\"cpProtocolData\":                 |
+  |                         | [{\"layerProtocol\": \"IP_OVER_ETHERNET\", \"ipOverEthernet\":                |
+  |                         | {\"ipAddresses\": [{\"type\": \"IPV4\",                                       |
+  |                         | \"fixedAddresses\": [\"22.22.1.20\"],                                         |
+  |                         | \"subnetId\": \"4d95f793-145e-404b-a7a7-4fea4f5ef1                            |
+  |                         | 31\"}]}}]}]}]}], \"extManagedVirtualLinks\": [{\"id\":                        |
+  |                         | \"620e4251-90c5-49e2-9eaa-4dc25af4ac56\",                                     |
+  |                         | \"vnfVirtualLinkDescId\": \"internalVL1\", \"resourceId\":                    |
+  |                         | \"a0a5272c-e46a-4f0f-b00e-986af9e659b4\"},                                    |
+  |                         | {\"id\": \"9ee38c81-414b-46ab-ada7-659e85fa05ee\",                            |
+  |                         | \"vnfVirtualLinkDescId\": \"internalVL2\", \"resourceId\":                    |
+  |                         | \"598a30f9-7183-4cb1-a100-ca40fe031517\"}], \"vimConnectionInfo\": [{\"id\":  |
+  |                         | \"2217719b-9dd6-4e38-be00-ec92511199cc\",                                     |
+  |                         | \"vimType\": \"ETSINFV.OPENSTACK_KEYSTONE.v_2\", \"vimConnectionId\":         |
+  |                         | \"2217719b-9dd6-4e38-be00-ec92511199cc\", \"interfaceInfo\": {\"endpoint\":   |
+  |                         | \"http://127.0.0.1/identity\"}, \"accessInfo\": {\"username\": \"nfv_user\",  |
+  |                         | \"region\":, \"RegionOne\", \"password\": \"devstack\",                       |
+  |                         | \"tenant\": \"6bdc3a89b3ee4cef9ff1676a22ae7f3b\"}}],                          |
+  |                         | \"additionalParams\": {\"lcm-operation-user-data\":                           |
+  |                         | \"./UserData/lcm_user_data.py\", \"lcm-operation-user-data-class\":           |
+  |                         | \"SampleUserData\"}}"                                                         |
+  | resourceChanges         | {}                                                                            |
+  +-------------------------+-------------------------------------------------------------------------------+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm op fail --help
+  usage: openstack vnflcm op fail [-h] [-f {json,shell,table,value,yaml}]
+                                  [-c COLUMN] [--noindent] [--prefix PREFIX]
+                                  [--max-width <integer>] [--fit-width]
+                                  [--print-empty]
+                                  <vnf-lcm-op-occ-id>
+
+  Fail
+
+  positional arguments:
+    <vnf-lcm-op-occ-id>  VNF lifecycle management operation occurrence ID.
+
+  optional arguments:
+    -h, --help           show this help message and exit
+
+
+13. List LCM Operation Occurrences
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm op list
+
+Result:
+
+.. code-block:: console
+
+  +--------------------------------------+-------------------+--------------------------------------+-------------+
+  | id                                   | operationState    |            vnfInstanceId             |  operation  |
+  +--------------------------------------+-------------------+--------------------------------------+-------------+
+  | 304538dd-d754-4661-9f17-5496dab9693d | STARTING          | 725f625e-f6b7-4bcd-b1b7-7184039fde45 | INSTANTIATE |
+  +--------------------------------------+-------------------+--------------------------------------+-------------+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm op list --help
+  usage: openstack vnflcm op list [-h] [-f {csv,json,table,value,yaml}]
+                                  [-c COLUMN]
+                                  [--quote {all,minimal,none,nonnumeric}]
+                                  [--noindent] [--max-width <integer>]
+                                  [--fit-width] [--print-empty]
+                                  [--sort-column SORT_COLUMN]
+                                  [--filter <filter>]
+                                  [--all_fields | --fields <fields> | --exclude-fields <exclude-fields>]
+                                  [--exclude_default]
+
+  List LCM Operation Occurrences
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    --filter <filter>     Attribute-based-filtering parameters
+    --all_fields          Include all complex attributes in the response
+    --fields <fields>     Complex attributes to be included into the response
+    --exclude-fields <exclude-fields>
+                          Complex attributes to be excluded from the response
+    --exclude_default     Indicates to exclude all complex attributes from the
+                          response. This argument can be used alone or with
+                          --fields and --filter. For all other combinations
+                          tacker server will throw bad request error
+
+
+14. Show LCM Operation Occurrence
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm op show VNF_LCM_OP_OCC_ID
+
+
+Result:
+
+.. code-block:: console
+
+  +------------------------+--------------------------------------------------------------------------------+
+  | Field                  | Value                                                                          |
+  +------------------------+--------------------------------------------------------------------------------+
+  | cancelMode             |                                                                                |
+  | changedExtConnectivity | ""                                                                             |
+  | changedInfo            | {                                                                              |
+  |                        |     "vnfdVersion": "1.0",                                                      |
+  |                        |     "vnfProvider": "Company",                                                  |
+  |                        |     "vnfSoftwareVersion": "1.0",                                               |
+  |                        |     "vnfdId": b1bb0ce7-ebca-4fa7-95ed-4840d70a1177,                            |
+  |                        |     "vnfcInfoModificationsDeleteIds": null,                                    |
+  |                        |     "vnfInstanceName": "helloworld3_modify",                                   |
+  |                        |     "vnfProductName": "Sample VNF",                                            |
+  |                        |     "vnfInstanceDescription": "Sample VNF Modify"                              |
+  |                        | }                                                                              |
+  | error                  | ""                                                                             |
+  | grantId                |                                                                                |
+  | id                     | 304538dd-d754-4661-9f17-5496dab9693d                                           |
+  | isAutomaticInvocation  | False                                                                          |
+  | isCancelPending        | False                                                                          |
+  | _links                 | self=href=/vnflcm/v1/vnf_lcm_op_occs/304538dd-d754-4661-9f17-5496dab9693d,     |
+  |                        | vnfInstance=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45 |
+  | operation              | MODIFY_INFO                                                                    |
+  | operationParams        | "{\"vnfInstanceName\": \"helloworld3_modify\"}"                                |
+  | operationState         | COMPLETED                                                                      |
+  | resourceChanges        | ""                                                                             |
+  | startTime              | 2021-04-15 23:59:00+00:00                                                      |
+  | stateEnteredTime       | 2021-04-16 00:00:00+00:00                                                      |
+  | vnfInstanceId          | 725f625e-f6b7-4bcd-b1b7-7184039fde45                                           |
+  +------------------------+--------------------------------------------------------------------------------+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm op show --help
+  usage: openstack vnflcm op show [-h] [-f {json,shell,table,value,yaml}]
+                                  [-c COLUMN] [--noindent] [--prefix PREFIX]
+                                  [--max-width <integer>] [--fit-width]
+                                  [--print-empty]
+                                  <vnf-lcm-op-occ-id>
+
+
+  Display Operation Occurrence details
+
+  positional arguments:
+    <vnf-lcm-op-occ-id>  VNF lifecycle management operation occurrence ID.
+
+  optional arguments:
+    -h, --help           show this help message and exit
 
 .. _About aspect id : https://docs.openstack.org/tacker/latest/user/etsi_vnf_scaling.html#how-to-identify-aspect-id
