@@ -908,6 +908,20 @@ def vnflcm_rollback_insta(error_point=7):
 def vnflcm_fail_insta(error_point=7):
     default_datetime = datetime.datetime(
         2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    ext_link_port_info = objects.ExtLinkPortInfo(
+        resource_handle=objects.ResourceHandle(
+            resource_id="109f5049-b51e-409a-9a99-d740ba5f3acb",
+            vim_level_resource_type="LINKPORT"),
+        cp_instance_id="f5c68d94-5736-4e38-ade5-c9462514f8b9",
+        id="1d868d02-ecd4-4402-8e6b-54e77ebdcc28")
+    changed_ext_connectivity_values = objects.ExtVirtualLinkInfo(
+        id=constants.UUID,
+        resource_handle=objects.ResourceHandle(
+            vim_connection_id=constants.UUID,
+            resource_id=constants.UUID,
+            vim_level_resource_type="OS::Neutron::Net"),
+        ext_link_ports=[ext_link_port_info]
+    )
     return objects.VnfLcmOpOcc(
         state_entered_time=default_datetime,
         start_time=default_datetime,
@@ -918,7 +932,51 @@ def vnflcm_fail_insta(error_point=7):
         operation_params='{}',
         error_point=error_point,
         id=constants.UUID,
-        created_at=default_datetime)
+        grant_id=constants.UUID,
+        created_at=default_datetime,
+        changed_ext_connectivity=[changed_ext_connectivity_values])
+
+
+def vnflcm_fail_check_added_params(error_point=7):
+    ext_link_port_info = objects.ExtLinkPortInfo(
+        resource_handle=objects.ResourceHandle(
+            resource_id="109f5049-b51e-409a-9a99-d740ba5f3acb",
+            vim_level_resource_type="LINKPORT"),
+        cp_instance_id="f5c68d94-5736-4e38-ade5-c9462514f8b9",
+        id="1d868d02-ecd4-4402-8e6b-54e77ebdcc28")
+    changed_ext_connectivity_values = objects.ExtVirtualLinkInfo(
+        id=constants.UUID,
+        resource_handle=objects.ResourceHandle(
+            vim_connection_id=constants.UUID,
+            resource_id=constants.UUID,
+            vim_level_resource_type="OS::Neutron::Net"),
+        ext_link_ports=[ext_link_port_info]
+    )
+    changed_info_values = objects.VnfInfoModifications(
+        vnf_instance_name="fake_name",
+        vnf_instance_description="fake_vnf_instance_description",
+        vnfd_id="f26f181d-7891-4720-b022-b074ec1733ef",
+        vnf_provider="fake_vnf_provider",
+        vnf_product_name="fake_vnf_product_name",
+        vnf_software_version="fake_vnf_software_version",
+        vnfd_version="fake_vnfd_version")
+    return objects.VnfLcmOpOcc(
+        state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                             tzinfo=iso8601.UTC),
+        start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC),
+        vnf_instance_id=constants.UUID,
+        operation='INSTANTIATE',
+        operation_state='FAILED_TEMP',
+        is_automatic_invocation=False,
+        operation_params='{}',
+        error_point=error_point,
+        id=constants.UUID,
+        grant_id=constants.UUID,
+        created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
+                                     tzinfo=iso8601.UTC),
+        changed_ext_connectivity=[changed_ext_connectivity_values],
+        changed_info=changed_info_values)
 
 
 def vnflcm_rollback_active():

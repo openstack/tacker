@@ -1300,6 +1300,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         resp, _ = self._fail_op_occs(vnflcm_op_occ_id)
         self._wait_lcm_done('FAILED', vnf_instance_id=vnf_instance_id)
         self.assert_fail_vnf(resp, vnf_instance_id)
+        self._assert_fail_vnf_response(_)
 
         # occ-show
         resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
@@ -1412,6 +1413,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         resp, _ = self._fail_op_occs(vnflcm_op_occ_id)
         self._wait_lcm_done('FAILED', vnf_instance_id=vnf_instance_id)
         self.assert_fail_vnf(resp, vnf_instance_id)
+        self._assert_fail_vnf_response(_)
 
         # occ-show
         resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
@@ -1612,4 +1614,52 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             self.assertIsNotNone(_links.get('vnfInstance'))
             self.assertIsNotNone(_links.get('vnfInstance').get('href'))
             self.assertIsNotNone(_links.get('grant'))
+            self.assertIsNotNone(_links.get('grant').get('href'))
+
+    def _assert_fail_vnf_response(self, fail_response):
+
+        # Only check parameters with cardinality = 1
+        self.assertIsNotNone(fail_response.get('id'))
+        self.assertIsNotNone(fail_response.get('operationState'))
+        self.assertIsNotNone(fail_response.get('stateEnteredTime'))
+        self.assertIsNotNone(fail_response.get('startTime'))
+        self.assertIsNotNone(fail_response.get('vnfInstanceId'))
+        self.assertIsNotNone(fail_response.get('operation'))
+        self.assertIsNotNone(fail_response.get('isAutomaticInvocation'))
+        self.assertIsNotNone(fail_response.get('isCancelPending'))
+
+        changed_ext_connectivity = fail_response.get(
+            'changedExtConnectivity', None)
+        if changed_ext_connectivity is not None:
+            self.assertIsNotNone(
+                changed_ext_connectivity._get_changed_ext_connectivity('id'))
+            resource_handle = \
+                changed_ext_connectivity._get_changed_ext_connectivity(
+                    'resourceHandle')
+            self.assertIsNotNone(resource_handle)
+            self.assertIsNotNone(resource_handle.get('resourceId'))
+            ext_link_ports = \
+                changed_ext_connectivity._get_changed_ext_connectivity(
+                    'extLinkPorts', None)
+            if ext_link_ports is not None:
+                self.assertIsNotNone(ext_link_ports.get('id'))
+                ext_link_ports_resource_handle = ext_link_ports.get(
+                    'resourceHandle')
+                self.assertIsNotNone(ext_link_ports_resource_handle)
+                self.assertIsNotNone(ext_link_ports_resource_handle.get(
+                    'resourceId'))
+                self.assertIsNotNone(ext_link_ports.get('cpInstanceId'))
+
+        _links = fail_response.get('_links')
+        self.assertIsNotNone(_links.get('self'))
+        self.assertIsNotNone(_links.get('self').get('href'))
+        self.assertIsNotNone(_links.get('vnfInstance'))
+        self.assertIsNotNone(_links.get('vnfInstance').get('href'))
+        if _links.get('retry') is not None:
+            self.assertIsNotNone(_links.get('retry').get('href'))
+        if _links.get('fail') is not None:
+            self.assertIsNotNone(_links.get('fail').get('href'))
+        if _links.get('rollback') is not None:
+            self.assertIsNotNone(_links.get('rollback').get('href'))
+        if _links.get('grant') is not None:
             self.assertIsNotNone(_links.get('grant').get('href'))
