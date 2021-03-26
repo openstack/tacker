@@ -282,6 +282,9 @@ class ViewBuilder(base.BaseViewBuilder):
         return self._subscription_filter(
             vnf_lcm_subscriptions, nextpage_opaque_marker, paging)
 
+    # TODO(esto.aln): To remove show subscription related processing
+    # in vnf_lcm.py. Current processing for show subscription is in
+    # vnf_subscriptions.py.
     def subscription_show(self, vnf_lcm_subscriptions):
         return self._get_vnf_lcm_subscription(vnf_lcm_subscriptions)
 
