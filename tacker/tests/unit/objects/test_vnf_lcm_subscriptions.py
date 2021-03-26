@@ -19,10 +19,10 @@ from tacker.tests.unit.objects import fakes
 from tacker.tests import uuidsentinel
 
 
-class TestVnfd(SqlTestCase):
+class TestVnfLcmSubScriptions(SqlTestCase):
 
     def setUp(self):
-        super(TestVnfd, self).setUp()
+        super(TestVnfLcmSubScriptions, self).setUp()
         self.context = context.get_admin_context()
         self.vnf_package = self._create_vnf_package()
         self.vnf_package_vnfd = self._create_and_upload_vnf_package_vnfd()

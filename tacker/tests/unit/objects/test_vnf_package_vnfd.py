@@ -60,3 +60,56 @@ class TestVnfPackageVnfd(SqlTestCase):
             self.context, vnf_pack_vnfd_obj.vnfd_id)
         self.assertEqual('test_provider', result.vnf_provider)
         self.assertEqual('test_version', result.vnf_software_version)
+
+    def test_get_vnf_package_vnfd(self):
+        vnf_pack = vnf_package.VnfPackage(context=self.context,
+                                          **fakes.vnf_package_data)
+        vnf_pack.create()
+        vnf_pack_vnfd_obj = vnf_package_vnfd.VnfPackageVnfd(
+            context=self.context, **fakes.vnf_pack_vnfd_data(vnf_pack.id))
+        vnf_pack_vnfd_obj.create()
+        result = vnf_pack_vnfd_obj.get_vnf_package_vnfd(
+            vnf_pack_vnfd_obj.id)
+        # due to vnf_pack_vnfd_obj.get_vnf_package_vnfd() is not connect to
+        # DB actually, it will return None as a result here
+        actual_result = None
+        self.assertEqual(result, actual_result)
+
+    def test_get_vnf_package_vnfd_by_vnfid(self):
+        vnf_pack = vnf_package.VnfPackage(context=self.context,
+                                          **fakes.vnf_package_data)
+        vnf_pack.create()
+        vnf_pack_vnfd_obj = vnf_package_vnfd.VnfPackageVnfd(
+            context=self.context, **fakes.vnf_pack_vnfd_data(vnf_pack.id))
+        vnf_pack_vnfd_obj.create()
+        result = vnf_pack_vnfd_obj.get_vnf_package_vnfd_by_vnfid(
+            self.context, vnf_pack_vnfd_obj.id)
+        # due to vnf_pack_vnfd_obj.get_vnf_package_vnfd() is not connect to
+        # DB actually, it will return None as a result here
+        actual_result = None
+        self.assertEqual(result, actual_result)
+
+    def test_get_by_vnfd_id(self):
+        vnf_pack = vnf_package.VnfPackage(context=self.context,
+                                          **fakes.vnf_package_data)
+        vnf_pack.create()
+        vnf_pack_vnfd_obj = vnf_package_vnfd.VnfPackageVnfd(
+            context=self.context, **fakes.vnf_pack_vnfd_data(vnf_pack.id))
+        vnf_pack_vnfd_obj.create()
+        vnf_pack_vnfd_obj.get_by_vnfdId(
+            self.context, vnf_pack_vnfd_obj.vnfd_id)
+
+    def test_get_by_package_id(self):
+        vnf_pack = vnf_package.VnfPackage(context=self.context,
+                                          **fakes.vnf_package_data)
+        vnf_pack.create()
+        vnf_pack_vnfd_obj = vnf_package_vnfd.VnfPackageVnfd(
+            context=self.context, **fakes.vnf_pack_vnfd_data(vnf_pack.id))
+        vnf_pack_vnfd_obj.create()
+        result = vnf_pack_vnfd_obj.get_by_vnfdId(
+            self.context, vnf_pack_vnfd_obj.package_uuid)
+        vnf_pack_vnfd_obj.deleted = True
+        # due to vnf_pack_vnfd_obj.get_vnf_package_vnfd() is not connect to
+        # DB actually, it will return None as a result here
+        actual_result = None
+        self.assertEqual(result, actual_result)
