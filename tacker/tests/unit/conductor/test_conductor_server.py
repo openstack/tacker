@@ -2734,7 +2734,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
-    def test_send_notification_rety_notification(self,
+    def test_send_notification_retry_notification(self,
                                               mock_subscriptions_get):
         self.requests_mock.register_uri('POST',
             "https://localhost/callback",
@@ -2760,7 +2760,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
-    def test_sendNotification_sendError(self,
+    def test_send_notification_send_error(self,
                                         mock_subscriptions_get):
         self.requests_mock.register_uri(
             'POST',
@@ -2818,10 +2818,118 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         # return value when timeout for POST method is 0
         self.assertEqual(result, 0)
 
+    def test_get_notification(self):
+        cfg.CONF.set_override('test_callback_uri', True,
+                              group='vnf_lcm')
+        self.requests_mock.register_uri('GET',
+            "https://localhost/callback",
+            headers={
+                'Content-Type': 'application/json'},
+            status_code=204)
+
+        callback_uri = 'https://localhost/callback'
+
+        vnf_lcm_subscription = objects.\
+            LccnSubscriptionRequest(context=self.context)
+        vnf_lcm_subscription.id = uuidsentinel.lcm_subscription_id
+        vnf_lcm_subscription.callback_uri = callback_uri
+
+        result = self.conductor.test_notification(self.context,
+            vnf_lcm_subscription)
+
+        # return value when successful for GET method is 0
+        self.assertEqual(result, 0)
+
+        history = self.requests_mock.request_history
+        req_count = nfvo_client._count_mock_history(
+            history, "https://localhost")
+        self.assertEqual(1, req_count)
+        cfg.CONF.set_override('test_callback_uri', False,
+                              group='vnf_lcm')
+
+    def test_get_notification_callback_uri_false(self):
+        cfg.CONF.set_override('test_callback_uri', False,
+                              group='vnf_lcm')
+        self.requests_mock.register_uri('GET',
+            "https://localhost/callback",
+            headers={
+                'Content-Type': 'application/json'},
+            status_code=204)
+
+        callback_uri = 'https://localhost/callback'
+
+        vnf_lcm_subscription = objects.\
+            LccnSubscriptionRequest(context=self.context)
+        vnf_lcm_subscription.id = uuidsentinel.lcm_subscription_id
+        vnf_lcm_subscription.callback_uri = callback_uri
+
+        result = self.conductor.test_notification(self.context,
+            vnf_lcm_subscription)
+
+        # return value when successful for GET method is 0
+        self.assertEqual(result, 0)
+
+        history = self.requests_mock.request_history
+        req_count = nfvo_client._count_mock_history(
+            history, "https://localhost")
+        self.assertEqual(0, req_count)
+
+    def test_get_notification_retry(self):
+        cfg.CONF.set_override('test_callback_uri', True,
+                              group='vnf_lcm')
+        self.requests_mock.register_uri('GET',
+            "https://localhost/callback",
+            headers={
+                'Content-Type': 'application/json'},
+            status_code=400)
+
+        callback_uri = 'https://localhost/callback'
+
+        vnf_lcm_subscription = objects.\
+            LccnSubscriptionRequest(context=self.context)
+        vnf_lcm_subscription.id = uuidsentinel.lcm_subscription_id
+        vnf_lcm_subscription.callback_uri = callback_uri
+
+        result = self.conductor.test_notification(self.context,
+            vnf_lcm_subscription)
+
+        # return value when error occurs for GET method is -1
+        self.assertEqual(result, -1)
+
         history = self.requests_mock.request_history
         req_count = nfvo_client._count_mock_history(
             history, "https://localhost")
         self.assertEqual(3, req_count)
+        cfg.CONF.set_override('test_callback_uri', False,
+                              group='vnf_lcm')
+
+    def test_get_notification_timeout(self):
+        cfg.CONF.set_override('test_callback_uri', True,
+                              group='vnf_lcm')
+        self.requests_mock.register_uri(
+            'GET',
+            "https://localhost/callback",
+            exc=requests.Timeout)
+
+        callback_uri = 'https://localhost/callback'
+
+        vnf_lcm_subscription = objects.\
+            LccnSubscriptionRequest(context=self.context)
+        vnf_lcm_subscription.id = uuidsentinel.lcm_subscription_id
+        vnf_lcm_subscription.callback_uri = callback_uri
+
+        result = self.conductor.test_notification(self.context,
+            vnf_lcm_subscription)
+
+        # return value when error for GET method is -1
+        self.assertEqual(result, -1)
+
+        history = self.requests_mock.request_history
+        req_count = nfvo_client._count_mock_history(
+            history, "https://localhost")
+        self.assertEqual(3, req_count)
+        cfg.CONF.set_override('test_callback_uri', False,
+                              group='vnf_lcm')
 
     @mock.patch.object(conductor_server, 'revert_update_lcm')
     @mock.patch.object(t_context.get_admin_context().session, "add")

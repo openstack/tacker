@@ -35,7 +35,11 @@ OPTS = [
     cfg.IntOpt(
         'retry_timeout',
         default=10,
-        help="Retry Timeout(sec)")]
+        help="Retry Timeout(sec)"),
+    cfg.BoolOpt(
+        'test_callback_uri',
+        default=True,
+        help="Test callbackUri")]
 
 vnf_lcm_group = cfg.OptGroup('vnf_lcm',
     title='vnf_lcm options',

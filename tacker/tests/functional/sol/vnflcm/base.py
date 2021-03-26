@@ -237,6 +237,11 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             callback_url,
             status_code=204
         )
+        FAKE_SERVER_MANAGER.set_callback(
+            'GET',
+            callback_url,
+            status_code=204
+        )
 
         self.tacker_client = base.BaseTackerTest.tacker_http_client()
 
@@ -1093,6 +1098,14 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             notify_mock_responses[1],
             'VnfLcmOperationOccurrenceNotification',
             'COMPLETED')
+
+    def assert_notification_get(self, callback_url):
+        notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        FAKE_SERVER_MANAGER.clear_history(
+            callback_url)
+        self.assertEqual(1, len(notify_mock_responses))
+        self.assertEqual(204, notify_mock_responses[0].status_code)
 
     def assert_notification_mock_response(
             self,
