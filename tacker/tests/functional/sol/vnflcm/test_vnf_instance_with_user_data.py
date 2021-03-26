@@ -1467,6 +1467,114 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         resp, response_body = self._delete_subscription(subscription_id)
         self.assertEqual(204, resp.status_code)
 
+    def test_retry_chgextconn(self):
+        """Test retry operation for instantiation.
+
+        In this test case, we do following steps.
+            - Create subscription.
+            - Create VNF package.
+            - Upload VNF package.
+            - Create VNF instance.
+            - Instantiate VNF.
+            - Change External VNF Connectivity(Will fail).
+            - Get vnflcmOpOccId to retry.
+            - Get opOccs information.
+            - Retry Change External VNF Connectivity operation.
+            - Delete subscription.
+        """
+        # Create subscription and register it.
+        request_body = fake_vnflcm.Subscription.make_create_request_body(
+            'http://localhost:{}{}'.format(
+                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                    self._testMethodName)))
+        resp, response_body = self._register_subscription(request_body)
+        self.assertEqual(201, resp.status_code)
+        self.assert_http_header_location_for_subscription(resp.headers)
+        subscription_id = response_body.get('id')
+        self.addCleanup(self._delete_subscription, subscription_id)
+
+        # Pre Setting: Create vnf package.
+        sample_name = 'functional4'
+        csar_package_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "../../../etc/samples/etsi/nfv",
+                sample_name))
+        tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
+            csar_package_path)
+        # upload vnf package
+        vnf_package_id, vnfd_id = vnflcm_base._create_and_upload_vnf_package(
+            self.tacker_client, user_defined_data={
+                "key": sample_name}, temp_csar_path=tempname)
+
+        # Post Setting: Reserve deleting vnf package.
+        self.addCleanup(
+            vnflcm_base._delete_vnf_package,
+            self.tacker_client,
+            vnf_package_id)
+
+        # Create vnf instance
+        resp, vnf_instance = self._create_vnf_instance_from_body(
+            fake_vnflcm.VnfInstances.make_create_request_body(vnfd_id))
+        vnf_instance_id = vnf_instance['id']
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
+
+        # Instantiate vnf instance
+        request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
+            self.vim['tenant_id'], self.ext_networks, self.ext_mngd_networks,
+            self.ext_link_ports, self.ext_subnets)
+        resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_instantiate_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Show vnf instance
+        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
+        self.assertEqual(200, resp.status_code)
+
+        # Delete StacK
+        stack = self._get_heat_stack(vnf_instance_id)
+        self._delete_heat_stack(stack.id)
+        self._wait_until_stack_ready(stack.id,
+                infra_cnst.STACK_DELETE_COMPLETE)
+
+        # Change external connectivity
+        request_body = \
+            fake_vnflcm.VnfInstances.make_change_ext_conn_request_body(
+                self.vim['tenant_id'], self.changed_ext_networks,
+                self.changed_ext_subnets)
+        resp, _ = \
+            self._change_ext_conn_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('FAILED_TEMP', vnf_instance_id=vnf_instance_id)
+
+        # get vnflcm_op_occ_id
+        callback_url = os.path.join(
+            vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = vnflcm_base.FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            callback_url)
+        vnflcm_op_occ_id = notify_mock_responses[0].request_body.get(
+            'vnfLcmOpOccId')
+        self.assertIsNotNone(vnflcm_op_occ_id)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(callback_url)
+
+        # occ-show(chgextconn)
+        resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
+        self._assert_occ_show(resp, op_occs_info)
+
+        # retry
+        resp, _ = self._retry_op_occs(vnflcm_op_occ_id)
+        self._wait_lcm_done('FAILED_TEMP', vnf_instance_id=vnf_instance_id)
+        self.assert_retry_vnf(resp, vnf_instance_id)
+
+        # Subscription delete
+        resp, response_body = self._delete_subscription(subscription_id)
+        self.assertEqual(204, resp.status_code)
+
     def assert_create_vnf(self, resp, vnf_instance, vnf_pkg_id):
         super().assert_create_vnf(resp, vnf_instance)
 

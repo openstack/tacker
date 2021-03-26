@@ -3218,6 +3218,34 @@ class TestController(base.TestCase):
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_get_vnf")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_change_ext_conn")
+    def test_retry_change_ext_conn_vnf_instance(
+            self, mock_change_ext_conn, mock_vnf_instance, mock_get_vnf,
+            mock_lcm_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data(
+            operation='CHANGE_EXT_CONN')
+        mock_lcm_by_id.return_value = vnf_lcm_op_occs
+        vnf_obj = fakes.vnf_data()
+        mock_get_vnf.return_value = vnf_obj
+
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_instance.return_value = vnf_instance
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_change_ext_conn.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
     def test_retry_vnf_lcm_occ_not_found(
             self, mock_lcm_by_id, mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
