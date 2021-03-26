@@ -203,6 +203,10 @@ class ViewBuilder(base.BaseViewBuilder):
                 'callbackUri': vnf_lcm_subscription.callback_uri,
             }
 
+    # TODO(esto.aln): To remove all processing that are
+    # related to list subscription from vnf_lcm.py and
+    # transfer these to vnf_subscriptions.py, but this
+    # will be handled in a future patch.
     def _subscription_filter(
             self,
             subscription_data,
@@ -266,6 +270,10 @@ class ViewBuilder(base.BaseViewBuilder):
     def subscription_create(self, vnf_lcm_subscription, filter):
         return self._get_vnf_lcm_subscription(vnf_lcm_subscription, filter)
 
+    # TODO(esto.aln): To remove all processing that are
+    # related to list subscription from vnf_lcm.py and
+    # transfer these to vnf_subscriptions.py, but this
+    # will be handled in a future patch.
     def subscription_list(
             self,
             vnf_lcm_subscriptions,

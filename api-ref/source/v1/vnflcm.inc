@@ -1297,8 +1297,10 @@ Response Parameters
 
   - id: subscription_id_response
   - filter: filter
+  - vnfInstanceSubscriptionFilter: vnf_instance_subscription_filter
   - notificationTypes: filter_notification_types
   - operationTypes: filter_operation_types
+  - operationStates: filter_operation_states
   - callbackUri: callback_uri
   - _links: vnf_instance_links
 

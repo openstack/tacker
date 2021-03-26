@@ -1662,3 +1662,54 @@ def get_change_ext_conn_request_obj():
         get_change_ext_conn_request_body())
     return ChangeExtConnRequest.obj_from_primitive(
         body, context)
+
+
+def _fake_subscription_obj(**updates):
+    subscription = {
+        'id': uuidsentinel.subscription_id,
+        'filter': {
+            "vnfInstanceSubscriptionFilter": {
+                "vnfdIds": [uuidsentinel.vnfd_id],
+                "vnfProductsFromProviders": {
+                    "vnfProvider": "Vnf Provider 1",
+                    "vnfProducts": [
+                        {
+                            "vnfProductName": "Vnf Product 1",
+                            "versions": [
+                                {
+                                    "vnfSoftwareVersion": "v1",
+                                    "vnfdVersions": [
+                                        "vnfd.v1.1"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "vnfInstanceIds": [
+                    uuidsentinel.vnf_instance_id
+                ],
+                "vnfInstanceNames": ["Vnf Name 1"]
+            },
+            "notificationTypes": [
+                "VnfLcmOperationOccurrenceNotification"
+            ],
+            "operationTypes": ["INSTANTIATE"],
+            "operationStates": ["STARTING"]
+        },
+        'callback_uri': 'http://localhost/sample_callback_uri'}
+
+    if updates:
+        subscription.update(**updates)
+
+    return subscription
+
+
+def return_subscription_object(**updates):
+    vnf_lcm_subscription = _fake_subscription_obj(**updates)
+    return vnf_lcm_subscription
+
+
+def return_vnf_subscription_list(**updates):
+    vnc_lcm_subscription = return_subscription_object(**updates)
+    return [vnc_lcm_subscription]

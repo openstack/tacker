@@ -11,15 +11,21 @@
 #    under the License.
 
 from oslo_log import log as logging
+from oslo_serialization import jsonutils as json
 from oslo_utils import timeutils
+from oslo_versionedobjects import base as ovoo_base
+from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import text
+from sqlalchemy_filters import apply_filters
 
 from tacker.common import exceptions
+from tacker.common import utils
 from tacker.common.utils import convert_string_to_snakecase
 import tacker.conf
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
+from tacker import objects
 from tacker.objects import base
 from tacker.objects import fields
 
@@ -308,6 +314,45 @@ def _add_filter_data(context, subscription_id, filter):
             new_entries)
 
 
+@db_api.context_manager.reader
+def _vnf_lcm_subscription_list_by_filters(context,
+        read_deleted=None, filters=None, nextpage_opaque_marker=None):
+    query = api.model_query(context, models.VnfLcmSubscriptions,
+                            read_deleted=read_deleted,
+                            project_only=True)
+    binary_columns = ['notification_types', 'operation_types']
+
+    if filters:
+        filter_data = json.dumps(filters)
+        if 'ChangeNotificationsFilter' in filter_data:
+            query = query.join(models.VnfLcmFilters)
+
+        if 'and' in filters:
+            filters_and = []
+            for filter in filters['and']:
+                if filter['field'] in binary_columns:
+                    converted_value = utils.str_to_bytes(filter['value'])
+                    filter['value'] = converted_value
+                filters_and.append(filter)
+
+            filters = {'and': filters_and}
+        else:
+            if filters['field'] in binary_columns:
+                converted_value = utils.str_to_bytes(filters['value'])
+                filters.update({'value': converted_value})
+
+        query = apply_filters(query, filters)
+
+    if nextpage_opaque_marker:
+        start_offset = CONF.vnf_lcm.subscription_num * nextpage_opaque_marker
+        return query.order_by(
+            models.VnfLcmSubscriptions.created_at).limit(
+                CONF.vnf_lcm.subscription_num + 1).offset(
+                    start_offset).all()
+    else:
+        return query.order_by(models.VnfLcmSubscriptions.created_at).all()
+
+
 @db_api.context_manager.writer
 def _vnf_lcm_subscriptions_create(context, values, filter):
     with db_api.context_manager.writer.using(context):
@@ -368,6 +413,47 @@ def _destroy_vnf_lcm_subscription(context, subscriptionId):
             update(updated_values, synchronize_session=False)
     except Exception as e:
         raise e
+
+
+@db_api.context_manager.reader
+def _subscription_get_by_id(context, subscription_uuid, columns_to_join=None):
+
+    query = api.model_query(context, models.VnfLcmSubscriptions,
+                            read_deleted="no", project_only=True). \
+        filter_by(id=subscription_uuid)
+
+    if columns_to_join:
+        for column in columns_to_join:
+            query = query.options(joinedload(column))
+
+    result = query.first()
+
+    if not result:
+        raise exceptions.NotFound(resource='Subscription',
+            id=subscription_uuid)
+
+    return result
+
+
+def _make_subscription_list(context, subscription_list, db_subscription_list,
+                            expected_attrs=None):
+    subscription_cls = LccnSubscription
+
+    subscription_list.objects = []
+    cnt = 0
+    last_flg = True
+    for db_subscription in db_subscription_list:
+        cnt = cnt + 1
+        if cnt == CONF.vnf_lcm.subscription_num + 1:
+            last_flg = False
+            break
+        subscription_obj = subscription_cls._from_db_object(
+            context, subscription_cls(context), db_subscription,
+            expected_attrs=expected_attrs)
+        subscription_list.objects.append(subscription_obj)
+
+    subscription_list.obj_reset_changes()
+    return subscription_list, last_flg
 
 
 @base.TackerObjectRegistry.register
@@ -440,3 +526,178 @@ class LccnSubscriptionRequest(base.TackerObject, base.TackerPersistentObject):
             raise e
 
         return 204
+
+
+@base.TackerObjectRegistry.register
+class ChangeNotificationsFilter(
+        base.TackerObject, base.TackerPersistentObject):
+
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'id': fields.UUIDField(nullable=False),
+        'subscription_uuid': fields.UUIDField(nullable=False),
+        'filter': fields.StringField(nullable=True),
+        'vnf_products_from_providers':
+            fields.StringField(nullable=True),
+        'vnfd_ids': fields.StringField(nullable=True),
+        'vnfd_ids_len': fields.IntegerField(
+            nullable=True, default=0),
+        'vnf_provider': fields.StringField(nullable=True),
+        'vnf_product_name': fields.StringField(nullable=True),
+        'vnf_software_version': fields.StringField(nullable=True),
+        'vnfd_versions': fields.StringField(nullable=True),
+        'vnfd_versions_len': fields.IntegerField(
+            nullable=True, default=0),
+        'vnf_instance_ids': fields.StringField(nullable=True),
+        'vnf_instance_ids_len': fields.IntegerField(
+            nullable=True, default=0),
+        'vnf_instance_names': fields.StringField(nullable=True),
+        'vnf_instance_names_len': fields.IntegerField(
+            nullable=True, default=0),
+        'notification_types': fields.StringField(nullable=True),
+        'notification_types_len': fields.IntegerField(
+            nullable=True, default=0),
+        'operation_types': fields.StringField(nullable=True),
+        'operation_types_len': fields.IntegerField(
+            nullable=True, default=0),
+        'operation_states': fields.StringField(nullable=True),
+        'operation_states_len': fields.IntegerField(
+            nullable=True, default=0),
+    }
+
+
+@base.TackerObjectRegistry.register
+class ChangeNotificationsFilterList(
+        ovoo_base.ObjectListBase, base.TackerObject):
+
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'objects': fields.ListOfObjectsField('ChangeNotificationsFilter')
+    }
+
+
+@base.TackerObjectRegistry.register
+class LccnSubscription(base.TackerObject, base.TackerPersistentObject):
+
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'id': fields.UUIDField(nullable=False),
+        'callback_uri': fields.StringField(nullable=False),
+        'filter': fields.ObjectField(
+            'ChangeNotificationsFilter', nullable=True),
+    }
+
+    ALL_ATTRIBUTES = {
+        'id': ('id', 'string',
+            'VnfLcmSubscriptions'),
+        'vnfdIds': ('vnfd_ids', 'string',
+            'VnfLcmFilters'),
+        'vnfProvider': ('vnf_provider', 'string',
+            'VnfLcmFilters'),
+        'vnfProductName': ('vnf_product_name', 'string',
+            'VnfLcmFilters'),
+        'vnfSoftwareVersion': ('vnf_software_version', 'string',
+            'VnfLcmFilters'),
+        'vnfdVersions': ('vnfd_versions', 'string',
+            'VnfLcmFilters'),
+        'vnfInstanceIds': ('vnf_instance_ids', 'string',
+            'VnfLcmFilters'),
+        'vnfInstanceNames': ('vnf_instance_names', 'string',
+            'VnfLcmFilters'),
+        'notificationTypes': ('notification_types', 'string',
+            'VnfLcmFilters'),
+        'operationTypes': ('operation_types', 'string',
+            'VnfLcmFilters'),
+        'operationStates': ('operation_states', 'string',
+            'VnfLcmFilters'),
+        'callbackUri': ('callback_uri', 'string',
+            'VnfLcmSubscriptions'),
+    }
+
+    FLATTEN_ATTRIBUTES = utils.flatten_dict(ALL_ATTRIBUTES.copy())
+
+    @staticmethod
+    def _from_db_object(context, subscription, db_subscription,
+                        expected_attrs=None):
+        expected_attrs = expected_attrs or ['filter']
+
+        subscription._context = context
+
+        for key in subscription.fields:
+            if key in ['filter']:
+                continue
+            db_key = key
+            setattr(subscription, key, db_subscription[db_key])
+
+        subscription._context = context
+        subscription._extra_attributes_from_db_object(
+            subscription, db_subscription, expected_attrs)
+
+        subscription.obj_reset_changes()
+        return subscription
+
+    @staticmethod
+    def _extra_attributes_from_db_object(subscription, db_subscription,
+                                         expected_attrs=None):
+        """Method to help with migration of extra attributes to objects."""
+
+        if expected_attrs is None:
+            expected_attrs = ['filter']
+
+        if 'filter' in expected_attrs:
+            subscription._load_subscription_filter(
+                db_subscription.get('filter'))
+
+    def _load_subscription_filter(self, db_filter=_NO_DATA_SENTINEL):
+        if db_filter is _NO_DATA_SENTINEL:
+            subscription = self.get_by_id(
+                self._context, self.id,
+                expected_attrs=['filter'])
+            if 'filter' in subscription:
+                self.filter = \
+                    subscription.filter
+                self.filter.obj_reset_changes(recursive=True)
+                self.obj_reset_changes(['filter'])
+            else:
+                self.filter = \
+                    objects.ChangeNotificationsFilterList(objects=[])
+        elif db_filter:
+            self.filter = base.obj_make_list(
+                self._context, objects.ChangeNotificationsFilterList(
+                    self._context), objects.ChangeNotificationsFilter,
+                db_filter)
+            self.obj_reset_changes(['filter'])
+
+    @base.remotable_classmethod
+    def get_by_id(cls, context, id, expected_attrs=None):
+        db_subscription = _subscription_get_by_id(
+            context, id, columns_to_join=expected_attrs)
+        return cls._from_db_object(context, cls(), db_subscription,
+                                   expected_attrs=expected_attrs)
+
+
+@base.TackerObjectRegistry.register
+class LccnSubscriptionList(ovoo_base.ObjectListBase, base.TackerObject):
+
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'objects': fields.ListOfObjectsField('LccnSubscription')
+    }
+
+    @base.remotable_classmethod
+    def get_by_filters(cls, context, read_deleted=None,
+                       filters=None, nextpage_opaque_marker=None):
+
+        db_subscriptions = _vnf_lcm_subscription_list_by_filters(context,
+                                read_deleted=read_deleted,
+                                filters=filters,
+                                nextpage_opaque_marker=nextpage_opaque_marker)
+        return _make_subscription_list(context, cls(), db_subscriptions)

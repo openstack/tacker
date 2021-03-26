@@ -267,16 +267,6 @@ class VnfResource(model_base.BASE, models.SoftDeleteMixin,
     resource_status = sa.Column(sa.String(255), nullable=False)
 
 
-class VnfLcmSubscriptions(model_base.BASE, models.SoftDeleteMixin,
-                models.TimestampMixin):
-    """Contains all info about vnf LCM Subscriptions."""
-
-    __tablename__ = 'vnf_lcm_subscriptions'
-    id = sa.Column(sa.String(36), nullable=False, primary_key=True)
-    callback_uri = sa.Column(sa.String(255), nullable=False)
-    subscription_authentication = sa.Column(sa.JSON, nullable=True)
-
-
 class VnfLcmFilters(model_base.BASE):
     """Contains all info about vnf LCM filters."""
 
@@ -288,13 +278,44 @@ class VnfLcmFilters(model_base.BASE):
                             nullable=False)
     filter = sa.Column(sa.JSON, nullable=False)
     vnf_products_from_providers = sa.Column(sa.JSON, nullable=True)
-    notification_types = sa.Column(sa.VARBINARY(255), nullable=True)
+    vnfd_ids = sa.Column(sa.Text(), nullable=True)
+    vnfd_ids_len = sa.Column(sa.Integer, nullable=True)
+    vnf_provider = sa.Column(sa.Text(), nullable=True)
+    vnf_product_name = sa.Column(sa.Text(), nullable=True)
+    vnf_software_version = sa.Column(sa.Text(), nullable=True)
+    vnfd_versions = sa.Column(sa.Text(), nullable=True)
+    vnfd_versions_len = sa.Column(sa.Integer, nullable=True)
+    vnf_instance_ids = sa.Column(sa.Text(), nullable=True)
+    vnf_instance_ids_len = sa.Column(sa.Integer, nullable=True)
+    vnf_instance_names = sa.Column(sa.Text(), nullable=True)
+    vnf_instance_names_len = sa.Column(sa.Integer, nullable=True)
+    notification_types = sa.Column(
+        sa.LargeBinary(
+            length=__maxsize__),
+        nullable=True)
     notification_types_len = sa.Column(sa.Integer, nullable=True)
     operation_types = sa.Column(
         sa.LargeBinary(
             length=__maxsize__),
         nullable=True)
     operation_types_len = sa.Column(sa.Integer, nullable=True)
+    operation_states = sa.Column(sa.Text(), nullable=True)
+    operation_states_len = sa.Column(sa.Integer, nullable=True)
+
+
+class VnfLcmSubscriptions(model_base.BASE, models.SoftDeleteMixin,
+                models.TimestampMixin):
+    """Contains all info about vnf LCM Subscriptions."""
+
+    __tablename__ = 'vnf_lcm_subscriptions'
+    id = sa.Column(sa.String(36), nullable=False, primary_key=True)
+    callback_uri = sa.Column(sa.String(255), nullable=False)
+    subscription_authentication = sa.Column(sa.JSON, nullable=True)
+
+    subscription_filter = orm.relationship(
+        VnfLcmFilters,
+        primaryjoin='and_(VnfLcmSubscriptions.id == '
+                    'VnfLcmFilters.subscription_uuid)')
 
 
 class VnfLcmOpOccs(model_base.BASE, models.SoftDeleteMixin,

@@ -226,6 +226,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Create subscription.
             - Get subscription informations.
             - Get list of subscriptions
+            - Get list of subscriptions with filter
             - Create VNF package.
             - Upload VNF package.
             - Create VNF instance.
@@ -260,6 +261,71 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         # Subscription list
         resp, _ = self._list_subscription()
         self.assertEqual(200, resp.status_code)
+
+        # Subscription list filter 1
+        filter_expr = {
+            'filter': "filter=(eq,id,{})".format(body.get('id'))}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(1, len(subscription_body))
+
+        # Subscription list filter 2
+        filter_expr = {
+            'filter': "filter=(neq,callbackUri,{})".format(
+                'http://localhost:{}{}'.format(
+                    vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                    os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                        self._testMethodName)))}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(0, len(subscription_body))
+
+        # Subscription list filter 3
+        filter_expr = {
+            'filter': "filter=(neq,id,{})".format(body.get('id'))}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(0, len(subscription_body))
+
+        # Subscription list filter 4
+        filter_expr = {
+            'filter': "filter=(eq,callbackUri,{})".format(
+                'http://localhost:{}{}'.format(
+                    vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                    os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                        self._testMethodName)))}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(1, len(subscription_body))
+
+        # Subscription list filter 5
+        filter_expr = {
+            'filter': "filter=(in,operationTypes,{})".format("sample")}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(400, resp.status_code)
+        self.assertEqual(3, len(subscription_body))
+
+        # Subscription list filter 6
+        filter_expr = {
+            'filter': "filter=(eq,vnfSoftwareVersion,{})".format('1.0')}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(1, len(subscription_body))
+
+        # Subscription list filter 7
+        filter_expr = {
+            'filter': "filter=(eq,operationTypes,{})".format(
+                "SCALE_TO_LEVEL")}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(0, len(subscription_body))
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional'

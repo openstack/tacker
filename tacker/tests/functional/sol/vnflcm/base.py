@@ -372,6 +372,17 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
         return resp, body
 
+    def _list_subscription_filter(self, **kwargs):
+        params = kwargs.get('params', {})
+        filter_variable = params['filter']
+        subscriptions_list_filter_url = "%s?%s" % (
+            self.base_subscriptions_url, filter_variable)
+
+        resp, subscription_body = self.http_client.do_request(
+            subscriptions_list_filter_url, "GET")
+
+        return resp, subscription_body
+
     def _create_vnf_instance(self, vnfd_id, vnf_instance_name=None,
             vnf_instance_description=None):
         request_body = {'vnfdId': vnfd_id}
