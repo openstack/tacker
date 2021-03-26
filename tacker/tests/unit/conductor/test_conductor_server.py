@@ -2865,3 +2865,49 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             self.body_data,
             self.vnfd_pkg_data,
             vnfd_id)
+
+    def test_update_vim(self):
+        vim_id = uuidsentinel.vim_id
+        status = "REACHABLE"
+        result = self.conductor.update_vim(self.context, vim_id, status)
+        self.assertEqual(result, "REACHABLE")
+
+    @mock.patch.object(csar_utils, 'load_csar_data')
+    @mock.patch.object(glance_store, 'load_csar')
+    @mock.patch.object(glance_store, 'delete_csar')
+    def test_revert_upload_vnf_package_in_upload_vnf_package_content(self,
+                                        mock_load_csar,
+                                        mock_load_csar_data,
+                                        mock_delete_csar):
+        mock_load_csar_data.return_value = (mock.ANY, mock.ANY, mock.ANY)
+        mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a-4c3' \
+                                      '1-9e6d-ab21b87dcfff.zip'
+        mock_delete_csar.return_value = ""
+        self.assertRaisesRegex(Exception,
+            "not enough values to unpack",
+            self.conductor.upload_vnf_package_content,
+            self.context, self.vnf_package)
+
+    @mock.patch.object(conductor_server, 'revert_upload_vnf_package')
+    @mock.patch.object(csar_utils, 'load_csar_data')
+    @mock.patch.object(glance_store, 'load_csar')
+    def test_onboard_vnf_package_through_upload_vnf_package_content(self,
+                                        mock_load_csar,
+                                        mock_load_csar_data,
+                                        mock_revert):
+        vnf_data = fakes.get_vnf_package_vnfd()
+        vnf_data = self._rename_vnfdata_keys(vnf_data)
+        mock_load_csar_data.return_value = (vnf_data, [], [])
+        mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a-4c3' \
+                                      '1-9e6d-ab21b87dcfff.zip'
+        fake_context = context.Context(tenant_id=uuidsentinel.tenant_id)
+        self.conductor.upload_vnf_package_content(
+            fake_context, self.vnf_package)
+
+    def _rename_vnfdata_keys(self, vnf_data):
+        vnf_data["descriptor_id"] = vnf_data.pop("id")
+        vnf_data["provider"] = vnf_data.pop("vnf_provider")
+        vnf_data["product_name"] = vnf_data.pop("vnf_product_name")
+        vnf_data["software_version"] = vnf_data.pop("vnf_software_version")
+        vnf_data["descriptor_version"] = vnf_data.pop("vnfd_version")
+        return vnf_data
