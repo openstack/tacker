@@ -406,3 +406,10 @@ class MgmtDriverRemoteCommandTimeOut(TackerException):
 
 class MgmtDriverOtherError(TackerException):
     message = _('An error occurred in MgmtDriver: %(error_message)s.')
+
+
+class VnfConflictStateWithErrorPoint(Conflict):
+    message = _("Vnf %(uuid)s in status %(state)s. "
+                "Error point %(error_point)s. "
+                "Cannot %(action)s while the vnf is in this state "
+                "with this error point.")

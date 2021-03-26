@@ -1460,3 +1460,27 @@ def return_vnf_lcm_opoccs_obj():
     obj = objects.VnfLcmOpOcc(**vnf_lcm_op_occs)
 
     return obj
+
+
+def vnflcm_op_occs_retry_data(error_point=7, operation='INSTANTIATE',
+        operation_state='FAILED_TEMP'):
+    now = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    return objects.VnfLcmOpOcc(
+        state_entered_time=now,
+        start_time=now,
+        vnf_instance_id=uuidsentinel.vnf_instance_id,
+        operation=operation,
+        operation_state=operation_state,
+        is_automatic_invocation=False,
+        operation_params='{}',
+        error_point=error_point,
+        id=constants.UUID,
+        created_at=now)
+
+
+def vnf_data(status='ACTIVE'):
+    return tacker.db.vnfm.vnfm_db.VNF(id=constants.UUID,
+        vnfd_id=uuidsentinel.vnfd_id,
+        name='test',
+        status=status,
+        vim_id=uuidsentinel.vim_id)

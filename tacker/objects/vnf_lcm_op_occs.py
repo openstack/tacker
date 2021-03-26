@@ -77,6 +77,21 @@ def _vnf_lcm_op_occs_get_by_id(context, vnf_lcm_op_occ_id):
 
 
 @db_api.context_manager.reader
+def _vnf_lcm_op_occs_get_by_vnf_instance_id(context, vnf_instance_id):
+
+    query = api.model_query(context, models.VnfLcmOpOccs,
+                            read_deleted="no", project_only=True). \
+        filter_by(vnf_instance_id=vnf_instance_id)
+
+    result = query.first()
+
+    if not result:
+        raise exceptions.VnfInstanceNotFound(id=vnf_instance_id)
+
+    return result
+
+
+@db_api.context_manager.reader
 def _vnf_notify_get_by_id(context, vnf_instance_id, columns_to_join=None):
 
     query = api.model_query(context, models.VnfLcmOpOccs,
@@ -285,6 +300,12 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
     @base.remotable_classmethod
     def get_by_id(cls, context, id):
         db_vnf_lcm_op_occs = _vnf_lcm_op_occs_get_by_id(context, id)
+        return cls._from_db_object(context, cls(), db_vnf_lcm_op_occs)
+
+    @base.remotable_classmethod
+    def get_by_vnf_instance_id(cls, context, id):
+        db_vnf_lcm_op_occs = _vnf_lcm_op_occs_get_by_vnf_instance_id(
+            context, id)
         return cls._from_db_object(context, cls(), db_vnf_lcm_op_occs)
 
 
@@ -618,6 +639,9 @@ class VnfInfoModifications(base.TackerObject,
                 VnfInfoModifications, cls).obj_from_primitive(
                 primitive, context)
         else:
+            if isinstance(primitive, str):
+                primitive = jsonutils.loads(primitive)
+
             if 'vim_connection_info' in primitive.keys():
                 obj_data = [objects.VimConnectionInfo._from_dict(
                     vim_conn) for vim_conn in primitive.get(

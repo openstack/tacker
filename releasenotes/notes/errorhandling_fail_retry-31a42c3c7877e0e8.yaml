@@ -1,0 +1,4 @@
+---
+features:
+  - Add new RESTful APIs for Fail VNF, Retry VNF as part of error handling
+    operation based on ETSI NFV specifications.

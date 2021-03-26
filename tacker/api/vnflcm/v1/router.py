@@ -125,6 +125,12 @@ class VnflcmAPIRouter(wsgi.Router):
                 "/vnf_lcm_op_occs/{id}/fail",
                 methods, controller, default_resource)
 
+        # {apiRoot}/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/retry resource
+        methods = {"POST": "retry"}
+        self._setup_route(mapper,
+                "/vnf_lcm_op_occs/{id}/retry",
+                methods, controller, default_resource)
+
         methods = {"GET": "subscription_list", "POST": "register_subscription"}
         self._setup_route(mapper, "/subscriptions",
                 methods, controller, default_resource)

@@ -25,6 +25,7 @@ from tacker.common import exceptions
 from tacker import context
 from tacker.manager import TackerManager
 from tacker import objects
+from tacker.objects import fields
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.nfvo.test_nfvo_plugin import FakeVNFMPlugin
 from tacker.tests.unit.vnflcm import fakes
@@ -165,7 +166,9 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
         test_utils.copy_csar_files(fake_csar, "refactor_mgmt_driver1")
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {}}
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": fields.ErrorPoint.VNF_CONFIG_START}
         driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
                                instantiate_vnf_req_obj)
 
@@ -203,7 +206,9 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
         test_utils.copy_csar_files(fake_csar, "refactor_mgmt_driver2")
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {}}
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": fields.ErrorPoint.VNF_CONFIG_START}
         self.assertRaises(exceptions.MgmtDriverInconsistent,
                           driver.instantiate_vnf, self.context,
                           vnf_instance_obj, vnf_dict,
@@ -240,7 +245,9 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
         test_utils.copy_csar_files(fake_csar, "refactor_mgmt_driver3")
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
-        vnf_dict = {"vnfd": {"attributes": {}}, "attributes": {}}
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": fields.ErrorPoint.VNF_CONFIG_START}
         self.assertRaises(exceptions.MgmtDriverHashMatchFailure,
                           driver.instantiate_vnf, self.context,
                           vnf_instance_obj, vnf_dict,

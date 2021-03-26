@@ -766,6 +766,228 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         self._instantiate_vnf_instance_fail(vnf_instance['id'], request_body)
 
+    def test_retry_instantiate(self):
+        """Test retry operation for instantiation.
+
+        In this test case, we do following steps.
+            - Create subscription.
+            - Create VNF package.
+            - Upload VNF package.
+            - Create VNF instance.
+            - Instantiate VNF(Will fail).
+            - Get vnflcmOpOccId to retry.
+            - Retry instantiation operation.
+            - Get opOccs information.
+            - Delete subscription.
+        """
+        # Create subscription and register it.
+        request_body = fake_vnflcm.Subscription.make_create_request_body(
+            'http://localhost:{}{}'.format(
+                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                    self._testMethodName)))
+        resp, response_body = self._register_subscription(request_body)
+        self.assertEqual(201, resp.status_code)
+        self.assert_http_header_location_for_subscription(resp.headers)
+        subscription_id = response_body.get('id')
+        self.addCleanup(self._delete_subscription, subscription_id)
+
+        # Pre Setting: Create vnf package.
+        sample_name = 'functional3'
+        csar_package_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "../../../etc/samples/etsi/nfv",
+                sample_name))
+        tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
+            csar_package_path)
+        # upload vnf package
+        vnf_package_id, vnfd_id = vnflcm_base._create_and_upload_vnf_package(
+            self.tacker_client, user_defined_data={
+                "key": sample_name}, temp_csar_path=tempname)
+
+        # Post Setting: Reserve deleting vnf package.
+        self.addCleanup(
+            vnflcm_base._delete_vnf_package,
+            self.tacker_client,
+            vnf_package_id)
+
+        # Create vnf instance
+        resp, vnf_instance = self._create_vnf_instance_from_body(
+            fake_vnflcm.VnfInstances.make_create_request_body(vnfd_id))
+        vnf_instance_id = vnf_instance['id']
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
+
+        # Failed instantiate VNF
+        request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
+            self.vim['tenant_id'], self.ext_networks, self.ext_mngd_networks,
+            self.ext_link_ports, self.ext_subnets)
+        resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('FAILED_TEMP', vnf_instance_id=vnf_instance_id)
+
+        callback_url = os.path.join(
+            vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = vnflcm_base.FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            callback_url)
+
+        # get vnflcm_op_occ_id
+        vnflcm_op_occ_id = notify_mock_responses[0].request_body.get(
+            'vnfLcmOpOccId')
+        self.assertIsNotNone(vnflcm_op_occ_id)
+
+        # retry
+        resp, _ = self._retry_op_occs(vnflcm_op_occ_id)
+        self._wait_lcm_done('FAILED_TEMP', vnf_instance_id=vnf_instance_id)
+        self.assert_retry_vnf(resp, vnf_instance_id)
+
+        # rollback (Execute because it's needed to delete VNF)
+        resp, _ = self._rollback_op_occs(vnflcm_op_occ_id)
+        self._wait_lcm_done('ROLLING_BACK', vnf_instance_id=vnf_instance_id)
+        self._wait_lcm_done('ROLLED_BACK', vnf_instance_id=vnf_instance_id)
+        self.assert_rollback_vnf(resp, vnf_instance_id)
+
+        # occ-show
+        resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
+        self._assert_occ_show(resp, op_occs_info)
+
+        # Delete VNF
+        resp, _ = self._delete_vnf_instance(vnf_instance_id)
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Subscription delete
+        resp, response_body = self._delete_subscription(subscription_id)
+        self.assertEqual(204, resp.status_code)
+
+    def test_retry_scale_out(self):
+        """Test retry operation for Scale-Out operation.
+
+        In this test case, we do following steps.
+            - Create subscription.
+            - Create VNF package.
+            - Upload VNF package.
+            - Create VNF instance.
+            - Instantiate VNF.
+            - Scale-Out(Will fail).
+            - Get vnfcmOpOccId to retry.
+            - Retry Scale-Out operation.
+            - Get opOccs information.
+            - Terminate VNF.
+            - Delete subscription.
+        """
+        # Create subscription and register it.
+        request_body = fake_vnflcm.Subscription.make_create_request_body(
+            'http://localhost:{}{}'.format(
+                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                             self._testMethodName)))
+        resp, response_body = self._register_subscription(request_body)
+        self.assertEqual(201, resp.status_code)
+        self.assert_http_header_location_for_subscription(resp.headers)
+        subscription_id = response_body.get('id')
+        self.addCleanup(self._delete_subscription, subscription_id)
+
+        # Pre Setting: Create vnf package.
+        sample_name = 'functional4'
+        csar_package_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "../../../etc/samples/etsi/nfv",
+                sample_name))
+        tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
+            csar_package_path)
+        # upload vnf package
+        vnf_package_id, vnfd_id = vnflcm_base._create_and_upload_vnf_package(
+            self.tacker_client, user_defined_data={
+                "key": sample_name}, temp_csar_path=tempname)
+
+        # Post Setting: Reserve deleting vnf package.
+        self.addCleanup(
+            vnflcm_base._delete_vnf_package,
+            self.tacker_client,
+            vnf_package_id)
+
+        # Create vnf instance
+        resp, vnf_instance = self._create_vnf_instance_from_body(
+            fake_vnflcm.VnfInstances.make_create_request_body(vnfd_id))
+        vnf_instance_id = vnf_instance['id']
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
+
+        # instantiate VNF
+        request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
+            self.vim['tenant_id'], self.ext_networks, self.ext_mngd_networks,
+            self.ext_link_ports, self.ext_subnets)
+        self._instantiate_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                self._testMethodName))
+
+        # Fail Scale-out vnf instance
+        request_body = fake_vnflcm.VnfInstances.make_scale_request_body(
+            'SCALE_OUT')
+        resp, _ = self._scale_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('FAILED_TEMP', vnf_instance_id=vnf_instance_id)
+
+        callback_url = os.path.join(
+            vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = vnflcm_base.FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            callback_url)
+
+        # get vnflcm_op_occ_id
+        vnflcm_op_occ_id = notify_mock_responses[0].request_body.get(
+            'vnfLcmOpOccId')
+        self.assertIsNotNone(vnflcm_op_occ_id)
+
+        # retry
+        resp, _ = self._retry_op_occs(vnflcm_op_occ_id)
+        self._wait_lcm_done('FAILED_TEMP', vnf_instance_id=vnf_instance_id)
+        self.assert_retry_vnf(resp, vnf_instance_id)
+
+        # rollback (Execute because it's needed to delete VNF)
+        resp, _ = self._rollback_op_occs(vnflcm_op_occ_id)
+        self._wait_lcm_done('ROLLING_BACK', vnf_instance_id=vnf_instance_id)
+        self._wait_lcm_done('ROLLED_BACK', vnf_instance_id=vnf_instance_id)
+        self.assert_rollback_vnf(resp, vnf_instance_id)
+
+        # occ-show
+        resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
+        self._assert_occ_show(resp, op_occs_info)
+
+        # Terminate VNF
+        stack = self._get_heat_stack(vnf_instance_id)
+        resources_list = self._get_heat_resource_list(stack.id)
+        resource_name_list = [r.resource_name for r in resources_list]
+        glance_image_id_list = self._get_glance_image_list_from_stack_resource(
+            stack.id,
+            resource_name_list)
+
+        terminate_req_body = fake_vnflcm.VnfInstances.make_term_request_body()
+        resp, _ = self._terminate_vnf_instance(vnf_instance_id,
+            terminate_req_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_terminate_vnf(resp, vnf_instance_id, stack.id,
+            resource_name_list, glance_image_id_list, vnf_package_id)
+
+        # Delete VNF
+        resp, _ = self._delete_vnf_instance(vnf_instance_id)
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Subscription delete
+        resp, response_body = self._delete_subscription(subscription_id)
+        self.assertEqual(204, resp.status_code)
+
     def test_rollback_instantiate(self):
         """Test rollback operation for instantiation.
 

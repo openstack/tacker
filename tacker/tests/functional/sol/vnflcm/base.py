@@ -469,6 +469,15 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
         return resp, response_body
 
+    def _retry_op_occs(self, vnf_lcm_op_occs_id):
+        retry_url = os.path.join(
+            self.base_vnf_lcm_op_occs_url,
+            vnf_lcm_op_occs_id, 'retry')
+        resp, response_body = self.http_client.do_request(
+            retry_url, "POST")
+
+        return resp, response_body
+
     def _show_op_occs(self, vnf_lcm_op_occs_id):
         show_url = os.path.join(
             self.base_vnf_lcm_op_occs_url,
@@ -1022,6 +1031,27 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             notify_mock_responses[0],
             'VnfLcmOperationOccurrenceNotification',
             'FAILED')
+
+    def assert_retry_vnf(self, resp, vnf_instance_id):
+        self.assertEqual(202, resp.status_code)
+
+        # FT-checkpoint: Notification
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id)
+
+        self.assertEqual(2, len(notify_mock_responses))
+        self.assert_notification_mock_response(
+            notify_mock_responses[0],
+            'VnfLcmOperationOccurrenceNotification',
+            'PROCESSING')
+
+        self.assert_notification_mock_response(
+            notify_mock_responses[1],
+            'VnfLcmOperationOccurrenceNotification',
+            'FAILED_TEMP')
 
     def assert_update_vnf(
             self,

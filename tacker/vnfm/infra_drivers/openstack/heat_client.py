@@ -39,6 +39,12 @@ class HeatClient(object):
                 for x in self._stack_ids(stack.id):
                     yield x
 
+    def find_stack(self, **kwargs):
+        stack = None
+        for sub_stack in self.stacks.list(**{"filters": kwargs}):
+            stack = sub_stack
+        return stack
+
     def create(self, fields):
         fields = fields.copy()
         fields['disable_rollback'] = True

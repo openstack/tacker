@@ -344,6 +344,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour=instantiate_vnf_req.flavour_id)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         vnfd_key = 'vnfd_' + instantiate_vnf_req.flavour_id
         vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
         mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
@@ -387,6 +388,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour=instantiate_vnf_req.flavour_id)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
@@ -471,6 +473,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour=instantiate_vnf_req.flavour_id)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
@@ -549,6 +552,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour=instantiate_vnf_req.flavour_id)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         vnfd_key = 'vnfd_' + instantiate_vnf_req.flavour_id
@@ -679,6 +683,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour=instantiate_vnf_req.flavour_id)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         m_vnf_lcm_subscriptions = \
             [mock.MagicMock(**fakes.get_vnf_lcm_subscriptions())]
         vnfd_key = 'vnfd_' + instantiate_vnf_req.flavour_id
@@ -697,6 +702,117 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         mock_update_vnf_attributes.assert_called_once()
 
     @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._build_instantiated_vnf_info')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.utils._convert_desired_capacity')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_instantiate_vnf_instance_error_point_notify_processing(
+            self, mock_vnf_by_id, mock_des, mock_vnfd_dict, mock_get_lock,
+            mock_save, mock_build_info, mock_change_vnf_status,
+            mock_update_vnf_attributes):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        mock_vnf_by_id.return_value = \
+            objects.VnfLcmOpOcc(context=self.context,
+                                **lcm_op_occs_data)
+
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour=instantiate_vnf_req.flavour_id)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.NOTIFY_PROCESSING
+        vnfd_key = 'vnfd_' + instantiate_vnf_req.flavour_id
+        vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
+        mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
+        self.conductor.instantiate(self.context, vnf_instance, vnf_dict,
+                                   instantiate_vnf_req, vnf_lcm_op_occs_id)
+        self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
+            self.context, mock.ANY, vnf_dict, instantiate_vnf_req)
+        self.vnflcm_driver._vnf_instance_update.assert_called_once()
+        mock_change_vnf_status. \
+            assert_called_once_with(self.context, vnf_instance.id,
+                                    mock.ANY, 'PENDING_CREATE')
+        mock_update_vnf_attributes.assert_called_once()
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._build_instantiated_vnf_info')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.utils._convert_desired_capacity')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_instantiate_vnf_instance_error_point_vnf_config_end(
+            self, mock_vnf_by_id, mock_des, mock_vnfd_dict, mock_get_lock,
+            mock_save, mock_build_info, mock_update_vnf_attributes):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        mock_vnf_by_id.return_value = \
+            objects.VnfLcmOpOcc(context=self.context,
+                                **lcm_op_occs_data)
+
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour=instantiate_vnf_req.flavour_id)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.VNF_CONFIG_END
+        vnfd_key = 'vnfd_' + instantiate_vnf_req.flavour_id
+        vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
+        mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
+        self.conductor.instantiate(self.context, vnf_instance, vnf_dict,
+                                   instantiate_vnf_req, vnf_lcm_op_occs_id)
+        self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
+            self.context, vnf_instance, vnf_dict, instantiate_vnf_req)
+
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.utils._convert_desired_capacity')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_instantiate_vnf_instance_error_point_notify_completed(
+            self, mock_vnf_by_id, mock_des, mock_vnfd_dict,
+            mock_get_lock, mock_save):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        mock_vnf_by_id.return_value = \
+            objects.VnfLcmOpOcc(context=self.context,
+                                **lcm_op_occs_data)
+
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour=instantiate_vnf_req.flavour_id)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.NOTIFY_COMPLETED
+        vnfd_key = 'vnfd_' + instantiate_vnf_req.flavour_id
+        vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
+        mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
+        self.conductor.instantiate(self.context, vnf_instance, vnf_dict,
+                                   instantiate_vnf_req, vnf_lcm_op_occs_id)
+        self.vnflcm_driver._vnf_instance_update.assert_called_once()
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._send_lcm_op_occ_notification')
@@ -713,14 +829,97 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             additional_params={"key": "value"})
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
                                  vnf_instance, terminate_vnf_req, vnf_dict)
 
         self.vnflcm_driver.terminate_vnf.assert_called_once_with(
-            self.context, vnf_instance, terminate_vnf_req)
+            self.context, vnf_instance, terminate_vnf_req, vnf_dict)
         self.vnflcm_driver._vnf_instance_update.assert_called_once()
         self.assertEqual(mock_send_notification.call_count, 2)
         self.assertEqual(mock_change_vnf_status.call_count, 2)
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._send_lcm_op_occ_notification')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    def test_terminate_vnf_instance_error_point_notify_processing(
+            self, mock_get_lock, mock_send_notification,
+            mock_change_vnf_status):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+        vnf_instance = fd_utils. \
+            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info)
+
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
+            additional_params={"key": "value"})
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.NOTIFY_PROCESSING
+        self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
+                                 vnf_instance, terminate_vnf_req, vnf_dict)
+
+        self.vnflcm_driver.terminate_vnf.assert_called_once_with(
+            self.context, vnf_instance, terminate_vnf_req, vnf_dict)
+        self.vnflcm_driver._vnf_instance_update.assert_called_once()
+        self.assertEqual(mock_send_notification.call_count, 2)
+        self.assertEqual(mock_change_vnf_status.call_count, 2)
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._send_lcm_op_occ_notification')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    def test_terminate_vnf_instance_error_point_internal_processing(
+            self, mock_get_lock, mock_send_notification,
+            mock_change_vnf_status):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+        vnf_instance = fd_utils. \
+            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info)
+
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
+            additional_params={"key": "value"})
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INTERNAL_PROCESSING
+        self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
+                                 vnf_instance, terminate_vnf_req, vnf_dict)
+
+        self.vnflcm_driver.terminate_vnf.assert_called_once_with(
+            self.context, vnf_instance, terminate_vnf_req, vnf_dict)
+        self.vnflcm_driver._vnf_instance_update.assert_called_once()
+        self.assertEqual(mock_send_notification.call_count, 2)
+        self.assertEqual(mock_change_vnf_status.call_count, 1)
+
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver'
+                '.terminate_vnf')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._send_lcm_op_occ_notification')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    def test_terminate_vnf_instance_error_point_notify_completed(
+            self, mock_get_lock, mock_send_notification,
+            mock_change_vnf_status, mock_vnflcm_driver_terminate_vnf):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+        vnf_instance = fd_utils. \
+            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info)
+
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
+            additional_params={"key": "value"})
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.NOTIFY_COMPLETED
+        self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
+                                 vnf_instance, terminate_vnf_req, vnf_dict)
+
+        self.assertEqual(mock_vnflcm_driver_terminate_vnf.call_count, 0)
+        self.vnflcm_driver._vnf_instance_update.assert_called_once()
+        self.assertEqual(mock_send_notification.call_count, 2)
+        self.assertEqual(mock_change_vnf_status.call_count, 0)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
@@ -751,6 +950,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
         vnfLcmOpOccId = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.VNF_CONFIG_END
 
         mock_exec.return_value = True
         resRemResource = []
@@ -766,7 +966,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                 vnf_instance, terminate_vnf_req, vnf_dict)
 
         self.vnflcm_driver.terminate_vnf.assert_called_once_with(
-            self.context, mock.ANY, terminate_vnf_req)
+            self.context, mock.ANY, terminate_vnf_req, vnf_dict)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
@@ -860,6 +1060,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
         vnfLcmOpOccId = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.VNF_CONFIG_END
 
         mock_exec.return_value = True
         grant_dict = {}
@@ -874,7 +1075,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                 vnf_instance, terminate_vnf_req, vnf_dict)
 
         self.vnflcm_driver.terminate_vnf.assert_called_once_with(
-            self.context, mock.ANY, terminate_vnf_req)
+            self.context, mock.ANY, terminate_vnf_req, vnf_dict)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '.send_notification')
@@ -908,6 +1109,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
         vnfLcmOpOccId = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
 
         mock_exec.return_value = True
         resRemResource = []
@@ -965,6 +1167,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
         vnfLcmOpOccId = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
 
         mock_exec.return_value = True
         mock_grants.side_effect = \
@@ -995,6 +1198,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             additional_params={"key": "value"})
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        vnf_dict['current_error_point'] = fields.ErrorPoint.INITIAL
         try:
             self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
                                  vnf_instance, terminate_vnf_req, vnf_dict)
@@ -1148,8 +1353,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
-    def test_heal_vnf_instance(self, mock_vnf_by_id, mock_get_lock,
-            mock_save, mock_change_vnf_status,
+    def test_heal_vnf_instance(self, mock_vnf_by_id,
+            mock_get_lock, mock_save, mock_change_vnf_status,
             mock_update_insta_vnf_info, mock_add_additional_vnf_info):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
@@ -1166,6 +1371,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.save()
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
         vnf_dict = {"fake": "fake_dict"}
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
                             heal_vnf_req, vnf_lcm_op_occs_id)
@@ -1174,6 +1380,121 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             assert_called_once_with(self.context, vnf_instance, heal_vnf_req)
         mock_add_additional_vnf_info. \
             assert_called_once_with(self.context, vnf_instance)
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_add_additional_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_instantiated_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_heal_vnf_instance_error_point_notify_processing(
+            self, mock_vnf_by_id, mock_get_lock, mock_save,
+            mock_change_vnf_status, mock_update_insta_vnf_info,
+            mock_add_additional_vnf_info):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        mock_vnf_by_id.return_value = \
+            objects.VnfLcmOpOcc(context=self.context,
+                                **lcm_op_occs_data)
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = \
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        heal_vnf_req = objects.HealVnfRequest(cause="healing request")
+        vnf_dict = {"fake": "fake_dict"}
+        vnf_dict['before_error_point'] = fields.ErrorPoint.NOTIFY_PROCESSING
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        self.conductor.heal(self.context, vnf_instance, vnf_dict,
+                            heal_vnf_req, vnf_lcm_op_occs_id)
+        self.assertEqual(mock_change_vnf_status.call_count, 2)
+        mock_update_insta_vnf_info. \
+            assert_called_once_with(self.context, vnf_instance, heal_vnf_req)
+        mock_add_additional_vnf_info. \
+            assert_called_once_with(self.context, vnf_instance)
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_add_additional_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_instantiated_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_heal_vnf_instance_error_point_internal_processing(
+            self, mock_vnf_by_id, mock_get_lock, mock_save,
+            mock_change_vnf_status, mock_update_insta_vnf_info,
+            mock_add_additional_vnf_info):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        mock_vnf_by_id.return_value = \
+            objects.VnfLcmOpOcc(context=self.context,
+                                **lcm_op_occs_data)
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = \
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        heal_vnf_req = objects.HealVnfRequest(cause="healing request")
+        vnf_dict = {"fake": "fake_dict"}
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INTERNAL_PROCESSING
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        self.conductor.heal(self.context, vnf_instance, vnf_dict,
+                            heal_vnf_req, vnf_lcm_op_occs_id)
+        self.assertEqual(mock_change_vnf_status.call_count, 1)
+        mock_update_insta_vnf_info. \
+            assert_called_once_with(self.context, vnf_instance, heal_vnf_req)
+        mock_add_additional_vnf_info. \
+            assert_called_once_with(self.context, vnf_instance)
+
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver'
+                '.heal_vnf')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_add_additional_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_instantiated_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_heal_vnf_instance_error_point_notify_completed(
+            self, mock_vnf_by_id, mock_get_lock, mock_save,
+            mock_change_vnf_status, mock_update_insta_vnf_info,
+            mock_add_additional_vnf_info, mock_vnflcm_driver_heal_vnf):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        mock_vnf_by_id.return_value = \
+            objects.VnfLcmOpOcc(context=self.context,
+                                **lcm_op_occs_data)
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = \
+            fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        heal_vnf_req = objects.HealVnfRequest(cause="healing request")
+        vnf_dict = {"fake": "fake_dict"}
+        vnf_dict['before_error_point'] = fields.ErrorPoint.NOTIFY_COMPLETED
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        self.conductor.heal(self.context, vnf_instance, vnf_dict,
+                            heal_vnf_req, vnf_lcm_op_occs_id)
+        self.assertEqual(mock_vnflcm_driver_heal_vnf.call_count, 0)
+        self.assertEqual(mock_change_vnf_status.call_count, 0)
+        self.assertEqual(mock_update_insta_vnf_info.call_count, 0)
+        self.assertEqual(mock_add_additional_vnf_info.call_count, 0)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
@@ -1222,6 +1543,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None
@@ -1355,6 +1677,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None
@@ -1473,6 +1796,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None
@@ -1566,6 +1890,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None
@@ -1618,11 +1943,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
         vnf_dict = {"fake": "fake_dict"}
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
                             heal_vnf_req, vnf_lcm_op_occs_id)
         mock_change_vnf_status.assert_called_with(self.context,
-            vnf_instance, mock.ANY, constants.ERROR, "")
+            vnf_instance.id, mock.ANY, constants.ERROR, "")
         mock_update_insta_vnf_info.assert_called_with(self.context,
             vnf_instance, heal_vnf_req)
         self.assertEqual(mock_send_notification.call_count, 2)
@@ -1770,6 +2096,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_info['removeResources'] = []
         vnf_info['affinity_list'] = []
         vnf_info['placement_constraint_list'] = []
+        vnf_info['before_error_point'] = fields.ErrorPoint.INITIAL
         grant_dict = {}
         grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
         grant_dict['vnf_instance_id'] = uuidsentinel.vnf_instance_id
@@ -1886,6 +2213,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_info['removeResources'] = removeResources
         vnf_info['affinity_list'] = []
         vnf_info['placement_constraint_list'] = []
+        vnf_info['before_error_point'] = fields.ErrorPoint.INITIAL
         grant_dict = {}
         grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
         grant_dict['vnfInstanceId'] = uuidsentinel.vnf_instance_id
@@ -2030,6 +2358,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_info['affinity_list'] = []
         vnf_info['placement_constraint_list'] = []
         vnf_info['placement_constraint_list'].append(placement)
+        vnf_info['before_error_point'] = fields.ErrorPoint.INITIAL
         grant_dict = {}
         grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
         grant_dict['vnfInstanceId'] = uuidsentinel.vnf_instance_id
@@ -2138,6 +2467,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_info['removeResources'] = []
         vnf_info['affinity_list'] = []
         vnf_info['placement_constraint_list'] = []
+        vnf_info['before_error_point'] = fields.ErrorPoint.INITIAL
         grant_dict = {}
         grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
         grant_dict['vnf_instance_id'] = uuidsentinel.vnf_instance_id
@@ -2239,6 +2569,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_info['removeResources'] = []
         vnf_info['affinity_list'] = []
         vnf_info['placement_constraint_list'] = []
+        vnf_info['before_error_point'] = fields.ErrorPoint.INITIAL
         moch_exec.return_value = True
         mock_grants.side_effect = \
             requests.exceptions.HTTPError("MockException")

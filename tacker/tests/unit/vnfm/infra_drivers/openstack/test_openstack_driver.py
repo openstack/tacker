@@ -31,6 +31,7 @@ from tacker import context
 from tacker.db.db_sqlalchemy import models
 from tacker.extensions import vnfm
 from tacker import objects
+from tacker.objects import fields
 from tacker.tests import constants
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
@@ -183,11 +184,53 @@ class TestOpenStack(base.FixturedTestCase):
         mock_get_base_hot_dict.return_value = \
             self._read_file(), nested_hot_dict
         vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
         self.openstack.create(self.plugin, self.context, vnf,
                 self.auth_attr, inst_req_info=inst_req_info_test,
                 vnf_package_path=vnf_package_path_test,
                 grant_info=grant_info_test,
                 vnf_instance=vnf_instance)
+
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
+                '.OpenStack._format_base_hot')
+    @mock.patch('tacker.vnflcm.utils._get_vnflcm_interface')
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
+                '.OpenStack._update_stack_with_user_data')
+    @mock.patch.object(hc.HeatClient, "find_stack")
+    def test_create_normal_with_error_point_post_vim_control(
+            self, mock_find_stack, mock_update_stack_with_user_data,
+            mock_OpenstackClients_heat, mock_get_base_hot_dict,
+            mock_get_vnflcm_interface, mock_format_base_hot):
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = 'simple'
+        vnf_resource = type('', (), {})
+        vnf_resource.resource_identifier = constants.INVALID_UUID
+        grant_info_test = {'vdu_name': {vnf_resource}}
+        nested_hot_dict = {'parameters': {'vnf': 'test'}}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf['before_error_point'] = fields.ErrorPoint.POST_VIM_CONTROL
+        self.openstack.create(self.plugin, self.context, vnf,
+                self.auth_attr, inst_req_info=inst_req_info_test,
+                vnf_package_path=vnf_package_path_test,
+                grant_info=grant_info_test,
+                vnf_instance=vnf_instance)
+        mock_find_stack.assert_called_once()
+        mock_update_stack_with_user_data.assert_called_once()
 
     @mock.patch('tacker.vnfm.vim_client.VimClient.get_vim')
     @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
@@ -289,6 +332,7 @@ class TestOpenStack(base.FixturedTestCase):
             resource_id='6e1c286d-c023-4b34-8369-831c6e84cce2')
         vnfc_obj.compute_resource = compute_resource
         vnf_instance.instantiated_vnf_info.vnfc_resource_info = [vnfc_obj]
+        vnf['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
         self.openstack.create(self.plugin, self.context, vnf,
                 self.auth_attr, inst_req_info=inst_req_info_test,
                 vnf_package_path=vnf_package_path_test,
@@ -300,8 +344,25 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         vnf_package_path = None
+        vnf['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
         self.openstack.create(self.plugin, self.context, vnf,
                 self.auth_attr, vnf_package_path)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
+                '.OpenStack._update_stack')
+    @mock.patch.object(hc.HeatClient, "find_stack")
+    def test_create_heat_stack_with_error_point_post_vim_control(self,
+            mock_find_stack, mock_update_stack,
+            mock_OpenstackClients_heat):
+        vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        vnf_package_path = None
+        vnf['before_error_point'] = fields.ErrorPoint.POST_VIM_CONTROL
+        self.openstack.create(self.plugin, self.context, vnf,
+                self.auth_attr, vnf_package_path)
+        mock_find_stack.assert_called_once()
+        mock_update_stack.assert_called_once()
 
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_userdata_none(self, mock_OpenstackClients_heat):
@@ -511,10 +572,12 @@ class TestOpenStack(base.FixturedTestCase):
         mock_get_base_hot_dict.return_value = \
             self._read_file(), nested_hot_dict
         vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, inst_req_info=inst_req_info_test,
+                          self.auth_attr,
+                          inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
                           grant_info=grant_info_test,
                           vnf_instance=vnf_instance)
@@ -545,10 +608,12 @@ class TestOpenStack(base.FixturedTestCase):
         mock_get_base_hot_dict.return_value = \
             self._read_file(), nested_hot_dict
         vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, inst_req_info=inst_req_info_test,
+                          self.auth_attr,
+                          inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
                           grant_info=grant_info_test,
                           vnf_instance=vnf_instance)
@@ -680,10 +745,12 @@ class TestOpenStack(base.FixturedTestCase):
         mock_get_base_hot_dict.return_value = \
             self._read_file(), nested_hot_dict
         vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, inst_req_info=inst_req_info_test,
+                          self.auth_attr,
+                          inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
                           grant_info=grant_info_test,
                           vnf_instance=vnf_instance)
@@ -758,10 +825,12 @@ class TestOpenStack(base.FixturedTestCase):
         mock_get_base_hot_dict.return_value = \
             self._read_file(), nested_hot_dict
         vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
         self.assertRaises(vnfm.LCMUserDataFailed,
                           self.openstack.create,
                           self.plugin, self.context, vnf,
-                          self.auth_attr, inst_req_info=inst_req_info_test,
+                          self.auth_attr,
+                          inst_req_info=inst_req_info_test,
                           vnf_package_path=vnf_package_path_test,
                           grant_info=grant_info_test,
                           vnf_instance=vnf_instance)
@@ -776,6 +845,16 @@ class TestOpenStack(base.FixturedTestCase):
                                          fd_utils.get_dummy_stack()['outputs'])
         self.assertEqual(bytes('{"VDU1": "192.168.120.216"}', 'utf-8'),
                          vnf_dict['mgmt_ip_address'])
+
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
+                '.OpenStack._wait_until_stack_ready')
+    def test_update_stack_wait(self, mock_wait_until_stack_ready):
+        self._response_in_wait_until_stack_ready(["UPDATE_IN_PROGRESS",
+                                                 "UPDATE_COMPLETE"])
+        vnf_dict = utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        self.openstack.update_stack_wait(None, None,
+                                         vnf_dict, self.instance_uuid, None)
+        mock_wait_until_stack_ready.assert_called_once()
 
     def test_create_wait_without_mgmt_ips(self):
         self._response_in_wait_until_stack_ready(["CREATE_IN_PROGRESS",
@@ -1327,6 +1406,7 @@ class TestOpenStack(base.FixturedTestCase):
             headers=self.json_headers)
         vnf_instance = fd_utils.get_vnf_instance_object()
 
+        vnfd_dict['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
         instance_id = self.openstack.instantiate_vnf(
             self.context, vnf_instance, vnfd_dict, vim_connection_info,
             inst_req_info, grant_response, self.plugin)
@@ -1483,7 +1563,8 @@ class TestOpenStack(base.FixturedTestCase):
             ext_managed_virtual_link_info[0].vnf_link_ports[0].
             resource_handle.resource_id)
 
-    def test_heal_vnf_instance(self):
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_vnf_instance_id")
+    def test_heal_vnf_instance(self, mock_get_vnflcm_op_occs):
         v_s_resource_info = fd_utils.get_virtual_storage_resource_info(
             desc_id="storage1")
 
@@ -1527,6 +1608,9 @@ class TestOpenStack(base.FixturedTestCase):
         self._response_resource_mark_unhealthy(inst_vnf_info.instance_id,
                 resources=resources)
 
+        vnf_lcm_op_occs = fd_utils.get_lcm_op_occs_object(
+            error_point=fields.ErrorPoint.PRE_VIM_CONTROL)
+        mock_get_vnflcm_op_occs.return_value = vnf_lcm_op_occs
         self.openstack.heal_vnf(
             self.context, vnf_instance, vim_connection_info, heal_vnf_request)
 
@@ -1536,7 +1620,64 @@ class TestOpenStack(base.FixturedTestCase):
         # as unhealthy, and 1 for updating stack
         self.assertEqual(3, len(patch_req))
 
-    def test_heal_vnf_instance_resource_mark_unhealthy_error(self):
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_vnf_instance_id")
+    def test_heal_vnf_instance_error_point_post_vim_control(
+            self, mock_get_vnflcm_op_occs):
+        v_s_resource_info = fd_utils.get_virtual_storage_resource_info(
+            desc_id="storage1")
+
+        storage_resource_ids = [v_s_resource_info.id]
+        vnfc_resource_info = fd_utils.get_vnfc_resource_info(vdu_id="VDU_VNF",
+            storage_resource_ids=storage_resource_ids)
+
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info(
+            virtual_storage_resource_info=[v_s_resource_info],
+            vnfc_resource_info=[vnfc_resource_info])
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+
+        heal_vnf_request = objects.HealVnfRequest(
+            vnfc_instance_id=[vnfc_resource_info.id],
+            cause="healing request")
+
+        # Mock various heat APIs that will be called by heatclient
+        # during the process of heal_vnf.
+        resources = [{
+            'resource_name': vnfc_resource_info.vdu_id,
+            'resource_type': vnfc_resource_info.compute_resource.
+            vim_level_resource_type,
+            'physical_resource_id': vnfc_resource_info.compute_resource.
+            resource_id}, {
+            'resource_name': v_s_resource_info.virtual_storage_desc_id,
+            'resource_type': v_s_resource_info.storage_resource.
+            vim_level_resource_type,
+            'physical_resource_id': v_s_resource_info.storage_resource.
+            resource_id}]
+
+        self._response_in_stack_get(inst_vnf_info.instance_id)
+        self._response_in_resource_get_list(inst_vnf_info.instance_id,
+                resources=resources)
+        self._responses_in_stack_list(inst_vnf_info.instance_id,
+            resources=resources)
+        self._response_in_stack_update(inst_vnf_info.instance_id)
+
+        vnf_lcm_op_occs = fd_utils.get_lcm_op_occs_object(
+            error_point=fields.ErrorPoint.POST_VIM_CONTROL)
+        mock_get_vnflcm_op_occs.return_value = vnf_lcm_op_occs
+        self.openstack.heal_vnf(
+            self.context, vnf_instance, vim_connection_info, heal_vnf_request)
+
+        history = self.requests_mock.request_history
+        patch_req = [req.url for req in history if req.method == 'PATCH']
+        # Total of 1 times for updating stack
+        self.assertEqual(1, len(patch_req))
+
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_vnf_instance_id")
+    def test_heal_vnf_instance_resource_mark_unhealthy_error(
+            self, mock_get_vnflcm_op_occs):
         vnfc_resource_info = fd_utils.get_vnfc_resource_info(vdu_id="VDU_VNF")
 
         inst_vnf_info = fd_utils.get_vnf_instantiated_info(
@@ -1568,6 +1709,9 @@ class TestOpenStack(base.FixturedTestCase):
         self._response_resource_mark_unhealthy(inst_vnf_info.instance_id,
                 resources=resources, raise_exception=True)
 
+        vnf_lcm_op_occs = fd_utils.get_lcm_op_occs_object(
+            error_point=3)
+        mock_get_vnflcm_op_occs.return_value = vnf_lcm_op_occs
         result = self.assertRaises(exceptions.VnfHealFailed,
                     self.openstack.heal_vnf, self.context, vnf_instance,
                     vim_connection_info, heal_vnf_request)
@@ -1584,7 +1728,9 @@ class TestOpenStack(base.FixturedTestCase):
         # as unhealthy
         self.assertEqual(1, len(patch_req))
 
-    def test_heal_vnf_instance_incorrect_stack_status(self):
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_vnf_instance_id")
+    def test_heal_vnf_instance_incorrect_stack_status(
+            self, mock_get_vnflcm_op_occs):
         inst_vnf_info = fd_utils.get_vnf_instantiated_info()
 
         vnf_instance = fd_utils.get_vnf_instance_object(
@@ -1601,6 +1747,9 @@ class TestOpenStack(base.FixturedTestCase):
         self._response_in_stack_get(inst_vnf_info.instance_id,
                 stack_status='UPDATE_IN_PROGRESS')
 
+        vnf_lcm_op_occs = fd_utils.get_lcm_op_occs_object(
+            error_point=3)
+        mock_get_vnflcm_op_occs.return_value = vnf_lcm_op_occs
         result = self.assertRaises(exceptions.VnfHealFailed,
             self.openstack.heal_vnf, self.context, vnf_instance,
             vim_connection_info, heal_vnf_request)
