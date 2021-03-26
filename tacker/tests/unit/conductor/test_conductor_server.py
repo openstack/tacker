@@ -2798,6 +2798,31 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(result, -2)
         mock_subscriptions_get.assert_called()
 
+    @mock.patch.object(objects.LccnSubscriptionRequest,
+                       'vnf_lcm_subscriptions_get')
+    def test_send_notification_timeout(self, mock_subscriptions_get):
+        self.requests_mock.register_uri(
+            'POST',
+            "https://localhost/callback",
+            exc=requests.Timeout)
+
+        mock_subscriptions_get.return_value = self._create_subscriptions()
+        notification = {
+            'vnfInstanceId': 'Test',
+            'notificationType': 'VnfIdentifierCreationNotification',
+            'links': {}}
+
+        result = self.conductor.send_notification(self.context,
+            notification)
+
+        # return value when timeout for POST method is 0
+        self.assertEqual(result, 0)
+
+        history = self.requests_mock.request_history
+        req_count = nfvo_client._count_mock_history(
+            history, "https://localhost")
+        self.assertEqual(3, req_count)
+
     @mock.patch.object(conductor_server, 'revert_update_lcm')
     @mock.patch.object(t_context.get_admin_context().session, "add")
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "save")

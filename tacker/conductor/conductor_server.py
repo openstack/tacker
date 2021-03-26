@@ -19,6 +19,7 @@ import inspect
 import json
 import os
 import oslo_messaging
+import requests
 import shutil
 import sys
 import time
@@ -1466,7 +1467,22 @@ class Conductor(manager.Manager):
                 "Failed to send notification {}. Details: {}".format(
                     vnf_lcm_op_occs_id, str(ex)))
 
+    def _retry_check(self, retry_count):
+        time.sleep(CONF.vnf_lcm.retry_wait)
+        if retry_count == CONF.vnf_lcm.retry_num:
+            LOG.warn("Number of retries exceeded retry count")
+
     def send_notification(self, context, notification):
+        """Function to send notification to client
+
+           This function is used to send notification
+           to client during LCM Operation.
+
+           :returns: 0 if status code of the response is 204
+                    -1 if vnf_lcm_subscriptions is not found in the DB
+                    -2 if an Internal Server Error occurs
+        """
+
         try:
             LOG.debug("send_notification start notification[%s]"
                       % notification)
@@ -1515,33 +1531,38 @@ class Conductor(manager.Manager):
                     self.__set_auth_subscription(line)
 
                     for num in range(CONF.vnf_lcm.retry_num):
-                        LOG.warn("send notify[%s]" % json.dumps(notification))
-                        auth_client = auth.auth_manager.get_auth_client(
-                            notification['subscriptionId'])
-                        response = auth_client.post(
-                            line.callback_uri,
-                            data=json.dumps(notification))
-                        if response.status_code == 204:
-                            LOG.info(
-                                "send success notify[%s]" %
+                        try:
+                            LOG.info("send notify[%s]" %
                                 json.dumps(notification))
-                            break
-                        else:
-                            LOG.warning(
-                                "Notification failed id[%s] status[%s] \
-                                    callback_uri[%s]" %
-                                (notification['id'],
-                                response.status_code,
-                                line.callback_uri))
-                            LOG.debug(
-                                "retry_wait %s" %
-                                CONF.vnf_lcm.retry_wait)
-                            time.sleep(CONF.vnf_lcm.retry_wait)
-                            if num == CONF.vnf_lcm.retry_num:
-                                LOG.warn("Number of retries \
-                                    exceeded retry count")
+                            auth_client = auth.auth_manager.get_auth_client(
+                                notification['subscriptionId'])
+                            response = auth_client.post(
+                                line.callback_uri,
+                                data=json.dumps(notification),
+                                timeout=CONF.vnf_lcm.retry_timeout)
+                            if response.status_code == 204:
+                                LOG.info(
+                                    "send success notify[%s]",
+                                    json.dumps(notification))
+                                break
+                            else:
+                                LOG.warning("Notification failed id[%s]"
+                                    " status[%s] callback_uri[%s]",
+                                    notification['id'], response.status_code,
+                                    line.callback_uri)
+                                LOG.debug("retry_wait %s",
+                                    CONF.vnf_lcm.retry_wait)
+                                self._retry_check(num)
 
-                            continue
+                                continue
+                        except requests.Timeout as e:
+                            LOG.warning("Notification request timed out."
+                                " id[%(id)s] callback_uri[%(uri)s]"
+                                " reason[%(reason)s]", {
+                                    "id": notification['id'],
+                                    "uri": line.callback_uri,
+                                    "reason": str(e)})
+                            self._retry_check(num)
                 except Exception as e:
                     LOG.warn("send error[%s]" % str(e))
                     LOG.warn(traceback.format_exc())
