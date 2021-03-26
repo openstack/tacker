@@ -562,6 +562,22 @@ def _build_instantiated_vnf_info(vnfd_dict, instantiate_vnf_req,
     vnf_instance.instantiated_vnf_info = inst_vnf_info
 
 
+def _update_instantiated_vnf_info(change_ext_conn_req, vnf_instance):
+    inst_vnf_info = vnf_instance.instantiated_vnf_info
+    tmp_insta_vnf_info = copy.deepcopy(inst_vnf_info)
+
+    inst_vnf_info.ext_cp_info = _update_ext_cp_info(change_ext_conn_req,
+        inst_vnf_info=tmp_insta_vnf_info)
+    inst_vnf_info.ext_virtual_link_info = _update_ext_virtual_link_info(
+        change_ext_conn_req, inst_vnf_info=tmp_insta_vnf_info)
+
+    inst_vnf_info.vnf_virtual_link_resource_info = \
+        _update_vnf_virtual_link_resource_info(change_ext_conn_req,
+            inst_vnf_info)
+
+    vnf_instance.instantiated_vnf_info = inst_vnf_info
+
+
 def _get_compute_nodes(vnfd_dict, instantiate_vnf_req):
     """Read the node templates and prepare VDU data in below format
 
@@ -729,6 +745,40 @@ def _build_vnf_virtual_link_resource_info(node_templates, instantiate_vnf_req,
     return virtual_link_resource_info_list
 
 
+def _update_vnf_virtual_link_resource_info(change_ext_conn_req,
+                                           inst_vnf_info):
+    def _update(change_ext_conn_req, vnf_vl_resource_info):
+        for ext_virtual_link in change_ext_conn_req.ext_virtual_links:
+            if (ext_virtual_link.id ==
+                    vnf_vl_resource_info.vnf_virtual_link_desc_id):
+                res_handle = objects.ResourceHandle()
+                res_handle.resource_id = ext_virtual_link.resource_id
+                nw_res = vnf_vl_resource_info.network_resource
+                res_handle.vim_connection_id = nw_res.vim_connection_id
+                res_handle.vim_level_resource_type = \
+                    nw_res.vim_level_resource_type
+                new_vnf_vl_resource_info = \
+                    objects.VnfVirtualLinkResourceInfo(
+                        id=vnf_vl_resource_info.id,
+                        vnf_virtual_link_desc_id=vnf_vl_resource_info.
+                        vnf_virtual_link_desc_id,
+                        network_resource=res_handle,
+                        vnf_link_ports=vnf_vl_resource_info.vnf_link_ports)
+                return new_vnf_vl_resource_info
+        return None
+
+    vnf_virtual_link_resource_list = []
+    for vnf_vl_res_info in inst_vnf_info.vnf_virtual_link_resource_info:
+        updated_vnf_vl_res_info = \
+            _update(change_ext_conn_req, vnf_vl_res_info)
+        if updated_vnf_vl_res_info:
+            vnf_virtual_link_resource_list.append(updated_vnf_vl_res_info)
+        else:
+            vnf_virtual_link_resource_list.append(vnf_vl_res_info)
+
+    return vnf_virtual_link_resource_list
+
+
 def _build_vnf_cp_info(instantiate_vnf_req, cp_list):
     vnfc_cp_info_list = []
 
@@ -831,6 +881,34 @@ def _set_ext_cp_info(instantiate_vnf_req, inst_vnf_info=None):
     return ext_cp_info_list
 
 
+def _update_ext_cp_info(change_ext_conn_req, inst_vnf_info):
+
+    def _update(change_ext_conn_req, ext_cp_info):
+        for ext_virt_link in change_ext_conn_req.ext_virtual_links:
+            if not ext_virt_link.ext_cps:
+                continue
+            for ext_cp in ext_virt_link.ext_cps:
+                if ext_cp.cpd_id == ext_cp_info.cpd_id:
+                    new_ext_cp_info = objects.VnfExtCpInfo(
+                        id=ext_cp_info.id,
+                        cpd_id=ext_cp.cpd_id,
+                        cp_protocol_info=_set_cp_protocol_info(ext_cp),
+                        associated_vnfc_cp_id=ext_cp_info.
+                        associated_vnfc_cp_id)
+                    return new_ext_cp_info
+        return None
+
+    ext_cp_info_list = []
+    for ext_cp_info in inst_vnf_info.ext_cp_info:
+        updated_ext_cp_info = _update(change_ext_conn_req, ext_cp_info)
+        if updated_ext_cp_info:
+            ext_cp_info_list.append(updated_ext_cp_info)
+        else:
+            ext_cp_info_list.append(ext_cp_info)
+
+    return ext_cp_info_list
+
+
 def _get_ext_link_port_id(ext_virtual_link, cpd_id):
     if not ext_virtual_link.ext_link_ports:
         return
@@ -922,6 +1000,38 @@ def _set_ext_virtual_link_info(instantiate_vnf_req, ext_cp_info):
                 ext_cp_info))
 
         ext_virtual_link_list.append(ext_virtual_link_info)
+
+    return ext_virtual_link_list
+
+
+def _update_ext_virtual_link_info(change_ext_conn_req, inst_vnf_info):
+
+    def _update(change_ext_conn_req, ext_virtual_link_info):
+        for ext_virtual_link in change_ext_conn_req.ext_virtual_links:
+            if ext_virtual_link.id == ext_virtual_link_info.id:
+                res_handle = objects.ResourceHandle()
+                res_handle.resource_id = ext_virtual_link.resource_id
+                new_ext_virtual_link_info = objects.ExtVirtualLinkInfo(
+                    id=ext_virtual_link_info.id,
+                    resource_handle=res_handle,
+                    ext_link_ports=ext_virtual_link_info.ext_link_ports)
+                res_handle.vim_connection_id = \
+                    ext_virtual_link_info.resource_handle.vim_connection_id
+                new_ext_virtual_link_info = objects.ExtVirtualLinkInfo(
+                    id=ext_virtual_link_info.id,
+                    resource_handle=res_handle,
+                    ext_link_ports=ext_virtual_link_info.ext_link_ports)
+                return new_ext_virtual_link_info
+        return None
+
+    ext_virtual_link_list = []
+    for ext_virtual_link_info in inst_vnf_info.ext_virtual_link_info:
+        updated_ext_virtual_link_info = \
+            _update(change_ext_conn_req, ext_virtual_link_info)
+        if updated_ext_virtual_link_info:
+            ext_virtual_link_list.append(updated_ext_virtual_link_info)
+        else:
+            ext_virtual_link_list.append(ext_virtual_link_info)
 
     return ext_virtual_link_list
 
@@ -1152,3 +1262,54 @@ def get_target_vdu_def_dict(extract_policy_infos, aspect_id, tosca):
                 vdu_def_dict[node_name] = node_value
 
     return vdu_def_dict
+
+
+def _get_changed_ext_connectivity(
+        old_vnf_instance=None, new_vnf_instance=None):
+
+    changed_ext_connectivities = []
+    if not old_vnf_instance or not new_vnf_instance:
+        return changed_ext_connectivities
+
+    old_vnf_vl_res_info = \
+        old_vnf_instance.instantiated_vnf_info.\
+        vnf_virtual_link_resource_info
+    new_vnf_vl_res_info = \
+        new_vnf_instance.instantiated_vnf_info.\
+        vnf_virtual_link_resource_info
+
+    def _compare_vnf_link_ports(old_vnf_link_ports,
+                                new_vnf_link_ports):
+        differed_vnf_link_ports = []
+        for old_vnf_link_port in old_vnf_link_ports:
+            for new_vnf_link_port in new_vnf_link_ports:
+                if old_vnf_link_port.id == new_vnf_link_port.id:
+                    if (old_vnf_link_port.resource_handle.resource_id !=
+                            new_vnf_link_port.resource_handle.resource_id):
+                        differed_vnf_link_ports.append(new_vnf_link_port)
+        return differed_vnf_link_ports
+
+    for old_vl_res in old_vnf_vl_res_info:
+        for new_vl_res in new_vnf_vl_res_info:
+            if old_vl_res.id == new_vl_res.id:
+                changed_ext_connectivity = objects.ExtVirtualLinkInfo(
+                    id=new_vl_res.id,
+                    resource_handle=new_vl_res.network_resource,
+                    ext_link_ports=[])
+                differed_vnf_link_ports = _compare_vnf_link_ports(
+                    old_vl_res.vnf_link_ports,
+                    new_vl_res.vnf_link_ports)
+                for link_port in differed_vnf_link_ports:
+                    changed_ext_link_port = objects.ExtLinkPortInfo(
+                        id=link_port.id,
+                        resource_handle=link_port.resource_handle,
+                        cp_instance_id=link_port.cp_instance_id)
+                    changed_ext_connectivity.ext_link_ports.\
+                        append(changed_ext_link_port)
+                if changed_ext_connectivity.ext_link_ports:
+                    changed_ext_connectivities.append(
+                        changed_ext_connectivity)
+
+    LOG.debug('changed_ext_connectivities: {}'.format(
+        changed_ext_connectivities))
+    return changed_ext_connectivities

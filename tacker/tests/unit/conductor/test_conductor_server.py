@@ -3019,3 +3019,435 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_data["software_version"] = vnf_data.pop("vnf_software_version")
         vnf_data["descriptor_version"] = vnf_data.pop("vnfd_version")
         return vnf_data
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_instantiated_vnf_info_change_ext_conn')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_change_ext_conn(
+            self,
+            mock_vnf_by_id,
+            mock_exec,
+            mock_get_lock,
+            mock_save,
+            mock_send_notification,
+            mock_change_vnf_status,
+            mock_update_vnf_attributes,
+            mock_update_instantiated_vnf_info_change_ext_conn):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        mock_vnf_by_id.return_value = objects.VnfLcmOpOcc(
+            context=self.context, **lcm_op_occs_data)
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+
+        vnf_instance.create()
+        vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
+        vnf_dict = {"before_error_point": 0}
+        change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
+
+        # Test condition settings.
+        mock_exec.return_value = False
+
+        self.conductor.change_ext_conn(
+            self.context,
+            vnf_instance,
+            vnf_dict,
+            change_ext_conn_req,
+            vnf_lcm_op_occs_id)
+        mock_change_vnf_status.assert_called_with(self.context,
+            mock.ANY, (constants.ACTIVE,),
+            constants.PENDING_CHANGE_EXT_CONN)
+        mock_update_vnf_attributes.assert_called_with(self.context,
+            mock.ANY, mock.ANY, mock.ANY, (constants.ACTIVE,))
+        self.assertEqual(
+            mock_send_notification.call_args[0][1].get('operationState'),
+            'PROCESSING')
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_instantiated_vnf_info_change_ext_conn')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    def test_change_ext_conn_grant(
+            self,
+            mock_grants,
+            mock_exec,
+            mock_vnf_by_id,
+            mock_get_lock,
+            mock_save,
+            mock_send_notification,
+            mock_change_vnf_status,
+            mock_update_vnf_attributes,
+            mock_update_instantiated_vnf_info_change_ext_conn):
+        cfg.CONF.set_override(
+            'base_url',
+            'http://127.0.0.1:9990/grant/v1/grants',
+            group='connect_grant')
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        mock_vnf_by_id.return_value = objects.VnfLcmOpOcc(
+            context=self.context, **lcm_op_occs_data)
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
+        vnf_dict = {"before_error_point": 0}
+        change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
+        vnf_virtual_link = (
+            vnf_instance.instantiated_vnf_info.vnf_virtual_link_resource_info)
+
+        # Test condition settings.
+        mock_exec.return_value = True
+        res_grant = dict()
+        res_grant['id'] = uuidsentinel.grant_id
+        res_grant['vnfInstanceId'] = vnf_instance.id
+        res_grant['vnfLcmOpOccId'] = vnf_lcm_op_occs_id
+        res_grant['updateResources'] = [
+            {
+                'resourceDefinitionId':
+                    vnf_virtual_link[0].vnf_link_ports[0].id,
+            },
+            {
+                'resourceDefinitionId':
+                    vnf_virtual_link[0].vnf_link_ports[1].id,
+            },
+            {
+                'resourceDefinitionId':
+                    vnf_virtual_link[1].vnf_link_ports[0].id,
+            },
+            {
+                'resourceDefinitionId':
+                    vnf_virtual_link[1].vnf_link_ports[2].id,
+            },
+        ]
+        mock_grants.return_value = MockResponse(json_data=res_grant)
+
+        self.conductor.change_ext_conn(
+            self.context,
+            vnf_instance,
+            vnf_dict,
+            change_ext_conn_req,
+            vnf_lcm_op_occs_id)
+        mock_change_vnf_status.assert_called_with(self.context,
+            mock.ANY, (constants.ACTIVE,),
+            constants.PENDING_CHANGE_EXT_CONN)
+        mock_update_vnf_attributes.assert_called_with(self.context,
+            mock.ANY, mock.ANY, mock.ANY, (constants.ACTIVE,))
+        self.assertEqual(
+            mock_send_notification.call_args[0][1].get('operationState'),
+            'PROCESSING')
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_instantiated_vnf_info_change_ext_conn')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_change_ext_conn_grant_exception_http_error(
+            self,
+            mock_vnf_by_id,
+            mock_grants,
+            mock_exec,
+            mock_get_lock,
+            mock_save,
+            mock_send_notification,
+            mock_change_vnf_status,
+            mock_update_vnf_attributes,
+            mock_update_instantiated_vnf_info_change_ext_conn):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        mock_vnf_by_id.return_value = objects.VnfLcmOpOcc(
+            context=self.context, **lcm_op_occs_data)
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
+        vnf_dict = {"before_error_point": 0}
+        change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
+
+        # Test condition settings.
+        mock_exec.return_value = True
+        mock_grants.side_effect = (
+            requests.exceptions.HTTPError("MockException"))
+
+        self.assertRaises(requests.exceptions.HTTPError,
+            self.conductor.change_ext_conn,
+            self.context, vnf_instance, vnf_dict,
+            change_ext_conn_req, vnf_lcm_op_occs_id)
+        mock_change_vnf_status.assert_not_called()
+        mock_update_instantiated_vnf_info_change_ext_conn.assert_not_called()
+        self.assertEqual(
+            mock_send_notification.call_args[0][1].get('operationState'),
+            'ROLLED_BACK')
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_instantiated_vnf_info_change_ext_conn')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(conductor_server.Conductor, "_get_grant_execute")
+    @mock.patch.object(test_nfvo_client.GrantRequest, "grants")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_change_ext_conn_grant_exception_validation_error(
+            self,
+            mock_vnf_by_id,
+            mock_grants,
+            mock_exec,
+            mock_get_lock,
+            mock_save,
+            mock_send_notification,
+            mock_change_vnf_status,
+            mock_update_vnf_attributes,
+            mock_update_instantiated_vnf_info_change_ext_conn):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        mock_vnf_by_id.return_value = objects.VnfLcmOpOcc(
+            context=self.context, **lcm_op_occs_data)
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
+        vnf_dict = {"before_error_point": 0}
+        change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
+
+        # Test condition settings.
+        mock_exec.return_value = True
+        res_upd_resource = []
+        resource = {
+            'resourceDefinitionId': uuidsentinel.rsc_dummy,
+            'vimConnectionId': '1ffcd358-bee3-4bfb-bc3a-920db09f5da5',
+        }
+        res_upd_resource.append(resource)
+        res_grant = dict()
+        res_grant['id'] = uuidsentinel.grant_id
+        res_grant['vnfInstanceId'] = vnf_instance.id
+        res_grant['vnfLcmOpOccId'] = vnf_lcm_op_occs_id
+        res_grant['updateResources'] = []
+        res_grant['updateResources'].extend(res_upd_resource)
+        mock_grants.return_value = MockResponse(json_data=res_grant)
+
+        self.assertRaises(exceptions.ValidationError,
+            self.conductor.change_ext_conn,
+            self.context, vnf_instance, vnf_dict,
+            change_ext_conn_req, vnf_lcm_op_occs_id)
+        mock_change_vnf_status.assert_not_called()
+        mock_update_vnf_attributes.assert_not_called()
+        mock_update_instantiated_vnf_info_change_ext_conn.assert_not_called()
+        self.assertEqual(
+            mock_send_notification.call_args[0][1].get('operationState'),
+            'ROLLED_BACK')
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_instantiated_vnf_info_change_ext_conn')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(objects.LccnSubscriptionRequest,
+        'vnf_lcm_subscriptions_get')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.utils._convert_desired_capacity')
+    @mock.patch('tacker.conductor.conductor_server.LOG')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_change_ext_conn_failed_with_exception(
+            self,
+            mock_vnf_by_id,
+            mock_log,
+            mock_des,
+            mock_vnfd_dict,
+            mock_vnf_lcm_subscriptions_get,
+            mock_get_lock,
+            mock_save,
+            mock_update_vnf_info_change_ext_conn,
+            mock_update_vnf_attributes,
+            mock_change_vnf_status):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        mock_vnf_by_id.return_value = (
+            objects.VnfLcmOpOcc(context=self.context,
+                                **lcm_op_occs_data))
+
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        vnf_dict = {"before_error_point": 0,
+                    "current_error_point": 6}
+        m_vnf_lcm_subscriptions = (
+            [mock.MagicMock(**fakes.get_vnf_lcm_subscriptions())])
+        mock_vnf_lcm_subscriptions_get.return_value = (
+            m_vnf_lcm_subscriptions)
+        mock_update_vnf_info_change_ext_conn.side_effect = Exception
+        self.conductor.change_ext_conn(
+            self.context,
+            vnf_instance,
+            vnf_dict,
+            change_ext_conn_req,
+            vnf_lcm_op_occs_id)
+        mock_change_vnf_status.assert_called_with(self.context,
+            mock.ANY, mock.ANY, constants.ERROR, mock.ANY)
+        self.vnflcm_driver.change_ext_conn_vnf.assert_called_once_with(
+            self.context, vnf_instance, vnf_dict, change_ext_conn_req)
+        mock_update_vnf_info_change_ext_conn.assert_called_once()
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_instantiated_vnf_info_change_ext_conn')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_ext_conn_grant')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_change_ext_conn_retry_error_point_1(
+            self,
+            mock_vnf_by_id,
+            mock_vnfd_dict,
+            mock_get_lock,
+            mock_save,
+            mock_change_ext_conn_grant,
+            mock_update_vnf_info_change_ext_conn,
+            mock_update_vnf_attributes,
+            mock_change_vnf_status,
+            mock_send_notification):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        mock_vnf_by_id.return_value = objects.VnfLcmOpOcc(
+            context=self.context, **lcm_op_occs_data)
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
+        vnf_dict = {"before_error_point": 1}
+        change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
+
+        self.conductor.change_ext_conn(
+            self.context,
+            vnf_instance,
+            vnf_dict,
+            change_ext_conn_req,
+            vnf_lcm_op_occs_id)
+        self.vnflcm_driver.change_ext_conn_vnf.assert_called_once_with(
+            self.context, vnf_instance, vnf_dict, change_ext_conn_req)
+        mock_change_vnf_status.assert_called_with(self.context,
+            mock.ANY, (constants.ACTIVE,),
+            constants.PENDING_CHANGE_EXT_CONN)
+        self.assertEqual(mock_change_ext_conn_grant.call_count, 0)
+        mock_update_vnf_attributes.assert_called_once()
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                'send_notification')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_instantiated_vnf_info_change_ext_conn')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_ext_conn_grant')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_change_ext_conn_retry_error_point_7(
+            self,
+            mock_vnf_by_id,
+            mock_vnfd_dict,
+            mock_get_lock,
+            mock_save,
+            mock_change_ext_conn_grant,
+            mock_update_vnf_info_change_ext_conn,
+            mock_update_vnf_attributes,
+            mock_change_vnf_status,
+            mock_send_notification):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        mock_vnf_by_id.return_value = objects.VnfLcmOpOcc(
+            context=self.context, **lcm_op_occs_data)
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
+        vnf_instance.save()
+        vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
+        vnf_dict = {"before_error_point": 7}
+        change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
+
+        self.conductor.change_ext_conn(
+            self.context,
+            vnf_instance,
+            vnf_dict,
+            change_ext_conn_req,
+            vnf_lcm_op_occs_id)
+        self.vnflcm_driver.change_ext_conn_vnf.assert_called_once_with(
+            self.context, vnf_instance, vnf_dict, change_ext_conn_req)
+        mock_change_vnf_status.assert_not_called()
+        self.assertEqual(mock_change_ext_conn_grant.call_count, 0)
+        mock_update_vnf_attributes.assert_called_once()

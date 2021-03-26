@@ -35,6 +35,8 @@ class GrantRequest(base.TackerObject):
             'ResourceDefinition', nullable=True, default=[]),
         'remove_resources': fields.ListOfObjectsField(
             'ResourceDefinition', nullable=True, default=[]),
+        'update_resources': fields.ListOfObjectsField(
+            'ResourceDefinition', nullable=True, default=[]),
         'placement_constraints': fields.ListOfObjectsField(
             'PlacementConstraint', nullable=True, default=[]),
         '_links': fields.ObjectField(
@@ -57,11 +59,20 @@ class GrantRequest(base.TackerObject):
                     remove_rsc) for remove_rsc in primitive.get(
                     'remove_resources', [])]
                 primitive.update({'add_resources': obj_data})
+            if 'update_resources' in primitive.keys():
+                obj_data = [ResourceDefinition._from_dict(
+                    update_rsc) for update_rsc in primitive.get(
+                    'update_resources', [])]
+                primitive.update({'update_resources': obj_data})
             if 'placement_constraints' in primitive.keys():
                 obj_data = [PlacementConstraint._from_dict(
                     place) for place in primitive.get(
                     'placement_constraints', [])]
                 primitive.update({'add_resources': obj_data})
+            if '_links' in primitive.keys():
+                obj_data = Links._from_dict(
+                    primitive.get('_links', {}))
+                primitive.update({'_links': obj_data})
             obj_grant_req = GrantRequest._from_dict(primitive)
 
         return obj_grant_req
@@ -76,6 +87,7 @@ class GrantRequest(base.TackerObject):
         is_automatic_invocation = data_dict.get('is_automatic_invocation')
         add_resources = data_dict.get('add_resources', [])
         remove_resources = data_dict.get('remove_resources', [])
+        update_resources = data_dict.get('update_resources', [])
         placement_constraints = data_dict.get('placement_constraints', [])
         links = data_dict.get('_links')
 
@@ -88,6 +100,7 @@ class GrantRequest(base.TackerObject):
             is_automatic_invocation=is_automatic_invocation,
             add_resources=add_resources,
             remove_resources=remove_resources,
+            update_resources=update_resources,
             placement_constraints=placement_constraints,
             _links=links)
         return obj
@@ -112,6 +125,12 @@ class GrantRequest(base.TackerObject):
                 remove_resources_list.append(remove_resource.to_dict())
 
             data.update({'remove_resources': remove_resources_list})
+        if self.update_resources:
+            update_resources_list = []
+            for update_resource in self.update_resources:
+                update_resources_list.append(update_resource.to_dict())
+
+            data.update({'update_resources': update_resources_list})
         if self.placement_constraints:
             placement_constraints_list = []
             for placement_constraint in self.placement_constraints:

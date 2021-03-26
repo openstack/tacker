@@ -2178,3 +2178,126 @@ class TestOpenStack(base.FixturedTestCase):
                 None, self.context, vnf_dict, 'SP1', None, None)
 
         self.assertEqual('30435eb8-1472-4cbc-abbe-00b395165ce7', grp_id)
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
+    def test_change_ext_conn_vnf(self,
+            mock_get_base_hot_dict,
+            mock_mock_OpenstackClients_heat):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        nested_hot_dict = {'parameters': {'vnf': 'test'}}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+
+        vnf_dict['vnfd'] = fd_utils.get_vnfd_dict()
+        vnf_dict['attributes'] = fd_utils.get_vnf_attribute_dict()
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+        change_ext_conn_request = fd_utils.get_change_ext_conn_request()
+
+        self.openstack.change_ext_conn_vnf(
+            self.context, vnf_instance, vnf_dict,
+            vim_connection_info, change_ext_conn_request)
+
+        self.assertEqual(
+            str(fd_utils.get_expect_stack_param()),
+            vnf_dict['attributes']['stack_param'])
+
+    def test_change_ext_conn_vnf_wait(self):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+
+        # Mock various heat APIs that will be called by heatclient
+        # during the process of change_ext_conn_vnf_wait.
+        self._response_in_wait_until_stack_ready(["UPDATE_IN_PROGRESS",
+                                                 "UPDATE_COMPLETE"])
+
+        stack = self.openstack.change_ext_conn_vnf_wait(
+            self.context, vnf_instance, vim_connection_info)
+        self.assertEqual('UPDATE_COMPLETE', stack.stack_status)
+
+    def test_change_ext_conn_vnf_wait_fail(self):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+
+        # Mock various heat APIs that will be called by heatclient
+        # during the process of change_ext_conn_vnf_wait.
+        self._response_in_wait_until_stack_ready(["UPDATE_IN_PROGRESS"])
+        self.openstack.STACK_RETRIES = 1
+        result = self.assertRaises(vnfm.VNFChangeExtConnWaitFailed,
+            self.openstack.change_ext_conn_vnf_wait, self.context,
+            vnf_instance, vim_connection_info)
+
+        expected_msg = ("VNF ChangeExtConn action is not completed within 10 "
+                        "seconds ""on stack %s") % inst_vnf_info.instance_id
+        self.assertIn(expected_msg, str(result))
+
+    def test_post_change_ext_conn_vnf(self):
+        v_s_resource_info = fd_utils.get_virtual_storage_resource_info(
+            desc_id="storage1", set_resource_id=False)
+
+        storage_resource_ids = [v_s_resource_info.id]
+        vnfc_resource_info = fd_utils.get_vnfc_resource_info(vdu_id="VDU_VNF",
+            storage_resource_ids=storage_resource_ids, set_resource_id=False)
+
+        v_l_resource_info = fd_utils.get_virtual_link_resource_info(
+            vnfc_resource_info.vnfc_cp_info[0].vnf_link_port_id,
+            vnfc_resource_info.vnfc_cp_info[0].id)
+
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info(
+            virtual_storage_resource_info=[v_s_resource_info],
+            vnf_virtual_link_resource_info=[v_l_resource_info],
+            vnfc_resource_info=[vnfc_resource_info])
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+        resources = [{'resource_name': vnfc_resource_info.vdu_id,
+            'resource_type': vnfc_resource_info.compute_resource.
+                vim_level_resource_type,
+            'physical_resource_id': uuidsentinel.vdu_resource_id},
+            {'resource_name': v_s_resource_info.virtual_storage_desc_id,
+            'resource_type': v_s_resource_info.storage_resource.
+                vim_level_resource_type,
+            'physical_resource_id': uuidsentinel.storage_resource_id},
+            {'resource_name': vnfc_resource_info.vnfc_cp_info[0].cpd_id,
+            'resource_type': inst_vnf_info.vnf_virtual_link_resource_info[0].
+                vnf_link_ports[0].resource_handle.vim_level_resource_type,
+            'physical_resource_id': uuidsentinel.cp1_resource_id}]
+
+        self._responses_in_stack_list(inst_vnf_info.instance_id,
+            resources=resources)
+        self.openstack.post_change_ext_conn_vnf(
+            self.context, vnf_instance, vim_connection_info)
+        self.assertEqual(vnf_instance.instantiated_vnf_info.
+            vnfc_resource_info[0].metadata['stack_id'],
+            inst_vnf_info.instance_id)
+
+        # Check if vnfc resource "VDU_VNF" is set with resource_id
+        self.assertEqual(uuidsentinel.vdu_resource_id,
+            vnf_instance.instantiated_vnf_info.vnfc_resource_info[0].
+            compute_resource.resource_id)
+
+        # Check if virtual storage resource "storage1" is set with resource_id
+        self.assertEqual(uuidsentinel.storage_resource_id,
+            vnf_instance.instantiated_vnf_info.
+            virtual_storage_resource_info[0].storage_resource.resource_id)
+
+        # Check if virtual link port "CP1" is set with resource_id
+        self.assertEqual(uuidsentinel.cp1_resource_id,
+            vnf_instance.instantiated_vnf_info.
+            vnf_virtual_link_resource_info[0].vnf_link_ports[0].
+            resource_handle.resource_id)

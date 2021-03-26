@@ -262,6 +262,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         self.ext_link_ports = list()
         # Create external subnet in net1
         self.ext_subnets = list()  # Store ids for cleaning.
+        # Create external networks to change.
+        self.changed_ext_networks = list()
+        self.changed_ext_subnets = list()  # Store ids for cleaning.
 
         networks = self.neutronclient().list_networks()
         for nw in networks.get('networks'):
@@ -281,13 +284,26 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         ext_mngd_net_id, _ = \
             self._create_network("external_managed_internal_net")
         self.ext_mngd_networks.append(ext_mngd_net_id)
+        changed_ext_net_id, changed_ext_net_name = \
+            self._create_network("changed_external_net")
+        self.changed_ext_networks.append(changed_ext_net_id)
 
         # Chack how many networks are created.
         networks = self.neutronclient().list_networks()
         for nw in networks.get('networks'):
-            if nw['name'] not in [ext_net_name]:
+            if nw['name'] not in [ext_net_name, changed_ext_net_name]:
                 continue
-            self.ext_subnets.append(self._create_subnet(nw))
+
+            elif nw['name'] == ext_net_name:
+                self.ext_subnets.append(
+                    self._create_subnet(nw,
+                                        cidr="22.22.1.0/24",
+                                        gateway="22.22.1.1"))
+            elif nw['name'] == changed_ext_net_name:
+                self.changed_ext_subnets.append(
+                    self._create_subnet(nw,
+                                        cidr="22.22.2.0/24",
+                                        gateway="22.22.2.1"))
 
     @classmethod
     def _list_glance_image(cls, filter_name='cirros-0.4.0-x86_64-disk'):
@@ -449,6 +465,16 @@ class BaseVnfLcmTest(base.BaseTackerTest):
     def _update_vnf_instance(self, vnf_instance_id, request_body):
         url = os.path.join(self.base_vnf_instances_url, vnf_instance_id)
         resp, body = self.http_client.do_request(url, "PATCH",
+                body=jsonutils.dumps(request_body))
+
+        return resp, body
+
+    def _change_ext_conn_vnf_instance(self, vnf_instance_id, request_body):
+        url = os.path.join(
+            self.base_vnf_instances_url,
+            vnf_instance_id,
+            "change_ext_conn")
+        resp, body = self.http_client.do_request(url, "POST",
                 body=jsonutils.dumps(request_body))
 
         return resp, body
@@ -1140,18 +1166,18 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             self.fail("Failed, create network=<%s>, %s" %
                 (uniq_name, e))
 
-    def _create_subnet(self, network):
-        cidr_prefix = "22.22.{}".format(str(len(self.ext_subnets)))
+    def _create_subnet(self, network, cidr, gateway):
         body = {'subnet': {'network_id': network['id'],
                 'name': "subnet-%s" % uuidutils.generate_uuid(),
-                'cidr': "{}.0/24".format(cidr_prefix),
+                'cidr': "{}".format(cidr),
                 'ip_version': 4,
-                'gateway_ip': "{}.1".format(cidr_prefix),
+                'gateway_ip': "{}".format(gateway),
                 "enable_dhcp": True}}
 
         try:
             subnet = self.neutronclient().create_subnet(body=body)["subnet"]
             self.addCleanup(self._delete_subnet, subnet['id'])
+            print("Create subnet success, %s" % subnet['id'], flush=True)
             return subnet['id']
         except Exception as e:
             self.fail("Failed, create subnet for net_id=<%s>, %s" %

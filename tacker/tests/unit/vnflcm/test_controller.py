@@ -3554,3 +3554,152 @@ class TestController(base.TestCase):
 
         mock_lcm_get_by_id.assert_called_once()
         mock_vnf_get_by_id.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._notification_process')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "change_ext_conn")
+    def test_change_ext_conn(self, mock_rpc, mock_save,
+                  mock_vnf_by_id, mock_get_vnf,
+                  mock_notification_process,
+                  mock_get_service_plugins):
+        vnf_instance_obj = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_by_id.return_value = vnf_instance_obj
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
+
+        body = fakes.get_change_ext_conn_request_body()
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+        mock_rpc.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_change_ext_conn_incorrect_instantiated_state(
+            self, mock_vnf_by_id, mock_get_vnf,
+            mock_get_service_plugins):
+        vnf_instance_obj = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED)
+        mock_vnf_by_id.return_value = vnf_instance_obj
+
+        body = fakes.get_change_ext_conn_request_body()
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+        expected_msg = ("VNF is not instantiated")
+        self.assertEqual(expected_msg, resp.json['detail'])
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @ddt.data('HEAD', 'PUT', 'DELETE', 'PATCH', 'GET')
+    def test_change_ext_conn_invalid_http_method(self, method,
+                                      mock_get_service_plugins):
+        body = {}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = method
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._notification_process')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "change_ext_conn")
+    @ddt.data(
+        {
+            "type": "IPV4",
+        },
+        {
+            "type": "IPV4",
+            "fixedAddresses": ["22.22.1.20"],
+            "numDynamicAddresses": 1,
+            "subnetId": '497b7a75-6c10-4a74-85fa-83d498da2501',
+        },
+        {
+            "type": "IPV4",
+            "numDynamicAddresses": 0,
+            "subnetId": '497b7a75-6c10-4a74-85fa-83d498da2501',
+        },
+    )
+    def test_change_ext_conn_with_invalid_requests(
+            self,
+            ip_address,
+            mock_rpc,
+            mock_save,
+            mock_vnf_by_id,
+            mock_get_vnf,
+            mock_notification_process,
+            mock_get_service_plugins):
+        vnf_instance_obj = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_by_id.return_value = vnf_instance_obj
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
+
+        body = fakes.get_change_ext_conn_request_body()
+        body['extVirtualLinks'][0]['extCps'][0]['cpConfig'][0][
+            'cpProtocolData'][0]['ipOverEthernet'][
+                'ipAddresses'] = [ip_address]
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(
+            resp.status_code, http_client.BAD_REQUEST)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    def test_change_ext_conn_with_invalid_uuid(self, mock_get_service_plugins):
+        body = fakes.get_change_ext_conn_request_body()
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/change_ext_conn' % constants.INVALID_UUID)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertEqual(
+            "Can not find requested vnf: %s" % constants.INVALID_UUID,
+            resp.json['itemNotFound']['message'])

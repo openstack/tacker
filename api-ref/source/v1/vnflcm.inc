@@ -674,6 +674,81 @@ Request Example
 .. literalinclude:: samples/vnflcm/modify-vnf-instance-request.json
    :language: javascript
 
+Change External VNF Connectivity
+================================
+
+.. rest_method::  POST /vnflcm/v1/vnf_instances/{vnfInstanceId}/change_ext_conn
+
+The POST method changes the external connectivity of a VNF instance.
+
+This task resource represents the "Change external VNF connectivity" operation.
+The client can use this resource to change the external connectivity of a VNF instance.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 202
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 401
+  - 403
+  - 404
+  - 409
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfInstanceId: vnf_instance_id
+  - extVirtualLinks: ext_virtual_links
+  - id: ext_virtual_links_id
+  - vimConnectionId: vim_connection_id
+  - resourceId: ext_virtual_links_resource_id
+  - extCps: ext_cps
+  - cpdId: cpd_id
+  - cpConfig: cp_config
+  - cpInstanceId: cp_instance_id
+  - linkPortId: link_port_id
+  - cpProtocolData: cp_protocol_data
+  - layerProtocol: layer_protocol
+  - ipOverEthernet: ip_over_ethernet
+  - macAddress: mac_address
+  - ipAddresses: ip_addresses
+  - type: ip_address_type
+  - fixedAddresses: fixed_addresses
+  - numDynamicAddresses: num_dynamic_addresses
+  - subnetId: subnet_id
+  - extLinkPorts: ext_link_ports
+  - id: ext_link_port_id
+  - resourceHandle: ext_link_port_resource_handle
+  - vimConnectionId: vim_connection_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - vimConnectionInfo: vnf_instance_vim_connection_info
+  - id: vim_connection_info_id
+  - vimId: vim_connection_info_vim_id
+  - vimType: vim_connection_info_vim_type
+  - interfaceInfo: vim_connection_info_interface_info
+  - endpoint: vim_connection_info_interface_info_endpoint
+  - accessInfo: vim_connection_info_access_info
+  - username: vim_connection_info_access_info_username
+  - password: vim_connection_info_access_info_password
+  - region: vim_connection_info_access_info_region
+  - tenant: vim_connection_info_access_info_tenant
+  - additionalParams: vnf_instance_additional_params
+
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnflcm/change-ext-conn-request.json
+   :language: javascript
+
 Show VNF LCM operation occurrence
 =================================
 

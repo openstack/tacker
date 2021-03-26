@@ -87,6 +87,10 @@ class VNFHealWaitFailed(exceptions.TackerException):
     message = _('VNF Heal %(reason)s')
 
 
+class VNFChangeExtConnWaitFailed(exceptions.TackerException):
+    message = _('VNF ChangeExtConn %(reason)s')
+
+
 class VNFDeleteFailed(exceptions.TackerException):
     message = _('%(reason)s')
 

@@ -2030,6 +2030,18 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         finally:
             self.clean_authenticate_vim(auth_cred, file_descriptor)
 
+    def change_ext_conn_vnf(self, context, vnf_instance, vnf_dict,
+                            vim_connection_info, change_ext_conn_req):
+        raise NotImplementedError()
+
+    def change_ext_conn_vnf_wait(self, context, vnf_instance,
+                                 vim_connection_info):
+        raise NotImplementedError()
+
+    def post_change_ext_conn_vnf(self, context, vnf_instance,
+                                 vim_connection_info):
+        raise NotImplementedError()
+
     def get_scale_ids(self,
                       plugin,
                       context,

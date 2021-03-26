@@ -74,3 +74,17 @@ class VnflcmMgmtNoop(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                  heal_vnf_request, grant,
                  grant_request, **kwargs):
         pass
+
+    @log.log
+    def change_external_connectivity_start(
+            self, context, vnf_instance,
+            change_ext_conn_request, grant,
+            grant_request, **kwargs):
+        pass
+
+    @log.log
+    def change_external_connectivity_end(
+            self, context, vnf_instance,
+            change_ext_conn_request, grant,
+            grant_request, **kwargs):
+        pass

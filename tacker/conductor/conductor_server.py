@@ -59,6 +59,7 @@ from tacker.glance_store import store as glance_store
 from tacker import manager
 from tacker import objects
 from tacker.objects import fields
+from tacker.objects.fields import ErrorPoint as EP
 from tacker.objects.vnf_package import VnfPackagesList
 from tacker.objects import vnfd as vnfd_db
 from tacker.objects import vnfd_attribute as vnfd_attribute_db
@@ -109,7 +110,8 @@ _ACTIVE_STATUS = ('ACTIVE',)
 _PENDING_STATUS = ('PENDING_CREATE',
                    'PENDING_TERMINATE',
                    'PENDING_DELETE',
-                   'PENDING_HEAL')
+                   'PENDING_HEAL',
+                   'PENDING_CHANGE_EXT_CONN')
 _ERROR_STATUS = ('ERROR',)
 _ALL_STATUSES = _ACTIVE_STATUS + _INACTIVE_STATUS + _PENDING_STATUS + \
     _ERROR_STATUS
@@ -782,6 +784,30 @@ class Conductor(manager.Manager):
             raise exceptions.TackerException(message=error_msg)
 
     @log.log
+    def _update_instantiated_vnf_info_change_ext_conn(
+            self, context, vnf_instance, change_ext_conn_req):
+        try:
+            vim_info = vnflcm_utils._get_vim(context,
+                                             vnf_instance.vim_connection_info)
+            vim_connection_info = \
+                objects.VimConnectionInfo.obj_from_primitive(
+                    vim_info, context)
+
+            self.vnf_manager.invoke(
+                vim_connection_info.vim_type, 'post_change_ext_conn_vnf',
+                context=context, vnf_instance=vnf_instance,
+                vim_connection_info=vim_connection_info)
+
+            vnflcm_utils._update_instantiated_vnf_info(
+                change_ext_conn_req, vnf_instance)
+            vnf_instance.instantiated_vnf_info.save()
+        except Exception as exp:
+            error_msg = \
+                "Failed to update instantiation information for vnf {}: {}".\
+                format(vnf_instance.id, encodeutils.exception_to_unicode(exp))
+            raise exceptions.TackerException(message=error_msg)
+
+    @log.log
     def _add_additional_vnf_info(self, context, vnf_instance):
         '''this method adds misc info to 'vnf' table'''
         try:
@@ -834,6 +860,104 @@ class Conductor(manager.Manager):
                             {'zip': csar_path, 'folder': csar_zip_temp_path,
                              'uuid': vnf_pack.id})
 
+    def _get_vnf_link_ports_by_vl(self, vnf_info, ext_vl_id,
+            resource_id):
+        results = []
+        vnf_vl_resource_info = vnf_info.vnf_virtual_link_resource_info
+        for vnf_vl_res in vnf_vl_resource_info:
+            if ((vnf_vl_res.vnf_virtual_link_desc_id == ext_vl_id) and
+                    (vnf_vl_res.network_resource.resource_id != resource_id)):
+                results.extend(vnf_vl_res.vnf_link_ports)
+
+        return results
+
+    def _get_vnf_link_ports_by_cp(self, vnf_info, cpd_id=None):
+        vnf_vl_resource_info = vnf_info.vnf_virtual_link_resource_info
+        vnfc_resource_info = vnf_info.vnfc_resource_info
+
+        def _get_vnf_link_port(vnf_link_port_id):
+            for vnf_vl_res in vnf_vl_resource_info:
+                for vnf_link_port in vnf_vl_res.vnf_link_ports:
+                    if vnf_link_port.id == vnf_link_port_id:
+                        return vnf_link_port
+
+        results = []
+        for vnfc_resource in vnfc_resource_info:
+            for vnfc_cp_info in vnfc_resource.vnfc_cp_info:
+                if cpd_id == vnfc_cp_info.cpd_id:
+                    results.append(
+                        _get_vnf_link_port(vnfc_cp_info.vnf_link_port_id))
+
+        return results
+
+    @grant_error_common
+    def _change_ext_conn_grant(
+            self,
+            context,
+            vnf_instance,
+            change_ext_conn_req,
+            vnf_lcm_op_occ_id):
+        if not self._get_grant_execute():
+            return
+
+        vnf_inf = vnf_instance.instantiated_vnf_info
+
+        def _create_linkport_rd(linkport, cpd_id):
+            rh = linkport.resource_handle
+            rd = objects.ResourceDefinition()
+            rd.resource = objects.ResourceHandle()
+            rd.id = linkport.id
+            rd.type = constants.TYPE_LINKPORT
+            rd.resource_template_id = cpd_id
+            rd.resource.vim_connection_id = rh.vim_connection_id
+            rd.resource.resource_id = rh.resource_id
+            rd.resource.vim_level_resource_type = rh.vim_level_resource_type
+            return rd
+
+        def _get_cpd_id(cp_instance_id):
+            vnfc_resource_info = vnf_inf.vnfc_resource_info
+            for vnfc_resource in vnfc_resource_info:
+                for vnfc_cp_info in vnfc_resource.vnfc_cp_info:
+                    if cp_instance_id == vnfc_cp_info.id:
+                        return vnfc_cp_info.cpd_id
+
+        update_resources = dict()
+        # If network resource of the VirtualLink changed, get all LinkPort
+        # resource related to VirtualLink
+        for ext_vl in change_ext_conn_req.ext_virtual_links:
+            nw_changed_resources = self._get_vnf_link_ports_by_vl(
+                vnf_inf, ext_vl.id, ext_vl.resource_id)
+            LOG.debug('nw_changed_resources {}'.format(nw_changed_resources))
+            if nw_changed_resources:
+                for resource in nw_changed_resources:
+                    cpd_id = _get_cpd_id(resource.cp_instance_id)
+                    update_resources[resource.resource_handle.resource_id] = \
+                        _create_linkport_rd(resource, cpd_id)
+                continue
+            # If network resource of the VirtualLink does not change,
+            # Searching vnfc_resource_info table by the cpd_id, if found, get
+            # LinkPort resource corresponding the CP.
+            # It does not check that the CP status updated or not.
+            for ext_cp in ext_vl.ext_cps:
+                cp_changed_resources = \
+                    self._get_vnf_link_ports_by_cp(vnf_inf, ext_cp.cpd_id)
+                LOG.debug('cp_changed_resources {}'.format(
+                    cp_changed_resources))
+                for resource in cp_changed_resources:
+                    update_resources[resource.resource_handle.resource_id] = \
+                        _create_linkport_rd(resource, ext_cp.cpd_id)
+
+        update_resources_list = list(update_resources.values())
+        LOG.debug("Update Resources: %s", update_resources_list)
+        grant_request = self._make_grant_request(
+            context,
+            vnf_instance,
+            vnf_lcm_op_occ_id,
+            'CHANGE_EXT_CONN',
+            False,
+            update_resources=update_resources_list)
+        return self._grant(context, grant_request)
+
     def _grant(self, context, grant_request):
         LOG.info(
             "grant start grant_request[%s]" %
@@ -855,7 +979,11 @@ class Conductor(manager.Manager):
                 grant_obj.remove_resources):
             msg = "grant remove resource error"
             raise exceptions.ValidationError(detail=msg)
-
+        if len(
+                grant_request.update_resources) != len(
+                grant_obj.update_resources):
+            msg = "grant update resource error"
+            raise exceptions.ValidationError(detail=msg)
         self._check_res_add_remove_rsc(context, grant_request, grant_obj)
 
         return grant_obj
@@ -879,6 +1007,16 @@ class Conductor(manager.Manager):
                     break
             if not match_flg:
                 msg = "grant remove resource error"
+                raise exceptions.ValidationError(detail=msg)
+
+        for update_resource in grant_request.update_resources:
+            match_flg = False
+            for rsc in grant_obj.update_resources:
+                if update_resource.id == rsc.resource_definition_id:
+                    match_flg = True
+                    break
+            if not match_flg:
+                msg = "grant update resource error"
                 raise exceptions.ValidationError(detail=msg)
 
     @grant_error_common
@@ -1307,6 +1445,7 @@ class Conductor(manager.Manager):
                             is_automatic_invocation,
                             add_resources=[],
                             remove_resources=[],
+                            update_resources=[],
                             placement_constraints=[]):
         grant_request = objects.GrantRequest()
         grant_request.vnf_instance_id = vnf_instance.id
@@ -1330,6 +1469,8 @@ class Conductor(manager.Manager):
             grant_request.add_resources = add_resources
         if remove_resources:
             grant_request.remove_resources = remove_resources
+        if update_resources:
+            grant_request.update_resources = update_resources
         if placement_constraints:
             grant_request.placement_constraints = placement_constraints
 
@@ -1443,7 +1584,12 @@ class Conductor(manager.Manager):
                     jsonutils.dumps(affected_resources_snake_case)
                 changed_resource = objects.ResourceChanges.obj_from_primitive(
                     resource_change_obj, context)
+                changed_ext_connectivity = \
+                    vnflcm_utils._get_changed_ext_connectivity(
+                        old_vnf_instance=old_vnf_instance,
+                        new_vnf_instance=vnf_instance)
                 vnf_notif.resource_changes = changed_resource
+                vnf_notif.changed_ext_connectivity = changed_ext_connectivity
                 vnf_notif.save()
                 notification_data['affectedVnfcs'] = \
                     affected_resources.get('affectedVnfcs', [])
@@ -1453,6 +1599,9 @@ class Conductor(manager.Manager):
                     affected_resources.get('affectedVirtualStorages', [])
                 notification_data['notificationStatus'] = \
                     fields.LcmOccsNotificationStatus.RESULT
+                notification_data['changedExtConnectivity'] = \
+                    utils.convert_snakecase_to_camelcase(
+                        [i.to_dict() for i in changed_ext_connectivity])
 
                 if operation_state == \
                         fields.LcmOccsOperationState.FAILED_TEMP \
@@ -2034,6 +2183,113 @@ class Conductor(manager.Manager):
     def rollback(self, context, vnf_info, vnf_instance, operation_params):
         self.vnflcm_driver.rollback_vnf(context, vnf_info,
             vnf_instance, operation_params)
+
+    @coordination.synchronized('{vnf_instance[id]}')
+    def change_ext_conn(
+            self,
+            context,
+            vnf_instance,
+            vnf_dict,
+            change_ext_conn_req,
+            vnf_lcm_op_occs_id):
+        """Perform change external VNF connectivity operation.
+
+        This function will support changing external VNF connectivity
+        as defined in ETSI NFV SOL 002 and SOL 003, but now, you can
+        specify changing fixedAddresses or numDynamicAddresses in
+        ipAddresses attribute in extVirtualLinks.
+
+        Note:
+            1. Get grant from NFVO(if needed).
+                Request grant information is made from ExtVirtualLinkData
+                of ChangeExtConnRequest. If ExtVirtualLinkInfo is changed
+                from instantiated VNF, we inform VnfLinkPortInfo related
+                to that ExtVirtualLinkInfo. Also, we inform VnfLinkPortInfo
+                related to each individual VnfExtCpInfo.
+            2. Call vnflcm_driver to change networks.
+                Invoke vnflcm_driver to perform change external VNF
+                connectivity.
+            3. Update VNF information
+                Update InstantiatedVnfInfo as a post-processing.
+
+        Args:
+            context (Context): context for security/db session.
+            vnf_instance (VnfInstance): Information object for VNF instance.
+            vnf_dict (dict): Container for error point indication.
+            change_ext_conn_req (ChangeExtConnRequest):
+            Request object of change external connectivity.
+            vnf_lcm_op_occs_id (uuid): self-explanatory :)
+        """
+        if vnf_dict['before_error_point'] == EP.INITIAL:
+            self._change_ext_conn_grant(
+                context,
+                vnf_instance,
+                change_ext_conn_req,
+                vnf_lcm_op_occs_id)
+
+        try:
+            old_vnf_instance = copy.deepcopy(vnf_instance)
+            # Update vnf_lcm_op_occs table and send notification "PROCESSING"
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=None,
+                vnf_instance=vnf_instance,
+                request_obj=change_ext_conn_req,
+                operation=fields.LcmOccsOperationType.CHANGE_EXT_CONN
+            )
+
+            vnf_dict['current_error_point'] = EP.NOTIFY_PROCESSING
+            if vnf_dict['before_error_point'] <= EP.NOTIFY_PROCESSING:
+                # update vnf status to PENDING_CHANGE_EXT_CONN
+                self._change_vnf_status(context, vnf_instance.id,
+                    _ACTIVE_STATUS, 'PENDING_CHANGE_EXT_CONN')
+
+            self.vnflcm_driver.change_ext_conn_vnf(
+                context,
+                vnf_instance,
+                vnf_dict,
+                change_ext_conn_req)
+
+            vnf_dict['current_error_point'] = EP.NOTIFY_COMPLETED
+            self._update_instantiated_vnf_info_change_ext_conn(
+                context, vnf_instance, change_ext_conn_req)
+            # update vnf status to ACTIVE
+            self._update_vnf_attributes(context, vnf_instance, vnf_dict,
+                                        _PENDING_STATUS, _ACTIVE_STATUS)
+            # Update vnf_lcm_op_occs table and send notification "COMPLETED"
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=old_vnf_instance,
+                vnf_instance=vnf_instance,
+                request_obj=change_ext_conn_req,
+                operation=fields.LcmOccsOperationType.CHANGE_EXT_CONN,
+                operation_state=fields.LcmOccsOperationState.COMPLETED
+            )
+        except Exception as e:
+            # update vnf_status to 'ERROR' and create event with 'ERROR' status
+            self._change_vnf_status(context, vnf_instance.id,
+                        _ALL_STATUSES, constants.ERROR, str(e))
+
+            LOG.error('Failed to execute operation. error={}'.format(e))
+            if vnf_dict['current_error_point'] in [EP.INTERNAL_PROCESSING,
+                    EP.VNF_CONFIG_END]:
+                self._update_instantiated_vnf_info_change_ext_conn(
+                    context, vnf_instance, change_ext_conn_req)
+
+            # update vnf_lcm_op_occs and send notification "FAILED_TEMP"
+            self._send_lcm_op_occ_notification(
+                context=context,
+                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                old_vnf_instance=old_vnf_instance,
+                vnf_instance=vnf_instance,
+                request_obj=change_ext_conn_req,
+                operation=fields.LcmOccsOperationType.CHANGE_EXT_CONN,
+                operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
+                error=str(e),
+                error_point=vnf_dict['current_error_point']
+            )
 
 
 def init(args, **kwargs):

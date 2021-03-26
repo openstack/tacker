@@ -104,3 +104,15 @@ class VnfNoop(abstract_driver.VnfAbstractDriver):
     def post_heal_vnf(self, context, vnf_instance, vim_connection_info,
                       heal_vnf_request):
         pass
+
+    def change_ext_conn_vnf(self, context, vnf_instance, vnf_dict,
+                            vim_connection_info, change_ext_conn_req):
+        pass
+
+    def change_ext_conn_vnf_wait(self, context, vnf_instance,
+                                 vim_connection_info):
+        pass
+
+    def post_change_ext_conn_vnf(self, context, vnf_instance,
+                                 vim_connection_info):
+        pass

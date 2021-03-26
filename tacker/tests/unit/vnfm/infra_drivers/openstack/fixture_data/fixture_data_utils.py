@@ -220,16 +220,84 @@ def get_vnfc_resource_info(vdu_id="VDU1", storage_resource_ids=None,
     return vnfc_resource_info
 
 
+def _get_ext_link_port(ext_vl_port_id, cp_instance_id,
+        set_resource_id=False):
+    if set_resource_id:
+        resource_id = uuidsentinel.ext_virtual_link_port_resource_id
+    else:
+        resource_id = ""
+
+    resource_handle = objects.ResourceHandle(
+        resource_id=resource_id,
+        vim_level_resource_type="OS::Neutron::Port")
+
+    ext_vl_port = objects.ExtLinkPortInfo(
+        id=ext_vl_port_id, cp_instance_id=cp_instance_id,
+        resource_handle=resource_handle)
+
+    return ext_vl_port
+
+
+def get_ext_virtual_link_info(ext_virtual_link_id, desc_id="externalVL1",
+        set_resource_id=True):
+
+    network_resource = objects.ResourceHandle(
+        resource_id=uuidsentinel.virtual_link_resource_id,
+        vim_level_resource_type="OS::Neutron::Network")
+
+    ext_vl_link_port = _get_ext_link_port(
+        uuidsentinel.ext_vl_port_id,
+        cp_instance_id=uuidsentinel.cp_instance_id,
+        set_resource_id=set_resource_id)
+
+    ext_vl_info = objects.ExtVirtualLinkInfo(
+        id=uuidsentinel.ext_virtual_link_id,
+        resource_handle=network_resource,
+        ext_link_ports=[ext_vl_link_port])
+
+    return ext_vl_info
+
+
+def get_ext_cp_info(ext_cp_id, cpd_id='VDU1_CP1', ip_addresses=[]):
+
+    ip_over_ethernet = objects.IpOverEthernetAddressInfo(
+        ip_addresses=ip_addresses)
+
+    cp_protocol_info = objects.CpProtocolInfo(
+        layer_protocol="IP_OVER_ETHERNET",
+        ip_over_ethernet=ip_over_ethernet)
+
+    ext_cp_info = objects.VnfExtCpInfo(
+        id=ext_cp_id,
+        cpd_id=cpd_id,
+        cp_protocol_info=[cp_protocol_info])
+
+    return ext_cp_info
+
+
+def get_ip_address(ip_type='IPV4', subnet_id=None, is_dynamic=False,
+        addresses=[]):
+    ip_address = objects.IpAddress(type=ip_type,
+                                   subnet_id=subnet_id,
+                                   is_dynamic=is_dynamic,
+                                   addresses=addresses)
+    return ip_address
+
+
 def get_vnf_instantiated_info(flavour_id='simple',
         instantiation_level_id=None, vnfc_resource_info=None,
         virtual_storage_resource_info=None,
         vnf_virtual_link_resource_info=None,
-        ext_managed_virtual_link_info=None):
+        ext_managed_virtual_link_info=None,
+        ext_virtual_link_info=None,
+        ext_cp_info=None):
 
     vnfc_resource_info = vnfc_resource_info or []
     vnf_virtual_link_resource_info = vnf_virtual_link_resource_info or []
     virtual_storage_resource_info = virtual_storage_resource_info or []
     ext_managed_virtual_link_info = ext_managed_virtual_link_info or []
+    ext_virtual_link_info = ext_virtual_link_info or []
+    ext_cp_info = ext_cp_info or []
 
     inst_vnf_info = objects.InstantiatedVnfInfo(flavour_id=flavour_id,
         instantiation_level_id=instantiation_level_id,
@@ -237,7 +305,9 @@ def get_vnf_instantiated_info(flavour_id='simple',
         vnfc_resource_info=vnfc_resource_info,
         vnf_virtual_link_resource_info=vnf_virtual_link_resource_info,
         virtual_storage_resource_info=virtual_storage_resource_info,
-        ext_managed_virtual_link_info=ext_managed_virtual_link_info)
+        ext_managed_virtual_link_info=ext_managed_virtual_link_info,
+        ext_virtual_link_info=ext_virtual_link_info,
+        ext_cp_info=ext_cp_info)
 
     return inst_vnf_info
 
@@ -330,6 +400,162 @@ def get_grant_response_dict():
             resource_name='VirtualStorage')]}
 
     return grant_response_dict
+
+
+def get_change_ext_conn_request():
+
+    def _get_ip_addresses(_type='IPV4', fixed_addrs=[], subnet_id=None):
+        if fixed_addrs and subnet_id:
+            return [{
+                "type": _type,
+                "fixed_addresses": fixed_addrs,
+                "subnet_id": subnet_id,
+            }]
+        elif fixed_addrs and not subnet_id:
+            return [{
+                "type": _type,
+                "fixed_addresses": fixed_addrs,
+            }]
+        elif not fixed_addrs and subnet_id:
+            return [{
+                "type": _type,
+                "num_dynamic_addresses": 1,
+                "subnet_id": subnet_id,
+            }]
+        elif not fixed_addrs and not subnet_id:
+            return [{
+                "type": _type,
+                "num_dynamic_addresses": 1,
+            }]
+
+    def _get_ext_cp_info(cpd_id, ip_address):
+        return {
+            "cpd_id": cpd_id,
+            "cp_config": [{
+                "cp_protocol_data": [{
+                    "layer_protocol": "IP_OVER_ETHERNET",
+                    "ip_over_ethernet": {
+                        "ip_addresses": ip_address
+                    }
+                }]
+            }]
+        }
+
+    def _get_request():
+        ext_vl_info = [{
+            "id": "external_network_1",
+            "vim_connection_id": uuidsentinel.vim_connection_id,
+            "resource_id": "nw-resource-id-1",
+            "ext_cps": [
+                _get_ext_cp_info('VDU1_CP1',
+                    _get_ip_addresses(fixed_addrs=["20.0.0.1"])),
+                _get_ext_cp_info('VDU1_CP2',
+                    _get_ip_addresses(
+                        fixed_addrs=["30.0.0.2"],
+                        subnet_id="changed-subnet-id-1")),
+                _get_ext_cp_info('VDU1_CP3',
+                    _get_ip_addresses(fixed_addrs=["10.0.0.1"])),
+            ]}, {
+            "id": "external_network_2",
+            "vim_connection_id": uuidsentinel.vim_connection_id,
+            "resource_id": "changed-nw-resource-id-2",
+            "ext_cps": [
+                _get_ext_cp_info('VDU2_CP1',
+                    _get_ip_addresses(
+                        subnet_id="changed-subnet-id-2")),
+                _get_ext_cp_info('VDU2_CP2', _get_ip_addresses())
+            ]
+        }]
+
+        vim_connection_info = [{
+            "id": uuidsentinel.vim_connection_id,
+            "vim_id": uuidsentinel.vim_id,
+            "vim_type": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+            "interface_info": {
+                "endpoint": "endpoint_value"},
+            "access_info": {
+                "username": "username_value",
+                "password": "password_value",
+                "region": "region_value",
+                "tenant": "tenant_value"}}]
+
+        change_ext_conn_data = {
+            'ext_virtual_links': ext_vl_info,
+            'vim_connection_info': vim_connection_info,
+            'additional_params': {'key1': 'value1'}}
+
+        return change_ext_conn_data
+
+    change_ext_conn_data = _get_request()
+    change_ext_conn_req = objects.ChangeExtConnRequest.obj_from_primitive(
+        change_ext_conn_data, None)
+
+    return change_ext_conn_req
+
+
+def get_original_stack_param():
+    stack_param = \
+        {'nfv': {
+            'VDU': {
+                'VDU1': {'flavor': 'm1.tiny', 'image': 'None'},
+                'VirtualStorage': {
+                    'flavor': 'None',
+                    'image': 'cirros-0.4.0-x86_64-disk'},
+                'VDU2': {
+                    'flavor': 'm1.tiny',
+                    'image': 'cirros-0.4.0-x86_64-disk'}},
+                'CP': {
+                    'VDU1_CP1': {
+                        'network': 'nw-resource-id-1',
+                        'fixed_ips': [{'ip_address': '10.0.0.1'}]},
+                    'VDU1_CP2': {
+                        'network': 'nw-resource-id-1',
+                        'fixed_ips': [{
+                            'ip_address': '10.0.0.2',
+                            'subnet': 'subnet-id-2'}]},
+                    'VDU2_CP1': {
+                        'network': 'nw-resource-id-2',
+                        'fixed_ips': [{
+                            'subnet': 'subnet-id-2'}]},
+                    'VDU2_CP2': {'network': 'nw-resource-id-2'}}}}
+    return stack_param
+
+
+def get_expect_stack_param():
+    stack_param = \
+        {'nfv': {
+            'VDU': {
+                'VDU1': {'flavor': 'm1.tiny', 'image': 'None'},
+                'VirtualStorage': {
+                    'flavor': 'None',
+                    'image': 'cirros-0.4.0-x86_64-disk'},
+                'VDU2': {
+                    'flavor': 'm1.tiny',
+                    'image': 'cirros-0.4.0-x86_64-disk'}},
+                'CP': {
+                    'VDU1_CP1': {
+                        'network': 'nw-resource-id-1',
+                        'fixed_ips': [{'ip_address': '20.0.0.1'}]},
+                    'VDU1_CP2': {
+                        'network': 'nw-resource-id-1',
+                        'fixed_ips': [{
+                            'ip_address': '30.0.0.2',
+                            'subnet': 'changed-subnet-id-1'}]},
+                    'VDU2_CP1': {
+                        'network': 'changed-nw-resource-id-2',
+                        'fixed_ips': [{
+                            'subnet': 'changed-subnet-id-2'}]},
+                    'VDU2_CP2': {'network': 'changed-nw-resource-id-2'}}}}
+
+    return stack_param
+
+
+def get_vnf_attribute_dict():
+    vnf_attribute_dict = dict()
+    vnf_attribute_dict.update(
+        {'stack_param': str(get_original_stack_param())})
+
+    return vnf_attribute_dict
 
 
 def get_lcm_op_occs_object(operation="INSTANTIATE",

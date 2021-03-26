@@ -274,3 +274,14 @@ scale = {
     'required': ['type', 'aspectId'],
     'additionalProperties': True,
 }
+
+change_ext_conn = {
+    'type': 'object',
+    'properties': {
+            'extVirtualLinks': _extVirtualLinkData,
+            'vimConnectionInfo': _vimConnectionInfo,
+            'additionalParams': parameter_types.keyvalue_pairs,
+    },
+    'required': ['extVirtualLinks'],
+    'additionalProperties': True,
+}

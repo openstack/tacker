@@ -27,6 +27,7 @@ import zipfile
 
 from oslo_config import cfg
 
+from tacker.common import utils as common_utils
 from tacker.db.db_sqlalchemy import models
 from tacker.objects import scale_vnf_request
 from tacker.tests import utils
@@ -301,3 +302,250 @@ def scale_request(type, number_of_steps):
     scale_request = scale_vnf_request.ScaleVnfRequest(**scale_request_data)
 
     return scale_request
+
+
+def get_instantiated_vnf_info():
+    vnf_info = objects.vnf_instance.VnfInstance()
+
+    def _get_instantiated_vnf_info_data():
+        return {
+            "flavour_id": "simple",
+            "vnf_instance_id": uuidsentinel.vnf_instance_id,
+            "vnf_virtual_link_resource_info":
+                _get_virtual_link_resource_info(),
+            "vnfc_resource_info": _get_vnfc_resource_info(),
+        }
+
+    def _get_virtual_link_resource_info():
+        return [{
+            "id": uuidsentinel.vnf_vl_resource_1,
+            "vnf_virtual_link_desc_id": uuidsentinel.ext_vl_1,
+            "network_resource": {
+                "vim_connection_id": None,
+                "resource_id": uuidsentinel.ext_vl_resource_1,
+                "vim_level_resource_type": "OS::Neutron::Net",
+                "deleted": False,
+            },
+            "vnf_link_ports": [
+                {
+                    "id": uuidsentinel.vnf_link_port_1,
+                    "resource_handle": {
+                        "vim_connection_id": uuidsentinel.vim_connection_id,
+                        "resource_id": uuidsentinel.vnf_vl1_link_port_1,
+                        "vim_level_resource_type": "OS::Neutron::Port",
+                        "deleted": False,
+                    },
+                    "cp_instance_id": uuidsentinel.cp_instance_1,
+                    "deleted": False,
+                },
+                {
+                    "id": uuidsentinel.vnf_link_port_2,
+                    "resource_handle": {
+                        "vim_connection_id": uuidsentinel.vim_connection_id,
+                        "resource_id": uuidsentinel.vnf_vl1_link_port_2,
+                        "vim_level_resource_type": "OS::Neutron::Port",
+                        "deleted": False,
+                    },
+                    "cp_instance_id": uuidsentinel.cp_instance_2,
+                    "deleted": False,
+                },
+                {
+                    "id": uuidsentinel.vnf_link_port_5,
+                    "resource_handle": {
+                        "vim_connection_id": uuidsentinel.vim_connection_id,
+                        "resource_id": uuidsentinel.vnf_vl1_link_port_5,
+                        "vim_level_resource_type": "OS::Neutron::Port",
+                        "deleted": False,
+                    },
+                    "cp_instance_id": uuidsentinel.cp_instance_2,
+                    "deleted": False,
+                },
+            ],
+        },
+            {
+            "id": uuidsentinel.vnf_vl_resource_2,
+            "vnf_virtual_link_desc_id": uuidsentinel.ext_vl_2,
+            "network_resource": {
+                "vim_connection_id": None,
+                "resource_id": uuidsentinel.ext_vl_resource_2,
+                "vim_level_resource_type": "OS::Neutron::Net",
+                "deleted": False,
+            },
+            "vnf_link_ports": [
+                {
+                    "id": uuidsentinel.vnf_link_port_3,
+                    "resource_handle": {
+                        "vim_connection_id": uuidsentinel.vim_connection_id,
+                        "resource_id": uuidsentinel.vnf_vl2_link_port_1,
+                        "vim_level_resource_type": "OS::Neutron::Port",
+                        "deleted": False,
+                    },
+                    "cp_instance_id": uuidsentinel.cp_instance_3,
+                    "deleted": False,
+                },
+                {
+                    "id": uuidsentinel.vnf_link_port_4,
+                    "resource_handle": {
+                        "vim_connection_id": uuidsentinel.vim_connection_id,
+                        "resource_id": uuidsentinel.vnf_vl2_link_port_2,
+                        "vim_level_resource_type": "OS::Neutron::Port",
+                        "deleted": False,
+                    },
+                    "cp_instance_id": uuidsentinel.cp_instance_4,
+                    "deleted": False,
+                },
+                {
+                    "id": uuidsentinel.vnf_link_port_5,
+                    "resource_handle": {
+                        "vim_connection_id": uuidsentinel.vim_connection_id,
+                        "resource_id": uuidsentinel.vnf_vl2_link_port_3,
+                        "vim_level_resource_type": "OS::Neutron::Port",
+                        "deleted": False,
+                    },
+                    "cp_instance_id": uuidsentinel.cp_instance_5,
+                    "deleted": False,
+                }
+            ]
+        }]
+
+    def _get_vnfc_resource_info():
+        return [{
+            "id": uuidsentinel.vnfc_resource_1,
+            "vdu_id": "VDU1",
+            "compute_resource": {
+                "vim_connection_id": uuidsentinel.vim_connection_id,
+                "resource_id": uuidsentinel.uuid,
+                "vim_level_resource_type": "OS::Nova::Server",
+                "deleted": False,
+            },
+            "storage_resource_ids": [],
+            "vnfc_cp_info": [{
+                "id": uuidsentinel.cp_instance_1,
+                "cpd_id": "CP1",
+                "vnf_ext_cp_id": None,
+                "cp_protocol_info": [],
+                "vnf_link_port_id": uuidsentinel.vnf_link_port_1,
+            }, {
+                "id": uuidsentinel.cp_instance_2,
+                "cpd_id": "CP2",
+                "vnf_ext_cp_id": None,
+                "cp_protocol_info": [],
+                "vnf_link_port_id": uuidsentinel.vnf_link_port_2,
+            }],
+            "metadata": {},
+        }, {
+            "id": uuidsentinel.vnfc_resource_2,
+            "vdu_id": "VDU2",
+            "compute_resource": {
+                "vim_connection_id": uuidsentinel.vim_connection_id,
+                "resource_id": uuidsentinel.uuid,
+                "vim_level_resource_type": "OS::Nova::Server",
+                "deleted": False,
+            },
+            "storage_resource_ids": [],
+            "vnfc_cp_info": [{
+                "id": uuidsentinel.cp_instance_3,
+                "cpd_id": "CP3",
+                "vnf_ext_cp_id": None,
+                "cp_protocol_info": [],
+                "vnf_link_port_id": uuidsentinel.vnf_link_port_3,
+            }, {
+                "id": uuidsentinel.cp_instance_4,
+                "cpd_id": "CP4",
+                "vnf_ext_cp_id": None,
+                "cp_protocol_info": [],
+                "vnf_link_port_id": uuidsentinel.vnf_link_port_4,
+            }, {
+                "id": uuidsentinel.cp_instance_5,
+                "cpd_id": "CP5",
+                "vnf_ext_cp_id": None,
+                "cp_protocol_info": [],
+                "vnf_link_port_id": uuidsentinel.vnf_link_port_5,
+            }],
+            "metadata": {},
+        }]
+
+    vnf_info.instantiated_vnf_info = \
+        objects.InstantiatedVnfInfo.obj_from_primitive(
+            _get_instantiated_vnf_info_data(), None
+        )
+    return vnf_info.instantiated_vnf_info
+
+
+def get_change_ext_conn_request():
+    change_ext_conn_req_body = {
+        "extVirtualLinks": [{
+            "id": uuidsentinel.ext_vl_1,
+            "vimConnectionId": uuidsentinel.vim_connection_id,
+            "resourceId": uuidsentinel.ext_vl_resource_3,
+            "extCps": [{
+                "cpdId": 'CP1',
+                "cpConfig": [{
+                    "cpInstanceId": uuidsentinel.uuid,
+                    "cpProtocolData": [{
+                        "layerProtocol": 'IP_OVER_ETHERNET',
+                        "ipOverEthernet": {
+                            "ipAddresses": [{
+                                "type": "IPV4",
+                                "fixedAddresses": ["10.0.0.1"],
+                                "subnetId": uuidsentinel.uuid,
+                            }]
+                        }
+                    }]
+                }]
+            }]}, {
+            "id": uuidsentinel.ext_vl_2,
+            "vimConnectionId": uuidsentinel.vim_connection_id,
+            "resourceId": uuidsentinel.ext_vl_resource_2,
+            "extCps": [{
+                "cpdId": 'CP3',
+                "cpConfig": [{
+                    "cpInstanceId": uuidsentinel.uuid,
+                    "cpProtocolData": [{
+                        "layerProtocol": 'IP_OVER_ETHERNET',
+                        "ipOverEthernet": {
+                            "ipAddresses": [{
+                                "type": "IPV4",
+                                "fixedAddresses": ["10.0.0.2"],
+                                "subnetId": uuidsentinel.uuid,
+                            }]
+                        }
+                    }]
+                }]}, {
+                "cpdId": 'CP5',
+                "cpConfig": [{
+                    "cpInstanceId": uuidsentinel.uuid,
+                    "cpProtocolData": [{
+                        "layerProtocol": 'IP_OVER_ETHERNET',
+                        "ipOverEthernet": {
+                            "ipAddresses": [{
+                                "type": "IPV4",
+                                "numDynamicAddresses": 1,
+                                "subnetId": uuidsentinel.uuid,
+                            }]
+                        }
+                    }]
+                }]
+            }]
+        }],
+        "vimConnectionInfo": [{
+            "id": uuidsentinel.vim_connection_id,
+            "vimId": uuidsentinel.uuid,
+            "vimType": 'openstack',
+            "interfaceInfo": {"key1": 'value1', "key2": 'value2'},
+            "accessInfo": {"key1": 'value1', "key2": 'value2'},
+        }],
+    }
+
+    return change_ext_conn_req_body
+
+
+def get_change_ext_conn_request_obj():
+    """Return ChangeExtConnRequest Object
+
+    obj_from_primitive() needs snake_case dictionary
+    """
+    body = common_utils.convert_camelcase_to_snakecase(
+        get_change_ext_conn_request())
+    return objects.ChangeExtConnRequest.obj_from_primitive(
+        body, None)
