@@ -56,6 +56,7 @@ Use cases
    etsi_vnf_error_handling.rst
    etsi_vnf_healing.rst
    etsi_vnf_scaling.rst
+   etsi_vnf_change_external_vnf_connectivity.rst
    etsi_cnf_healing.rst
    etsi_cnf_scaling.rst
    containerized_vnf_usage_guide.rst
