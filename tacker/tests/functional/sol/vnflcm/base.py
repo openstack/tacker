@@ -253,12 +253,19 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         self.ext_networks = list()
         # Create external managed networks
         self.ext_mngd_networks = list()  # Store ids for cleaning.
+        # Create external link ports in net0
+        self.ext_link_ports = list()
+        # Create external subnet in net1
+        self.ext_subnets = list()  # Store ids for cleaning.
 
         networks = self.neutronclient().list_networks()
         for nw in networks.get('networks'):
             if nw['name'] == 'net0':
                 self.ext_networks.append(nw['id'])
                 self.ext_vl = _get_external_virtual_links(nw['id'])
+                self.ext_subnets.append(nw['subnets'][0])
+                self.ext_link_ports.append(self._create_port(nw['id']))
+                self.ext_link_ports.append(self._create_port(nw['id']))
             elif nw['name'] == 'net1':
                 self.ext_mngd_networks.append(nw['id'])
 
@@ -270,22 +277,12 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             self._create_network("external_managed_internal_net")
         self.ext_mngd_networks.append(ext_mngd_net_id)
 
-        # Create external link ports in net0
-        self.ext_link_ports = list()
-        # Create external subnet in net1
-        self.ext_subnets = list()  # Store ids for cleaning.
-
         # Chack how many networks are created.
         networks = self.neutronclient().list_networks()
         for nw in networks.get('networks'):
-            if nw['name'] not in ['net0', ext_net_name]:
+            if nw['name'] not in [ext_net_name]:
                 continue
-
-            if nw['name'] == 'net0':
-                self.ext_subnets.append(nw['subnets'][0])
-            else:
-                self.ext_subnets.append(self._create_subnet(nw))
-            self.ext_link_ports.append(self._create_port(nw['id']))
+            self.ext_subnets.append(self._create_subnet(nw))
 
     @classmethod
     def _list_glance_image(cls, filter_name='cirros-0.4.0-x86_64-disk'):
@@ -1131,7 +1128,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
                 (uniq_name, e))
 
     def _create_subnet(self, network):
-        cidr_prefix = "22.22.{}".format(str(len(self.ext_subnets) + 1))
+        cidr_prefix = "22.22.{}".format(str(len(self.ext_subnets)))
         body = {'subnet': {'network_id': network['id'],
                 'name': "subnet-%s" % uuidutils.generate_uuid(),
                 'cidr': "{}.0/24".format(cidr_prefix),

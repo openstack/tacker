@@ -22,7 +22,18 @@
       {
         "cpProtocolInfo": [
           {
-            "layerProtocol": "IP_OVER_ETHERNET"
+            "layerProtocol": "IP_OVER_ETHERNET",
+            "ipOverEthernet": {
+              "ipAddresses": [
+                {
+                  "type": "IPV4",
+                  "addresses": [
+                    "192.168.0.20"
+                  ],
+                  "isDynamic": "true"
+                }
+              ]
+            }
           }
         ],
         "cpdId": "CP2",

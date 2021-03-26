@@ -12,7 +12,15 @@
               "linkPortId": "1d868d02-ecd4-4402-8e6b-54e77ebdcc28",
               "cpProtocolData": [
                 {
-                  "layerProtocol": "IP_OVER_ETHERNET"
+                  "layerProtocol": "IP_OVER_ETHERNET",
+                  "ipOverEthernet": {
+                    "ipAddresses":[
+                      {
+                        "type": "IPV4",
+                        "numDynamicAddresses": 1
+                      }
+                    ]
+                  }
                 }
               ]
             }

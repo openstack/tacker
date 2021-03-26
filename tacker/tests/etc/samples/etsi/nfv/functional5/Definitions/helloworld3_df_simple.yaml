@@ -87,8 +87,8 @@ topology_template:
         name: VDU2
         description: VDU2 compute node
         vdu_profile:
-          min_number_of_instances: 2
-          max_number_of_instances: 2
+          min_number_of_instances: 1
+          max_number_of_instances: 1
         sw_image_data:
           name: cirros-0.4.0-x86_64-disk
           version: '0.4.0'
@@ -300,7 +300,7 @@ topology_template:
         type: tosca.policies.nfv.VduInitialDelta
         properties:
           initial_delta:
-            number_of_instances: 2
+            number_of_instances: 1
         targets: [ VDU2 ]
 
     - VDU1_scaling_aspect_deltas:
@@ -343,9 +343,9 @@ topology_template:
         properties:
           levels:
             instantiation_level_1:
-              number_of_instances: 2
+              number_of_instances: 1
             instantiation_level_2:
-              number_of_instances: 2
+              number_of_instances: 1
         targets: [ VDU2 ]
 
     - internalVL1_instantiation_levels:

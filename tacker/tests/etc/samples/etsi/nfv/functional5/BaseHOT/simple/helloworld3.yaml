@@ -23,6 +23,7 @@ resources:
           net3: { get_resource: extmanageNW_1 }
           net4: { get_resource: extmanageNW_2 }
           net5: { get_resource: internalNW_1 }
+          subnet: { get_param: [nfv, CP, VDU1_CP2, fixed_ips, 0, subnet]}
   VDU1_scale_scale_out:
     type: OS::Heat::ScalingPolicy
     properties:
@@ -40,9 +41,9 @@ resources:
   VDU2_scale_group:
     type: OS::Heat::AutoScalingGroup
     properties:
-      min_size: 2
-      max_size: 2
-      desired_capacity: 2
+      min_size: 1
+      max_size: 1
+      desired_capacity: 1
       resource:
         type: VDU2.yaml
         properties:
@@ -54,6 +55,8 @@ resources:
           net3: { get_resource: extmanageNW_1 }
           net4: { get_resource: extmanageNW_2 }
           net5: { get_resource: internalNW_1 }
+          ip1: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, ip_address]}
+          subnet: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, subnet]}
   VDU2_scale_scale_out:
     type: OS::Heat::ScalingPolicy
     properties:

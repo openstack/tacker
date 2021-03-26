@@ -647,8 +647,9 @@ fixed_addresses:
   description: |
     Fixed addresses to assign (from the subnet defined by "subnetId"
     if provided).
+    Exactly one of "fixedAddresses" or "numDynamicAddresses" shall be present.
   in: body
-  required: true
+  required: false
   type: array
 flavour_id:
   description: |
@@ -805,6 +806,13 @@ mac_address_cp_info:
   in: body
   required: false
   type: string
+num_dynamic_addresses:
+  description: |
+    Number of set the dynamic address.
+    Exactly one of "fixedAddresses" or "numDynamicAddresses" shall be present.
+  in: body
+  required: false
+  type: int
 number_of_steps:
   description: |
     Number of scaling steps to be executed as part of this

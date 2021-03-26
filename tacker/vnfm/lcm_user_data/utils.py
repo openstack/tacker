@@ -199,8 +199,15 @@ def create_final_param_dict(param_dict, vdu_flavor_dict,
         vdus[target_vdu]['image'] = vdu_image_dict.get(target_vdu)
 
     cps = final_param_dict.get('nfv', {}).get('CP', {})
-    for target_cp in cps:
-        cps[target_cp]['network'] = cpd_vl_dict.get(target_cp)
+    if cpd_vl_dict:
+        for target_cp in cps:
+            if 'network' in cpd_vl_dict.get(target_cp):
+                cps[target_cp]['network'] = cpd_vl_dict.get(
+                    target_cp).get('network')
+            if 'fixed_ips' in cpd_vl_dict.get(target_cp):
+                cps[target_cp]['fixed_ips'] = []
+                for fixed_ip in cpd_vl_dict.get(target_cp).get("fixed_ips"):
+                    cps[target_cp]['fixed_ips'].append(fixed_ip)
 
     LOG.info('final_param_dict: %s', final_param_dict)
     return final_param_dict
@@ -369,7 +376,39 @@ def create_network_dict(inst_req_info, param_dict):
     for ext_vl in ext_vl_param:
         for ext_cp in ext_vl.ext_cps:
             if ext_cp.cpd_id in cp_param.keys():
-                cp_data[ext_cp.cpd_id] = ext_vl.resource_id
+                cp_data[ext_cp.cpd_id] = {}
+                cp_data[ext_cp.cpd_id]["network"] = ext_vl.resource_id
+                cp_data[ext_cp.cpd_id]["fixed_ips"] =\
+                    _create_fixed_ips_list(ext_cp)
 
     LOG.info('cp_data: %s', cp_data)
     return cp_data
+
+
+def _create_fixed_ips_list(ext_cp):
+    """Create a list containing information about IP information.
+
+    :param ext_cp: dict(ExtCp data of Instantiation request)
+    :return: list(List structured of fixed_ips)
+    """
+    fixed_ips_lst = []
+    for cp_config in ext_cp.cp_config:
+        for cp_protocol_data in cp_config.cp_protocol_data:
+            for ip_address in cp_protocol_data.ip_over_ethernet.ip_addresses:
+
+                # TODO(w-juso):
+                # Currently, I have not found a way to specify multiple
+                # numDynamicAddresses to HOT, so I create a list of fixed_ips
+                # with numDynamicAddress=1.
+                # Needs to be considered in the future.
+                fixed_ips = {}
+                if ip_address.subnet_id:
+                    fixed_ips['subnet'] = ip_address.subnet_id
+                if ip_address.fixed_addresses:
+                    for fixed_address in ip_address.fixed_addresses:
+                        fixed_ips['ip_address'] = fixed_address
+
+                if fixed_ips:
+                    fixed_ips_lst.append(fixed_ips)
+
+    return fixed_ips_lst

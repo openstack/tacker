@@ -18,6 +18,10 @@ parameters:
     type: string
   net5:
     type: string
+  ip1:
+    type: string
+  subnet:
+    type: string
 
 resources:
   VDU2:
@@ -47,6 +51,9 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: { get_param: net2 }
+      fixed_ips:
+      - ip_address: { get_param: ip1}
+        subnet: { get_param: subnet}
   VDU2_CP3:
     type: OS::Neutron::Port
     properties:

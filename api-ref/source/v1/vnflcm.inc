@@ -123,6 +123,7 @@ Request Parameters
   - ipAddresses: ip_addresses
   - type: ip_address_type
   - fixedAddresses: fixed_addresses
+  - numDynamicAddresses: num_dynamic_addresses
   - subnetId: subnet_id
   - extLinkPorts: ext_link_ports
   - id: ext_link_port_id
