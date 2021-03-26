@@ -1,0 +1,26 @@
+---
+prelude: |
+    The 5.0.0 release includes new features based on ETSI NFV-SOL
+    Release2 specifications. The major changes are:
+
+    - Day2 operations for Cloud-native Network Function (CNF).
+      `Scale operation for CNF`_ and `Heal operation for CNF`_ with
+      ETSI NFV-SOL003 v2.6.1 are supported.
+
+      .. _Scale operation for CNF: https://docs.openstack.org/tacker/latest/user/etsi_cnf_scaling.html
+      .. _Heal operation for CNF: https://docs.openstack.org/tacker/latest/user/etsi_cnf_healing.html
+
+    - New MgmtDriver as preamble and postamble of VNF Lifecycle Management.
+      ``<base_operation_name>_start`` and ``<base_operation_name>_end`` are
+      executed before and after its operation according to the VNFD.
+
+    - `Sample MgmtDriver for Kubernetes cluster VNF`__ is provided to manage
+      on-premise Kubernetes. HA Master nodes, Scaling Worker nodes, and
+      Healing Master/Worker nodes are possible with Kube-adm.
+
+      .. __: https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html
+
+    - `Error handling of VNF instance`__ is enhanced to support Retry,
+      Rollback, and Fail operations.
+
+      .. __: https://docs.openstack.org/tacker/latest/user/etsi_vnf_error_handling.html
