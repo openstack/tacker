@@ -778,6 +778,8 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Get vnflcmOpOccId to retry.
             - Retry instantiation operation.
             - Get opOccs information.
+            - Get opOccs list.
+            - Delete VNF instance.
             - Delete subscription.
         """
         # Create subscription and register it.
@@ -855,6 +857,10 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
         self._assert_occ_show(resp, op_occs_info)
 
+        # occ-list
+        resp, op_occs_info = self._list_op_occs()
+        self._assert_occ_list(resp, op_occs_info)
+
         # Delete VNF
         resp, _ = self._delete_vnf_instance(vnf_instance_id)
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
@@ -877,7 +883,9 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Get vnfcmOpOccId to retry.
             - Retry Scale-Out operation.
             - Get opOccs information.
-            - Terminate VNF.
+            - Get opOccs list.
+            - Terminate VNF instance.
+            - Delete VNF instance.
             - Delete subscription.
         """
         # Create subscription and register it.
@@ -963,6 +971,10 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         # occ-show
         resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
         self._assert_occ_show(resp, op_occs_info)
+
+        # occ-list
+        resp, op_occs_info = self._list_op_occs()
+        self._assert_occ_list(resp, op_occs_info)
 
         # Terminate VNF
         stack = self._get_heat_stack(vnf_instance_id)
@@ -1000,6 +1012,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Get vnflcmOpOccId to rollback.
             - Rollback instantiation operation.
             - Get opOccs information.
+            - Get opOccs list
             - Delete subscription.
         """
         # Create subscription and register it.
@@ -1072,6 +1085,10 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
         self._assert_occ_show(resp, op_occs_info)
 
+        # occ-list
+        resp, op_occs_info = self._list_op_occs()
+        self._assert_occ_list(resp, op_occs_info)
+
         # Delete VNF
         resp, _ = self._delete_vnf_instance(vnf_instance_id)
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
@@ -1094,6 +1111,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Get vnfcmOpOccId to rollback.
             - Rollback Scale-Out operation.
             - Get opOccs information.
+            - get opOccs List.
             - Terminate VNF.
             - Delete subscription.
         """
@@ -1175,6 +1193,10 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         # occ-show
         resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
         self._assert_occ_show(resp, op_occs_info)
+
+        # occ-list
+        resp, op_occs_info = self._list_op_occs()
+        self._assert_occ_list(resp, op_occs_info)
 
         # Terminate VNF
         stack = self._get_heat_stack(vnf_instance_id)
@@ -1283,6 +1305,10 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
         self._assert_occ_show(resp, op_occs_info)
 
+        # occ-list
+        resp, op_occs_info = self._list_op_occs()
+        self._assert_occ_list(resp, op_occs_info)
+
         # Delete Stack
         stack = self._get_heat_stack(vnf_instance_id)
         self._delete_heat_stack(stack.id)
@@ -1390,6 +1416,10 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         # occ-show
         resp, op_occs_info = self._show_op_occs(vnflcm_op_occ_id)
         self._assert_occ_show(resp, op_occs_info)
+
+        # occ-list
+        resp, op_occs_info = self._list_op_occs()
+        self._assert_occ_list(resp, op_occs_info)
 
         # Terminate VNF
         stack = self._get_heat_stack(vnf_instance_id)
@@ -1562,3 +1592,24 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assertIsNotNone(_links.get('vnfInstance').get('href'))
         self.assertIsNotNone(_links.get('grant'))
         self.assertIsNotNone(_links.get('grant').get('href'))
+
+    def _assert_occ_list(self, resp, op_occs_list):
+        self.assertEqual(200, resp.status_code)
+
+        # Only check required parameters.
+        for op_occs_info in op_occs_list:
+            self.assertIsNotNone(op_occs_info.get('id'))
+            self.assertIsNotNone(op_occs_info.get('operationState'))
+            self.assertIsNotNone(op_occs_info.get('stateEnteredTime'))
+            self.assertIsNotNone(op_occs_info.get('vnfInstanceId'))
+            self.assertIsNotNone(op_occs_info.get('operation'))
+            self.assertIsNotNone(op_occs_info.get('isAutomaticInvocation'))
+            self.assertIsNotNone(op_occs_info.get('isCancelPending'))
+
+            _links = op_occs_info.get('_links')
+            self.assertIsNotNone(_links.get('self'))
+            self.assertIsNotNone(_links.get('self').get('href'))
+            self.assertIsNotNone(_links.get('vnfInstance'))
+            self.assertIsNotNone(_links.get('vnfInstance').get('href'))
+            self.assertIsNotNone(_links.get('grant'))
+            self.assertIsNotNone(_links.get('grant').get('href'))

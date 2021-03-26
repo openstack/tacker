@@ -42,6 +42,7 @@ from tacker._i18n import _
 from tacker.api.schemas import vnf_lcm
 from tacker.api import validation
 from tacker.api.views import vnf_lcm as vnf_lcm_view
+from tacker.api.views import vnf_lcm_op_occs as vnf_op_occs_view
 from tacker.api.vnflcm.v1 import sync_resource
 from tacker.common import exceptions
 from tacker.common import utils
@@ -52,6 +53,7 @@ from tacker.extensions import vnfm
 from tacker import manager
 from tacker import objects
 from tacker.objects import fields
+from tacker.objects import vnf_lcm_op_occs as vnf_lcm_op_occs_obj
 from tacker.objects import vnf_lcm_subscriptions as subscription_obj
 from tacker.plugins.common import constants
 from tacker.policies import vnf_lcm as vnf_lcm_policies
@@ -185,6 +187,7 @@ class VnfLcmController(wsgi.Controller):
         super(VnfLcmController, self).__init__()
         self.rpc_api = vnf_lcm_rpc.VNFLcmRPCAPI()
         self._vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
+        self._view_builder_op_occ = vnf_op_occs_view.ViewBuilder()
 
     def _get_vnf_instance_href(self, vnf_instance):
         return '/vnflcm/v1/vnf_instances/%s' % vnf_instance.id
@@ -1502,6 +1505,40 @@ class VnfLcmController(wsgi.Controller):
             error_msg = 'Operation type %s is inavalid' % operation
             return self._make_problem_detail(error_msg,
                 500, title='Internal Server Error')
+
+    @wsgi.response(http_client.OK)
+    @wsgi.expected_errors((http_client.FORBIDDEN, http_client.BAD_REQUEST))
+    def list_lcm_op_occs(self, request):
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'list_lcm_op_occs')
+
+        all_fields = request.GET.get('all_fields')
+        exclude_default = request.GET.get('exclude_default')
+        fields = request.GET.get('fields')
+        exclude_fields = request.GET.get('exclude_fields')
+        filters = request.GET.get('filter')
+        if not (all_fields or fields or exclude_fields):
+            exclude_default = True
+
+        self._view_builder_op_occ.validate_attribute_fields(
+            all_fields=all_fields, fields=fields,
+            exclude_fields=exclude_fields,
+            exclude_default=exclude_default)
+
+        filters = self._view_builder_op_occ.validate_filter(filters)
+
+        try:
+            vnf_lcm_op_occs = \
+                vnf_lcm_op_occs_obj.VnfLcmOpOccList.get_by_filters(
+                    request.context, read_deleted='no', filters=filters)
+        except Exception as e:
+            LOG.exception(traceback.format_exc())
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
+
+        return self._view_builder_op_occ.index(request, vnf_lcm_op_occs,
+                all_fields=all_fields, exclude_fields=exclude_fields,
+                fields=fields, exclude_default=exclude_default)
 
     def _make_problem_detail(
             self,

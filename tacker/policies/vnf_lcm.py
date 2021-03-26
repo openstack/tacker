@@ -100,6 +100,17 @@ rules = [
         ]
     ),
     policy.DocumentedRuleDefault(
+        name=VNFLCM % 'list_lcm_op_occs',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Query VNF LCM operation occurrence",
+        operations=[
+            {
+                'method': 'GET',
+                'path': '/vnflcm/v1/vnf_lcm_op_occs'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
         name=VNFLCM % 'index',
         check_str=base.RULE_ADMIN_OR_OWNER,
         description="Query VNF instances.",

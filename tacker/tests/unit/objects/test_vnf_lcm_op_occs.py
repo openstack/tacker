@@ -90,10 +90,13 @@ class TestVnfLcmOpOcc(SqlTestCase):
         problem_obj.detail = 'test_err'
         changed_info = objects.vnf_lcm_op_occs.VnfInfoModifications(
             context=self.context, **fakes.get_changed_info_data())
+        changed_ext_conn = [objects.ExtVirtualLinkInfo.obj_from_primitive(
+            i, self.context) for i in fakes.get_changed_ext_conn_data()]
         vnf_lcm_op_occs.operation_state = 'FAILED_TEMP'
         vnf_lcm_op_occs.error = problem_obj
         vnf_lcm_op_occs.id = uuidsentinel.vnf_lcm_op_occs_id
         vnf_lcm_op_occs.changed_info = changed_info
+        vnf_lcm_op_occs.changed_ext_connectivity = changed_ext_conn
         vnf_lcm_op_occs.save()
 
         self.assertEqual('FAILED_TEMP', vnf_lcm_op_occs.operation_state)

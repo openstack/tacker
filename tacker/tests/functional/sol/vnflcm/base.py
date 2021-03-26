@@ -487,6 +487,14 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
         return resp, response_body
 
+    def _list_op_occs(self, filter_string=''):
+        show_url = os.path.join(
+            self.base_vnf_lcm_op_occs_url)
+        resp, response_body = self.http_client.do_request(
+            show_url + filter_string, "GET")
+
+        return resp, response_body
+
     def _wait_terminate_vnf_instance(self, id, timeout=None):
         start_time = int(time.time())
 

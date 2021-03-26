@@ -1265,20 +1265,28 @@ VNFLCMOPOCC_RESPONSE = {
             "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_instances/'
             'f26f181d-7891-4720-b022-b074ec1733ef'
         },
+        "retry": {
+            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
+            'f26f181d-7891-4720-b022-b074ec1733ef/retry'
+        },
         "rollback": {
             "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
             'f26f181d-7891-4720-b022-b074ec1733ef/rollback'
         },
         "grant": {
             "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
-            'f26f181d-7891-4720-b022-b074ec1733ef/grant'
-        }},
+            'f26f181d-7891-4720-b022-b074ec1733ef/grant',
+        },
+        "fail": {
+            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
+            'f26f181d-7891-4720-b022-b074ec1733ef/fail'}},
     'operationState': 'COMPLETED',
     'stateEnteredTime': datetime.datetime(1900, 1, 1, 1, 1, 1,
                             tzinfo=iso8601.UTC),
     'startTime': datetime.datetime(1900, 1, 1, 1, 1, 1,
                             tzinfo=iso8601.UTC),
     'vnfInstanceId': 'f26f181d-7891-4720-b022-b074ec1733ef',
+    'grantId': 'f26f181d-7891-4720-b022-b074ec1733ef',
     'operation': 'MODIFY_INFO',
     'isAutomaticInvocation': False,
     'operationParams': '{"is_reverse": False, "is_auto": False}',
@@ -1336,7 +1344,24 @@ VNFLCMOPOCC_RESPONSE = {
         'vnfProductName': 'fake_vnf_product_name',
         'vnfSoftwareVersion': 'fake_vnf_software_version',
         'vnfdVersion': 'fake_vnfd_version'
-    }
+    },
+    "changedExtConnectivity": [{
+        "id": constants.UUID,
+        "resourceHandle": {
+            "vimConnectionId": constants.UUID,
+            "resourceId": constants.UUID,
+            "vimLevelResourceType": "OS::Neutron::Net",
+        },
+        "extLinkPorts": [{
+            "id": constants.UUID,
+            "resourceHandle": {
+                "vimConnectionId": constants.UUID,
+                "resourceId": constants.UUID,
+                "vimLevelResourceType": "OS::Neutron::Port",
+            },
+            "cpInstanceId": constants.UUID,
+        }]
+    }]
 }
 
 VNFLCMOPOCC_INDEX_RESPONSE = [VNFLCMOPOCC_RESPONSE]
@@ -1436,6 +1461,28 @@ def fake_vnf_lcm_op_occs():
     }
     changed_info_obj = objects.VnfInfoModifications(**changed_info)
 
+    changed_ext_connectivity = [{
+        "id": constants.UUID,
+        "resource_handle": {
+            "vim_connection_id": constants.UUID,
+            "resource_id": constants.UUID,
+            "vim_level_resource_type": "OS::Neutron::Net",
+        },
+        "ext_link_ports": [{
+            "id": constants.UUID,
+            "resource_handle": {
+                "vim_connection_id": constants.UUID,
+                "resource_id": constants.UUID,
+                "vim_level_resource_type": "OS::Neutron::Port",
+            },
+            "cp_instance_id": constants.UUID,
+        }]
+    }]
+    changed_ext_connectivity_obj = \
+        [objects.ExtVirtualLinkInfo.obj_from_primitive(
+         chg_ext_conn, context) for chg_ext_conn in
+         changed_ext_connectivity]
+
     dt = datetime.datetime(1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
     vnf_lcm_op_occs = {
         'id': constants.UUID,
@@ -1443,13 +1490,15 @@ def fake_vnf_lcm_op_occs():
         'state_entered_time': dt,
         'start_time': dt,
         'vnf_instance_id': constants.UUID,
+        'grant_id': constants.UUID,
         'operation': 'MODIFY_INFO',
         'is_automatic_invocation': False,
         'operation_params': '{"is_reverse": False, "is_auto": False}',
         'is_cancel_pending': False,
         'error': error_obj,
         'resource_changes': resource_changes_obj,
-        'changed_info': changed_info_obj
+        'changed_info': changed_info_obj,
+        'changed_ext_connectivity': changed_ext_connectivity_obj,
     }
 
     return vnf_lcm_op_occs
@@ -1484,3 +1533,10 @@ def vnf_data(status='ACTIVE'):
         name='test',
         status=status,
         vim_id=uuidsentinel.vim_id)
+
+
+def return_vnf_lcm_opoccs_list():
+    vnf_lcm_op_occs = fake_vnf_lcm_op_occs()
+    obj = objects.VnfLcmOpOcc(**vnf_lcm_op_occs)
+
+    return [obj]

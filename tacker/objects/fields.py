@@ -225,8 +225,7 @@ class LcmOccsOperationState(BaseTackerEnum):
     FAILED_TEMP = 'FAILED_TEMP'
     FAILED = 'FAILED'
 
-    ALL = (STARTING, PROCESSING, COMPLETED,
-        FAILED_TEMP, FAILED)
+    ALL = (STARTING, PROCESSING, COMPLETED, FAILED_TEMP, FAILED)
 
 
 class LcmOccsOperationType(BaseTackerEnum):
