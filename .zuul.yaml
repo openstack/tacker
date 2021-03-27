@@ -461,7 +461,7 @@
       - check-requirements
       - openstack-cover-jobs
       - openstack-lower-constraints-jobs
-      - openstack-python3-wallaby-jobs
+      - openstack-python3-xena-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
     check:
