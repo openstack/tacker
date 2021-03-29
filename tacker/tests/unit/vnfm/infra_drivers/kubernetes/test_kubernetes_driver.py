@@ -2352,7 +2352,8 @@ class TestKubernetes(base.TestCase):
                            mock_read_namespaced_deployment,
                            mock_patch_namespaced_deployment_scale,
                            mock_read_namespaced_horizontal_pod_autoscaler):
-        policy = fakes.get_scale_policy(type=scale_type, aspect_id='SP1')
+        policy = fakes.get_scale_policy(
+            type=scale_type, aspect_id='SP1', is_legacy=True)
         policy['instance_id'] = "fake_namespace,fake_name"
         mock_vnf_resource_list.return_value = []
         mock_read_namespaced_deployment.return_value = \
@@ -2569,8 +2570,8 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_wait_legacy(self, mock_vnf_resource_list,
                         mock_list_namespaced_pod):
-        policy = fakes.get_scale_policy(type='out', aspect_id='SP1')
-        policy['instance_id'] = "fake_namespace,fake_name"
+        policy = fakes.get_scale_policy(
+            type='out', aspect_id='SP1', is_legacy=True)
         mock_vnf_resource_list.return_value = []
         mock_list_namespaced_pod.return_value = \
             client.V1PodList(items=[
@@ -2587,8 +2588,8 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_wait_legacy_retry_over(self, mock_vnf_resource_list,
                         mock_list_namespaced_pod):
-        policy = fakes.get_scale_policy(type='out', aspect_id='SP1')
-        policy['instance_id'] = "fake_namespace,fake_name"
+        policy = fakes.get_scale_policy(
+            type='out', aspect_id='SP1', is_legacy=True)
         mock_vnf_resource_list.return_value = []
         mock_list_namespaced_pod.return_value = \
             client.V1PodList(items=[
@@ -2603,8 +2604,8 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_wait_legacy_status_unknown(self, mock_vnf_resource_list,
                         mock_list_namespaced_pod):
-        policy = fakes.get_scale_policy(type='out', aspect_id='SP1')
-        policy['instance_id'] = "fake_namespace,fake_name"
+        policy = fakes.get_scale_policy(
+            type='out', aspect_id='SP1', is_legacy=True)
         mock_vnf_resource_list.return_value = []
         mock_list_namespaced_pod.return_value = \
             client.V1PodList(items=[
