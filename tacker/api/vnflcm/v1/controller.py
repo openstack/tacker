@@ -193,10 +193,12 @@ class VnfLcmController(wsgi.Controller):
         self._view_builder_subscription = vnf_subscription_view.ViewBuilder()
 
     def _get_vnf_instance_href(self, vnf_instance):
-        return '/vnflcm/v1/vnf_instances/%s' % vnf_instance.id
+        return '{}vnflcm/v1/vnf_instances/{}'.format(
+            CONF.vnf_lcm.endpoint_url, vnf_instance.id)
 
     def _get_vnf_lcm_op_occs_href(self, vnf_lcm_op_occs_id):
-        return '/vnflcm/v1/vnf_lcm_op_occs/%s' % vnf_lcm_op_occs_id
+        return '{}vnflcm/v1/vnf_lcm_op_occs/{}'.format(
+            CONF.vnf_lcm.endpoint_url, vnf_lcm_op_occs_id)
 
     def _get_vnf_instance(self, context, id):
         # check if id is of type uuid format
@@ -643,6 +645,13 @@ class VnfLcmController(wsgi.Controller):
             self.rpc_api.instantiate(context, vnf_instance, vnf,
                                     instantiate_vnf_request,
                                     vnf_lcm_op_occs_id)
+        # set response header
+        res = webob.Response()
+        res.status_int = 202
+        location = ('Location',
+                self._get_vnf_lcm_op_occs_href(vnf_lcm_op_occs_id))
+        res.headerlist.append(location)
+        return res
 
     @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,
@@ -655,7 +664,7 @@ class VnfLcmController(wsgi.Controller):
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
 
-        self._instantiate(context, vnf_instance, vnf, body)
+        return self._instantiate(context, vnf_instance, vnf, body)
 
     @check_vnf_state(action="terminate",
                      instantiation_state=[
@@ -685,6 +694,13 @@ class VnfLcmController(wsgi.Controller):
         if vnf_lcm_op_occs_id:
             self.rpc_api.terminate(context, vnf_instance, vnf,
                                 terminate_vnf_req, vnf_lcm_op_occs_id)
+        # set response header
+        res = webob.Response()
+        res.status_int = 202
+        location = ('Location',
+                self._get_vnf_lcm_op_occs_href(vnf_lcm_op_occs_id))
+        res.headerlist.append(location)
+        return res
 
     @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
@@ -696,7 +712,7 @@ class VnfLcmController(wsgi.Controller):
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
-        self._terminate(context, vnf_instance, vnf, body)
+        return self._terminate(context, vnf_instance, vnf, body)
 
     @check_vnf_status_and_error_point(action="heal",
         status=[constants.ACTIVE])
@@ -733,6 +749,14 @@ class VnfLcmController(wsgi.Controller):
             self.rpc_api.heal(context, vnf_instance, vnf_dict,
                             heal_vnf_request, vnf_lcm_op_occs_id)
 
+        # set response header
+        res = webob.Response()
+        res.status_int = 202
+        location = ('Location',
+                self._get_vnf_lcm_op_occs_href(vnf_lcm_op_occs_id))
+        res.headerlist.append(location)
+        return res
+
     @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
                            http_client.NOT_FOUND, http_client.CONFLICT))
@@ -758,7 +782,7 @@ class VnfLcmController(wsgi.Controller):
                 state=vnf_instance.task_state,
                 action='heal')
 
-        self._heal(context, vnf_instance, vnf, body)
+        return self._heal(context, vnf_instance, vnf, body)
 
     @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))

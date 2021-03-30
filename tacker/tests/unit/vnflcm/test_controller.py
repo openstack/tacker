@@ -182,6 +182,8 @@ class FakeVNFMPlugin(mock.Mock):
 
 @ddt.ddt
 class TestController(base.TestCase):
+    expected_location_prefix = ('http://localhost:9890/'
+        'vnflcm/v1/vnf_lcm_op_occs/')
 
     def setUp(self):
         super(TestController, self).setUp()
@@ -298,7 +300,7 @@ class TestController(base.TestCase):
         updates = {"vnfInstanceName": "SampleVnf",
                    "vnfInstanceDescription": "SampleVnf Description"}
         expected_vnf = fakes.fake_vnf_instance_response(**updates)
-        location_header = ('http://localhost/vnflcm/v1/vnf_instances/%s'
+        location_header = ('http://localhost:9890/vnflcm/v1/vnf_instances/%s'
                            % resp.json['id'])
 
         self.assertEqual(expected_vnf, resp.json)
@@ -599,6 +601,10 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
+        self.assertTrue('Location' in resp.headers.keys())
+        expected_location = (self.expected_location_prefix +
+                    str(mock_insta_notfi_process.return_value))
+        self.assertEqual(expected_location, resp.headers['location'])
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_instantiate.assert_called_once()
 
@@ -636,6 +642,7 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("No flavour with id 'invalid'.",
                          resp.json['badRequest']['message'])
@@ -682,6 +689,10 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
+        self.assertTrue('Location' in resp.headers.keys())
+        expected_location = (self.expected_location_prefix +
+                    str(mock_insta_notif_process.return_value))
+        self.assertEqual(expected_location, resp.headers['location'])
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_instantiate.assert_called_once()
         mock_get_vnf.assert_called_once()
@@ -728,6 +739,7 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("No instantiation level with id "
                          "'instantiation_level_1'.",
@@ -770,6 +782,7 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("No instantiation level with id 'non-existing'.",
                          resp.json['badRequest']['message'])
@@ -821,6 +834,10 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
+        self.assertTrue('Location' in resp.headers.keys())
+        expected_location = (self.expected_location_prefix +
+                    str(mock_insta_notif_process.return_value))
+        self.assertEqual(expected_location, resp.headers['location'])
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_instantiate.assert_called_once()
         mock_get_vnf.assert_called_once()
@@ -867,6 +884,7 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("VimConnection id is not found: %s" %
                          uuidsentinel.vim_id,
@@ -915,6 +933,7 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("Region not found for the VimConnection: %s" %
                          uuidsentinel.vim_id,
@@ -957,6 +976,7 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("Default VIM is not defined.",
                          resp.json['badRequest']['message'])
@@ -983,6 +1003,7 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.CONFLICT, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -1008,7 +1029,7 @@ class TestController(base.TestCase):
         req.method = 'POST'
 
         resp = req.get_response(self.app)
-
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.CONFLICT, resp.status_code)
         expected_msg = ("Vnf instance %s in task_state INSTANTIATING. Cannot "
                         "instantiate while the vnf instance is in this state.")
@@ -1069,7 +1090,7 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
-
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("'flavourId' is a required property",
                          resp.json['badRequest']['message'])
@@ -1093,7 +1114,7 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
-
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -1110,7 +1131,7 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
-
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
         self.assertEqual(
             "Can not find requested vnf: %s" % constants.INVALID_UUID,
@@ -1135,7 +1156,7 @@ class TestController(base.TestCase):
 
         # Call Instantiate API
         resp = req.get_response(self.app)
-
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
         self.assertEqual("Can not find requested vnf instance: %s" %
                          uuidsentinel.vnf_instance_id,
@@ -1156,6 +1177,7 @@ class TestController(base.TestCase):
         req.headers['Content-Type'] = 'application/json'
         req.method = method
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -1261,6 +1283,9 @@ class TestController(base.TestCase):
         req.method = 'POST'
 
         resp = req.get_response(self.app)
+        expected_location = (self.expected_location_prefix +
+                    str(mock_notification_process.return_value))
+        self.assertEqual(expected_location, resp.headers['location'])
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_terminate.assert_called_once()
         mock_get_vnf.assert_called_once()
@@ -1317,6 +1342,7 @@ class TestController(base.TestCase):
 
         # Call terminate API
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         self.assertEqual("'terminationType' is a required property",
                          resp.json['badRequest']['message'])
@@ -1336,6 +1362,7 @@ class TestController(base.TestCase):
         req.headers['Content-Type'] = 'application/json'
         req.method = method
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -1356,7 +1383,7 @@ class TestController(base.TestCase):
         req.method = 'POST'
 
         resp = req.get_response(self.app)
-
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
         self.assertEqual("Can not find requested vnf instance: %s" %
                          uuidsentinel.vnf_instance_id,
@@ -1387,7 +1414,7 @@ class TestController(base.TestCase):
         req.method = 'POST'
 
         resp = req.get_response(self.app)
-
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.CONFLICT, resp.status_code)
         expected_msg = ("Vnf instance %s in task_state TERMINATING. Cannot "
                         "terminate while the vnf instance is in this state.")
@@ -1423,7 +1450,10 @@ class TestController(base.TestCase):
         req.method = 'POST'
 
         resp = req.get_response(self.app)
-
+        self.assertTrue('Location' in resp.headers.keys())
+        expected_location = (self.expected_location_prefix +
+                    str(mock_heal_notif_process.return_value))
+        self.assertEqual(expected_location, resp.headers['location'])
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_rpc_heal.assert_called_once()
 
@@ -1440,6 +1470,7 @@ class TestController(base.TestCase):
         req.method = 'POST'
 
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -1468,6 +1499,7 @@ class TestController(base.TestCase):
         req.method = 'POST'
 
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.CONFLICT, resp.status_code)
         expected_msg = ("Vnf instance %s in instantiation_state "
                         "NOT_INSTANTIATED. Cannot heal while the vnf instance "
@@ -1498,6 +1530,7 @@ class TestController(base.TestCase):
         req.method = 'POST'
 
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.CONFLICT, resp.status_code)
         expected_msg = ("Vnf instance %s in task_state "
                         "HEALING. Cannot heal while the vnf instance "
@@ -1533,6 +1566,7 @@ class TestController(base.TestCase):
         req.method = 'POST'
 
         resp = req.get_response(self.app)
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
         expected_msg = "Vnfc id %s not present in vnf instance %s"
         self.assertEqual(expected_msg % (uuidsentinel.vnfc_instance_id,
@@ -1553,7 +1587,7 @@ class TestController(base.TestCase):
         req.method = method
 
         resp = req.get_response(self.app)
-
+        self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
