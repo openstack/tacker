@@ -36,8 +36,8 @@ topology_template:
   policies:
     - SP1:
         type: tosca.policies.tacker.Scaling
-        targets: [VDU1]
         properties:
+          targets: [VDU1]
           increment: 1
           cooldown: 60
           min_instances: 1

@@ -46,6 +46,6 @@ topology_template:
         increment: 1
         max_instances: 3
         min_instances: 1
-      targets:
-      - VDU1
+        targets:
+        - VDU1
       type: tosca.policies.tacker.Scaling

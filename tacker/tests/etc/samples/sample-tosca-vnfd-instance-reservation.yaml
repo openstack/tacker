@@ -87,4 +87,4 @@ topology_template:
           min_instances: 0
           max_instances: 2
           default_instances: 0
-        targets: [VDU1]
+          targets: [VDU1]

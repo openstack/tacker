@@ -160,5 +160,5 @@ wrapt==1.10.11
 # but the latest revision from git repo for development.
 # If you install packages, comment out two lines of `install_package_gitrepo` in
 # `devstack/plugin.sh` in addition to activate following lines.
-heat-translator==2.2.0 # Apache-2.0
+heat-translator==2.3.0 # Apache-2.0
 tosca-parser==2.3.0 # Apache-2.0
