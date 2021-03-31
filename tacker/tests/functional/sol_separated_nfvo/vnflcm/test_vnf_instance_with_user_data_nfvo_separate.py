@@ -97,6 +97,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
 
         In this test case, we do following steps.
             - Create subscription.
+            - Test notification.
             - Create VNF instance.
             - Instantiate VNF.
             - List VNF instances.
@@ -112,17 +113,20 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         glance_image = self._list_glance_image()[0]
 
         # Create subscription and register it.
+        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
         request_body = fake_vnflcm.Subscription.make_create_request_body(
             'http://localhost:{}{}'.format(
                 vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                os.path.join(
-                    vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-                    self._testMethodName)))
+                callback_url))
         resp, response_body = self._register_subscription(request_body)
         self.assertEqual(201, resp.status_code)
         self.assert_http_header_location_for_subscription(resp.headers)
         subscription_id = response_body.get('id')
         self.addCleanup(self._delete_subscription, subscription_id)
+
+        # Test notification
+        self.assert_notification_get(callback_url)
 
         # Create vnf instance
         resp, vnf_instance = self._create_vnf_instance_from_body(
