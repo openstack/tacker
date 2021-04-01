@@ -330,6 +330,12 @@ policy_types:
         type: integer
         required: true
         description: Number of nodes to add or remove during the scale out/in.
+      targets:
+        type: list
+        entry_schema:
+          type: string
+        required: true
+        description: List of Scaling nodes.
       target_cpu_utilization_percentage:
         type: integer
         required: false
