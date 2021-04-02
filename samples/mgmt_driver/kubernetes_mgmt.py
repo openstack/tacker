@@ -719,7 +719,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
     def _get_vim_by_name(self, context, k8s_vim_name):
         common_db_api = CommonDbMixin()
         result = common_db_api._get_by_name(
-            self, context, nfvo_db.Vim, k8s_vim_name)
+            context, nfvo_db.Vim, k8s_vim_name)
 
         if not result:
             LOG.debug("Cannot find kubernetes "
