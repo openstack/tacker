@@ -1446,24 +1446,24 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         resource_changes.affected_vnfcs = []
         resource_changes.affected_virtual_links = []
         resource_changes.affected_virtual_storages = []
-        if 'resource_changes' in vnf_lcm_op_occs \
-                and vnf_lcm_op_occs.resource_changes:
-            if 'affected_vnfcs' in vnf_lcm_op_occs.resource_changes:
-                if len(vnf_lcm_op_occs.resource_changes.affected_vnfcs) > 0:
+        if 'resource_changes' in vnf_lcm_op_occs and \
+                vnf_lcm_op_occs.resource_changes:
+            res_chg = vnf_lcm_op_occs.resource_changes
+            if 'affected_vnfcs' in res_chg:
+                if res_chg.affected_vnfcs and \
+                        len(res_chg.affected_vnfcs) > 0:
                     resource_changes.affected_vnfcs.extend(
-                        vnf_lcm_op_occs.resource_changes.affected_vnfcs)
-            if 'affected_virtual_storages' in vnf_lcm_op_occs.resource_changes:
-                if len(vnf_lcm_op_occs.resource_changes.
-                       affected_virtual_storages) > 0:
+                        res_chg.affected_vnfcs)
+            if 'affected_virtual_storages' in res_chg:
+                if res_chg.affected_virtual_storages and \
+                        len(res_chg.affected_virtual_storages) > 0:
                     resource_changes.affected_virtual_storages.extend(
-                        vnf_lcm_op_occs.resource_changes.
-                        affected_virtual_storages)
-            if 'affected_virtual_links' in vnf_lcm_op_occs.resource_changes:
-                if len(vnf_lcm_op_occs.resource_changes.
-                        affected_virtual_links) > 0:
+                        res_chg.affected_virtual_storages)
+            if 'affected_virtual_links' in res_chg:
+                if res_chg.affected_virtual_links and \
+                        len(res_chg.affected_virtual_links) > 0:
                     resource_changes.affected_virtual_links.extend(
-                        vnf_lcm_op_occs.resource_changes.
-                        affected_virtual_links)
+                        res_chg.affected_virtual_links)
         resource_changes.affected_vnfcs.extend(affected_vnfcs)
         resource_changes.affected_virtual_storages.extend(
             affected_virtual_storages)
