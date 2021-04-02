@@ -97,15 +97,9 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 stdout = result.get_stdout()
                 LOG.debug(stdout)
                 LOG.debug(err)
-        elif type == 'certificate_key':
-            if '[upload-certs] Using certificate key:\n' not \
-                    in result.get_stdout():
+        elif type == 'certificate_key' or type == 'install':
+            if result.get_return_code() != 0:
                 err = result.get_stderr()
-                LOG.error(err)
-                raise exceptions.MgmtDriverRemoteCommandError(err_info=err)
-        elif type == 'install':
-            err = result.get_stderr()
-            if 'Install Failed!\n' in result.get_stdout():
                 LOG.error(err)
                 raise exceptions.MgmtDriverRemoteCommandError(err_info=err)
         return result.get_stdout()
