@@ -1,0 +1,5 @@
+---
+features:
+  - Add placement constraints support so that the VNFM may interoperate with 3rd
+    party NFVO, it enables to deploy each VM in the VNF after setting the zone
+    information based on the grant response from NFVO.
