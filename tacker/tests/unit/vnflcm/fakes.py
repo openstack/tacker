@@ -228,14 +228,22 @@ def return_vnf_instance(
 
 def _instantiated_vnf_links(vnf_instance_id):
     links = {
-        "self": {"href": "/vnflcm/v1/vnf_instances/%s" % vnf_instance_id},
-        "terminate": {"href": "/vnflcm/v1/vnf_instances/%s/terminate" %
-                      vnf_instance_id},
-        "heal": {"href": "/vnflcm/v1/vnf_instances/%s/heal" %
-                 vnf_instance_id},
+        "self": {"href":
+            '{endpoint}/vnflcm/v1/vnf_instances/{id}'.format(
+                endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                id=vnf_instance_id)},
+        "terminate": {"href":
+            '{endpoint}/vnflcm/v1/vnf_instances/{id}/terminate'.format(
+                endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                id=vnf_instance_id)},
+        "heal": {"href":
+            '{endpoint}/vnflcm/v1/vnf_instances/{id}/heal'.format(
+                endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                id=vnf_instance_id)},
         "changeExtConn": {"href":
-                          "/vnflcm/v1/vnf_instances/%s/change_ext_conn" %
-                          vnf_instance_id}}
+            '{endpoint}/vnflcm/v1/vnf_instances/{id}/change_ext_conn'
+             .format(endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                 id=vnf_instance_id)}}
 
     return links
 
@@ -248,14 +256,16 @@ def _fake_vnf_instance_not_instantiated_response(
         'vnfProductName': 'Sample VNF',
         '_links': {
             'self': {
-                'href': os.path.join(
-                    '/vnflcm/v1/vnf_instances/',
-                    uuidsentinel.vnf_instance_id)},
+                "href":
+                '{endpoint}/vnflcm/v1/vnf_instances/{id}'.format(
+                    endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                    id=uuidsentinel.vnf_instance_id)},
             'instantiate': {
-                'href': os.path.join(
-                    '/vnflcm/v1/vnf_instances',
-                    uuidsentinel.vnf_instance_id,
-                    'instantiate')}},
+                "href":
+                '{endpoint}/vnflcm/v1/vnf_instances/{id}/{op}'.format(
+                    endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                    id=uuidsentinel.vnf_instance_id,
+                    op='instantiate')}},
         'instantiationState': 'NOT_INSTANTIATED',
         'vnfProvider': 'Vnf provider',
         'vnfdId': uuidsentinel.vnfd_id,
@@ -1322,27 +1332,33 @@ def wsgi_app_v1(fake_auth_context=None):
 VNFLCMOPOCC_RESPONSE = {
     '_links': {
         "self": {
-            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
+            "href": CONF.vnf_lcm.endpoint_url.rstrip("/") +
+            '/vnflcm/v1/vnf_lcm_op_occs/'
             'f26f181d-7891-4720-b022-b074ec1733ef'
         },
         "vnfInstance": {
-            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_instances/'
+            "href": CONF.vnf_lcm.endpoint_url.rstrip("/") +
+            '/vnflcm/v1/vnf_instances/'
             'f26f181d-7891-4720-b022-b074ec1733ef'
         },
         "retry": {
-            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
+            "href": CONF.vnf_lcm.endpoint_url.rstrip("/") +
+            '/vnflcm/v1/vnf_lcm_op_occs/'
             'f26f181d-7891-4720-b022-b074ec1733ef/retry'
         },
         "rollback": {
-            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
+            "href": CONF.vnf_lcm.endpoint_url.rstrip("/") +
+            '/vnflcm/v1/vnf_lcm_op_occs/'
             'f26f181d-7891-4720-b022-b074ec1733ef/rollback'
         },
         "grant": {
-            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
+            "href": CONF.vnf_lcm.endpoint_url.rstrip("/") +
+            '/vnflcm/v1/vnf_lcm_op_occs/'
             'f26f181d-7891-4720-b022-b074ec1733ef/grant',
         },
         "fail": {
-            "href": CONF.vnf_lcm.endpoint_url + '/vnflcm/v1/vnf_lcm_op_occs/'
+            "href": CONF.vnf_lcm.endpoint_url.rstrip("/") +
+            '/vnflcm/v1/vnf_lcm_op_occs/'
             'f26f181d-7891-4720-b022-b074ec1733ef/fail'}},
     'operationState': 'COMPLETED',
     'stateEnteredTime': datetime.datetime(1900, 1, 1, 1, 1, 1,
@@ -1737,9 +1753,10 @@ def _subscription_links(subscription_dict):
     links = {
         "_links": {
             "self": {
-                "href": "%(endpoint)s/vnflcm/v1/subscriptions/%(id)s"
-                        % {'id': subscription_dict['id'],
-                           'endpoint': CONF.vnf_lcm.endpoint_url}
+                "href":
+                "{endpoint}/vnflcm/v1/subscriptions/{id}".format(
+                    id=subscription_dict['id'],
+                    endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"))
             }
         }
     }

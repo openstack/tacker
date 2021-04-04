@@ -919,7 +919,7 @@ class VnfLcmController(wsgi.Controller):
         # make response
         res = webob.Response(content_type='application/json')
         res.status_int = 202
-        loc_url = CONF.vnf_lcm.endpoint_url + \
+        loc_url = CONF.vnf_lcm.endpoint_url.rstrip("/") + \
             '/vnflcm/v1/vnf_lcm_op_occs/' + op_occs_uuid
         location = ('Location', loc_url)
         res.headerlist.append(location)
@@ -966,7 +966,7 @@ class VnfLcmController(wsgi.Controller):
                     "See Other", 303, title='See Other')
                 link = (
                     'LINK',
-                    CONF.vnf_lcm.endpoint_url +
+                    CONF.vnf_lcm.endpoint_url.rstrip("/") +
                     "/vnflcm/v1/subscriptions/" +
                     str(e)[
                         3:])
@@ -1242,9 +1242,9 @@ class VnfLcmController(wsgi.Controller):
         vnf_instance.task_state = fields.VnfInstanceTaskState.SCALING
         vnf_instance.save()
 
-        vnflcm_url = CONF.vnf_lcm.endpoint_url + \
+        vnflcm_url = CONF.vnf_lcm.endpoint_url.rstrip("/") + \
             "/vnflcm/v1/vnf_lcm_op_occs/" + vnf_lcm_op_occs_id
-        insta_url = CONF.vnf_lcm.endpoint_url + \
+        insta_url = CONF.vnf_lcm.endpoint_url.rstrip("/") + \
             "/vnflcm/v1/vnf_instances/" + inst_vnf_info.vnf_instance_id
 
         vnf_info['vnflcm_id'] = vnf_lcm_op_occs_id
@@ -1324,7 +1324,7 @@ class VnfLcmController(wsgi.Controller):
             operation_params)
         vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
 
-        vnflcm_url = CONF.vnf_lcm.endpoint_url + \
+        vnflcm_url = CONF.vnf_lcm.endpoint_url.rstrip("/") + \
             "/vnflcm/v1/vnf_lcm_op_occs/" + vnf_lcm_op_occs.id
         res = webob.Response()
         res.status_int = 202

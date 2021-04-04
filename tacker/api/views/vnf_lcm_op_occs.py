@@ -32,37 +32,44 @@ class ViewBuilder(base.BaseViewBuilder):
     def _get_lcm_op_occs_links(self, vnf_lcm_op_occs):
         _links = {
             "self": {
-                "href": '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s'
-                % {"endpoint": CONF.vnf_lcm.endpoint_url,
-                    "id": vnf_lcm_op_occs.id}
+                "href":
+                '{endpoint}/vnflcm/v1/vnf_lcm_op_occs/{id}'.format(
+                    endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                    id=vnf_lcm_op_occs.id)
             },
             "vnfInstance": {
-                "href": '%(endpoint)s/vnflcm/v1/vnf_instances/%(id)s'
-                % {"endpoint": CONF.vnf_lcm.endpoint_url,
-                    "id": vnf_lcm_op_occs.vnf_instance_id}
+                "href":
+                '{endpoint}/vnflcm/v1/vnf_instances/{id}'.format(
+                    endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                    id=vnf_lcm_op_occs.vnf_instance_id)
             },
             "retry": {
                 "href":
-                '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s/retry'
-                % {"endpoint": CONF.vnf_lcm.endpoint_url,
-                    "id": vnf_lcm_op_occs.id}
+                '{endpoint}/vnflcm/v1/vnf_lcm_op_occs/{id}/retry'.
+                format(
+                    endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                    id=vnf_lcm_op_occs.id)
             },
             "rollback": {
                 "href":
-                '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s/rollback'
-                % {"endpoint": CONF.vnf_lcm.endpoint_url,
-                    "id": vnf_lcm_op_occs.id}
+                '{endpoint}/vnflcm/v1/vnf_lcm_op_occs/{id}/rollback'.
+                format(
+                    endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                    id=vnf_lcm_op_occs.id)
             },
             "grant": {
-                "href": '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s/grant'
-                % {"endpoint": CONF.vnf_lcm.endpoint_url,
-                    "id": vnf_lcm_op_occs.id}
+                "href":
+                '{endpoint}/vnflcm/v1/vnf_lcm_op_occs/{id}/grant'.
+                format(
+                    endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                    id=vnf_lcm_op_occs.id)
             },
             "fail": {
                 "href":
-                '%(endpoint)s/vnflcm/v1/vnf_lcm_op_occs/%(id)s/fail'
-                % {"endpoint": CONF.vnf_lcm.endpoint_url,
-                    "id": vnf_lcm_op_occs.id}
+                '{endpoint}/vnflcm/v1/vnf_lcm_op_occs/{id}/fail'.
+                format(
+                    endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                    id=vnf_lcm_op_occs.id)
             }
         }
 

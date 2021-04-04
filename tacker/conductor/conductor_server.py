@@ -320,10 +320,14 @@ class Conductor(manager.Manager):
         self._basic_config_check()
 
     def _get_vnf_instance_href(self, vnf_instance_id):
-        return '/vnflcm/v1/vnf_instances/%s' % vnf_instance_id
+        return '{endpoint}/vnflcm/v1/vnf_instances/{id}'.format(
+            endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+            id=vnf_instance_id)
 
     def _get_vnf_lcm_op_occs_href(self, vnf_lcm_op_occs_id):
-        return '/vnflcm/v1/vnf_lcm_op_occs/%s' % vnf_lcm_op_occs_id
+        return '{endpoint}/vnflcm/v1/vnf_lcm_op_occs/{id}'.format(
+            endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+            id=vnf_lcm_op_occs_id)
 
     def _basic_config_check(self):
         if not os.path.isdir(CONF.vnf_package.vnf_package_csar_path):
