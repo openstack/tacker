@@ -17,8 +17,8 @@
 import copy
 import eventlet
 import importlib
+import ipaddress
 import os
-import re
 import sys
 import time
 import yaml
@@ -1558,8 +1558,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                     vnfc_cp.cp_protocol_info = []
 
                                     cp_protocol_info = objects.CpProtocolInfo()
-                                    cp_protocol_info.layer_protocol = '\
-                                        IP_OVER_ETHERNET'
+                                    cp_protocol_info.layer_protocol = \
+                                        'IP_OVER_ETHERNET'
                                     ip_over_ethernet = objects.\
                                         IpOverEthernetAddressInfo()
                                     ip_over_ethernet.mac_address = rsc_info.\
@@ -1573,15 +1573,19 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                     ip_addresses.addresses = []
                                     for fixed_ip in rsc_info.attributes.get(
                                             'fixed_ips'):
-                                        ip_addr = fixed_ip.get('ip_address')
-                                        if re.match(
-                                            r'^\d{1,3}\
-                                                (\.\d{1,3}){3}\
-                                                    (/\d{1,2})?$',
-                                                ip_addr):
-                                            ip_addresses.type = 'IPV4'
-                                        else:
-                                            ip_addresses.type = 'IPV6'
+                                        try:
+                                            ip_addr = fixed_ip.get(
+                                                'ip_address')
+                                            ip_addresses.type = \
+                                                'IPV{}'.format(
+                                                    ipaddress.ip_address(
+                                                        ip_addr).version)
+                                        except ValueError:
+                                            LOG.error("Invalid ip address %s"
+                                                " in resource %s.",
+                                                ip_addr, vnfc_rsc.id)
+                                            raise exceptions.InvalidIpAddr(
+                                                id=vnfc_rsc.id)
                                         ip_addresses.addresses.append(ip_addr)
                                         ip_addresses.subnet_id = fixed_ip.get(
                                             'subnet_id')
@@ -1599,8 +1603,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                                 vim_connection_info.id
                                             resource.resource_id =\
                                                 rsc_info.physical_resource_id
-                                            resource.vim_level_resource_type = '\
-                                                OS::Neutron::Port'
+                                            resource.vim_level_resource_type =\
+                                                'OS::Neutron::Port'
                                             if not vl.vnf_link_ports:
                                                 vl.vnf_link_ports = []
                                             link_port_info = objects.\
