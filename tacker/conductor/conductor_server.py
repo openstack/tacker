@@ -1084,12 +1084,15 @@ class Conductor(manager.Manager):
         placement_obj_list = []
         topo_temp = vnfd_dict.get('topology_template', {})
         for policy in topo_temp.get('policies', []):
+            affinity_type = {
+                'tosca.policies.nfv.AntiAffinityRule': 'ANTI_AFFINITY',
+                'tosca.policies.nfv.AffinityRule': 'AFFINITY'}
             for policy_name, policy_dict in policy.items():
-                key_type = 'tosca.policies.nfv.AntiAffinityRule'
-                if policy_dict['type'] == key_type:
+                if policy_dict['type'] in affinity_type.keys():
                     placement_constraint = objects.PlacementConstraint()
-                    placement_constraint.affinity_or_anti_affinity = \
-                        'ANTI_AFFINITY'
+                    key = policy_dict['type']
+                    placement_constraint.affinity_or_anti_affinity = (
+                        affinity_type[key])
                     placement_constraint.scope = 'ZONE'
                     placement_constraint.resource = []
                     placement_constraint.fallback_best_effort = True

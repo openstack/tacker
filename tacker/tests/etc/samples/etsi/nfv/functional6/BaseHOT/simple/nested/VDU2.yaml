@@ -6,8 +6,6 @@ parameters:
     type: string
   image:
     type: string
-  zone:
-    type: string
   net1:
     type: string
   net2:
@@ -17,6 +15,10 @@ parameters:
   net4:
     type: string
   net5:
+    type: string
+  ip1:
+    type: string
+  subnet:
     type: string
 
 resources:
@@ -37,7 +39,6 @@ resources:
           get_resource: VDU2_CP4
       - port:
           get_resource: VDU2_CP5
-      availability_zone: { get_param: zone }
 
   VDU2_CP1:
     type: OS::Neutron::Port
@@ -47,6 +48,9 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: { get_param: net2 }
+      fixed_ips:
+      - ip_address: { get_param: ip1}
+        subnet: { get_param: subnet}
   VDU2_CP3:
     type: OS::Neutron::Port
     properties:

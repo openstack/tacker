@@ -264,29 +264,9 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     scale_status_list.append(scale_status)
                 vnf['scale_status'] = scale_status_list
             if vnf.get('grant'):
-                grant = vnf['grant']
-                ins_inf = vnf_instance.instantiated_vnf_info.vnfc_resource_info
-                for addrsc in grant.add_resources:
-                    for zone in grant.zones:
-                        if zone.id == addrsc.zone_id:
-                            vdu_name = None
-                            for rsc in ins_inf:
-                                if addrsc.resource_definition_id == rsc.id:
-                                    vdu_name = rsc.vdu_id
-                                    break
-                            if not vdu_name:
-                                continue
-                            hot_param_dict['nfv']['VDU'][vdu_name]['zone'] = \
-                                zone.zone_id
-                if 'vim_assets' in grant and grant.vim_assets:
-                    for flavour in grant.vim_assets.compute_resource_flavours:
-                        vdu_name = flavour.vnfd_virtual_compute_desc_id
-                        hot_param_dict['nfv']['VDU'][vdu_name]['flavor'] = \
-                            flavour.vim_flavour_id
-                    for image in grant.vim_assets.software_images:
-                        vdu_name = image.vnfd_software_image_id
-                        hot_param_dict['nfv']['VDU'][vdu_name]['image'] = \
-                            image.vim_software_image_id
+                base_hot_dict, nested_hot_dict, hot_param_dict = \
+                    self._setup_hot_for_grant_resources(vnf, vnf_instance,
+                            base_hot_dict, nested_hot_dict, hot_param_dict)
 
             # Add stack param to vnf_attributes
             vnf['attributes'].update({'stack_param': str(hot_param_dict)})
@@ -365,6 +345,79 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             raise vnfm.LCMUserDataFailed(reason=error_reason)
 
         return stack['stack']['id']
+
+    @log.log
+    def _setup_hot_for_grant_resources(self, vnf, vnf_instance,
+            base_hot_dict, nested_hot_dict, hot_param_dict):
+        """Setup HOT related params for grant resources
+
+        Update base_hot_dict, nested_hot_dict and hot_param_dict as HOT related
+        params for grant resources.
+
+        :param vnf:
+        :param vnf_instance:
+        :param base_hot_dict:
+        :param nested_hot_dict:
+        :param hot_param_dict:
+        :returns: updated base_hot_dict, nested_hot_dict and hot_param_dict
+        """
+
+        # Rename for readability
+        grant = vnf['grant']
+        bh = base_hot_dict
+        nh = nested_hot_dict
+        hparam = hot_param_dict
+
+        ins_inf = vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        for addrsc in grant.add_resources:
+            for zone in grant.zones:
+                if zone.id == addrsc.zone_id:
+                    vdu_name = None
+                    for rsc in ins_inf:
+                        if addrsc.resource_definition_id == rsc.id:
+                            vdu_name = rsc.vdu_id
+                            break
+                    if not vdu_name:
+                        continue
+
+                    vdu_prop = bh['resources'][vdu_name]['properties']
+                    if not vdu_prop.get('resource'):
+                        vdu_prop['resource'] = {'properties': {}}
+
+                    vdu_rsrc_prop = vdu_prop['resource']['properties']
+                    if not vdu_rsrc_prop.get('zone'):
+                        vdu_rsrc_prop['zone'] = {'get_param':
+                                ['nfv', 'vdu', vdu_name, 'zone']}
+
+                    if nh:
+                        for yaml_name in nh:
+                            if not (vdu_name in yaml_name):
+                                continue
+                            if not nh[yaml_name]['parameters'].get('zone'):
+                                nh[yaml_name]['parameters']['zone'] = {
+                                    'type': 'string'}
+                            vdu_props = nh[yaml_name]['resources'][vdu_name][
+                                'properties']
+                            if not (vdu_props.get('availability_zone')):
+                                vdu_props['availability_zone'] = {
+                                    'get_param': 'zone'}
+
+                    h_vdu = hparam['nfv']['VDU'][vdu_name]
+                    if not h_vdu.get('zone') and zone.zone_id:
+                        hparam['nfv']['VDU'][vdu_name]['zone'] = zone.zone_id
+                    if h_vdu.get('zone') and not zone.zone_id:
+                        del hparam['nfv']['VDU'][vdu_name]['zone']
+
+        if 'vim_assets' in grant and grant.vim_assets:
+            h_vdus = hparam['nfv']['VDU']
+            for flv in grant.vim_assets.compute_resource_flavours:
+                vdu_name = flv.vnfd_virtual_compute_desc_id
+                h_vdus[vdu_name]['flavor'] = flv.vim_flavour_id
+            for img in grant.vim_assets.software_images:
+                vdu_name = img.vnfd_software_image_id
+                h_vdus[vdu_name]['image'] = img.vim_software_image_id
+
+        return bh, nh, hparam
 
     @log.log
     def _delete_user_data_module(self, user_data_module):
@@ -1674,10 +1727,18 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             for zone in grant.zones:
                 if zone.id == addrsc.zone_id:
                     for rsc in vnf_info['addResources']:
-                        if addrsc.id == rsc.id:
+                        if addrsc.resource_definition_id == rsc.id:
                             vdu_name = rsc.vdu_id
                             break
-                    stack_param['nfv']['VDU'][vdu_name]['zone'] = zone.zone_id
+                    if not (stack_param['nfv']['VDU']
+                            [vdu_name]).get('zone') and\
+                            zone.zone_id:
+                        stack_param['nfv']['VDU'][vdu_name]['zone'] = \
+                            zone.zone_id
+                    if (stack_param['nfv']['VDU']
+                            [vdu_name]).get('zone') and\
+                            not zone.zone_id:
+                        del stack_param['nfv']['VDU'][vdu_name]['zone']
         if 'vim_assets' in grant and grant.vim_assets:
             for flavour in grant.vim_assets.compute_resource_flavours:
                 vdu_name = flavour.vnfd_virtual_compute_desc_id
