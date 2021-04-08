@@ -930,6 +930,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 # If one of objects is still alive, keeps on waiting
                 if count > 0:
                     keep_going = True
+                    time.sleep(self.STACK_RETRY_WAIT)
                 else:
                     keep_going = False
         except Exception as e:
@@ -1123,13 +1124,13 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         """
         # initialize Kubernetes APIs
         auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
-        vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
-            context, policy['vnf_instance_id'])
         try:
-            if not vnf_resources:
+            if not policy.get('vnf_instance_id'):
                 # execute legacy scale method
                 self._scale_legacy(policy, auth_cred)
             else:
+                vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
+                    context, policy['vnf_instance_id'])
                 app_v1_api_client = self.kubernetes.get_app_v1_api_client(
                     auth=auth_cred)
                 aspect_id = policy['name']
@@ -1287,13 +1288,13 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         """
         # initialize Kubernetes APIs
         auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
-        vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
-            context, policy['vnf_instance_id'])
         try:
-            if not vnf_resources:
+            if not policy.get('vnf_instance_id'):
                 # execute legacy scale_wait method
                 self._scale_wait_legacy(policy, auth_cred)
             else:
+                vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
+                    context, policy['vnf_instance_id'])
                 core_v1_api_client = self.kubernetes.get_core_v1_api_client(
                     auth=auth_cred)
                 app_v1_api_client = self.kubernetes.get_app_v1_api_client(

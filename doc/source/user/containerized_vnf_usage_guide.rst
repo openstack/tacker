@@ -83,6 +83,8 @@ Kubernetes environment with one container per VDU.
             min_instances: 1
             max_instances: 3
             target_cpu_utilization_percentage: 40
+            default_instances: 1 # required parameter but ignored for cnf
+            increment: 1         # required parameter but ignored for cnf
 
 In "vnfcs", there are 2 components: front_end and rss_reader.
 We model them as Containers [#second]_ inside a Pod [#third]_. To provide
@@ -158,6 +160,8 @@ will be added in the future.
           min_instances: 1
           max_instances: 3
           target_cpu_utilization_percentage: 40
+          default_instances: 1 # required parameter but ignored for cnf
+          increment: 1         # required parameter but ignored for cnf
 
 2. Two containers per VDU example
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -204,6 +208,8 @@ Similar to the above example, in this scenario, we define 2 containers in VDU1.
             min_instances: 1
             max_instances: 3
             target_cpu_utilization_percentage: 40
+            default_instances: 1 # required parameter but ignored for cnf
+            increment: 1         # required parameter but ignored for cnf
 
 Viewing a containerized VNF
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -284,7 +290,7 @@ User also can scale VNF manually, by running the following commands:
 
 .. code-block:: console
 
-  $ openstack vnf scale --vnf-name VNF1 --scaling-policy-name SP1 --scaling-type out
+  $ openstack vnf scale --scaling-policy-name SP1 --scaling-type out VNF1
 
   $ kubectl get deployment
   NAME              DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
