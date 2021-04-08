@@ -9,9 +9,9 @@ Content-Type: application/x-iso9066-image
 Name: Scripts/install_k8s_cluster.sh
 Content-Type: application/sh
 Algorithm: SHA-256
-Hash: 2489f6162817cce794a6f19a88c3c76ce83fa19cfcb75ad1204d76aaba4a9d1c
+Hash: bc859fb8ffb9f92a19139553bdd077428a2c9572196e5844f1c912a7a822c249
 
 Name: Scripts/kubernetes_mgmt.py
 Content-Type: text/x-python
 Algorithm: SHA-256
-Hash: b292bc47d4c28a62b1261e6481498118e5dd93aa988c498568560f67c510003b
+Hash: b8c558cad30f219634a668f84d6e04998949e941f3909b5c60374b84dff58545
