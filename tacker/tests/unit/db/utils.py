@@ -35,6 +35,7 @@ tosca_vnfd_openwrt = _get_template('test_tosca_openwrt.yaml')
 tosca_vnfd_openwrt_param = _get_template('test_tosca_openwrt_param.yaml')
 tosca_invalid_vnfd = _get_template('test_tosca_parser_failure.yaml')
 etsi_vnfd = _get_template('etsi_nfv/tosca_vnfd.yaml')
+etsi_vnfd_group = _get_template('etsi_nfv/tosca_vnfd_group_member.yaml')
 config_data = _get_template('config_data.yaml')
 update_config_data = _get_template('update_config_data.yaml')
 hot_data = _get_template('hot_data.yaml')
@@ -222,7 +223,7 @@ def get_dummy_vnf_test(status='PENDING_CREATE', scaling_group=False,
 
 
 def get_dummy_vnf_etsi(status='PENDING_CREATE', scaling_group=False,
-                       instance_id=None, flavour='Simple'):
+                       instance_id=None, flavour='Simple', vnfd_name=None):
     vnfd_key = 'vnfd_' + flavour
     dummy_vnf = {'status': status, 'instance_id': instance_id, 'name':
         'test_openwrt', 'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
@@ -233,13 +234,18 @@ def get_dummy_vnf_etsi(status='PENDING_CREATE', scaling_group=False,
             'description': 'OpenWRT with services',
             'tenant_id': 'ad7ebc56538745a08ef7c5e97f8bd437',
             'mgmt_driver': 'openwrt',
-            'attributes': {vnfd_key: etsi_vnfd},
             'id': 'fb048660-dc1b-4f0f-bd89-b023666650ec',
             'name': 'openwrt_services'},
         'mgmt_ip_address': None, 'service_context': [],
         'attributes': {'param_values': ''},
         'id': 'eb84260e-5ff7-4332-b032-50a14d6c1123',
         'description': 'OpenWRT with services'}
+    if not vnfd_name:
+        # Set vnfd including without "tosca.groups.nfv.PlacementGroup"
+        dummy_vnf['vnfd']['attributes'] = {vnfd_key: etsi_vnfd}
+    else:
+        # Set vnfd including with "tosca.groups.nfv.PlacementGroup"
+        dummy_vnf['vnfd']['attributes'] = {vnfd_key: etsi_vnfd_group}
     if scaling_group:
         dummy_vnf['attributes'].update({'scaling_group_names':
                                    '{"SP1": "SP1_group"}',
