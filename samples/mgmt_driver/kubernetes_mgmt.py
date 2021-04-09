@@ -1928,3 +1928,15 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 master_username, master_password, vnf_package_path,
                 worker_resource_name, worker_username, worker_password,
                 cluster_resource_name, master_node, worker_node)
+
+    def change_external_connectivity_start(
+            self, context, vnf_instance,
+            change_ext_conn_request, grant,
+            grant_request, **kwargs):
+        pass
+
+    def change_external_connectivity_end(
+            self, context, vnf_instance,
+            change_ext_conn_request, grant,
+            grant_request, **kwargs):
+        pass
