@@ -189,8 +189,11 @@ class Parser(object):
                         and vdu_name in policy.targets:
                     count = count + 1
                     policy_props = policy.properties
-                    self.check_unsupported_key(policy_props,
-                                               ALLOWED_SCALING_OBJECT_PROPS)
+                    # NOTE(ueha): check_unsupported_key() is commented out to
+                    #             resolve vnf create error due to required
+                    #             parameters of policies.
+                    # self.check_unsupported_key(policy_props,
+                    #                            ALLOWED_SCALING_OBJECT_PROPS)
                     scaling_obj.scaling_name = policy.name
                     scaling_obj.target_cpu_utilization_percentage = \
                         policy_props.get(

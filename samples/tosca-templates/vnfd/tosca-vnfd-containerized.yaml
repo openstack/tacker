@@ -34,3 +34,5 @@ topology_template:
           min_instances: 1
           max_instances: 10
           target_cpu_utilization_percentage: 50
+          default_instances: 1 # required parameter but ignored for cnf
+          increment: 1         # required parameter but ignored for cnf

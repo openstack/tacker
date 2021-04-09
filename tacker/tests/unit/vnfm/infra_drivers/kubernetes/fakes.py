@@ -1023,21 +1023,24 @@ def fake_pod_list():
     )
 
 
-def get_scale_policy(type, aspect_id='vdu1', delta_num=1):
+def get_scale_policy(type, aspect_id='vdu1', delta_num=1, is_legacy=False):
     policy = dict()
-    policy['vnf_instance_id'] = uuidsentinel.vnf_instance_id
     policy['action'] = type
     policy['name'] = aspect_id
-    policy['delta_num'] = delta_num
-    policy['vdu_defs'] = {
-        'VDU1': {
-            'type': 'tosca.nodes.nfv.Vdu.Compute',
-            'properties': {
-                'name': 'fake_name',
-                'description': 'test description',
-                'vdu_profile': {
-                    'min_number_of_instances': 1,
-                    'max_number_of_instances': 3}}}}
+    if is_legacy:
+        policy['instance_id'] = "fake_namespace,fake_name"
+    else:
+        policy['vnf_instance_id'] = uuidsentinel.vnf_instance_id
+        policy['delta_num'] = delta_num
+        policy['vdu_defs'] = {
+            'VDU1': {
+                'type': 'tosca.nodes.nfv.Vdu.Compute',
+                'properties': {
+                    'name': 'fake_name',
+                    'description': 'test description',
+                    'vdu_profile': {
+                        'min_number_of_instances': 1,
+                        'max_number_of_instances': 3}}}}
 
     return policy
 
