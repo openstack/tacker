@@ -423,3 +423,7 @@ class VnfConflictStateWithErrorPoint(Conflict):
                 "Error point %(error_point)s. "
                 "Cannot %(action)s while the vnf is in this state "
                 "with this error point.")
+
+
+class InvalidIpAddr(TackerException):
+    message = _('Invalid ip address value in resource %(id)s.')
