@@ -1102,7 +1102,8 @@ class Conductor(manager.Manager):
                     placement_constraint.fallback_best_effort = True
                     for target in policy_dict.get('targets', []):
                         if target in topo_temp.get('groups', []):
-                            for member in topo_temp['groups']['members']:
+                            for member in (topo_temp['groups'][target]
+                                    ['members']):
                                 for vnfc_rsc in vnf_inf.vnfc_resource_info:
                                     if member == vnfc_rsc.vdu_id:
                                         resource = \
