@@ -765,7 +765,7 @@ fi
 if [[ "$INSTALL_MODE" =~ "master" ]]; then
     result=$(kubectl get nodes -o wide | grep $CURRENT_HOST_IP)
     if [[ -z "$result" ]];then
-        echo "Install Failed! The node does not in Kubernetes cluster."
+        echo "Install Failed! The node does not exist in Kubernetes cluster."
         exit 255
     else
         echo "Install Success!"
@@ -775,7 +775,7 @@ else
         "This node has joined the cluster" ]]; then
         echo "Install Success!"
     else
-        echo "Install Failed! The node does not in Kubernetes cluster."
+        echo "Install Failed! The node does not exist in Kubernetes cluster."
         exit 255
     fi
 fi
