@@ -119,8 +119,7 @@ def _run_wsgi(app_name):
         LOG.error('No known API applications configured.')
         return
     server = wsgi.Server("Tacker")
-    server.start(app, cfg.CONF.bind_port, cfg.CONF.bind_host,
-                 workers=cfg.CONF.api_workers)
+    server.start(app, cfg.CONF.bind_port, cfg.CONF.bind_host)
     # Dump all option values here after all options are parsed
     cfg.CONF.log_opt_values(LOG, std_logging.DEBUG)
     LOG.info("Tacker service started, listening on %(host)s:%(port)s",
