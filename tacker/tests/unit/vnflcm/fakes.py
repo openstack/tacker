@@ -274,14 +274,14 @@ def _fake_vnf_instance_not_instantiated_response(
 
 def fake_vnf_instance_response(
         instantiated_state=fields.VnfInstanceState.NOT_INSTANTIATED,
-        api_version=None, **updates):
+        api_version=None, vimConnectionInfo=[], **updates):
     if instantiated_state == fields.VnfInstanceState.NOT_INSTANTIATED:
         data = _fake_vnf_instance_not_instantiated_response(**updates)
     else:
         data = _fake_vnf_instance_not_instantiated_response(**updates)
         data['_links'] = _instantiated_vnf_links(uuidsentinel.vnf_instance_id)
         data['instantiationState'] = instantiated_state
-        data['vimConnectionInfo'] = []
+        data['vimConnectionInfo'] = vimConnectionInfo
 
         def _instantiated_vnf_info():
             inst_vnf_info = {}

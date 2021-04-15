@@ -31,6 +31,7 @@ from tacker.api.views import vnf_subscriptions as vnf_subscription_view
 from tacker.api.vnflcm.v1 import controller
 from tacker.api.vnflcm.v1 import sync_resource
 from tacker.common import exceptions
+from tacker.common import utils as common_utils
 import tacker.conductor.conductorrpc.vnf_lcm_rpc as vnf_lcm_rpc
 from tacker import context
 import tacker.db.vnfm.vnfm_db
@@ -1204,6 +1205,46 @@ class TestController(base.TestCase):
             fields.VnfInstanceState.INSTANTIATED)
         expected_result = fakes.fake_vnf_instance_response(
             fields.VnfInstanceState.INSTANTIATED)
+        res_dict = self.controller.show(req, uuidsentinel.instance_id)
+        self.assertEqual(expected_result, res_dict)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_show_vnf_instantiated_with_vim_info(
+            self, mock_vnf_by_id, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % uuidsentinel.instance_id)
+
+        vim_info = {
+            "id": "7d24979f-491e-4fa3-8da1-4a374fe28d55",
+            "vim_id": None,
+            "vim_type": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+            "interface_info": {"endpoint": "http://127.0.0.1/identity"},
+            "access_info": {
+                "username": "nfv_user",
+                "region": "RegionOne",
+                "password": "devstack",
+                "tenant": "85d12da99f8246dfae350dbc7334a473",
+            }
+        }
+
+        vim_connection_info = objects.VimConnectionInfo(
+            id=vim_info['id'], vim_id=vim_info['vim_id'],
+            vim_type=vim_info['vim_type'],
+            access_info=vim_info['access_info'],
+            interface_info=vim_info['interface_info'])
+
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            vim_connection_info=[vim_connection_info])
+
+        vim_info = common_utils.convert_snakecase_to_camelcase(vim_info)
+        expected_result = fakes.fake_vnf_instance_response(
+            fields.VnfInstanceState.INSTANTIATED,
+            vimConnectionInfo=[vim_info])
+
         res_dict = self.controller.show(req, uuidsentinel.instance_id)
         self.assertEqual(expected_result, res_dict)
 
