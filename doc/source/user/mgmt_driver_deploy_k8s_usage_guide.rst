@@ -15,6 +15,13 @@ customizations are specified by "interface" definition in
 This user guide aims to deploy Kubernetes cluster via
 Mgmt Driver which is customized by user.
 
+If you want to deploy Pods on different physical compute server,
+this user guide provide a way to support it. Tacker can deploy
+worker nodes of Kubernetes cluster on different physical compute
+server, and then deploy Pods with anti-affinity rule on this cluster.
+You can refer to chapter
+`Hardware-aware Affinity For Pods on Kubernetes Cluster`_ for details.
+
 2. Use Cases
 ^^^^^^^^^^^^
 In the present user guide, two cases are supported with the sample Mgmt Driver
@@ -22,7 +29,7 @@ and VNF Package providing two deployment flavours in VNFD:
 
 * simple: Deploy one master node with worker nodes. In this
   case, it supports to scale worker node and heal worker node.
-* complex: Deploy three(or more) master nodes with worker nodes. In
+* complex: Deploy three (or more) master nodes with worker nodes. In
   this case, it supports to scale worker node and heal worker
   node and master node.
 
@@ -60,12 +67,12 @@ simple Kubernetes cluster architecture:
     |                               |
     +-------------------------------+
 
-2. Complex : High Availability(HA) Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2. Complex : High Availability (HA) Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Kubernetes is known for its resilience and reliability. This is possible
 by ensuring that the cluster does not have any single points of failure.
-Because of this, to have a highly availability(HA) cluster, you need to have
+Because of this, to have a highly availability (HA) cluster, you need to have
 multiple master nodes. We provide the sample script which can be used to
 deploy an HA Kubernetes cluster. The diagram below shows HA Kubernetes
 cluster architecture:
@@ -73,7 +80,7 @@ cluster architecture:
 .. code-block:: console
 
      +-----------------------------------------------------------+
-     |             High availability(HA) Kubernetes cluster      |
+     |            High availability (HA) Kubernetes cluster      |
      | +-------------------------------------+                   |
      | |                                     |                   |
      | | +---------------+      +---------+  |                   |
@@ -123,7 +130,7 @@ cluster architecture:
 Mgmt Driver supports the construction of an HA master node through the
 ``instantiate_end`` process as follows:
 
-1. Identify the VMs created by OpenStackInfraDriver(which is
+1. Identify the VMs created by OpenStackInfraDriver (which is
    used to create OpenStack resources).
 2. Invoke the script to configure for HAProxy_ (a reliable solution
    offering high availability, load balancing, and proxying for
@@ -135,7 +142,7 @@ Mgmt Driver supports the construction of an HA master node through the
 Preparations
 ------------
 If you use the sample script to deploy your Kubernetes cluster, you need
-to ensure that the virtual machine(VM) you created on the OpenStack can
+to ensure that the virtual machine (VM) you created on the OpenStack can
 access the external network. If you installed the tacker
 service through ``devstack``, the following is an optional way to set the
 network configuration.
@@ -255,7 +262,7 @@ cli command:
 
 - get the nfv project's default security group id
 
-.. code-block:: console
+  .. code-block:: console
 
     $ auth='--os-username nfv_user --os-project-name nfv --os-password devstack  --os-auth-url http://127.0.0.1/identity --os-project-domain-name Default --os-user-domain-name Default'
     $ nfv_project_id=`openstack project list $auth | grep -w '| nfv' | awk '{print $2}'`
@@ -263,7 +270,7 @@ cli command:
 
 - add new security group rule into default security group using the id above
 
-.. code-block:: console
+  .. code-block:: console
 
     #ssh 22 port
     $ openstack security group rule create --protocol tcp --dst-port 22 $default_id $auth
@@ -292,7 +299,7 @@ some configurations are required.
 1. Download Ubuntu Image
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can download the ubuntu image(version 20.04) from the official website.
+You can download the ubuntu image (version 20.04) from the official website.
 The command is shown below:
 
 .. code-block:: console
@@ -354,7 +361,7 @@ First, copy the sample script that was stored in
 
 You have to register ``kubernetes_mgmt.py`` in the operation environment
 of the tacker.
-The sample script(``kubernetes_mgmt.py``) uses the
+The sample script (``kubernetes_mgmt.py``) uses the
 ``mgmt-drivers-kubernetes`` field to register in Mgmt Driver.
 
 .. code-block:: console
@@ -561,7 +568,7 @@ You must place the directory corresponding to **deployment_flavour** stored in
 the **Definitions/** under the **BaseHOT/** directory, and store the
 Base HOT files in it.
 
-In this guide, there are two cases(simple and complex) in this VNF Package, so
+In this guide, there are two cases (simple and complex) in this VNF Package, so
 there are two directories under **BaseHOT/** directory. The sample files are
 shown below:
 
@@ -845,7 +852,7 @@ The KeyValuePairs is shown in table below:
 
 .. code-block::
 
-    ## List of additionalParams.k8s_cluster_installation_param(specified by user)
+    ## List of additionalParams.k8s_cluster_installation_param (specified by user)
     +------------------+-----------+---------------------------------------------+-------------------+
     | parameter        | data type | description                                 | required/optional |
     +------------------+-----------+---------------------------------------------+-------------------+
@@ -876,7 +883,7 @@ The KeyValuePairs is shown in table below:
     |                  |           | master node's ssh ip                        |                   |
     +------------------+-----------+---------------------------------------------+-------------------+
     | nic_cp_name      | String    | Resource name of port corresponding to the  | required          |
-    |                  |           | master node's nic ip(which used for         |                   |
+    |                  |           | master node's nic ip (which used for        |                   |
     |                  |           | deploying Kubernetes cluster)               |                   |
     +------------------+-----------+---------------------------------------------+-------------------+
     | username         | String    | Username for VM access                      | required          |
@@ -891,7 +898,7 @@ The KeyValuePairs is shown in table below:
     |                  |           | cluster ip                                  |                   |
     +------------------+-----------+---------------------------------------------+-------------------+
     | cluster_fip_name | String    | Resource name of the Port corresponding to  | optional          |
-    |                  |           | cluster ip used for reigstering vim. If you |                   |
+    |                  |           | cluster ip used for registering vim. If you |                   |
     |                  |           | use floating ip as ssh ip, it must be set   |                   |
     +------------------+-----------+---------------------------------------------+-------------------+
 
@@ -907,7 +914,7 @@ The KeyValuePairs is shown in table below:
     |                  |           | worker node's ssh ip                        |                   |
     +------------------+-----------+---------------------------------------------+-------------------+
     | nic_cp_name      | String    | Resource name of port corresponding to the  | required          |
-    |                  |           | worker node's nic ip(which used for         |                   |
+    |                  |           | worker node's nic ip (which used for        |                   |
     |                  |           | deploying Kubernetes cluster)               |                   |
     +------------------+-----------+---------------------------------------------+-------------------+
     | username         | String    | Username for VM access                      | required          |
@@ -1833,7 +1840,7 @@ Following are two samples of scaling request body:
     }
 
 .. note::
-    Only the worker node can be scaled out(in). The current function does
+    Only the worker node can be scaled out (in). The current function does
     not support scale master node.
 
 2. Execute the Scale Operations
@@ -1865,21 +1872,23 @@ the number of registered worker nodes in the Kubernetes cluster
 should be updated.
 See `Heat CLI reference`_ for details on Heat CLI commands.
 
-Stack information before scaling:
+* Stack information before scaling:
 
-.. code-block:: console
+  .. code-block:: console
 
-    $ openstack stack resource list vnf-c5215213-af4b-4080-95ab-377920474e1a -n 2 --filter type=base_hot_nested_worker.yaml -c resource_name -c physical_resource_id -c resource_type -c resource_status
+    $ openstack stack resource list vnf-c5215213-af4b-4080-95ab-377920474e1a -n 2 --filter \
+        type=complex_nested_worker.yaml -c resource_name -c physical_resource_id -c resource_type \
+        -c resource_status
     +---------------+--------------------------------------+-----------------------------+-----------------+
     | resource_name | physical_resource_id                 | resource_type               | resource_status |
     +---------------+--------------------------------------+-----------------------------+-----------------+
-    | lwljovool2wg  | 07b79bbe-d0b2-4df0-8775-6202142b6054 | base_hot_nested_worker.yaml | CREATE_COMPLETE |
-    | n6nnjta4f4rv  | 56c9ec6f-5e52-44db-9d0d-57e3484e763f | base_hot_nested_worker.yaml | CREATE_COMPLETE |
+    | lwljovool2wg  | 07b79bbe-d0b2-4df0-8775-6202142b6054 | complex_nested_worker.yaml  | CREATE_COMPLETE |
+    | n6nnjta4f4rv  | 56c9ec6f-5e52-44db-9d0d-57e3484e763f | complex_nested_worker.yaml  | CREATE_COMPLETE |
     +---------------+--------------------------------------+-----------------------------+-----------------+
 
-worker node in Kubernetes cluster before scaling:
+* worker node in Kubernetes cluster before scaling:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ ssh ubuntu@10.10.0.80
     $ kubectl get node
@@ -1890,29 +1899,31 @@ worker node in Kubernetes cluster before scaling:
     worker18   Ready    <none>                 10m     v1.20.4
     worker20   Ready    <none>                 4m      v1.20.4
 
-Scaling out execution of the vnf_instance:
+* Scaling out execution of the vnf_instance:
 
-.. code-block:: console
+  .. code-block:: console
 
-  $ openstack vnflcm scale --type "SCALE_OUT" --aspect-id worker_instance --number-of-steps 1 c5215213-af4b-4080-95ab-377920474e1a
-    Scale request for VNF Instance c5215213-af4b-4080-95ab-377920474e1a has been accepted.
+    $ openstack vnflcm scale --type "SCALE_OUT" --aspect-id worker_instance --number-of-steps 1 c5215213-af4b-4080-95ab-377920474e1a
+      Scale request for VNF Instance c5215213-af4b-4080-95ab-377920474e1a has been accepted.
 
-Stack information after scaling out:
+* Stack information after scaling out:
 
-.. code-block:: console
+  .. code-block:: console
 
-    $ openstack stack resource list vnf-c5215213-af4b-4080-95ab-377920474e1a -n 2 --filter type=base_hot_nested_worker.yaml -c resource_name -c physical_resource_id -c resource_type -c resource_status
+    $ openstack stack resource list vnf-c5215213-af4b-4080-95ab-377920474e1a -n 2 --filter \
+        type=complex_nested_worker.yaml -c resource_name -c physical_resource_id -c resource_type \
+        -c resource_status
     +---------------+--------------------------------------+-----------------------------+-----------------+
     | resource_name | physical_resource_id                 | resource_type               | resource_status |
     +---------------+--------------------------------------+-----------------------------+-----------------+
-    | lwljovool2wg  | 07b79bbe-d0b2-4df0-8775-6202142b6054 | base_hot_nested_worker.yaml | UPDATE_COMPLETE |
-    | n6nnjta4f4rv  | 56c9ec6f-5e52-44db-9d0d-57e3484e763f | base_hot_nested_worker.yaml | UPDATE_COMPLETE |
-    | z5nky6qcodlq  | f9ab73ff-3ad7-40d2-830a-87bd0c45af32 | base_hot_nested_worker.yaml | CREATE_COMPLETE |
+    | lwljovool2wg  | 07b79bbe-d0b2-4df0-8775-6202142b6054 | complex_nested_worker.yaml  | UPDATE_COMPLETE |
+    | n6nnjta4f4rv  | 56c9ec6f-5e52-44db-9d0d-57e3484e763f | complex_nested_worker.yaml  | UPDATE_COMPLETE |
+    | z5nky6qcodlq  | f9ab73ff-3ad7-40d2-830a-87bd0c45af32 | complex_nested_worker.yaml  | CREATE_COMPLETE |
     +---------------+--------------------------------------+-----------------------------+-----------------+
 
-worker node in Kubernetes cluster after scaling out:
+* worker node in Kubernetes cluster after scaling out:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ ssh ubuntu@10.10.0.80
     $ kubectl get node
@@ -1924,31 +1935,31 @@ worker node in Kubernetes cluster after scaling out:
     worker20   Ready    <none>                 14m     v1.20.4
     worker45   Ready    <none>                 4m      v1.20.4
 
-Scaling in execution of the vnf_instance:
+* Scaling in execution of the vnf_instance:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ openstack vnflcm scale --type "SCALE_IN" --aspect-id worker_instance --number-of-steps 1 c5215213-af4b-4080-95ab-377920474e1a
     Scale request for VNF Instance c5215213-af4b-4080-95ab-377920474e1a has been accepted.
 
-.. note::
+  .. note::
     This example shows the output of "SCALE_IN" after its "SCALE_OUT" operation.
 
-Stack information after scaling in:
+* Stack information after scaling in:
 
-.. code-block:: console
+  .. code-block:: console
 
-    $ openstack stack resource list vnf-c5215213-af4b-4080-95ab-377920474e1a -n 2 --filter type=base_hot_nested_worker.yaml -c resource_name -c physical_resource_id -c resource_type -c resource_status
+    $ openstack stack resource list vnf-c5215213-af4b-4080-95ab-377920474e1a -n 2 --filter type=complex_nested_worker.yaml -c resource_name -c physical_resource_id -c resource_type -c resource_status
     +---------------+--------------------------------------+-----------------------------+-----------------+
     | resource_name | physical_resource_id                 | resource_type               | resource_status |
     +---------------+--------------------------------------+-----------------------------+-----------------+
-    | n6nnjta4f4rv  | 56c9ec6f-5e52-44db-9d0d-57e3484e763f | base_hot_nested_worker.yaml | UPDATE_COMPLETE |
-    | z5nky6qcodlq  | f9ab73ff-3ad7-40d2-830a-87bd0c45af32 | base_hot_nested_worker.yaml | UPDATE_COMPLETE |
+    | n6nnjta4f4rv  | 56c9ec6f-5e52-44db-9d0d-57e3484e763f | complex_nested_worker.yaml  | UPDATE_COMPLETE |
+    | z5nky6qcodlq  | f9ab73ff-3ad7-40d2-830a-87bd0c45af32 | complex_nested_worker.yaml  | UPDATE_COMPLETE |
     +---------------+--------------------------------------+-----------------------------+-----------------+
 
-worker node in Kubernetes cluster after scaling in:
+* worker node in Kubernetes cluster after scaling in:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ ssh ubuntu@10.10.0.80
     $ kubectl get node
@@ -2065,9 +2076,9 @@ the age of master node healed should be updated in Kubernetes cluster.
     Note that 'vnfc-instance-id' managed by Tacker and
     'physical-resource-id' managed by Heat are different.
 
-master node information before healing:
+* master node information before healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ openstack stack resource list vnf-c5215213-af4b-4080-95ab-377920474e1a -n 2 --filter type=OS::Nova::Server -c resource_name -c physical_resource_id -c resource_type -c resource_status
     +---------------+--------------------------------------+------------------+-----------------+
@@ -2080,9 +2091,9 @@ master node information before healing:
     | masterNode    | 12708197-9724-41b8-b48c-9eb6862331dc | OS::Nova::Server | CREATE_COMPLETE |
     +---------------+--------------------------------------+------------------+-----------------+
 
-master node in Kubernetes cluster before healing:
+* master node in Kubernetes cluster before healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ ssh ubuntu@10.10.0.80
     $ kubectl get node
@@ -2097,16 +2108,16 @@ We heal the master node with ``physical_resource_id``
 ``a0eccaee-ff7b-4c70-8c11-ba79c8d4deb6``, its ``vnfc_instance_id``
 is ``bbce9656-f051-434f-8c4a-660ac23e91f6``.
 
-Healing master node execution of the vnf_instance:
+* Healing master node execution of the vnf_instance:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ openstack vnflcm heal c5215213-af4b-4080-95ab-377920474e1a --vnfc-instance bbce9656-f051-434f-8c4a-660ac23e91f6
     Heal request for VNF Instance 9e086f34-b3c9-4986-b5e5-609a5ac4c1f9 has been accepted.
 
-master node information after healing:
+* master node information after healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ openstack stack resource list vnf-c5215213-af4b-4080-95ab-377920474e1a -n 2 --filter type=OS::Nova::Server -c resource_name -c physical_resource_id -c resource_type -c resource_status
     +---------------+--------------------------------------+------------------+-----------------+
@@ -2119,9 +2130,9 @@ master node information after healing:
     | masterNode    | 12708197-9724-41b8-b48c-9eb6862331dc | OS::Nova::Server | CREATE_COMPLETE |
     +---------------+--------------------------------------+------------------+-----------------+
 
-master node in Kubernetes cluster after healing:
+* master node in Kubernetes cluster after healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ ssh ubuntu@10.10.0.80
     $ kubectl get node
@@ -2138,9 +2149,9 @@ master node in Kubernetes cluster after healing:
 Healing a worker node is the same as Healing a master node.
 You just replace the vnfc_instance_id in healing command.
 
-worker node information before healing:
+* worker node information before healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ openstack stack resource list vnf-c5215213-af4b-4080-95ab-377920474e1a -n 2 --filter type=OS::Nova::Server -c resource_name -c physical_resource_id -c resource_type -c resource_status
     +---------------+--------------------------------------+------------------+-----------------+
@@ -2153,9 +2164,9 @@ worker node information before healing:
     | masterNode    | 12708197-9724-41b8-b48c-9eb6862331dc | OS::Nova::Server | CREATE_COMPLETE |
     +---------------+--------------------------------------+------------------+-----------------+
 
-worker node in Kubernetes cluster before healing:
+* worker node in Kubernetes cluster before healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ ssh ubuntu@10.10.0.80
     $ kubectl get node
@@ -2170,16 +2181,16 @@ We heal the worker node with ``physical_resource_id``
 ``5b3ff765-7a9f-447a-a06d-444e963b74c9``, its ``vnfc_instance_id``
 is ``b4af0652-74b8-47bd-bcf6-94769bdbf756``.
 
-Healing worker node execution of the vnf_instance:
+* Healing worker node execution of the vnf_instance:
 
-.. code-block:: console
+  .. code-block:: console
 
-  $ openstack vnflcm heal c5215213-af4b-4080-95ab-377920474e1a --vnfc-instance b4af0652-74b8-47bd-bcf6-94769bdbf756
-  Heal request for VNF Instance 9e086f34-b3c9-4986-b5e5-609a5ac4c1f9 has been accepted.
+    $ openstack vnflcm heal c5215213-af4b-4080-95ab-377920474e1a --vnfc-instance b4af0652-74b8-47bd-bcf6-94769bdbf756
+    Heal request for VNF Instance 9e086f34-b3c9-4986-b5e5-609a5ac4c1f9 has been accepted.
 
-worker node information after healing:
+* worker node information after healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ openstack stack resource list vnf-c5215213-af4b-4080-95ab-377920474e1a -n 2 --filter type=OS::Nova::Server -c resource_name -c physical_resource_id -c resource_type -c resource_status
     +---------------+--------------------------------------+------------------+-----------------+
@@ -2192,9 +2203,9 @@ worker node information after healing:
     | masterNode    | 12708197-9724-41b8-b48c-9eb6862331dc | OS::Nova::Server | CREATE_COMPLETE |
     +---------------+--------------------------------------+------------------+-----------------+
 
-worker node in Kubernetes cluster after healing:
+* worker node in Kubernetes cluster after healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ ssh ubuntu@10.10.0.80
     $ kubectl get node
@@ -2223,9 +2234,9 @@ changed.
 This is to confirm that stack 'ID' has changed
 before and after healing.
 
-Stack information before healing:
+* Stack information before healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ openstack stack list -c 'ID' -c 'Stack Name' -c 'Stack Status'
     +--------------------------------------+------------------------------------------+-----------------+
@@ -2234,9 +2245,9 @@ Stack information before healing:
     | f485f3f2-8181-4ed5-b927-e582b5aa9b14 | vnf-c5215213-af4b-4080-95ab-377920474e1a | CREATE_COMPLETE |
     +--------------------------------------+------------------------------------------+-----------------+
 
-Kubernetes cluster information before healing:
+* Kubernetes cluster information before healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ ssh ubuntu@10.10.0.80
     $ kubectl get node
@@ -2247,16 +2258,16 @@ Kubernetes cluster information before healing:
     worker20   Ready    <none>                 17m     v1.20.4
     worker45   Ready    <none>                 7m      v1.20.4
 
-Healing execution of the entire VNF:
+* Healing execution of the entire VNF:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ openstack vnflcm heal c5215213-af4b-4080-95ab-377920474e1a
     Heal request for VNF Instance c5215213-af4b-4080-95ab-377920474e1a has been accepted.
 
-Stack information after healing:
+* Stack information after healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ openstack stack list -c 'ID' -c 'Stack Name' -c 'Stack Status'
     +--------------------------------------+------------------------------------------+-----------------+
@@ -2265,9 +2276,9 @@ Stack information after healing:
     | 03aaadbe-bf5a-44a0-84b0-8f2a18f8a844 | vnf-c5215213-af4b-4080-95ab-377920474e1a | CREATE_COMPLETE |
     +--------------------------------------+------------------------------------------+-----------------+
 
-Kubernetes cluster information after healing:
+* Kubernetes cluster information after healing:
 
-.. code-block:: console
+  .. code-block:: console
 
     $ ssh ubuntu@10.10.0.93
     $ kubectl get node
@@ -2277,6 +2288,560 @@ Kubernetes cluster information after healing:
     master14   Ready    control-plane,master   35m     v1.20.4
     worker101  Ready    <none>                 10m     v1.20.4
     worker214  Ready    <none>                 4m      v1.20.4
+
+Hardware-aware Affinity For Pods on Kubernetes Cluster
+------------------------------------------------------
+
+In the two cases (simple and complex) mentioned above, if you deploy
+a Container Network Function on the VNF of a Kubernetes cluster,
+the Pods may be scheduled on the same physical compute server
+while they are labeled with anti-affinity rules. The anti-affinity
+rule can deploy the Pods on different worker nodes, but the worker
+nodes may be in the same server. In this chapter, we provide a way
+to support the hardware-aware affinity for Pods.
+
+This case will create a Kubernetes cluster with 3 master nodes and
+2 worker nodes. When Tacker deploys worker nodes, an 'anti-affinity'
+rule will be added to their "scheduler_hints" property (a property can
+control which compute server the VM will deploy on), so that the worker
+node will be deployed on the different server. After the worker node has
+joined into the Kubernetes cluster, a label (whose type is 'topologyKey', key
+is 'CIS-node' and value is which server the worker node deployed on)
+will be added to the worker node.
+
+Then, when deploying Pods in this Kubernetes cluster, if the Pods
+have an 'anti-affinity' rule based on the'CIS-node' label, the
+Pods will be scheduled on worker nodes with different values
+of this label, so the Pods will be deployed on different servers.
+
+At the same time, if you use Grant to deploy your VM, you can
+specify the Availability Zone (AZ) of the VM. In this case, your
+worker node will be added a label (whose type is 'topologyKey', key
+is 'kubernetes.io/zone' and value is which AZ the worker node deployed on).
+When you specify the zone label in pod-affinity, your pod will be
+deployed to a different AZ.
+
+1. VNF Package Introduction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The VNF Package of Hardware-aware Affinity (hereinafter referred to as
+pod-affinity) is similar to the above two case packages. You only need
+to append definition files of pod-affinity in the ``Definitions`` and
+``BaseHOT`` directories.
+
+Definitions
+~~~~~~~~~~~
+
+The files ``deployment_flavour`` should be different from the above two
+cases. The sample file is shown below:
+
+* `sample_kubernetes_df_podaffinity.yaml`_
+
+BaseHOT
+~~~~~~~
+
+The BaseHOT requires the configuration of a ``srvgroup`` that contains policy
+definitions for the anti-affinity. The directory structure is shown below:
+
+.. code-block:: console
+
+  !----BaseHOT
+          !---- podaffinity
+                  !---- nested
+                          !---- podaffinity_nested_master.yaml
+                          !---- podaffinity_nested_worker.yaml
+                  !---- podaffinity_hot_top.yaml
+
+The sample files are shown below:
+
+* `nested/podaffinity_nested_master.yaml`_
+
+* `nested/podaffinity_nested_worker.yaml`_
+
+* `podaffinity_hot_top.yaml`_
+
+2. Instantiate Kubernetes Cluster with Pod-affinity
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The operation steps and methods of instantiating with pod-affinity are
+the same as those in ``Deploy Kubernetes Cluster``. The difference
+is that ``flavourId`` in parameter file used in instantiate needs
+to be modified to the one of pod-affinity. In this use case, ``flavourId``
+is ``podaffinity``.
+
+``podaffinity_kubernetes_param_file.json`` is shown below.
+
+podaffinity_kubernetes_param_file.json
+
+.. code-block::
+
+
+    {
+        "flavourId": "podaffinity",
+        "vimConnectionInfo": [{
+            "id": "3cc2c4ff-525c-48b4-94c9-29247223322f",
+            "vimId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496", #Set the uuid of the VIM to use
+            "vimType": "openstack"
+        }],
+        "additionalParams": {
+            "k8s_cluster_installation_param": {
+                "script_path": "Scripts/install_k8s_cluster.sh",
+                "vim_name": "kubernetes_vim_podaffinity",
+                "master_node": {
+                    "aspect_id": "master_instance",
+                    "ssh_cp_name": "masterNode_CP1",
+                    "nic_cp_name": "masterNode_CP1",
+                    "username": "ubuntu",
+                    "password": "ubuntu",
+                    "pod_cidr": "192.168.0.0/16",
+                    "cluster_cidr": "10.199.187.0/24",
+                    "cluster_cp_name": "vip_CP"
+                },
+                "worker_node": {
+                    "aspect_id": "worker_instance",
+                    "ssh_cp_name": "workerNode_CP2",
+                    "nic_cp_name": "workerNode_CP2",
+                    "username": "ubuntu",
+                    "password": "ubuntu"
+                },
+                "proxy": {
+                    "http_proxy": "http://user1:password1@host1:port1",
+                    "https_proxy": "https://user2:password2@host2:port2",
+                    "no_proxy": "192.168.246.0/24,10.0.0.1",
+                    "k8s_node_cidr": "10.10.0.0/24"
+                }
+            },
+            "lcm-operation-user-data": "./UserData/k8s_cluster_user_data.py",
+            "lcm-operation-user-data-class": "KubernetesClusterUserData"
+        },
+        "extVirtualLinks": [{
+            "id": "net0_master",
+            "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",  #Set the uuid of the network to use
+            "extCps": [{
+                "cpdId": "masterNode_CP1",
+                "cpConfig": [{
+                    "cpProtocolData": [{
+                        "layerProtocol": "IP_OVER_ETHERNET"
+                    }]
+                }]
+            }]
+        }, {
+            "id": "net0_worker",
+            "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",  #Set the uuid of the network to use
+            "extCps": [{
+                "cpdId": "workerNode_CP2",
+                "cpConfig": [{
+                    "cpProtocolData": [{
+                        "layerProtocol": "IP_OVER_ETHERNET"
+                    }]
+                }]
+            }]
+        }]
+    }
+
+Confirm the Instantiate Operation is Successful on OpenStack
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can use Heat CLI to confirm that instantiating Kubernetes
+cluster with pod-affinity successfully. The confirmation points are
+shown below.
+
+1. Confirm that the value of policy attribute in "OS::Nova::ServerGroup"
+   resource created by tacker is 'anti-affinity'.
+2. Confirm that the members attribute in "OS::Nova::ServerGroup"
+   resource created by tacker are the physical_resource_id of worker node VMs.
+3. Confirm that the value of server_groups attribute in worker node VM
+   created by tacker is the physical_resource_id of "OS::Nova::ServerGroup"
+   resource.
+
+After instantiating, the following command can check confirmation
+points 1 and 2.
+
+* "OS::Nova::ServerGroup" resource information of pod-affinity:
+
+  .. code-block:: console
+
+    $ openstack stack resource show vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a srvgroup --fit
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Field                  | Value                                                                                                                                                                                                                            |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | attributes             | {'id': '46186a58-5cac-4dd6-a516-d6deb1461f8a', 'name': 'ServerGroup', 'policy': 'anti-affinity', 'rules': {}, 'members': ['51826868-74d6-4ce1-9b0b-157efdfc9490', 'e4bef063-30f9-4f26-b5fc-75d99e46db1e'], 'project_id':         |
+    |                        | 'ff61312f72f94c7da3d0c3c4578ad121', 'user_id': '4751fbe7b18a4469bedf89ba0cc09616'}                                                                                                                                               |
+    | creation_time          | 2021-04-22T02:47:22Z                                                                                                                                                                                                             |
+    | description            |                                                                                                                                                                                                                                  |
+    | links                  | [{'href': 'http://192.168.10.115/heat-api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a/4dfd5d41-77c9-4e72-b30f-d06f0ca79ebf/resources/srvgroup', 'rel': 'self'}, {'href':                 |
+    |                        | 'http://192.168.10.115/heat-api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a/4dfd5d41-77c9-4e72-b30f-d06f0ca79ebf', 'rel': 'stack'}]                                                      |
+    | logical_resource_id    | srvgroup                                                                                                                                                                                                                         |
+    | physical_resource_id   | 46186a58-5cac-4dd6-a516-d6deb1461f8a                                                                                                                                                                                             |
+    | required_by            | ['worker_instance']                                                                                                                                                                                                        |
+    | resource_name          | srvgroup                                                                                                                                                                                                                         |
+    | resource_status        | CREATE_COMPLETE                                                                                                                                                                                                                  |
+    | resource_status_reason | state changed                                                                                                                                                                                                                    |
+    | resource_type          | OS::Nova::ServerGroup                                                                                                                                                                                                            |
+    | updated_time           | 2021-04-22T02:47:22Z                                                                                                                                                                                                             |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    $ openstack stack resource list vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a -n 2 --filter type=OS::Nova::Server -c resource_name -c physical_resource_id -c resource_type -c resource_status
+    +---------------+--------------------------------------+------------------+-----------------+
+    | resource_name | physical_resource_id                 | resource_type    | resource_status |
+    +---------------+--------------------------------------+------------------+-----------------+
+    | workerNode    | 51826868-74d6-4ce1-9b0b-157efdfc9490 | OS::Nova::Server | CREATE_COMPLETE |
+    | workerNode    | e4bef063-30f9-4f26-b5fc-75d99e46db1e | OS::Nova::Server | CREATE_COMPLETE |
+    | masterNode    | d4578afd-9eb6-2ca0-1932-ccd69d763b6b | OS::Nova::Server | CREATE_COMPLETE |
+    | masterNode    | 42904925-7d05-e311-3953-dc92c88428b0 | OS::Nova::Server | CREATE_COMPLETE |
+    | masterNode    | 282a9ba5-fcbc-3f4b-6ca3-71d383e26134 | OS::Nova::Server | CREATE_COMPLETE |
+    +---------------+--------------------------------------+------------------+-----------------+
+
+The following command can check confirmation point 3.
+
+* "worker node VM" information of pod-affinity:
+
+  .. code-block:: console
+
+    $ openstack stack resource list vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a -n 2 --filter type=podaffinity_nested_worker.yaml -c resource_name -c physical_resource_id -c resource_type -c resource_status
+    +---------------+--------------------------------------+--------------------------------+-----------------+
+    | resource_name | physical_resource_id                 | resource_type                  | resource_status |
+    +---------------+--------------------------------------+--------------------------------+-----------------+
+    | kxogpuzgdcvi  | 3b11dba8-2dab-4ad4-8241-09a0501cab47 | podaffinity_nested_worker.yaml | CREATE_COMPLETE |
+    | n5s7ycewii5s  | 4b2ac686-e6ff-4397-88dd-cbba7d2e7a34 | podaffinity_nested_worker.yaml | CREATE_COMPLETE |
+    +---------------+--------------------------------------+--------------------------------+-----------------+
+    $ openstack stack resource show 3b11dba8-2dab-4ad4-8241-09a0501cab47 workerNode --fit
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Field                  | Value                                                                                                                                                                                                                            |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | attributes             | {'id': '51826868-74d6-4ce1-9b0b-157efdfc9490', 'name': 'workerNode', 'status': 'ACTIVE', 'tenant_id': 'ff61312f72f94c7da3d0c3c4578ad121', 'user_id': '4751fbe7b18a4469bedf89ba0cc09616', 'metadata': {}, 'hostId':               |
+    |                        | 'bdd83b04143e4048e93141cfb5600c39571a94e501564cf7a1380073', 'image': {'id': '959c1e45-e140-407d-aaaf-bb5eea93a828', 'links': [{'rel': 'bookmark', 'href': 'http://192.168.10.115/compute/images/959c1e45-e140-407d-aaaf-         |
+    |                        | bb5eea93a828'}]}, 'flavor': {'vcpus': 2, 'ram': 4096, 'disk': 40, 'ephemeral': 0, 'swap': 0, 'original_name': 'm1.medium', 'extra_specs': {'hw_rng:allowed': 'True'}}, 'created': '2021-04-22T02:47:27Z', 'updated':             |
+    |                        | '2021-04-22T02:47:36Z', 'addresses': {'net0': [{'version': 4, 'addr': '10.10.0.52', 'OS-EXT-IPS:type': 'fixed', 'OS-EXT-IPS-MAC:mac_addr': 'fa:16:3e:09:34:5f'}]}, 'accessIPv4': '', 'accessIPv6': '', 'links': [{'rel': 'self', |
+    |                        | 'href': 'http://192.168.10.115/compute/v2.1/servers/51826868-74d6-4ce1-9b0b-157efdfc9490'}, {'rel': 'bookmark', 'href': 'http://192.168.10.115/compute/servers/51826868-74d6-4ce1-9b0b-157efdfc9490'}], 'OS-DCF:diskConfig':     |
+    |                        | 'MANUAL', 'progress': 0, 'OS-EXT-AZ:availability_zone': 'nova', 'config_drive': '', 'key_name': None, 'OS-SRV-USG:launched_at': '2021-04-22T02:47:30.000000', 'OS-SRV-USG:terminated_at': None, 'security_groups': [{'name':     |
+    |                        | 'default'}], 'OS-EXT-SRV-ATTR:host': 'compute03', 'OS-EXT-SRV-ATTR:instance_name': 'instance-000003de', 'OS-EXT-SRV-ATTR:hypervisor_hostname': 'compute03', 'OS-EXT-SRV-ATTR:reservation_id': 'r-3wox5r91', 'OS-EXT-SRV-         |
+    |                        | ATTR:launch_index': 0, 'OS-EXT-SRV-ATTR:hostname': 'workernode', 'OS-EXT-SRV-ATTR:kernel_id': '', 'OS-EXT-SRV-ATTR:ramdisk_id': '', 'OS-EXT-SRV-ATTR:root_device_name': '/dev/vda', 'OS-EXT-SRV-ATTR:user_data': 'Q29udGVudC1UeX |
+    |                        | BlOiBtdWx0aXBhcnQvbWl4ZWQ7IGJvdW5kYXJ5PSI9PT09PT09PT09PT09PT0wMDA5NDg1OTI5MTU3NzU5MzA2PT0iCk1JTUUtVmVyc2lvbjogMS4wCgotLT09PT09PT09PT09PT09PTAwMDk0ODU5MjkxNTc3NTkzMDY9PQpDb250ZW50LVR5cGU6IHRleHQvY2xvdWQtY29uZmlnOyBjaGFyc2V0PS |
+    |                        | J1cy1hc2NpaSIKTUlNRS1WZXJzaW9uOiAxLjAKQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogN2JpdApDb250ZW50LURpc3Bvc2l0aW9uOiBhdHRhY2htZW50OyBmaWxlbmFtZT0iY2xvdWQtY29uZmlnIgoKCgojIENhcHR1cmUgYWxsIHN1YnByb2Nlc3Mgb3V0cHV0IGludG8gYSBsb2dmaWxlCi |
+    |                        | MgVXNlZnVsIGZvciB0cm91Ymxlc2hvb3RpbmcgY2xvdWQtaW5pdCBpc3N1ZXMKb3V0cHV0OiB7YWxsOiAnfCB0ZWUgLWEgL3Zhci9sb2cvY2xvdWQtaW5pdC1vdXRwdXQubG9nJ30KCi==', 'OS-EXT-STS:task_state': None, 'OS-EXT-STS:vm_state': 'active', 'OS-EXT-        |
+    |                        | STS:power_state': 1, 'os-extended-volumes:volumes_attached': [], 'host_status': 'UP', 'locked': False, 'locked_reason': None, 'description': None, 'tags': [], 'trusted_image_certificates': None, 'server_groups':              |
+    |                        | ['46186a58-5cac-4dd6-a516-d6deb1461f8a'], 'os_collect_config': {}}                                                                                                                                                               |
+    | creation_time          | 2021-04-22T02:47:24Z                                                                                                                                                                                                             |
+    | description            |                                                                                                                                                                                                                                  |
+    | links                  | [{'href': 'http://192.168.10.115/heat-api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a-worker_instance-6wyaj6mgtjlt-kxogpuzgdcvi-                                                   |
+    |                        | eutiueiy6e7n/3b11dba8-2dab-4ad4-8241-09a0501cab47/resources/workerNode', 'rel': 'self'}, {'href': 'http://192.168.10.115/heat-                                                                                                   |
+    |                        | api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a-worker_instance-6wyaj6mgtjlt-kxogpuzgdcvi-eutiueiy6e7n/3b11dba8-2dab-4ad4-8241-09a0501cab47', 'rel': 'stack'}]                     |
+    | logical_resource_id    | workerNode                                                                                                                                                                                                                       |
+    | parent_resource        | kxogpuzgdcvi                                                                                                                                                                                                                     |
+    | physical_resource_id   | 51826868-74d6-4ce1-9b0b-157efdfc9490                                                                                                                                                                                             |
+    | required_by            | []                                                                                                                                                                                                                               |
+    | resource_name          | workerNode                                                                                                                                                                                                                       |
+    | resource_status        | CREATE_COMPLETE                                                                                                                                                                                                                  |
+    | resource_status_reason | state changed                                                                                                                                                                                                                    |
+    | resource_type          | OS::Nova::Server                                                                                                                                                                                                                 |
+    | updated_time           | 2021-04-22T02:47:24Z                                                                                                                                                                                                             |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+Confirm the Instantiate Operation is Successful on Kubernetes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To confirm that the 'CIS-node' label has been added to worker node
+successfully, you should login to one of the master nodes via ssh
+in Kubernetes cluster, and use Kubernetes CLI. The confirmation
+points are shown below.
+
+1. Confirm that 'CIS-node' label is in the worker node's
+   labels.
+2. Confirm that 'CIS-node' label's value is the Compute Server's name which
+   the worker node deployed on. The key of this value is
+   'OS-EXT-SRV-ATTR:host' in "worker node VM" information.
+
+After instantiating, the following command can check
+these confirmation points.
+
+* worker node information in Kubernetes cluster
+
+  .. code-block:: console
+
+    $ kubectl get node --show-labels
+    NAME        STATUS   ROLES                  AGE     VERSION   LABELS
+    master110   Ready    control-plane,master   5h34m   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master110,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+    master13    Ready    control-plane,master   5h21m   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master13,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+    master159   Ready    control-plane,master   5h48m   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master159,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+    worker52    Ready    <none>                 5h15m   v1.21.0   CIS-node=compute03,beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker52,kubernetes.io/os=linux
+    worker88    Ready    <none>                 5h10m   v1.21.0   CIS-node=compute01,beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker88,kubernetes.io/os=linux
+
+3. Scale out Worker Node with Pod-affinity
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The operation steps and methods of scaling out worker node with
+pod-affinity are the same as those in ``Scale Kubernetes Worker Nodes``.
+
+Confirm the Scaling out Operation is Successful on OpenStack
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can use Heat CLI to confirm that scaling out worker node
+with pod-affinity has been finished successfully. The confirmation points are
+shown below.
+
+1. Confirm that ``physical_resource_id`` of scaled-out worker
+   node has been added to ``members`` attribute in "OS::Nova::ServerGroup"
+   resource.
+2. Confirm that the value of ``server_groups`` attribute in worker node
+   VM scaled out is ``physical_resource_id`` of "OS::Nova::ServerGroup"
+   resource.
+
+After scaling out worker node, the following command can check
+confirmation point 1.
+
+* "OS::Nova::ServerGroup" resource information of pod-affinity
+
+  .. code-block:: console
+
+    $ openstack stack resource show vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a srvgroup --fit
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Field                  | Value                                                                                                                                                                                                                            |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | attributes             | {'id': '46186a58-5cac-4dd6-a516-d6deb1461f8a', 'name': 'ServerGroup', 'policy': 'anti-affinity', 'rules': {}, 'members': ['51826868-74d6-4ce1-9b0b-157efdfc9490', 'e4bef063-30f9-4f26-b5fc-75d99e46db1e',                        |
+    |                        | 'a576d70c-d299-cf83-745a-63a1f49da7d3'], 'project_id': 'ff61312f72f94c7da3d0c3c4578ad121', 'user_id': '4751fbe7b18a4469bedf89ba0cc09616'}                                                                                        |                                                       |
+    | creation_time          | 2021-04-22T02:47:22Z                                                                                                                                                                                                             |
+    | description            |                                                                                                                                                                                                                                  |
+    | links                  | [{'href': 'http://192.168.10.115/heat-api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a/4dfd5d41-77c9-4e72-b30f-d06f0ca79ebf/resources/srvgroup', 'rel': 'self'}, {'href':                 |
+    |                        | 'http://192.168.10.115/heat-api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a/4dfd5d41-77c9-4e72-b30f-d06f0ca79ebf', 'rel': 'stack'}]                                                      |
+    | logical_resource_id    | srvgroup                                                                                                                                                                                                                         |
+    | physical_resource_id   | 46186a58-5cac-4dd6-a516-d6deb1461f8a                                                                                                                                                                                             |
+    | required_by            | ['worker_instance']                                                                                                                                                                                                        |
+    | resource_name          | srvgroup                                                                                                                                                                                                                         |
+    | resource_status        | UPDATE_COMPLETE                                                                                                                                                                                                                  |
+    | resource_status_reason | state changed                                                                                                                                                                                                                    |
+    | resource_type          | OS::Nova::ServerGroup                                                                                                                                                                                                            |
+    | updated_time           | 2021-04-22T03:47:22Z                                                                                                                                                                                                             |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    $ openstack stack resource list vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a -n 2 --filter type=OS::Nova::Server -c resource_name -c physical_resource_id -c resource_type -c resource_status
+    +---------------+--------------------------------------+------------------+-----------------+
+    | resource_name | physical_resource_id                 | resource_type    | resource_status |
+    +---------------+--------------------------------------+------------------+-----------------+
+    | workerNode    | 51826868-74d6-4ce1-9b0b-157efdfc9490 | OS::Nova::Server | CREATE_COMPLETE |
+    | workerNode    | e4bef063-30f9-4f26-b5fc-75d99e46db1e | OS::Nova::Server | CREATE_COMPLETE |
+    | workerNode    | a576d70c-d299-cf83-745a-63a1f49da7d3 | OS::Nova::Server | CREATE_COMPLETE |
+    | masterNode    | d4578afd-9eb6-2ca0-1932-ccd69d763b6b | OS::Nova::Server | CREATE_COMPLETE |
+    | masterNode    | 42904925-7d05-e311-3953-dc92c88428b0 | OS::Nova::Server | CREATE_COMPLETE |
+    | masterNode    | 282a9ba5-fcbc-3f4b-6ca3-71d383e26134 | OS::Nova::Server | CREATE_COMPLETE |
+    +---------------+--------------------------------------+------------------+-----------------+
+
+The following command can check confirmation point 2. The resource
+with 'plkz6sfomuhx' resource_name is the one scaled out.
+
+* "worker node VM" information of pod-affinity
+
+  .. code-block:: console
+
+    $ openstack stack resource list vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a -n 2 --filter type=podaffinity_nested_worker.yaml -c resource_name -c physical_resource_id -c resource_type -c resource_status
+    +---------------+--------------------------------------+--------------------------------+------------------+
+    | resource_name | physical_resource_id                 | resource_type                  | resource_status  |
+    +---------------+--------------------------------------+--------------------------------+------------------+
+    | kxogpuzgdcvi  | 3b11dba8-2dab-4ad4-8241-09a0501cab47 | podaffinity_nested_worker.yaml | UPDATE_COMPLETE  |
+    | n5s7ycewii5s  | 4b2ac686-e6ff-4397-88dd-cbba7d2e7a34 | podaffinity_nested_worker.yaml | UPDATE_COMPLETE  |
+    | plkz6sfomuhx  | 24d0076c-672a-e52d-1947-ec8495708b5d | podaffinity_nested_worker.yaml | CREATE_COMPLETE  |
+    +---------------+--------------------------------------+--------------------------------+------------------+
+    $ openstack stack resource show 24d0076c-672a-e52d-1947-ec8495708b5d workerNode --fit
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Field                  | Value                                                                                                                                                                                                                            |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | attributes             | {'id': 'a576d70c-d299-cf83-745a-63a1f49da7d3', 'name': 'workerNode', 'status': 'ACTIVE', 'tenant_id': 'ff61312f72f94c7da3d0c3c4578ad121', 'user_id': '4751fbe7b18a4469bedf89ba0cc09616', 'metadata': {}, 'hostId':               |
+    |                        | 'bdd83b04143e4048e93141cfb5600c39571a94e501564cf7a1380073', 'image': {'id': '959c1e45-e140-407d-aaaf-bb5eea93a828', 'links': [{'rel': 'bookmark', 'href': 'http://192.168.10.115/compute/images/959c1e45-e140-407d-aaaf-         |
+    |                        | bb5eea93a828'}]}, 'flavor': {'vcpus': 2, 'ram': 4096, 'disk': 40, 'ephemeral': 0, 'swap': 0, 'original_name': 'm1.medium', 'extra_specs': {'hw_rng:allowed': 'True'}}, 'created': '2021-04-22T02:47:26Z', 'updated':             |
+    |                        | '2021-04-22T02:47:34Z', 'addresses': {'net0': [{'version': 4, 'addr': '10.10.0.46', 'OS-EXT-IPS:type': 'fixed', 'OS-EXT-IPS-MAC:mac_addr': 'fa:16:3e:28:fc:7a'}]}, 'accessIPv4': '', 'accessIPv6': '', 'links': [{'rel': 'self', |
+    |                        | 'href': 'http://192.168.10.115/compute/v2.1/servers/a576d70c-d299-cf83-745a-63a1f49da7d3'}, {'rel': 'bookmark', 'href': 'http://192.168.10.115/compute/servers/a576d70c-d299-cf83-745a-63a1f49da7d3'}], 'OS-DCF:diskConfig':     |
+    |                        | 'MANUAL', 'progress': 0, 'OS-EXT-AZ:availability_zone': 'nova', 'config_drive': '', 'key_name': None, 'OS-SRV-USG:launched_at': '2021-04-22T02:47:28.000000', 'OS-SRV-USG:terminated_at': None, 'security_groups': [{'name':     |
+    |                        | 'default'}], 'OS-EXT-SRV-ATTR:host': 'compute02', 'OS-EXT-SRV-ATTR:instance_name': 'instance-000003dd', 'OS-EXT-SRV-ATTR:hypervisor_hostname': 'compute02', 'OS-EXT-SRV-ATTR:reservation_id': 'r-lvg9ate8', 'OS-EXT-SRV-         |
+    |                        | ATTR:launch_index': 0, 'OS-EXT-SRV-ATTR:hostname': 'workernode', 'OS-EXT-SRV-ATTR:kernel_id': '', 'OS-EXT-SRV-ATTR:ramdisk_id': '', 'OS-EXT-SRV-ATTR:root_device_name': '/dev/vda', 'OS-EXT-SRV-ATTR:user_data': 'Q29udGVudC1UeX |
+    |                        | BlOiBtdWx0aXBhcnQvbWl4ZWQ7IGJvdW5kYXJ5PSI9PT09PT09PT09PT09PT0wMDA5NDg1OTI5MTU3NzU5MzA2PT0iCk1JTUUtVmVyc2lvbjogMS4wCgotLT09PT09PT09PT09PT09PTAwMDk0ODU5MjkxNTc3NTkzMDY9PQpDb250ZW50LVR5cGU6IHRleHQvY2xvdWQtY29uZmlnOyBjaGFyc2V0PS |
+    |                        | J1cy1hc2NpaSIKTUlNRS1WZXJzaW9uOiAxLjAKQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogN2JpdApDb250ZW50LURpc3Bvc2l0aW9uOiBhdHRhY2htZW50OyBmaWxlbmFtZT0iY2xvdWQtY29uZmlnIgoKCgojIENhcHR1cmUgYWxsIHN1YnByb2Nlc3Mgb3V0cHV0IGludG8gYSBsb2dmaWxlCi |
+    |                        | MgVXNlZnVsIGZvciB0cm91Ymxlc2hvb3RpbmcgY2xvdWQtaW5pdCBpc3N1ZXMKb3V0cHV0OiB7YWxsOiAnfCB0ZWUgLWEgL3Zhci9sb2cvY2xvdWQtaW5pdC1vdXRwdXQubG9nJ30KCi==', 'OS-EXT-STS:task_state': None, 'OS-EXT-STS:vm_state': 'active', 'OS-EXT-        |
+    |                        | STS:power_state': 1, 'os-extended-volumes:volumes_attached': [], 'host_status': 'UP', 'locked': False, 'locked_reason': None, 'description': None, 'tags': [], 'trusted_image_certificates': None, 'server_groups':              |
+    |                        | ['46186a58-5cac-4dd6-a516-d6deb1461f8a'], 'os_collect_config': {}}                                                                                                                                                               |
+    | creation_time          | 2021-04-22T02:47:23Z                                                                                                                                                                                                             |
+    | description            |                                                                                                                                                                                                                                  |
+    | links                  | [{'href': 'http://192.168.10.115/heat-api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a-worker_instance-6wyaj6mgtjlt-plkz6sfomuhx-tvegcyfieq7m/24d0076c-672a-e52d-1947-              |
+    |                        | ec8495708b5d/resources/workerNode', 'rel': 'self'}, {'href': 'http://192.168.10.115/heat-                                                                                                                                        |
+    |                        | api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a-worker_instance-6wyaj6mgtjlt-plkz6sfomuhx-tvegcyfieq7m/24d0076c-672a-e52d-1947-ec8495708b5d', 'rel': 'stack'}]                     |
+    | logical_resource_id    | workerNode                                                                                                                                                                                                                       |
+    | parent_resource        | plkz6sfomuhx                                                                                                                                                                                                                     |
+    | physical_resource_id   | a576d70c-d299-cf83-745a-63a1f49da7d3                                                                                                                                                                                             |
+    | required_by            | []                                                                                                                                                                                                                               |
+    | resource_name          | workerNode                                                                                                                                                                                                                       |
+    | resource_status        | CREATE_COMPLETE                                                                                                                                                                                                                  |
+    | resource_status_reason | state changed                                                                                                                                                                                                                    |
+    | resource_type          | OS::Nova::Server                                                                                                                                                                                                                 |
+    | updated_time           | 2021-04-22T03:47:23Z                                                                                                                                                                                                             |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+Confirm the Scaling out Operation is Successful on Kubernetes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To confirm that the 'CIS-node' label has been added to worker node scaled out
+successfully, you should login to one of the master nodes via ssh
+in Kubernetes cluster, and use Kubernetes CLI. The confirmation
+points are shown below.
+
+1. Confirm that 'CIS-node' label is in the scaled out worker node's
+   labels.
+2. Confirm that 'CIS-node' label's value is the Compute Server's name which
+   the worker node deployed on. The key of this value is
+   'OS-EXT-SRV-ATTR:host' in "worker node VM" information.
+
+After scaling out, the following command can check
+these confirmation points. The worker46 is the
+scaled out worker node.
+
+* worker node information in Kubernetes cluster
+
+  .. code-block:: console
+
+    $ kubectl get node --show-labels
+    NAME        STATUS   ROLES                  AGE     VERSION   LABELS
+    master110   Ready    control-plane,master   5h34m   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master110,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+    master13    Ready    control-plane,master   5h21m   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master13,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+    master159   Ready    control-plane,master   5h48m   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master159,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+    worker52    Ready    <none>                 5h15m   v1.21.0   CIS-node=compute01,beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker52,kubernetes.io/os=linux
+    worker88    Ready    <none>                 5h10m   v1.21.0   CIS-node=compute03,beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker88,kubernetes.io/os=linux
+    worker46    Ready    <none>                 2m17s   v1.21.0   CIS-node=compute02,beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker46,kubernetes.io/os=linux
+
+4. Heal Worker Node with Pod-affinity
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The operation steps and methods of healing worker node with
+pod-affinity are the same as those in ``Heal a Worker Node`` of
+``Heal Kubernetes Master/Worker Nodes``.
+
+Confirm the Healing Operation is Successful on OpenStack
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To confirm that healing worker node with pod-affinity
+is successful, you can use Heat CLI. The confirmation points are
+shown below.
+
+1. Confirm that ``physical_resource_id`` pointing to
+   the healed worker node has been changed in ``members``
+   attribute of "OS::Nova::ServerGroup" resource.
+2. Confirm that the value of ``server_groups`` attribute in worker node
+   VM healed is ``physical_resource_id`` of "OS::Nova::ServerGroup"
+   resource.
+
+After healing worker node, the following command can check
+confirmation point 1. ``physical_resource_id`` changed in members
+is 'a576d70c-d299-cf83-745a-63a1f49da7d3'.
+
+* "OS::Nova::ServerGroup" resource information of pod-affinity
+
+  .. code-block:: console
+
+    $ openstack stack resource show vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a srvgroup --fit
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Field                  | Value                                                                                                                                                                                                                            |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | attributes             | {'id': '46186a58-5cac-4dd6-a516-d6deb1461f8a', 'name': 'ServerGroup', 'policy': 'anti-affinity', 'rules': {}, 'members': ['51826868-74d6-4ce1-9b0b-157efdfc9490', 'e4bef063-30f9-4f26-b5fc-75d99e46db1e',                        |
+    |                        | '4cb1324f-356d-418a-7935-b0b34c3b17ed'], 'project_id': 'ff61312f72f94c7da3d0c3c4578ad121', 'user_id': '4751fbe7b18a4469bedf89ba0cc09616'}                                                                                        |                                                       |
+    | creation_time          | 2021-04-22T02:47:22Z                                                                                                                                                                                                             |
+    | description            |                                                                                                                                                                                                                                  |
+    | links                  | [{'href': 'http://192.168.10.115/heat-api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a/4dfd5d41-77c9-4e72-b30f-d06f0ca79ebf/resources/srvgroup', 'rel': 'self'}, {'href':                 |
+    |                        | 'http://192.168.10.115/heat-api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a/4dfd5d41-77c9-4e72-b30f-d06f0ca79ebf', 'rel': 'stack'}]                                                      |
+    | logical_resource_id    | srvgroup                                                                                                                                                                                                                         |
+    | physical_resource_id   | 46186a58-5cac-4dd6-a516-d6deb1461f8a                                                                                                                                                                                             |
+    | required_by            | ['worker_instance']                                                                                                                                                                                                        |
+    | resource_name          | srvgroup                                                                                                                                                                                                                         |
+    | resource_status        | UPDATE_COMPLETE                                                                                                                                                                                                                  |
+    | resource_status_reason | state changed                                                                                                                                                                                                                    |
+    | resource_type          | OS::Nova::ServerGroup                                                                                                                                                                                                            |
+    | updated_time           | 2021-04-22T04:15:22Z                                                                                                                                                                                                             |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    $ openstack stack resource list vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a -n 2 --filter type=OS::Nova::Server -c resource_name -c physical_resource_id -c resource_type -c resource_status
+    +---------------+--------------------------------------+------------------+-----------------+
+    | resource_name | physical_resource_id                 | resource_type    | resource_status |
+    +---------------+--------------------------------------+------------------+-----------------+
+    | workerNode    | 51826868-74d6-4ce1-9b0b-157efdfc9490 | OS::Nova::Server | CREATE_COMPLETE |
+    | workerNode    | e4bef063-30f9-4f26-b5fc-75d99e46db1e | OS::Nova::Server | CREATE_COMPLETE |
+    | workerNode    | 4cb1324f-356d-418a-7935-b0b34c3b17ed | OS::Nova::Server | CREATE_COMPLETE |
+    | masterNode    | d4578afd-9eb6-2ca0-1932-ccd69d763b6b | OS::Nova::Server | CREATE_COMPLETE |
+    | masterNode    | 42904925-7d05-e311-3953-dc92c88428b0 | OS::Nova::Server | CREATE_COMPLETE |
+    | masterNode    | 282a9ba5-fcbc-3f4b-6ca3-71d383e26134 | OS::Nova::Server | CREATE_COMPLETE |
+    +---------------+--------------------------------------+------------------+-----------------+
+
+The following command can check confirmation point 2. The resource
+with name 'workerNode' in resource with 'plkz6sfomuhx' resource_name
+is the VM healed.
+
+* "worker node VM" information of pod-affinity
+
+  .. code-block:: console
+
+    $ openstack stack resource list vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a -n 2 --filter type=podaffinity_nested_worker.yaml -c resource_name -c physical_resource_id -c resource_type -c resource_status
+    +---------------+--------------------------------------+--------------------------------+------------------+
+    | resource_name | physical_resource_id                 | resource_type                  | resource_status  |
+    +---------------+--------------------------------------+--------------------------------+------------------+
+    | kxogpuzgdcvi  | 3b11dba8-2dab-4ad4-8241-09a0501cab47 | podaffinity_nested_worker.yaml | UPDATE_COMPLETE  |
+    | n5s7ycewii5s  | 4b2ac686-e6ff-4397-88dd-cbba7d2e7a34 | podaffinity_nested_worker.yaml | UPDATE_COMPLETE  |
+    | plkz6sfomuhx  | 24d0076c-672a-e52d-1947-ec8495708b5d | podaffinity_nested_worker.yaml | CREATE_COMPLETE  |
+    +---------------+--------------------------------------+--------------------------------+------------------+
+    $ openstack stack resource show 24d0076c-672a-e52d-1947-ec8495708b5d workerNode --fit
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Field                  | Value                                                                                                                                                                                                                            |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | attributes             | {'id': '4cb1324f-356d-418a-7935-b0b34c3b17ed', 'name': 'workerNode', 'status': 'ACTIVE', 'tenant_id': 'ff61312f72f94c7da3d0c3c4578ad121', 'user_id': '4751fbe7b18a4469bedf89ba0cc09616', 'metadata': {}, 'hostId':               |
+    |                        | 'bdd83b04143e4048e93141cfb5600c39571a94e501564cf7a1380073', 'image': {'id': '959c1e45-e140-407d-aaaf-bb5eea93a828', 'links': [{'rel': 'bookmark', 'href': 'http://192.168.10.115/compute/images/959c1e45-e140-407d-aaaf-         |
+    |                        | bb5eea93a828'}]}, 'flavor': {'vcpus': 2, 'ram': 4096, 'disk': 40, 'ephemeral': 0, 'swap': 0, 'original_name': 'm1.medium', 'extra_specs': {'hw_rng:allowed': 'True'}}, 'created': '2021-04-22T02:47:26Z', 'updated':             |
+    |                        | '2021-04-22T02:47:34Z', 'addresses': {'net0': [{'version': 4, 'addr': '10.10.0.46', 'OS-EXT-IPS:type': 'fixed', 'OS-EXT-IPS-MAC:mac_addr': 'fa:16:3e:28:fc:7a'}]}, 'accessIPv4': '', 'accessIPv6': '', 'links': [{'rel': 'self', |
+    |                        | 'href': 'http://192.168.10.115/compute/v2.1/servers/4cb1324f-356d-418a-7935-b0b34c3b17ed'}, {'rel': 'bookmark', 'href': 'http://192.168.10.115/compute/servers/4cb1324f-356d-418a-7935-b0b34c3b17ed'}], 'OS-DCF:diskConfig':     |
+    |                        | 'MANUAL', 'progress': 0, 'OS-EXT-AZ:availability_zone': 'nova', 'config_drive': '', 'key_name': None, 'OS-SRV-USG:launched_at': '2021-04-22T02:47:28.000000', 'OS-SRV-USG:terminated_at': None, 'security_groups': [{'name':     |
+    |                        | 'default'}], 'OS-EXT-SRV-ATTR:host': 'compute02', 'OS-EXT-SRV-ATTR:instance_name': 'instance-000003dd', 'OS-EXT-SRV-ATTR:hypervisor_hostname': 'compute02', 'OS-EXT-SRV-ATTR:reservation_id': 'r-lvg9ate8', 'OS-EXT-SRV-         |
+    |                        | ATTR:launch_index': 0, 'OS-EXT-SRV-ATTR:hostname': 'workernode', 'OS-EXT-SRV-ATTR:kernel_id': '', 'OS-EXT-SRV-ATTR:ramdisk_id': '', 'OS-EXT-SRV-ATTR:root_device_name': '/dev/vda', 'OS-EXT-SRV-ATTR:user_data': 'Q29udGVudC1UeX |
+    |                        | BlOiBtdWx0aXBhcnQvbWl4ZWQ7IGJvdW5kYXJ5PSI9PT09PT09PT09PT09PT0wMDA5NDg1OTI5MTU3NzU5MzA2PT0iCk1JTUUtVmVyc2lvbjogMS4wCgotLT09PT09PT09PT09PT09PTAwMDk0ODU5MjkxNTc3NTkzMDY9PQpDb250ZW50LVR5cGU6IHRleHQvY2xvdWQtY29uZmlnOyBjaGFyc2V0PS |
+    |                        | J1cy1hc2NpaSIKTUlNRS1WZXJzaW9uOiAxLjAKQ29udGVudC1UcmFuc2Zlci1FbmNvZGluZzogN2JpdApDb250ZW50LURpc3Bvc2l0aW9uOiBhdHRhY2htZW50OyBmaWxlbmFtZT0iY2xvdWQtY29uZmlnIgoKCgojIENhcHR1cmUgYWxsIHN1YnByb2Nlc3Mgb3V0cHV0IGludG8gYSBsb2dmaWxlCi |
+    |                        | MgVXNlZnVsIGZvciB0cm91Ymxlc2hvb3RpbmcgY2xvdWQtaW5pdCBpc3N1ZXMKb3V0cHV0OiB7YWxsOiAnfCB0ZWUgLWEgL3Zhci9sb2cvY2xvdWQtaW5pdC1vdXRwdXQubG9nJ30KCi==', 'OS-EXT-STS:task_state': None, 'OS-EXT-STS:vm_state': 'active', 'OS-EXT-        |
+    |                        | STS:power_state': 1, 'os-extended-volumes:volumes_attached': [], 'host_status': 'UP', 'locked': False, 'locked_reason': None, 'description': None, 'tags': [], 'trusted_image_certificates': None, 'server_groups':              |
+    |                        | ['46186a58-5cac-4dd6-a516-d6deb1461f8a'], 'os_collect_config': {}}                                                                                                                                                               |
+    | creation_time          | 2021-04-22T04:15:23Z                                                                                                                                                                                                             |
+    | description            |                                                                                                                                                                                                                                  |
+    | links                  | [{'href': 'http://192.168.10.115/heat-api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a-worker_instance-6wyaj6mgtjlt-plkz6sfomuhx-tvegcyfieq7m/24d0076c-672a-e52d-1947-              |
+    |                        | ec8495708b5d/resources/workerNode', 'rel': 'self'}, {'href': 'http://192.168.10.115/heat-                                                                                                                                        |
+    |                        | api/v1/ff61312f72f94c7da3d0c3c4578ad121/stacks/vnf-2456188c-d882-4de2-8cd0-54a7a2ea4e6a-worker_instance-6wyaj6mgtjlt-plkz6sfomuhx-tvegcyfieq7m/24d0076c-672a-e52d-1947-ec8495708b5d', 'rel': 'stack'}]                     |
+    | logical_resource_id    | workerNode                                                                                                                                                                                                                       |
+    | parent_resource        | plkz6sfomuhx                                                                                                                                                                                                                     |
+    | physical_resource_id   | 4cb1324f-356d-418a-7935-b0b34c3b17ed                                                                                                                                                                                             |
+    | required_by            | []                                                                                                                                                                                                                               |
+    | resource_name          | workerNode                                                                                                                                                                                                                       |
+    | resource_status        | CREATE_COMPLETE                                                                                                                                                                                                                  |
+    | resource_status_reason | state changed                                                                                                                                                                                                                    |
+    | resource_type          | OS::Nova::Server                                                                                                                                                                                                                 |
+    | updated_time           | 2021-04-22T04:15:23Z                                                                                                                                                                                                             |
+    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+Confirm the Healing Operation is Successful on Kubernetes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To confirm that the 'CIS-node' label has been added to worker node healed
+successfully, you should login to one of the master nodes via ssh
+in Kubernetes cluster, and use Kubernetes CLI. The confirmation
+points are shown below.
+
+1. Confirm that 'CIS-node' label is in the healed worker node's
+   labels.
+2. Confirm that 'CIS-node' label's value is the Compute Server's name which
+   the worker node deployed on. The key of this value is
+   'OS-EXT-SRV-ATTR:host' in "worker node VM" information.
+
+After healing, the following command can check
+these confirmation points. The worker46 is the
+healed worker node.
+
+* worker node information in Kubernetes cluster
+
+  .. code-block:: console
+
+    $ kubectl get node --show-labels
+    NAME        STATUS   ROLES                  AGE     VERSION   LABELS
+    master110   Ready    control-plane,master   5h34m   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master110,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+    master13    Ready    control-plane,master   5h21m   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master13,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+    master159   Ready    control-plane,master   5h48m   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master159,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+    worker52    Ready    <none>                 5h15m   v1.21.0   CIS-node=compute01,beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker52,kubernetes.io/os=linux
+    worker88    Ready    <none>                 5h10m   v1.21.0   CIS-node=compute03,beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker88,kubernetes.io/os=linux
+    worker46    Ready    <none>                 1m33s   v1.21.0   CIS-node=compute02,beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker46,kubernetes.io/os=linux
 
 Limitations
 -----------
@@ -2308,6 +2873,7 @@ Reference
 .. _sample_kubernetes_types.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/Definitions/sample_kubernetes_types.yaml
 .. _sample_kubernetes_df_simple.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/Definitions/sample_kubernetes_df_simple.yaml
 .. _sample_kubernetes_df_complex.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/Definitions/sample_kubernetes_df_complex.yaml
+.. _sample_kubernetes_df_podaffinity.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/Definitions/sample_kubernetes_df_podaffinity.yaml
 .. _install_k8s_cluster.sh: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/install_k8s_cluster.sh
 .. _kubernetes_mgmt.py: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_mgmt.py
 .. _nested/simple_nested_master.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/simple/nested/simple_nested_master.yaml
@@ -2316,4 +2882,7 @@ Reference
 .. _nested/complex_nested_master.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/complex/nested/complex_nested_master.yaml
 .. _nested/complex_nested_worker.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/complex/nested/complex_nested_worker.yaml
 .. _complex_hot_top.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/complex/complex_hot_top.yaml
+.. _nested/podaffinity_nested_master.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/podaffinity/nested/podaffinity_nested_master.yaml
+.. _nested/podaffinity_nested_worker.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/podaffinity/nested/podaffinity_nested_worker.yaml
+.. _podaffinity_hot_top.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/podaffinity/podaffinity_hot_top.yaml
 .. _k8s_cluster_user_data.py: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/UserData/k8s_cluster_user_data.py

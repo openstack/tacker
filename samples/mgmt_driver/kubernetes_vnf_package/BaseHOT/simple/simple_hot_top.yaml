@@ -6,7 +6,7 @@ parameters:
     type: json
 
 resources:
-  master_instance_group:
+  master_instance:
     type: OS::Heat::AutoScalingGroup
     properties:
       min_size: 1
@@ -24,7 +24,7 @@ resources:
     properties:
       scaling_adjustment: 1
       auto_scaling_group_id:
-        get_resource: master_instance_group
+        get_resource: master_instance
       adjustment_type: change_in_capacity
 
   master_instance_scale_in:
@@ -32,10 +32,10 @@ resources:
     properties:
       scaling_adjustment: -1
       auto_scaling_group_id:
-        get_resource: master_instance_group
+        get_resource: master_instance
       adjustment_type: change_in_capacity
 
-  worker_instance_group:
+  worker_instance:
     type: OS::Heat::AutoScalingGroup
     properties:
       min_size: 2
@@ -53,7 +53,7 @@ resources:
     properties:
       scaling_adjustment: 1
       auto_scaling_group_id:
-        get_resource: worker_instance_group
+        get_resource: worker_instance
       adjustment_type: change_in_capacity
 
   worker_instance_scale_in:
@@ -61,7 +61,7 @@ resources:
     properties:
       scaling_adjustment: -1
       auto_scaling_group_id:
-        get_resource: worker_instance_group
+        get_resource: worker_instance
       adjustment_type: change_in_capacity
 
 outputs: {}

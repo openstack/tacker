@@ -4,8 +4,28 @@ description: 'Simple Base HOT for Sample VNF'
 parameters:
   nfv:
     type: json
+  k8s_worker_node_group:
+    type: string
+    description: Name of the ServerGroup
+    default: ServerGroupWorker
+  k8s_master_node_group:
+    type: string
+    description: Name of the ServerGroup
+    default: ServerGroupMaster
 
 resources:
+  srvgroup_worker:
+    type: OS::Nova::ServerGroup
+    properties:
+      name:  { get_param: k8s_worker_node_group }
+      policies: [ 'anti-affinity' ]
+
+  srvgroup_master:
+    type: OS::Nova::ServerGroup
+    properties:
+      name:  { get_param: k8s_master_node_group }
+      policies: [ 'anti-affinity' ]
+
   master_instance:
     type: OS::Heat::AutoScalingGroup
     properties:
@@ -13,11 +33,12 @@ resources:
       max_size: 5
       desired_capacity: 3
       resource:
-        type: complex_nested_master.yaml
+        type: master_instance.hot.yaml
         properties:
           flavor: { get_param: [ nfv, VDU, masterNode, flavor ] }
           image: { get_param: [ nfv, VDU, masterNode, image ] }
           net1: { get_param: [ nfv, CP, masterNode_CP1, network ] }
+          scheduler_hints: { get_resource: srvgroup_master }
           vip_port_ip: { get_attr: [vip_CP, fixed_ips, 0, ip_address] }
 
   master_instance_scale_out:
@@ -43,11 +64,12 @@ resources:
       max_size: 4
       desired_capacity: 2
       resource:
-        type: complex_nested_worker.yaml
+        type: worker_instance.hot.yaml
         properties:
           flavor: { get_param: [ nfv, VDU, workerNode, flavor ] }
           image: { get_param: [ nfv, VDU, workerNode, image ] }
           net1: { get_param: [ nfv, CP, workerNode_CP2, network ] }
+          scheduler_hints: { get_resource: srvgroup_worker }
 
   worker_instance_scale_out:
     type: OS::Heat::ScalingPolicy

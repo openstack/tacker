@@ -8,6 +8,7 @@ imports:
   - sample_kubernetes_types.yaml
   - sample_kubernetes_df_simple.yaml
   - sample_kubernetes_df_complex.yaml
+  - sample_kubernetes_df_podaffinity.yaml
 
 topology_template:
   inputs:

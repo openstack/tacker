@@ -1,0 +1,34 @@
+heat_template_version: 2013-05-23
+description: 'masterNode HOT for Sample VNF'
+
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  net1:
+    type: string
+  scheduler_hints:
+    type: string
+  vip_port_ip:
+    type: string
+
+resources:
+  masterNode:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: flavor }
+      name: masterNode
+      image: { get_param: image }
+      networks:
+      - port:
+          get_resource: masterNode_CP1
+      scheduler_hints:
+        group: { get_param: scheduler_hints }
+
+  masterNode_CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net1 }
+      allowed_address_pairs:
+        - ip_address: { get_param: vip_port_ip }
