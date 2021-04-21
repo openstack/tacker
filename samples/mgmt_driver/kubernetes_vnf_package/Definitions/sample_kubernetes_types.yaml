@@ -50,7 +50,7 @@ node_types:
         default: [ Tacker ]
       flavour_id:
         type: string
-        constraints: [ valid_values: [ simple,complex ] ]
+        constraints: [ valid_values: [ simple,complex,podaffinity ] ]
         default: simple
       flavour_description:
         type: string
