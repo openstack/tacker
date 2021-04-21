@@ -24,6 +24,15 @@ if is_service_enabled tacker; then
         #install_package_local_repo heat-translator
         #. $DEST/tacker/devstack/lib/download_upper_consts
 
+        if use_library_from_git heat-translator; then
+            git_clone_by_name heat-translator
+            setup_dev_lib heat-translator
+        fi
+        if use_library_from_git tosca-parser; then
+            git_clone_by_name tosca-parser
+            setup_dev_lib tosca-parser
+        fi
+
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         # Configure after the other layer 1 and 2 services have been configured
         echo_summary "Configuring Tacker"
