@@ -187,13 +187,14 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             vnfd_dict = yaml.safe_load(vnfd_str)
             LOG.debug('VNFD: %s', vnfd_dict)
             LOG.debug('VNF package path: %s', vnf_package_path)
-            scaling_group_dict = {}
+            scale_dict = {}
+            scale_group_dict = {}
             for name, rsc in base_hot_dict.get('resources').items():
-                if rsc['type'] == 'OS::Heat::AutoScalingGroup':
-                    scaling_group_dict[name] = name
-            if scaling_group_dict:
+                if rsc['type'] == SCALING_GROUP_RESOURCE:
+                    scale_dict[name] = name
+            if scale_dict:
                 vnf['attributes']['scaling_group_names'] = \
-                    jsonutils.dump_as_bytes(scaling_group_dict)
+                    jsonutils.dump_as_bytes(scale_dict)
                 scale_group_dict = \
                     tosca_utils.get_scale_group(vnf, vnfd_dict, inst_req_info)
                 vnf['attributes']['scale_group'] = \
@@ -251,7 +252,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     "is not in dict format.")
                 raise vnfm.LCMUserDataFailed(reason=error_reason)
 
-            if scaling_group_dict:
+            if scale_dict:
                 scale_status_list = []
                 for name, value in scale_group_dict['scaleGroupDict'].items():
                     key_name = name + '_desired_capacity'
@@ -266,7 +267,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             if vnf.get('grant'):
                 base_hot_dict, nested_hot_dict, hot_param_dict = \
                     self._setup_hot_for_grant_resources(vnf, vnf_instance,
-                            base_hot_dict, nested_hot_dict, hot_param_dict)
+                            base_hot_dict, nested_hot_dict, hot_param_dict,
+                            scale_group_dict)
 
             # Add stack param to vnf_attributes
             vnf['attributes'].update({'stack_param': str(hot_param_dict)})
@@ -348,7 +350,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
     @log.log
     def _setup_hot_for_grant_resources(self, vnf, vnf_instance,
-            base_hot_dict, nested_hot_dict, hot_param_dict):
+            base_hot_dict, nested_hot_dict, hot_param_dict,
+            scale_group_dict=None):
         """Setup HOT related params for grant resources
 
         Update base_hot_dict, nested_hot_dict and hot_param_dict as HOT related
@@ -371,42 +374,10 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         ins_inf = vnf_instance.instantiated_vnf_info.vnfc_resource_info
         for addrsc in grant.add_resources:
             for zone in grant.zones:
-                if zone.id == addrsc.zone_id:
-                    vdu_name = None
-                    for rsc in ins_inf:
-                        if addrsc.resource_definition_id == rsc.id:
-                            vdu_name = rsc.vdu_id
-                            break
-                    if not vdu_name:
-                        continue
-
-                    vdu_prop = bh['resources'][vdu_name]['properties']
-                    if not vdu_prop.get('resource'):
-                        vdu_prop['resource'] = {'properties': {}}
-
-                    vdu_rsrc_prop = vdu_prop['resource']['properties']
-                    if not vdu_rsrc_prop.get('zone'):
-                        vdu_rsrc_prop['zone'] = {'get_param':
-                                ['nfv', 'vdu', vdu_name, 'zone']}
-
-                    if nh:
-                        for yaml_name in nh:
-                            if not (vdu_name in yaml_name):
-                                continue
-                            if not nh[yaml_name]['parameters'].get('zone'):
-                                nh[yaml_name]['parameters']['zone'] = {
-                                    'type': 'string'}
-                            vdu_props = nh[yaml_name]['resources'][vdu_name][
-                                'properties']
-                            if not (vdu_props.get('availability_zone')):
-                                vdu_props['availability_zone'] = {
-                                    'get_param': 'zone'}
-
-                    h_vdu = hparam['nfv']['VDU'][vdu_name]
-                    if not h_vdu.get('zone') and zone.zone_id:
-                        hparam['nfv']['VDU'][vdu_name]['zone'] = zone.zone_id
-                    if h_vdu.get('zone') and not zone.zone_id:
-                        del hparam['nfv']['VDU'][vdu_name]['zone']
+                vdu_name = None
+                bh, nh, hparam = self._setup_hot_for_zone(
+                    ins_inf, addrsc, bh, nh, hparam,
+                    scale_group_dict, vdu_name, zone)
 
         if 'vim_assets' in grant and grant.vim_assets:
             h_vdus = hparam['nfv']['VDU']
@@ -418,6 +389,98 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 h_vdus[vdu_name]['image'] = img.vim_software_image_id
 
         return bh, nh, hparam
+
+    @log.log
+    def _setup_hot_for_zone(self, ins_inf, addrsc,
+            base_hot_dict, nested_hot_dict, hot_param_dict,
+            scale_group_dict, vdu_name, zone):
+
+        if zone.id == addrsc.zone_id:
+            vdu_name = None
+            for rsc in ins_inf:
+                if addrsc.resource_definition_id == rsc.id:
+                    vdu_name = rsc.vdu_id
+                if not vdu_name:
+                    continue
+
+                if scale_group_dict:
+                    base_hot_dict, nested_hot_dict, vdu_none_flg = \
+                        self._update_hot_available_scale(
+                            base_hot_dict, nested_hot_dict,
+                            scale_group_dict, vdu_name)
+
+                    if vdu_none_flg:
+                        base_hot_dict = self._update_hot_not_available_scale(
+                            base_hot_dict, vdu_name)
+                else:
+                    base_hot_dict = self._update_hot_not_available_scale(
+                        base_hot_dict, vdu_name)
+
+                h_vdu = hot_param_dict['nfv']['VDU'][vdu_name]
+                if not h_vdu.get('zone') and zone.zone_id:
+                    (hot_param_dict['nfv']['VDU']
+                        [vdu_name]['zone']) = zone.zone_id
+                if h_vdu.get('zone') and not zone.zone_id:
+                    del hot_param_dict['nfv']['VDU'][vdu_name]['zone']
+
+        return base_hot_dict, nested_hot_dict, hot_param_dict
+
+    @log.log
+    def _update_hot_available_scale(self, base_hot_dict,
+            nested_hot_dict, scale_group_dict, vdu_name):
+        vdu_none_flg = True
+        for aspect in scale_group_dict['scaleGroupDict']:
+            aspect_id = aspect
+
+            # vdu_list check
+            if vdu_name not in (scale_group_dict['scaleGroupDict']
+                    [aspect]['vdu']):
+                continue
+
+            vdu_none_flg = False
+            if base_hot_dict['resources'].get(aspect_id):
+                # base_hot add
+                vdu_prop = base_hot_dict['resources'][aspect_id]['properties']
+                if not vdu_prop.get('resource'):
+                    vdu_prop['resource'] = {'properties': {}}
+
+                vdu_rsrc_prop = vdu_prop['resource']['properties']
+                if not vdu_rsrc_prop.get('zone'):
+                    vdu_rsrc_prop['zone'] = {'get_param':
+                            ['nfv', 'vdu', vdu_name, 'zone']}
+                # nested_hot add
+                yaml_name = vdu_prop['resource']['type']
+                if not nested_hot_dict[yaml_name]['parameters'].get('zone'):
+                    nested_hot_dict[yaml_name]['parameters']['zone'] = {
+                        'type': 'string'}
+                vdu_props = nested_hot_dict[yaml_name]['resources'][vdu_name][
+                    'properties']
+                if not (vdu_props.get('availability_zone')):
+                    vdu_props['availability_zone'] = {
+                        'get_param': 'zone'}
+
+        return base_hot_dict, nested_hot_dict, vdu_none_flg
+
+    @log.log
+    def _update_hot_not_available_scale(self, base_hot_dict, vdu_name):
+        # base_hot add
+        if base_hot_dict['resources'].get(vdu_name):
+            vdu_prop = (base_hot_dict['resources'][vdu_name]
+                    ['properties'])
+            if base_hot_dict['resources'][vdu_name]['type'] == \
+                    SCALING_GROUP_RESOURCE:
+                if not vdu_prop.get('resource'):
+                    vdu_prop['resource'] = {'properties': {}}
+                vdu_rsrc_prop = vdu_prop['resource']['properties']
+                if not vdu_rsrc_prop.get('zone'):
+                    vdu_rsrc_prop['zone'] = {'get_param':
+                           ['nfv', 'vdu', vdu_name, 'zone']}
+            if base_hot_dict['resources'][vdu_name]['type'] == \
+                    NOVA_SERVER_RESOURCE:
+                if not vdu_prop.get('availability_zone'):
+                    vdu_prop['availability_zone'] = {'get_param':
+                            'zone'}
+        return base_hot_dict
 
     @log.log
     def _delete_user_data_module(self, user_data_module):
@@ -1544,7 +1607,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 scale_resurce_list = heatclient.resource_get_list(
                     scale_rsc.physical_resource_id)
                 for rsc in scale_resurce_list:
-                    if rsc.resource_type == 'OS::Nova::Server':
+                    if rsc.resource_type == NOVA_SERVER_RESOURCE:
                         if rsc.physical_resource_id not in vnfc_rsc_list:
                             rsc_info = heatclient.resource_get(
                                 scale_rsc.physical_resource_id,
@@ -1686,7 +1749,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             after_st_list = []
             after_port_list = []
             for rsc in resurce_list:
-                if rsc.resource_type == 'OS::Nova::Server':
+                if rsc.resource_type == NOVA_SERVER_RESOURCE:
                     after_vnfcs_list.append(rsc.physical_resource_id)
                 if rsc.resource_type == 'OS::Cinder::Volume':
                     after_st_list.append(rsc.physical_resource_id)
@@ -1881,7 +1944,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         nested_hot = yaml.safe_load(
             vnf_info['attributes'][yaml_name])
         for resource_name, resource in nested_hot['resources'].items():
-            if resource['type'] == 'OS::Nova::Server':
+            if resource['type'] == NOVA_SERVER_RESOURCE:
                 for i in range(size):
                     add_uuid = uuidutils.generate_uuid()
                     rsc = objects.ResourceDefinition(
@@ -1981,7 +2044,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         for del_rsc in del_list:
             scale_resurce_list = heatclient.resource_get_list(del_rsc)
             for rsc in scale_resurce_list:
-                if rsc.resource_type == 'OS::Nova::Server':
+                if rsc.resource_type == NOVA_SERVER_RESOURCE:
                     for vnfc_resource in inst_info.vnfc_resource_info:
                         if vnfc_resource.\
                             compute_resource.resource_id == \

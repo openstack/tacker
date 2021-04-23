@@ -6,7 +6,7 @@ parameters:
     type: json
 
 resources:
-  VDU1:
+  VDU1_scale:
     type: OS::Heat::AutoScalingGroup
     properties:
       min_size: 1
@@ -24,23 +24,22 @@ resources:
           net4: { get_resource: extmanageNW_2 }
           net5: { get_resource: internalNW_1 }
           subnet: { get_param: [nfv, CP, VDU1_CP2, fixed_ips, 0, subnet]}
-  VDU1_scale_out:
+  VDU1_scale_scale_out:
     type: OS::Heat::ScalingPolicy
     properties:
       scaling_adjustment: 1
       auto_scaling_group_id:
-        get_resource: VDU1
+        get_resource: VDU1_scale
       adjustment_type: change_in_capacity
-  VDU1_scale_in:
+  VDU1_scale_scale_in:
     type: OS::Heat::ScalingPolicy
     properties:
       scaling_adjustment: -1
       auto_scaling_group_id:
-        get_resource: VDU1
+        get_resource: VDU1_scale
       adjustment_type: change_in_capacity
-  VDU2:
+  VDU2_scale:
     type: OS::Heat::AutoScalingGroup
-    depends_on: VDU1
     properties:
       min_size: 1
       max_size: 1
@@ -57,19 +56,19 @@ resources:
           net5: { get_resource: internalNW_1 }
           ip1: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, ip_address]}
           subnet: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, subnet]}
-  VDU2_scale_out:
+  VDU2_scale_scale_out:
     type: OS::Heat::ScalingPolicy
     properties:
       scaling_adjustment: 1
       auto_scaling_group_id:
-        get_resource: VDU2
+        get_resource: VDU2_scale
       adjustment_type: change_in_capacity
-  VDU2_scale_in:
+  VDU2_scale_scale_in:
     type: OS::Heat::ScalingPolicy
     properties:
       scaling_adjustment: -1
       auto_scaling_group_id:
-        get_resource: VDU2
+        get_resource: VDU2_scale
       adjustment_type: change_in_capacity
   extmanageNW_1:
     type: OS::Neutron::Net

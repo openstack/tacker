@@ -1,0 +1,11 @@
+parameters:
+  vnf: test
+  zone:
+    type: string
+
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      availability_zone: { get_param: zone }
+
