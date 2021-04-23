@@ -1,11 +1,34 @@
 heat_template_version: 2013-05-23
-description: 'Simple Base HOT for Sample VNF'
+description: 'Template for test _generate_hot_from_tosca().'
 
 parameters:
   nfv:
     type: json
 
 resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      flavor:
+        get_resource: VDU1_flavor
+      name: VDU1
+      image: { get_param: [ nfv, VDU, VDU1, image ] }
+      networks:
+      - port:
+          get_resource: CP1
+
+  CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: [ nfv, CP, CP1, network ] }
+
+  VDU1_flavor:
+    type: OS::Nova::Flavor
+    properties:
+      ram: { get_param: [ nfv, VDU, VDU1, flavor, ram ] }
+      vcpus: { get_param: [ nfv, VDU, VDU1, flavor, vcpus ] }
+      disk: { get_param: [ nfv, VDU, VDU1, flavor, disk ] }
+
   VDU1_scale:
     type: OS::Heat::AutoScalingGroup
     properties:
@@ -21,8 +44,8 @@ resources:
           net1: { get_param: [ nfv, CP, VDU1_CP1, network ] }
           net2: { get_param: [ nfv, CP, VDU1_CP2, network ] }
           net3: { get_resource: extmanageNW_1 }
-          net4: { get_resource: extmanageNW_2 }
-          net5: { get_resource: internalNW_1 }
+          net4: { get_resource: internalNW_1 }
+          subnet: { get_param: [nfv, CP, VDU1_CP2, fixed_ips, 0, subnet]}
   VDU1_scale_scale_out:
     type: OS::Heat::ScalingPolicy
     properties:
@@ -37,41 +60,7 @@ resources:
       auto_scaling_group_id:
         get_resource: VDU1_scale
       adjustment_type: change_in_capacity
-  VDU2_scale:
-    type: OS::Heat::AutoScalingGroup
-    depends_on: VDU1_scale
-    properties:
-      min_size: 2
-      max_size: 2
-      desired_capacity: 2
-      resource:
-        type: VDU2.yaml
-        properties:
-          flavor: { get_param: [ nfv, VDU, VDU2, flavor ] }
-          image: { get_param: [ nfv, VDU, VDU2, image ] }
-          zone: { get_param: [ nfv, vdu, VDU2, zone ] }
-          net1: { get_param: [ nfv, CP, VDU2_CP1, network ] }
-          net2: { get_param: [ nfv, CP, VDU2_CP2, network ] }
-          net3: { get_resource: extmanageNW_1 }
-          net4: { get_resource: extmanageNW_2 }
-          net5: { get_resource: internalNW_1 }
-  VDU2_scale_scale_out:
-    type: OS::Heat::ScalingPolicy
-    properties:
-      scaling_adjustment: 1
-      auto_scaling_group_id:
-        get_resource: VDU2_scale
-      adjustment_type: change_in_capacity
-  VDU2_scale_scale_in:
-    type: OS::Heat::ScalingPolicy
-    properties:
-      scaling_adjustment: -1
-      auto_scaling_group_id:
-        get_resource: VDU2_scale
-      adjustment_type: change_in_capacity
   extmanageNW_1:
-    type: OS::Neutron::Net
-  extmanageNW_2:
     type: OS::Neutron::Net
   internalNW_1:
     type: OS::Neutron::Net
@@ -82,13 +71,6 @@ resources:
       network:
         get_resource: extmanageNW_1
       cidr: 192.168.3.0/24
-  extmanageNW_2_subnet:
-    type: OS::Neutron::Subnet
-    properties:
-      ip_version: 4
-      network:
-        get_resource: extmanageNW_2
-      cidr: 192.168.4.0/24
   internalNW_1_subnet:
     type: OS::Neutron::Subnet
     properties:

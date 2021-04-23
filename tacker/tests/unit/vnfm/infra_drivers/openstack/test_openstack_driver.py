@@ -174,10 +174,13 @@ class TestOpenStack(base.FixturedTestCase):
             json_dict = json.load(f)
         return json_dict
 
-    def _read_file(self):
+    def _read_file(self, scale_input_file=False):
+        if scale_input_file:
+            file_name = "hot_lcm_user_data_with_scale.yaml"
+        else:
+            file_name = "hot_lcm_user_data.yaml"
         yaml_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                    "../../../../etc/samples/",
-                    "hot_lcm_user_data.yaml"))
+                    "../../../../etc/samples/", file_name))
         with open(yaml_file, 'r') as f:
             yaml_file_dict = yaml.safe_load(f)
         return yaml_file_dict
@@ -210,6 +213,43 @@ class TestOpenStack(base.FixturedTestCase):
         nested_hot_dict = {'parameters': {'vnf': 'test'}}
         mock_get_base_hot_dict.return_value = \
             self._read_file(), nested_hot_dict
+        vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
+        self.openstack.create(self.plugin, self.context, vnf,
+                self.auth_attr, inst_req_info=inst_req_info_test,
+                vnf_package_path=vnf_package_path_test,
+                grant_info=grant_info_test,
+                vnf_instance=vnf_instance)
+
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
+                '.OpenStack._format_base_hot')
+    @mock.patch('tacker.vnflcm.utils._get_vnflcm_interface')
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_normal_with_scaling_group(self, mock_OpenstackClients_heat,
+                           mock_get_base_hot_dict,
+                           mock_get_vnflcm_interface,
+                           mock_format_base_hot):
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       scaling_group=True,
+                                       flavour='simple')
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal_scaling"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = 'simple'
+        vnf_resource = type('', (), {})
+        vnf_resource.resource_identifier = constants.INVALID_UUID
+        grant_info_test = {'vdu_name': {vnf_resource}}
+        nested_hot_dict = {'parameters': {'vnf': 'test'}}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(scale_input_file=True), nested_hot_dict
         vnf_instance = fd_utils.get_vnf_instance_object()
         vnf['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
         self.openstack.create(self.plugin, self.context, vnf,
@@ -2560,7 +2600,7 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch.object(hc.HeatClient, "resource_get_list")
     def test_get_rollback_ids(self, mock_list, mock_resource):
         resource1 = resources.Resource(None, {
-            'resource_name': 'SP1_group',
+            'resource_name': 'SP1',
             'creation_time': '2020-01-01T00:00:00',
             'resource_status': 'CREATE_COMPLETE',
             'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
@@ -2607,7 +2647,7 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch.object(hc.HeatClient, "resource_get_list")
     def test_get_rollback_ids_0(self, mock_list, mock_resource):
         resource1 = resources.Resource(None, {
-            'resource_name': 'SP1_group',
+            'resource_name': 'SP1',
             'creation_time': '2020-01-01T00:00:00',
             'resource_status': 'CREATE_COMPLETE',
             'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',

@@ -188,8 +188,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             scaling_group_dict = {}
             for name, rsc in base_hot_dict.get('resources').items():
                 if rsc['type'] == 'OS::Heat::AutoScalingGroup':
-                    key_name = name.replace('_group', '')
-                    scaling_group_dict[key_name] = name
+                    scaling_group_dict[name] = name
             if scaling_group_dict:
                 vnf['attributes']['scaling_group_names'] = \
                     jsonutils.dump_as_bytes(scaling_group_dict)
@@ -770,10 +769,13 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     def scale_wait(self, context, plugin, auth_attr, policy, region_name,
                    last_event_id):
         heatclient = hc.HeatClient(auth_attr, region_name)
-
         stack_retries = self.STACK_RETRIES
         stack_id = policy['instance_id']
-        grp = heatclient.resource_get(stack_id, policy['name'] + '_group')
+        policy_name = policy['name']
+        # Guard for differentiate call from legacy or ETSI code
+        if 'before_error_point' not in policy['vnf']:
+            policy_name += '_group'
+        grp = heatclient.resource_get(stack_id, policy_name)
         while (True):
             try:
                 judge = 0
@@ -843,7 +845,6 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         mgmt_ips = self._find_mgmt_ips_from_groups(heatclient,
                                                    policy['instance_id'],
                                                    group_names)
-
         return jsonutils.dump_as_bytes(mgmt_ips)
 
     @log.log
@@ -1443,7 +1444,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                       region_name=None):
         heatclient = hc.HeatClient(auth_attr, region_name)
         grp = heatclient.resource_get(vnf_dict['instance_id'],
-                                      vnf_dict['policy_name'] + '_group')
+                                      vnf_dict['policy_name'])
         ret_list = []
         for rsc in heatclient.resource_get_list(grp.physical_resource_id):
             ret_list.append(rsc.physical_resource_id)
@@ -1456,7 +1457,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                          number_of_steps):
         heatclient = hc.HeatClient(auth_attr, region_name)
         grp = heatclient.resource_get(vnf_dict['instance_id'],
-                                      vnf_dict['policy_name'] + '_group')
+                                      vnf_dict['policy_name'])
         res_list = []
         for rsc in heatclient.resource_get_list(grp.physical_resource_id):
             scale_rsc = heatclient.resource_get(grp.physical_resource_id,
@@ -1469,7 +1470,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         )
         LOG.debug("res_list %s", res_list)
         heat_template = vnf_dict['attributes']['heat_template']
-        group_name = vnf_dict['policy_name'] + '_group'
+        group_name = vnf_dict['policy_name']
         policy_name = vnf_dict['policy_name'] + '_scale_in'
 
         heat_resource = yaml.safe_load(heat_template)
@@ -1534,7 +1535,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         if scale_vnf_request.type == 'SCALE_OUT':
             grp = heatclient.resource_get(
                 inst_vnf_info.instance_id,
-                scale_vnf_request.aspect_id + '_group')
+                scale_vnf_request.aspect_id)
             for scale_rsc in heatclient.resource_get_list(
                     grp.physical_resource_id):
                 vnfc_rscs = []
@@ -2065,7 +2066,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                          region_name):
         heatclient = hc.HeatClient(auth_attr, region_name)
         grp = heatclient.resource_get(vnf_dict['instance_id'],
-                                      aspect_id + '_group')
+                                      aspect_id)
         res_list = []
         for rsc in heatclient.resource_get_list(grp.physical_resource_id):
             scale_rsc = heatclient.resource_get(grp.physical_resource_id,
@@ -2079,7 +2080,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         )
         LOG.debug("res_list %s", res_list)
         heat_template = vnf_dict['attributes']['heat_template']
-        group_name = aspect_id + '_group'
+        group_name = aspect_id
 
         heat_resource = yaml.safe_load(heat_template)
         group_temp = heat_resource['resources'][group_name]

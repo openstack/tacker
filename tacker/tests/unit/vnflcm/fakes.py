@@ -1064,15 +1064,15 @@ def vnf_dict():
                 'number\n  nfv:\n    type: json\nresources:\n  ' + \
                 'SP1_scale_out:\n    type: OS::Heat::ScalingPolicy\n' + \
                 '    properties:\n      auto_scaling_group_id: ' + \
-                '{get_resource: SP1_group}\n      adjustment_type: ' + \
+                '{get_resource: SP1}\n      adjustment_type: ' + \
                 'change_in_capacity\n      scaling_adjustment: 1\n  ' + \
-                'SP1_group:\n    type: OS::Heat::AutoScalingGroup\n    ' + \
+                'SP1:\n    type: OS::Heat::AutoScalingGroup\n    ' + \
                 'properties:\n      min_size: 0\n      desired_capacity:' + \
                 ' {get_param: current_num}\n      resource:\n        ' + \
                 'type: SP1_res.yaml\n        properties:\n          nfv:' + \
                 ' {get_param: nfv}\n      max_size: 3\n  SP1_scale_in:\n' + \
                 '    type: OS::Heat::ScalingPolicy\n    properties:\n' + \
-                '      auto_scaling_group_id: {get_resource: SP1_group}\n' + \
+                '      auto_scaling_group_id: {get_resource: SP1}\n' + \
                 '      adjustment_type: change_in_capacity\n      ' + \
                 'scaling_adjustment: -1\noutputs: {}\n'
     scale_g = '{\"scaleGroupDict\": { \"SP1\": { \"vdu\":' + \
