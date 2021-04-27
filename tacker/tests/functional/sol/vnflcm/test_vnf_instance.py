@@ -30,6 +30,7 @@ VNF_PACKAGE_UPLOAD_TIMEOUT = 300
 VNF_INSTANTIATE_TIMEOUT = 600
 VNF_TERMINATE_TIMEOUT = 600
 VNF_HEAL_TIMEOUT = 600
+VNF_CHANGE_EXT_CONN_TIMEOUT = 600
 RETRY_WAIT_TIME = 5
 
 
@@ -47,9 +48,68 @@ def generate_mac_address():
     return ':'.join(map(lambda x: "%02x" % x, mac))
 
 
+def generate_ip_addresses(
+        type_='IPV4',
+        fixed_addresses=None,
+        subnet_id=None):
+    if fixed_addresses:
+        ip_addr = {
+            'type': type_,
+            'fixedAddresses': fixed_addresses
+        }
+        if subnet_id:
+            ip_addr.update({'subnetId': subnet_id})
+    return [ip_addr]
+
+
+def get_ext_cp_with_external_link_port(nw_resource_id, port_uuid):
+    ext_cp = {
+        "id": "external_network",
+        "resourceId": nw_resource_id,
+        "extCps": [{
+            "cpdId": "CP2",
+            "cpConfig": [{
+                "linkPortId": "413f4e46-21cf-41b1-be0f-de8d23f76cfe",
+                "cpProtocolData": [{
+                    "layerProtocol": "IP_OVER_ETHERNET"
+                }]
+            }]
+        }],
+        "extLinkPorts": [{
+            "id": "413f4e46-21cf-41b1-be0f-de8d23f76cfe",
+            "resourceHandle": {
+                "resourceId": port_uuid,
+                "vimLevelResourceType": "LINKPORT"
+            }
+        }]
+    }
+    return ext_cp
+
+
+def get_ext_cp_with_fixed_address(nw_resource_id, fixed_addresses, subnet_id):
+    ext_cp = {
+        "id": "external_network",
+        "resourceId": nw_resource_id,
+        "extCps": [{
+            "cpdId": "CP2",
+            "cpConfig": [{
+                "cpProtocolData": [{
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                        "ipAddresses": generate_ip_addresses(
+                            fixed_addresses=fixed_addresses,
+                            subnet_id=subnet_id)
+                    }
+                }]
+            }]
+        }]
+    }
+    return ext_cp
+
+
 def get_external_virtual_links(net_0_resource_id, net_mgmt_resource_id,
-                               port_uuid):
-    return [
+        port_uuid, fixed_addresses=None, subnet_id=None):
+    ext_vl = [
         {
             "id": "net0",
             "resourceId": net_0_resource_id,
@@ -63,28 +123,18 @@ def get_external_virtual_links(net_0_resource_id, net_mgmt_resource_id,
                         }
                     }]
                 }]
-            }]},
-        {
-            "id": "external_network",
-            "resourceId": net_mgmt_resource_id,
-            "extCps": [{
-                "cpdId": "CP2",
-                "cpConfig": [{
-                    "linkPortId": "413f4e46-21cf-41b1-be0f-de8d23f76cfe",
-                    "cpProtocolData": [{
-                        "layerProtocol": "IP_OVER_ETHERNET"
-                    }]
-                }]
-            }],
-            "extLinkPorts": [{
-                "id": "413f4e46-21cf-41b1-be0f-de8d23f76cfe",
-                "resourceHandle": {
-                    "resourceId": port_uuid,
-                    "vimLevelResourceType": "LINKPORT"
-                }
             }]
         }
     ]
+    if fixed_addresses:
+        ext_cp = get_ext_cp_with_fixed_address(
+            net_mgmt_resource_id, fixed_addresses, subnet_id)
+    else:
+        ext_cp = get_ext_cp_with_external_link_port(
+            net_mgmt_resource_id, port_uuid)
+    ext_vl.append(ext_cp)
+
+    return ext_vl
 
 
 def _create_and_upload_vnf_package(tacker_client, csar_package_name,
@@ -170,6 +220,7 @@ class VnfLcmTest(base.BaseTackerTest):
     def setUp(self):
         super(VnfLcmTest, self).setUp()
         self.base_url = "/vnflcm/v1/vnf_instances"
+        self.base_vnf_lcm_op_occs_url = "/vnflcm/v1/vnf_lcm_op_occs"
 
         vim_list = self.client.list_vims()
         if not vim_list:
@@ -254,8 +305,8 @@ class VnfLcmTest(base.BaseTackerTest):
         self.assertEqual(200, resp.status_code)
         return vnf_instances
 
-    def _stack_update_wait(self, stack_id, expected_status):
-        timeout = VNF_HEAL_TIMEOUT
+    def _stack_update_wait(self, stack_id, expected_status,
+            timeout=VNF_HEAL_TIMEOUT):
         start_time = int(time.time())
         while True:
             stack = self.h_client.stacks.get(stack_id)
@@ -402,6 +453,115 @@ class VnfLcmTest(base.BaseTackerTest):
             # Now check whether vdus are healed properly and servers exists
             # in nova.
             self._get_server(vdu_resource_id_current)
+
+    def _change_ext_conn_vnf_request(self, vim_id=None, ext_vl=None):
+        request_body = {}
+        if ext_vl:
+            request_body["extVirtualLinks"] = ext_vl
+
+        if vim_id:
+            request_body["vimConnectionInfo"] = [
+                {"id": uuidutils.generate_uuid(),
+                 "vimId": vim_id,
+                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2"}]
+
+        return request_body
+
+    def _change_ext_conn_vnf_instance(self, vnf_instance, request_body,
+            expected_stack_status=infra_cnst.STACK_UPDATE_COMPLETE):
+        url = os.path.join(self.base_url, vnf_instance['id'],
+            "change_ext_conn")
+        resp, body = self.http_client.do_request(url, "POST",
+            body=jsonutils.dumps(request_body))
+        self.assertEqual(202, resp.status_code)
+
+        stack = self.h_client.stacks.get(vnf_instance['vnfInstanceName'])
+        # Wait until tacker changes the stack resources as requested
+        # in the change_ext_conn request
+        self._stack_update_wait(stack.id, expected_stack_status,
+                                VNF_CHANGE_EXT_CONN_TIMEOUT)
+
+    def _get_heat_stack(self, vnf_instance_id, stack_name):
+        heatclient = self.heatclient()
+        try:
+            stacks = heatclient.stacks.list()
+        except Exception:
+            return None
+
+        target_stakcs = list(
+            filter(
+                lambda x: x.stack_name == stack_name,
+                stacks))
+
+        if len(target_stakcs) == 0:
+            return None
+
+        return target_stakcs[0]
+
+    def _get_heat_resource_info(self, stack_id, nested_depth=0,
+            resource_name=None):
+        heatclient = self.heatclient()
+        try:
+            if resource_name is None:
+                resources = heatclient.resources.list(stack_id,
+                                         nested_depth=nested_depth)
+            else:
+                resources = heatclient.resources.get(stack_id,
+                                         resource_name)
+        except Exception:
+            return None
+        return resources
+
+    def _get_fixed_ips(self, vnf_instance, request_body):
+        vnf_instance_id = vnf_instance['id']
+        vnf_instance_name = vnf_instance['vnfInstanceName']
+        res_name = None
+        for extvirlink in request_body['extVirtualLinks']:
+            if 'extCps' not in extvirlink:
+                continue
+            for extcps in extvirlink['extCps']:
+                if 'cpdId' in extcps:
+                    if res_name is None:
+                        res_name = list()
+                    res_name.append(extcps['cpdId'])
+                    break
+        if res_name is None:
+            return []
+
+        stack = self._get_heat_stack(vnf_instance_id,
+                                     vnf_instance_name)
+        stack_id = stack.id
+
+        stack_resource = self._get_heat_resource_info(
+            stack_id, nested_depth=2)
+
+        releations = dict()
+        for elmt in stack_resource:
+            if elmt.resource_type != 'OS::Neutron::Port':
+                continue
+            if elmt.resource_name not in res_name:
+                continue
+            parent = getattr(elmt, 'parent_resource', None)
+            releations[parent] = elmt.resource_name
+
+        details = dict()
+        for (parent_name, resource_name) in releations.items():
+            for elmt in stack_resource:
+                if parent_name is None:
+                    detail_stack = self._get_heat_resource_info(
+                        stack_id, resource_name=resource_name)
+                elif parent_name != elmt.resource_name:
+                    continue
+                else:
+                    detail_stack = self._get_heat_resource_info(
+                        elmt.physical_resource_id, resource_name=resource_name)
+                details[resource_name] = detail_stack
+
+        ans_list = list()
+        for detail in details.values():
+            ans_list.append(detail.attributes['fixed_ips'])
+
+        return ans_list
 
     def test_create_show_delete_vnf_instance(self):
         """Create, show and delete a vnf instance."""
@@ -871,6 +1031,103 @@ class VnfLcmTest(base.BaseTackerTest):
 
         vnf_instance_current = self._show_vnf_instance(vnf_instance['id'])
         self._verify_vnfc_resource_info(vnf_instance, vnf_instance_current, 1)
+
+        # Terminate vnf gracefully with graceful timeout set to 60
+        terminate_req_body = {
+            "terminationType": fields.VnfInstanceTerminationType.GRACEFUL,
+            'gracefulTerminationTimeout': 60
+        }
+
+        self._terminate_vnf_instance(vnf_instance['id'], terminate_req_body)
+
+        self._delete_vnf_instance(vnf_instance['id'])
+
+    def test_inst_chgextconn_term(self):
+        """Test change external vnf connectivity.
+
+        This test will instantiate vnf with external virtual link and
+        change the IP address on virtual link.
+        """
+
+        # Create vnf instance
+        vnf_instance_name = "vnf_with_ext_vl_and_ext_managed_vl-%s" % \
+            uuidutils.generate_uuid()
+        vnf_instance_description = "vnf_with_ext_vl_and_ext_managed_vl"
+        resp, vnf_instance = self._create_vnf_instance(self.vnfd_id_3,
+                vnf_instance_name=vnf_instance_name,
+                vnf_instance_description=vnf_instance_description)
+
+        self.assertIsNotNone(vnf_instance['id'])
+        self.assertEqual(201, resp.status_code)
+
+        neutron_client = self.neutronclient()
+        net = neutron_client.list_networks()
+        networks = {}
+        for network in net['networks']:
+            networks[network['name']] = network['id']
+        subnet_list = neutron_client.list_subnets()
+        subnets = {}
+        for subnet in subnet_list['subnets']:
+            subnets[subnet['name']] = subnet['id']
+
+        net1_id = networks.get('net1')
+        if not net1_id:
+            self.fail("net1 network is not available")
+
+        net0_id = networks.get('net0')
+        if not net0_id:
+            self.fail("net0 network is not available")
+
+        net_mgmt_id = networks.get('net_mgmt')
+        if not net_mgmt_id:
+            self.fail("net_mgmt network is not available")
+
+        subnet_mgmt_id = subnets.get('subnet_mgmt')
+        if not subnet_mgmt_id:
+            self.fail("subnet_mgmt subnet is not available")
+
+        ext_managed_vl = get_ext_managed_virtual_link("net1", "VL3",
+            net1_id)
+
+        network_uuid = self._create_network(neutron_client,
+            "external_network")
+        subnet_uuid = self._create_subnet(neutron_client, network_uuid)
+
+        # Instantiate vnf
+        ext_vl = get_external_virtual_links(
+            net0_id, net_mgmt_id, None,
+            fixed_addresses=['192.168.120.100'],
+            subnet_id=subnet_mgmt_id)
+
+        request_body = self._instantiate_vnf_request("simple",
+            vim_id=self.vim_id, ext_vl=ext_vl, ext_managed_vl=ext_managed_vl)
+
+        self._instantiate_vnf_instance(vnf_instance['id'], request_body)
+
+        vnf_instance = self._show_vnf_instance(vnf_instance['id'])
+        vdu_count = len(vnf_instance['instantiatedVnfInfo']
+            ['vnfcResourceInfo'])
+        self.assertEqual(1, vdu_count)
+
+        # Change external vnf connectivity
+        changed_ext_vl = get_external_virtual_links(
+            net0_id, network_uuid, None,
+            fixed_addresses=['22.22.0.100'],
+            subnet_id=subnet_uuid)
+        change_ext_conn_req_body = self._change_ext_conn_vnf_request(
+            vim_id=self.vim_id, ext_vl=changed_ext_vl)
+        before_fixed_ips = self._get_fixed_ips(vnf_instance, request_body)
+        self._change_ext_conn_vnf_instance(
+            vnf_instance, change_ext_conn_req_body)
+        after_fixed_ips = self._get_fixed_ips(vnf_instance, request_body)
+        self.assertNotEqual(before_fixed_ips, after_fixed_ips)
+
+        # Get op-occs
+        resp, op_occs_info = self._list_op_occs()
+        self._assert_occ_list(resp, op_occs_info)
+
+        # Wait for operation state completed
+        time.sleep(10)
 
         # Terminate vnf gracefully with graceful timeout set to 60
         terminate_req_body = {

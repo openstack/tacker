@@ -1847,27 +1847,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assertIsNotNone(_links.get('grant'))
         self.assertIsNotNone(_links.get('grant').get('href'))
 
-    def _assert_occ_list(self, resp, op_occs_list):
-        self.assertEqual(200, resp.status_code)
-
-        # Only check required parameters.
-        for op_occs_info in op_occs_list:
-            self.assertIsNotNone(op_occs_info.get('id'))
-            self.assertIsNotNone(op_occs_info.get('operationState'))
-            self.assertIsNotNone(op_occs_info.get('stateEnteredTime'))
-            self.assertIsNotNone(op_occs_info.get('vnfInstanceId'))
-            self.assertIsNotNone(op_occs_info.get('operation'))
-            self.assertIsNotNone(op_occs_info.get('isAutomaticInvocation'))
-            self.assertIsNotNone(op_occs_info.get('isCancelPending'))
-
-            _links = op_occs_info.get('_links')
-            self.assertIsNotNone(_links.get('self'))
-            self.assertIsNotNone(_links.get('self').get('href'))
-            self.assertIsNotNone(_links.get('vnfInstance'))
-            self.assertIsNotNone(_links.get('vnfInstance').get('href'))
-            self.assertIsNotNone(_links.get('grant'))
-            self.assertIsNotNone(_links.get('grant').get('href'))
-
     def _assert_fail_vnf_response(self, fail_response):
 
         # Only check parameters with cardinality = 1

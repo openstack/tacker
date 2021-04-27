@@ -2597,18 +2597,15 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertEqual('30435eb8-1472-4cbc-abbe-00b395165ce7', grp_id)
 
     @mock.patch('tacker.common.clients.OpenstackClients')
-    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
-    def test_change_ext_conn_vnf(self,
-            mock_get_base_hot_dict,
-            mock_mock_OpenstackClients_heat):
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.update_template.'
+        'HOTUpdater')
+    def test_change_ext_conn_vnf_with_userdata(self,
+            mock_hot_updater,
+            mock_OpenstackClients_heat):
         inst_vnf_info = fd_utils.get_vnf_instantiated_info()
 
         vnf_instance = fd_utils.get_vnf_instance_object(
             instantiated_vnf_info=inst_vnf_info)
-
-        nested_hot_dict = {'parameters': {'vnf': 'test'}}
-        mock_get_base_hot_dict.return_value = \
-            self._read_file(), nested_hot_dict
 
         vnf_dict['vnfd'] = fd_utils.get_vnfd_dict()
         vnf_dict['attributes'] = fd_utils.get_vnf_attribute_dict()
@@ -2623,6 +2620,38 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertEqual(
             str(fd_utils.get_expect_stack_param()),
             vnf_dict['attributes']['stack_param'])
+
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.update_template'
+        '.HOTUpdater')
+    def test_change_ext_conn_vnf_without_userdata(self,
+            mock_hot_updater,
+            mock_OpenstackClients_heat):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+
+        vnf_dict['vnfd'] = fd_utils.get_vnfd_dict()
+        vnf_dict['attributes'] = {}
+
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+        change_ext_conn_request = fd_utils.get_change_ext_conn_request()
+
+        hot_instance = mock_hot_updater.return_value
+        hot_instance.template = fd_utils.get_stack_template()
+        hot_instance.nested_templates = {
+            'VDU2.yaml': fd_utils.get_stack_nested_template(),
+        }
+
+        self.openstack.change_ext_conn_vnf(
+            self.context, vnf_instance, vnf_dict,
+            vim_connection_info, change_ext_conn_request)
+        hot_instance.get_templates_from_stack.assert_called_once()
+        for resource, args in (fd_utils.
+                get_expected_update_resource_property_calls().items()):
+            hot_instance.update_resource_property.assert_any_call(
+                resource, **args)
 
     def test_change_ext_conn_vnf_wait(self):
         inst_vnf_info = fd_utils.get_vnf_instantiated_info()

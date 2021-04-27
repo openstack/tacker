@@ -558,6 +558,134 @@ def get_vnf_attribute_dict():
     return vnf_attribute_dict
 
 
+def get_stack_template():
+    stack_template = {
+        'heat_template_version': '2013-05-23',
+        'description': 'Simple deployment flavour for Sample VNF',
+        'parameters': {},
+        'resources': {
+            'VDU1': {
+                'type': 'OS::Nova::Server',
+                'properties': {
+                    'name': 'VDU1',
+                    'flavor': 'm1.tiny',
+                    'image': 'None',
+                    'networks': [
+                        {
+                            'port': {'get_resource': 'VDU1_CP1'},
+                        }, {
+                            'port': {'get_resource': 'VDU1_CP2'},
+                        }
+                    ],
+                },
+            },
+            'VDU1_CP1': {
+                'type': 'OS::Neutron::Port',
+                'properties': {
+                    'network': "nw-resource-id-1",
+                    'fixed_ips': [{
+                        'ip_address': '10.10.0.1',
+                    }],
+                },
+            },
+            'VDU1_CP2': {
+                'type': 'OS::Neutron::Port',
+                'properties': {
+                    'network': "nw-resource-id-1",
+                    'fixed_ips': [{
+                        'ip_address': '10.10.0.2',
+                        'subnet': 'subnet-id-2',
+                    }],
+                },
+            },
+        },
+    }
+
+    return stack_template
+
+
+def get_stack_nested_template():
+    stack_nested_template = {
+        'heat_template_version': '2013-05-23',
+        'description': 'Simple deployment flavour for Sample VNF',
+        'parameters': {},
+        'resources': {
+            'VDU2': {
+                'type': 'OS::Nova::Server',
+                'properties': {
+                    'name': 'VDU2',
+                    'flavor': 'm1.tiny',
+                    'image': 'cirros-0.4.0-x86_64-disk',
+                    'networks': [
+                        {
+                            'port': {'get_resource': 'VDU2_CP1'},
+                        }, {
+                            'port': {'get_resource': 'VDU2_CP2'},
+                        }
+                    ],
+                },
+            },
+            'VDU2_CP1': {
+                'type': 'OS::Neutron::Port',
+                'properties': {
+                    'network': 'nw-resource-id-2',
+                    'fixed_ips': [{
+                        'subnet': 'subnet-id-2',
+                    }],
+                },
+            },
+            'VDU2_CP2': {
+                'type': 'OS::Neutron::Port',
+                'properties': {
+                    'network': 'nw-resource-id-2',
+                },
+            },
+        },
+    }
+
+    return stack_nested_template
+
+
+def get_expected_update_resource_property_calls():
+    calls = {
+        'VDU1_CP1': {
+            'resource_types': ['OS::Neutron::Port'],
+            'network': 'nw-resource-id-1',
+            'fixed_ips': [{
+                'ip_address': '20.0.0.1'
+            }],
+        },
+        'VDU1_CP2': {
+            'resource_types': ['OS::Neutron::Port'],
+            'network': 'nw-resource-id-1',
+            'fixed_ips': [{
+                'ip_address': '30.0.0.2',
+                'subnet': 'changed-subnet-id-1',
+            }],
+        },
+        'VDU1_CP3': {
+            'resource_types': ['OS::Neutron::Port'],
+            'network': 'nw-resource-id-1',
+            'fixed_ips': [{
+                'ip_address': '10.0.0.1'
+            }],
+        },
+        'VDU2_CP1': {
+            'resource_types': ['OS::Neutron::Port'],
+            'network': 'changed-nw-resource-id-2',
+            'fixed_ips': [{
+                'subnet': 'changed-subnet-id-2',
+            }],
+        },
+        'VDU2_CP2': {
+            'resource_types': ['OS::Neutron::Port'],
+            'network': 'changed-nw-resource-id-2',
+            'fixed_ips': None,
+        },
+    }
+    return calls
+
+
 def get_lcm_op_occs_object(operation="INSTANTIATE",
         error_point=0):
     vnf_lcm_op_occs = objects.VnfLcmOpOcc(
