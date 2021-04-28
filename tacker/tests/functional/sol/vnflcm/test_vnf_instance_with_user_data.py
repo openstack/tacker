@@ -374,6 +374,13 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
         self.assertEqual(200, resp.status_code)
 
+        # Get VNF image after instantiate VDU2
+        image_before_update = self._get_heat_stack_show(
+            vnf_instance_id, 'VDU2')
+        self.assertIsNotNone(
+            image_before_update,
+            "failed to retrieve image")
+
         # Update vnf (vnfdId)
         sample_name = 'functional2'
         csar_package_path = os.path.abspath(
@@ -408,6 +415,12 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         resp, _ = self._heal_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
         self.assert_heal_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Check of Image changes after heal
+        image_after_heal = self._get_heat_stack_show(vnf_instance_id, 'VDU2')
+        self.assertIsNotNone(
+            image_after_heal, "failed to retrieve image")
+        self.assertNotEqual(image_before_update, image_after_heal)
 
         # Terminate VNF
         stack = self._get_heat_stack(vnf_instance_id)

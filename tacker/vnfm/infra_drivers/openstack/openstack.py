@@ -37,6 +37,7 @@ from tacker.common import utils
 from tacker.db.common_services import common_services_db_plugin
 from tacker.extensions import vnflcm
 from tacker.extensions import vnfm
+from tacker import manager
 from tacker import objects
 from tacker.objects import fields
 from tacker.plugins.common import constants
@@ -1264,6 +1265,10 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         heatclient = hc.HeatClient(access_info, region_name=region_name)
         vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_vnf_instance_id(
             context, vnf_instance.id)
+        stack_param = {}
+
+        vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
+        vnf_dict = vnfm_plugin.get_vnf(context, vnf_instance.id)
 
         def _get_storage_resources(vnfc_resource):
             # Prepare list of storage resources to be marked unhealthy
@@ -1350,10 +1355,38 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             _get_stack_status()
             _resource_mark_unhealthy()
 
+        # get HOT dict
+        base_hot_dict, nested_hot_dict = \
+            vnflcm_utils.get_base_nest_hot_dict(
+                context,
+                inst_vnf_info.flavour_id,
+                vnf_dict['vnfd_id'])
+
+        stack_param = vnflcm_utils.get_stack_param(
+            context, vnf_dict, heal_vnf_request, inst_vnf_info)
+
+        # update stack with latest HOT
+        stack_update_param = {
+            'existing': True}
+
+        if base_hot_dict:
+            stack_update_param['template'] = \
+                self._format_base_hot(base_hot_dict)
+
+        if nested_hot_dict:
+            files_dict = {}
+            for name, value in nested_hot_dict.items():
+                files_dict[name] = self._format_base_hot(value)
+            stack_update_param['files'] = files_dict
+
+        if stack_param:
+            stack_update_param['parameters'] = stack_param
+
         LOG.info("Updating stack %(stack)s for vnf instance %(id)s",
                 {"stack": inst_vnf_info.instance_id, "id": vnf_instance.id})
 
-        heatclient.update(stack_id=inst_vnf_info.instance_id, existing=True)
+        heatclient.update(
+            stack_id=inst_vnf_info.instance_id, **stack_update_param)
 
     @log.log
     def heal_vnf_wait(self, context, vnf_instance, vim_connection_info,

@@ -10,6 +10,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import json
 import os
 import tempfile
 import time
@@ -1253,3 +1254,14 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         return [
             h for h in notify_histories
             if h.request_body.get('vnfInstanceId') == vnf_instance_id]
+
+    def _get_heat_stack_show(self, vnf_instance_id, resource_name):
+        """Retrieve image name of the resource from stack"""
+        try:
+            stack = self._get_heat_stack(vnf_instance_id)
+            stack_info = self.h_client.stacks.get(stack.id)
+            stack_dict = stack_info.to_dict()
+            resource_dict = json.loads(stack_dict['parameters']['nfv'])
+        except Exception:
+            return None
+        return resource_dict['VDU'][resource_name]['image']

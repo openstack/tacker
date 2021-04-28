@@ -1953,6 +1953,21 @@ class Conductor(manager.Manager):
                 error_point=vnf_dict['current_error_point']
             )
 
+    def _update_vnf_attributes_stack_param(self, context, vnf_dict, vnf_id,
+                                           heal_vnf_request, inst_vnf_info):
+        stack_param = vnflcm_utils.get_stack_param(
+            context, vnf_dict, heal_vnf_request, inst_vnf_info)
+
+        # update vnf_attribute in DB
+        with context.session.begin(subtransactions=True):
+            vnf_attr_model = (context.session.query(
+                vnfm_db.VNFAttribute).
+                filter_by(vnf_id=vnf_id).
+                filter_by(key='stack_param').first())
+
+            if vnf_attr_model:
+                vnf_attr_model.update({'value': str(stack_param)})
+
     @coordination.synchronized('{vnf_instance[id]}')
     def heal(self,
              context,
@@ -1997,6 +2012,11 @@ class Conductor(manager.Manager):
 
                 self._update_instantiated_vnf_info(context, vnf_instance,
                                                    heal_vnf_request)
+
+                # update stack_param in vnf_attribute table
+                self._update_vnf_attributes_stack_param(
+                    context, vnf_dict, vnf_instance.id, heal_vnf_request,
+                    vnf_instance.instantiated_vnf_info)
 
                 # update instance_in in vnf_table
                 self._add_additional_vnf_info(context, vnf_instance)

@@ -1345,6 +1345,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                                vnf_package_vnfd.package_uuid)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_vnf_attributes_stack_param')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_add_additional_vnf_info')
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_update_instantiated_vnf_info')
@@ -1355,7 +1357,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
     def test_heal_vnf_instance(self, mock_vnf_by_id,
             mock_get_lock, mock_save, mock_change_vnf_status,
-            mock_update_insta_vnf_info, mock_add_additional_vnf_info):
+            mock_update_insta_vnf_info, mock_add_additional_vnf_info,
+            mock_update_vnf_attributes_stack_param):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
             objects.VnfLcmOpOcc(context=self.context,
@@ -1380,7 +1383,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             assert_called_once_with(self.context, vnf_instance, heal_vnf_req)
         mock_add_additional_vnf_info. \
             assert_called_once_with(self.context, vnf_instance)
+        mock_update_vnf_attributes_stack_param.assert_called_once_with(
+            self.context, vnf_dict, vnf_instance.id, heal_vnf_req,
+            vnf_instance.instantiated_vnf_info)
 
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_vnf_attributes_stack_param')
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_add_additional_vnf_info')
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
@@ -1393,7 +1401,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     def test_heal_vnf_instance_error_point_notify_processing(
             self, mock_vnf_by_id, mock_get_lock, mock_save,
             mock_change_vnf_status, mock_update_insta_vnf_info,
-            mock_add_additional_vnf_info):
+            mock_add_additional_vnf_info,
+            mock_update_vnf_attributes_stack_param):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
             objects.VnfLcmOpOcc(context=self.context,
@@ -1418,7 +1427,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             assert_called_once_with(self.context, vnf_instance, heal_vnf_req)
         mock_add_additional_vnf_info. \
             assert_called_once_with(self.context, vnf_instance)
+        mock_update_vnf_attributes_stack_param.assert_called_once_with(
+            self.context, vnf_dict, vnf_instance.id, heal_vnf_req,
+            vnf_instance.instantiated_vnf_info)
 
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_vnf_attributes_stack_param')
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_add_additional_vnf_info')
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
@@ -1431,7 +1445,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     def test_heal_vnf_instance_error_point_internal_processing(
             self, mock_vnf_by_id, mock_get_lock, mock_save,
             mock_change_vnf_status, mock_update_insta_vnf_info,
-            mock_add_additional_vnf_info):
+            mock_add_additional_vnf_info,
+            mock_update_vnf_attributes_stack_param):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
         mock_vnf_by_id.return_value = \
             objects.VnfLcmOpOcc(context=self.context,
@@ -1456,6 +1471,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             assert_called_once_with(self.context, vnf_instance, heal_vnf_req)
         mock_add_additional_vnf_info. \
             assert_called_once_with(self.context, vnf_instance)
+        mock_update_vnf_attributes_stack_param.assert_called_once_with(
+            self.context, vnf_dict, vnf_instance.id, heal_vnf_req,
+            vnf_instance.instantiated_vnf_info)
 
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver'
                 '.heal_vnf')
@@ -1496,6 +1514,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(mock_update_insta_vnf_info.call_count, 0)
         self.assertEqual(mock_add_additional_vnf_info.call_count, 0)
 
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_vnf_attributes_stack_param')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
@@ -1528,7 +1548,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                      mock_save,
                                      mock_add_vnf_info,
                                      mock_update_vnf_info,
-                                     mock_change_status):
+                                     mock_change_status,
+                                     mock_update_vnf_attributes_stack_param):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -1581,9 +1602,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                             heal_vnf_req, vnf_lcm_op_occs_id)
         mock_add_vnf_info.assert_called_once()
         mock_update_vnf_info.assert_called_once()
+        mock_update_vnf_attributes_stack_param.assert_called_once()
         self.vnflcm_driver.heal_vnf.assert_called_once_with(
             self.context, mock.ANY, vnf_dict, heal_vnf_req)
 
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_vnf_attributes_stack_param')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
@@ -1619,7 +1643,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                        mock_save,
                                        mock_add_vnf_info,
                                        mock_update_vnf_info,
-                                       mock_change_status):
+                                       mock_change_status,
+                                       mock_update_vnf_attribute_stack_param):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -1746,6 +1771,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                             heal_vnf_req, vnf_lcm_op_occs_id)
         mock_add_vnf_info.assert_called_once()
         mock_update_vnf_info.assert_called_once()
+        mock_update_vnf_attribute_stack_param.assert_called_once()
         self.vnflcm_driver.heal_vnf.assert_called_once_with(
             self.context, mock.ANY, vnf_dict, heal_vnf_req)
 
@@ -1917,6 +1943,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             'ROLLED_BACK')
 
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
+                '_update_vnf_attributes_stack_param')
+    @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_send_lcm_op_occ_notification')
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_update_instantiated_vnf_info')
@@ -1929,7 +1957,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     def test_heal_vnf_instance_exception(self,
             mock_log, mock_get_lock, mock_add_additional_vnf_info,
             mock_change_vnf_status, mock_update_insta_vnf_info,
-            mock_send_notification):
+            mock_send_notification, mock_update_vnf_attributes_stack_param):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -1951,6 +1979,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             vnf_instance.id, mock.ANY, constants.ERROR, "")
         mock_update_insta_vnf_info.assert_called_with(self.context,
             vnf_instance, heal_vnf_req)
+        mock_update_vnf_attributes_stack_param.assert_called_once_with(
+            self.context, vnf_dict, vnf_instance.id, heal_vnf_req,
+            vnf_instance.instantiated_vnf_info)
         self.assertEqual(mock_send_notification.call_count, 2)
 
     @unittest.skip("Such test is no longer feasible.")
