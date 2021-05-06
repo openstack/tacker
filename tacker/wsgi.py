@@ -33,7 +33,6 @@ import tacker.conf
 import oslo_i18n as i18n
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
-from oslo_service import service as common_service
 from oslo_service import systemd
 from oslo_utils import encodeutils
 from oslo_utils import excutils
@@ -44,7 +43,6 @@ import webob.exc
 from tacker._i18n import _
 from tacker.common import exceptions as exception
 from tacker import context
-from tacker.db import api
 
 
 socket_opts = [
@@ -149,35 +147,6 @@ def expected_errors(errors):
     return decorator
 
 
-class WorkerService(common_service.ServiceBase):
-    """Wraps a worker to be handled by ProcessLauncher."""
-
-    def __init__(self, service, application):
-        self._service = service
-        self._application = application
-        self._server = None
-
-    def start(self):
-        # We may have just forked from parent process.  A quick disposal of the
-        # existing sql connections avoids producing 500 errors later when they
-        # are discovered to be broken.
-        api.get_engine().pool.dispose()
-        self._server = self._service.pool.spawn(self._service._run,
-                                                self._application,
-                                                self._service._socket)
-
-    def wait(self):
-        self._service.pool.waitall()
-
-    def stop(self):
-        if isinstance(self._server, eventlet.greenthread.GreenThread):
-            self._server.kill()
-            self._server = None
-
-    def reset(self):
-        pass
-
-
 class Server(object):
     """Server class to manage multiple WSGI sockets and applications."""
 
@@ -186,7 +155,6 @@ class Server(object):
         eventlet.wsgi.MAX_HEADER_LINE = CONF.max_header_line
         self.pool = eventlet.GreenPool(threads)
         self.name = name
-        self._launcher = None
         self._server = None
 
     def _get_socket(self, host, port, backlog):
@@ -268,7 +236,7 @@ class Server(object):
 
         return sock
 
-    def start(self, application, port, host='0.0.0.0', workers=0):
+    def start(self, application, port, host='0.0.0.0'):
         """Run a WSGI server with the given application."""
         self._host = host
         self._port = port
@@ -277,18 +245,10 @@ class Server(object):
         self._socket = self._get_socket(self._host,
                                         self._port,
                                         backlog=backlog)
-        if workers < 1:
-            # For the case where only one process is required.
-            self._server = self.pool.spawn(self._run, application,
-                                           self._socket)
-            systemd.notify_once()
-        else:
-            # Minimize the cost of checking for child exit by extending the
-            # wait interval past the default of 0.01s.
-            self._launcher = common_service.ProcessLauncher(
-                CONF, wait_interval=1.0, restart_method='mutate')
-            self._server = WorkerService(self, application)
-            self._launcher.launch_service(self._server, workers=workers)
+        # For the case where only one process is required.
+        self._server = self.pool.spawn(self._run, application,
+                                       self._socket)
+        systemd.notify_once()
 
     @property
     def host(self):
@@ -299,19 +259,12 @@ class Server(object):
         return self._socket.getsockname()[1] if self._socket else self._port
 
     def stop(self):
-        if self._launcher:
-            # The process launcher does not support stop or kill.
-            self._launcher.running = False
-        else:
-            self._server.kill()
+        self._server.kill()
 
     def wait(self):
         """Wait until all servers have completed running."""
         try:
-            if self._launcher:
-                self._launcher.wait()
-            else:
-                self.pool.waitall()
+            self.pool.waitall()
         except KeyboardInterrupt:
             pass
 
