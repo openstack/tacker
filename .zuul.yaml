@@ -456,6 +456,15 @@
       - ^releasenotes/.*$
       - ^contrib/.*$
 
+- job:
+    name: tacker-functional-devstack-multinode-libs-master
+    parent: tacker-functional-devstack-multinode-legacy
+    description: |
+      devstack-based functional tests with libs from the master branch
+    required-projects:
+      - openstack/heat-translator
+      - openstack/tosca-parser
+
 - project:
     templates:
       - check-requirements
@@ -470,3 +479,4 @@
         - tacker-functional-devstack-multinode-sol
         - tacker-functional-devstack-multinode-sol-separated-nfvo
         - tacker-functional-devstack-multinode-sol-kubernetes
+        - tacker-functional-devstack-multinode-libs-master
