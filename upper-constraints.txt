@@ -152,7 +152,7 @@ google-auth===1.27.1
 kazoo===2.8.0
 XStatic-roboto-fontface===0.5.0.0
 pyudev===0.22.0
-eventlet===0.30.2
+eventlet===0.31.0
 openstack-doc-tools===3.3.0
 oslo.messaging===12.7.1
 jira===2.0.0
