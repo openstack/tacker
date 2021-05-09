@@ -10,10 +10,10 @@
   "instantiationState": "NOT_INSTANTIATED",
   "_links": {
     "self": {
-      "href": "/vnflcm/v1/vnf_instances/1502ef16-8f4a-41f3-8c77-5a0eeee9c8d7"
+      "href": "http://sample1.com/vnflcm/v1/vnf_instances/1502ef16-8f4a-41f3-8c77-5a0eeee9c8d7"
     },
     "instantiate": {
-      "href": "/vnflcm/v1/vnf_instances/1502ef16-8f4a-41f3-8c77-5a0eeee9c8d7/instantiate"
+      "href": "http://sample1.com/vnflcm/v1/vnf_instances/1502ef16-8f4a-41f3-8c77-5a0eeee9c8d7/instantiate"
     }
   }
 }

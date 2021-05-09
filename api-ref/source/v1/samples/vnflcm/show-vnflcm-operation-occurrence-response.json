@@ -59,13 +59,13 @@
   },
   "_links": {
     "self": {
-      "href": "http://sample.com/vnflcm/v1/vnf_lcm_op_occs/d85c6ae4-af16-42c0-96fc-82f7c014c468"
+      "href": "http://sample1.com/vnflcm/v1/vnf_lcm_op_occs/d85c6ae4-af16-42c0-96fc-82f7c014c468"
     },
     "vnfInstance": {
-      "href": "http://sample.com/vnflcm/v1/vnf_instances/0b7b95a9-21d5-4ac4-80c8-9ae9f7323787"
+      "href": "http://sample1.com/vnflcm/v1/vnf_instances/0b7b95a9-21d5-4ac4-80c8-9ae9f7323787"
     },
     "grant": {
-      "href": "/grant/v1/grants/3432cebe-db0a-11e8-9023-005056317abe"
+      "href": "http://sample1.com/grant/v1/grants/3432cebe-db0a-11e8-9023-005056317abe"
     },
     "retry":{
       "href":"http://sample1.com/vnflcm/v1/vnf_lcm_op_occs/d85c6ae4-af16-42c0-96fc-82f7c014c468/retry"
