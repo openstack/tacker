@@ -521,7 +521,7 @@ def _validate_hash(algorithm, hash_code, csar, artifact_path):
 
 def extract_csar_zip_file(file_path, extract_path):
     try:
-        with zipfile.ZipFile(file_path, 'r') as zf:
+        with PreserveZipFilePermissions(file_path, 'r') as zf:
             zf.extractall(extract_path)
     except (RuntimeError, zipfile.BadZipfile) as exp:
         with excutils.save_and_reraise_exception():
@@ -573,3 +573,25 @@ def delete_csar_data(package_uuid):
         msg = _('Failed to delete csar folder: '
                 '%(csar_path)s, Error: %(exc)s')
         LOG.warning(msg, {'csar_path': csar_path, 'exc': exc_message})
+
+
+class PreserveZipFilePermissions(zipfile.ZipFile):
+    """Patched _extract_member function of zipFile.
+
+    zipfile.ZipFile.extractall function internally calls
+    _extract_member function.
+    Here _extract_member function is patched to retain the
+    file permissions using member.external_attr >> 16.
+
+    Note: First 16 bits of external_attr store permission details.
+    """
+    def _extract_member(self, member, targetpath, pwd):
+        if not isinstance(member, zipfile.ZipInfo):
+            member = self.getinfo(member)
+
+        targetpath = super()._extract_member(member, targetpath, pwd)
+
+        attr = member.external_attr >> 16
+        if attr != 0:
+            os.chmod(targetpath, attr)
+        return targetpath
