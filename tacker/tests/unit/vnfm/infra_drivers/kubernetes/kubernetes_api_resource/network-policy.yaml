@@ -6,3 +6,10 @@ spec:
   podSelector: {}
   policyTypes:
   - Egress
+  egress:
+    - to:
+      - ipBlock:
+          cidr: 10.0.0.0/24
+      ports:
+      - protocol: TCP
+        port: 5978

@@ -4,5 +4,10 @@ metadata:
   name: curry-sc-local
 provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
+allowedTopologies:
+- matchLabelExpressions:
+  - key: failure-domain.beta.kubernetes.io/zone
+    values:
+    - us-central1-a
 #volumeBindingMode: Immediate
 #reclaimPolicy: Retain

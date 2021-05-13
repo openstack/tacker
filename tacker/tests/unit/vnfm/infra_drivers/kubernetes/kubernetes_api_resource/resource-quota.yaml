@@ -9,3 +9,9 @@ spec:
     memory: 2Gi
   scopes:
   - NotBestEffort
+  scopeSelector:
+    matchExpressions:
+      - scopeName: PriorityClass
+        operator: In
+        values:
+          - middle

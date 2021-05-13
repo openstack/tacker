@@ -24,4 +24,7 @@ spec:
           limits: {}
           requests: {}
       restartPolicy: OnFailure
-status: {}
+status:
+  conditions:
+    - status: True
+      type: Job

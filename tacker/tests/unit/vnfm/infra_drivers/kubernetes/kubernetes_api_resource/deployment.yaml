@@ -7,6 +7,9 @@ spec:
   selector:
     matchLabels:
       selector: curry-probe-test001
+    matchExpressions:
+      - key: test
+        operator: test
   template:
     metadata:
       labels:
@@ -38,3 +41,7 @@ spec:
             path: /
           failureThreshold: 2
           periodSeconds: 2
+status:
+  conditions:
+    - status: True
+      type: Deployment

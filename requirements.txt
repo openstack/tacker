@@ -45,10 +45,10 @@ pyroute2>=0.4.21;sys_platform!='win32' # Apache-2.0 (+ dual licensed GPL2)
 python-mistralclient>=4.2.0 # Apache-2.0
 python-barbicanclient>=4.5.2 # Apache-2.0
 castellan>=0.16.0 # Apache-2.0
-kubernetes>=11.0.0 # Apache-2.0
+kubernetes>=18.20.0 # Apache-2.0
 setuptools!=24.0.0,!=34.0.0,!=34.0.1,!=34.0.2,!=34.0.3,!=34.1.0,!=34.1.1,!=34.2.0,!=34.3.0,!=34.3.1,!=34.3.2,!=36.2.0,>=21.0.0 # PSF/ZPL
 tooz>=1.58.0 # Apache-2.0
-PyYAML>=5.1 # MIT
+PyYAML>=5.4.1 # MIT
 PyMySQL>=0.10.1 # MIT
 
 # Glance Store

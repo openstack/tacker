@@ -8,3 +8,4 @@ spec:
   - default:
     cpu: 500m
     memory: 512M
+  type: test

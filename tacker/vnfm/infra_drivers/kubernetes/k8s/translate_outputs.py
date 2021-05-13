@@ -166,11 +166,10 @@ class Transformer(object):
         # initiating k8s object, you need to
         # give the must param an empty value.
         must_param = {
-            'RuntimeRawExtension': '(raw="")',
             'V1LocalSubjectAccessReview': '(spec="")',
             'V1HTTPGetAction': '(port="")',
             'V1DeploymentSpec': '(selector="", template="")',
-            'V1PodSpec': '(containers="")',
+            'V1PodSpec': '(containers=[])',
             'V1ConfigMapKeySelector': '(key="")',
             'V1Container': '(name="")',
             'V1EnvVar': '(name="")',
@@ -182,7 +181,7 @@ class Transformer(object):
                                  'image="", image_id="", '
                                  'name="", ready="", '
                                  'restart_count="")',
-            'V1ServicePort': '(port="")',
+            'V1ServicePort': '(port=80)',
             'V1TypedLocalObjectReference': '(kind="", name="")',
             'V1LabelSelectorRequirement': '(key="", operator="")',
             'V1PersistentVolumeClaimCondition': '(status="", type="")',
@@ -237,14 +236,15 @@ class Transformer(object):
             'V1ScopedResourceSelectorRequirement':
                 '(operator="", scope_name="")',
             'V1APIServiceSpec': '(group_priority_minimum=0, '
-                                'service="", version_priority=0)',
+                                'service="", '
+                                'version_priority=0)',
             'V1APIServiceCondition': '(status="", type="")',
             'V1DaemonSetSpec': '(selector="", template="")',
             'V1ReplicaSetSpec': '(selector="")',
             'V1StatefulSetSpec': '(selector="", '
                                  'service_name="", template="")',
             'V1StatefulSetCondition': '(status="", type="")',
-            'V1StatefulSetStatus': '(replicas="")',
+            'V1StatefulSetStatus': '(replicas=0)',
             'V1ControllerRevision': '(revision=0)',
             'V1TokenReview': '(spec="")',
             'V1SubjectAccessReviewStatus': '(allowed=True)',
@@ -274,6 +274,48 @@ class Transformer(object):
             'V1VolumeAttachmentSpec':
                 '(attacher="", node_name="", source="")',
             'V1VolumeAttachmentStatus': '(attached=True)',
+            'V1NodeSelector': '(node_selector_terms=[])',
+            'V1NodeSelectorRequirement': '(key="", operator="")',
+            'V1PreferredSchedulingTerm': '(preference="", weight=1)',
+            'V1PodAffinityTerm': '(topology_key="")',
+            'V1WeightedPodAffinityTerm': '(pod_affinity_term="", weight=1)',
+            'V1OwnerReference': '(api_version="", kind="", name="", uid="")',
+            'V1HTTPHeader': '(name="", value="")',
+            'V1TCPSocketAction': '(port="")',
+            'V1VolumeDevice': '(device_path="", name="")',
+            'V1PodReadinessGate': '(condition_type="")',
+            'V1Sysctl': '(name="", value="")',
+            'V1ContainerStateTerminated': '(exit_code=0)',
+            'V1AzureFilePersistentVolumeSource': '(secret_name="",'
+                                                 ' share_name="")',
+            'V1CephFSPersistentVolumeSource': '(monitors=[])',
+            'V1CinderPersistentVolumeSource': '(volume_id="")',
+            'V1CSIPersistentVolumeSource': '(driver="", volume_handle="")',
+            'V1FlexPersistentVolumeSource': '(driver="")',
+            'V1GlusterfsPersistentVolumeSource': '(endpoints="", path="")',
+            'V1ISCSIPersistentVolumeSource': '(iqn="", lun=0,'
+                                             ' target_portal="")',
+            'V1LocalVolumeSource': '(path="")',
+            'V1RBDPersistentVolumeSource': '(image="", monitors=[])',
+            'V1ScaleIOPersistentVolumeSource': '('
+                                               'gateway="",'
+                                               ' secret_ref="",'
+                                               ' system="")',
+            'V1DaemonSetStatus': '(current_number_scheduled=0, '
+                                 'desired_number_scheduled=0, '
+                                 'number_misscheduled=0, '
+                                 'number_ready=0)',
+            'V1DaemonSetCondition': '(status="", type="")',
+            'V1DeploymentCondition': '(status="", type="")',
+            'V1ReplicaSetStatus': '(replicas=0)',
+            'V1ReplicaSetCondition': '(status="", type="")',
+            'V1ResourceRule': '(verbs=[])',
+            'V1JobCondition': '(status="", type="")',
+            'V1IPBlock': '(cidr="")',
+            'V1EphemeralContainer': '(name="")',
+            'V1TopologySpreadConstraint': '(max_skew=0, topology_key="",'
+                                          ' when_unsatisfiable="")',
+            'V1LimitRangeItem': '(type="")'
         }
         whole_kind = 'V1' + kind
         if whole_kind in must_param.keys():

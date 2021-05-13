@@ -46,7 +46,7 @@ jsonschema==3.2.0
 keystoneauth1==4.3.1
 keystonemiddleware==4.17.0
 kombu==4.3.0
-kubernetes==11.0.0
+kubernetes==18.20.0
 linecache2==1.0.0
 Mako==1.0.7
 MarkupSafe==1.1
@@ -116,7 +116,7 @@ python-swiftclient==3.5.0
 python-tackerclient==0.8.0
 python-cinderclient==8.0.0
 pytz==2018.3
-PyYAML==5.1
+PyYAML==5.4.1
 repoze.lru==0.7
 requests-oauthlib==0.8.0
 requests==2.25.1

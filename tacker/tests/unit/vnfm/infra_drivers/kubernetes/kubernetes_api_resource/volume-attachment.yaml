@@ -8,3 +8,5 @@ spec:
   node_name: nginx
   source:
     persistent_volume_name: curry-sc-pvc
+status:
+  attached: True
