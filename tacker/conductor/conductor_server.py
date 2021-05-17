@@ -1571,13 +1571,11 @@ class Conductor(manager.Manager):
                 'vnfLcmOpOccId': vnf_lcm_op_occs_id,
                 '_links': {
                     'vnfInstance': {
-                        'href':
-                            '/vnflcm/v1/vnf_instances/%s'
-                            % vnf_instance_id},
+                        'href': self._get_vnf_instance_href(
+                            vnf_instance_id)},
                     'vnfLcmOpOcc': {
-                        'href':
-                            '/vnflcmv1/vnf_lcm_op_occs/%s'
-                            % vnf_lcm_op_occs_id}}}
+                        'href': self._get_vnf_lcm_op_occs_href(
+                            vnf_lcm_op_occs_id)}}}
 
             if(operation_state == fields.LcmOccsOperationState.COMPLETED or
                operation_state == fields.LcmOccsOperationState.FAILED_TEMP or
