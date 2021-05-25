@@ -103,20 +103,16 @@
         CELLSV2_SETUP: singleconductor
         PHYSICAL_NETWORK: mgmtphysnet0
         OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
-        Q_DVR_MODE: dvr
         DATABASE_TYPE: mysql
         KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
         MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
         GNOCCHI_SERVICE_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
-        Q_SERVICE_PLUGIN_CLASSES: router,neutron.services.metering.metering_plugin.MeteringPlugin,networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,neutron.services.qos.qos_plugin.QoSPlugin,qos
-        Q_ML2_PLUGIN_EXT_DRIVERS: port_security,qos
+        Q_SERVICE_PLUGIN_CLASSES: ovn-router,networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,neutron.services.qos.qos_plugin.QoSPlugin,qos
         L2_AGENT_EXTENSIONS: qos
         DEVSTACK_PARALLEL: True
-        # TODO(ueha): The network ML2 driver is changed to OVS to pass the FT.
-        # devstack has changed default to OVN and needs to be followed.
-        Q_AGENT: openvswitch
-        Q_ML2_TENANT_NETWORK_TYPE: vxlan
-        Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch,linuxbridge
+        OVN_L3_CREATE_PUBLIC_NETWORK: true
+        OVN_DBS_LOG_LEVEL: dbg
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
       test_matrix_configs: [neutron]
       zuul_work_dir: src/opendev.org/openstack/tacker
     host-vars:
@@ -156,16 +152,15 @@
           n-novnc: true
           n-sch: true
           placement-api: true
+          # OVN services
+          ovn-controller: true
+          ovn-northd: true
+          ovs-vswitchd: true
+          ovsdb-server: true
           # Neutron services
-          # We need to keep using the neutron-legacy based services for
-          # now until all issues with the new lib/neutron code are solved
-          q-agt: true
-          q-dhcp: true
-          q-l3: true
-          q-meta: true
-          q-metering: true
           q-svc: true
           q-qos: true
+          q-ovn-metadata-agent: true
           # Cinder services
           c-api: true
           c-sch: true
@@ -187,7 +182,12 @@
           ceilometer: https://opendev.org/openstack/ceilometer
           tacker: https://opendev.org/openstack/tacker
         devstack_services:
-          q-agt: true
+          # OVN services
+          ovn-controller: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          # Neutron services
+          q-ovn-metadata-agent: true
           # Ceilometer services
           ceilometer-acompute: false
           ceilometer-acentral: true
@@ -213,7 +213,6 @@
           CELLSV2_SETUP: singleconductor
           PHYSICAL_NETWORK: mgmtphysnet0
           OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
-          Q_DVR_MODE: dvr
           DATABASE_TYPE: mysql
           KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
@@ -232,29 +231,23 @@
           CEILOMETER_BACKEND: "{% if 'compute' in group_names %}none{% else %}gnocchi{% endif %}"
           Q_SERVICE_PLUGIN_CLASSES: "qos,\
             networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,\
-            neutron.services.metering.metering_plugin.MeteringPlugin,\
             neutron.services.qos.qos_plugin.QoSPlugin,\
-            router"
-          Q_ML2_PLUGIN_EXT_DRIVERS: port_security,qos
+            ovn-router"
           L2_AGENT_EXTENSIONS: qos
-          # TODO(ueha): The network ML2 driver is changed to OVS to pass the FT.
-          # devstack has changed default to OVN and needs to be followed.
-          Q_AGENT: openvswitch
-          Q_ML2_TENANT_NETWORK_TYPE: vxlan
-          Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch,linuxbridge
+          ENABLE_CHASSIS_AS_GW: false
+          Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
         devstack_plugins:
           ceilometer: https://opendev.org/openstack/ceilometer
         devstack_services:
           ceilometer-acompute: true
           # To override the parent job's definitions.
           tls-proxy: false
-          # TODO(ueha): The network ML2 driver is changed to OVS to pass the FT.
-          # devstack has changed default to OVN and needs to be followed.
-          q-agt: true
-          ovn-controller: false
-          ovs-vswitchd: false
-          ovsdb-server: false
-          q-ovn-metadata-agent: false
+          # OVN services
+          ovn-controller: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          # Neutron services
+          q-ovn-metadata-agent: true
 
 - job:
     name: tacker-functional-devstack-multinode-sol
@@ -358,13 +351,13 @@
           octavia: true
           placement-api: true
           placement-client: true
-          q-agt: true
-          q-dhcp: true
-          q-l3: true
-          q-meta: true
-          q-metering: true
+          ovn-controller: true
+          ovn-northd: true
+          ovs-vswitchd: true
+          ovsdb-server: true
           q-qos: true
           q-svc: true
+          q-ovn-metadata-agent: true
           rabbit: true
           s-account: false
           s-container: false
@@ -377,7 +370,11 @@
       controller-tacker:
         devstack_local_conf: {}
         devstack_services:
-          q-agt: true
+          ovn-controller: true
+          ovn-northd: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          q-ovn-metadata-agent: true
           tacker: true
           tacker-conductor: true
         devstack_plugins:
@@ -397,7 +394,11 @@
           kuryr-daemon: true
           kuryr-kubernetes: true
           octavia: false
-          q-agt: true
+          ovn-controller: true
+          ovn-northd: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          q-ovn-metadata-agent: true
         tox_install_siblings: false
     group-vars:
       subnode:
@@ -419,15 +420,11 @@
           OCTAVIA_AMP_IMAGE_SIZE: 3
           OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
           PHYSICAL_NETWORK: mgmtphysnet0
-          Q_DVR_MODE: dvr
           TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
           TACKER_MODE: standalone
           USE_PYTHON3: true
-          # TODO(ueha): The network ML2 driver is changed to OVS to pass the FT.
-          # devstack has changed default to OVN and needs to be followed.
-          Q_AGENT: openvswitch
-          Q_ML2_TENANT_NETWORK_TYPE: vxlan
-          Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch,linuxbridge
+          ENABLE_CHASSIS_AS_GW: false
+          Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
         devstack_services:
           dstat: false
           horizon: false
@@ -439,14 +436,11 @@
           n-novnc: false
           n-obj: false
           n-sch: false
-          q-agt: true
+          ovn-controller: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          q-ovn-metadata-agent: true
           tls-proxy: false
-          # TODO(ueha): The network ML2 driver is changed to OVS to pass the FT.
-          # devstack has changed default to OVN and needs to be followed.
-          ovn-controller: false
-          ovs-vswitchd: false
-          ovsdb-server: false
-          q-ovn-metadata-agent: false
     vars:
       devstack_localrc:
         CELLSV2_SETUP: singleconductor
@@ -461,18 +455,14 @@
         OCTAVIA_AMP_IMAGE_SIZE: 3
         OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
         PHYSICAL_NETWORK: mgmtphysnet0
-        Q_DVR_MODE: dvr
-        Q_ML2_PLUGIN_EXT_DRIVERS: port_security,qos
-        Q_SERVICE_PLUGIN_CLASSES: router,neutron.services.metering.metering_plugin.MeteringPlugin,neutron.services.qos.qos_plugin.QoSPlugin,qos
+        Q_SERVICE_PLUGIN_CLASSES: ovn-router,neutron.services.qos.qos_plugin.QoSPlugin,qos
         TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
         TACKER_MODE: standalone
         USE_PYTHON3: true
         DEVSTACK_PARALLEL: True
-        # TODO(ueha): The network ML2 driver is changed to OVS to pass the FT.
-        # devstack has changed default to OVN and needs to be followed.
-        Q_AGENT: openvswitch
-        Q_ML2_TENANT_NETWORK_TYPE: vxlan
-        Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch,linuxbridge
+        OVN_L3_CREATE_PUBLIC_NETWORK: true
+        OVN_DBS_LOG_LEVEL: dbg
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
       devstack_local_conf:
         post-config:
           $NEUTRON_DHCP_CONF:
