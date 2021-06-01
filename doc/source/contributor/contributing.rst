@@ -20,7 +20,7 @@ with Tacker.
 
 Communication
 ~~~~~~~~~~~~~
-* IRC channel ``#tacker`` at `Freenode`_
+* IRC channel ``#tacker`` at `OFTC`_
 * Mailing list (prefix subjects with ``[tacker]`` for faster responses)
   http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-discuss
 
@@ -28,7 +28,7 @@ All conversations are logged and stored for your
 convenience at `eavesdrop.openstack.org`_. For more information regarding
 OpenStack IRC channels please visit the `OpenStack IRC Wiki`_.
 
-.. _`Freenode`: https://freenode.net
+.. _`OFTC`: https://www.oftc.net/
 .. _`OpenStack IRC Wiki`: https://wiki.openstack.org/wiki/IRC
 .. _`eavesdrop.openstack.org`: http://eavesdrop.openstack.org/irclogs/%23tacker/
 
