@@ -4,6 +4,7 @@
 ############################################################
 HOST_IP=127.0.0.1
 SERVICE_HOST=127.0.0.1
+
 SERVICE_PASSWORD=devstack
 ADMIN_PASSWORD=devstack
 SERVICE_TOKEN=devstack

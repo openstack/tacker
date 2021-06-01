@@ -29,10 +29,9 @@ ENABLE_VERBOSE_LOG_LEVEL=True
 
 # Neutron ML2 with OpenVSwitch
 Q_PLUGIN=ml2
-Q_AGENT=openvswitch
+Q_AGENT=ovn
 
 # Disable security groups
-Q_USE_SECGROUP=False
 LIBVIRT_FIREWALL_DRIVER=nova.virt.firewall.NoopFirewallDriver
 
 # Enable heat, networking-sfc, barbican and mistral
