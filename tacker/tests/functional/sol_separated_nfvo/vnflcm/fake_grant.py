@@ -81,8 +81,12 @@ class Grant:
         res_update_resources = []
         for req_update_resource in req_update_resources:
             res_update_resource = {
-                "resourceDefinitionId": req_update_resource['id']
+                "resourceDefinitionId": req_update_resource['id'],
+                "vimConnectionId": uuidsentinel.vim_connection_id
             }
+            if req_update_resource['type'] == 'COMPUTE':
+                res_update_resource["zoneId"] = uuidsentinel.zone_id
+
             res_update_resources.append(res_update_resource)
 
         return res_update_resources
@@ -177,6 +181,9 @@ class Grant:
         if 'removeResources' in request_body.keys():
             res["removeResources"] = Grant._make_remove_resources(
                 request_body['removeResources'])
+        if 'updateResources' in request_body.keys():
+            res["updateResources"] = Grant._make_update_resources(
+                request_body['updateResources'])
         res["vimAssets"] = Grant._make_vim_assets(image_id)
 
         return res

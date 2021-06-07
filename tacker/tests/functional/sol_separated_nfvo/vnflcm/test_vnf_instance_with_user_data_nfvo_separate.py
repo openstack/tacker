@@ -353,6 +353,140 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         resp, response_body = self._delete_subscription(subscription_id)
         self.assertEqual(204, resp.status_code)
 
+    def test_inst_scale_term(self):
+        """Test basic life cycle operations with sample VNFD with UserData.
+
+        In this test case, we do following steps.
+            - Create subscription.
+            - Create VNF instance.
+            - Instantiate VNF.
+            - Get VNF informations.
+            - Scale-Out VNF
+            - Scale-In VNF
+            - Terminate VNF
+            - Delete VNF
+            - Delete subscription
+        """
+        vnf_package_info = self._register_vnf_package_mock_response(
+            package_dir='functional7')
+        glance_image = self._list_glance_image()[0]
+
+        # Create subscription and register it.
+        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        request_body = fake_vnflcm.Subscription.make_create_request_body(
+            'http://localhost:{}{}'.format(
+                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                callback_url))
+        resp, response_body = self._register_subscription(request_body)
+        self.assertEqual(201, resp.status_code)
+        self.assert_http_header_location_for_subscription(resp.headers)
+        self.assert_notification_get(callback_url)
+        subscription_id = response_body.get('id')
+        self.addCleanup(self._delete_subscription, subscription_id)
+
+        # Create vnf instance
+        resp, vnf_instance = self._create_vnf_instance_from_body(
+            fake_vnflcm.VnfInstances.make_create_request_body(
+                vnf_package_info['vnfdId']))
+        vnf_instance_id = vnf_instance.get('id')
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self._assert_create_vnf(resp, vnf_instance)
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
+
+        # Set Fake server response for Grant-Req(Instantiate)
+        vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
+            fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
+            callback=lambda req_headers,
+            req_body: fake_grant.Grant.make_inst_response_body(req_body,
+                self.vim['tenant_id'], glance_image.id))
+
+        # Instantiate vnf instance
+        request_body = fake_vnflcm.VnfInstances.\
+            make_inst_request_body_include_num_dynamic(
+                self.vim['tenant_id'], self.ext_networks,
+                self.ext_mngd_networks, self.ext_link_ports, self.ext_subnets)
+        resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self._assert_instantiate_vnf(resp, vnf_instance_id)
+        self._assert_stack_template_scale(vnf_instance_id)
+
+        # Show vnf instance
+        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
+        self.assertEqual(200, resp.status_code)
+
+        # Set Fake server response for Grant-Req(Scale-out)
+        vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
+             fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
+             callback=lambda req_headers,
+             req_body: fake_grant.Grant.make_scaleout_response_body(req_body,
+                 self.vim['tenant_id'], glance_image.id))
+
+        # Scale-out vnf instance
+        stack = self._get_heat_stack(vnf_instance_id)
+        pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+        request_body = fake_vnflcm.VnfInstances.\
+            make_scale_request_body('SCALE_OUT')
+        resp, _ = self._scale_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+
+        post_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+        self._assert_scale_vnf(resp, vnf_instance_id,
+                               pre_stack_resource_list,
+                               post_stack_resource_list,
+                               scale_type='SCALE_OUT')
+
+        # Set Fake server response for Grant-Req(Scale-in)
+        vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
+             fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
+             callback=lambda req_headers,
+             req_body: fake_grant.Grant.make_scalein_response_body(req_body))
+
+        # Scale-in vnf instance
+        stack = self._get_heat_stack(vnf_instance_id)
+        pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+
+        request_body = fake_vnflcm.VnfInstances.make_scale_request_body(
+            'SCALE_IN')
+        resp, _ = self._scale_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+
+        post_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+        self._assert_scale_vnf(resp, vnf_instance_id,
+                               pre_stack_resource_list,
+                               post_stack_resource_list,
+                               scale_type='SCALE_IN')
+
+        # Set Fake server response for Grant-Req(Terminate)
+        vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
+            fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
+            callback=lambda req_headers,
+            req_body: fake_grant.Grant.make_term_response_body(req_body))
+
+        # Get stack informations to terminate.
+        stack = self._get_heat_stack(vnf_instance_id)
+        resources_list = self._get_heat_resource_list(stack.id)
+        resource_name_list = [r.resource_name for r in resources_list]
+        glance_image_id_list = self._get_glance_image_list_from_stack_resource(
+            stack.id, resource_name_list)
+
+        # Terminate VNF
+        terminate_req_body = fake_vnflcm.VnfInstances.make_term_request_body()
+        resp, _ = self._terminate_vnf_instance(vnf_instance_id,
+                terminate_req_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self._assert_terminate_vnf(resp, vnf_instance_id, stack.id,
+            resource_name_list, glance_image_id_list)
+
+        # Delete VNF
+        resp, _ = self._delete_vnf_instance(vnf_instance_id)
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_delete_vnf(resp, vnf_instance_id)
+
+        # Delete Subscription
+        resp, response_body = self._delete_subscription(subscription_id)
+        self.assertEqual(204, resp.status_code)
+
     def _assert_create_vnf(self, resp, vnf_instance):
         """Assert that VNF was created via fake server.
 
@@ -412,6 +546,27 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         """
         super().assert_heal_vnf(
             resp, vnf_instance_id, expected_stack_status=expected_stack_status)
+
+        # FT-checkpoint: Grant Response
+        grant_mock_responses = vnflcm_base.FAKE_SERVER_MANAGER.get_history(
+            fake_grant.Grant.GRANT_REQ_PATH)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            fake_grant.Grant.GRANT_REQ_PATH)
+        self.assertEqual(1, len(grant_mock_responses))
+        self._assert_grant_mock_response(grant_mock_responses[0])
+
+    def _assert_scale_vnf(self,
+            resp,
+            vnf_instance_id,
+            pre_stack_resource_list,
+            post_stack_resource_list,
+            scale_type):
+        super().assert_scale_vnf(
+            resp,
+            vnf_instance_id,
+            pre_stack_resource_list,
+            post_stack_resource_list,
+            scale_type=scale_type)
 
         # FT-checkpoint: Grant Response
         grant_mock_responses = vnflcm_base.FAKE_SERVER_MANAGER.get_history(
@@ -542,4 +697,15 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         in resources_list if stack_name_wd in r.stack_name]
         template = self._get_heat_stack_template(physical_resource_id[0])
         template_count = str(template).count("flavor")
+        self.assertEqual(template_count, 3)
+
+    def _assert_stack_template_scale(self, vnf_instance_id):
+        stack = self._get_heat_stack(vnf_instance_id)
+        resources_list\
+            = self._get_heat_resource_list(stack.id, nested_depth=2)
+        stack_name_wd = vnf_instance_id + "-VDU1"
+        physical_resource_id = [r.physical_resource_id for r
+        in resources_list if stack_name_wd in r.stack_name]
+        template = self._get_heat_stack_template(physical_resource_id[0])
+        template_count = str(template).count("zone")
         self.assertEqual(template_count, 3)

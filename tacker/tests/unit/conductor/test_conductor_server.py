@@ -1608,6 +1608,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_update_vnf_attributes_stack_param')
+    @mock.patch('tacker.vnflcm.utils'
+                '._build_instantiated_vnf_info')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
@@ -1641,6 +1644,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                      mock_add_vnf_info,
                                      mock_update_vnf_info,
                                      mock_change_status,
+                                     mock_vnfd_dict,
+                                     mock_build_info,
                                      mock_update_vnf_attributes_stack_param):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
@@ -1660,6 +1665,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None
+        vnfd_key = 'vnfd_' + vnf_instance.instantiated_vnf_info.flavour_id
+        vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
+        mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
         vim_obj = {'vim_id': uuidsentinel.vim_id,
                    'vim_name': 'fake_vim',
                    'vim_type': 'openstack',
@@ -1700,6 +1708,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_update_vnf_attributes_stack_param')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
@@ -1736,6 +1745,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                        mock_add_vnf_info,
                                        mock_update_vnf_info,
                                        mock_change_status,
+                                       mock_vnfd_dict,
                                        mock_update_vnf_attribute_stack_param):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
@@ -1795,6 +1805,50 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        vnfd_yaml = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                                 '../../etc/samples/etsi/nfv/'
+                                                 'test_heal_grant_unit/'
+                                                 'sample_vnfd.yaml'))
+        with open(vnfd_yaml) as f:
+            mock_vnfd_dict.return_value = yaml.safe_load(f)
+        mock_vnfd_dict.return_value['imports'] = []
+        etsi_common_file_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         '../../etc/samples/etsi/nfv/common/Definitions/'
+                         'etsi_nfv_sol001_common_types.yaml'))
+        etsi_vnfd_file_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         '../../etc/samples/etsi/nfv/common/Definitions/'
+                         'etsi_nfv_sol001_vnfd_types.yaml'))
+        etsi_vnfd_file_path_tmp = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         '../../etc/samples/etsi/nfv/common/Definitions/'
+                         'etsi_nfv_sol001_vnfd_types_tmp.yaml'))
+        with open(etsi_vnfd_file_path) as f:
+            data = yaml.safe_load(f)
+            del data['imports']
+            data['imports'] = []
+            data['imports'].append(etsi_common_file_path)
+        with open(etsi_vnfd_file_path_tmp, "w", encoding="utf-8") as f:
+            yaml.dump(data, f)
+        types_file_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         '../../etc/samples/etsi/nfv/test_heal_grant_unit/'
+                         'helloworld3_types.yaml'))
+        types_file_tmp_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         '../../etc/samples/etsi/nfv/test_heal_grant_unit/'
+                         'helloworld3_types_tmp.yaml'))
+        with open(types_file_path) as f:
+            data = yaml.safe_load(f)
+            data['imports'] = []
+            data['imports'].append(etsi_common_file_path)
+            data['imports'].append(etsi_vnfd_file_path_tmp)
+        with open(types_file_tmp_path, "w", encoding="utf-8") as f:
+            yaml.dump(data, f)
+        mock_vnfd_dict.return_value['imports'].append(etsi_common_file_path)
+        mock_vnfd_dict.return_value['imports'].append(etsi_vnfd_file_path_tmp)
+        mock_vnfd_dict.return_value['imports'].append(types_file_tmp_path)
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None
@@ -1821,6 +1875,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         resRemResource.append(resource)
         resource = {
             'resourceDefinitionId': 'faf14707-da7c-4eec-be99-8099fa1e9fa0'}
+        resRemResource.append(resource)
+        resource = {
+            'resourceDefinitionId': 'c91e0e86-e555-71fc-0f6b-e3d2945f2fd6'}
+        resRemResource.append(resource)
+        resource = {
+            'resourceDefinitionId': '5d84a03c-07e9-4978-b0cd-6450482189b7'}
         resRemResource.append(resource)
         resource = {
             'resourceDefinitionId': '2c6e5cc7-240d-4458-a683-1fe648351281',
@@ -1866,7 +1926,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         mock_update_vnf_attribute_stack_param.assert_called_once()
         self.vnflcm_driver.heal_vnf.assert_called_once_with(
             self.context, mock.ANY, vnf_dict, heal_vnf_req)
+        os.remove(types_file_tmp_path)
+        os.remove(etsi_vnfd_file_path_tmp)
 
+    @mock.patch('tacker.vnflcm.utils'
+                '._build_instantiated_vnf_info')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '.send_notification')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
@@ -1899,7 +1964,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                      mock_save,
                                      mock_add_vnf_info,
                                      mock_update_vnf_info,
-                                     mock_send):
+                                     mock_send,
+                                     mock_vnfd_dict,
+                                     mock_build_info):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -1915,6 +1982,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        vnfd_key = 'vnfd_' + vnf_instance.instantiated_vnf_info.flavour_id
+        vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
+        mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None
@@ -1961,6 +2031,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             mock_send.call_args[0][1].get('operationState'),
             'ROLLED_BACK')
 
+    @mock.patch('tacker.vnflcm.utils'
+                '._build_instantiated_vnf_info')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '.send_notification')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
@@ -1993,7 +2066,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                      mock_save,
                                      mock_add_vnf_info,
                                      mock_update_vnf_info,
-                                     mock_send):
+                                     mock_send,
+                                     mock_vnfd_dict,
+                                     mock_build_info):
         vnf_package_vnfd = self._create_and_upload_vnf_package()
         vnf_instance_data = fake_obj.get_vnf_instance_data(
             vnf_package_vnfd.vnfd_id)
@@ -2009,6 +2084,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        vnfd_key = 'vnfd_' + vnf_instance.instantiated_vnf_info.flavour_id
+        vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
+        mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None

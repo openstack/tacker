@@ -2745,7 +2745,8 @@ class TestKubernetes(base.TestCase):
             context=self.context,
             vnf_instance=self.vnf_instance,
             scale_vnf_request=scale_vnf_req,
-            vim_connection_info=fakes.fake_vim_connection_info())
+            vim_connection_info=fakes.fake_vim_connection_info(),
+            vnf_info=None)
         self.assertEqual(mock_list_namespaced_pod.call_count, 1)
         # validate added VnfcResourceInfo
         vnfc_resource_info_after = \
@@ -2798,7 +2799,8 @@ class TestKubernetes(base.TestCase):
             context=self.context,
             vnf_instance=self.vnf_instance,
             scale_vnf_request=scale_vnf_req,
-            vim_connection_info=fakes.fake_vim_connection_info())
+            vim_connection_info=fakes.fake_vim_connection_info(),
+            vnf_info=None)
         self.assertEqual(mock_list_namespaced_pod.call_count, 1)
         # validate VnfcResourceInfo
         vnfc_resource_info_after = \
@@ -2844,7 +2846,7 @@ class TestKubernetes(base.TestCase):
         self.assertRaises(client.rest.ApiException,
                           self.kubernetes.scale_resource_update,
                           self.context, self.vnf_instance,
-                          scale_vnf_req,
+                          scale_vnf_req, None,
                           fakes.fake_vim_connection_info())
 
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')

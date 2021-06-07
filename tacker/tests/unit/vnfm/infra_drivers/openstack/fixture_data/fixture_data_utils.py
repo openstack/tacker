@@ -700,3 +700,50 @@ def get_lcm_op_occs_object(operation="INSTANTIATE",
         error_point=error_point)
 
     return vnf_lcm_op_occs
+
+
+def get_vnfc_resource_info_with_vnf_info(vdu_id="workerNode",
+                                      storage_resource_ids=None):
+    storage_resource_ids = storage_resource_ids or []
+
+    vnfc_cp_info = _get_vnfc_cp_info_with_vnf_info(cpd_id='workerNode_CP2')
+
+    vnfc_resource_info = objects.VnfcResourceInfo(
+        id=uuidsentinel.vnfc_resource_id, vdu_id=vdu_id,
+        vnfc_cp_info=[vnfc_cp_info],
+        storage_resource_ids=storage_resource_ids)
+
+    return vnfc_resource_info
+
+
+def _get_vnfc_cp_info_with_vnf_info(cpd_id="CP1"):
+    vnfc_cp_info = objects.VnfcCpInfo(
+        id=uuidsentinel.vnfc_cp_info_id,
+        cpd_id=cpd_id)
+
+    return vnfc_cp_info
+
+
+def get_virtual_storage_resource_info_for_grant(desc_id="VirtualStorage"):
+
+    storage_resource_info = objects.VirtualStorageResourceInfo(
+        id=uuidsentinel.storage_id_1,
+        virtual_storage_desc_id=desc_id)
+
+    return storage_resource_info
+
+
+def _make_add_resources(req_add_resources):
+    add_resources = []
+    for req_add_resource in req_add_resources:
+        res_add_resource = {
+            "resourceDefinitionId": req_add_resource['id'],
+            "vimConnectionId": uuidsentinel.vim_connection_id
+        }
+
+        if req_add_resource['type'] == 'COMPUTE':
+            res_add_resource["zoneId"] = uuidsentinel.zone_id
+
+        add_resources.append(res_add_resource)
+
+    return add_resources

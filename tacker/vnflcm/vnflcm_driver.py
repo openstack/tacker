@@ -443,6 +443,13 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                         id=vnf_instance.id,
                         error=encodeutils.exception_to_unicode(exp))
 
+        if vnf_instance.instantiated_vnf_info.instance_id:
+            self._vnf_manager.invoke(vim_connection_info.vim_type,
+                                    'post_vnf_instantiation', context=context,
+                                    vnf_instance=vnf_instance,
+                                    vim_connection_info=vim_connection_info,
+                                    instantiate_vnf_req=instantiate_vnf_req)
+
     def _get_file_hash(self, path):
         hash_obj = hashlib.sha256()
         with open(path) as f:
@@ -746,9 +753,13 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vnf_instance.task_state = fields.VnfInstanceTaskState.INSTANTIATING
         vnfd_dict = vnflcm_utils._get_vnfd_dict(
             context, vnf_instance.vnfd_id, instantiate_vnf_request.flavour_id)
-        vnflcm_utils._build_instantiated_vnf_info(
-            vnfd_dict, instantiate_vnf_request, vnf_instance,
-            vim_connection_info.vim_id)
+        if vnf_dict.get('vnf_instance_after'):
+            vnf_instance.instantiated_vnf_info = \
+                vnf_dict.get('vnf_instance_after').instantiated_vnf_info
+        else:
+            vnflcm_utils._build_instantiated_vnf_info(
+                vnfd_dict, instantiate_vnf_request, vnf_instance,
+                vim_connection_info.vim_id)
 
         try:
             self._instantiate_vnf(context, vnf_instance, vnf_dict,
@@ -1022,6 +1033,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             'scale_resource_update',
             context=context,
             vnf_instance=vnf_instance,
+            vnf_info=vnf_info,
             scale_vnf_request=scale_vnf_request,
             vim_connection_info=vim_connection_info
         )

@@ -1228,6 +1228,159 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
 
         vnf_dict['grant'] = self._grant(context, grant_request)
 
+    def _init_remove_resources(self, vnf_inf, rm_resources):
+        for vnfc_resource in vnf_inf.vnfc_resource_info:
+            resource = objects.ResourceDefinition()
+            resource.id = vnfc_resource.id
+            resource.type = constants.TYPE_COMPUTE
+            resource.vdu_id = vnfc_resource.vdu_id
+            resource.resource_template_id = vnfc_resource.vdu_id
+            vim_id = vnfc_resource.compute_resource.vim_connection_id
+            rsc_id = vnfc_resource.compute_resource.resource_id
+            vnfc_rh = objects.ResourceHandle(
+                vim_connection_id=vim_id,
+                resource_id=rsc_id)
+            resource.resource = vnfc_rh
+            rm_resources.append(resource)
+
+        for vl_resource in vnf_inf.vnf_virtual_link_resource_info:
+            resource = objects.ResourceDefinition()
+            resource.id = vl_resource.id
+            resource.type = constants.TYPE_VL
+            resource.resource_template_id = \
+                vl_resource.vnf_virtual_link_desc_id
+            vim_id = vl_resource.network_resource.vim_connection_id
+            rsc_id = vl_resource.network_resource.resource_id
+            vl_rh = objects.ResourceHandle(
+                vim_connection_id=vim_id,
+                resource_id=rsc_id)
+            resource.resource = vl_rh
+            rm_resources.append(resource)
+            for cp_resource in vl_resource.vnf_link_ports:
+                for vnfc_resource in vnf_inf.vnfc_resource_info:
+                    for vnfc_cp_resource in vnfc_resource.vnfc_cp_info:
+                        if cp_resource.cp_instance_id == \
+                                vnfc_cp_resource.id:
+                            resource = objects.ResourceDefinition()
+                            resource.id = cp_resource.id
+                            resource.type = constants.TYPE_LINKPORT
+                            resource.vdu_id = vnfc_resource.vdu_id
+                            resource.resource_template_id = \
+                                vnfc_cp_resource.cpd_id
+                            vim_id = \
+                                cp_resource.resource_handle. \
+                                vim_connection_id
+                            rsc_id = cp_resource.resource_handle. \
+                                resource_id
+                            cp_rh = objects.ResourceHandle(
+                                vim_connection_id=vim_id,
+                                resource_id=rsc_id)
+                            resource.resource = cp_rh
+                            rm_resources.append(resource)
+
+        for storage_resource in vnf_inf.virtual_storage_resource_info:
+            for vnfc_resource in vnf_inf.vnfc_resource_info:
+                if storage_resource.id in \
+                        vnfc_resource.storage_resource_ids:
+                    resource = objects.ResourceDefinition()
+                    resource.id = storage_resource.id
+                    resource.type = constants.TYPE_STORAGE
+                    resource.vdu_id = vnfc_resource.vdu_id
+                    resource.resource_template_id = \
+                        storage_resource.virtual_storage_desc_id
+                    vim_id = \
+                        storage_resource.storage_resource. \
+                        vim_connection_id
+                    rsc_id = storage_resource.storage_resource.resource_id
+                    st_rh = objects.ResourceHandle(
+                        vim_connection_id=vim_id,
+                        resource_id=rsc_id)
+                    resource.resource = st_rh
+                    rm_resources.append(resource)
+
+    def _init_add_resources(self, context, vnf_instance, vim_connection_info,
+                            add_resources, vnf_inf, placement_obj_list,
+                            affinity_list, vnf_dict):
+        instantiate_vnf_request = objects.InstantiateVnfRequest. \
+            from_vnf_instance(vnf_instance)
+        vnfd_dict = vnflcm_utils._get_vnfd_dict(
+            context, vnf_instance.vnfd_id,
+            instantiate_vnf_request.flavour_id)
+        vnf_instance_after = copy.deepcopy(vnf_instance)
+        vnf_instance_after.instantiated_vnf_info.reinitialize()
+        vnflcm_utils._build_instantiated_vnf_info(
+            vnfd_dict, instantiate_vnf_request,
+            vnf_instance_after,
+            vim_connection_info.vim_id)
+        vnf_inf_after = vnf_instance_after.instantiated_vnf_info
+        vnfc_rs_ids_list_before = []
+
+        for vnfc_resource in vnf_inf_after.vnfc_resource_info:
+            resource = objects.ResourceDefinition()
+            resource.id = vnfc_resource.id
+            resource.type = constants.TYPE_COMPUTE
+            resource.vdu_id = vnfc_resource.vdu_id
+            resource.resource_template_id = vnfc_resource.vdu_id
+            add_resources.append(resource)
+
+            for vnfc_resource_before in vnf_inf.vnfc_resource_info:
+                if vnfc_resource_before.vdu_id == \
+                        vnfc_resource.vdu_id and vnfc_resource_before.id \
+                        not in vnfc_rs_ids_list_before:
+                    key_id = vnfc_resource_before.id
+                    vnfc_rs_ids_list_before.append(key_id)
+                    break
+
+            for placement_obj in placement_obj_list:
+                resource_dict = jsonutils.loads(placement_obj.resource)
+                set_flg = False
+                for resource in resource_dict:
+                    if resource.get('resource_id') == key_id:
+                        resource['id_type'] = 'GRANT'
+                        resource['resource_id'] = vnfc_resource.id
+                        g_name = placement_obj.server_group_name
+                        affinity_list.append(g_name)
+                        set_flg = True
+                        res_json = jsonutils.dump_as_bytes(resource_dict)
+                        placement_obj.resource = res_json
+                        break
+                if set_flg:
+                    break
+
+        for vl_resource in vnf_inf_after.vnf_virtual_link_resource_info:
+            resource = objects.ResourceDefinition()
+            resource.id = vl_resource.id
+            resource.type = constants.TYPE_VL
+            resource.resource_template_id = \
+                vl_resource.vnf_virtual_link_desc_id
+            add_resources.append(resource)
+            for cp_resource in vl_resource.vnf_link_ports:
+                for vnfc_resource in vnf_inf_after.vnfc_resource_info:
+                    for vnfc_cp_resource in vnfc_resource.vnfc_cp_info:
+                        if cp_resource.cp_instance_id == \
+                                vnfc_cp_resource.id:
+                            resource = objects.ResourceDefinition()
+                            resource.id = cp_resource.id
+                            resource.type = constants.TYPE_LINKPORT
+                            resource.vdu_id = vnfc_resource.vdu_id
+                            resource.resource_template_id = \
+                                vnfc_cp_resource.cpd_id
+                            add_resources.append(resource)
+
+        for storage_resource in vnf_inf_after. \
+                virtual_storage_resource_info:
+            for vnfc_resource in vnf_inf_after.vnfc_resource_info:
+                if storage_resource.id in \
+                        vnfc_resource.storage_resource_ids:
+                    resource = objects.ResourceDefinition()
+                    resource.id = storage_resource.id
+                    resource.type = constants.TYPE_STORAGE
+                    resource.vdu_id = vnfc_resource.vdu_id
+                    resource.resource_template_id = \
+                        storage_resource.virtual_storage_desc_id
+                    add_resources.append(resource)
+        vnf_dict['vnf_instance_after'] = vnf_instance_after
+
     @grant_error_common
     def _heal_grant(self,
                     context,
@@ -1249,90 +1402,72 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                                               'get_cinder_list',
                                               vnf_info=vnf_dict)
 
-        vnf_instantiated_info_after = copy.deepcopy(vnf_inf)
-        del_cre_vdu_list = []
-        add_resources = []
-        rm_resources = []
         affinity_list = []
-        for vnfc_resource in vnf_instantiated_info_after.vnfc_resource_info:
-            vnfc_key = vnfc_resource.compute_resource.resource_id
-            if not heal_vnf_request.vnfc_instance_id or \
-               vnfc_key in heal_vnf_request.vnfc_instance_id:
-                if vnfc_resource.vdu_id not in del_cre_vdu_list:
-                    del_cre_vdu_list.append(vnfc_resource.vdu_id)
-        for vnfc_resource in vnf_instantiated_info_after.vnfc_resource_info:
-            if vnfc_resource.vdu_id in del_cre_vdu_list:
-                resource = objects.ResourceDefinition()
-                resource.id = vnfc_resource.id
-                resource.type = constants.TYPE_COMPUTE
-                resource.vdu_id = vnfc_resource.vdu_id
-                resource.resource_template_id = vnfc_resource.vdu_id
-                vim_id = vnfc_resource.compute_resource.vim_connection_id
-                rsc_id = vnfc_resource.compute_resource.resource_id
-                vnfc_rh = objects.ResourceHandle(
-                    vim_connection_id=vim_id,
-                    resource_id=rsc_id)
-                resource.resource = vnfc_rh
-                rm_resources.append(resource)
-                add_uuid = uuidutils.generate_uuid()
-                resource = objects.ResourceDefinition()
-                resource.id = add_uuid
-                resource.type = constants.TYPE_COMPUTE
-                resource.vdu_id = vnfc_resource.vdu_id
-                resource.resource_template_id = vnfc_resource.vdu_id
-                add_resources.append(resource)
+        rm_resources = []
+        add_resources = []
+        update_resources = []
+        if not heal_vnf_request.vnfc_instance_id:
+            # init remove_resources
+            self._init_remove_resources(vnf_inf, rm_resources)
+            # init add_resources
+            self._init_add_resources(
+                context, vnf_instance, vim_connection_info, add_resources,
+                vnf_inf, placement_obj_list, affinity_list, vnf_dict)
+        else:
+            for vnfc_resource in vnf_inf.vnfc_resource_info:
+                vnfc_key = vnfc_resource.id
+                if vnfc_key in heal_vnf_request.vnfc_instance_id:
+                    resource = objects.ResourceDefinition()
+                    resource.id = vnfc_resource.id
+                    resource.type = constants.TYPE_COMPUTE
+                    resource.vdu_id = vnfc_resource.vdu_id
+                    resource.resource_template_id = vnfc_resource.vdu_id
+                    vim_id = vnfc_resource.compute_resource.vim_connection_id
+                    rsc_id = vnfc_resource.compute_resource.resource_id
+                    vnfc_rh = objects.ResourceHandle(
+                        vim_connection_id=vim_id,
+                        resource_id=rsc_id)
+                    resource.resource = vnfc_rh
+                    update_resources.append(resource)
 
-                key_id = vnfc_resource.compute_resource.resource_id
-                for placement_obj in placement_obj_list:
-                    resource_dict = jsonutils.loads(placement_obj.resource)
-                    set_flg = False
-                    for resource in resource_dict:
-                        if resource.get('resource_id') == key_id:
-                            resource['id_type'] = 'GRANT'
-                            resource['resource_id'] = add_uuid
-                            g_name = placement_obj.server_group_name
-                            affinity_list.append(g_name)
-                            set_flg = True
-                            res_json = jsonutils.dump_as_bytes(resource_dict)
-                            placement_obj.resource = res_json
+                    key_id = vnfc_resource.compute_resource.resource_id
+                    for placement_obj in placement_obj_list:
+                        resource_dict = jsonutils.loads(placement_obj.resource)
+                        set_flg = False
+                        for resource in resource_dict:
+                            if resource.get('resource_id') == key_id:
+                                resource['id_type'] = 'GRANT'
+                                resource['resource_id'] = vnfc_resource.id
+                                g_name = placement_obj.server_group_name
+                                affinity_list.append(g_name)
+                                set_flg = True
+                                res_json = \
+                                    jsonutils.dump_as_bytes(resource_dict)
+                                placement_obj.resource = res_json
+                                break
+                        if set_flg:
                             break
-                    if set_flg:
-                        break
-                vnfc_resource.id = add_uuid
-                vnfc_resource.compute_resource = objects.ResourceHandle()
 
-        st_info = vnf_instantiated_info_after.virtual_storage_resource_info
-        for storage_resource in st_info:
-            if storage_resource.virtual_storage_desc_id in cinder_list:
-                for vnfc_resource in vnf_inf.vnfc_resource_info:
-                    id_list = vnfc_resource.storage_resource_ids
-                    if storage_resource.id in id_list:
-                        resource = objects.ResourceDefinition()
-                        resource.id = storage_resource.id
-                        resource.type = constants.TYPE_STORAGE
-                        resource.vdu_id = vnfc_resource.vdu_id
-                        resource.resource_template_id = \
-                            storage_resource.virtual_storage_desc_id
-                        st_rh = objects.ResourceHandle()
-                        st_rh.vim_connection_id = \
-                            storage_resource.storage_resource.vim_connection_id
-                        st_rh.resource_id = \
-                            storage_resource.storage_resource.resource_id
-                        resource.resource = st_rh
-                        rm_resources.append(resource)
-
-                        add_uuid = uuidutils.generate_uuid()
-                        resource = objects.ResourceDefinition()
-                        resource = objects.ResourceDefinition()
-                        resource.id = add_uuid
-                        resource.type = constants.TYPE_STORAGE
-                        resource.vdu_id = vnfc_resource.vdu_id
-                        resource.resource_template_id = \
-                            storage_resource.virtual_storage_desc_id
-                        add_resources.append(resource)
-                        storage_resource.id = add_uuid
-                        storage_resource.storage_resource = \
-                            objects.ResourceHandle()
+            st_info = vnf_inf.virtual_storage_resource_info
+            for storage_resource in st_info:
+                if storage_resource.virtual_storage_desc_id in cinder_list:
+                    for vnfc_resource in vnf_inf.vnfc_resource_info:
+                        id_list = vnfc_resource.storage_resource_ids
+                        if storage_resource.id in id_list:
+                            resource = objects.ResourceDefinition()
+                            resource.id = storage_resource.id
+                            resource.type = constants.TYPE_STORAGE
+                            resource.vdu_id = vnfc_resource.vdu_id
+                            resource.resource_template_id = \
+                                storage_resource.virtual_storage_desc_id
+                            st_rh = objects.ResourceHandle()
+                            st_rh.vim_connection_id = \
+                                storage_resource.storage_resource.\
+                                vim_connection_id
+                            st_rh.resource_id = \
+                                storage_resource.storage_resource.resource_id
+                            resource.resource = st_rh
+                            update_resources.append(resource)
 
         p_c_list = []
         for placement_obj in placement_obj_list:
@@ -1357,11 +1492,11 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                                              False,
                                              add_resources=add_resources,
                                              remove_resources=rm_resources,
+                                             update_resources=update_resources,
                                              placement_constraints=p_c_list)
 
         vnf_dict['placement_obj_list'] = placement_obj_list
         vnf_dict['grant'] = self._grant(context, g_request)
-        vnf_dict['vnf_instantiated_info_after'] = vnf_instantiated_info_after
 
     @grant_error_common
     def _terminate_grant(self, context, vnf_instance, vnf_lcm_op_occ_id):

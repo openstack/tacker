@@ -2472,6 +2472,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf_info['attributes']['SP1_res.yaml'] = utils.\
             get_dummy_scale_nest_grant_hot()
         self.openstack.get_grant_resource(
+            self,
             vnf_instance,
             vnf_info,
             scale_vnf_request,
@@ -2547,6 +2548,7 @@ class TestOpenStack(base.FixturedTestCase):
         res_list.append(resource4)
         mock_list.return_value = res_list
         self.openstack.get_grant_resource(
+            self,
             vnf_instance,
             vnf_info,
             scale_vnf_request,
@@ -3060,3 +3062,221 @@ class TestOpenStack(base.FixturedTestCase):
             vnf_instance.instantiated_vnf_info.
             vnf_virtual_link_resource_info[0].vnf_link_ports[0].
             resource_handle.resource_id)
+
+    @mock.patch.object(hc.HeatClient, "resource_get")
+    @mock.patch.object(hc.HeatClient, "resource_get_list")
+    def test_scale_resource_update_scale_out_with_grant(
+            self, mock_list, mock_resource):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+        scale_vnf_request = objects.ScaleVnfRequest(type='SCALE_OUT',
+                                                   aspect_id='worker_instance',
+                                                   number_of_steps=1)
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+        vnf_info = {}
+        v_s_resource_info = fd_utils.\
+            get_virtual_storage_resource_info_for_grant(desc_id="storage1")
+        storage_resource_ids = [v_s_resource_info.id]
+        vnfc_resource_info = fd_utils.get_vnfc_resource_info_with_vnf_info(
+            vdu_id="workerNode", storage_resource_ids=storage_resource_ids)
+        vnfc_resource_info_list = []
+        vnfc_resource_info_list.append(vnfc_resource_info)
+        virtual_st_rsc_list = []
+        virtual_st_rsc_list.append(v_s_resource_info)
+        vnf_info['scale_out_vnfc_res_info_list'] = vnfc_resource_info_list
+        vnf_info['scale_out_virtual_st_rsc_list'] = virtual_st_rsc_list
+        resource = resources.Resource(None, {
+            'resource_name': 'worker_instance',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111'
+        })
+        resource1 = resources.Resource(None, {
+            'resource_name': 'workerNode',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111',
+            'attributes': {'key': 'value'}
+        })
+        resource_cp = resources.Resource(None, {
+            'resource_name': 'workerNode_CP2',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111',
+            'required_by': 'workerNode',
+            'attributes': {'fixed_ips': [{'ip_address': '10.10.0.2'}]}
+        })
+        resource_st = resources.Resource(None, {
+            'resource_name': 'storage1',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111',
+            'required_by': 'workerNode'
+        })
+        mock_resource.side_effect = [resource, resource1, resource_cp,
+                                     resource_st]
+        res_list1 = []
+        res_list2 = []
+        resource2 = resources.Resource(None, {
+            'resource_name': 'aaaaaaaa',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '89bd4a61-d33c-cbdd-0329-6429a6083139',
+            'id': '1111'
+        })
+        res_list1.append(resource2)
+        resource3 = resources.Resource(None, {
+            'resource_name': 'workerNode',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_type': 'OS::Nova::Server',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '5a169308-7865-9296-5a4b-a39c743dbe6e',
+            'id': '1111'
+        })
+        res_list2.append(resource3)
+        resource4 = resources.Resource(None, {
+            'resource_name': 'workerNode_CP2',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_type': 'OS::Neutron::Port',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '5a169308-7865-9296-5a4b-a39c743dbe6e',
+            'id': '1111'
+        })
+        res_list2.append(resource4)
+        resource5 = resources.Resource(None, {
+            'resource_name': 'storage1',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_type': 'OS::Cinder::Volume',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '5a169308-7865-9296-5a4b-a39c743dbe6e',
+            'id': '1111'
+        })
+        res_list2.append(resource5)
+        mock_list.side_effect = [res_list1, res_list2]
+        self.openstack.scale_resource_update(
+            context, vnf_instance,
+            scale_vnf_request, vnf_info,
+            vim_connection_info)
+        self.assertEqual(
+            vnf_instance.instantiated_vnf_info.vnfc_resource_info[0].id,
+            uuidsentinel.vnfc_resource_id)
+        return_vnfc_res = \
+            vnf_instance.instantiated_vnf_info.vnfc_resource_info[0]
+        self.assertEqual(return_vnfc_res.vnfc_cp_info[0].id,
+                         uuidsentinel.vnfc_cp_info_id)
+        self.assertEqual(uuidsentinel.storage_id_1,
+                         vnf_instance.instantiated_vnf_info.
+                         virtual_storage_resource_info[0].id)
+
+    @mock.patch.object(hc.HeatClient, "resource_get")
+    @mock.patch.object(hc.HeatClient, "resource_get_list")
+    def test_scale_resource_update_scale_out(self, mock_list, mock_resource):
+        inst_vnf_info = fd_utils.get_vnf_instantiated_info()
+        vnf_instance = fd_utils.get_vnf_instance_object(
+            instantiated_vnf_info=inst_vnf_info)
+        scale_vnf_request = objects.ScaleVnfRequest(type='SCALE_OUT',
+                                                   aspect_id='worker_instance',
+                                                   number_of_steps=1)
+        vim_connection_info = fd_utils.get_vim_connection_info_object()
+        v_s_resource_info = fd_utils. \
+            get_virtual_storage_resource_info(desc_id="storage1")
+        storage_resource_ids = [v_s_resource_info.id]
+        vnfc_resource_info = fd_utils.get_vnfc_resource_info_with_vnf_info(
+            vdu_id="workerNode", storage_resource_ids=storage_resource_ids)
+        vnfc_resource_info_list = []
+        vnfc_resource_info_list.append(vnfc_resource_info)
+        virtual_st_rsc_list = []
+        virtual_st_rsc_list.append(v_s_resource_info)
+
+        vnf_info = {'grant': 'test'}
+        resource = resources.Resource(None, {
+            'resource_name': 'worker_instance',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111'
+        })
+        resource1 = resources.Resource(None, {
+            'resource_name': 'workerNode',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111',
+            'attributes': {'key': 'value'}
+        })
+        resource_cp = resources.Resource(None, {
+            'resource_name': 'workerNode_CP2',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111',
+            'required_by': 'workerNode',
+            'attributes': {'fixed_ips': [{'ip_address': '10.10.0.2'}]}
+        })
+        resource_st = resources.Resource(None, {
+            'resource_name': 'storage1',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '30435eb8-1472-4cbc-abbe-00b395165ce7',
+            'id': '1111',
+            'required_by': 'workerNode'
+        })
+        mock_resource.side_effect = [resource, resource1, resource_cp,
+                                     resource_st]
+        res_list1 = []
+        res_list2 = []
+        resource2 = resources.Resource(None, {
+            'resource_name': 'aaaaaaaa',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '89bd4a61-d33c-cbdd-0329-6429a6083139',
+            'id': '1111'
+        })
+        res_list1.append(resource2)
+        resource3 = resources.Resource(None, {
+            'resource_name': 'workerNode',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_type': 'OS::Nova::Server',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '5a169308-7865-9296-5a4b-a39c743dbe6e',
+            'id': '1111'
+        })
+        res_list2.append(resource3)
+        resource4 = resources.Resource(None, {
+            'resource_name': 'workerNode_CP2',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_type': 'OS::Neutron::Port',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '5a169308-7865-9296-5a4b-a39c743dbe6e',
+            'id': '1111'
+        })
+        res_list2.append(resource4)
+        resource5 = resources.Resource(None, {
+            'resource_name': 'storage1',
+            'creation_time': '2020-01-01T00:00:00',
+            'resource_type': 'OS::Cinder::Volume',
+            'resource_status': 'CREATE_COMPLETE',
+            'physical_resource_id': '5a169308-7865-9296-5a4b-a39c743dbe6e',
+            'id': '1111'
+        })
+        res_list2.append(resource5)
+        mock_list.side_effect = [res_list1, res_list2]
+        self.openstack.scale_resource_update(
+            context, vnf_instance,
+            scale_vnf_request, vnf_info,
+            vim_connection_info)
+        self.assertNotEqual(
+            vnf_instance.instantiated_vnf_info.vnfc_resource_info[0].id,
+            uuidsentinel.vnfc_resource_id)
+        return_vnfc_res = \
+            vnf_instance.instantiated_vnf_info.vnfc_resource_info[0]
+        self.assertNotEqual(return_vnfc_res.vnfc_cp_info[0].id,
+                         uuidsentinel.vnfc_cp_info_id)
+        self.assertNotEqual(uuidsentinel.storage_id,
+                         vnf_instance.instantiated_vnf_info.
+                         virtual_storage_resource_info[0].id)

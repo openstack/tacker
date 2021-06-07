@@ -190,6 +190,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                            'test_project'}, 'vim_type': 'openstack'}
         self.vim_client.get_vim.return_value = vim_obj
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -204,7 +205,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_instantiate_vnf(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
-            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict,
+            mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -218,6 +220,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -232,9 +235,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                                instantiate_vnf_req_obj)
 
         self.assertEqual(1, mock_vnf_instance_save.call_count)
-        self.assertEqual(5, self._vnf_manager.invoke.call_count)
+        self.assertEqual(6, self._vnf_manager.invoke.call_count)
         shutil.rmtree(fake_csar)
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -249,7 +253,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_instantiate_vnf_with_error_point_vnf_config_start(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
-            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict,
+            mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -263,6 +268,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -277,9 +283,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                                instantiate_vnf_req_obj)
 
         self.assertEqual(1, mock_vnf_instance_save.call_count)
-        self.assertEqual(5, self._vnf_manager.invoke.call_count)
+        self.assertEqual(6, self._vnf_manager.invoke.call_count)
         shutil.rmtree(fake_csar)
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -294,7 +301,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_instantiate_vnf_with_error_point_pre_vim_control(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
-            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict,
+            mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -308,6 +316,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -322,9 +331,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                                instantiate_vnf_req_obj)
 
         self.assertEqual(1, mock_vnf_instance_save.call_count)
-        self.assertEqual(4, self._vnf_manager.invoke.call_count)
+        self.assertEqual(5, self._vnf_manager.invoke.call_count)
         shutil.rmtree(fake_csar)
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -339,7 +349,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_instantiate_vnf_with_error_point_post_vim_control(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
-            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict,
+            mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -353,6 +364,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -367,9 +379,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                                instantiate_vnf_req_obj)
 
         self.assertEqual(1, mock_vnf_instance_save.call_count)
-        self.assertEqual(4, self._vnf_manager.invoke.call_count)
+        self.assertEqual(5, self._vnf_manager.invoke.call_count)
         shutil.rmtree(fake_csar)
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -384,7 +397,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_instantiate_vnf_with_error_point_internal_processing(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
-            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict,
+            mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -398,6 +412,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -415,6 +430,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual(1, self._vnf_manager.invoke.call_count)
         shutil.rmtree(fake_csar)
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -429,7 +445,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_instantiate_vnf_with_error_point_vnf_config_end(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
-            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict,
+            mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -443,6 +460,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -460,6 +478,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual(1, self._vnf_manager.invoke.call_count)
         shutil.rmtree(fake_csar)
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -474,7 +493,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_instantiate_vnf_with_ext_virtual_links(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
-            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict,
+            mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -490,6 +510,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -504,9 +525,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                                instantiate_vnf_req_obj)
 
         self.assertEqual(1, mock_vnf_instance_save.call_count)
-        self.assertEqual(5, self._vnf_manager.invoke.call_count)
+        self.assertEqual(6, self._vnf_manager.invoke.call_count)
         shutil.rmtree(fake_csar)
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -521,7 +543,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_instantiate_vnf_vim_connection_info(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
-            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict,
+            mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -537,6 +560,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -551,9 +575,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                                instantiate_vnf_req_obj)
 
         self.assertEqual(1, mock_vnf_instance_save.call_count)
-        self.assertEqual(5, self._vnf_manager.invoke.call_count)
+        self.assertEqual(6, self._vnf_manager.invoke.call_count)
         shutil.rmtree(fake_csar)
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -568,7 +593,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_instantiate_vnf_infra_fails_to_instantiate(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
-            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict,
+            mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -584,6 +610,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -610,6 +637,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         shutil.rmtree(fake_csar)
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -624,7 +652,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_instantiate_vnf_infra_fails_to_wait_after_instantiate(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
-            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict):
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict,
+            mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -640,6 +669,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
         level = instantiate_vnf_req_obj.instantiation_level_id
         vnf_instance_obj.instantiated_vnf_info = objects.InstantiatedVnfInfo(
             flavour_id=instantiate_vnf_req_obj.flavour_id,
@@ -674,6 +704,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         shutil.rmtree(fake_csar)
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -689,7 +720,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd,
             mock_create, mock_get_service_plugins, mock_init_hash,
-            mock_final_vnf_dict):
+            mock_final_vnf_dict, mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -703,6 +734,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -722,6 +754,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         mock_final_vnf_dict.assert_called_once()
         shutil.rmtree(fake_csar)
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
@@ -737,7 +770,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_vnf_instance_save, mock_vnf_package_vnfd,
             mock_create, mock_get_service_plugins, mock_init_hash,
-            mock_final_vnf_dict):
+            mock_final_vnf_dict, mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -751,6 +784,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -1227,7 +1261,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual(1, mock_resource_create.call_count)
         # Invoke will be called 7 times, 3 for deleting the vnf
         # resources  and 4 during instantiation.
-        self.assertEqual(8, self._vnf_manager.invoke.call_count)
+        self.assertEqual(9, self._vnf_manager.invoke.call_count)
         expected_msg = ("Request received for healing vnf '%s' "
                        "is completed successfully")
         mock_log.info.assert_called_with(expected_msg,

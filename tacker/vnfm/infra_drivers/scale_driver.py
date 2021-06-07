@@ -61,7 +61,7 @@ class VnfScaleAbstractDriver(extensions.PluginInterface,
 
     @abc.abstractmethod
     def scale_resource_update(self, context, vnf_instance,
-                              scale_vnf_request,
+                              scale_vnf_request, vnf_info,
                               vim_connection_info):
         pass
 
@@ -103,6 +103,7 @@ class VnfScaleAbstractDriver(extensions.PluginInterface,
 
     @abc.abstractmethod
     def get_grant_resource(self,
+                   plugin,
                    vnf_instance,
                    vnf_info,
                    scale_vnf_request,
