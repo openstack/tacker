@@ -616,7 +616,7 @@ Request Example
 Modify a VNF instance
 ========================
 
-.. rest_method::  POST /vnflcm/v1/vnf_instances/{vnfInstanceId}
+.. rest_method::  PATCH /vnflcm/v1/vnf_instances/{vnfInstanceId}
 
 This method modifies an "Individual VNF instance" resource.
 

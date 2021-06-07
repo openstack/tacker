@@ -854,19 +854,24 @@ class VnfInfoModifications(base.TackerObject,
         return obj
 
     def to_dict(self):
-        return {
-            'vnf_instance_name': self.vnf_instance_name,
-            'vnf_instance_description': self.vnf_instance_description,
-            'metadata': self.metadata,
-            'vim_connection_info': self.vim_connection_info,
-            'vim_connection_info_delete_ids':
-                self.vim_connection_info_delete_ids,
-            'vnf_pkg_id': self.vnf_pkg_id,
-            'vnfd_id': self.vnfd_id,
-            'vnf_provider': self.vnf_provider,
-            'vnf_product_name': self.vnf_product_name,
-            'vnf_software_version': self.vnf_software_version,
-            'vnfd_version': self.vnfd_version}
+        """For the attributes of this class, if an attribute exists and is not
+
+        null, it means that the attribute has been modified. This method
+
+        returns a dictionary containing the modified attributes.
+        """
+        dct = {}
+        for field in self.fields:
+            if field in self and getattr(self, field):
+                value = getattr(self, field)
+                # Since the type of vim_connection_info is ListOfObjectsField,
+                # the objects in vim_connection_info also need to be converted
+                # into dictionary, otherwise an error will occur
+                # when serialized.
+                if field == "vim_connection_info":
+                    value = [vim_conn.to_dict() for vim_conn in value]
+                dct[field] = value
+        return dct
 
 
 @base.TackerObjectRegistry.register

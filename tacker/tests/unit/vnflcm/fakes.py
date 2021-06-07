@@ -968,9 +968,18 @@ def vnflcm_fail_check_added_params(error_point=7):
             vim_level_resource_type="OS::Neutron::Net"),
         ext_link_ports=[ext_link_port_info]
     )
+    vim_connection_info = {"id": 'f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+             "vim_id": 'f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+             "vim_type": 'openstack',
+             "access_info": {"key1": 'value1', "key2": 'value2'}}
     changed_info_values = objects.VnfInfoModifications(
         vnf_instance_name="fake_name",
         vnf_instance_description="fake_vnf_instance_description",
+        metadata={'key': 'value'},
+        vim_connection_info=[VimConnectionInfo(**vim_connection_info)],
+        vim_connection_info_delete_ids=[
+            'f8c35bd0-4d67-4436-9f11-14b8a84c92bb'],
+        vnf_pkg_id='f26f181d-7891-4720-b022-b074ec1733ef',
         vnfd_id="f26f181d-7891-4720-b022-b074ec1733ef",
         vnf_provider="fake_vnf_provider",
         vnf_product_name="fake_vnf_product_name",
@@ -1413,10 +1422,15 @@ VNFLCMOPOCC_RESPONSE = {
         }]
     },
     'changedInfo': {
-        'metadata': {},
-        'vimConnectionInfo': [],
-        'vimConnectionInfoDeleteIds': [],
-        'vnfPkgId': None,
+        'metadata': {'key': 'value'},
+        'vimConnectionInfo': [
+            {"id": 'f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+             "vimId": 'f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+             "vimType": 'openstack',
+             'interfaceInfo': {},
+             "accessInfo": {"key1": 'value1', "key2": 'value2'}}],
+        'vimConnectionInfoDeleteIds': ['f8c35bd0-4d67-4436-9f11-14b8a84c92bb'],
+        'vnfPkgId': 'f26f181d-7891-4720-b022-b074ec1733ef',
         'vnfInstanceName': 'fake_name',
         'vnfInstanceDescription': "fake_vnf_instance_description",
         'vnfdId': 'f26f181d-7891-4720-b022-b074ec1733ef',
@@ -1528,11 +1542,20 @@ def fake_vnf_lcm_op_occs():
     }
     resource_changes_obj = objects.ResourceChanges(**resource_changes)
 
+    vim_connection_info = {
+        "id": 'f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        "vim_id": 'f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        "vim_type": 'openstack',
+        "access_info": {"key1": 'value1', "key2": 'value2'}}
     changed_info = {
         "vnf_instance_name": "fake_name",
         "vnf_instance_description":
             "fake_vnf_instance_description",
-        "metadata": {},
+        'metadata': {'key': 'value'},
+        'vim_connection_info': [VimConnectionInfo(**vim_connection_info)],
+        'vim_connection_info_delete_ids': [
+            'f8c35bd0-4d67-4436-9f11-14b8a84c92bb'],
+        'vnf_pkg_id': 'f26f181d-7891-4720-b022-b074ec1733ef',
         "vnfd_id": "f26f181d-7891-4720-b022-b074ec1733ef",
         "vnf_provider": "fake_vnf_provider",
         "vnf_product_name": "fake_vnf_product_name",
