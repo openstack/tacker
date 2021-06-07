@@ -1729,7 +1729,7 @@ class TestController(base.TestCase):
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s' % uuidsentinel.vnf_instance_id)
         req.method = 'DELETE'
-        mock_vnf_by_id.return_value = fakes.return_vnf_instance()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance_delete()
         req.headers['Content-Type'] = 'application/json'
 
         # Call delete API

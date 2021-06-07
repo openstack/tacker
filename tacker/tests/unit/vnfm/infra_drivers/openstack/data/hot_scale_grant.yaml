@@ -12,7 +12,7 @@ resources:
       auto_scaling_group_id: {get_resource: SP1_group}
       adjustment_type: change_in_capacity
       scaling_adjustment: 1
-  SP1_group:
+  SP1:
     type: OS::Heat::AutoScalingGroup
     properties:
       min_size: 0
@@ -25,7 +25,7 @@ resources:
   SP1_scale_in:
     type: OS::Heat::ScalingPolicy
     properties:
-      auto_scaling_group_id: {get_resource: SP1_group}
+      auto_scaling_group_id: {get_resource: SP1}
       adjustment_type: change_in_capacity
       scaling_adjustment: -1
 outputs: {}

@@ -165,6 +165,15 @@ def return_vnf_instance_model(
     return model_obj
 
 
+def return_vnf_instance_delete(
+        instantiated_state=fields.VnfInstanceState.NOT_INSTANTIATED,
+        **updates):
+    data = _model_non_instantiated_vnf_instance(**updates)
+    data['instantiation_state'] = instantiated_state
+    vnf_instance_obj = objects.VnfInstance(**data)
+    return vnf_instance_obj
+
+
 def return_vnf_instance(
         instantiated_state=fields.VnfInstanceState.NOT_INSTANTIATED,
         scale_status=None,
@@ -173,7 +182,15 @@ def return_vnf_instance(
     if instantiated_state == fields.VnfInstanceState.NOT_INSTANTIATED:
         data = _model_non_instantiated_vnf_instance(**updates)
         data['instantiation_state'] = instantiated_state
+        get_instantiated_vnf_info = {
+            'flavour_id': uuidsentinel.flavour_id,
+            'vnf_state': 'STARTED',
+            'instance_id': ''
+        }
+        instantiated_vnf_info = get_instantiated_vnf_info
+        info_data = objects.InstantiatedVnfInfo(**instantiated_vnf_info)
         vnf_instance_obj = objects.VnfInstance(**data)
+        vnf_instance_obj.instantiated_vnf_info = info_data
 
     elif scale_status:
         data = _model_non_instantiated_vnf_instance(**updates)

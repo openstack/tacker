@@ -1577,13 +1577,37 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
         return return_list, return_rs_list, grp.physical_resource_id, cap_size
 
+    def _get_resource_info_from_grant(self, grant_res_info_list, rsc,
+                                      vnfc_resource=None):
+        for i in range(len(grant_res_info_list) - 1, -1, -1):
+            if rsc.resource_type == 'OS::Nova::Server':
+                if grant_res_info_list[i].vdu_id == rsc.resource_name:
+                    instantiated_info = grant_res_info_list.pop(i)
+                    break
+            elif rsc.resource_type == 'OS::Neutron::Port':
+                if grant_res_info_list[i].cpd_id == rsc.resource_name:
+                    instantiated_info = \
+                        vnfc_resource.vnfc_cp_info.pop(i)
+                    break
+            elif rsc.resource_type == 'OS::Cinder::Volume':
+                if grant_res_info_list[i].virtual_storage_desc_id ==\
+                        rsc.resource_name:
+                    instantiated_info = grant_res_info_list.pop(i)
+                    break
+
+        return instantiated_info
+
     @log.log
     def scale_resource_update(self, context, vnf_instance,
-                              scale_vnf_request,
+                              scale_vnf_request, vnf_info,
                               vim_connection_info):
         inst_vnf_info = vnf_instance.instantiated_vnf_info
         vnfc_rsc_list = []
         st_rsc_list = []
+        grant_vnfc_res_info_list = \
+            vnf_info.get('scale_out_vnfc_res_info_list', {})
+        grant_st_rsc_list = vnf_info.get(
+            'scale_out_virtual_st_rsc_list', {})
         for vnfc in vnf_instance.instantiated_vnf_info.vnfc_resource_info:
             vnfc_rsc_list.append(vnfc.compute_resource.resource_id)
         for st in vnf_instance.instantiated_vnf_info.\
@@ -1613,10 +1637,20 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                             LOG.debug("rsc %s", rsc_info)
                             if 'COMPLETE' in rsc.resource_status and '\
                             INIT_COMPLETE' != rsc.resource_status:
-                                vnfc_resource_info = objects.VnfcResourceInfo()
-                                vnfc_resource_info.id =\
-                                    uuidutils.generate_uuid()
-                                vnfc_resource_info.vdu_id = rsc.resource_name
+                                if grant_vnfc_res_info_list:
+                                    vnfc_resource_info = \
+                                        self._get_resource_info_from_grant(
+                                            grant_vnfc_res_info_list, rsc)
+                                else:
+                                    vnfc_resource_info = \
+                                        objects.VnfcResourceInfo()
+                                    vnfc_resource_info.id =\
+                                        uuidutils.generate_uuid()
+                                    vnfc_resource_info.vdu_id = \
+                                        rsc.resource_name
+                                    vnfc_resource_info.vnfc_cp_info = []
+                                    vnfc_resource_info.\
+                                        storage_resource_ids = []
                                 resource = objects.ResourceHandle()
                                 resource.vim_connection_id =\
                                     vim_connection_info.id
@@ -1628,12 +1662,10 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                 vnfc_resource_info.metadata.update(
                                     {"stack_id":
                                         scale_rsc.physical_resource_id})
-                                vnfc_resource_info.vnfc_cp_info = []
                                 volumes_attached = rsc_info.attributes.get(
                                     'os-extended-volumes:volumes_attached')
                                 if not volumes_attached:
                                     volumes_attached = []
-                                vnfc_resource_info.storage_resource_ids = []
                                 for vol in volumes_attached:
                                     vnfc_resource_info.\
                                         storage_resource_ids.\
@@ -1652,9 +1684,16 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                             LOG.debug("rsc %s", rsc_info)
                             for vnfc_rsc in vnfc_rscs:
                                 if vnfc_rsc.vdu_id in rsc_info.required_by:
-                                    vnfc_cp = objects.VnfcCpInfo()
-                                    vnfc_cp.id = uuidutils.generate_uuid()
-                                    vnfc_cp.cpd_id = rsc.resource_name
+                                    if vnfc_rsc.vnfc_cp_info and \
+                                            grant_vnfc_res_info_list:
+                                        vnfc_cp = self.\
+                                            _get_resource_info_from_grant(
+                                                vnfc_rsc.vnfc_cp_info,
+                                                rsc, vnfc_rsc)
+                                    else:
+                                        vnfc_cp = objects.VnfcCpInfo()
+                                        vnfc_cp.id = uuidutils.generate_uuid()
+                                        vnfc_cp.cpd_id = rsc.resource_name
                                     vnfc_cp.cp_protocol_info = []
 
                                     cp_protocol_info = objects.CpProtocolInfo()
@@ -1722,12 +1761,18 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                     vnfc_rsc.vnfc_cp_info.append(vnfc_cp)
                         if rsc.resource_type == 'OS::Cinder::Volume':
                             if rsc.physical_resource_id not in st_rsc_list:
-                                virtual_storage_resource_info =\
-                                    objects.VirtualStorageResourceInfo()
-                                virtual_storage_resource_info.id =\
-                                    uuidutils.generate_uuid()
-                                virtual_storage_resource_info.\
-                                    virtual_storage_desc_id = rsc.resource_name
+                                if grant_st_rsc_list:
+                                    virtual_storage_resource_info = \
+                                        self._get_resource_info_from_grant(
+                                            grant_st_rsc_list, rsc)
+                                else:
+                                    virtual_storage_resource_info =\
+                                        objects.VirtualStorageResourceInfo()
+                                    virtual_storage_resource_info.id =\
+                                        uuidutils.generate_uuid()
+                                    virtual_storage_resource_info.\
+                                        virtual_storage_desc_id = \
+                                        rsc.resource_name
                                 resource = objects.ResourceHandle()
                                 resource.vim_connection_id =\
                                     vim_connection_info.id
@@ -1902,6 +1947,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
     def get_grant_resource(
             self,
+            plugin,
             vnf_instance,
             vnf_info,
             scale_vnf_request,
@@ -1927,23 +1973,34 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         affinity_list = []
         placement_constraint_list = []
         uuid_list = []
-        port_uuid_list = []
-        storage_uuid_list = []
+        vnfc_res_info_list = []
+        virtual_st_rsc_list = []
         heat_template = vnf_info['attributes']['heat_template']
         heat_resource = yaml.safe_load(heat_template)
         key_vnfd = scale_vnf_request.aspect_id + '_scale_out'
         ajust_prop = heat_resource['resources'][key_vnfd]['properties']
         ajust = ajust_prop['scaling_adjustment']
         size = ajust * scale_vnf_request.number_of_steps
-        yaml_name = scale_vnf_request.aspect_id + '_res.yaml'
-        if not vnf_info['attributes'].get(yaml_name):
-            yaml_name = scale_vnf_request.aspect_id + '.hot.yaml'
+        scale_resource_name = scale_vnf_request.aspect_id
+        scale_resource = heat_resource['resources'].\
+            get(scale_resource_name, {})
+        if not scale_resource:
+            scale_resource_name = scale_vnf_request.aspect_id
+            scale_resource = heat_resource['resources'].\
+                get(scale_resource_name)
+        yaml_name = scale_resource['properties']['resource']['type']
         nested_hot = yaml.safe_load(
             vnf_info['attributes'][yaml_name])
         for resource_name, resource in nested_hot['resources'].items():
             if resource['type'] == NOVA_SERVER_RESOURCE:
                 for i in range(size):
-                    add_uuid = uuidutils.generate_uuid()
+                    vnfc_resource_info = objects.VnfcResourceInfo()
+                    vnfc_resource_info.id = uuidutils.generate_uuid()
+                    vnfc_resource_info.vdu_id = resource_name
+                    vnfc_resource_info.vnfc_cp_info = []
+                    vnfc_resource_info.storage_resource_ids = []
+
+                    add_uuid = vnfc_resource_info.id
                     rsc = objects.ResourceDefinition(
                         id=add_uuid,
                         type=constants.TYPE_COMPUTE,
@@ -1951,8 +2008,14 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                         resource_template_id=resource_name)
                     add_resources.append(rsc)
                     uuid_list.append(add_uuid)
-                    for net in resource.get('networks', []):
-                        add_uuid = uuidutils.generate_uuid()
+
+                    for net in resource['properties'].get('networks', []):
+                        vnfc_cp = objects.VnfcCpInfo()
+                        vnfc_cp.id = uuidutils.generate_uuid()
+                        vnfc_cp.cpd_id = net['port']['get_resource']
+                        vnfc_resource_info.vnfc_cp_info.append(vnfc_cp)
+
+                        add_uuid = vnfc_cp.id
                         port_rsc = net['port']['get_resource']
                         rsc = objects.ResourceDefinition(
                             id=add_uuid,
@@ -1960,12 +2023,24 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                             vdu_id=resource_name,
                             resource_template_id=port_rsc)
                         add_resources.append(rsc)
-                        port_uuid_list.append(add_uuid)
-                if resource['properties'].get('block_device_mapping_v2'):
-                    for i in range(size):
+
+                    if resource['properties'].get('block_device_mapping_v2'):
                         for cinder in resource['properties'].get(
                                 'block_device_mapping_v2', []):
-                            add_uuid = uuidutils.generate_uuid()
+                            virtual_storage_resource_info = \
+                                objects.VirtualStorageResourceInfo()
+                            virtual_storage_resource_info.id = \
+                                uuidutils.generate_uuid()
+                            virtual_storage_resource_info.\
+                                virtual_storage_desc_id = \
+                                cinder['volume_id']['get_resource']
+                            virtual_st_rsc_list = \
+                                virtual_st_rsc_list.append(
+                                    virtual_storage_resource_info)
+                            vnfc_resource_info.storage_resource_ids.\
+                                append(virtual_storage_resource_info.id)
+
+                            add_uuid = virtual_storage_resource_info.id
                             vol_rsc = cinder['volume_id']['get_resource']
                             rsc = objects.ResourceDefinition(
                                 id=add_uuid,
@@ -1973,7 +2048,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                 vdu_id=resource_name,
                                 resource_template_id=vol_rsc)
                             add_resources.append(rsc)
-                            storage_uuid_list.append(add_uuid)
+                    vnfc_res_info_list.append(vnfc_resource_info)
+
                 if resource['properties'].get('scheduler_hints'):
                     sch_hint = resource['properties']['scheduler_hints']
                     if sch_hint['group'].get('get_param'):
@@ -2000,10 +2076,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                         vdu_id=vol_rsc['get_resource'],
                         resource_template_id=resource_name)
                     add_resources.append(rsc)
-                    storage_uuid_list.append(add_uuid)
-        vnf_info['uuid_list'] = uuid_list
-        vnf_info['port_uuid_list'] = port_uuid_list
-        vnf_info['storage_uuid_list'] = storage_uuid_list
+        vnf_info['scale_out_vnfc_res_info_list'] = vnfc_res_info_list
+        vnf_info['scale_out_virtual_st_rsc_list'] = virtual_st_rsc_list
         for placement in placement_obj_list:
             if placement.server_group_name in affinity_list:
                 plm = jsonutils.loads(placement.resource)
@@ -2015,8 +2089,10 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                             id_type=pl['id_type'],
                             resource_id=pl['resource_id'],
                             vim_connection_id=vim_id))
+                affinity_or_anti_affinity = \
+                    placement.affinity_or_anti_affinity
                 placement_constraint = objects.PlacementConstraint(
-                    affinity_or_anti_affinity='ANTI_AFFINITY',
+                    affinity_or_anti_affinity=affinity_or_anti_affinity,
                     scope='ZONE',
                     resource=addRsc,
                     fallback_best_effort=True)

@@ -2069,7 +2069,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         return return_id_list, return_name_list, return_grp_id, return_res_num
 
     def scale_resource_update(self, context, vnf_instance,
-                              scale_vnf_request,
+                              scale_vnf_request, vnf_info,
                               vim_connection_info):
         """Update VnfcResourceInfo after scaling"""
         auth_attr = vim_connection_info.access_info
@@ -2238,6 +2238,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         pass
 
     def get_grant_resource(self,
+                   plugin,
                    vnf_instance,
                    vnf_info,
                    scale_vnf_request,

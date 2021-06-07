@@ -136,6 +136,7 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
                            'test_project'}, 'vim_type': 'openstack'}
         self.vim_client.get_vim.return_value = vim_obj
 
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver, '_init_mgmt_driver_hash')
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -146,7 +147,7 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
     def test_instantiate_vnf(self, mock_vnf_instance_save,
                              mock_vnf_package_vnfd, mock_create,
                              mock_get_service_plugins, mock_init_hash,
-                             mock_final_vnf_dict):
+                             mock_final_vnf_dict, mock_default_status):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -159,6 +160,7 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -173,7 +175,7 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
                                instantiate_vnf_req_obj)
 
         self.assertEqual(1, mock_vnf_instance_save.call_count)
-        self.assertEqual(5, self._vnf_manager.invoke.call_count)
+        self.assertEqual(6, self._vnf_manager.invoke.call_count)
         shutil.rmtree(fake_csar)
 
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
