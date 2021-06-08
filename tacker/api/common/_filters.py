@@ -67,16 +67,18 @@ class Filter(BaseFilter):
     }
 
     OPERATOR_SUPPORTED_DATA_TYPES = {
-        'eq': ['string', 'number', 'enum', 'boolean', 'key_value_pair'],
-        'neq': ['string', 'number', 'enum', 'boolean', 'key_value_pair'],
-        'in': ['string', 'number', 'enum', 'key_value_pair'],
-        'nin': ['string', 'number', 'enum', 'key_value_pair'],
-        'gt': ['string', 'number', 'datetime', 'key_value_pair'],
-        'gte': ['string', 'number', 'datetime', 'key_value_pair'],
-        'lt': ['string', 'number', 'datetime', 'key_value_pair'],
-        'lte': ['string', 'number', 'datetime', 'key_value_pair'],
-        'cont': ['string', 'key_value_pair'],
-        'ncont': ['string', 'key_value_pair'],
+        'eq': ['uuid', 'string', 'number', 'enum', 'boolean',
+               'key_value_pair'],
+        'neq': ['uuid', 'string', 'number', 'enum', 'boolean',
+                'key_value_pair'],
+        'in': ['uuid', 'string', 'number', 'enum', 'key_value_pair'],
+        'nin': ['uuid', 'string', 'number', 'enum', 'key_value_pair'],
+        'gt': ['uuid', 'string', 'number', 'datetime', 'key_value_pair'],
+        'gte': ['uuid', 'string', 'number', 'datetime', 'key_value_pair'],
+        'lt': ['uuid', 'string', 'number', 'datetime', 'key_value_pair'],
+        'lte': ['uuid', 'string', 'number', 'datetime', 'key_value_pair'],
+        'cont': ['uuid', 'string', 'key_value_pair'],
+        'ncont': ['uuid', 'string', 'key_value_pair'],
     }
 
     def __init__(self, operator, attribute, values):

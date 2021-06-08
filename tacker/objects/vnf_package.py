@@ -286,7 +286,7 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
     # 4. Valid values for a given data type if any. This value is set
     # especially for 'enum' data type.
     ALL_ATTRIBUTES = {
-        'id': ('id', "string", 'VnfPackage'),
+        'id': ('id', "uuid", 'VnfPackage'),
         'onboardingState': ('onboarding_state', "enum", 'VnfPackage',
             fields.PackageOnboardingStateTypeField().valid_values),
         'operationalState': ('operational_state', 'enum', 'VnfPackage',
@@ -296,7 +296,7 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
         'vnfProvider': ('vnfd.vnf_provider', 'string', 'VnfPackageVnfd'),
         'vnfProductName': ('vnfd.vnf_product_name', 'string',
                            'VnfPackageVnfd'),
-        'vnfdId': ('vnfd.vnfd_id', 'string', 'VnfPackageVnfd'),
+        'vnfdId': ('vnfd.vnfd_id', 'uuid', 'VnfPackageVnfd'),
         'vnfSoftwareVersion': ('vnfd.vnf_software_version', 'string',
                                'VnfPackageVnfd'),
         'vnfdVersion': ('vnfd.vnfd_version', 'string', 'VnfPackageVnfd'),

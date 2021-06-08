@@ -334,20 +334,20 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
     }
 
     ALL_ATTRIBUTES = {
-        'id': ('id', "string", 'VnfInstance'),
+        'id': ('id', "uuid", 'VnfInstance'),
         'vnfInstanceName': ('vnf_instance_name', 'string', 'VnfInstance'),
         'vnfInstanceDescription': (
             'vnf_instance_description', 'string', 'VnfInstance'),
         'instantiationState': ('instantiation_state', 'string', 'VnfInstance'),
         'taskState': ('task_state', 'string', 'VnfInstance'),
-        'vnfdId': ('vnfd_id', 'string', 'VnfInstance'),
+        'vnfdId': ('vnfd_id', 'uuid', 'VnfInstance'),
         'vnfProvider': ('vnf_provider', 'string', 'VnfInstance'),
         'vnfProductName': ('vnf_product_name', 'string', 'VnfInstance'),
         'vnfSoftwareVersion': (
             'vnf_software_version', 'string', 'VnfInstance'),
         'vnfdVersion': ('vnfd_version', 'string', 'VnfInstance'),
         'tenantId': ('tenant_id', 'string', 'VnfInstance'),
-        'vnfPkgId': ('vnf_pkg_id', 'string', 'VnfInstance'),
+        'vnfPkgId': ('vnf_pkg_id', 'uuid', 'VnfInstance'),
         'vimConnectionInfo/*': ('vim_connection_info', 'key_value_pair',
                                 {"key_column": "key", "value_column": "value",
                                  "model": "VnfInstance"}),

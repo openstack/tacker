@@ -246,7 +246,7 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
     }
 
     ALL_ATTRIBUTES = {
-        'id': ('id', 'string', 'VnfLcmOpOccs'),
+        'id': ('id', 'uuid', 'VnfLcmOpOccs'),
         'operationState': ('operation_state', 'string', 'VnfLcmOpOccs'),
         'stateEnteredTime':
             ('state_entered_time', 'datetime', 'VnfLcmOpOccs'),
