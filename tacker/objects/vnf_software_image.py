@@ -83,7 +83,7 @@ class VnfSoftwareImage(base.TackerObject, base.TackerPersistentObject):
 
     ALL_ATTRIBUTES = {
         "softwareImages": {
-            'id': ('software_image_id', 'string', 'VnfSoftwareImage'),
+            'id': ('software_image_id', 'uuid', 'VnfSoftwareImage'),
             'imagePath': ('image_path', 'string', 'VnfSoftwareImage'),
             'diskFormat': ('disk_format', 'string', 'VnfSoftwareImage'),
             'userMetadata/*': ('metadata', 'key_value_pair',

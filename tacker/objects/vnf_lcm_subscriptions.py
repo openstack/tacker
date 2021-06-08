@@ -594,7 +594,7 @@ class LccnSubscription(base.TackerObject, base.TackerPersistentObject):
     }
 
     ALL_ATTRIBUTES = {
-        'id': ('id', 'string',
+        'id': ('id', 'uuid',
             'VnfLcmSubscriptions'),
         'vnfdIds': ('vnfd_ids', 'string',
             'VnfLcmFilters'),

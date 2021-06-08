@@ -101,7 +101,7 @@ class InstantiatedVnfInfo(base.TackerObject, base.TackerObjectDictCompat,
         'instantiatedInfo': {
             'flavourId': ('id', 'string', 'VnfInstantiatedInfo'),
             'vnfInstanceId':
-                ('vnf_instance_id', 'string', 'VnfInstantiatedInfo'),
+                ('vnf_instance_id', 'uuid', 'VnfInstantiatedInfo'),
             'vnfState': ('vnf_state', 'string', 'VnfInstantiatedInfo'),
             'instanceId': ('instance_id', 'string', 'VnfInstantiatedInfo'),
             'instantiationLevelId':

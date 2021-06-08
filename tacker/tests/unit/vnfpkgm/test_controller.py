@@ -262,12 +262,12 @@ class TestController(base.TestCase):
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     @ddt.data(
-        {'filter': '(eq,vnfdId,dummy_vnfd_id)'},
-        {'filter': '(in,vnfdId,dummy_vnfd_id)'},
-        {'filter': '(cont,vnfdId,dummy_vnfd_id)'},
-        {'filter': '(neq,vnfdId,dummy_vnfd_id)'},
-        {'filter': '(nin,vnfdId,dummy_vnfd_id)'},
-        {'filter': '(ncont,vnfdId,dummy_vnfd_id)'},
+        {'filter': '(eq,vnfdId,%s)' % constants.UUID},
+        {'filter': '(in,vnfdId,%s)' % constants.UUID},
+        {'filter': '(cont,vnfdId,%s)' % constants.UUID},
+        {'filter': '(neq,vnfdId,%s)' % constants.UUID},
+        {'filter': '(nin,vnfdId,%s)' % constants.UUID},
+        {'filter': '(ncont,vnfdId,%s)' % constants.UUID},
         {'filter': '(gt,softwareImages/createdAt,2020-03-11 04:10:15+00:00)'},
         {'filter': '(gte,softwareImages/createdAt,2020-03-14 04:10:15+00:00)'},
         {'filter': '(lt,softwareImages/createdAt,2020-03-20 04:10:15+00:00)'},
@@ -302,7 +302,8 @@ class TestController(base.TestCase):
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     def test_index_filter_combination(self, mock_vnf_list):
         """Test multiple filter parameters separated by semicolon """
-        params = {'filter': '(eq,vnfdId,dummy_vnfd_id);(eq,id,dummy_id)'}
+        params = {'filter': '(eq,vnfdId,%s);(eq,id,%s)' %
+                  (constants.UUID, constants.UUID)}
         query = urllib.parse.urlencode(params)
         req = fake_request.HTTPRequest.blank('/vnfpkgm/v1/vnf_packages?' +
             query)
@@ -318,8 +319,8 @@ class TestController(base.TestCase):
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     @ddt.data(
-        {'filter': '(eq,id,dummy_value)'},
-        {'filter': '(eq,vnfdId,dummy_value)'},
+        {'filter': '(eq,id,%s)' % constants.UUID},
+        {'filter': '(eq,vnfdId,%s)' % constants.UUID},
         {'filter': '(eq,onboardingState,ONBOARDED)'},
         {'filter': '(eq,operationalState,ENABLED)'},
         {'filter': '(eq,usageState,NOT_IN_USE)'},
@@ -330,7 +331,7 @@ class TestController(base.TestCase):
         {'filter': '(eq,userDefinedData/key1,dummy_value)'},
         {'filter': '(eq,checksum/algorithm,dummy_value)'},
         {'filter': '(eq,checksum/hash,dummy_value)'},
-        {'filter': '(eq,softwareImages/id,dummy_value)'},
+        {'filter': '(eq,softwareImages/id,%s)' % constants.UUID},
         {'filter': '(eq,softwareImages/imagePath,dummy_value)'},
         {'filter': '(eq,softwareImages/diskFormat,dummy_value)'},
         {'filter': '(eq,softwareImages/userMetadata/key3,dummy_value)'},
@@ -464,6 +465,8 @@ class TestController(base.TestCase):
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     @ddt.data(
+        {'filter': '(eq,id,fake_value)'},
+        {'filter': '(eq,vnfd_id,fake_value)'},
         {'filter': '(eq,operationalState,fake_value)'},
         {'filter': '(eq,softwareImages/size,fake_value)'},
         {'filter': '(gt,softwareImages/createdAt,fake_value)'},
