@@ -141,7 +141,7 @@ class CommonDbMixin(object):
             for key, value in filters.items():
                 column = getattr(model, key, None)
                 if column:
-                    query = query.filter(column.in_(value))
+                    query = query.filter(column.in_([value]))
             model_hooks = self._model_query_hooks.get(model, {})
             for _name, hooks in model_hooks.items():
                 result_filter = hooks.get('result_filters', None)

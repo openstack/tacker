@@ -491,7 +491,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 self._model_query(context, VNF).
                 filter(VNF.id == vnf_id).
                 filter(VNF.status.in_(current_statuses)).
-                with_lockmode('update').one())
+                with_for_update().one())
         except orm_exc.NoResultFound:
             raise vnfm.VNFNotFound(vnf_id=vnf_id)
         return vnf_db
@@ -799,7 +799,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                     self._model_query(context, VNF).
                     filter(VNF.id == vnf_id).
                     filter(~VNF.status.in_(exclude_status)).
-                    with_lockmode('update').one())
+                    with_for_update().one())
             except orm_exc.NoResultFound:
                 LOG.warning('no vnf found %s', vnf_id)
                 return False

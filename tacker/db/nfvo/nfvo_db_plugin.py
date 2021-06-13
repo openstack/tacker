@@ -160,8 +160,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                         {'placement_attr': vim.get('placement_attr')})
                 vim_auth_db = (self._model_query(
                     context, nfvo_db.VimAuth).filter(
-                        nfvo_db.VimAuth.vim_id == vim_id).with_lockmode(
-                            'update').one())
+                    nfvo_db.VimAuth.vim_id == vim_id).with_for_update().one())
             except orm_exc.NoResultFound:
                 raise nfvo.VimNotFoundException(vim_id=vim_id)
             vim_auth_db.update({'auth_cred': vim_cred, 'password':
@@ -181,7 +180,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
         with context.session.begin(subtransactions=True):
             try:
                 vim_db = (self._model_query(context, nfvo_db.Vim).filter(
-                    nfvo_db.Vim.id == vim_id).with_lockmode('update').one())
+                    nfvo_db.Vim.id == vim_id).with_for_update().one())
             except orm_exc.NoResultFound:
                 raise nfvo.VimNotFoundException(vim_id=vim_id)
             vim_db.update({'status': status,

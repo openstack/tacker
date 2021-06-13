@@ -18,7 +18,6 @@ from oslo_utils import timeutils
 from oslo_versionedobjects import base as ovoo_base
 from sqlalchemy import exc
 from sqlalchemy.orm import joinedload
-from sqlalchemy_filters import apply_filters
 
 from tacker.common import exceptions
 from tacker.common import utils
@@ -27,6 +26,7 @@ from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
 from tacker import objects
 from tacker.objects import base
+from tacker.objects import common
 from tacker.objects import fields
 
 
@@ -35,9 +35,29 @@ LOG = logging.getLogger(__name__)
 
 @db_api.context_manager.writer
 def _vnf_lcm_op_occ_create(context, values):
+    fields = {
+        'id': values.id,
+        'operation_state': values.operation_state,
+        'state_entered_time': values.state_entered_time,
+        'start_time': values.start_time,
+        'vnf_instance_id': values.vnf_instance_id,
+        'operation': values.operation,
+        'is_automatic_invocation': values.is_automatic_invocation,
+        'is_cancel_pending': values.is_cancel_pending,
+        'error': values.error,
+        'resource_changes': values.resource_changes,
+        'changed_info': values.changed_info,
+        'changed_ext_connectivity': values.changed_ext_connectivity,
+        'error_point': values.error_point,
+    }
+    if 'grant_id' in values:
+        fields['grant_id'] = values.grant_id
+    if 'operation_params' in values:
+        fields['operation_params'] = values.operation_params
+
     context.session.execute(
         models.VnfLcmOpOccs.__table__.insert(None),
-        values)
+        fields)
 
 
 @db_api.context_manager.writer
@@ -125,7 +145,7 @@ def _vnf_lcm_op_occs_get_by_filters(context, read_deleted=None,
                             read_deleted=read_deleted, project_only=True)
 
     if filters:
-        query = apply_filters(query, filters)
+        query = common.apply_filters(query, filters)
 
     return query.all()
 

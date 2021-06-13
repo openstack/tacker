@@ -138,7 +138,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                 self._model_query(context, NS).
                 filter(NS.id == ns_id).
                 filter(NS.status.in_(current_statuses)).
-                with_lockmode('update').one())
+                with_for_update().one())
         except orm_exc.NoResultFound:
             raise network_service.NSNotFound(ns_id=ns_id)
         return ns_db

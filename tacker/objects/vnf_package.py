@@ -22,7 +22,6 @@ from oslo_utils import versionutils
 from oslo_versionedobjects import base as ovoo_base
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
-from sqlalchemy_filters import apply_filters
 
 from tacker._i18n import _
 from tacker.common import exceptions
@@ -32,6 +31,7 @@ from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
 from tacker import objects
 from tacker.objects import base
+from tacker.objects import common
 from tacker.objects import fields
 from tacker.objects import vnf_artifact
 from tacker.objects import vnf_software_image
@@ -185,7 +185,10 @@ def _vnf_package_list_by_filters(context, read_deleted=None, filters=None):
         if 'VnfPackageArtifactInfo' in filter_data:
             query = query.join(models.VnfPackageArtifactInfo)
 
-        query = apply_filters(query, filters)
+        if 'VnfPackageVnfd' in filter_data:
+            query = query.join(models.VnfPackageVnfd)
+
+        query = common.apply_filters(query, filters)
 
     return query.all()
 
@@ -232,7 +235,10 @@ def _destroy_vnf_package(context, package_uuid):
             software_images_query.subquery())).update(
         updated_values, synchronize_session=False)
 
-    software_images_query.update(updated_values, synchronize_session=False)
+    api.model_query(context, models.VnfSoftwareImage). \
+        filter(models.VnfSoftwareImage.id.in_(
+            flavour_query.subquery())).update(
+        updated_values, synchronize_session=False)
 
     api.model_query(context, models.VnfPackageUserData). \
         filter_by(package_uuid=package_uuid). \
