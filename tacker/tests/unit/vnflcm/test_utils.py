@@ -57,3 +57,10 @@ class VnfLcmUtilsTestCase(base.TestCase):
         expected_flavour_description = 'A simple flavor'
         self.assertEqual(expected_flavour_description,
                          param_value['flavour_description'])
+
+    def test_topology_template_param_of_vnf_dict(self):
+        vnf_dict = fakes.vnf_dict()
+        vnf_keys = vnf_dict['vnfd']['attributes']['vnfd_simple']
+        self.assertIn('node_templates', vnf_keys)
+        self.assertIn('policies', vnf_keys)
+        self.assertIn('groups', vnf_keys)
