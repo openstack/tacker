@@ -53,19 +53,24 @@ def _get_vnf_subscription_filter_values(vnf_subscription_filter):
     vnf_instance_names = vnf_subscription_filter.get('vnfInstanceNames', [])
 
     vnfd_products_from_providers = vnf_subscription_filter.get(
-        'vnfProductsFromProviders', {})
-    vnf_provider = vnfd_products_from_providers.get('vnfProvider', "")
-    vnf_products = vnfd_products_from_providers.get('vnfProducts', [])
+        'vnfProductsFromProviders', [])
 
+    vnf_provider = ""
     vnf_product_name = ""
     vnf_software_version = ""
     vnfd_versions = []
-    if vnf_products:
-        vnf_product_name = vnf_products[0].get('vnfProductName', "")
-        versions = vnf_products[0].get('versions', [])
-        if versions:
-            vnf_software_version = versions[0].get('vnfSoftwareVersion', "")
-            vnfd_versions = versions[0].get('vnfdVersions', [])
+    if vnfd_products_from_providers:
+        vnfd_products_from_providers = vnfd_products_from_providers[0]
+        vnf_provider = vnfd_products_from_providers.get('vnfProvider', "")
+        vnf_products = vnfd_products_from_providers.get('vnfProducts', [])
+
+        if vnf_products:
+            vnf_product_name = vnf_products[0].get('vnfProductName', "")
+            versions = vnf_products[0].get('versions', [])
+            if versions:
+                vnf_software_version = \
+                    versions[0].get('vnfSoftwareVersion', "")
+                vnfd_versions = versions[0].get('vnfdVersions', [])
 
     vnf_subscription_array = [
         {'vnfdIds': vnfd_ids},
@@ -233,19 +238,26 @@ def _vnf_lcm_subscriptions_id_get(context,
         column_list = _get_vnf_subscription_filter_values(
             vnf_instance_subscription_filter)
 
+        sql_lst = [sql]
         for column in column_list:
             for key in column:
                 if key in VNF_INSTANCE_SUBSCRIPTION_FILTER:
                     value = column[key]
                     if key in VNF_INSTANCE_SUBSCRIPTION_FILTER_LISTS:
-                        value = _make_list(value)
+                        if value:
+                            value = _make_list(value)
+                            sql_lst.append(
+                                " JSON_CONTAINS({}, '{}') and ".format(
+                                    convert_string_to_snakecase(key), value))
+                        else:
+                            sql_lst.append(" {}_len=0 and ".format(
+                                convert_string_to_snakecase(key)))
                     else:
-                        value = '"{}"'.format(value)
-                    sql = (sql + " JSON_CONTAINS({}, '{}') and ".format(
-                        convert_string_to_snakecase(key),
-                        value
-                    ))
+                        sql_lst.append(" {}='{}' and ".format(
+                            convert_string_to_snakecase(key), value))
+
                     included_in_filter.append(key)
+        sql = ''.join(sql_lst)
 
         not_included_in_filter = list(
             set(VNF_INSTANCE_SUBSCRIPTION_FILTER_LISTS) -
@@ -302,6 +314,8 @@ def _add_filter_data(context, subscription_id, filter):
         vnf_products_from_providers = \
             vnf_instance_subscription_filter.get(
                 'vnfProductsFromProviders')
+        if vnf_products_from_providers:
+            vnf_products_from_providers = vnf_products_from_providers[0]
 
         new_entries = []
         new_entries.append({"subscription_uuid": subscription_id,
@@ -387,7 +401,7 @@ def _vnf_lcm_subscriptions_create(context, values, filter):
                 vnf_instance_subscription_filter=subscription_filter)
 
             if vnf_lcm_subscriptions_id:
-                raise Exception("303" + vnf_lcm_subscriptions_id)
+                raise exceptions.SeeOther(message=vnf_lcm_subscriptions_id.id)
 
             _add_filter_data(context, values.id, filter)
 
@@ -396,7 +410,7 @@ def _vnf_lcm_subscriptions_create(context, values, filter):
                                             callbackUri)
 
             if vnf_lcm_subscriptions_id:
-                raise Exception("303" + vnf_lcm_subscriptions_id.id)
+                raise exceptions.SeeOther(message=vnf_lcm_subscriptions_id.id)
             _add_filter_data(context, values.id, {})
 
     return values
