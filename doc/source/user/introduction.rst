@@ -21,7 +21,7 @@ publications of SOL documents for NFV descriptors such as VNF descriptor
 `NFV-SOL002`_, `NFV-SOL003`_, and `NFV-SOL005`_, the SOL based new
 implementations have started in Ussuri release.
 
-ETSI NFV MANO concept
+ETSI NFV MANO Concept
 ---------------------
 
 MANO functional blocks are:

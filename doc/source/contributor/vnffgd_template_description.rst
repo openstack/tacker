@@ -1,5 +1,5 @@
-VNFFG Descriptor Template Guide
-===============================
+VNF Forwarding Graph Descriptor (VNFFGD) Template Guide
+=======================================================
 Overview
 --------
 
@@ -9,7 +9,7 @@ on TOSCA standards V1.0 [#f1]_.
 For VNFFG usage, please refer to the document available at [#f6]_.
 
 The behavioural and deployment information of a VNFFG in Tacker is defined in a
-template known as VNFFG Descriptor (VNFFGD). The template is based on TOSCA
+template known as VNFFGD. The template is based on TOSCA
 standards and is written in YAML. It is on-boarded in a VNFFG catalog.
 
 Each VNFFGD template will have below fields:
@@ -45,7 +45,7 @@ Each VNFFGD template will have below fields:
 
 For examples, please refer sample VNFFGD templates available at GitHub [#f2]_.
 
-Node types
+Node Types
 ----------
 For Tacker purposes a VNFFGD only includes **Forwarding Path**. In a full
 Network Services Descriptor (NSD), it would include information about each
@@ -68,7 +68,7 @@ through a set of VNFs.
     supported by Tacker are listed here [#f3]_ under **properties** section of
     **tosca.nodes.nfv.FP.TackerV2** field.
 
-Specifying FP properties
+Specifying FP Properties
 ^^^^^^^^^^^^^^^^^^^^^^^^
 An example FP shown below:
 
@@ -180,7 +180,7 @@ section.
     A list of Forwarding Paths which belong to this VNFFG. At the moment
     only one is supported.
 
-Specifying VNFFG properties and members
+Specifying VNFFG Properties and Members
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 An example VNFFG shown below:
 

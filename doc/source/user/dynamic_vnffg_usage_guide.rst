@@ -16,6 +16,8 @@
 A Use Case of VNFFG Update
 ==========================
 
+.. TODO(h-asahina): check this use case still works.
+
 This guide walks you through a specific usecase in which you can leverage
 the Zabbix monitoring software to create a dynamic VNF Forwarding Graph
 (VNFFG) or Service Function Chaining (SFC). You can check out the video
@@ -190,9 +192,8 @@ Zabbix agent to the devstack VM.
    After the VNF instance has been deployed successfully, SSH to it and
    configure as in [#f6]_.
 
--  The second one is OpenWrt with the configuration is the same as it is
-   described in the Tacker docs [#f7]_, use the VNFD template here [#f8]_
-   and param file here [#f9]_.
+-  The second one is OpenWrt with the VNFD template here [#f8]_ and param file
+   here [#f7]_.
 
 **5.** Create a VNFFG with a chain (IDS, Openwrt) and no classifier
 
@@ -295,6 +296,5 @@ mitigated.
 .. [#f4] https://opendev.org/openstack/tacker/src/branch/master/devstack/local.conf.example
 .. [#f5] https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-zabbix-to-securely-monitor-remote-servers-on-ubuntu-16-04
 .. [#f6] https://blog.rapid7.com/2017/02/14/how-to-install-suricata-nids-on-ubuntu-linux/
-.. [#f7] https://docs.openstack.org/tacker/latest/install/deploy_openwrt.html
-.. [#f8] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
-.. [#f9] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml
+.. [#f7] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-vnfd-openwrt.yaml
+.. [#f8] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml

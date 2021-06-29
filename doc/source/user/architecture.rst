@@ -1,5 +1,5 @@
 ===================
-Tacker architecture
+Tacker Architecture
 ===================
 
 Tacker design can be described by the following diagram:
@@ -50,8 +50,8 @@ NFV-SOL based API operations and communicates with OpenStack or Kubernetes
 VIM by the infra drivers. Heat client or Kubernetes python client provides the
 IF to operate or manage resources for each VIM.
 
-ETSI NFV-SOL based implementation
----------------------------------
+ETSI NFV-SOL Tacker Implementation
+----------------------------------
 
 Tacker ETSI NFV-SOL based implementation is described as the following:
 
@@ -84,8 +84,8 @@ available.
 .. note:: VIM related operations such as "Register VIM" and "Update VIM" are
           not defined in ETSI NFV-SOL. Users may need to use legacy Tacker.
 
-Legacy implementation
----------------------
+Legacy Tacker Implementation
+----------------------------
 
 Legacy Tacker implementation is described as the following:
 

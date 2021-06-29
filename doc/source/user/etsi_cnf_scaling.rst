@@ -18,7 +18,7 @@ The procedure of prepare for scaling operation that from "register VIM" to
 
 This procedure uses an example using the sample VNF package.
 
-How to create VNF package for scaling
+How to Create VNF Package for Scaling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Using `tacker/tests/etc/samples/etsi/nfv/test_cnf_scale`_,
 describe how to create VNF package for scaling.
@@ -143,7 +143,7 @@ includes path of Kubernetes resource definition file and that
     $ openstack vnflcm instantiate 92cf0ccb-e575-46e2-9c0d-30c67e75aaf6 instance_kubernetes.json
     Instantiate request for VNF Instance 92cf0ccb-e575-46e2-9c0d-30c67e75aaf6 has been accepted.
 
-CNF scaling procedure
+CNF Scaling Procedure
 ---------------------
 
 As mentioned in Prerequisites, the VNF must be instantiated before performing
@@ -163,7 +163,7 @@ There are two main methods for CNF scaling.
 * Scale out CNF
 * Scale in CNF
 
-How to identify ASPECT_ID
+How to Identify ASPECT_ID
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to execute scaling, it is necessary to specify ``ASPECT_ID``, which is
@@ -250,7 +250,7 @@ In the following VNFD excerpt, **vdu1_aspect** corresponds to ``ASPECT_ID``.
 
 .. note:: See `NFV-SOL001 v2.6.1`_ annex A.6 for details about ``ASPECT_ID``.
 
-How to scale out CNF
+How to Scale Out CNF
 ~~~~~~~~~~~~~~~~~~~~
 
 Execute Scale CLI command and check the number of replicas before and after
@@ -286,7 +286,7 @@ Replicas information after scale-out:
   NAME   READY   UP-TO-DATE   AVAILABLE   AGE
   vdu1   2/2     2            2           2d
 
-How to scale in CNF
+How to Scale in CNF
 ~~~~~~~~~~~~~~~~~~~
 
 Execute Scale CLI command and check the number of replicas before and after

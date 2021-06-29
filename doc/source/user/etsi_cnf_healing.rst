@@ -18,7 +18,7 @@ The procedure of prepare for healing operation that from "register VIM" to
 
 This procedure uses an example using the sample VNF package.
 
-How to create VNF package for healing
+How to Create VNF Package for Healing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Using `tacker/tests/etc/samples/etsi/nfv/test_cnf_heal`_,
 describe how to create VNF package for healing.
@@ -143,7 +143,7 @@ includes path of Kubernetes resource definition file and that
     $ openstack vnflcm instantiate 92cf0ccb-e575-46e2-9c0d-30c67e75aaf6 instance_kubernetes.json
     Instantiate request for VNF Instance 92cf0ccb-e575-46e2-9c0d-30c67e75aaf6 has been accepted.
 
-CNF healing procedure
+CNF Healing Procedure
 ---------------------
 
 As mentioned in Prerequisites and Healing target VNF instance, the VNF must be
@@ -169,7 +169,7 @@ There are two main methods for CNF healing.
 
 .. _labelCapHealingtargetVNFinstance:
 
-Healing target VNF instance
+Healing Target VNF Instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Assuming that the following VNF instance exists. VNF Instance is made by using
@@ -252,7 +252,7 @@ Result:
   | VNFD Version             | 1.0                                                                                       |
   +--------------------------+-------------------------------------------------------------------------------------------+
 
-How to heal of the entire VNF
+How to Heal of the Entire VNF
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Execute Heal of the entire CNF with CLI command and check the name and age of
@@ -369,7 +369,7 @@ Result:
   +--------------------------+-------------------------------------------------------------------------------------------+
 
 
-How to heal specified with VNFC instances
+How to Heal Specified with VNFC Instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Execute Heal of the partial CNF CLI command and check the name and age of pod
 information before and after healing.

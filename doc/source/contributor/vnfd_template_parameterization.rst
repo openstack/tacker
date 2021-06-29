@@ -1,5 +1,5 @@
-VNFD Template Parameterization
-==============================
+VNF Descriptor (VNFD) Template Parameterization
+===============================================
 
 Overview
 --------
@@ -13,7 +13,7 @@ non-parameterized template that has fixed IP addresses specified for network
 interface a second time without deleting the first instance of VNF would lead
 to an error.
 
-Non-parameterized VNFD template
+Non-parameterized VNFD Template
 -------------------------------
 
 Find below an example of a non-parameterized VNFD where the text italicized
@@ -97,7 +97,7 @@ Here is the sample template:
            vendor: Tacker
 
 
-Parameterized VNFD template
+Parameterized VNFD Template
 ---------------------------
 This section will walk through parameterizing the template in above section
 for re-use and allow for deploying multiple VNFs with the same template.
@@ -228,7 +228,7 @@ Here is the sample template:
            vendor: {get_input: vendor}
 
 
-Parameter values file at VNF deploy
+Parameter Values File at VNF Deploy
 -----------------------------------
 The below illustrates the parameters value file to be supplied containing the
 values to be substituted for the above parameterized template above during

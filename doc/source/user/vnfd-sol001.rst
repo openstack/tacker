@@ -31,7 +31,7 @@ Example:
         !---- vnfd_types.yaml
 
 
-Deployment flavour model
+Deployment Flavour Model
 ------------------------
 
 To design VNF with a VNFD, "deployment flavour model" is helpful. An example
@@ -55,7 +55,7 @@ It is possible to design plural topologies for a VNF with deployment flavour.
 The deployed topology is specified with a deployment flavour ID in the
 Instantiation request parameter.
 
-Type definition files
+Type Definition Files
 ---------------------
 
 Type definition files contain all required "Types" appeared in **service**
@@ -74,7 +74,7 @@ There are nine groups of type definition in `NFV-SOL001 v2.6.1`_.
 * Group Types: ``group_types``
 * Policy Types: ``policy_types``
 
-1. ETSI NFV types definition file
+1. ETSI NFV Types Definition File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ETSI NFV provides two types definition files [1]_ which contain all defined
@@ -84,7 +84,7 @@ from *top-level service template file*.
 * `etsi_nfv_sol001_common_types.yaml`_
 * `etsi_nfv_sol001_vnfd_types.yaml`_
 
-2. User defined types definition file
+2. User Defined Types Definition File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Users can extend their own types definition from `NFV-SOL001 v2.6.1`_. In most
@@ -112,7 +112,7 @@ in section 6.8.1 in `NFV-SOL001 v2.6.1`_. Its required properties are:
 * *flavour_description* - is description of the deployment flavour. The
   default can be "" (empty string).
 
-Topology template files
+Topology Template Files
 -----------------------
 
 The topology template files describe the topology of VNF. The topology is
@@ -141,7 +141,7 @@ important to describe the topology:
 * (optional) *workflows* - is a map of imperative workflow definition for the
   topology template.
 
-3. Top-level topology template file
+3. Top-level Topology Template File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The *top-level topology template file* describes the abstract design of VNF.
@@ -185,7 +185,7 @@ derived from ``tosca.nodes.nfv.VNF``. The file includes:
           lower-level topology template and not included here.
 
 
-4. Topology template file with deployment flavour
+4. Topology Template File with Deployment Flavour
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The lower-level topology template provides a deployment flavour ID and its

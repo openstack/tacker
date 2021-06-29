@@ -14,15 +14,15 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-===============
-Getting Started
-===============
+==================================
+Getting Started with Legacy Tacker
+==================================
 
 Once Tacker is installed successfully, follow the steps given below to get
 started with Tacker and validate the installation.
 
 
-Registering default OpenStack VIM
+Registering Default OpenStack VIM
 ---------------------------------
 
 #. Get one account on the OpenStack VIM
@@ -31,14 +31,14 @@ Registering default OpenStack VIM
    is also called as VIM. Get one account on your OpenStack, such as ``admin``
    if you deploy your OpenStack via devstack. Here is an example of a user
    named as ``nfv_user`` and has a project ``nfv`` on OpenStack for
-   VIM configuration. It is described in ``vim_config.yaml`` [1]_:
+   VIM configuration. It is described in ``vim_config.yaml`` [#f1]_:
 
    .. literalinclude:: ../../../samples/vim/vim_config.yaml
        :language: yaml
 
    .. note::
 
-       In Keystone, port ``5000`` is enabled for authentication service [2]_,
+       In Keystone, port ``5000`` is enabled for authentication service [#f2]_,
        so the end users can use ``auth_url: 'http://127.0.0.1:5000/v3'`` instead
        of ``auth_url: 'http://127.0.0.1/identity'`` as above mention.
 
@@ -57,7 +57,7 @@ Registering default OpenStack VIM
               --description 'my first vim' --is-default hellovim
 
 
-Onboarding sample VNF
+Onboarding Sample VNF
 ---------------------
 
 #. Create a ``sample-vnfd.yaml`` file with the following template
@@ -109,7 +109,7 @@ Onboarding sample VNF
 
    .. note::
 
-       You can find several samples of tosca template for VNFD at [3]_.
+       You can find several samples of tosca template for VNFD at [#f3]_.
 
 
 #. Create a sample VNFD
@@ -146,6 +146,8 @@ Onboarding sample VNF
 References
 ----------
 
-.. [1] https://opendev.org/openstack/tacker/src/branch/master/samples/vim/vim_config.yaml
-.. [2] https://docs.openstack.org/keystoneauth/latest/using-sessions.html#sessions-for-users
-.. [3] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd
+.. rubric:: Footnotes
+
+.. [#] https://opendev.org/openstack/tacker/src/branch/master/samples/vim/vim_config.yaml
+.. [#] https://docs.openstack.org/keystoneauth/latest/using-sessions.html#sessions-for-users
+.. [#] https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd

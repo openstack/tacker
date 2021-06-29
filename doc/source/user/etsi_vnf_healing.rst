@@ -23,7 +23,7 @@ Execute up to "Instantiate VNF" in the procedure of
 In other words, the procedure after "Terminate VNF" is not executed.
 
 
-Healing target VNF instance
+Healing Target VNF Instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Assuming that the following VNF instance exists,
@@ -224,7 +224,7 @@ Result:
        In this manual, it corresponds to **vnf-9e086f34-b3c9-4986-b5e5-609a5ac4c1f9**.
 
 
-VNF healing procedure
+VNF Healing Procedure
 ---------------------
 
 As mentioned in **Prerequisites** and **Healing target VNF instance**,
@@ -244,7 +244,7 @@ There are two main methods for VNF healing.
        For more information on VNFC, see `NFV-SOL002 v2.6.1`_.
 
 
-How to heal of the entire VNF
+How to Heal of the Entire VNF
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When healing of the entire VNF, the following APIs are executed
@@ -316,7 +316,7 @@ Result:
        'Stack Status' transitions to CREATE_COMPLETE.
 
 
-How to heal specified with VNFC instances
+How to Heal Specified with VNFC Instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Extract the value of vnfcResourceInfo -> id from 'Instantiated Vnf Info'
