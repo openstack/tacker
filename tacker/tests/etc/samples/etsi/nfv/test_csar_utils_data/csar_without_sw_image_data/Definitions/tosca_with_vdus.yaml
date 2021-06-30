@@ -61,7 +61,7 @@ topology_template:
       artifacts:
         sw_image:
           type: tosca.artifacts.nfv.SwImage
-          file: ../Files/images/cirros-0.4.0-x86_64-disk.img
+          file: ../Files/images/cirros-0.5.2-x86_64-disk.img
 
       capabilities:
         virtual_compute:

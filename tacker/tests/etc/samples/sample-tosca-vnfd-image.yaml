@@ -19,7 +19,7 @@ topology_template:
       artifacts:
         VNFImage_image_func:
           type: tosca.artifacts.Deployment.Image.VM
-          file: http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
+          file: http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-x86_64-disk.img
 
     CP1:
       type: tosca.nodes.nfv.CP.Tacker

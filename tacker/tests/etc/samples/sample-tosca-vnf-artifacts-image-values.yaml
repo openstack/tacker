@@ -1,5 +1,5 @@
 {
- image_source: 'http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img',
+ image_source: 'http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-x86_64-disk.img',
  flavor: 'm1.tiny',
  zone: 'nova',
  network: 'net_mgmt',

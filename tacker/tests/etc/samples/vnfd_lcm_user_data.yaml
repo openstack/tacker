@@ -63,7 +63,7 @@ topology_template:
           max_number_of_instances: 1
         sw_image_data:
           name: Software of VDU1
-          version: '0.4.0'
+          version: '0.5.2'
           checksum:
             algorithm: sha-256
             hash: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
@@ -74,7 +74,7 @@ topology_template:
       artifacts:
         sw_image:
           type: tosca.artifacts.nfv.SwImage
-          file: ../Files/images/cirros-0.4.0-x86_64-disk.img
+          file: ../Files/images/cirros-0.5.2-x86_64-disk.img
       capabilities:
         virtual_compute:
           properties:

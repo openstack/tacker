@@ -3,5 +3,5 @@ Created-by: Hiroyuki JO
 CSAR-Version: 1.1
 Entry-Definitions: Definitions/helloworld3.vnfd.tosca.yaml
 
-Name: Files/images/cirros-0.4.0-x86_64-disk.img
+Name: Files/images/cirros-0.5.2-x86_64-disk.img
 Content-type: application/x-iso9066-image

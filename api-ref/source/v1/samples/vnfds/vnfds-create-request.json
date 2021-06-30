@@ -29,7 +29,7 @@
                 }
               },
               "properties": {
-                "image": "cirros-0.4.0-x86_64-disk"
+                "image": "cirros-0.5.2-x86_64-disk"
               }
             },
             "CP1": {

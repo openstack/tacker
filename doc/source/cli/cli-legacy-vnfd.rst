@@ -121,7 +121,7 @@ Result:
   |                 |                     "properties": {                                       |
   |                 |                         "availability_zone": "nova",                      |
   |                 |                         "config": "param0: key1\nparam1: key2\n",         |
-  |                 |                         "image": "cirros-0.4.0-x86_64-disk",              |
+  |                 |                         "image": "cirros-0.5.2-x86_64-disk",              |
   |                 |                         "mgmt_driver": "noop"                             |
   |                 |                     },                                                    |
   |                 |                     "type": "tosca.nodes.nfv.VDU.Tacker"                  |
@@ -327,7 +327,7 @@ Result:
   |                 |                     "properties": {                                       |
   |                 |                         "availability_zone": "nova",                      |
   |                 |                         "config": "param0: key1\nparam1: key2\n",         |
-  |                 |                         "image": "cirros-0.4.0-x86_64-disk",              |
+  |                 |                         "image": "cirros-0.5.2-x86_64-disk",              |
   |                 |                         "mgmt_driver": "noop"                             |
   |                 |                     },                                                    |
   |                 |                     "type": "tosca.nodes.nfv.VDU.Tacker"                  |
@@ -483,7 +483,7 @@ Result:
   |            |                     "properties": {                                       |
   |            |                         "availability_zone": "nova",                      |
   |            |                         "config": "param0: key1\nparam1: key2\n",         |
-  |            |                         "image": "cirros-0.4.0-x86_64-disk",              |
+  |            |                         "image": "cirros-0.5.2-x86_64-disk",              |
   |            |                         "mgmt_driver": "noop"                             |
   |            |                     },                                                    |
   |            |                     "type": "tosca.nodes.nfv.VDU.Tacker"                  |

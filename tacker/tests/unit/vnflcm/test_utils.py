@@ -28,12 +28,12 @@ from tacker.vnflcm import utils as vnflcm_utils
 class VnfLcmUtilsTestCase(base.TestCase):
 
     @ddt.data(
-        {'image_path': 'cirros-0.4.0-x86_64-disk.img',
-         'extracted_path': 'cirros-0.4.0-x86_64-disk.img'},
-        {'image_path': '../ImageFiles/image/cirros-0.4.0-x86_64-disk.img',
-         'extracted_path': 'ImageFiles/image/cirros-0.4.0-x86_64-disk.img'},
-        {'image_path': '../../Files/image/cirros-0.4.0-x86_64-disk.img',
-         'extracted_path': 'Files/image/cirros-0.4.0-x86_64-disk.img'}
+        {'image_path': 'cirros-0.5.2-x86_64-disk.img',
+         'extracted_path': 'cirros-0.5.2-x86_64-disk.img'},
+        {'image_path': '../ImageFiles/image/cirros-0.5.2-x86_64-disk.img',
+         'extracted_path': 'ImageFiles/image/cirros-0.5.2-x86_64-disk.img'},
+        {'image_path': '../../Files/image/cirros-0.5.2-x86_64-disk.img',
+         'extracted_path': 'Files/image/cirros-0.5.2-x86_64-disk.img'}
     )
     @ddt.unpack
     def test_create_grant_request_with_software_image_path(self, image_path,

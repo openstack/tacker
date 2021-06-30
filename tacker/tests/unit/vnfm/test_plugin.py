@@ -499,7 +499,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self._insert_dummy_vnf_template()
         vnf_obj = utils.get_dummy_vnf_obj()
         vnf_obj['vnf']['attributes'] = {'param_values':
-        {'image_name': 'cirros-0.4.0-x86_64-disk', 'flavor': 'm1.tiny'}}
+        {'image_name': 'cirros-0.5.2-x86_64-disk', 'flavor': 'm1.tiny'}}
         result = self.vnfm_plugin.create_vnf(self.context, vnf_obj)
         self.assertIsNotNone(result)
         self.assertEqual(vnf_obj['vnf']['attributes']['param_values'],

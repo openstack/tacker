@@ -48,7 +48,7 @@ vnf_dict = {
                     'properties': {
                         'user_data_format': 'SOFTWARE_CONFIG',
                         'availability_zone': 'nova',
-                        'image': 'cirros-0.4.0-x86_64-disk',
+                        'image': 'cirros-0.5.2-x86_64-disk',
                         'config_drive': False,
                         'flavor': {'get_resource': 'VDU1_flavor'},
                         'networks': [{'port': {'get_resource': 'CP1'}}]
@@ -528,7 +528,7 @@ class TestOpenStack(base.TestCase):
     def test_tosca_artifacts_image_params(self):
         input_params = 'image_source: ' \
                        'http://download.cirros-cloud.net/' \
-                       '0.4.0/cirros-0.4.0-x86_64-disk.img'
+                       '0.5.2/cirros-0.5.2-x86_64-disk.img'
         self._test_assert_equal_for_tosca_templates(
             'tosca_artifacts_image_vnfd_params.yaml',
             'hot_tosca_artifacts_image_vnfd_params.yaml',

@@ -37,9 +37,15 @@ class VnfPackageTest(base.BaseTackerTest):
     VNF_PACKAGE_DELETE_TIMEOUT = 120
     VNF_PACKAGE_UPLOAD_TIMEOUT = 300
 
+    # The size of CSAR zip file used while verifying downloaded package.
+    # NOTE: It should be updated if some contents of packages under
+    #       `tacker/tests/etc/samples` dir.
+    SIZE_CSAR_ZIP = 16389096
+
     def setUp(self):
         super(VnfPackageTest, self).setUp()
         self.base_url = "/vnfpkgm/v1/vnf_packages"
+
         # Here we create and upload vnf package. Also get 'show' api response
         # as reference data for attribute filter tests
         self.package_id1 = self._create_and_upload_vnf("vnfpkgm1")
@@ -437,7 +443,8 @@ class VnfPackageTest(base.BaseTackerTest):
                 id=self.package_id1, base_path=self.base_url),
             "GET", body={}, headers={})
         self.assertEqual(200, response[0].status_code)
-        self.assertEqual('12804584', response[0].headers['Content-Length'])
+        self.assertEqual(
+            str(self.SIZE_CSAR_ZIP), response[0].headers['Content-Length'])
 
     def test_fetch_vnf_package_content_combined_download(self):
         """Combine two partial downloads using 'Range' requests for csar zip"""
@@ -458,7 +465,7 @@ class VnfPackageTest(base.BaseTackerTest):
         zipf.writestr(file_path, data)
 
         # Partial download 2
-        range_ = 'bytes=11-12804584'
+        range_ = 'bytes=11-{}'.format(self.SIZE_CSAR_ZIP)
         headers = {'Range': range_}
         response_2 = self.http_client.do_request(
             '{base_path}/{id}/package_content'.format(
@@ -471,7 +478,7 @@ class VnfPackageTest(base.BaseTackerTest):
         size_2 = int(response_2[0].headers['Content-Length'])
         total_size = size_1 + size_2
         self.assertEqual(True, zipfile.is_zipfile(zip_file_path))
-        self.assertEqual(12804584, total_size)
+        self.assertEqual(self.SIZE_CSAR_ZIP, total_size)
         zip_file_path.close()
 
     def test_fetch_vnf_package_artifacts(self):

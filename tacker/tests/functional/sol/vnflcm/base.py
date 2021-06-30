@@ -307,7 +307,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
                                         gateway="22.22.2.1"))
 
     @classmethod
-    def _list_glance_image(cls, filter_name='cirros-0.4.0-x86_64-disk'):
+    def _list_glance_image(cls, filter_name='cirros-0.5.2-x86_64-disk'):
         try:
             images = cls.glance_client.images.list()
         except Exception:

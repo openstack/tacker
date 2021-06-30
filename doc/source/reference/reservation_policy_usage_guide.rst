@@ -280,7 +280,7 @@ Ref:
         VDU1:
           type: tosca.nodes.nfv.VDU.Tacker
           properties:
-            image: cirros-0.4.0-x86_64-disk
+            image: cirros-0.5.2-x86_64-disk
             flavor: { get_input: flavor }
             reservation_metadata:
               resource_type: { get_input: resource_type }
@@ -458,7 +458,7 @@ Add lease_id and reservation id in the parameter file.
         VDU1:
           type: tosca.nodes.nfv.VDU.Tacker
           properties:
-            image: cirros-0.4.0-x86_64-disk
+            image: cirros-0.5.2-x86_64-disk
             reservation_metadata:
               resource_type: { get_input: resource_type }
               id: { get_input: reservation_id }

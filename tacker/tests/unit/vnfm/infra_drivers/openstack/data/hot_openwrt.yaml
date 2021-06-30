@@ -11,7 +11,7 @@ resources:
       availability_zone: nova
       config_drive: true
       flavor: m1.tiny
-      image: cirros-0.4.0-x86_64-disk
+      image: cirros-0.5.2-x86_64-disk
       metadata: {param0: key0, param1: key1}
       networks:
       - port: {get_resource: vdu1-net_mgmt-port}
