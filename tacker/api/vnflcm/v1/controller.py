@@ -349,7 +349,8 @@ class VnfLcmController(wsgi.Controller):
                     operation=lcm_operation,
                     is_automatic_invocation=is_auto,
                     operation_params=operation_params,
-                    error_point=error_point)
+                    error_point=error_point,
+                    tenant_id=context.tenant_id)
                 vnf_lcm_op_occs.create()
             except Exception:
                 msg = _("Failed to create LCM occurrence")
@@ -914,7 +915,8 @@ class VnfLcmController(wsgi.Controller):
             'vnf_instance_id': id,
             'id': op_occs_uuid,
             'state_entered_time': timeutils.utcnow(),
-            'operationParams': str(body)}
+            'operationParams': str(body),
+            'tenant_id': request.context.project_id}
 
         self.rpc_api.update(
             context,
@@ -947,6 +949,7 @@ class VnfLcmController(wsgi.Controller):
             'callbackUri')
         vnf_lcm_subscription.subscription_authentication = \
             subscription_request_data.get('subscriptionAuthentication')
+        vnf_lcm_subscription.tenant_id = request.context.tenant_id
         LOG.debug("filter %s " % subscription_request_data.get('filter'))
         LOG.debug(
             "filter type %s " %
@@ -1225,7 +1228,8 @@ class VnfLcmController(wsgi.Controller):
                 is_automatic_invocation=scale_vnf_request.additional_params.get('\
                     is_auto'),
                 operation_params=json.dumps(operation_params),
-                error_point=1)
+                error_point=1,
+                tenant_id=vnf_instance.tenant_id)
             vnf_lcm_op_occ.create()
         else:
             try:

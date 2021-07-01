@@ -104,7 +104,8 @@ class TestVnfLcmSubScriptions(SqlTestCase):
                             /530a3c43-043a-4b84-9d65-aa0df49f7ced"\
                     }\
                 },\
-                "id": "530a3c43-043a-4b84-9d65-aa0df49f7ced"\
+                "id": "530a3c43-043a-4b84-9d65-aa0df49f7ced",\
+                "tenant_id": "8cd59fef-397e-4bec-8621-0e69225434f0"\
             }'
 
         subscription_obj = \
@@ -195,7 +196,8 @@ class TestVnfLcmSubScriptions(SqlTestCase):
                             /530a3c43-043a-4b84-9d65-aa0df49f7ced"\
                     }\
                 },\
-                "id": "530a3c43-043a-4b84-9d65-aa0df49f7ced"\
+                "id": "530a3c43-043a-4b84-9d65-aa0df49f7ced",\
+                "tenant_id": "8cd59fef-397e-4bec-8621-0e69225434f0"\
             }'
 
         result = subscription_obj.vnf_lcm_subscriptions_show(
@@ -258,7 +260,8 @@ class TestVnfLcmSubScriptions(SqlTestCase):
                             /530a3c43-043a-4b84-9d65-aa0df49f7ced"\
                     }\
                 },\
-                "id": "530a3c43-043a-4b84-9d65-aa0df49f7ced"\
+                "id": "530a3c43-043a-4b84-9d65-aa0df49f7ced",\
+                "tenant_id": "8cd59fef-397e-4bec-8621-0e69225434f0"\
             }'
 
         result = subscription_obj.vnf_lcm_subscriptions_list(self.context)
@@ -273,3 +276,69 @@ class TestVnfLcmSubScriptions(SqlTestCase):
         self.subscription.destroy(self.context, self.subscription.id)
         mock_vnf_lcm_subscriptions_destroy.assert_called_with(
             self.context, self.subscription.id)
+
+    @mock.patch.object(objects.vnf_lcm_subscriptions,
+                       '_vnf_lcm_subscriptions_get')
+    def test_get(self, mock_vnf_lcm_subscriptions_get):
+        subscription_obj = \
+            objects.vnf_lcm_subscriptions.LccnSubscriptionRequest(
+                context=self.context)
+        mock_vnf_lcm_subscriptions_get.return_value = \
+            '{\
+                "filter": "{"operationStates": ["COMPLETED"],\
+                "vnfInstanceNames": ["xxxxxxxxxxxxxxxxxx"],\
+                "operationTypes": ["INSTANTIATE"],\
+                "vnfdIds": ["405d73c7-e964-4c8b-a914-41478ccd7c42"],\
+                "vnfProductsFromProviders": [{\
+                    "vnfProvider": "x2x", \
+                    "vnfProducts": [{\
+                        "vnfProductName": "x2xx", \
+                        "versions": [{\
+                            "vnfSoftwareVersion": "xx2XX", \
+                            "vnfdVersions": ["ss2"]\
+                        }]\
+                    }]\
+                }, \
+                {\
+                    "vnfProvider": "z2z",\
+                    "vnfProducts": [{\
+                        "vnfProductName": "z2zx", \
+                        "versions": [{\
+                            "vnfSoftwareVersion": "xx3XX",\
+                            "vnfdVersions": \
+                            ["s3sx", "s3sa"]\
+                        }\
+                    ]},\
+                    {\
+                        "vnfProductName": "zz3ex",\
+                        "versions": [{\
+                            "vnfSoftwareVersion": "xxe3eXz",\
+                            "vnfdVersions": ["ss3xz", "s3esaz"]\
+                        },\
+                        {\
+                            "vnfSoftwareVersion": "xxeeeXw", \
+                            "vnfdVersions": ["ss3xw", "ss3w"]\
+                        }]\
+                    }]\
+                }],\
+                "notificationTypes": [\
+                    "VnfLcmOperationOccurrenceNotification"],\
+                "vnfInstanceIds": ["fb0b9a12-4b55-47ac-9ca8-5fdd52c4c07f"]}",\
+                "callbackUri": "http://localhost/xxx",\
+                "_links": {\
+                    "self": {\
+                        "href":\
+                            "http://localhost:9890//vnflcm/v1/subscriptions\
+                            /530a3c43-043a-4b84-9d65-aa0df49f7ced"\
+                    }\
+                },\
+                "id": "530a3c43-043a-4b84-9d65-aa0df49f7ced",\
+                "tenant_id": "8cd59fef-397e-4bec-8621-0e69225434f0"\
+            }'
+
+        result = subscription_obj.vnf_lcm_subscriptions_get(self.context,
+                'VnfLcmOperationOccurrenceNotification')
+        self.assertIn("tenant_id", result)
+        result = subscription_obj.vnf_lcm_subscriptions_get(self.context,
+                None)
+        self.assertIn("tenant_id", result)

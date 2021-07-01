@@ -49,6 +49,7 @@ def _vnf_lcm_op_occ_create(context, values):
         'changed_info': values.changed_info,
         'changed_ext_connectivity': values.changed_ext_connectivity,
         'error_point': values.error_point,
+        'tenant_id': values.tenant_id,
     }
     if 'grant_id' in values:
         fields['grant_id'] = values.grant_id
@@ -242,7 +243,8 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
             'VnfInfoModifications', nullable=True, default=None),
         'changed_ext_connectivity': fields.ListOfObjectsField(
             'ExtVirtualLinkInfo', nullable=True, default=[]),
-        'error_point': fields.IntegerField(nullable=True, default=0)
+        'error_point': fields.IntegerField(nullable=True, default=0),
+        'tenant_id': fields.StringField(nullable=False)
     }
 
     ALL_ATTRIBUTES = {
@@ -367,6 +369,7 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
         changed_info = data_dict.get('changed_info')
         changed_ext_connectivity = data_dict.get('changed_ext_connectivity')
         error_point = data_dict.get('error_point')
+        tenant_id = data_dict.get('tenant_id')
 
         obj = cls(operation_state=operation_state,
                   state_entered_time=state_entered_time,
@@ -381,7 +384,8 @@ class VnfLcmOpOcc(base.TackerObject, base.TackerObjectDictCompat,
                   resource_changes=resource_changes,
                   changed_info=changed_info,
                   changed_ext_connectivity=changed_ext_connectivity,
-                  error_point=error_point
+                  error_point=error_point,
+                  tenant_id=tenant_id
                   )
 
         return obj
