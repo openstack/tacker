@@ -137,3 +137,8 @@ Name: Files/kubernetes/token-review.yaml
 Content-Type: test-data
 Algorithm: SHA-256
 Hash: 468d9d53a3125c5850c6473d324c94f00b91a1e3536d1a62c7c7eb80fd7aa6d2
+
+Name: Files/kubernetes/statefulset_fail.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: 71a99017964b8ce1dfbbade92f3cdf42f1e5b774c6e7edb7aa83c5eee42e5d5e

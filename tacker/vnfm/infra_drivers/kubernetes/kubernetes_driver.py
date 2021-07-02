@@ -33,6 +33,7 @@ from tacker.common import log
 from tacker.common import utils
 from tacker.extensions import vnfm
 from tacker import objects
+from tacker.objects.fields import ErrorPoint as EP
 from tacker.objects import vnf_package as vnf_package_obj
 from tacker.objects import vnf_package_vnfd as vnfd_obj
 from tacker.objects import vnf_resources as vnf_resource_obj
@@ -1511,6 +1512,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             k8s_objs = transformer.\
                 get_k8s_objs_from_yaml(target_k8s_files, vnf_package_path)
             k8s_objs = transformer.deploy_k8s(k8s_objs)
+            vnfd_dict['current_error_point'] = EP.POST_VIM_CONTROL
             k8s_objs = self.create_wait_k8s(
                 k8s_objs, k8s_client_dict, vnf_instance)
             for k8s_obj in k8s_objs:
