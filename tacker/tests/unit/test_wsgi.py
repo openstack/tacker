@@ -662,7 +662,7 @@ class TestWSGIServerWithSSL(base.BaseTestCase):
 
     def setUp(self):
         super(TestWSGIServerWithSSL, self).setUp()
-        self.skip("Not ready yet")
+        self.skipTest("Not ready yet")
 
     def test_app_using_ssl(self):
         CONF.set_default('use_ssl', True)

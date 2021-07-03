@@ -332,7 +332,7 @@ class ActionExtensionTest(base.BaseTestCase):
 
     def setUp(self):
         super(ActionExtensionTest, self).setUp()
-        self.skip("Not ready yet")
+        self.skipTest("Not ready yet")
         self.extension_app = _setup_extensions_test_app()
 
     def test_extended_action_for_adding_extra_data(self):
@@ -409,7 +409,7 @@ class RequestExtensionTest(base.BaseTestCase):
         self.assertEqual('knox', response_data['fort'])
 
     def test_get_resources(self):
-        self.skip("Not ready yet")
+        self.skipTest("Not ready yet")
         app = _setup_extensions_test_app()
 
         response = app.get("/dummy_resources/1?chewing=newblue")
@@ -470,7 +470,7 @@ class ExtensionControllerTest(testlib_api.WebTestCase):
 
     def setUp(self):
         super(ExtensionControllerTest, self).setUp()
-        self.skip("Not ready yet")
+        self.skipTest("Not ready yet")
         self.test_app = _setup_extensions_test_app()
 
     def test_index_gets_all_registerd_extensions(self):
