@@ -20,7 +20,6 @@ import gc
 import logging
 import os
 import os.path
-import sys
 from unittest import mock
 import weakref
 
@@ -185,9 +184,6 @@ class BaseTestCase(testtools.TestCase):
 
         self.addCleanup(n_rpc.cleanup)
         n_rpc.init(CONF)
-
-        if sys.version_info < (2, 7) and getattr(self, 'fmt', '') == 'xml':
-            raise self.skipException('XML Testing Skipped in Py26')
 
     def fake_admin_context(self):
         return context.get_admin_context()
