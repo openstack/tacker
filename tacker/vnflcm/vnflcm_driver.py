@@ -892,7 +892,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 # passed from conductor to vnflcm_driver, thus we put Null
                 # value to grant and grant_reqeust temporary.
                 # This part will be updated in next release.
-                if len(scale_id_list) != 0:
+                if len(scale_id_list) != 0 or \
+                        vim_connection_info.vim_type == 'kubernetes':
                     kwargs = {'scale_name_list': scale_name_list}
                     self._mgmt_manager.invoke(
                         self._load_vnf_interface(
@@ -956,7 +957,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 # passed from conductor to vnflcm_driver, thus we put Null
                 # value to grant and grant_reqeust temporary.
                 # This part will be updated in next release.
-                if len(id_list) != 0:
+                if len(id_list) != 0 or \
+                        vim_connection_info.vim_type == 'kubernetes':
                     kwargs = {'scale_out_id_list': id_list}
                     self._mgmt_manager.invoke(
                         self._load_vnf_interface(

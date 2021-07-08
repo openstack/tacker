@@ -1871,6 +1871,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         mock_invoke.side_effect = [
             # Kubernetes.get_scale_in_ids called in _scale_vnf_pre()
             [[], [], None, None],
+            # MgmtDriver called in scale_start()
+            None,
             # Kubernetes.scale called in scale()
             None,
             # Kubernetes.scale_wait called in scale()
