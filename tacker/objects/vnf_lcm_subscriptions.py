@@ -16,7 +16,6 @@ from oslo_utils import timeutils
 from oslo_versionedobjects import base as ovoo_base
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import text
-from sqlalchemy_filters import apply_filters
 
 from tacker.common import exceptions
 from tacker.common import utils
@@ -27,6 +26,7 @@ from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
 from tacker import objects
 from tacker.objects import base
+from tacker.objects import common
 from tacker.objects import fields
 
 _NO_DATA_SENTINEL = object()
@@ -341,7 +341,7 @@ def _vnf_lcm_subscription_list_by_filters(context,
                 converted_value = utils.str_to_bytes(filters['value'])
                 filters.update({'value': converted_value})
 
-        query = apply_filters(query, filters)
+        query = common.apply_filters(query, filters)
 
     if nextpage_opaque_marker:
         start_offset = CONF.vnf_lcm.subscription_num * nextpage_opaque_marker

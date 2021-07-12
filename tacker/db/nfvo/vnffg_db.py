@@ -1207,7 +1207,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 self._model_query(context, Vnffg).
                 filter(Vnffg.id == vnffg_id).
                 filter(Vnffg.status.in_(current_statuses)).
-                with_lockmode('update').one())
+                with_for_update().one())
         except orm_exc.NoResultFound:
             raise nfvo.VnffgNotFoundException(vnffg_id=vnffg_id)
         if vnffg_db.status == constants.PENDING_UPDATE:
@@ -1221,7 +1221,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 self._model_query(context, VnffgNfp).
                 filter(VnffgNfp.id == nfp_id).
                 filter(VnffgNfp.status.in_(current_statuses)).
-                with_lockmode('update').one())
+                with_for_update().one())
         except orm_exc.NoResultFound:
             raise nfvo.NfpNotFoundException(nfp_id=nfp_id)
         if nfp_db.status == constants.PENDING_UPDATE:
@@ -1235,7 +1235,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 self._model_query(context, VnffgChain).
                 filter(VnffgChain.id == sfc_id).
                 filter(VnffgChain.status.in_(current_statuses)).
-                with_lockmode('update').one())
+                with_for_update().one())
         except orm_exc.NoResultFound:
             raise nfvo.SfcNotFoundException(sfc_id=sfc_id)
         if sfc_db.status == constants.PENDING_UPDATE:
@@ -1249,7 +1249,7 @@ class VnffgPluginDbMixin(vnffg.VNFFGPluginBase, db_base.CommonDbMixin):
                 self._model_query(context, VnffgClassifier).
                 filter(VnffgClassifier.id == fc_id).
                 filter(VnffgClassifier.status.in_(current_statuses)).
-                with_lockmode('update').one())
+                with_for_update().one())
         except orm_exc.NoResultFound:
             raise nfvo.ClassifierNotFoundException(fc_id=fc_id)
         if fc_db.status == constants.PENDING_UPDATE:

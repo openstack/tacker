@@ -20,7 +20,6 @@ from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovoo_base
 from sqlalchemy import exc
 from sqlalchemy.orm import joinedload
-from sqlalchemy_filters import apply_filters
 
 from tacker._i18n import _
 from tacker.common import exceptions
@@ -31,6 +30,7 @@ from tacker.db.db_sqlalchemy import models
 from tacker.db.vnfm import vnfm_db
 from tacker import objects
 from tacker.objects import base
+from tacker.objects import common
 from tacker.objects import fields
 from tacker.objects import vnf_instantiated_info
 from tacker.objects import vnf_package as vnf_package_obj
@@ -120,7 +120,7 @@ def _vnf_instance_list_by_filter(context, columns_to_join=None,
             query = query.options(joinedload(column))
 
     if filters:
-        query = apply_filters(query, filters)
+        query = common.apply_filters(query, filters)
 
     return query.all()
 
