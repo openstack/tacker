@@ -5,6 +5,38 @@ ETSI NFV-SOL VNF Deployment as VM with TOSCA
 This document describes how to deploy VNF as VM with TOSCA
 in Tacker using CLI commands.
 
+Overview
+--------
+
+The diagram below shows an overview of the VNF deployment.
+
+1. Request create VNF
+
+   A user requests tacker-server to create a VNF with tacker-client by
+   uploading a VNF Package and requesting ``create VNF``.  The VNF Package
+   should contain ``VNFD``.  The detailed explanation of ``VNFD`` can be found
+   in :doc:`./vnf-package`.
+
+2. Request instantiate VNF
+
+   A user requests tacker-server to instantiate the created VNF by requesting
+   ``instantiate VNF`` with instantiate parameters.
+
+3. Call OpenStack Heat API
+
+   Upon receiving a request from tacker-client, tacker-server redirects it to
+   tacker-conductor.  In tacker-conductor, the request is redirected again to
+   an appropriate infra-driver (in this case OpenStack infra-driver) according
+   to the contents of the instantiate parameters.  Then, OpenStack infra-driver
+   calls OpenStack Heat APIs to create a VM as a VNF.
+
+4. Create a VM
+
+   OpenStack Heat creates a VM according to the API calls.
+
+.. figure:: ../_images/etsi_vnf_deployment_as_vm_with_tosca.png
+    :align: left
+
 
 Prerequisites
 -------------

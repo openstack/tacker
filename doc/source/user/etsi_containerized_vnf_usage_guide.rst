@@ -5,6 +5,39 @@ ETSI NFV-SOL CNF (Containerized VNF) Deployment
 This section covers how to deploy ETSI NFV-SOL containerized VNF
 in Tacker using Kubernetes VIM.
 
+Overview
+--------
+
+The following figure shows an overview of the CNF deployment.
+
+1. Request create VNF
+
+   A user requests tacker-server to create a VNF with tacker-client by
+   uploading a VNF Package and requesting ``create VNF``.  The VNF Package
+   should contain ``CNF Definition`` in addition to ``VNFD``.  The detailed
+   explanation of ``CNF Definition`` and ``VNFD`` can be found in :ref:`Create
+   a Kubernetes Object File` and :ref:`Create VNFD`, respectively.
+
+2. Request instantiate VNF
+
+   A user requests tacker-server to instantiate the created VNF by requesting
+   ``instantiate VNF`` with instantiate parameters.
+
+3. Call Kubernetes API
+
+   Upon receiving a request from tacker-client, tacker-server redirects it to
+   tacker-conductor.  In tacker-conductor, the request is redirected again to
+   an appropriate infra-driver (in this case Kubernetes infra-driver) according
+   to the contents of the instantiate parameters.  Then, Kubernetes
+   infra-driver calls Kubernetes APIs to create a Pod as a VNF.
+
+4. Create a Pod
+
+   Kubernetes Master creates a Pod according to the API calls.
+
+.. figure:: ../_images/etsi_containerized_vnf_usage_guide.png
+    :align: left
+
 Prepare Kubernetes VIM
 =======================
 1. Create a Config File
@@ -135,6 +168,8 @@ Here is a sample of building a VNF Package CSAR directory:
 
     $ mkdir -p deployment/{TOSCA-Metadata,Definitions,Files/kubernetes}
 
+.. _Create a Kubernetes Object File:
+
 2. Create a Kubernetes Object File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A CSAR VNF package shall have a object file that defines Kubernetes resources
@@ -223,6 +258,8 @@ on TOSCA specifications.
     $ cd deployment/Definitions
     $ wget https://forge.etsi.org/rep/nfv/SOL001/raw/v2.6.1/etsi_nfv_sol001_common_types.yaml
     $ wget https://forge.etsi.org/rep/nfv/SOL001/raw/v2.6.1/etsi_nfv_sol001_vnfd_types.yaml
+
+.. _Create VNFD:
 
 5. Create VNFD
 ~~~~~~~~~~~~~~

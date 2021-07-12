@@ -1,0 +1,38 @@
+@startuml
+
+frame "python-tackerclient" {
+	component "tacker-client" as client {
+	package "VNF Package" as vnfpkg {
+		file "VNFD" as vnfd
+		file "CNF\nDefinition" as cnfd
+	}
+	file "Instantiate\nparameters" as inst_param 
+}
+}
+
+frame "tacker" {
+	component "tacker-server" {
+		component "server" as serv
+	}
+	component "tacker-conductor" {
+		component "conductor" as cond
+		component "Kubernetes\ninfra-driver" as infra
+	}
+}
+
+node "Kubernetes\nCluster\n(Master)" as k8s_m
+cloud "Hardware Resources" as hw {
+	node "Kubernetes\nCluster\n(Worker)" as k8s_w {
+		node "Pod" as ins1
+	}
+}
+
+'# Relationships
+vnfpkg --> serv: 1. Request\n create VNF
+inst_param --> serv: 2. Request\n instantiate VNF
+serv --> cond
+cond --> infra
+infra -right-> k8s_m: 3. Call Kubernetes\n API
+k8s_m --> ins1: 4. Create a Pod
+
+@enduml

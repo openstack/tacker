@@ -4,6 +4,31 @@ ETSI NFV-SOL CNF Scaling
 
 This document describes how to scale CNF in Tacker.
 
+Overview
+--------
+
+The diagram below shows an overview of the CNF scaling.
+
+1. Request scale VNF
+
+   A user requests tacker-server to scale a VNF or all VNFs with tacker-client
+   by requesting ``scale VNF``.
+
+2. Call Kubernetes API
+
+   Upon receiving a request from tacker-client, tacker-server redirects it to
+   tacker-conductor.  In tacker-conductor, the request is redirected again to
+   an appropriate infra-driver (in this case Kubernetes infra-driver) according
+   to the contents of the instantiate parameters.  Then, Kubernetes
+   infra-driver calls Kubernetes APIs.
+
+3. Change the number of Pods
+
+   Kubernetes Master change the number of Pods according to the API calls.
+
+.. figure:: ../_images/etsi_cnf_scaling.png
+    :align: left
+
 Prerequisites
 -------------
 
