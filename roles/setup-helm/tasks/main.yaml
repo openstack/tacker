@@ -1,0 +1,106 @@
+- block:
+  - name: Create helm group
+    group:
+      name: helm
+    become: yes
+
+  - name: Create the helm user home folder
+    file:
+      path: "{{ helm_user_home_dir }}"
+      state: directory
+    become: yes
+
+  - name: Create helm user
+    user:
+      name: helm
+      password: "{{ helm_user_password | password_hash('sha512') }}"
+      shell: /bin/bash
+      home: "{{ helm_user_home_dir }}"
+      group: helm
+    become: yes
+
+  - name: Set helm user home directory permissions and ownership
+    file:
+      path: '{{ helm_user_home_dir }}'
+      mode: 0755
+      owner: helm
+      group: helm
+    become: yes
+
+  - name: Copy 50_helm_sh file to /etc/sudoers.d
+    copy:
+      src: 50_helm_sh
+      dest: /etc/sudoers.d
+      mode: 0440
+      owner: root
+      group: root
+    become: yes
+
+  - name: Copy kube config to helm user home folder
+    copy:
+      src: "{{ devstack_base_dir }}/.kube"
+      dest: "{{ helm_user_home_dir }}"
+      mode: 0755
+      owner: helm
+      group: helm
+      remote_src: yes
+    become: yes
+
+  - name: Download Helm
+    get_url:
+      url: "https://get.helm.sh/helm-v{{ helm_version }}-linux-amd64.tar.gz"
+      dest: "/tmp/helm-v{{ helm_version }}-linux-amd64.tar.gz"
+      force: yes
+
+  - name: Unarchive Helm
+    unarchive:
+      src: "/tmp/helm-v{{ helm_version }}-linux-amd64.tar.gz"
+      dest: "/tmp"
+      remote_src: yes
+    become: yes
+
+  - name: Move Helm binary
+    shell: mv /tmp/linux-amd64/helm /usr/local/bin/helm
+    become: yes
+
+  - name: Create folder to store helm charts
+    file:
+      path: "{{ helm_chart_dir }}"
+      state: directory
+    become: yes
+
+  - name: Enable PasswordAuthentication
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      regexp: "^PasswordAuthentication"
+      insertafter: "^#PasswordAuthentication"
+      line: "PasswordAuthentication yes"
+    become: yes
+
+  - name: Restart sshd service
+    service:
+      name: sshd
+      state: restarted
+    become: yes
+
+  when:
+    - inventory_hostname == 'controller-k8s'
+    - helm_version is defined
+
+- block:
+  - name: Update extra field of k8s vim
+    command: mysql -uroot -p{{ devstack_localrc['DATABASE_PASSWORD'] }} -hlocalhost tacker -e "update vims set extra='{\"helm_info\":\"{\'masternode_ip\':[\'{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}\'],\'masternode_username\':\'helm\',\'masternode_password\':\'{{ helm_user_password }}\'}\"}' where name='{{ vim_name }}'"
+
+  - name: Get extra field of k8s vim after updating
+    command: mysql -uroot -p{{ devstack_localrc['DATABASE_PASSWORD'] }} -hlocalhost tacker -e "select extra from vims where name='{{ vim_name }}'"
+    register: result
+
+  - name: Print result
+    debug:
+      var: result.stdout
+    when: result.rc == 0
+
+  when:
+    - inventory_hostname == 'controller'
+    - helm_version is defined
+
