@@ -43,6 +43,10 @@ HELM_CHART_DIR = "/var/tacker/helm"
 HELM_CHART_CMP_PATH = "/tmp/tacker-helm.tgz"
 SERVER_WAIT_COMPLETE_TIME = 60
 
+# CLI timeout period when setting private registries connection
+PR_CONNECT_TIMEOUT = 30
+PR_CMD_TIMEOUT = 300
+
 
 class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
 
@@ -114,6 +118,10 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 err = result.get_stderr()
                 LOG.error(err)
                 raise exceptions.MgmtDriverRemoteCommandError(err_info=err)
+        elif type == 'docker_login':
+            ret1 = result.get_stdout()
+            ret2 = result.get_stderr()
+            return ret1, ret2
         elif type == 'helm_repo_list':
             if result.get_return_code() != 0:
                 err = result.get_stderr()[0].replace('\n', '')
@@ -458,7 +466,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
 
     def _install_worker_node(self, commander, proxy,
                              ha_flag, nic_ip, cluster_ip, kubeadm_token,
-                             ssl_ca_cert_hash):
+                             ssl_ca_cert_hash, http_private_registries):
         if proxy.get('http_proxy') and proxy.get('https_proxy'):
             ssh_command = \
                 "export http_proxy={http_proxy};" \
@@ -485,6 +493,13 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                     worker_ip=nic_ip, cluster_ip=cluster_ip,
                     kubeadm_token=kubeadm_token,
                     ssl_ca_cert_hash=ssl_ca_cert_hash)
+
+        # if connecting to the private registries over HTTP,
+        # add "export HTTP_PRIVATE_REGISTRIES" command
+        if http_private_registries:
+            ssh_command = "export HTTP_PRIVATE_REGISTRIES=\"{}\";{}".format(
+                http_private_registries, ssh_command)
+
         self._execute_command(
             commander, ssh_command, K8S_INSTALL_TIMEOUT, 'install', 0)
 
@@ -537,10 +552,132 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 0)
             commander.close_session()
 
+    def _get_http_private_registries(self, pr_connection_info):
+        http_private_registries = ""
+        if pr_connection_info:
+            http_pr_list = []
+            for pr_info in pr_connection_info:
+                pr_connection_type = str(pr_info.get('connection_type'))
+                pr_server = pr_info.get('server')
+                # NOTE: "connection_type" values are "0" for HTTP and
+                #       "1" for HTTPS.
+                if pr_connection_type == "0":
+                    http_pr_list.append("\\\"" + pr_server + "\\\"")
+            if http_pr_list:
+                http_private_registries = ",".join(http_pr_list)
+        return http_private_registries
+
+    def _connect_to_private_registries(self, vnf_package_path,
+                                       pr_connection_info, node_username,
+                                       node_password, node_ip):
+        LOG.debug("Start the _connect_to_private_registries function. "
+            "node ip: {}, pr connection info: {}".format(
+                node_ip, pr_connection_info))
+
+        commander = cmd_executer.RemoteCommandExecutor(
+            user=node_username, password=node_password,
+            host=node_ip, timeout=PR_CONNECT_TIMEOUT)
+
+        # create a cert file list for file transfer
+        cert_file_list = []
+        for pr_info in pr_connection_info:
+            pr_certificate_path = pr_info.get('certificate_path')
+            if pr_certificate_path:
+                local_file_path = os.path.join(
+                    vnf_package_path, pr_certificate_path)
+                # check existence of cert file
+                if not os.path.exists(local_file_path):
+                    err_param = "certificate_path(path:{})".format(
+                        pr_certificate_path)
+                    LOG.error("The {} in the additionalParams is invalid. "
+                              "File does not exist.".format(err_param))
+                    commander.close_session()
+                    raise exceptions.MgmtDriverParamInvalid(param=err_param)
+                cert_file_name = os.path.basename(pr_certificate_path)
+                remote_tmp_path = os.path.join("/tmp", cert_file_name)
+                remote_dir_path = os.path.join(
+                    "/etc/docker/certs.d", pr_info.get('server'))
+                remote_file_path = os.path.join(
+                    remote_dir_path, cert_file_name)
+                cert_file_list.append((local_file_path, remote_tmp_path,
+                    remote_dir_path, remote_file_path))
+
+        # send cert files to node
+        if cert_file_list:
+            retry = 4
+            while retry > 0:
+                try:
+                    transport = paramiko.Transport(node_ip, 22)
+                    transport.connect(
+                        username=node_username, password=node_password)
+                    sftp_client = paramiko.SFTPClient.from_transport(
+                        transport)
+                    for cert_item in cert_file_list:
+                        local_file_path = cert_item[0]
+                        remote_tmp_path = cert_item[1]
+                        remote_dir_path = cert_item[2]
+                        remote_file_path = cert_item[3]
+                        # send cert file to tmp directory
+                        sftp_client.put(local_file_path, remote_tmp_path)
+                        # copy under /etc/docker/certs.d/<server>
+                        ssh_command = ("sudo mkdir -p {} && "
+                            "sudo cp {} {} && sudo rm -f {}".format(
+                                remote_dir_path, remote_tmp_path,
+                                remote_file_path, remote_tmp_path))
+                        self._execute_command(
+                            commander, ssh_command,
+                            PR_CMD_TIMEOUT, 'common', 0)
+                    transport.close()
+                except paramiko.SSHException as e:
+                    LOG.debug(e)
+                    retry -= 1
+                    if retry == 0:
+                        LOG.error(e)
+                        commander.close_session()
+                        raise paramiko.SSHException()
+                    time.sleep(SERVER_WAIT_COMPLETE_TIME)
+
+        # connect to private registries
+        for pr_info in pr_connection_info:
+            # add host to /etc/hosts
+            pr_hosts_string = pr_info.get('hosts_string')
+            if pr_hosts_string:
+                ssh_command = ("echo '{}' | sudo tee -a /etc/hosts "
+                    ">/dev/null".format(pr_hosts_string))
+                self._execute_command(
+                    commander, ssh_command, PR_CMD_TIMEOUT, 'common', 0)
+
+            # connect to private registry (run docker login)
+            pr_server = pr_info.get('server')
+            login_username = pr_info.get('username', 'tacker')
+            login_password = pr_info.get('password', 'tacker')
+            ssh_command = ("sudo docker login {} "
+                "--username {} --password {}".format(
+                    pr_server, login_username, login_password))
+            result = self._execute_command(
+                commander, ssh_command, PR_CMD_TIMEOUT, 'docker_login', 0)
+            stdout = result[0]
+            login_successful = (
+                [line for line in stdout if "Login Succeeded" in line])
+            if not login_successful:
+                # Login Failed
+                stderr = result[1]
+                unnecessary_msg = "WARNING! Using --password via the CLI"
+                err_info = (
+                    [line for line in stderr if not(unnecessary_msg in line)])
+                err_msg = ("Failed to login Docker private registry. "
+                    "ErrInfo:{}".format(err_info))
+                LOG.error(err_msg)
+                commander.close_session()
+                raise exceptions.MgmtDriverOtherError(error_message=err_msg)
+
+        commander.close_session()
+        LOG.debug("_connect_to_private_registries function complete.")
+
     def _install_k8s_cluster(self, context, vnf_instance,
                              proxy, script_path,
                              master_vm_dict_list, worker_vm_dict_list,
-                             helm_inst_script_path):
+                             helm_inst_script_path, pr_connection_info):
         # instantiate: pre /etc/hosts
         hosts_str = self._get_hosts(
             master_vm_dict_list, worker_vm_dict_list)
@@ -585,6 +722,10 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 proxy.get("no_proxy"), pod_cidr, cluster_cidr,
                 "127.0.0.1", "localhost",
                 master_cluster_ip] + vm_cidr_list)))
+
+        # get private registries of type HTTP
+        http_private_registries = self._get_http_private_registries(
+            pr_connection_info)
 
         # install k8s
         active_username = ""
@@ -698,6 +839,14 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                             kubeadm_token=kubeadm_token,
                             ssl_ca_cert_hash=ssl_ca_cert_hash,
                             certificate_key=certificate_key)
+
+            # if connecting to the private registries over HTTP,
+            # add "export HTTP_PRIVATE_REGISTRIES" command
+            if http_private_registries:
+                ssh_command = \
+                    "export HTTP_PRIVATE_REGISTRIES=\"{}\";{}".format(
+                        http_private_registries, ssh_command)
+
             results = self._execute_command(
                 commander, ssh_command, K8S_INSTALL_TIMEOUT, 'install', 0)
 
@@ -738,6 +887,12 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 masternode_ip_list.append(host)
             commander.close_session()
 
+            # connect to private registries
+            if pr_connection_info:
+                self._connect_to_private_registries(
+                    vnf_package_path, pr_connection_info,
+                    user, password, host)
+
         # install worker node
         for vm_dict in worker_vm_dict_list:
             user = vm_dict.get('ssh', {}).get('username')
@@ -768,8 +923,15 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             # execute install k8s command on VM
             self._install_worker_node(
                 commander, proxy, ha_flag, nic_ip,
-                cluster_ip, kubeadm_token, ssl_ca_cert_hash)
+                cluster_ip, kubeadm_token, ssl_ca_cert_hash,
+                http_private_registries)
             commander.close_session()
+
+            # connect to private registries
+            if pr_connection_info:
+                self._connect_to_private_registries(
+                    vnf_package_path, pr_connection_info,
+                    user, password, host)
 
             # set pod_affinity
             commander = cmd_executer.RemoteCommandExecutor(
@@ -865,6 +1027,36 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 raise exceptions.MgmtDriverParamInvalid(param='cluster_cidr')
         else:
             additional_param['master_node']['cluster_cidr'] = '10.96.0.0/12'
+
+        # get private_registry_connection_info param
+        pr_connection_info = additional_param.get(
+            'private_registry_connection_info')
+        if pr_connection_info:
+            # check private_registry_connection_info param
+            for pr_info in pr_connection_info:
+                pr_connection_type = str(pr_info.get('connection_type', ''))
+                pr_server = pr_info.get('server')
+                # check connection_type param exists
+                if not pr_connection_type:
+                    LOG.error("The connection_type "
+                              "in the additionalParams does not exist.")
+                    raise exceptions.MgmtDriverNotFound(
+                        param="connection_type")
+                # check server param exists
+                if not pr_server:
+                    LOG.error("The server "
+                              "in the additionalParams does not exist.")
+                    raise exceptions.MgmtDriverNotFound(param="server")
+                # check connection_type value
+                # NOTE: "connection_type" values are "0" for HTTP and
+                #       "1" for HTTPS.
+                if not (pr_connection_type == "0"
+                        or pr_connection_type == "1"):
+                    LOG.error("The connection_type "
+                              "in the additionalParams is invalid.")
+                    raise exceptions.MgmtDriverParamInvalid(
+                        param="connection_type")
+
         # check grants exists
         if grant:
             self.SET_ZONE_ID_FLAG = True
@@ -887,9 +1079,11 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             access_info, vnf_instance, grant)
         server, bearer_token, ssl_ca_cert, project_name, masternode_ip_list = \
             self._install_k8s_cluster(context, vnf_instance,
-                                      proxy, script_path, master_vm_dict_list,
+                                      proxy, script_path,
+                                      master_vm_dict_list,
                                       worker_vm_dict_list,
-                                      helm_inst_script_path)
+                                      helm_inst_script_path,
+                                      pr_connection_info)
 
         # register vim with kubernetes cluster info
         self._create_vim(context, vnf_instance, server,
@@ -1294,6 +1488,13 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             heatclient = hc.HeatClient(vim_connection_info.access_info)
             scale_out_id_list = kwargs.get('scale_out_id_list')
 
+            # get private_registry_connection_info param
+            pr_connection_info = k8s_cluster_installation_param.get(
+                'private_registry_connection_info')
+            # get private registries of type HTTP
+            http_private_registries = self._get_http_private_registries(
+                pr_connection_info)
+
             # get master_ip
             master_ssh_ip_list = []
             master_nic_ip_list = []
@@ -1416,8 +1617,16 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                     add_worker_ssh_ip_list.index(worker_ip)]
                 self._install_worker_node(
                     commander, proxy, ha_flag, worker_nic_ip,
-                    cluster_ip, kubeadm_token, ssl_ca_cert_hash)
+                    cluster_ip, kubeadm_token, ssl_ca_cert_hash,
+                    http_private_registries)
                 commander.close_session()
+
+                # connect to private registries
+                if pr_connection_info:
+                    self._connect_to_private_registries(
+                        vnf_package_path, pr_connection_info,
+                        worker_username, worker_password, worker_ip)
+
                 if self.SET_NODE_LABEL_FLAG:
                     commander, _ = self._connect_ssh_scale(
                         master_ssh_ip_list, master_username,
@@ -1925,7 +2134,8 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             fixed_master_infos, proxy,
             master_username, master_password, vnf_package_path,
             script_path, cluster_ip, pod_cidr, cluster_cidr,
-            kubeadm_token, ssl_ca_cert_hash, ha_flag, helm_info):
+            kubeadm_token, ssl_ca_cert_hash, ha_flag, helm_info,
+            pr_connection_info, http_private_registries):
         not_fixed_master_nic_ips = [
             master_ips.get('master_nic_ip')
             for master_ips in not_fixed_master_infos.values()]
@@ -1994,6 +2204,14 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                         kubeadm_token=kubeadm_token,
                         ssl_ca_cert_hash=ssl_ca_cert_hash,
                         certificate_key=certificate_key)
+
+            # if connecting to the private registries over HTTP,
+            # add "export HTTP_PRIVATE_REGISTRIES" command
+            if http_private_registries:
+                ssh_command = \
+                    "export HTTP_PRIVATE_REGISTRIES=\"{}\";{}".format(
+                        http_private_registries, ssh_command)
+
             self._execute_command(
                 commander, ssh_command, K8S_INSTALL_TIMEOUT, 'install', 0)
             if helm_info:
@@ -2018,11 +2236,19 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                     commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 3)
                 commander.close_session()
 
+            # connect to private registries
+            if pr_connection_info:
+                self._connect_to_private_registries(
+                    vnf_package_path, pr_connection_info,
+                    master_username, master_password,
+                    fixed_master_info.get('master_ssh_ip'))
+
     def _fix_worker_node(
             self, fixed_worker_infos,
             hosts_str, worker_username, worker_password,
             vnf_package_path, script_path, proxy, cluster_ip,
-            kubeadm_token, ssl_ca_cert_hash, ha_flag):
+            kubeadm_token, ssl_ca_cert_hash, ha_flag,
+            pr_connection_info, http_private_registries):
         for fixed_worker_name, fixed_worker in fixed_worker_infos.items():
             commander = self._init_commander_and_send_install_scripts(
                 worker_username, worker_password,
@@ -2031,10 +2257,18 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             self._install_worker_node(
                 commander, proxy, ha_flag,
                 fixed_worker.get('worker_nic_ip'),
-                cluster_ip, kubeadm_token, ssl_ca_cert_hash)
+                cluster_ip, kubeadm_token, ssl_ca_cert_hash,
+                http_private_registries)
             self._set_node_ip_in_hosts(
                 commander, 'heal_end', hosts_str=hosts_str)
             commander.close_session()
+
+            # connect to private registries
+            if pr_connection_info:
+                self._connect_to_private_registries(
+                    vnf_package_path, pr_connection_info,
+                    worker_username, worker_password,
+                    fixed_worker.get('worker_ssh_ip'))
 
     def _heal_and_join_k8s_node(
             self, heatclient, stack_id, target_physical_resource_ids,
@@ -2141,19 +2375,29 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         hosts_str = self._get_all_hosts(
             not_fixed_master_infos, fixed_master_infos,
             not_fixed_worker_infos, fixed_worker_infos)
+
+        # get private_registry_connection_info param
+        pr_connection_info = k8s_cluster_installation_param.get(
+            'private_registry_connection_info')
+        # get private registries of type HTTP
+        http_private_registries = self._get_http_private_registries(
+            pr_connection_info)
+
         if flag_master:
             self._fix_master_node(
                 not_fixed_master_infos, hosts_str,
                 fixed_master_infos, proxy,
                 master_username, master_password, vnf_package_path,
                 script_path, cluster_ip, pod_cidr, cluster_cidr,
-                kubeadm_token, ssl_ca_cert_hash, ha_flag, helm_info)
+                kubeadm_token, ssl_ca_cert_hash, ha_flag, helm_info,
+                pr_connection_info, http_private_registries)
         if flag_worker:
             self._fix_worker_node(
                 fixed_worker_infos,
                 hosts_str, worker_username, worker_password,
                 vnf_package_path, script_path, proxy, cluster_ip,
-                kubeadm_token, ssl_ca_cert_hash, ha_flag)
+                kubeadm_token, ssl_ca_cert_hash, ha_flag,
+                pr_connection_info, http_private_registries)
 
         if self.SET_NODE_LABEL_FLAG:
             for fixed_worker_name, fixed_worker in fixed_worker_infos.items():

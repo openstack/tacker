@@ -355,11 +355,20 @@ function set_docker_proxy {
 [Service]
 Environment="HTTP_PROXY=${http_proxy//%40/@}" "HTTPS_PROXY=${https_proxy//%40/@}" "NO_PROXY=$no_proxy"
 EOF
-    cat <<EOF | sudo tee /etc/docker/daemon.json >/dev/null
+    if [[ -z "$HTTP_PRIVATE_REGISTRIES" ]]; then
+        cat <<EOF | sudo tee /etc/docker/daemon.json >/dev/null
 {
     "exec-opts": ["native.cgroupdriver=systemd"]
 }
 EOF
+    else
+        cat <<EOF | sudo tee /etc/docker/daemon.json >/dev/null
+{
+    "exec-opts": ["native.cgroupdriver=systemd"],
+    "insecure-registries": [${HTTP_PRIVATE_REGISTRIES}]
+}
+EOF
+    fi
     sudo systemctl daemon-reload
     sudo systemctl restart docker
     sleep 3
@@ -779,4 +788,8 @@ else
         exit 255
     fi
 fi
+
+sudo ln -s  /root/.docker/config.json /var/lib/kubelet/config.json
+sudo chmod 666  /var/lib/kubelet/config.json
+
 exit 0

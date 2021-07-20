@@ -1,0 +1,12 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: Dummy User
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/sample_vnfd_top.yaml
+
+Name: Files/images/ubuntu-20.04-server-cloudimg-amd64.img
+Content-Type: application/x-iso9066-image
+
+Name: Scripts/private_registry_mgmt.py
+Content-Type: text/x-python
+Algorithm: SHA-256
+Hash: <Calculated value here>
