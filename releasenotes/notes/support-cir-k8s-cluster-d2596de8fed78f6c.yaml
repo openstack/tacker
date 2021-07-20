@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    Functions to enable the use of Docker private registry images in a
+    Kubernetes Cluster environment. We provide the sample of MgmtDriver
+    which can deploy Docker private registry VNF for Kubernetes cluster
+    before deploying Kubernetes cluster VNF, and deploy Kubernetes cluster
+    VNF that can support both the Docker private registry created above
+    and any others created outside of Tacker.
+
+    Instantiate operation for Kubernetes cluster with MgmtDriver:
+    MgmtDriver configures connections with Docker private registries on
+    newly created all Master/Worker VMs.
+
+    Scale-out operation for Kubernetes cluster Worker-nodes with MgmtDriver:
+    MgmtDriver configures connections with Docker private registries on
+    newly created Worker VMs.
+
+    Heal operation for the entire Kubernetes cluster with MgmtDriver:
+    MgmtDriver configures connections with Docker private registries on
+    the created all Master/Worker VMs.
+
+    Heal operation for a single node in Kubernetes cluster with MgmtDriver:
+    MgmtDriver configures connections with Docker private registries on
+    the created Master/Worker VM.
+
+
