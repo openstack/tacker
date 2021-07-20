@@ -2016,6 +2016,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             operation_params)
         self.assertEqual(1, mock_lcm_save.call_count)
 
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(VnfLcmDriver,
@@ -2033,7 +2036,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             mock_notification,
             mock_lcm_save,
             mock_init_hash,
-            mock_get_service_plugins):
+            mock_get_service_plugins,
+            mock_vnf_interfaces,
+            mock_vnfd_dict):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -2057,6 +2062,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             operation_params)
         self.assertEqual(1, mock_lcm_save.call_count)
 
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(VnfLcmDriver,
@@ -2074,7 +2082,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             mock_notification,
             mock_lcm_save,
             mock_init_hash,
-            mock_get_service_plugins):
+            mock_get_service_plugins,
+            mock_vnf_interfaces,
+            mock_vnfd_dict):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -2098,6 +2108,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             operation_params)
         self.assertEqual(1, mock_lcm_save.call_count)
 
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(VnfLcmDriver,
@@ -2115,7 +2128,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             mock_notification,
             mock_lcm_save,
             mock_init_hash,
-            mock_get_service_plugins):
+            mock_get_service_plugins,
+            mock_vnf_interfaces,
+            mock_vnfd_dict):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -2139,6 +2154,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             operation_params)
         self.assertEqual(1, mock_lcm_save.call_count)
 
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(VnfLcmDriver,
@@ -2156,7 +2174,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             mock_notification,
             mock_lcm_save,
             mock_init_hash,
-            mock_get_service_plugins):
+            mock_get_service_plugins,
+            mock_vnf_interfaces,
+            mock_vnfd_dict):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"

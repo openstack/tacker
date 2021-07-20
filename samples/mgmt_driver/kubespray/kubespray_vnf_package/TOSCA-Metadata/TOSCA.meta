@@ -1,0 +1,14 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/sample_kubernetes_top.vnfd.yaml
+
+Name: Scripts/install_external_lb.sh
+Content-Type: application/x-shellscript
+Algorithm: SHA-256
+Hash: 0b2445403a4b2ce2f905c2b7f77dcdb444a1e445379a11c6aca8e87d4b1f8198
+
+Name: Scripts/kubespray_mgmt.py
+Content-Type: text/x-python
+Algorithm: SHA-256
+Hash: 2d6232040fd049619e1a7c3e268b87ccec9aa4d56d955f1bfa4420a4f6531e31

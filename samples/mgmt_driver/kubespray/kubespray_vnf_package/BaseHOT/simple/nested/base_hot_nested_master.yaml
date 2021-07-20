@@ -1,0 +1,33 @@
+heat_template_version: 2013-05-23
+description: 'masterNode HOT for Sample VNF'
+
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  net1:
+    type: string
+
+resources:
+  masterNode:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: flavor }
+      name: masterNode
+      image: { get_param: image }
+      networks:
+      - port:
+          get_resource: masterNode_CP1
+
+  masterNode_CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net1 }
+
+  masterNode_FloatingIP:
+    properties:
+      floating_network: public
+      port_id:
+        get_resource: masterNode_CP1
+    type: OS::Neutron::FloatingIP

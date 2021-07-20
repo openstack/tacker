@@ -79,6 +79,10 @@ def _get_vnfd_dict(context, vnfd_id, flavour_id):
     return vnfd_dict
 
 
+def get_vnfd_dict(context, vnfd_id, flavour_id):
+    return _get_vnfd_dict(context, vnfd_id, flavour_id)
+
+
 def _get_vnflcm_interface(context, interface, vnf_instance, flavour_id):
     '''Gets the interface found in vnfd
 
