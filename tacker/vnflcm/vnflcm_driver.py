@@ -1531,7 +1531,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 vnfd_dict = vnflcm_utils._get_vnfd_dict(
                     context, vnf_instance.vnfd_id,
                     vnf_instance.instantiated_vnf_info.flavour_id)
-
                 vnf_info['action'] = 'in'
                 if len(scale_id_list) != 0:
                     kwargs = {'scale_name_list': scale_name_list}
@@ -1660,6 +1659,22 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                                     vim_connection_info)
 
         else:
+            vnfd_dict = vnflcm_utils.get_vnfd_dict(
+                context, vnf_instance.vnfd_id,
+                vnf_instance.instantiated_vnf_info.flavour_id)
+            # TODO(LiangLu): grant_request and grant here is planned to
+            # pass as a parameter, however due to they are not
+            # passed from conductor to vnflcm_driver, thus we put Null
+            # value to grant and grant_reqeust temporary.
+            # This part will be updated in next release.
+            self._mgmt_manager.invoke(
+                self._load_vnf_interface(
+                    context, 'terminate_end',
+                    vnf_instance, vnfd_dict),
+                'terminate_end', context=context,
+                vnf_instance=vnf_instance,
+                terminate_vnf_request=None,
+                grant=None, grant_request=None)
             resource_changes = self._term_resource_update(
                 context, vnf_info, vnf_instance)
 

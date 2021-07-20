@@ -1,0 +1,29 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml
+
+Name: Files/kubernetes/deployment.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 3e87eebb432c3ff59f54d6dddd12a7adff3b8d7b1e272d5b5de3df5ae9aec4d4
+
+Name: Files/kubernetes/service_with_nodeport.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 2d76d6ef7500f90bff63e519c9740516dbe258134f8cbeada7bc29d43bd515b6
+
+Name: Files/kubernetes/service_without_nodeport.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 9994a5a5f630c41d178ac58fff93140d3509da5f01518a7bd0e16db70a545c5e
+
+Name: Scripts/configure_lb.sh
+Content-Type: application/x-shellscript
+Algorithm: SHA-256
+Hash: 45a01e214c06a66dc6b7a018650e292a8cc216e7db4cb638712852a843679d0d
+
+Name: Scripts/cnf_nodeport_mgmt.py
+Content-Type: text/x-python
+Algorithm: SHA-256
+Hash: 927d34e813f635f069ed352914aa7260e26c6b011560962aee5eb49e9faed927

@@ -1,0 +1,288 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: Simple deployment flavour for Sample VNF
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - sample_kubernetes_types.yaml
+
+topology_template:
+  inputs:
+    id:
+      type: string
+    vendor:
+      type: string
+    version:
+      type: version
+    descriptor_id:
+      type: string
+    descriptor_version:
+      type: string
+    provider:
+      type: string
+    product_name:
+      type: string
+    software_version:
+      type: string
+    vnfm_info:
+      type: list
+      entry_schema:
+        type: string
+    flavour_id:
+      type: string
+    flavour_description:
+      type: string
+
+  substitution_mappings:
+    node_type: company.provider.VNF
+    properties:
+      flavour_id: simple
+    requirements:
+      virtual_link_external1_1: [ masterNode_CP1, virtual_link ]
+      virtual_link_external1_2: [ workerNode_CP2, virtual_link ]
+      virtual_link_external1_3: [ externalLB_CP3, virtual_link ]
+
+  node_templates:
+    VNF:
+      type: company.provider.VNF
+      properties:
+        flavour_description: A simple flavour
+      interfaces:
+        Vnflcm:
+          instantiate_end:
+            implementation: mgmt-drivers-kubespray
+          terminate_end:
+            implementation: mgmt-drivers-kubespray
+          scale_start:
+            implementation: mgmt-drivers-kubespray
+          scale_end:
+            implementation: mgmt-drivers-kubespray
+          heal_start:
+            implementation: mgmt-drivers-kubespray
+          heal_end:
+            implementation: mgmt-drivers-kubespray
+      artifacts:
+        mgmt-drivers-kubespray:
+          description: Management driver for kubernetes cluster
+          type: tosca.artifacts.Implementation.Python
+          file: Scripts/kubespray_mgmt.py
+
+    externalLB:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: externalLB
+        description: externalLB
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+        sw_image_data:
+          name: ubuntu-20.04-server-cloudimg-amd64
+          version: '20.04'
+          checksum:
+            algorithm: sha-512
+            hash: fb1a1e50f9af2df6ab18a69b6bc5df07ebe8ef962b37e556ce95350ffc8f4a1118617d486e2018d1b3586aceaeda799e6cc073f330a7ad8f0ec0416cbd825452
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 0 GB
+          size: 2 GB
+
+      capabilities:
+        virtual_compute:
+          properties:
+            requested_additional_capabilities:
+              properties:
+                requested_additional_capability_name: ds2G
+                support_mandatory: true
+                target_performance_parameters:
+                  entry_schema: test
+            virtual_memory:
+              virtual_mem_size: 2 GB
+            virtual_cpu:
+              num_virtual_cpu: 2
+            virtual_local_storage:
+              - size_of_storage: 10 GB
+
+    masterNode:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: masterNode
+        description: masterNode compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 3
+        sw_image_data:
+          name: ubuntu-20.04-server-cloudimg-amd64
+          version: '20.04'
+          checksum:
+            algorithm: sha-512
+            hash: fb1a1e50f9af2df6ab18a69b6bc5df07ebe8ef962b37e556ce95350ffc8f4a1118617d486e2018d1b3586aceaeda799e6cc073f330a7ad8f0ec0416cbd825452
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 0 GB
+          size: 2 GB
+
+      capabilities:
+        virtual_compute:
+          properties:
+            requested_additional_capabilities:
+              properties:
+                requested_additional_capability_name: ds2G
+                support_mandatory: true
+                target_performance_parameters:
+                  entry_schema: test
+            virtual_memory:
+              virtual_mem_size: 2 GB
+            virtual_cpu:
+              num_virtual_cpu: 2
+            virtual_local_storage:
+              - size_of_storage: 10 GB
+
+    workerNode:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: workerNode
+        description: workerNode compute node
+        vdu_profile:
+          min_number_of_instances: 2
+          max_number_of_instances: 4
+        sw_image_data:
+          name: ubuntu-20.04-server-cloudimg-amd64
+          version: '20.04'
+          checksum:
+            algorithm: sha-512
+            hash: fb1a1e50f9af2df6ab18a69b6bc5df07ebe8ef962b37e556ce95350ffc8f4a1118617d486e2018d1b3586aceaeda799e6cc073f330a7ad8f0ec0416cbd825452
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 0 GB
+          size: 2 GB
+
+      capabilities:
+        virtual_compute:
+          properties:
+            requested_additional_capabilities:
+              properties:
+                requested_additional_capability_name: ds2G
+                support_mandatory: true
+                target_performance_parameters:
+                  entry_schema: test
+            virtual_memory:
+              virtual_mem_size: 2 GB
+            virtual_cpu:
+              num_virtual_cpu: 2
+            virtual_local_storage:
+              - size_of_storage: 10 GB
+
+    externalLB_CP3:
+       type: tosca.nodes.nfv.VduCp
+       properties:
+        layer_protocols: [ ipv4 ]
+        order: 0
+       requirements:
+         - virtual_binding: externalLB
+
+    masterNode_CP1:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 0
+      requirements:
+        - virtual_binding: masterNode
+
+    workerNode_CP2:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 0
+      requirements:
+        - virtual_binding: workerNode
+
+  policies:
+    - scaling_aspects:
+        type: tosca.policies.nfv.ScalingAspects
+        properties:
+          aspects:
+            master_instance:
+              name: master_instance
+              description: master_instance scaling aspect
+              max_scale_level: 2
+              step_deltas:
+                - delta_1
+            worker_instance:
+              name: worker_instance
+              description: worker_instance scaling aspect
+              max_scale_level: 2
+              step_deltas:
+                - delta_1
+
+    - masterNode_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ masterNode ]
+
+    - workerNode_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 2
+        targets: [ workerNode ]
+
+    - masterNode_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: master_instance
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ masterNode ]
+
+    - workerNode_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: worker_instance
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ workerNode ]
+
+    - instantiation_levels:
+        type: tosca.policies.nfv.InstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              description: Smallest size
+              scale_info:
+                master_instance:
+                  scale_level: 0
+                worker_instance:
+                  scale_level: 0
+            instantiation_level_2:
+              description: Largest size
+              scale_info:
+                master_instance:
+                  scale_level: 2
+                worker_instance:
+                  scale_level: 2
+          default_level: instantiation_level_1
+
+    - masterNode_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1
+            instantiation_level_2:
+              number_of_instances: 3
+        targets: [ masterNode ]
+
+    - workerNode_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 2
+            instantiation_level_2:
+              number_of_instances: 4
+        targets: [ workerNode ]

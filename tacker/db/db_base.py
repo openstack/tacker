@@ -215,3 +215,6 @@ class CommonDbMixin(object):
         except orm_exc.NoResultFound:
             LOG.info("No result found for %(name)s in %(model)s table",
                      {'name': name, 'model': model})
+
+    def get_by_name(self, context, model, name):
+        return self._get_by_name(context, model, name)
