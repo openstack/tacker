@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections
+from collections import abc
 import re
 import sys
 
@@ -129,7 +129,7 @@ def _is_attribute_explicitly_set(attribute_name, resource, target, action):
 def _should_validate_sub_attributes(attribute, sub_attr):
     """Verify that sub-attributes are iterable and should be validated."""
     validate = attribute.get('validate')
-    return (validate and isinstance(sub_attr, collections.Iterable) and
+    return (validate and isinstance(sub_attr, abc.Iterable) and
             any([k.startswith('type:dict') and
                  v for (k, v) in validate.items()]))
 
