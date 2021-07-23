@@ -1,0 +1,7 @@
+auth_url: 'http://127.0.0.1/identity'
+username: 'admin'
+password: 'devstack'
+project_name: 'admin'
+project_domain_name: 'Default'
+user_domain_name: 'Default'
+cert_verify: 'True'

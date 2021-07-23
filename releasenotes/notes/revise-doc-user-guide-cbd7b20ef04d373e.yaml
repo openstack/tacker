@@ -1,0 +1,18 @@
+---
+other:
+  - |
+    Revised `Installation Guide`_.
+
+    * Added a table that shows hardware requirements to `ETSI Install via
+      Devstack`.
+
+  - |
+    Revised `User Guide`_.
+
+    * Classified Legacy Tacker documents and ETSI NFV-SOL Tacker documents.
+    * Added diagrams and overviews of the `ETSI NFV-SOL Tacker Use Cases`.
+    * Added `Getting Started with ETSI NFV-SOL Tacker`.
+    * Removed documents that seem to be no longer necessary.
+
+    .. _Installation Guide : https://docs.openstack.org/tacker/latest/install/index.html
+    .. _User Guide : https://docs.openstack.org/tacker/latest/user/index.html

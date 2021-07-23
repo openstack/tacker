@@ -24,7 +24,8 @@ Getting Started
 .. toctree::
    :maxdepth: 1
 
-   ../install/getting_started
+   ../install/etsi_getting_started
+   ../install/legacy_getting_started
 
 .. TODO(h-asahina): add `Getting started with ETSI NFV-SOL Tacker`
   * https://etherpad.opendev.org/p/tacker-wallaby-revise-docs
