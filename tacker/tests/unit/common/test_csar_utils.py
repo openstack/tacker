@@ -464,3 +464,24 @@ class TestCSARUtils(testtools.TestCase):
         self.assertEqual(flavours[0]['sw_images'][1]['min_disk'], 2000000000)
         self.assertEqual(flavours[0]['sw_images'][1]['size'], 2000000000)
         self.assertEqual(flavours[0]['sw_images'][1]['min_ram'], 8590458880)
+
+    def test_extract_csar_zip_file_for_file_permissions(self):
+        dir_location = tempfile.mkdtemp()
+        file_obj = tempfile.NamedTemporaryFile(dir=dir_location)
+        file_path = file_obj.name
+        file_name = file_path.split("/")[3]
+        os.chmod(file_path, 0o755)
+        self.addCleanup(shutil.rmtree, dir_location)
+        initial_cwd = os.getcwd()
+        os.chdir(dir_location)
+        zip_file_path = dir_location + '/' + "test_extract_csar_zip_file.zip"
+        with zipfile.ZipFile(zip_file_path, 'w') as zip:
+            zip.write(file_name)
+        self.assertEqual(True, os.path.exists(zip_file_path))
+        zip_extract_path = dir_location + "/zip_extract"
+        extract_file_path = zip_extract_path + "/" + file_name
+        os.chdir(initial_cwd)
+        csar_utils.extract_csar_zip_file(zip_file_path, zip_extract_path)
+        status = os.stat(extract_file_path)
+        permission = oct(status.st_mode)[-3:]
+        self.assertEqual('755', permission)
