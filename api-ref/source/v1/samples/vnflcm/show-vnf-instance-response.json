@@ -172,13 +172,13 @@
   },
   "_links": {
     "self": {
-      "href": "/vnflcm/v1/vnf_instances/8941a2ce-cf50-4d5f-8907-71a937902a50"
+      "href": "http://sample1.com/vnflcm/v1/vnf_instances/8941a2ce-cf50-4d5f-8907-71a937902a50"
     },
     "terminate": {
-      "href": "/vnflcm/v1/vnf_instances/8941a2ce-cf50-4d5f-8907-71a937902a50/terminate"
+      "href": "http://sample1.com/vnflcm/v1/vnf_instances/8941a2ce-cf50-4d5f-8907-71a937902a50/terminate"
     },
     "heal": {
-      "href": "/vnflcm/v1/vnf_instances/8941a2ce-cf50-4d5f-8907-71a937902a50/heal"
+      "href": "http://sample1.com/vnflcm/v1/vnf_instances/8941a2ce-cf50-4d5f-8907-71a937902a50/heal"
     }
   }
 }
