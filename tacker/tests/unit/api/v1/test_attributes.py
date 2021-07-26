@@ -788,7 +788,7 @@ class TestConvertKvp(base.BaseTestCase):
         self.assertEqual({}, result)
 
     def test_convert_kvp_list_to_dict_succeeds_for_multiple_values(self):
-        self.skip("Not ready yet")
+        self.skipTest("Not ready yet")
         result = attributes.convert_kvp_list_to_dict(
             ['a=b', 'a=c', 'a=c', 'b=a'])
         self.assertEqual({'a': ['c', 'b'], 'b': ['a']}, result)
