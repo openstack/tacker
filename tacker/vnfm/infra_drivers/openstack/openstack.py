@@ -99,8 +99,6 @@ OUTPUT_PREFIX = 'mgmt_ip-'
 ALARMING_POLICY = 'tosca.policies.tacker.Alarming'
 SCALING_POLICY = 'tosca.policies.tacker.Scaling'
 
-NOVA_SERVER_RESOURCE = "OS::Nova::Server"
-
 
 def get_scaling_policy_name(action, policy_name):
     return '%s_scale_%s' % (policy_name, action)
@@ -1079,7 +1077,12 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         def _pop_stack_resources(resource_name):
             for stack_id, resources in stack_resources.items():
                 if resource_name in resources.keys():
-                    return stack_id, resources
+                    res_details = resources.get(resource_name)
+                    # TODO(Renu) :  Need to add unit or Function test case
+                    # for the coverage of resource type of VNFC resource
+                    if (res_details.get('resource_type') ==
+                       NOVA_SERVER_RESOURCE):
+                        return stack_id, resources
             return None, {}
 
         def _populate_virtual_link_resource_info(vnf_virtual_link_desc_id,

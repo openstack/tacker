@@ -404,7 +404,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
                 'instantiatedVnfInfo', {}).get(
                 'vnfcResourceInfo', [])]
         request_body = fake_vnflcm.VnfInstances.make_heal_request_body(
-            vnfc_instance_id_list)
+            [vnfc_instance_id_list[1]])
         resp, _ = self._heal_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
         self.assert_heal_vnf(resp, vnf_instance_id, vnf_package_id)
