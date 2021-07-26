@@ -1,5 +1,5 @@
-VNF Descriptor Template Guide
-=============================
+VNF Descriptor (VNFD) Template Guide
+====================================
 Overview
 --------
 
@@ -44,7 +44,7 @@ Each VNFD template will have below fields:
 For examples, please refer sample VNFD templates available at `GitHub <https:
 //github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd>`_.
 
-Node types
+Node Types
 ----------
 A VNF includes **VDU/s**, **connection point/s** and **virtual link/s**. Hence
 a valid VNFD must have these 3 components. Each component is referred as a
@@ -69,7 +69,7 @@ network function.
     lib/tacker_nfv_defs.yaml>`_ under **properties** section of
     **tosca.nodes.nfv.VDU.Tacker** field
 
-Specifying VDU properties
+Specifying VDU Properties
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 A very simple VDU with 10 GB disk, 2 GB RAM, 2 CPUs, cirros image and in nova
 availability zone can be described as:
@@ -90,7 +90,7 @@ availability zone can be described as:
               mem_size: 2048 MB
               num_cpus: 2
 
-Using Nova flavors for VDU
+Using Nova Flavors for VDU
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 OpenStack specific **flavors** can also be used to describe VDU configuration.
 
@@ -150,7 +150,7 @@ monitoring. The VDUs can be re-spawned in case of failure. See
             actions:
               failure: respawn
 
-Providing user data
+Providing User Data
 """""""""""""""""""
 Custom commands to be run on VDU once it is spawned can be specified in a VNFD
 template as user data.
@@ -173,7 +173,7 @@ section in VNFD template. A sample template configuring a VDU as a firewall
 can be viewed in a `sample file <https://opendev.org/openstack/tacker/src/branch/
 master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml>`_.
 
-Specifying external image
+Specifying External Image
 """""""""""""""""""""""""
 :artifacts:
     To specify an image via a file or an external link
@@ -296,7 +296,7 @@ This describes the granular CPU allocation requirements for VDUs.
 |thread_count     |Integer| None       |Number of threads per core           |
 +-----------------+-------+------------+-------------------------------------+
 
-NUMA architecture
+NUMA Architecture
 """""""""""""""""
 Following code snippet describes symmetric NUMA topology requirements for VDUs.
 
@@ -547,7 +547,7 @@ An example of assign floating ip to VDU
 |      |.network.Linkable  |.network.LinksTo    |to connect to      |
 +------+-------------------+--------------------+-------------------+
 
-Multiple nodes
+Multiple Nodes
 --------------
 Multiple node types can be defined in a VNFD.
 

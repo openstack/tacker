@@ -21,7 +21,7 @@ The VNF Package(sample_vnf_pkg.zip) used below is prepared
 by referring to :doc:`./vnf-package`.
 
 
-VNF deployment procedure as VM
+VNF Deployment Procedure as VM
 ------------------------------
 
 In order to deploy VNF as VM, it is necessary to execute

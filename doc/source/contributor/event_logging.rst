@@ -14,7 +14,7 @@ OpenStack Tacker supports capturing resource event information when the
 tacker resources undergo create, update, delete, scale and monitor
 operations. This information becomes useful to an admin for audit purposes.
 
-Tacker Resources supporting Events
+Tacker Resources Supporting Events
 ----------------------------------
 As of Newton release, events information is captured for below:
 
@@ -24,7 +24,7 @@ As of Newton release, events information is captured for below:
 
 - VIM
 
-Tacker supported event types
+Tacker Supported Event Types
 ----------------------------
 Below are the event types that are currently supported:
 
@@ -54,7 +54,7 @@ Tacker supports display of events to an end user via
 NOTE: For more details on the syntax of these CLIs, refer to
 `OpenStackClient CLI reference guide <https://docs.openstack.org/tacker/latest/admin/index.html>`_
 
-OpenStackClient CLI usage examples to access resource lifecycle events
+OpenStackClient CLI Usage Examples to Access Resource Lifecycle Events
 ----------------------------------------------------------------------
 
 1. The following command displays all the state transitions that occurred on
@@ -111,7 +111,7 @@ site. The sample output illustrates a VIM that is reachable. Note, the
   +----+---------------+---------------------+----------------+------------+---------------------+---------------+
 
 
-Miscellaneous events command examples:
+Miscellaneous Events Command Examples:
 --------------------------------------
 
 1. List all events for all resources from the beginning
@@ -200,7 +200,7 @@ Miscellaneous events command examples:
   +----------------+------------------------------------------------------------------------------------------+
 
 
-Note for Tacker developers
+Note for Tacker Developers
 --------------------------
 
 If as a developer, you are creating new resources and would like to capture

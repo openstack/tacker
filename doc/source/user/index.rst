@@ -24,67 +24,28 @@ Getting Started
 .. toctree::
    :maxdepth: 1
 
-   ../install/getting_started.rst
-   ../install/deploy_openwrt.rst
+   ../install/getting_started
 
-User Guide
-----------
+.. TODO(h-asahina): add `Getting started with ETSI NFV-SOL Tacker`
+  * https://etherpad.opendev.org/p/tacker-wallaby-revise-docs
 
 Overview
-^^^^^^^^
+--------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    introduction
    architecture
+   resources
 
-Use cases
-^^^^^^^^^
 
-.. toctree::
-   :maxdepth: 1
 
-   vnf-package
-   vnfd-sol001
-   alarm_monitoring_usage_guide.rst
-   dynamic_vnffg_usage_guide.rst
-   enhanced_placement_awareness_usage_guide.rst
-   etsi_vnf_deployment_as_vm_with_tosca.rst
-   etsi_vnf_deployment_as_vm_with_user_data.rst
-   etsi_containerized_vnf_usage_guide.rst
-   etsi_vnf_error_handling.rst
-   etsi_vnf_healing.rst
-   etsi_vnf_scaling.rst
-   etsi_vnf_change_external_vnf_connectivity.rst
-   etsi_cnf_healing.rst
-   etsi_cnf_scaling.rst
-   containerized_vnf_usage_guide.rst
-   ../reference/mistral_workflows_usage_guide.rst
-   multisite_vim_usage_guide.rst
-   nsd_usage_guide.rst
-   ../reference/block_storage_usage_guide.rst
-   scale_usage_guide.rst
-   vnf_component_usage_guide.rst
-   vnffg_usage_guide.rst
-   vnffg_usage_guide_advanced.rst
-   vnfm_usage_guide.rst
-   placement_policy_usage_guide.rst
-   mgmt_driver_deploy_k8s_usage_guide.rst
-
-Feature Documentation
----------------------
+Use Case Guide
+--------------
 
 .. toctree::
    :maxdepth: 1
 
-   ../contributor/zabbix-plugin.rst
-   ../contributor/tacker_vim_monitoring.rst
-   ../contributor/encrypt_vim_auth_with_barbican.rst
-   ../contributor/event_logging.rst
-   ../contributor/monitor-api.rst
-   ../contributor/policy_actions_framework.rst
-   ../contributor/tacker_conductor.rst
-   ../contributor/vnfd_template_description.rst
-   ../contributor/vnfd_template_parameterization.rst
-   ../contributor/vnffgd_template_description.rst
+   etsi_use_case_guide
+   legacy_use_case_guide

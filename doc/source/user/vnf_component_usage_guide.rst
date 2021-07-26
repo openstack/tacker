@@ -6,7 +6,7 @@ This section will cover how to deploy `vnf component` in Tacker with the
 examples of how to write VNF descriptors.
 
 
-Sample TOSCA with vnfc
+Sample TOSCA with VNFC
 =======================
 
 The following example shows vnfc resource using TOSCA template.
@@ -35,7 +35,7 @@ two parameters:
    server is running.
 
 
-How to setup environment
+How to Setup Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 To make use of VNFC in Tacker, we have to upload the image to the glance in
 which heat-config and heat-config agents are installed. The installation steps

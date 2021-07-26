@@ -24,7 +24,7 @@ Execute up to "Instantiate VNF" in the procedure of
 In other words, the procedure after "Terminate VNF" is not executed.
 
 
-VNF scaling procedure
+VNF Scaling Procedure
 ---------------------
 
 As mentioned in Prerequisites, the VNF must be instantiated
@@ -39,7 +39,7 @@ There are two main methods for VNF scaling.
 * Scale in VNF
 
 
-How to identify ASPECT_ID
+How to Identify ASPECT_ID
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to execute scaling, it is necessary to specify
@@ -139,7 +139,7 @@ corresponds to ASPECT_ID.
 .. note:: See `NFV-SOL001 v2.6.1`_ annex A.6 for details about ASPECT_ID.
 
 
-How to scale out VNF
+How to Scale Out VNF
 ~~~~~~~~~~~~~~~~~~~~
 
 Execute Scale CLI command and check the number of stacks
@@ -236,7 +236,7 @@ with the parent-stack (ID: b96169b5-d692-4b5c-81b2-86010775180e)
 is increased by the scaling out operation.
 
 
-How to scale in VNF
+How to Scale in VNF
 ~~~~~~~~~~~~~~~~~~~
 
 Execute Scale CLI command and check the number of stacks

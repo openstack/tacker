@@ -7,7 +7,7 @@ in Tacker using Kubernetes VIM.
 
 Prepare Kubernetes VIM
 =======================
-1. Create a config file
+1. Create a Config File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before register a Kubernetes VIM to tacker, we should create config file.
@@ -125,7 +125,7 @@ Also we can check if the status of VIM is REACHABLE by
 
 Prepare VNF Package
 ===================
-1. Create directories of VNF Package
+1. Create Directories of VNF Package
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TOSCA YAML CSAR file is an archive file using the ZIP file format whose
 structure complies with the TOSCA Simple Profile YAML v1.2 Specification.
@@ -135,7 +135,7 @@ Here is a sample of building a VNF Package CSAR directory:
 
     $ mkdir -p deployment/{TOSCA-Metadata,Definitions,Files/kubernetes}
 
-2. Create a Kubernetes object file
+2. Create a Kubernetes Object File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A CSAR VNF package shall have a object file that defines Kubernetes resources
 to be deployed.
@@ -191,7 +191,7 @@ The following is a simple example of `deployment` resource.
           `topology_template.node_templates.VDU1.properties.name`
           in the helloworld3_df_simple.yaml file.
 
-3. Create a TOSCA.meta file
+3. Create a TOSCA.meta File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The TOSCA.Meta file contains version information for the TOSCA.Meta file, CSAR,
 Definitions file, and artifact file.
@@ -212,7 +212,7 @@ Here is an example of a TOSCA.meta file:
     Algorithm: SHA-256
     Hash: 6a40dfb06764394fb604ae807d1198bc2e2ee8aece3b9483dfde48e53f316a58
 
-4. Download ETSI Definition file
+4. Download ETSI Definition File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Download official documents.
 ETSI GS NFV-SOL 001 [i.4] specifies the structure and format of the VNFD based
@@ -457,7 +457,7 @@ Following commands are an example of compressing a VNF Package:
     $ ls deployment
     deployment.zip    Definitions    Files    TOSCA-Metadata
 
-Create and upload VNF Package
+Create and Upload VNF Package
 =============================
 We need to create an empty VNF package object in tacker and upload compressed
 VNF package created in previous section.
@@ -577,7 +577,7 @@ Here is an example of checking VNFD-ID value:
     | VNFD Version         | 1.0                                                                                                                                            |
     +----------------------+------------------------------------------------------------------------------------------------------------------------------------------------+
 
-2. Execute Create VNF command
+2. Execute Create VNF Command
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 We could create VNF by running `openstack vnflcm create <VNFD ID>`.
 After the command is executed, the generated ID is `VNF instance ID`.
@@ -609,7 +609,7 @@ After the command is executed, the generated ID is `VNF instance ID`.
 
 Instantiate VNF
 ===============
-1. Set the value to the request parameter file
+1. Set the Value to the Request Parameter File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Get the ID of target VIM.
 
@@ -650,7 +650,7 @@ vimId and vimType.
       ]
     }
 
-2. Execute the instantiation command
+2. Execute the Instantiation Command
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Run `openstack vnflcm instantiate <VNF instance ID> <json file>` to instantiate
 a VNF.
@@ -731,7 +731,7 @@ successful.
     | VNFD Version             | 1.0                                                                                       |
     +--------------------------+-------------------------------------------------------------------------------------------+
 
-4. Check the deployment in Kubernetes
+4. Check the Deployment in Kubernetes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To test a containerized VNF is running in target Kubernetes VIM environment,
 we can check by running the following command.

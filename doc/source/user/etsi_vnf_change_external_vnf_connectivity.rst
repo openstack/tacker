@@ -95,7 +95,7 @@ definition file before running command for changing the connectivity.
           if no setting is contained, it is treated as a change in information.
 
 
-How to change the specific port setting
+How to Change the Specific Port Setting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Execute Change External VNF Connectivity CLI command and check 'ID' and

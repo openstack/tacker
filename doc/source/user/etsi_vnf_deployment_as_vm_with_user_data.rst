@@ -1,5 +1,5 @@
 ==============================================================
-ETSI NFV-SOL VNF Deployment as VM with LCM operation user data
+ETSI NFV-SOL VNF Deployment as VM with LCM Operation User Data
 ==============================================================
 
 This document describes how to deploy VNF as VM with
@@ -33,7 +33,7 @@ by referring to :doc:`./vnf-package`.
           which are optional in :doc:`./vnf-package`.
 
 
-VNF deployment procedure as VM
+VNF Deployment Procedure as VM
 ------------------------------
 
 In order to deploy VNF as a VM, it is necessary to execute
