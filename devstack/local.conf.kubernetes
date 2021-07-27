@@ -29,10 +29,9 @@ ENABLE_VERBOSE_LOG_LEVEL=True
 
 # Neutron ML2 with OpenVSwitch
 Q_PLUGIN=ml2
-Q_AGENT=openvswitch
+Q_AGENT=ovn
 
 # Disable security groups
-Q_USE_SECGROUP=False
 LIBVIRT_FIREWALL_DRIVER=nova.virt.firewall.NoopFirewallDriver
 
 # Enable neutron, heat, networking-sfc, barbican and mistral
@@ -64,6 +63,10 @@ enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes ma
 enable_plugin octavia https://opendev.org/openstack/octavia master
 enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
 #KURYR_K8S_CLUSTER_IP_RANGE="10.0.0.0/24"
+
+enable_service kubernetes-master
+enable_service kuryr-kubernetes
+enable_service kuryr-daemon
 
 [[post-config|/etc/neutron/dhcp_agent.ini]]
 [DEFAULT]

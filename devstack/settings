@@ -38,14 +38,6 @@ if [ "${TACKER_MODE}" == "all" ]; then
     disable_service n-net
     VIRT_DRIVER=libvirt
 
-    # TACKER_NEUTRON_AGENTS can be disabled by adding
-    # TACKER_NEUTRON_AGENTS='' in local.conf if neutron agents are running on a separate node
-    TACKER_NEUTRON_AGENTS=${TACKER_NEUTRON_AGENTS:-q-agt,q-dhcp,q-meta,q-l3}
-    for i in $(echo $TACKER_NEUTRON_AGENTS | sed 's/,/ /g')
-    do
-        enable_service $i
-    done
-
     enable_service q-svc
     enable_service neutron
 
@@ -64,7 +56,7 @@ if [ "${TACKER_MODE}" == "all" ]; then
         done
 
         # enable kuryr-kubernetes services
-        KURYR_KUBERNETES_AGENTS=${KURYR_KUBERNETES_AGENTS:-etcd3,kubernetes-api,kubernetes-controller-manager,kubernetes-scheduler,kubelet,kuryr-kubernetes,kuryr-daemon}
+        KURYR_KUBERNETES_AGENTS=${KURYR_KUBERNETES_AGENTS:-kubernetes-master,kuryr-kubernetes,kuryr-daemon}
         for i in $(echo $KURYR_KUBERNETES_AGENTS | sed 's/,/ /g')
         do
             enable_service $i
