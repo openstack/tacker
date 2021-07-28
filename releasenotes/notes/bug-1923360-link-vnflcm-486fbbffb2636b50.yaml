@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+      Fixes `bug 1923360`_, add missing endpoint URL in each response of vnflcm
+      operation.
+
+      .. _bug 1923360 : https://bugs.launchpad.net/tacker/+bug/1923360

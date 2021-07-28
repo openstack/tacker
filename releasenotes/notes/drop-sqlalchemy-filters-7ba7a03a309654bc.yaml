@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+      Drop sqlalchemy-filters from tacker. We've been depending on
+      sqlalchemy-filters a little, but it can be replaced with original code in
+      tacker as alternative. We can catch up with a change in SQLAlchemy without
+      waiting for a update sqlalchemy-filters after then, update our code
+      instead quickly.

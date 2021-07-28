@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+      Fixes `bug 1924214`_, fix a resource ``OS::Heat::AutoScalingGroup`` marked
+      as unhealthy unexpectedly. Marking only for ``OS::Nova::Server`` is
+      correct.
+
+      .. _bug 1924214 : https://bugs.launchpad.net/tacker/+bug/1924214

@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+      Change default network backend driver to OVN in ``tacker/devstack`` for
+      installation and ``.zuul.yaml`` for functional tests.

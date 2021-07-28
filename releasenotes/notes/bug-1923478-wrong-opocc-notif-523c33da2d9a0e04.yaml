@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+      Fixes `bug 1923478`_, correct incomplete URL in notification of vnflcm op
+      occ.
+
+      .. _bug 1923478 : https://bugs.launchpad.net/tacker/+bug/1923478
