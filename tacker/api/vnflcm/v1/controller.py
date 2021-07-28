@@ -39,6 +39,7 @@ from http import client as http_client
 from urllib import parse
 
 from tacker._i18n import _
+from tacker.api import api_common
 from tacker.api.schemas import vnf_lcm
 from tacker.api import validation
 from tacker.api.views import vnf_lcm as vnf_lcm_view
@@ -562,7 +563,8 @@ class VnfLcmController(wsgi.Controller):
         return self._view_builder.show(vnf_instance)
 
     @wsgi.response(http_client.OK)
-    @wsgi.expected_errors((http_client.FORBIDDEN))
+    @wsgi.expected_errors((http_client.FORBIDDEN, http_client.BAD_REQUEST))
+    @api_common.validate_supported_params({'filter'})
     def index(self, request):
         context = request.environ['tacker.context']
         context.can(vnf_lcm_policies.VNFLCM % 'index')

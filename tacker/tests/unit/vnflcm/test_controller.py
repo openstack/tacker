@@ -2013,6 +2013,53 @@ class TestController(base.TestCase):
         self.assertRaises(exceptions.ValidationError,
                           self.controller.index, req)
 
+    @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
+    @ddt.data(
+        {'attribute_not_exist': 'some_value'},
+        {'all_fields': {}},
+        {'fields': {}},
+        {'exclude_fields': {}},
+        {'exclude_default': {}},
+        {'nextpage_opaque_marker': 1},
+        {'attribute_not_exist': 'some_value', 'filter': {}},
+        {'attribute_not_exist': 'some_value', 'fields': {}}
+    )
+    def test_index_not_supported_params_1(self, params,
+            mock_vnf_list):
+        """Test not supported params in request."""
+        query = urllib.parse.urlencode(params)
+        req = fake_request.HTTPRequest.blank(
+            '/vnflcm/v1/vnf_instances?' + query)
+        self.assertRaises(webob.exc.HTTPBadRequest,
+                          self.controller.index, req)
+
+    @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
+    @ddt.data(
+        {'attribute_not_exist': 'some_value'},
+        {'all_fields': {}},
+        {'fields': {}},
+        {'exclude_fields': {}},
+        {'exclude_default': {}},
+        {'nextpage_opaque_marker': 1},
+        {'attribute_not_exist': 'some_value', 'filter': {}},
+        {'attribute_not_exist': 'some_value', 'fields': {}}
+    )
+    def test_index_not_supported_params_2(self, params,
+            mock_vnf_list):
+        query = urllib.parse.urlencode(params)
+        req = fake_request.HTTPRequest.blank(
+            f'/vnf_instances?{query}')
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'GET'
+        params = set(params)
+        supported_params = {'filter'}
+        unsupported_params = params - supported_params
+        msg = _("Not supported parameters: %s") \
+            % ','.join(unsupported_params)
+        res = '{"title": "Bad Request", "status": 400, "detail": "%s"}' % msg
+        resp = req.get_response(self.app)
+        self.assertEqual(res, resp.text)
+
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
