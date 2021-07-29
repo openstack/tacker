@@ -34,6 +34,7 @@ futurist==2.1.0
 glance-store==2.4.0
 google-auth==1.4.1
 greenlet==0.4.15
+heat-translator==2.3.0 # Apache-2.0
 idna==2.6
 imagesize==1.0.0
 ipaddress==1.0.19
@@ -142,6 +143,7 @@ testresources==2.0.1
 testscenarios==0.5.0
 testtools==2.2.0
 tooz==1.58.0
+tosca-parser==2.3.0 # Apache-2.0
 traceback2==1.4.0
 unittest2==1.1.0
 urllib3==1.24.2
@@ -153,11 +155,3 @@ WebOb==1.7.1
 websocket-client==0.47.0
 WebTest==2.0.27
 wrapt==1.10.11
-
-# TODO(yasufum) Remove following comments after those two packages have devstack script.
-# NOTE(yasufum) We don't install tosca-parser and heat-translator of stable,
-# but the latest revision from git repo for development.
-# If you install packages, comment out two lines of `install_package_gitrepo` in
-# `devstack/plugin.sh` in addition to activate following lines.
-heat-translator==2.3.0 # Apache-2.0
-tosca-parser==2.3.0 # Apache-2.0
