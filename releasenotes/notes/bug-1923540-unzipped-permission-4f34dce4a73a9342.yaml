@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+      Fixes `bug 1923540`_, fix permission of uploaded files with
+      ``vnf package upload`` command are changed to ``644`` unexpectedly while
+      it should be ``755``. It's corrected while extracting.
+
+      .. _bug 1923540 : https://bugs.launchpad.net/tacker/+bug/1923540

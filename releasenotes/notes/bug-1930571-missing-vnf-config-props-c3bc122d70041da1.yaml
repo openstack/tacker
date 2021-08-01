@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+      Fixes `bug 1930571`_, add missing property ``vnfConfigurableProperties``
+      in the result of CLI commands, such as ``openstack vnflcm show``.
+
+      .. _bug 1930571 : https://bugs.launchpad.net/tacker/+bug/1930571

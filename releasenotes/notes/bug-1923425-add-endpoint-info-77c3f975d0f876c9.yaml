@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+      Fixes `bug 1923425`_, add interface into vim connection info.
+
+      .. _bug 1923425 : https://bugs.launchpad.net/tacker/+bug/1923425

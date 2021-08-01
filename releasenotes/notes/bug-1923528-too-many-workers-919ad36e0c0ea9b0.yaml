@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+      Fixes `bug 1923528`_, drop ``WorkerService`` class which spawns child
+      service proceses with given number ``api_worker`` as a config value.
+      Without this fix, it results in that the worker processes, the number of
+      them is ``api_worker``, spawn each child processes unintendedly.
+      ``api_worker`` is designed just for the number of workers, and not for
+      their children.
+
+      .. _bug 1923528 : https://bugs.launchpad.net/tacker/+bug/1923528
