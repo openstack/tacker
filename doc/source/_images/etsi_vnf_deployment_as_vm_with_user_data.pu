@@ -1,0 +1,38 @@
+@startuml
+
+frame "python-tackerclient" {
+	component "tacker-client" as client {
+	package "VNF Package" as vnfpkg {
+		file "VNFD" as vnfd
+		file "UserData" as userdata
+		file "BaseHOT" as hot
+	}
+	file "Instantiate\nparameters" as inst_param 
+}
+}
+
+frame "tacker" {
+	component "tacker-server" {
+		component "server" as serv
+	}
+	component "tacker-conductor" {
+		component "conductor" as cond
+		component "OpenStack\ninfra-driver" as infra
+	}
+}
+
+node "OpenStack\nHeat" as heat
+cloud "Hardware Resources" as hw {
+	node "VM" as ins1
+}
+
+'# Relationships
+hot -[hidden]down-> serv
+vnfpkg --> serv: 1. Request\n create VNF
+inst_param --> serv: 2. Request\n instantiate VNF
+serv --> cond
+cond --> infra
+infra -right-> heat: 3. Call OpenStack\n Heat API
+heat --> ins1: 4. Create a VM
+
+@enduml

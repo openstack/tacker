@@ -1,0 +1,32 @@
+@startuml
+
+frame "python-tackerclient" {
+	component "tacker-client" as client 
+}
+
+frame "tacker" {
+	component "tacker-server" {
+		component "server" as serv
+	}
+	component "tacker-conductor" {
+		component "conductor" as cond
+		component "OpenStack\ninfra-driver" as infra
+	}
+}
+
+node "OpenStack\nHeat" as heat
+cloud "Hardware Resources" as hw {
+	node "VM" as ins1
+	node "VM" as ins2
+}
+
+
+'# Relationships
+client --> serv: 1. Request\n scale VNF
+serv --> cond
+cond --> infra
+infra -right-> heat: 2. Call OpenStack\n Heat API
+heat --> ins1: 3. Change the\n number of\n VMs
+ins1 -[hidden]right-> ins2
+
+@enduml

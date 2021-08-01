@@ -4,6 +4,32 @@ ETSI NFV-SOL VNF Healing
 
 This document describes how to heal VNF in Tacker.
 
+Overview
+--------
+
+The diagram below shows an overview of the VNF healing.
+
+1. Request heal VNF
+
+   A user requests tacker-server to heal a VNF or all VNFs with tacker-client
+   by requesting ``heal VNF``.
+
+2. Call OpenStack Heat API
+
+   Upon receiving a request from tacker-client, tacker-server redirects it to
+   tacker-conductor.  In tacker-conductor, the request is redirected again to
+   an appropriate infra-driver (in this case OpenStack infra-driver) according
+   to the contents of the instantiate parameters.  Then, OpenStack infra-driver
+   calls OpenStack Heat APIs.
+
+3. Re-create VMs
+
+   OpenStack Heat re-creates VMs according to the API calls.
+
+.. figure:: ../_images/etsi_vnf_healing.png
+    :align: left
+
+
 Prerequisites
 -------------
 

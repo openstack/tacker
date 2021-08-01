@@ -4,6 +4,32 @@ ETSI NFV-SOL VNF Scaling
 
 This document describes how to scale VNF in Tacker.
 
+Overview
+--------
+
+The diagram below shows an overview of the VNF scaling.
+
+1. Request scale VNF
+
+   A user requests tacker-server to scale a VNF or all VNFs with tacker-client
+   by requesting ``scale VNF``.
+
+2. Call OpenStack Heat API
+
+   Upon receiving a request from tacker-client, tacker-server redirects it to
+   tacker-conductor.  In tacker-conductor, the request is redirected again to
+   an appropriate infra-driver (in this case OpenStack infra-driver) according
+   to the contents of the instantiate parameters.  Then, OpenStack infra-driver
+   calls OpenStack Heat APIs.
+
+3. Change the number of VMs
+
+   OpenStack Heat change the number of VMs according to the API calls.
+
+.. figure:: ../_images/etsi_vnf_scaling.png
+    :align: left
+
+
 Prerequisites
 -------------
 

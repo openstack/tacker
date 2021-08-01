@@ -4,6 +4,32 @@ ETSI NFV-SOL CNF Healing
 
 This document describes how to heal CNF in Tacker.
 
+Overview
+--------
+
+The diagram below shows an overview of the CNF healing.
+
+1. Request heal VNF
+
+   A user requests tacker-server to heal a VNF or all VNFs with tacker-client
+   by requesting ``heal VNF``.
+
+2. Call Kubernetes API
+
+   Upon receiving a request from tacker-client, tacker-server redirects it to
+   tacker-conductor.  In tacker-conductor, the request is redirected again to
+   an appropriate infra-driver (in this case Kubernetes infra-driver) according
+   to the contents of the instantiate parameters.  Then, Kubernetes
+   infra-driver calls Kubernetes APIs.
+
+3. Re-create Pods
+
+   Kubernetes Master re-creates Pods according to the API calls.
+
+.. figure:: ../_images/etsi_cnf_healing.png
+    :align: left
+
+
 Prerequisites
 -------------
 

@@ -12,6 +12,38 @@ for more information on LCM operation user data.
        but some have 'LCM operation user data' specific descriptions.
        The part will be clarified with the notation [This is UserData specific part].
 
+Overview
+--------
+
+The diagram below shows an overview of the VNF deployment.
+
+1. Request create VNF
+
+   A user requests tacker-server to create a VNF with tacker-client by
+   uploading a VNF Package and requesting ``create VNF``.  The VNF Package
+   should contain ``BaseHOT`` and ``UserData`` in addition to ``VNFD``.  The
+   detailed explanation of these contents can be found in :doc:`./vnf-package`.
+
+2. Request instantiate VNF
+
+   A user requests tacker-server to instantiate the created VNF by requesting
+   ``instantiate VNF`` with instantiate parameters.
+
+3. Call OpenStack Heat API
+
+   Upon receiving a request, tacker-server redirects it to tacker-conductor.
+   In tacker-conductor, the request is redirected again to an appropriate
+   infra-driver (in this case OpenStack infra-driver) according to the contents
+   of the instantiate parameters.  Then, OpenStack infra-driver calls OpenStack
+   Heat APIs to create a VM as a VNF.
+
+4. Create a VM
+
+   OpenStack Heat creates a VM according to the API calls.
+
+.. figure:: ../_images/etsi_vnf_deployment_as_vm_with_user_data.png
+    :align: left
+
 Prerequisites
 -------------
 
