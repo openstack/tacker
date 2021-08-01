@@ -28,6 +28,7 @@ from tacker.extensions import nfvo
 from tacker import objects
 from tacker.objects import fields
 from tacker.tosca import utils as toscautils
+from tacker.vnfm.lcm_user_data import utils as userdata_utils
 from tacker.vnfm import vim_client
 
 LOG = logging.getLogger(__name__)
@@ -1314,3 +1315,63 @@ def _get_changed_ext_connectivity(
     LOG.debug('changed_ext_connectivities: {}'.format(
         changed_ext_connectivities))
     return changed_ext_connectivities
+
+
+def get_stack_param(context, vnf_dict, heal_vnf_request, inst_vnf_info):
+    stack_param = {}
+    vnfc_resources = []
+
+    # get vnfc resources
+    if not heal_vnf_request.vnfc_instance_id:
+        # include all vnfc resources
+        vnfc_resources = [
+            resource for resource in inst_vnf_info.vnfc_resource_info]
+    else:
+        for vnfc_resource in inst_vnf_info.vnfc_resource_info:
+            if vnfc_resource.id in heal_vnf_request.vnfc_instance_id:
+                vnfc_resources.append(vnfc_resource)
+
+    def _update_stack_params(
+            context, base_hot_dict, nested_hot_dict, vnfd_dict):
+        param_base_hot_dict = copy.deepcopy(nested_hot_dict)
+        param_base_hot_dict['heat_template'] = base_hot_dict
+
+        initial_param_dict = (
+            userdata_utils.create_initial_param_server_port_dict(
+                param_base_hot_dict)
+        )
+        del initial_param_dict['nfv']['CP']
+
+        vdu_flavor_dict = (
+            userdata_utils.create_vdu_flavor_capability_name_dict(vnfd_dict)
+        )
+        vdu_image_dict = userdata_utils.create_sw_image_dict(vnfd_dict)
+
+        final_param_dict = userdata_utils.create_final_param_dict(
+            initial_param_dict, vdu_flavor_dict, vdu_image_dict, {})
+
+        return final_param_dict['nfv']['VDU']
+
+    # get HOT dict
+    base_hot_dict, nested_hot_dict = get_base_nest_hot_dict(
+        context, inst_vnf_info.flavour_id, vnf_dict['vnfd_id'])
+
+    vnfd_dict = yaml.safe_load(
+        vnf_dict['vnfd']['attributes']['vnfd_' + inst_vnf_info.flavour_id])
+
+    if 'stack_param' in vnf_dict['attributes'].keys():
+        stack_param = yaml.safe_load(
+            vnf_dict['attributes']['stack_param'])
+
+        updated_vdu_params = _update_stack_params(
+            context, base_hot_dict, nested_hot_dict, vnfd_dict)
+
+        for vnfc_resource in vnfc_resources:
+            vdu_id = vnfc_resource.vdu_id
+            if (updated_vdu_params.get(vdu_id) and
+                    stack_param['nfv']['VDU'].get(vdu_id)):
+                stack_param['nfv']['VDU'].update({
+                    vdu_id: updated_vdu_params.get(vdu_id)
+                })
+
+    return stack_param

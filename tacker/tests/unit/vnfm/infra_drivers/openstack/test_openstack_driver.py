@@ -49,6 +49,29 @@ vnf_dict = {
 }
 
 
+class FakeVNFMPlugin(mock.Mock):
+    def __init__(self):
+        super(FakeVNFMPlugin, self).__init__()
+
+    def get_vnf(self, context, vnf_id):
+        return {
+            'attributes': {},
+            'status': 'ACTIVE',
+            'vnfd_id': 'e889e4fe-52fe-437d-b1e1-a690dc95e3f8',
+            'tenant_id': '13d2ca8de70d48b2a2e0dbac2c327c0b',
+            'vim_id': '3f41faa7-5630-47d2-9d4a-1216953c8887',
+            'instance_id': 'd1121d3c-368b-4ac2-b39d-835aa3e4ccd8',
+            'placement_attr': {'vim_name': 'kubernetes-vim'},
+            'id': '436aaa6e-2db6-4d6e-a3fc-e728b2f0ac56',
+            'name': 'cnf_create_1',
+            'vnfd': {
+                'attributes': {
+                    'vnfd_simple': 'dummy'
+                }
+            }
+        }
+
+
 class FakeAlarmPlugin():
     def add_alarm_url_to_vnf(self, context, vnf):
         return
@@ -66,6 +89,10 @@ class TestOpenStack(base.FixturedTestCase):
 
     def setUp(self):
         super(TestOpenStack, self).setUp()
+        self.patcher = mock.patch(
+            'tacker.manager.TackerManager.get_service_plugins',
+            return_value={'VNFM': FakeVNFMPlugin()})
+        self.mock_manager = self.patcher.start()
         self.openstack = openstack.OpenStack()
         self.context = context.get_admin_context()
         self.heat_url = client.HEAT_URL
@@ -1787,8 +1814,16 @@ class TestOpenStack(base.FixturedTestCase):
             ext_managed_virtual_link_info[0].vnf_link_ports[0].
             resource_handle.resource_id)
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
+    @mock.patch('tacker.vnflcm.utils._get_vnf_package_path')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_vnf_instance_id")
-    def test_heal_vnf_instance(self, mock_get_vnflcm_op_occs):
+    def test_heal_vnf_instance(self, mock_get_vnflcm_op_occs,
+                               mock_get_vnf_package_path,
+                               mock_get_base_hot_dict):
+        nested_hot_dict = {'parameters': {'vnf': 'test'}}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+
         v_s_resource_info = fd_utils.get_virtual_storage_resource_info(
             desc_id="storage1")
 
@@ -1836,7 +1871,8 @@ class TestOpenStack(base.FixturedTestCase):
             error_point=fields.ErrorPoint.PRE_VIM_CONTROL)
         mock_get_vnflcm_op_occs.return_value = vnf_lcm_op_occs
         self.openstack.heal_vnf(
-            self.context, vnf_instance, vim_connection_info, heal_vnf_request)
+            self.context, vnf_instance, vim_connection_info,
+            heal_vnf_request)
 
         history = self.requests_mock.request_history
         patch_req = [req.url for req in history if req.method == 'PATCH']
@@ -1844,9 +1880,16 @@ class TestOpenStack(base.FixturedTestCase):
         # as unhealthy, and 1 for updating stack
         self.assertEqual(3, len(patch_req))
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
+    @mock.patch('tacker.vnflcm.utils._get_vnf_package_path')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_vnf_instance_id")
     def test_heal_vnf_instance_error_point_post_vim_control(
-            self, mock_get_vnflcm_op_occs):
+            self, mock_get_vnflcm_op_occs, mock_get_vnf_package_path,
+            mock_get_base_hot_dict):
+        nested_hot_dict = {'parameters': {'vnf': 'test'}}
+        mock_get_base_hot_dict.return_value = \
+            self._read_file(), nested_hot_dict
+
         v_s_resource_info = fd_utils.get_virtual_storage_resource_info(
             desc_id="storage1")
 
@@ -1892,16 +1935,18 @@ class TestOpenStack(base.FixturedTestCase):
             error_point=fields.ErrorPoint.POST_VIM_CONTROL)
         mock_get_vnflcm_op_occs.return_value = vnf_lcm_op_occs
         self.openstack.heal_vnf(
-            self.context, vnf_instance, vim_connection_info, heal_vnf_request)
+            self.context, vnf_instance, vim_connection_info,
+            heal_vnf_request)
 
         history = self.requests_mock.request_history
         patch_req = [req.url for req in history if req.method == 'PATCH']
         # Total of 1 times for updating stack
         self.assertEqual(1, len(patch_req))
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_vnf_instance_id")
     def test_heal_vnf_instance_resource_mark_unhealthy_error(
-            self, mock_get_vnflcm_op_occs):
+            self, mock_get_vnflcm_op_occs, mock_get_base_hot_dict):
         vnfc_resource_info = fd_utils.get_vnfc_resource_info(vdu_id="VDU_VNF")
 
         inst_vnf_info = fd_utils.get_vnf_instantiated_info(
@@ -1915,6 +1960,10 @@ class TestOpenStack(base.FixturedTestCase):
         heal_vnf_request = objects.HealVnfRequest(
             vnfc_instance_id=[vnfc_resource_info.id],
             cause="healing request")
+
+        nested_hot_dict = {'parameters': {'vnf': 'test'}}
+        mock_get_base_hot_dict.return_value = (
+            self._read_file(), nested_hot_dict)
 
         # Mock various heat APIs that will be called by heatclient
         # during the process of heal_vnf.
@@ -1952,9 +2001,10 @@ class TestOpenStack(base.FixturedTestCase):
         # as unhealthy
         self.assertEqual(1, len(patch_req))
 
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_vnf_instance_id")
     def test_heal_vnf_instance_incorrect_stack_status(
-            self, mock_get_vnflcm_op_occs):
+            self, mock_get_vnflcm_op_occs, mock_get_base_hot_dict):
         inst_vnf_info = fd_utils.get_vnf_instantiated_info()
 
         vnf_instance = fd_utils.get_vnf_instance_object(
@@ -1965,6 +2015,10 @@ class TestOpenStack(base.FixturedTestCase):
         heal_vnf_request = objects.HealVnfRequest(
             vnfc_instance_id=[uuidsentinel.vnfc_resource_id],
             cause="healing request")
+
+        nested_hot_dict = {'parameters': {'vnf': 'test'}}
+        mock_get_base_hot_dict.return_value = (
+            self._read_file(), nested_hot_dict)
 
         # Mock various heat APIs that will be called by heatclient
         # during the process of heal_vnf.

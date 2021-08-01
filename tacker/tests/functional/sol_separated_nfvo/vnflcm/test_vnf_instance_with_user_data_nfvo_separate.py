@@ -541,5 +541,5 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         physical_resource_id = [r.physical_resource_id for r
         in resources_list if stack_name_wd in r.stack_name]
         template = self._get_heat_stack_template(physical_resource_id[0])
-        template_count = str(template).count("zone")
+        template_count = str(template).count("flavor")
         self.assertEqual(template_count, 3)
