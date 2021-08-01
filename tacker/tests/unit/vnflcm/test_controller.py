@@ -645,8 +645,9 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("No flavour with id 'invalid'.",
-                         resp.json['badRequest']['message'])
+                         resp.json['detail'])
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -742,9 +743,10 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("No instantiation level with id "
                          "'instantiation_level_1'.",
-                         resp.json['badRequest']['message'])
+                         resp.json['detail'])
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -785,8 +787,9 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("No instantiation level with id 'non-existing'.",
-                         resp.json['badRequest']['message'])
+                         resp.json['detail'])
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -887,9 +890,10 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("VimConnection id is not found: %s" %
                          uuidsentinel.vim_id,
-                         resp.json['badRequest']['message'])
+                         resp.json['detail'])
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -936,9 +940,10 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("Region not found for the VimConnection: %s" %
                          uuidsentinel.vim_id,
-                         resp.json['badRequest']['message'])
+                         resp.json['detail'])
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -979,8 +984,9 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("Default VIM is not defined.",
-                         resp.json['badRequest']['message'])
+                         resp.json['detail'])
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -1032,10 +1038,11 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.CONFLICT, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         expected_msg = ("Vnf instance %s in task_state INSTANTIATING. Cannot "
                         "instantiate while the vnf instance is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-                         resp.json['conflictingRequest']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1093,8 +1100,9 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("'flavourId' is a required property",
-                         resp.json['badRequest']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1134,9 +1142,10 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual(
             "Can not find requested vnf: %s" % constants.INVALID_UUID,
-            resp.json['itemNotFound']['message'])
+            resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1159,9 +1168,10 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("Can not find requested vnf instance: %s" %
                          uuidsentinel.vnf_instance_id,
-                         resp.json['itemNotFound']['message'])
+                         resp.json['detail'])
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -1261,9 +1271,10 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
 
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("Can not find requested vnf instance: %s" %
                          uuidsentinel.vnf_instance_id,
-                         resp.json['itemNotFound']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1275,9 +1286,10 @@ class TestController(base.TestCase):
 
         resp = req.get_response(self.app)
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("Can not find requested vnf instance: %s" %
                          constants.INVALID_UUID,
-                         resp.json['itemNotFound']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1385,8 +1397,9 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("'terminationType' is a required property",
-                         resp.json['badRequest']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1426,9 +1439,10 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("Can not find requested vnf instance: %s" %
                          uuidsentinel.vnf_instance_id,
-                         resp.json['itemNotFound']['message'])
+                         resp.json['detail'])
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -1457,10 +1471,11 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.CONFLICT, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         expected_msg = ("Vnf instance %s in task_state TERMINATING. Cannot "
                         "terminate while the vnf instance is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-                         resp.json['conflictingRequest']['message'])
+                         resp.json['detail'])
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -1542,11 +1557,12 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.CONFLICT, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         expected_msg = ("Vnf instance %s in instantiation_state "
                         "NOT_INSTANTIATED. Cannot heal while the vnf instance "
                         "is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-                         resp.json['conflictingRequest']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1573,11 +1589,12 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.CONFLICT, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         expected_msg = ("Vnf instance %s in task_state "
                         "HEALING. Cannot heal while the vnf instance "
                         "is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-                         resp.json['conflictingRequest']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1609,10 +1626,11 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertFalse('Location' in resp.headers.keys())
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         expected_msg = "Vnfc id %s not present in vnf instance %s"
         self.assertEqual(expected_msg % (uuidsentinel.vnfc_instance_id,
                                          uuidsentinel.vnf_instance_id),
-                         resp.json['badRequest']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1735,9 +1753,10 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
 
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("Can not find requested vnf instance: %s" %
                          uuidsentinel.vnf_instance_id,
-                         resp.json['itemNotFound']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1751,9 +1770,10 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
 
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual("Can not find requested vnf instance: %s" %
                          constants.INVALID_UUID,
-                         resp.json['itemNotFound']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1773,11 +1793,12 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
 
         self.assertEqual(http_client.CONFLICT, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         expected_msg = ("Vnf instance %s in instantiation_state "
                         "INSTANTIATED. Cannot delete while the vnf instance "
                         "is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-                         resp.json['conflictingRequest']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1798,11 +1819,12 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
 
         self.assertEqual(http_client.CONFLICT, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         expected_msg = ("Vnf instance %s in task_state ERROR. "
                         "Cannot delete while the vnf instance "
                         "is in this state.")
         self.assertEqual(expected_msg % uuidsentinel.vnf_instance_id,
-                         resp.json['conflictingRequest']['message'])
+                         resp.json['detail'])
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
     @ddt.data(
@@ -3806,9 +3828,10 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
 
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         self.assertEqual(
             "Can not find requested vnf: %s" % constants.INVALID_UUID,
-            resp.json['itemNotFound']['message'])
+            resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -4190,10 +4213,11 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
 
         self.assertEqual(500, resp.status_code)
-
+        self.assertIn('application/problem+json', resp.headers['Content-Type'])
         expected_vnf = {'tackerFault': {'code': 500,
                  'message': 'Unexpected API Error. Please report this at '
                             'http://bugs.launchpad.net/tacker/ and attach the '
                             'Tacker API log if possible.\n'
                             "<class 'webob.exc.HTTPInternalServerError'>"}}
-        self.assertEqual(expected_vnf, resp.json)
+        expected_msg = expected_vnf['tackerFault']['message']
+        self.assertEqual(expected_msg, resp.json['detail'])

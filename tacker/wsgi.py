@@ -19,6 +19,7 @@ Utility methods for working with WSGI servers
 import functools
 
 import errno
+import http.client
 import os
 import socket
 import ssl
@@ -1038,19 +1039,6 @@ def _default_body_function(wrapped_exc):
 class Fault(webob.exc.HTTPException):
     """Wrap webob.exc.HTTPException to provide API friendly response."""
 
-    _fault_names = {
-        400: "badRequest",
-        401: "unauthorized",
-        403: "forbidden",
-        404: "itemNotFound",
-        405: "badMethod",
-        409: "conflictingRequest",
-        413: "overLimit",
-        415: "badMediaType",
-        429: "overLimit",
-        501: "notImplemented",
-        503: "serviceUnavailable"}
-
     def __init__(self, exception):
         """Create a Fault for the given webob.exc.exception."""
         self.wrapped_exc = exception
@@ -1064,22 +1052,24 @@ class Fault(webob.exc.HTTPException):
         user_locale = req.best_match_language()
         # Replace the body with fault details.
         code = self.wrapped_exc.status_int
-        fault_name = self._fault_names.get(code, "tackerFault")
+        fault_name = http.client.responses[code]
         explanation = self.wrapped_exc.explanation
         LOG.debug("Returning %(code)s to user: %(explanation)s",
                   {'code': code, 'explanation': explanation})
 
         explanation = i18n.translate(explanation, user_locale)
-        fault_data = {
-            fault_name: {
-                'code': code,
-                'message': explanation}}
+        fault_data = {}
+        if fault_name is not None:
+            fault_data['title'] = fault_name
+        fault_data['status'] = code
+        fault_data['detail'] = explanation
+
         if code == 413 or code == 429:
             retry = self.wrapped_exc.headers.get('Retry-After', None)
             if retry:
-                fault_data[fault_name]['retryAfter'] = retry
+                fault_data['retryAfter'] = retry
 
-        self.wrapped_exc.content_type = 'application/json'
+        self.wrapped_exc.content_type = 'application/problem+json'
         self.wrapped_exc.charset = 'UTF-8'
 
         body = JSONDictSerializer().serialize(fault_data)
