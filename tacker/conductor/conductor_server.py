@@ -2113,7 +2113,7 @@ class Conductor(manager.Manager):
         lcm_op_obj.operation = fields.InstanceOperation.MODIFY_INFO
         lcm_op_obj.is_automatic_invocation = 0
         lcm_op_obj.is_cancel_pending = 0
-        lcm_op_obj.operationParams = vnf_lcm_opoccs.get('operationParams')
+        lcm_op_obj.operation_params = vnf_lcm_opoccs.get('operationParams')
 
         try:
             lcm_op_obj.create()
@@ -2161,7 +2161,9 @@ class Conductor(manager.Manager):
                     vnfd_pkg_data)
         else:
             changed_info = objects.vnf_lcm_op_occs.VnfInfoModifications()
+        if body_data.get('vnf_instance_name'):
             changed_info.vnf_instance_name = body_data.get('vnf_instance_name')
+        if body_data.get('vnf_instance_description'):
             changed_info.vnf_instance_description = body_data.get(
                 'vnf_instance_description')
 

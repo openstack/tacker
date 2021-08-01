@@ -802,7 +802,7 @@ class VnfLcmController(wsgi.Controller):
 
         return self._view_builder.show_lcm_op_occs(vnf_lcm_op_occs)
 
-    @wsgi.response(http_client.OK)
+    @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def update(self, request, id, body):
         context = request.environ['tacker.context']
@@ -906,7 +906,7 @@ class VnfLcmController(wsgi.Controller):
         vnf_lcm_opoccs = {
             'vnf_instance_id': id,
             'id': op_occs_uuid,
-            'state_entered_time': vnf_data.get('updated_at'),
+            'state_entered_time': timeutils.utcnow(),
             'operationParams': str(body)}
 
         self.rpc_api.update(
