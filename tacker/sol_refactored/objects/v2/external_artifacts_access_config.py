@@ -1,0 +1,73 @@
+# Copyright (C) 2021 Nippon Telegraph and Telephone Corporation
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+from tacker.sol_refactored.objects import base
+from tacker.sol_refactored.objects import fields
+
+
+# NFV-SOL 005
+# - v3.3.1 9.5.2.10 (API version: 2.1.0)
+@base.TackerObjectRegistry.register
+class ExternalArtifactsAccessConfigV2(base.TackerObject,
+                                      base.TackerObjectDictCompat):
+
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'artifact': fields.ListOfObjectsField(
+            'ExternalArtifactsAccessConfigV2_Artifact', nullable=True),
+    }
+
+
+@base.TackerObjectRegistry.register
+class ExternalArtifactsAccessConfigV2_Artifact(
+        base.TackerObject, base.TackerObjectDictCompat):
+
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'artifactUri': fields.UriField(nullable=False),
+        'overrideUri': fields.UriField(nullable=True),
+        'authType': fields.EnumField(
+            valid_values=[
+                'BASIC',
+                'OAUTH2_CLIENT_CREDENTIALS',
+            ],
+            nullable=True,
+        ),
+        'userName': fields.StringField(nullable=True),
+        'password': fields.StringField(nullable=True),
+        'paramsOauth2ClientCredentials': fields.ObjectField(
+            'ExternalArtifactsAccessConfigV2_Artifact_'
+            'ParamsOauth2ClientCredentials',
+            nullable=True,
+        ),
+    }
+
+
+@base.TackerObjectRegistry.register
+class ExternalArtifactsAccessConfigV2_Artifact_ParamsOauth2ClientCredentials(
+        base.TackerObject, base.TackerObjectDictCompat):
+
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'clientId': fields.StringField(nullable=False),
+        'clientPassword': fields.StringField(nullable=False),
+        'tokenEndpoint': fields.UriField(nullable=False),
+    }
