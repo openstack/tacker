@@ -296,11 +296,12 @@ class Connection(object):
         self.servers = []
 
     def create_consumer(self, topic, endpoints, fanout=False,
-                        exchange='tacker', host=None):
+                        exchange='tacker', host=None, serializer=None):
         target = oslo_messaging.Target(
             topic=topic, server=host or cfg.CONF.host, fanout=fanout,
             exchange=exchange)
-        serializer = objects_base.TackerObjectSerializer()
+        if not serializer:
+            serializer = objects_base.TackerObjectSerializer()
         server = get_server(target, endpoints, serializer)
         self.servers.append(server)
 

@@ -1,0 +1,87 @@
+heat_template_version: 2013-05-23
+description: 'VDU1 HOT for Sample VNF'
+
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  net1:
+    type: string
+  net2:
+    type: string
+  net3:
+    type: string
+  net4:
+    type: string
+  net5:
+    type: string
+  subnet:
+    type: string
+  affinity:
+    type: string
+
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: flavor }
+      name: VDU1
+      block_device_mapping_v2: [{"volume_id": { get_resource: VirtualStorage }}]
+      networks:
+      - port:
+          get_resource: VDU1_CP1
+      - port:
+          get_resource: VDU1_CP2
+# replace the following line to Port ID when extmanagedVLs' Ports are specified in instantiatevnfrequest
+      - port:
+          get_resource: VDU1_CP3
+      - port:
+          get_resource: VDU1_CP4
+      - port:
+          get_resource: VDU1_CP5
+
+      scheduler_hints:
+        group: {get_param: affinity }
+
+  VirtualStorage:
+    type: OS::Cinder::Volume
+    properties:
+      image: { get_param: image }
+      size: 1
+      volume_type: { get_resource: multi }
+  multi:
+    type: OS::Cinder::VolumeType
+    properties:
+      name: { get_resource: VDU1_CP1 }
+      metadata: { multiattach: "<is> True" }
+
+# extVL without FixedIP or with numDynamicAddresses
+  VDU1_CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net1 }
+
+# extVL with numDynamicAddresses and subnet
+  VDU1_CP2:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net2 }
+      fixed_ips:
+      - subnet: { get_param: subnet}
+
+# CPs of internal VLs are deleted when extmangaedVLs and port are specified in instantiatevnfrequest
+  VDU1_CP3:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net3 }
+
+  VDU1_CP4:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net4 }
+
+  VDU1_CP5:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net5 }

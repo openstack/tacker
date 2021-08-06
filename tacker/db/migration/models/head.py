@@ -21,12 +21,9 @@ Based on this comparison database can be healed with healing migration.
 
 """
 
-from tacker.db import model_base
+from tacker.db import model_base  # noqa
 from tacker.db.nfvo import nfvo_db  # noqa
 from tacker.db.nfvo import ns_db  # noqa
 from tacker.db.nfvo import vnffg_db  # noqa
 from tacker.db.vnfm import vnfm_db  # noqa
-
-
-def get_metadata():
-    return model_base.BASE.metadata
+from tacker.sol_refactored.db.sqlalchemy import models  # noqa

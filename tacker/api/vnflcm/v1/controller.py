@@ -563,6 +563,11 @@ class VnfLcmController(wsgi.Controller):
         return self._view_builder.show(vnf_instance)
 
     @wsgi.response(http_client.OK)
+    def api_versions(self, request):
+        return {'uriPrefix': '/vnflcm/v1',
+                'apiVersions': [{'version': '1.3.0', 'isDeprecated': False}]}
+
+    @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.BAD_REQUEST))
     @api_common.validate_supported_params({'filter'})
     def index(self, request):
