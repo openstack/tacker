@@ -26,6 +26,7 @@ from tacker._i18n import _
 from tacker.common import config
 from tacker import objects
 from tacker import service
+from tacker.sol_refactored import objects as sol_objects
 
 
 oslo_i18n.install("tacker")
@@ -35,6 +36,7 @@ def main():
     # the configuration will be read into the cfg.CONF global data structure
     config.init(sys.argv[1:])
     objects.register_all()
+    sol_objects.register_all()
     if not cfg.CONF.config_file:
         sys.exit(_("ERROR: Unable to find configuration file via the default"
                    " search paths (~/.tacker/, ~/, /etc/tacker/, /etc/) and"

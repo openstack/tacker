@@ -60,6 +60,10 @@ class VnflcmAPIRouter(wsgi.Router):
 
         controller = vnf_lcm_controller.create_resource()
 
+        methods = {"GET": "api_versions"}
+        self._setup_route(mapper, "/api_versions",
+                          methods, controller, default_resource)
+
         # Allowed methods on /vnflcm/v1/vnf_instances resource
         methods = {"GET": "index", "POST": "create"}
         self._setup_route(mapper, "/vnf_instances",

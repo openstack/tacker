@@ -1,0 +1,4 @@
+TOSCA-Meta-File-Version: 1.0
+CSAR-Version: 1.1
+Created-by: Onboarding portal
+Entry-Definitions: Definitions/v2_sample2_top.vnfd.yaml
