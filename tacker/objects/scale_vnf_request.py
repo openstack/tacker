@@ -24,7 +24,7 @@ class ScaleVnfRequest(base.TackerObject):
         'type': fields.StringField(nullable=False),
         'aspect_id': fields.StringField(nullable=False),
         'number_of_steps': fields.IntegerField(nullable=True, default=1),
-        'additional_params': fields.DictOfStringsField(nullable=True,
+        'additional_params': fields.DictOfNullableField(nullable=True,
             default={}),
     }
 

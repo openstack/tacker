@@ -14,6 +14,7 @@
 #    under the License.
 
 import ipaddress
+import json
 import os
 import time
 
@@ -36,17 +37,22 @@ from tacker.vnfm.infra_drivers.openstack import heat_client as hc
 from tacker.vnfm.mgmt_drivers import vnflcm_abstract_driver
 from tacker.vnfm import vim_client
 
+CHECK_POD_STATUS_RETRY_COUNT = 20
+COMMAND_WAIT_COMPLETE_TIME = 0.2
 COMMAND_WAIT_RETRY_TIME = 30
 CONF = cfg.CONF
 CONNECT_REMOTE_SERVER_RETRY_COUNT = 4
+DRAIN_TIMEOUT = 300
 K8S_CMD_TIMEOUT = 30
 K8S_DEPLOY_TIMEOUT = 300
 K8S_INSTALL_TIMEOUT = 2700
 LOG = logging.getLogger(__name__)
+NEXT_CHECK_INTERVAL_TIME = 15
 ROLE_MASTER = 'master'
 ROLE_WORKER = 'worker'
 SERVER_WAIT_COMPLETE_TIME = 240
 TOKEN_CREATE_WAIT_TIME = 30
+UNINSTALL_NODE_TIMEOUT = 900
 
 
 class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
@@ -281,7 +287,7 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 retry -= 1
                 if retry == 0:
                     LOG.error(e)
-                    raise paramiko.SSHException()
+                    raise exceptions.MgmtDriverOtherError(error_message=e)
                 time.sleep(SERVER_WAIT_COMPLETE_TIME)
 
     def _send_or_receive_file(self, host, user, password,
@@ -295,13 +301,14 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             sftp.put(local_file, remote_file)
         connect.close()
 
-    def _execute_command(self, commander, ssh_command, timeout, type, retry):
+    def _execute_command(self, commander, ssh_command, timeout, type, retry,
+                         input_data=None):
         eventlet.monkey_patch()
         while retry >= 0:
             try:
                 with eventlet.Timeout(timeout, True):
                     result = commander.execute_command(
-                        ssh_command, input_data=None)
+                        ssh_command, input_data)
                     break
             except eventlet.timeout.Timeout:
                 LOG.debug('It is time out, When execute command: '
@@ -315,7 +322,7 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                                       '{}.'.format(ssh_command))
                 time.sleep(COMMAND_WAIT_RETRY_TIME)
         if type == 'common':
-            if result.get_return_code() != 0:
+            if result.get_return_code() != 0 and result.get_stderr():
                 err = result.get_stderr()
                 LOG.error(err)
                 raise exceptions.MgmtDriverRemoteCommandError(err_info=err)
@@ -353,12 +360,14 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             'all': {
                 'hosts': {},
                 'children': {
-                    'kube-master': {'hosts': {}},
-                    'kube-node': {'hosts': {}},
+                    'kube_control_plane': {'hosts': {}},
+                    'kube_node': {'hosts': {}},
                     'etcd': {'hosts': {}},
-                    'k8s-cluster': {
-                        'children': {'kube-master': None, 'kube-node': None}},
-                    'calico-rr': {'hosts': {}}}}}
+                    'k8s_cluster': {
+                        'children': {'kube_control_plane': None,
+                                     'kube_node': None}},
+                    'calico_rr': {'hosts': {}}}}}
+
         for master_vm in master_vm_dict_list:
             key = 'master' + master_vm.get('nic_ip').split('.')[-1]
             hosts_yaml_content['all']['hosts'][key] = {
@@ -367,7 +376,7 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 'ansible_user': master_node.get('username'),
                 'ansible_password': master_node.get('username'),
             }
-            hosts_yaml_content['all']['children']['kube-master'][
+            hosts_yaml_content['all']['children']['kube_control_plane'][
                 'hosts'][key] = None
             hosts_yaml_content['all']['children']['etcd'][
                 'hosts'][key] = None
@@ -380,7 +389,7 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 'ansible_user': worker_node.get('username'),
                 'ansible_password': worker_node.get('username'),
             }
-            hosts_yaml_content['all']['children']['kube-node'][
+            hosts_yaml_content['all']['children']['kube_node'][
                 'hosts'][key] = None
 
         return hosts_yaml_content
@@ -793,17 +802,545 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 0)
         commander.close_session()
 
+    def _uninstall_worker_node(self, ssh_command, ansible):
+        end_str = ('# ', '$ ', '? ', '% ')
+        end_flag = False
+        result_end_flag = False
+        command_return_code = 0
+        try:
+            trans = paramiko.Transport((ansible.get('ip_address'), 22))
+            trans.start_client()
+            trans.auth_password(username=ansible.get('username'),
+                                password=ansible.get('password'))
+            channel = trans.open_session()
+            channel.settimeout(UNINSTALL_NODE_TIMEOUT)
+            channel.get_pty()
+            buff = ''
+            channel.invoke_shell()
+            channel.send(ssh_command + '\n')
+            while True:
+                time.sleep(COMMAND_WAIT_COMPLETE_TIME)
+                resp = channel.recv(1024)
+                resp = resp.decode('utf-8')
+                buff += resp
+                if "Type 'yes' to delete nodes" in resp:
+                    channel.send('yes\n')
+                    time.sleep(COMMAND_WAIT_COMPLETE_TIME)
+                    resp = channel.recv(1024)
+                    resp = resp.decode('utf-8')
+                    buff += resp
+                for end_s in end_str:
+                    if resp.endswith(end_s):
+                        end_flag = True
+                        break
+                if end_flag:
+                    break
+                if 'PLAY RECAP' in resp:
+                    result_end_flag = True
+                if result_end_flag and 'failed=0' not in resp:
+                    command_return_code = 2
+            channel.close()
+            trans.close()
+            return buff, command_return_code
+        except (exceptions.NotAuthorized, paramiko.SSHException,
+                paramiko.ssh_exception.NoValidConnectionsError) as e:
+            LOG.debug(e)
+            raise exceptions.MgmtDriverOtherError(error_message=e)
+
     @log.log
     def scale_start(self, context, vnf_instance,
                     scale_vnf_request, grant,
                     grant_request, **kwargs):
-        pass
+        # If the type of scale is SCALE_IN
+        if scale_vnf_request.type == 'SCALE_IN':
+            scale_name_list = kwargs.get('scale_name_list')
+            nest_stack_id = vnf_instance.instantiated_vnf_info.instance_id
+            resource_name = scale_vnf_request.aspect_id
+            vim_connection_info = \
+                self._get_vim_connection_info(context, vnf_instance)
+
+            # Get the VM's information of worker node, LB and ansible
+            additional_params = \
+                vnf_instance.instantiated_vnf_info.additional_params
+            k8s_cluster_installation_param = \
+                additional_params.get('k8s_cluster_installation_param')
+            # If additional_params exist in scale_vnf_request
+            worker_node_default = \
+                k8s_cluster_installation_param.get('worker_node')
+            external_lb_param_default = \
+                k8s_cluster_installation_param.get('external_lb_param')
+            ansible_default = \
+                k8s_cluster_installation_param.get('ansible')
+
+            # If additional_params exist in scale_vnf_request
+            if scale_vnf_request.additional_params:
+                # Get the VM's information from scale_vnf_request
+                worker_node = scale_vnf_request. \
+                    additional_params.get('worker_node', worker_node_default)
+                external_lb_param = scale_vnf_request. \
+                    additional_params.get('external_lb_param',
+                                          external_lb_param_default)
+                ansible = scale_vnf_request. \
+                    additional_params.get('ansible', ansible_default)
+            else:
+                worker_node = worker_node_default
+                external_lb_param = external_lb_param_default
+                ansible = ansible_default
+
+            # Get the ssh ip of LB
+            heatclient = hc.HeatClient(vim_connection_info.access_info)
+            resource_info = heatclient.resources. \
+                get(stack_id=nest_stack_id,
+                    resource_name=external_lb_param.get('ssh_cp_name'))
+            # If the VM's floating ip is not None
+            # Get floating ip from resource_info and assign it to ssh ip
+            lb_ssh_ip = self._get_lb_or_worker_ssh_ip(resource_info, True)
+
+            # Get the ip of scale in worker nodes
+            worker_group_resource = heatclient.resources. \
+                get(stack_id=nest_stack_id,
+                    resource_name=resource_name)
+            # if worker_group_resource is None
+            if not worker_group_resource:
+                LOG.error("The specified resource was not found.")
+                raise exceptions.MgmtDriverOtherError(
+                    error_message='The specified resource was not found.')
+            worker_resource_list = \
+                heatclient.resources.list(
+                    stack_id=worker_group_resource.physical_resource_id)
+
+            worker_ip_dict_list = []
+            for worker_resource in worker_resource_list:
+                # If worker_resource.resource_name exists in scale_name_list
+                if worker_resource.resource_name in scale_name_list:
+                    stack_id = worker_resource.physical_resource_id
+                    # Get the ssh_ip, nic ip of worker node
+                    worker_ssh_ip, worker_nic_ip = self._get_ssh_ip_and_nic_ip(
+                        heatclient, stack_id, worker_node)
+
+                    # Create worker_ip_dict_list data
+                    ip_dict = {"ssh_ip": worker_ssh_ip,
+                               "nic_ip": worker_nic_ip}
+                    worker_ip_dict_list.append(ip_dict)
+
+            # Get the hostname of the scale in worker node.
+            worker_hostnames = []
+            for worker_ip_dict in worker_ip_dict_list:
+                # get worker host names
+                worker_hostname = \
+                    'worker' + worker_ip_dict.get("nic_ip").split('.')[-1]
+                worker_hostnames.append(worker_hostname)
+
+            # Migrate the pod of the worker node
+            for worker_hostname in worker_hostnames:
+                #  init lb RemoteCommandExecutor
+                external_lb_commander = self._init_commander_and_set_script(
+                    external_lb_param.get('ssh_username'),
+                    external_lb_param.get('ssh_password'),
+                    lb_ssh_ip,
+                    K8S_CMD_TIMEOUT
+                )
+
+                # check worker_node exist in k8s-cluster
+                ssh_command = "kubectl get node --no-headers {}" \
+                              " 2> /dev/null".format(worker_hostname)
+                result = self._execute_command(external_lb_commander,
+                                               ssh_command,
+                                               K8S_CMD_TIMEOUT,
+                                               'common',
+                                               0)
+                update_hosts_yaml_path = ansible.get(
+                    'transferring_inventory_path') + '/hosts.yaml'
+                # Update inventory file
+                self._modify_ansible_user_or_password(update_hosts_yaml_path,
+                                                      worker_node, ansible)
+                if result:
+                    ssh_command = \
+                        "kubectl get pods --field-selector=spec." \
+                        "nodeName={} -o json".format(worker_hostname)
+                    result = self._execute_command(external_lb_commander,
+                                                   ssh_command,
+                                                   K8S_CMD_TIMEOUT,
+                                                   'common',
+                                                   0)
+
+                    # Get the names of all pods on the worker node
+                    daemonset_content_str = ''.join(result)
+                    daemonset_content = json.loads(
+                        daemonset_content_str)
+                    ssh_command = "kubectl drain {}" \
+                                  " --ignore-daemonsets" \
+                                  " --delete-emptydir-data" \
+                                  " --timeout={}s".format(worker_hostname,
+                                                          DRAIN_TIMEOUT)
+                    self._execute_command(external_lb_commander,
+                                          ssh_command,
+                                          K8S_DEPLOY_TIMEOUT,
+                                          'common', 0)
+                    self.evacuate_wait(external_lb_commander,
+                                       daemonset_content)
+                    external_lb_commander.close_session()
+
+                    # uninstall worker node
+                    ssh_command = "ansible-playbook -i" \
+                                  " {}/hosts.yaml" \
+                                  " --become --become-user=root " \
+                                  "{}/remove-node.yml -e" \
+                                  " node={}".format(ansible.get(
+                                      'transferring_inventory_path'),
+                                      ansible.get('kubespray_root_path'),
+                                      worker_hostname)
+                    try:
+                        with eventlet.Timeout(K8S_INSTALL_TIMEOUT, True):
+                            result, code = self._uninstall_worker_node(
+                                ssh_command, ansible)
+                            if code != 0:
+                                msg = 'Fail to remove the worker node {}'.\
+                                    format(worker_hostname)
+                                LOG.error(result)
+                                raise exceptions.MgmtDriverOtherError(
+                                    error_message=msg)
+                            LOG.debug(result)
+                    except eventlet.timeout.Timeout:
+                        msg = 'It is time out while deleting' \
+                              ' the worker node {}'.format(worker_hostname)
+                        LOG.error(msg)
+                        raise exceptions.MgmtDriverOtherError(
+                            error_message=msg)
+
+                # Gets the line of rows where worker_hostname resides
+                while True:
+                    commander_k8s = self._init_commander_and_set_script(
+                        ansible.get('username'), ansible.get('password'),
+                        ansible.get('ip_address'), K8S_CMD_TIMEOUT)
+                    ssh_command = 'grep -n "{}" {} | head -1 ' \
+                                  '| cut -d : -f 1'\
+                        .format(worker_hostname, update_hosts_yaml_path)
+                    host_name = self._execute_command(
+                        commander_k8s, ssh_command,
+                        K8S_CMD_TIMEOUT, 'common', 0)
+                    if host_name:
+                        host_name_line = host_name[0].replace('\n', '')
+                        if host_name_line.isdigit():
+                            host_name_line = int(host_name_line, base=0)
+                            ssh_command = 'sed -n {}P {}' \
+                                .format(host_name_line + 1,
+                                        update_hosts_yaml_path)
+                            is_hosts_or_children = self._execute_command(
+                                commander_k8s, ssh_command,
+                                K8S_CMD_TIMEOUT, 'common', 0)[0]
+                            if "ansible_host" in is_hosts_or_children:
+                                ssh_command = "sed -i '{}, {}d' {}" \
+                                    .format(host_name_line,
+                                            host_name_line + 4,
+                                            update_hosts_yaml_path)
+                            else:
+                                ssh_command = "sed -i " \
+                                              "'{}d' {}"\
+                                    .format(host_name_line,
+                                            update_hosts_yaml_path)
+                            self._execute_command(
+                                commander_k8s, ssh_command,
+                                K8S_CMD_TIMEOUT, 'common', 0)
+                    else:
+                        break
+                commander_k8s.close_session()
+
+                # Update ExternalLB's haproxy
+                external_lb_commander = self._init_commander_and_set_script(
+                    external_lb_param.get('ssh_username'),
+                    external_lb_param.get('ssh_password'),
+                    lb_ssh_ip,
+                    K8S_CMD_TIMEOUT
+                )
+                ssh_command = 'grep -n "{}" /etc/haproxy/haproxy.cfg | ' \
+                              'cut -d : -f 1'.format(worker_hostname)
+                result = self._execute_command(
+                    external_lb_commander, ssh_command,
+                    K8S_CMD_TIMEOUT, 'common', 0)
+                if result:
+                    worker_host_num = result[0].replace('\n', '')
+                    if worker_host_num.isdigit():
+                        lb_server_num = int(worker_host_num, base=0)
+                        ssh_command = "sudo sed -i '{}d' " \
+                                      "/etc/haproxy/haproxy.cfg" \
+                            .format(lb_server_num)
+                        self._execute_command(
+                            external_lb_commander, ssh_command,
+                            K8S_CMD_TIMEOUT, 'common', 0)
+                        self._restart_haproxy(external_lb_commander)
+                external_lb_commander.close_session()
+        else:
+            pass
+
+    def evacuate_wait(self, commander, daemonset_content):
+        # scale: evacuate wait
+        wait_flag = True
+        retry_count = CHECK_POD_STATUS_RETRY_COUNT
+        while wait_flag and retry_count > 0:
+            if daemonset_content.get('items'):
+                ssh_command = "kubectl get pods --all-namespaces -o json"
+                result = self._execute_command(
+                    commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 3)
+                pods_list = json.loads(''.join(result)).get('items')
+                pods_names = [pod.get('metadata', {}).get('name')
+                              for pod in pods_list]
+                for daemonset in daemonset_content.get('items'):
+                    daemonset_name = daemonset.get('metadata', {}).get('name')
+                    if daemonset_name in pods_names and \
+                            'calico-node' not in daemonset_name and \
+                            'kube-proxy' not in daemonset_name:
+                        break
+                else:
+                    wait_flag = False
+            else:
+                break
+            if not wait_flag:
+                break
+            time.sleep(NEXT_CHECK_INTERVAL_TIME)
+            retry_count -= 1
+
+    def _get_lb_or_worker_ssh_ip(self, resource_info, is_lb):
+        if resource_info.attributes.get('floating_ip_address'):
+            ssh_ip = resource_info.attributes.get('floating_ip_address')
+        else:
+            ssh_ip = resource_info.attributes. \
+                get('fixed_ips')[0].get('ip_address')
+
+        if ssh_ip is None:
+            if is_lb:
+                LOG.error("Failed to get the LB's ssh ip.")
+                raise exceptions.MgmtDriverOtherError(
+                    error_message="Failed to get the LB's ssh ip.")
+            LOG.error("Failed to get the Worker's ssh ip.")
+            raise exceptions.MgmtDriverOtherError(
+                error_message="Failed to get the Worker's ssh ip.")
+        return ssh_ip
+
+    def _restart_haproxy(self, external_lb_commander):
+        # restart haproxy
+        ssh_command = 'sudo systemctl restart haproxy'
+        self._execute_command(
+            external_lb_commander, ssh_command,
+            K8S_CMD_TIMEOUT, 'common', 0)
+        ssh_command = 'sudo systemctl status haproxy | ' \
+                      'grep Active'
+        self._execute_command(
+            external_lb_commander, ssh_command,
+            K8S_CMD_TIMEOUT, 'common', 0)
 
     @log.log
     def scale_end(self, context, vnf_instance,
                   scale_vnf_request, grant,
                   grant_request, **kwargs):
-        pass
+        if scale_vnf_request.type == 'SCALE_OUT':
+            k8s_cluster_installation_param = \
+                vnf_instance.instantiated_vnf_info.additional_params.\
+                get('k8s_cluster_installation_param')
+            scale_out_id_list = kwargs.get('scale_out_id_list')
+            nest_stack_id = vnf_instance.instantiated_vnf_info.instance_id
+
+            worker_node_default = \
+                k8s_cluster_installation_param.get('worker_node')
+            external_lb_param_default = \
+                k8s_cluster_installation_param.get('external_lb_param')
+            ansible_default = \
+                k8s_cluster_installation_param.get('ansible')
+
+            # If additional_params exist in scale_vnf_request
+            if scale_vnf_request.additional_params:
+                # Get the VM's information from scale_vnf_request
+                worker_node = scale_vnf_request. \
+                    additional_params.get('worker_node', worker_node_default)
+                external_lb_param = scale_vnf_request. \
+                    additional_params.get('external_lb_param',
+                                          external_lb_param_default)
+                ansible = scale_vnf_request. \
+                    additional_params.get('ansible', ansible_default)
+            else:
+                worker_node = worker_node_default
+                external_lb_param = external_lb_param_default
+                ansible = ansible_default
+
+            # execute function vnflcm_utils._get_vim --> vim_connection_info
+            vim_connection_info = \
+                self._get_vim_connection_info(context, vnf_instance)
+
+            # Get the ssh ip of LB
+            heatclient = hc.HeatClient(vim_connection_info.access_info)
+            resource_info = heatclient.resources. \
+                get(stack_id=nest_stack_id,
+                    resource_name=external_lb_param.get('ssh_cp_name'))
+            # If the VM's floating ip is not None
+            # Get floating ip from resource_info and assign it to ssh ip
+            lb_ssh_ip = self._get_lb_or_worker_ssh_ip(resource_info, True)
+
+            # get scale-out worker's info
+            worker_ip_dict_list = []
+            for scale_out_id in scale_out_id_list:
+                stack_id = scale_out_id
+                # Get the ssh_ip, nic ip of worker node
+                worker_ssh_ip, worker_nic_ip = self._get_ssh_ip_and_nic_ip(
+                    heatclient, stack_id, worker_node)
+
+                # Create worker_ip_dict_list data
+                ip_dict = {"ssh_ip": worker_ssh_ip, "nic_ip": worker_nic_ip}
+                worker_ip_dict_list.append(ip_dict)
+
+            # read hosts.yaml file contents
+            update_hosts_yaml_path = ansible.get(
+                'transferring_inventory_path') + '/hosts.yaml'
+            local_hosts_yaml_path = '/tmp/hosts.yaml'
+            # update hosts.yaml
+            hosts_content = self._modify_ansible_user_or_password(
+                update_hosts_yaml_path, worker_node, ansible)
+
+            for worker_ip_dict in worker_ip_dict_list:
+                # Update inventory file
+                # update hosts.yaml file contents
+                worker_host_name = 'worker' + \
+                                   worker_ip_dict.get('nic_ip').split('.')[-1]
+                hosts_content['all']['hosts'][worker_host_name] = {
+                    'ansible_host': worker_ip_dict.get('ssh_ip'),
+                    'ip': worker_ip_dict.get('nic_ip'),
+                    'ansible_user': worker_node.get('username'),
+                    'ansible_password': worker_node.get('password')
+                }
+                hosts_content['all']['children']['kube_node'][
+                    'hosts'][worker_host_name] = None
+            LOG.debug("get hosts_content: {}".format(hosts_content))
+            with open(local_hosts_yaml_path, 'w', encoding='utf-8') as nf:
+                yaml.safe_dump(hosts_content, nf,
+                               default_flow_style=False)
+            self._send_or_receive_file(
+                ansible.get('ip_address'), ansible.get('username'),
+                ansible.get('password'), update_hosts_yaml_path,
+                local_hosts_yaml_path, 'send')
+
+            # check worker_VM can be accessed via ssh
+            self._init_commander_and_set_script(
+                worker_node.get('username'), worker_node.get('password'),
+                worker_ip_dict_list[0].get('ssh_ip'), K8S_CMD_TIMEOUT)
+
+            # Install worker node
+            commander_k8s = self._init_commander_and_set_script(
+                ansible.get('username'), ansible.get('password'),
+                ansible.get('ip_address'),
+                K8S_INSTALL_TIMEOUT * len(worker_ip_dict_list))
+            facts_yaml_path = ansible.get(
+                'kubespray_root_path') + '/facts.yml'
+            ssh_command = "ansible-playbook -i" \
+                          " {}/hosts.yaml" \
+                          " --become --become-user=root {}" \
+                .format(ansible.get('transferring_inventory_path'),
+                        facts_yaml_path)
+            self._execute_command(
+                commander_k8s, ssh_command,
+                K8S_DEPLOY_TIMEOUT, 'common', 0)
+
+            scale_yaml_path = ansible.get(
+                'kubespray_root_path') + '/scale.yml'
+            ssh_command = "ansible-playbook -i" \
+                          " {}/hosts.yaml" \
+                          " --become --become-user=root {}".format(
+                              ansible.get('transferring_inventory_path'),
+                              scale_yaml_path)
+            self._execute_command(
+                commander_k8s, ssh_command,
+                K8S_INSTALL_TIMEOUT * len(worker_ip_dict_list),
+                'install', 0)
+            commander_k8s.close_session()
+
+            # Update ExternalLB's haproxy.cfg
+            external_lb_commander = self._init_commander_and_set_script(
+                external_lb_param.get('ssh_username'),
+                external_lb_param.get('ssh_password'),
+                lb_ssh_ip,
+                K8S_CMD_TIMEOUT
+            )
+            add_row_data = ''
+            for worker_ip_dict in worker_ip_dict_list:
+                worker_host_name = 'worker' + \
+                                   worker_ip_dict.get('nic_ip').split('.')[-1]
+                nic_ip = worker_ip_dict.get('nic_ip')
+                row_data = '    server  {} {} check'.format(
+                    worker_host_name, nic_ip)
+                add_row_data += row_data + '\n'
+
+            ssh_command = 'grep -n "backend kubernetes-nodeport" ' \
+                          '/etc/haproxy/haproxy.cfg | head -1 | cut -d : -f 1'
+            result = self._execute_command(external_lb_commander,
+                                           ssh_command,
+                                           K8S_INSTALL_TIMEOUT,
+                                           'common', 0)[0].replace('\n', '')
+            write_start_row = int(result) + 2
+            ssh_command = 'sudo sed -i "{}a\\{}" ' \
+                          '/etc/haproxy/haproxy.cfg'.format(
+                              write_start_row, add_row_data)
+            LOG.debug("ssh_command: {}".format(ssh_command))
+            self._execute_command(
+                external_lb_commander, ssh_command,
+                K8S_INSTALL_TIMEOUT, 'common', 0)
+
+            self._restart_haproxy(external_lb_commander)
+            external_lb_commander.close_session()
+        else:
+            pass
+
+    def _modify_ansible_user_or_password(self, host_path,
+                                         worker_node, ansible):
+        try:
+            # read hosts.yml
+            local_hosts_yaml_path = '/tmp/hosts.yaml'
+            self._send_or_receive_file(
+                ansible.get('ip_address'), ansible.get('username'),
+                ansible.get('password'), host_path,
+                local_hosts_yaml_path, 'receive')
+            with open(local_hosts_yaml_path, 'r', encoding='utf-8') as f:
+                file_content = f.read()
+                hosts_content = yaml.load(file_content)
+            worker_nodes = hosts_content['all']['children']['kube_node'][
+                'hosts']
+            LOG.debug("worker_nodes: {}".format(worker_nodes))
+            if worker_nodes:
+                kube_node_hosts_keys = list(worker_nodes.keys())
+                LOG.debug("kube_node_keys: {}".format(kube_node_hosts_keys))
+                hosts_key = list(hosts_content['all']['hosts'].keys())
+                LOG.debug("hosts_key: {}".format(hosts_key))
+                need_modify = False
+                for kube_node_hosts in kube_node_hosts_keys:
+                    if kube_node_hosts in hosts_key:
+                        content = \
+                            hosts_content['all']['hosts'][kube_node_hosts]
+                        LOG.debug("get node content: {}".format(content))
+                        ansible_user = content.get("ansible_user")
+                        ansible_password = content.get("ansible_password")
+                        if ansible_user != worker_node.get('username'):
+                            hosts_content['all']['hosts'][kube_node_hosts][
+                                'ansible_user'] = worker_node.get('username')
+                            need_modify = True
+                        if ansible_password != worker_node.get('password'):
+                            hosts_content['all']['hosts'][kube_node_hosts][
+                                'ansible_password'] = \
+                                worker_node.get('password')
+                            need_modify = True
+                if need_modify:
+                    with open(local_hosts_yaml_path, 'w', encoding='utf-8') \
+                            as nf:
+                        yaml.safe_dump(hosts_content, nf,
+                                       default_flow_style=False)
+                    self._send_or_receive_file(
+                        ansible.get('ip_address'), ansible.get('username'),
+                        ansible.get('password'), host_path,
+                        local_hosts_yaml_path, 'send')
+                return hosts_content
+            os.remove(local_hosts_yaml_path)
+        except Exception:
+            LOG.debug('modify ansible_user or ansible_password has error: {}.'
+                      .format(ValueError))
+            raise exceptions.MgmtDriverOtherError(
+                error_message='modify user or password has error: {}.'.format(
+                    Exception))
 
     @log.log
     def heal_start(self, context, vnf_instance,
