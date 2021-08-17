@@ -25,6 +25,7 @@ import yaml
 
 from heatclient.v1 import resources
 from oslo_serialization import jsonutils
+from oslo_utils import timeutils
 from tacker.common import exceptions
 from tacker.common import utils as cutils
 from tacker import context
@@ -1500,7 +1501,18 @@ class TestOpenStack(base.FixturedTestCase):
         self.requests_mock.register_uri('GET', url, json=json,
                                         headers=self.json_headers)
 
-    def test_scale(self):
+    @mock.patch('time.sleep')
+    @mock.patch('oslo_utils.timeutils.utcnow')
+    @mock.patch.object(hc.HeatClient, 'resource_metadata')
+    def test_scale(self,
+                   mock_resource_metadata,
+                   mock_utcnow,
+                   mock_sleep):
+
+        mock_resource_metadata.return_value = {}
+        mock_utcnow.return_value = timeutils.parse_strtime(
+            '2000-01-01T00:00:00.000000')
+
         dummy_event = fd_utils.get_dummy_event()
         self._responses_in_resource_event_list(dummy_event)
         # response for heat_client's resource_signal()
@@ -1512,6 +1524,70 @@ class TestOpenStack(base.FixturedTestCase):
                                     auth_attr=None,
                                     policy=fd_utils.get_dummy_policy_dict(),
                                     region_name=None)
+
+        mock_sleep.assert_not_called()
+        self.assertEqual(dummy_event['id'], event_id)
+
+    @mock.patch('time.sleep')
+    @mock.patch('oslo_utils.timeutils.utcnow')
+    @mock.patch.object(hc.HeatClient, 'resource_metadata')
+    def test_scale_cooldown(self,
+                            mock_resource_metadata,
+                            mock_utcnow,
+                            mock_sleep):
+        """A case where cooldown hasn't ended"""
+
+        mock_resource_metadata.return_value = {'cooldown_end':
+                                               {'2000-01-01T00:00:01.000000':
+                                                'cooldown_reason'},
+                                               'scaling_in_progress': 'false'}
+        mock_utcnow.return_value = timeutils.parse_strtime(
+            '2000-01-01T00:00:00.000000')
+
+        dummy_event = fd_utils.get_dummy_event()
+        self._responses_in_resource_event_list(dummy_event)
+        # response for heat_client's resource_signal()
+        url = self.heat_url + '/stacks/' + self.instance_uuid + (
+            '/myStack/60f83b5e/resources/SP1_scale_out/signal')
+        self.requests_mock.register_uri('POST', url, json={},
+                                        headers=self.json_headers)
+        event_id = self.openstack.scale(plugin=self, context=self.context,
+                                    auth_attr=None,
+                                    policy=fd_utils.get_dummy_policy_dict(),
+                                    region_name=None)
+
+        mock_sleep.assert_called_once_with(1)
+        self.assertEqual(dummy_event['id'], event_id)
+
+    @mock.patch('time.sleep')
+    @mock.patch('oslo_utils.timeutils.utcnow')
+    @mock.patch.object(hc.HeatClient, 'resource_metadata')
+    def test_scale_cooldown_ended(self,
+                                  mock_resource_metadata,
+                                  mock_utcnow,
+                                  mock_sleep):
+        """A case where cooldown has already ended"""
+
+        mock_resource_metadata.return_value = {'cooldown_end':
+                                               {'2000-01-01T00:00:00.000000':
+                                                'cooldown_reason'},
+                                               'scaling_in_progress': 'false'}
+        mock_utcnow.return_value = timeutils.parse_strtime(
+            '2000-01-01T00:00:01.000000')
+
+        dummy_event = fd_utils.get_dummy_event()
+        self._responses_in_resource_event_list(dummy_event)
+        # response for heat_client's resource_signal()
+        url = self.heat_url + '/stacks/' + self.instance_uuid + (
+            '/myStack/60f83b5e/resources/SP1_scale_out/signal')
+        self.requests_mock.register_uri('POST', url, json={},
+                                        headers=self.json_headers)
+        event_id = self.openstack.scale(plugin=self, context=self.context,
+                                    auth_attr=None,
+                                    policy=fd_utils.get_dummy_policy_dict(),
+                                    region_name=None)
+
+        mock_sleep.assert_not_called()
         self.assertEqual(dummy_event['id'], event_id)
 
     def _response_in_resource_get_list(self, stack_id=None,

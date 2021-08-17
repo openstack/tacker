@@ -301,6 +301,10 @@ class VnfPreInstantiationFailed(TackerException):
                 "%(error)s")
 
 
+class VnfScaleFailed(TackerException):
+    message = _("Scale Vnf failed for vnf %(id)s, error: %(error)s")
+
+
 class VnfHealFailed(TackerException):
     message = _("Heal Vnf failed for vnf %(id)s, error: %(error)s")
 

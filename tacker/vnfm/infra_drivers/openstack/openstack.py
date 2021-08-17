@@ -826,8 +826,21 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                                 policy_rsc, limit=1,
                                                 sort_dir='desc',
                                                 sort_keys='event_time')
+        stack_id = policy['instance_id']
+        policy_name = policy['name']
+        # Guard for differentiate call from legacy or ETSI code
+        # TODO(h-asahina) :  Find more sophisticated ways to detect legacy
+        if 'before_error_point' not in policy['vnf']:
+            policy_name += '_group'
 
-        heatclient.resource_signal(policy['instance_id'], policy_rsc)
+        cooldown = heatclient.get_cooldown(stack_id, policy_name)
+        if cooldown:
+            LOG.info('Wait %(cooldown)s seconds for VNF scaling until the '
+                     'cooldown of stack %(stack)s ends',
+                     {'cooldown': cooldown, 'stack': policy['instance_id']})
+            time.sleep(cooldown)
+
+        heatclient.resource_signal(stack_id, policy_rsc)
         return events[0].id
 
     @log.log
@@ -838,6 +851,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         stack_id = policy['instance_id']
         policy_name = policy['name']
         # Guard for differentiate call from legacy or ETSI code
+        # TODO(h-asahina) :  Find more sophisticated ways to detect legacy
         if 'before_error_point' not in policy['vnf']:
             policy_name += '_group'
         grp = heatclient.resource_get(stack_id, policy_name)

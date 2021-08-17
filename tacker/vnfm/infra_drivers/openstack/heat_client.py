@@ -14,6 +14,7 @@ import sys
 
 from heatclient import exc as heatException
 from oslo_log import log as logging
+from oslo_utils import timeutils
 
 from tacker.common import clients
 from tacker.extensions import vnfm
@@ -44,6 +45,15 @@ class HeatClient(object):
         for sub_stack in self.stacks.list(**{"filters": kwargs}):
             stack = sub_stack
         return stack
+
+    def get_cooldown(self, stack_id, rsc_name):
+        metadata = self.resource_metadata(stack_id, rsc_name)
+        if 'cooldown_end' in metadata:
+            now = timeutils.utcnow()
+            cooldown_end = timeutils.parse_strtime(
+                next(iter(metadata['cooldown_end'].keys())))
+            return max(0, timeutils.delta_seconds(now, cooldown_end))
+        return None
 
     def create(self, fields):
         fields = fields.copy()

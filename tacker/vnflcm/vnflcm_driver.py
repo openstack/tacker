@@ -20,9 +20,7 @@ import hashlib
 import inspect
 import os
 import re
-import time
 import traceback
-import yaml
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -1250,14 +1248,21 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         self._vnf_manager = driver_manager.DriverManager(
             'tacker.tacker.vnfm.drivers',
             cfg.CONF.tacker.infra_driver)
-        policy = {}
-        policy['instance_id'] = vnf_info['instance_id']
-        policy['name'] = scale_vnf_request.aspect_id
-        policy['vnf'] = vnf_info
+
         if scale_vnf_request.type == 'SCALE_IN':
-            policy['action'] = 'in'
+            action = 'in'
+        elif scale_vnf_request.type == 'SCALE_OUT':
+            action = 'out'
         else:
-            policy['action'] = 'out'
+            msg = 'Unknown scale type: %s' % scale_vnf_request.type
+            raise exceptions.VnfScaleFailed(id=vnf_info['instance_id'],
+                                            error=msg)
+
+        policy = {'instance_id': vnf_info['instance_id'],
+                  'name': scale_vnf_request.aspect_id,
+                  'vnf': vnf_info,
+                  'action': action}
+
         LOG.debug(
             "is_reverse: %s",
             scale_vnf_request.additional_params.get('is_reverse'))
@@ -1280,14 +1285,19 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             policy['delta_num'] = vnflcm_utils.get_scale_delta_num(
                 extract_policy_infos=extract_policy_infos,
                 aspect_id=scale_vnf_request.aspect_id)
-        else:
+        elif vim_connection_info.vim_type == 'openstack':
             # NOTE(ueha): The logic of Scale for OpenStack VIM is widely hard
             # coded with `vnf_info`. This dependency is to be refactored in
             # future.
             scale_json = vnf_info['attributes']['scale_group']
-            scaleGroupDict = jsonutils.loads(scale_json)
+            scale_group_dict = jsonutils.loads(scale_json)
             key_aspect = scale_vnf_request.aspect_id
-            default = scaleGroupDict['scaleGroupDict'][key_aspect]['default']
+            default = scale_group_dict['scaleGroupDict'][key_aspect]['default']
+        else:
+            msg = 'Unknown vim type: %s' % vim_connection_info.vim_type
+            raise exceptions.VnfScaleFailed(id=vnf_info['instance_id'],
+                                            error=msg)
+
         if (scale_vnf_request.type == 'SCALE_IN' and
                 scale_vnf_request.additional_params['is_reverse'] == 'True'):
             self._vnf_manager.invoke(
@@ -1334,33 +1344,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 region_name=vim_connection_info.access_info.get('region_name')
             )
         else:
-            cooldown = None
-            if vim_connection_info.vim_type != 'kubernetes':
-                # NOTE(ueha): The logic of Scale for OpenStack VIM is widely
-                # hard coded with `vnf_info`. This dependency is to be
-                # refactored in future.
-                heat_template = vnf_info['attributes']['heat_template']
-                policy_in_name = scale_vnf_request.aspect_id + '_scale_in'
-                policy_out_name = scale_vnf_request.aspect_id + '_scale_out'
-
-                heat_resource = yaml.safe_load(heat_template)
-                if scale_vnf_request.type == 'SCALE_IN':
-                    policy['action'] = 'in'
-                    policy_temp = heat_resource['resources'][policy_in_name]
-                    policy_prop = policy_temp['properties']
-                    cooldown = policy_prop.get('cooldown')
-                    policy_name = policy_in_name
-                else:
-                    policy['action'] = 'out'
-                    policy_temp = heat_resource['resources'][policy_out_name]
-                    policy_prop = policy_temp['properties']
-                    cooldown = policy_prop.get('cooldown')
-                    policy_name = policy_out_name
-
-                policy_temp = heat_resource['resources'][policy_name]
-                policy_prop = policy_temp['properties']
-
-            for i in range(scale_vnf_request.number_of_steps):
+            for _ in range(scale_vnf_request.number_of_steps):
                 last_event_id = self._vnf_manager.invoke(
                     vim_connection_info.vim_type,
                     'scale',
@@ -1382,9 +1366,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     region_name=vim_connection_info.access_info.get('\
                         region_name'),
                     last_event_id=last_event_id)
-                if i != scale_vnf_request.number_of_steps - 1:
-                    if cooldown:
-                        time.sleep(cooldown)
 
     def _term_resource_update(self, context, vnf_info, vnf_instance,
                               error=False):
