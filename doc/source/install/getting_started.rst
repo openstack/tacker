@@ -43,7 +43,7 @@ Registering Default OpenStack VIM
        of ``auth_url: 'http://127.0.0.1/identity'`` as above mention.
 
    By default, ``cert_verify`` is set as ``True``. To disable verifying SSL
-   certificate, user can set ``cert_verifyi`` parameter to ``False``.
+   certificate, user can set ``cert_verify`` parameter to ``False``.
 
 #. Register VIM
 
@@ -135,8 +135,8 @@ Onboarding Sample VNF
       $ openstack vnf descriptor list
       $ openstack vnf list
 
-   If you inspect attributes of the isntances, use ``show`` subcommand with
-   name or ID. For example, you can inspect the VNF named as ``samplevnf``
+   If you inspect attributes of the instance, use ``show`` subcommand with
+   name or ID. For example, you can inspect the VNF named ``samplevnf``
    as below.
 
    .. code-block:: console
