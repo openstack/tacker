@@ -325,6 +325,35 @@ class Transformer(object):
         self._init_k8s_obj(k8s_obj, file_content_dict, must_param)
         return k8s_obj
 
+    def _get_k8s_obj_from_file_content_dict(self, file_content_dict,
+                                            namespace=None):
+        k8s_obj = {}
+        kind = file_content_dict.get('kind', '')
+        try:
+            k8s_obj['object'] = self._create_k8s_object(
+                kind, file_content_dict)
+        except Exception as e:
+            if isinstance(e, client.rest.ApiException):
+                msg = '{kind} create failure. Reason={reason}'.format(
+                    kind=file_content_dict.get('kind', ''), reason=e.body)
+            else:
+                msg = '{kind} create failure. Reason={reason}'.format(
+                    kind=file_content_dict.get('kind', ''), reason=e)
+            LOG.error(msg)
+            raise exceptions.InitApiFalse(error=msg)
+        if not file_content_dict.get('metadata', '') and not namespace:
+            k8s_obj['namespace'] = ''
+        elif file_content_dict.get('metadata', '').\
+                get('namespace', ''):
+            k8s_obj['namespace'] = \
+                file_content_dict.get('metadata', '').get(
+                    'namespace', '')
+        elif namespace:
+            k8s_obj['namespace'] = namespace
+        else:
+            k8s_obj['namespace'] = ''
+        return k8s_obj
+
     def get_k8s_objs_from_yaml(self, artifact_files, vnf_package_path):
         k8s_objs = []
         for artifact_file in artifact_files:
@@ -339,33 +368,33 @@ class Transformer(object):
                     file_content = f.read()
             file_content_dicts = list(yaml.safe_load_all(file_content))
             for file_content_dict in file_content_dicts:
-                k8s_obj = {}
-                kind = file_content_dict.get('kind', '')
-                try:
-                    k8s_obj['object'] = self._create_k8s_object(
-                        kind, file_content_dict)
-                except Exception as e:
-                    if isinstance(e, client.rest.ApiException):
-                        msg = \
-                            _('{kind} create failure. Reason={reason}'.format(
-                                kind=file_content_dict.get('kind', ''),
-                                reason=e.body))
-                    else:
-                        msg = \
-                            _('{kind} create failure. Reason={reason}'.format(
-                                kind=file_content_dict.get('kind', ''),
-                                reason=e))
-                    LOG.error(msg)
-                    raise exceptions.InitApiFalse(error=msg)
-                if not file_content_dict.get('metadata', ''):
-                    k8s_obj['namespace'] = ''
-                elif file_content_dict.get('metadata', '').\
-                        get('namespace', ''):
-                    k8s_obj['namespace'] = \
-                        file_content_dict.get('metadata', '').get(
-                            'namespace', '')
-                else:
-                    k8s_obj['namespace'] = ''
+                k8s_obj = self._get_k8s_obj_from_file_content_dict(
+                    file_content_dict)
+                k8s_objs.append(k8s_obj)
+        return k8s_objs
+
+    def get_k8s_objs_from_manifest(self, mf_content, namespace=None):
+        mkobj_kind_list = [
+            "Pod",
+            "Service",
+            "PersistentVolumeClaim",
+            "Namespace",
+            "Node",
+            "PersistentVolume",
+            "DaemonSet",
+            "Deployment",
+            "ReplicaSet",
+            "StatefulSet",
+            "Job"
+        ]
+        k8s_objs = []
+        mf_content_dicts = list(yaml.safe_load_all(mf_content))
+        for mf_content_dict in mf_content_dicts:
+            kind = mf_content_dict.get('kind', '')
+            if kind in mkobj_kind_list:
+                k8s_obj = self._get_k8s_obj_from_file_content_dict(
+                    file_content_dict=mf_content_dict,
+                    namespace=namespace)
                 k8s_objs.append(k8s_obj)
         return k8s_objs
 

@@ -1,0 +1,9 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/sample_vnfd_top.yaml
+
+Name: Files/kubernetes/localhelm-0.1.0.tgz
+Content-Type: application/tar+gzip
+Algorithm: SHA-256
+Hash: 837fcfb73e5fc58572851a80a0143373d9d28ec37bd3bdf52c4d7d34b97592d5

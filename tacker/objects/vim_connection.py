@@ -30,6 +30,8 @@ class VimConnectionInfo(base.TackerObject, base.TackerPersistentObject):
                                                          default={}),
         'access_info': fields.DictOfNullableStringsField(nullable=True,
                                                          default={}),
+        'extra': fields.DictOfNullableStringsField(nullable=True,
+                                                   default={}),
     }
 
     @classmethod
@@ -39,11 +41,13 @@ class VimConnectionInfo(base.TackerObject, base.TackerPersistentObject):
         vim_type = data_dict.get('vim_type')
         access_info = data_dict.get('access_info', {})
         interface_info = data_dict.get('interface_info', {})
+        extra = data_dict.get('extra', {})
         obj = cls(id=id,
                   vim_id=vim_id,
                   vim_type=vim_type,
                   interface_info=interface_info,
-                  access_info=access_info)
+                  access_info=access_info,
+                  extra=extra)
         return obj
 
     @classmethod
@@ -62,4 +66,5 @@ class VimConnectionInfo(base.TackerObject, base.TackerPersistentObject):
                 'vim_id': self.vim_id,
                 'vim_type': self.vim_type,
                 'interface_info': self.interface_info,
-                'access_info': self.access_info}
+                'access_info': self.access_info,
+                'extra': self.extra}

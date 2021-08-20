@@ -37,6 +37,10 @@ from tacker.vnfm.mgmt_drivers import vnflcm_abstract_driver
 LOG = logging.getLogger(__name__)
 K8S_CMD_TIMEOUT = 30
 K8S_INSTALL_TIMEOUT = 2700
+HELM_CMD_TIMEOUT = 30
+HELM_INSTALL_TIMEOUT = 300
+HELM_CHART_DIR = "/var/tacker/helm"
+HELM_CHART_CMP_PATH = "/tmp/tacker-helm.tgz"
 
 
 class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
@@ -97,15 +101,22 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 stdout = result.get_stdout()
                 LOG.debug(stdout)
                 LOG.debug(err)
-        elif type == 'certificate_key' or type == 'install':
+        elif type in ('certificate_key', 'install', 'scp'):
             if result.get_return_code() != 0:
                 err = result.get_stderr()
                 LOG.error(err)
                 raise exceptions.MgmtDriverRemoteCommandError(err_info=err)
+        elif type == 'helm_repo_list':
+            if result.get_return_code() != 0:
+                err = result.get_stderr()[0].replace('\n', '')
+                if err == 'Error: no repositories to show':
+                    return []
+                raise exceptions.MgmtDriverRemoteCommandError(err_info=err)
         return result.get_stdout()
 
     def _create_vim(self, context, vnf_instance, server, bearer_token,
-                    ssl_ca_cert, vim_name, project_name, master_vm_dict_list):
+                    ssl_ca_cert, vim_name, project_name, master_vm_dict_list,
+                    masternode_ip_list):
         # ha: create vim
         vim_info = {
             'vim': {
@@ -133,6 +144,16 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                             register_ip, server)
             vim_info['vim']['auth_url'] = server
             del vim_info['vim']['auth_cred']['ssl_ca_cert']
+        extra = {}
+        if masternode_ip_list:
+            username = master_vm_dict_list[0].get('ssh').get('username')
+            password = master_vm_dict_list[0].get('ssh').get('password')
+            helm_info = {
+                'masternode_ip': masternode_ip_list,
+                'masternode_username': username,
+                'masternode_password': password}
+            extra['helm_info'] = str(helm_info)
+            vim_info['vim']['extra'] = extra
         try:
             nfvo_plugin = NfvoPlugin()
             created_vim_info = nfvo_plugin.create_vim(context, vim_info)
@@ -149,7 +170,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         }
         vim_connection_info = objects.VimConnectionInfo(
             id=id, vim_id=vim_id, vim_type=vim_type,
-            access_info=access_info, interface_info=None
+            access_info=access_info, interface_info=None, extra=extra
         )
         vim_connection_infos = vnf_instance.vim_connection_info
         vim_connection_infos.append(vim_connection_info)
@@ -304,7 +325,8 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         return hosts_str
 
     def _init_commander_and_send_install_scripts(self, user, password, host,
-                        vnf_package_path=None, script_path=None):
+                        vnf_package_path=None, script_path=None,
+                        helm_inst_script_path=None):
         retry = 4
         while retry > 0:
             try:
@@ -320,6 +342,10 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                         "../../../samples/mgmt_driver/"
                         "create_admin_token.yaml"),
                         "/tmp/create_admin_token.yaml")
+                    if helm_inst_script_path:
+                        sftp.put(os.path.join(
+                            vnf_package_path, helm_inst_script_path),
+                            "/tmp/install_helm.sh")
                     connect.close()
                 commander = cmd_executer.RemoteCommandExecutor(
                     user=user, password=password, host=host,
@@ -377,9 +403,23 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         self._execute_command(
             commander, ssh_command, K8S_INSTALL_TIMEOUT, 'install', 0)
 
+    def _install_helm(self, commander, proxy):
+        ssh_command = ""
+        if proxy.get("http_proxy") and proxy.get("https_proxy"):
+            ssh_command += ("export http_proxy={http_proxy}; "
+                            "export https_proxy={https_proxy}; "
+                            "export no_proxy={no_proxy}; ").format(
+                                http_proxy=proxy.get('http_proxy'),
+                                https_proxy=proxy.get('https_proxy'),
+                                no_proxy=proxy.get('no_proxy'))
+        ssh_command += "bash /tmp/install_helm.sh;"
+        self._execute_command(
+            commander, ssh_command, HELM_INSTALL_TIMEOUT, 'install', 0)
+
     def _install_k8s_cluster(self, context, vnf_instance,
                              proxy, script_path,
-                             master_vm_dict_list, worker_vm_dict_list):
+                             master_vm_dict_list, worker_vm_dict_list,
+                             helm_inst_script_path):
         # instantiate: pre /etc/hosts
         hosts_str = self._get_hosts(
             master_vm_dict_list, worker_vm_dict_list)
@@ -398,6 +438,16 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             LOG.error('The path of install script is invalid.')
             raise exceptions.MgmtDriverOtherError(
                 error_message="The path of install script is invalid")
+
+        # check helm install and get helm install script_path
+        masternode_ip_list = []
+        if helm_inst_script_path:
+            abs_helm_inst_script_path = os.path.join(
+                vnf_package_path, helm_inst_script_path)
+            if not os.path.exists(abs_helm_inst_script_path):
+                LOG.error('The path of helm install script is invalid.')
+                raise exceptions.MgmtDriverParamInvalid(
+                    param='helm_installation_script_path')
 
         # set no proxy
         project_name = ''
@@ -446,7 +496,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             k8s_cluster = vm_dict.get('k8s_cluster', {})
             commander = self._init_commander_and_send_install_scripts(
                 user, password, host,
-                vnf_package_path, script_path)
+                vnf_package_path, script_path, helm_inst_script_path)
 
             # set /etc/hosts for each node
             ssh_command = "> /tmp/tmp_hosts"
@@ -562,6 +612,9 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 bearer_token = self._execute_command(
                     commander, ssh_command,
                     K8S_CMD_TIMEOUT, 'common', 0)[0].replace('\n', '')
+            if helm_inst_script_path:
+                self._install_helm(commander, proxy)
+                masternode_ip_list.append(host)
             commander.close_session()
 
         # install worker node
@@ -597,7 +650,8 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 cluster_ip, kubeadm_token, ssl_ca_cert_hash)
             commander.close_session()
 
-        return server, bearer_token, ssl_ca_cert, project_name
+        return (server, bearer_token, ssl_ca_cert, project_name,
+                masternode_ip_list)
 
     def _check_values(self, additional_param):
         for key, value in additional_param.items():
@@ -654,6 +708,8 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         master_node = additional_param.get('master_node', {})
         worker_node = additional_param.get('worker_node', {})
         proxy = additional_param.get('proxy', {})
+        helm_inst_script_path = additional_param.get(
+            'helm_installation_script_path', None)
         # check script_path
         if not script_path:
             LOG.error('The script_path in the '
@@ -695,15 +751,16 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         worker_vm_dict_list = self._get_install_info_for_k8s_node(
             nest_stack_id, worker_node,
             instantiate_vnf_request.additional_params, 'worker', access_info)
-        server, bearer_token, ssl_ca_cert, project_name = \
+        server, bearer_token, ssl_ca_cert, project_name, masternode_ip_list = \
             self._install_k8s_cluster(context, vnf_instance,
                                       proxy, script_path, master_vm_dict_list,
-                                      worker_vm_dict_list)
+                                      worker_vm_dict_list,
+                                      helm_inst_script_path)
 
         # register vim with kubernetes cluster info
         self._create_vim(context, vnf_instance, server,
                          bearer_token, ssl_ca_cert, vim_name, project_name,
-                         master_vm_dict_list)
+                         master_vm_dict_list, masternode_ip_list)
 
     def terminate_start(self, context, vnf_instance,
                         terminate_vnf_request, grant,
@@ -1580,6 +1637,50 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
 
         return target_physical_resource_ids
 
+    def _prepare_for_restoring_helm(self, commander, master_ip):
+        helm_info = {}
+        # get helm repo list
+        ssh_command = "helm repo list -o json"
+        result = self._execute_command(
+            commander, ssh_command, K8S_CMD_TIMEOUT, 'helm_repo_list', 0)
+        if result:
+            helmrepo_list = json.loads(result)
+            helm_info['ext_helmrepo_list'] = helmrepo_list
+        # compress local helm chart
+        ssh_command = ("sudo tar -zcf {cmp_path} -P {helm_chart_dir}"
+            .format(cmp_path=HELM_CHART_CMP_PATH,
+                    helm_chart_dir=HELM_CHART_DIR))
+        self._execute_command(
+            commander, ssh_command, HELM_INSTALL_TIMEOUT, 'common', 0)
+        helm_info['local_repo_src_ip'] = master_ip
+
+        return helm_info
+
+    def _restore_helm_repo(self, commander, master_username, master_password,
+                           local_repo_src_ip, ext_repo_list):
+        # restore local helm chart
+        ssh_command = (
+            "sudo sshpass -p {master_password} "
+            "scp -o StrictHostKeyChecking=no "
+            "{master_username}@{local_repo_src_ip}:{helm_chart_cmp_path} "
+            "{helm_chart_cmp_path};").format(
+                master_password=master_password,
+                master_username=master_username,
+                local_repo_src_ip=local_repo_src_ip,
+                helm_chart_cmp_path=HELM_CHART_CMP_PATH
+        )
+        ssh_command += "sudo tar -Pzxf {helm_chart_cmp_path};".format(
+            helm_chart_cmp_path=HELM_CHART_CMP_PATH)
+        self._execute_command(
+            commander, ssh_command, HELM_CMD_TIMEOUT, 'scp', 0)
+        # restore external helm repository
+        if ext_repo_list:
+            for ext_repo in ext_repo_list:
+                ssh_command += "helm repo add {name} {url};".format(
+                    name=ext_repo.get('name'), url=ext_repo.get('url'))
+            self._execute_command(
+                commander, ssh_command, HELM_CMD_TIMEOUT, 'common', 0)
+
     def heal_start(self, context, vnf_instance,
                    heal_vnf_request, grant,
                    grant_request, **kwargs):
@@ -1629,7 +1730,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             fixed_master_infos, proxy,
             master_username, master_password, vnf_package_path,
             script_path, cluster_ip, pod_cidr, cluster_cidr,
-            kubeadm_token, ssl_ca_cert_hash, ha_flag):
+            kubeadm_token, ssl_ca_cert_hash, ha_flag, helm_info):
         not_fixed_master_nic_ips = [
             master_ips.get('master_nic_ip')
             for master_ips in not_fixed_master_infos.values()]
@@ -1656,7 +1757,8 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             commander = self._init_commander_and_send_install_scripts(
                 master_username, master_password,
                 fixed_master_info.get('master_ssh_ip'),
-                vnf_package_path, script_path)
+                vnf_package_path, script_path,
+                helm_info.get('script_path', None))
             self._set_node_ip_in_hosts(
                 commander, 'heal_end', hosts_str=hosts_str)
             if proxy.get('http_proxy') and proxy.get('https_proxy'):
@@ -1699,6 +1801,12 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                         certificate_key=certificate_key)
             self._execute_command(
                 commander, ssh_command, K8S_INSTALL_TIMEOUT, 'install', 0)
+            if helm_info:
+                self._install_helm(commander, proxy)
+                self._restore_helm_repo(
+                    commander, master_username, master_password,
+                    helm_info.get('local_repo_src_ip'),
+                    helm_info.get('ext_helmrepo_list', ''))
             commander.close_session()
             for not_fixed_master_name, not_fixed_master in \
                     not_fixed_master_infos.items():
@@ -1814,6 +1922,15 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         ssl_ca_cert_hash = self._execute_command(
             commander, ssh_command,
             K8S_CMD_TIMEOUT, 'common', 3)[0].replace('\n', '')
+
+        # prepare for restoring helm repository
+        helm_inst_script_path = k8s_cluster_installation_param.get(
+            'helm_installation_script_path', None)
+        helm_info = {}
+        if helm_inst_script_path:
+            helm_info = self._prepare_for_restoring_helm(commander, master_ip)
+            helm_info['script_path'] = helm_inst_script_path
+
         commander.close_session()
         if len(fixed_master_infos) + len(not_fixed_master_ssh_ips) == 1:
             ha_flag = False
@@ -1829,7 +1946,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 fixed_master_infos, proxy,
                 master_username, master_password, vnf_package_path,
                 script_path, cluster_ip, pod_cidr, cluster_cidr,
-                kubeadm_token, ssl_ca_cert_hash, ha_flag)
+                kubeadm_token, ssl_ca_cert_hash, ha_flag, helm_info)
         if flag_worker:
             self._fix_worker_node(
                 fixed_worker_infos,

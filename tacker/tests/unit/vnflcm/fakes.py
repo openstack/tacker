@@ -719,7 +719,7 @@ def get_dummy_vim_connection_info():
         'user_domain_name': 'Default', 'username': 'admin'},
         'created_at': '', 'deleted': False, 'deleted_at': '',
         'id': 'fake_id', 'updated_at': '',
-        'vim_id': 'fake_vim_id', 'vim_type': 'openstack'}
+        'vim_id': 'fake_vim_id', 'vim_type': 'openstack', 'extra': {}}
 
 
 def get_dummy_instantiate_vnf_request(**updates):
@@ -1428,7 +1428,8 @@ VNFLCMOPOCC_RESPONSE = {
              "vimId": 'f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
              "vimType": 'openstack',
              'interfaceInfo': {},
-             "accessInfo": {"key1": 'value1', "key2": 'value2'}}],
+             "accessInfo": {"key1": 'value1', "key2": 'value2'},
+             "extra": {}}],
         'vimConnectionInfoDeleteIds': ['f8c35bd0-4d67-4436-9f11-14b8a84c92bb'],
         'vnfPkgId': 'f26f181d-7891-4720-b022-b074ec1733ef',
         'vnfInstanceName': 'fake_name',
