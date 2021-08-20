@@ -45,9 +45,11 @@ def _get_vim(context, vim_connection_info):
             region_name = access_info.get('region')
         else:
             region_name = None
+        extra = vim_connection_info[0].extra
     else:
         vim_id = None
         region_name = None
+        extra = {}
 
     try:
         vim_res = vim_client_obj.get_vim(
@@ -56,9 +58,13 @@ def _get_vim(context, vim_connection_info):
         raise exceptions.VimConnectionNotFound(vim_id=vim_id)
 
     vim_res['vim_auth'].update({'region': region_name})
+    if extra:
+        for key, value in extra.items():
+            vim_res['extra'][key] = value
     vim_info = {'id': vim_res['vim_id'], 'vim_id': vim_res['vim_id'],
                 'vim_type': vim_res['vim_type'],
-                'access_info': vim_res['vim_auth']}
+                'access_info': vim_res['vim_auth'],
+                'extra': vim_res.get('extra', {})}
 
     return vim_info
 

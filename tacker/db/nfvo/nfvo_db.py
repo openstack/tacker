@@ -38,6 +38,7 @@ class Vim(model_base.BASE,
     ), nullable=False)
     vim_auth = orm.relationship('VimAuth')
     status = sa.Column(sa.String(255), nullable=False)
+    extra = sa.Column(types.Json, nullable=True)
 
     __table_args__ = (
         schema.UniqueConstraint(
