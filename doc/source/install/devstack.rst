@@ -36,12 +36,42 @@ specifying branch name in your ``local.conf``.
 
 * For latest version installation, use ``master`` branch.
 * For specific release based installation, use corresponding branch name.
-  For ex, to install ``ussuri`` release, use ``stable/ussuri``.
+  For ex, to install ``wallaby`` release, use ``stable/wallaby``.
 
 For installation, ``stack.sh`` script in Devstack should be run as a
 non-root user with sudo enabled.
 Add a separate user ``stack`` and granting relevant privileges is a
 good way to install via Devstack [#f0]_.
+
+Hardware Requirements
+~~~~~~~~~~~~~~~~~~~~~
+
+We recommend that your system meets the following hardware requirements:
+
+.. note::
+
+  These are reference values to install ``Openstack and Kubernetes as VIM``
+  which generally requires the most resources. In reality, more parameters
+  affect required resources.
+
+.. list-table::
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Criteria
+     - Recommended
+   * - CPU
+     - 4 cores or more
+   * - RAM
+     - 16 GB or more
+   * - Storage
+     - 80 GB or more
+
+.. note::
+
+  We recommend that you run DevStack in a VM, rather than on your bare-metal
+  server. If you have to run devstack on a bare-metal server, It is recommended
+  to use a server that has at least two network interfaces [#f1]_.
 
 Install
 -------
@@ -64,7 +94,7 @@ So the first step of installing tacker is to clone Devstack and prepare your
 #. Enable tacker related Devstack plugins in ``local.conf`` file
 
    The ``local.conf`` can be created manually, or copied from Tacker
-   repo [#f1]_. If copied, rename it as ``local.conf``.
+   repo [#f2]_. If copied, rename it as ``local.conf``.
 
    We have two choices for configuration basically:
 
@@ -132,4 +162,5 @@ So the first step of installing tacker is to clone Devstack and prepare your
 .. rubric:: Footnotes
 
 .. [#f0] https://docs.openstack.org/devstack/latest/
-.. [#f1] https://opendev.org/openstack/tacker/src/branch/master/devstack
+.. [#f1] https://docs.openstack.org/devstack/latest/networking.html
+.. [#f2] https://opendev.org/openstack/tacker/src/branch/master/devstack
