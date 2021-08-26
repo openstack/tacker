@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Support deploying Kubernetes cluster VNF which has a storage server with
+    Cinder volume. This feature enables users to deploy CNF which has
+    PersistentVolume on it. The following changes are added for MgmtDriver.
+
+    - Create a storage server VM with Cinder volume.
+    - Expose Cinder volume as NFS shared directories in the storage server.
+    - Register NFS shared directories as Kubernetes PersistentVolumes.
+    - Install NFS client on newly created Master/Worker VMs in all LCM
+      operations.
