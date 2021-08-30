@@ -1142,7 +1142,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         heal_request_data_obj = heal_vnf_request.HealVnfRequest(
             stack_id=dummy_device_obj['instance_id'],
             cause='VNF monitoring fails.',
-            additional_params=[additional_params_obj])
+            legacy_additional_params=[additional_params_obj])
         result = self.vnfm_plugin.heal_vnf(self.context,
                                            dummy_device_obj['id'],
                                            heal_request_data_obj)

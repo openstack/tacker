@@ -51,7 +51,8 @@ class Vdu(object):
     def _resource_mark_unhealthy(self):
         """Mark the resource unhealthy using heat."""
 
-        additional_params = self.heal_request_data_obj.additional_params
+        additional_params = self.heal_request_data_obj.\
+            legacy_additional_params
         for additional_param in additional_params:
             resource_name = additional_param.parameter
             res_status = self._get_resource_status(self.stack_id,

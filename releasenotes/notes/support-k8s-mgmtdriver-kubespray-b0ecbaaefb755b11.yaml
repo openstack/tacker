@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    MgmtDriver function configures applications provided by VNF vendors.
+    VNF vendors can customize configuration methods for applications via
+    MgmtDriver. These customizations are specified by "interface" definition
+    in ETSI NFV-SOL001 v2.6.1. We provide the sample of MgmtDriver and
+    scripts which can deploy a Kubernetes cluster. It can use
+    kubespray as Ansible playbooks to install Kubernetes cluster VNF,
+    and also install and configure HAproxy load balancer for the Kubernetes
+    cluster. We also provide a user guide to help users understand how to
+    use this feature.
+
+    Instantiate kubernetes cluster:
+    The Kubernetes cluster can be instantiated with VNF Lifecycle
+    Management Interface in ETSI NFV-SOL 003 v2.6.1.
+
+    Scale kubernetes worker node:
+    Scaling operations on the Worker-nodes for the VNF including
+    Kubernetes cluster is supported with MgmtDriver.
+
+    Heal kubernetes worker node:
+    Healing operations on the Worker-nodes for the VNF including
+    Kubernetes cluster is supported with MgmtDriver.
