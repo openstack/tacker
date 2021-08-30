@@ -21,9 +21,9 @@ Hash: 9994a5a5f630c41d178ac58fff93140d3509da5f01518a7bd0e16db70a545c5e
 Name: Scripts/configure_lb.sh
 Content-Type: application/x-shellscript
 Algorithm: SHA-256
-Hash: 45a01e214c06a66dc6b7a018650e292a8cc216e7db4cb638712852a843679d0d
+Hash: f37afaf66aa15945583dd3e821f2e3be32d4c5ad2d633f58bbd5d319792a5978
 
 Name: Scripts/cnf_nodeport_mgmt.py
 Content-Type: text/x-python
 Algorithm: SHA-256
-Hash: 927d34e813f635f069ed352914aa7260e26c6b011560962aee5eb49e9faed927
+Hash: 00551456e8e72f224335d8cf02448993c6f565d1fdbeedff3cd37310a93833fa

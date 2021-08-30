@@ -130,7 +130,7 @@ class TestVNFActionVduAutoheal(db_base.SqlTestCase):
             additional_params.append(additional_paramas_obj)
         heal_request_data_obj = heal_vnf_request.HealVnfRequest(
             cause='VNF monitoring fails.',
-            additional_params=additional_params)
+            legacy_additional_params=additional_params)
         mock_heal_vnf_request.return_value = heal_request_data_obj
         self.vdu_autoheal.execute_action(self.vnfm_plugin, self.context,
                                          vnf_dict, args={'vdu_name': 'VDU1'})

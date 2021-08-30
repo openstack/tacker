@@ -69,6 +69,7 @@ class VNFActionVduAutoheal(abstract_action.AbstractPolicyAction):
 
         heal_request_data_obj = objects.HealVnfRequest(
             stack_id=stack_id,
-            cause=(cause[-1] % vdu_name), additional_params=additional_params)
+            cause=(cause[-1] % vdu_name),
+            legacy_additional_params=additional_params)
 
         plugin.heal_vnf(context, vnf_dict['id'], heal_request_data_obj)

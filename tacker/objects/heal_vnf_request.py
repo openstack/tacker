@@ -44,8 +44,10 @@ class HealVnfRequest(base.TackerObject):
                                                       default=[]),
         'stack_id': fields.StringField(nullable=True, default=''),
         'cause': fields.StringField(nullable=True, default=None),
-        'additional_params': fields.ListOfObjectsField(
-            'HealVnfAdditionalParams', default=[])
+        'legacy_additional_params': fields.ListOfObjectsField(
+            'HealVnfAdditionalParams', default=[]),
+        'additional_params': fields.DictOfNullableField(nullable=True,
+                                                        default={})
     }
 
     def obj_make_compatible(self, primitive, target_version):

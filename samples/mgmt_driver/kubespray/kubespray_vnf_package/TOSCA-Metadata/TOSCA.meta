@@ -6,9 +6,9 @@ Entry-Definitions: Definitions/sample_kubernetes_top.vnfd.yaml
 Name: Scripts/install_external_lb.sh
 Content-Type: application/x-shellscript
 Algorithm: SHA-256
-Hash: 0b2445403a4b2ce2f905c2b7f77dcdb444a1e445379a11c6aca8e87d4b1f8198
+Hash: 3798d91efef8b4baa8eb2e56a43be96543d7eb76e7e1c55941460d407b974af4
 
 Name: Scripts/kubespray_mgmt.py
 Content-Type: text/x-python
 Algorithm: SHA-256
-Hash: 2d6232040fd049619e1a7c3e268b87ccec9aa4d56d955f1bfa4420a4f6531e31
+Hash: 63ba10c3a9a84c558ad13acd71f2f8004a3169f26422ce98d929828daa30b485

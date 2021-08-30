@@ -275,23 +275,17 @@ class CnfNodePortMgmt(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         vnf_package_path = vnflcm_utils._get_vnf_package_path(
             context, vnf_instance.vnfd_id)
         add_param = {}
-        if hasattr(terminate_vnf_request, 'additional_params'):
-            if terminate_vnf_request.additional_params:
-                additional_params = terminate_vnf_request.additional_params
-                add_param['lcm-kubernetes-external-lb'] = {
-                    'script_path': additional_params.get('script_path'),
-                    'external_lb_param': {
-                        'ssh_ip': additional_params.get('ssh_ip'),
-                        'ssh_username': additional_params.get('ssh_username'),
-                        'ssh_password': additional_params.get('ssh_password'),
-                    }
-                }
-                add_param['lcm-kubernetes-def-files'] = \
-                    vnf_instance.instantiated_vnf_info.additional_params.get(
-                        'lcm-kubernetes-def-files')
-            else:
-                add_param = \
-                    vnf_instance.instantiated_vnf_info.additional_params
+        if hasattr(terminate_vnf_request, 'additional_params') and \
+                terminate_vnf_request.additional_params:
+            additional_params = terminate_vnf_request.additional_params
+            lb_params_default = \
+                vnf_instance.instantiated_vnf_info.additional_params.get(
+                    'lcm-kubernetes-external-lb')
+            add_param['lcm-kubernetes-external-lb'] = additional_params.get(
+                'lcm-kubernetes-external-lb', lb_params_default)
+            add_param['lcm-kubernetes-def-files'] = \
+                vnf_instance.instantiated_vnf_info.additional_params.get(
+                    'lcm-kubernetes-def-files')
         else:
             add_param = \
                 vnf_instance.instantiated_vnf_info.additional_params
@@ -321,13 +315,38 @@ class CnfNodePortMgmt(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
     def heal_start(self, context, vnf_instance,
                    heal_vnf_request, grant,
                    grant_request, **kwargs):
-        pass
+        if not heal_vnf_request.vnfc_instance_id:
+            self.terminate_end(
+                context, vnf_instance, heal_vnf_request,
+                grant, grant_request)
+        else:
+            pass
 
     @log.log
     def heal_end(self, context, vnf_instance,
                  heal_vnf_request, grant,
                  grant_request, **kwargs):
-        pass
+        if not heal_vnf_request.vnfc_instance_id:
+            if hasattr(heal_vnf_request, 'additional_params') and \
+                    heal_vnf_request.additional_params:
+                lb_params_default = \
+                    vnf_instance.instantiated_vnf_info.additional_params.get(
+                        'lcm-kubernetes-external-lb')
+                if not heal_vnf_request.additional_params.get(
+                        'lcm-kubernetes-external-lb'):
+                    heal_vnf_request.additional_params[
+                        'lcm-kubernetes-external-lb'] = lb_params_default
+                heal_vnf_request.additional_params[
+                    'lcm-kubernetes-def-files'] = \
+                    vnf_instance.instantiated_vnf_info.additional_params.get(
+                        'lcm-kubernetes-def-files')
+            else:
+                heal_vnf_request.additional_params = \
+                    vnf_instance.instantiated_vnf_info.additional_params
+            self.instantiate_end(context, vnf_instance, heal_vnf_request,
+                                 grant, grant_request)
+        else:
+            pass
 
     @log.log
     def change_external_connectivity_start(
