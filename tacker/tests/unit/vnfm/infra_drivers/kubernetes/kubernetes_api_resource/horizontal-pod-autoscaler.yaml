@@ -11,3 +11,6 @@ spec:
     kind: Deployment
     name: curry-svc-vdu001
   targetCPUUtilizationPercentage: 40
+status:
+  currentReplicas: 1
+  desiredReplicas: 1

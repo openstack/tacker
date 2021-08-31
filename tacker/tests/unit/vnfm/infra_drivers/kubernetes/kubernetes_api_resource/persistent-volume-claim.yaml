@@ -10,3 +10,10 @@ spec:
     requests:
       storage: 2Gi
   storageClassName: curry-sc-local
+  dataSource:
+    name: existing-src-pvc-name
+    kind: PersistentVolumeClaim
+status:
+  conditions:
+    - status: True
+      type: PersistentVolumeClaim

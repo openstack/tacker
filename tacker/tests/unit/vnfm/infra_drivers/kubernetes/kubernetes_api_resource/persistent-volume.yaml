@@ -12,3 +12,43 @@ spec:
     type: DirectoryOrCreate
   persistentVolumeReclaimPolicy: Delete
   storageClassName: curry-sc-local
+  azureFile:
+    secretName: azure-secret
+    shareName: aksshare
+    readOnly: false
+  cephfs:
+    monitors:
+      - 10.16.154.78:6789
+  cinder:
+    volumeID: "90d6900d-808f-4ddb-a30e-5ef821f58b4e"
+    fsType: ext4
+  csi:
+    driver: csi-nfsplugin
+    volume_handle: data-id
+  flexVolume:
+    driver: "kubernetes.io/lvm"
+    fsType: "ext4"
+  glusterfs:
+    endpoints: glusterfs-cluster
+    path: kube_vol
+    readOnly: true
+  iscsi:
+    targetPortal: 10.0.2.15:3260
+    iqn: iqn.2001-04.com.example:storage.kube.sys1.xyz
+    lun: 0
+  local:
+    path: /mnt/disks/ssd1
+  rbd:
+    monitors:
+      - '10.16.154.78:6789'
+    image: foo
+  scaleIO:
+    gateway: https://localhost:443/api
+    system: scaleio
+    secretRef:
+      name: sio-secret
+  awsElasticBlockStore:
+    volumeID: "123"
+  azureDisk:
+    diskName: test.vhd
+    diskURI: https://someaccount.blob.microsoft.net/vhds/test.vhd

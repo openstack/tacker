@@ -2,3 +2,11 @@ apiVersion: authorization.k8s.io/v1
 kind: SelfSubjectRulesReview
 spec:
   namespace: curry-ns
+status:
+  resourceRules:
+    - verbs:
+        - 'test'
+  incomplete: True
+  nonResourceRules:
+    - verbs:
+        - 'test'

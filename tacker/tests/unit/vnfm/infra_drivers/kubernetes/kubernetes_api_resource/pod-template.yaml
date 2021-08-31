@@ -40,4 +40,80 @@ template:
     - name: curry-claim-volume
       persistentVolumeClaim:
         claimName: curry-pv-claim
+      azureFile:
+        secretName: azure-secret
+        shareName: aksshare
+        readOnly: false
+      cephfs:
+        monitors:
+          - 10.16.154.78:6789
+      cinder:
+        volumeID: "90d6900d-808f-4ddb-a30e-5ef821f58b4e"
+        fsType: ext4
+      configMap:
+        name: log-config
+        items:
+          - key: log_level
+            path: log_level
+      csi:
+        driver: csi-nfsplugin
+        volume_handle: data-id
+      downwardAPI:
+        items:
+          - path: "labels"
+            fieldRef:
+              fieldPath: metadata.labels
+            resourceFieldRef:
+              resource: limits.cpu
+      flexVolume:
+        driver: "kubernetes.io/lvm"
+        fsType: "ext4"
+      glusterfs:
+        endpoints: glusterfs-cluster
+        path: kube_vol
+        readOnly: true
+      gcePersistentDisk:
+        pdName: my-data-disk
+        fsType: ext4
+      gitRepo:
+        repository: "git@somewhere:me/my-git-repository.git"
+        revision: "22f1d8406d464b0c0874075539c1f2e96c253775"
+      hostPath:
+        path: /var/local/aaa
+        type: DirectoryOrCreate
+      iscsi:
+        targetPortal: 10.0.2.15:3260
+        iqn: iqn.2001-04.com.example:storage.kube.sys1.xyz
+        lun: 0
+      nfs:
+        server: nfs-server.default.svc.cluster.local
+        path: "/"
+      photonPersistentDisk:
+        pdId: 'test'
+      portworxVolume:
+        volumeID: "pxvol"
+      projected:
+        sources:
+          - secret:
+              name: mysecret
+              items:
+                - key: username
+                  path: my-group/my-username
+            serviceAccountToken:
+              path: 'test'
+      quobyte:
+        registry: 'test'
+        volume: 'test'
+      rbd:
+        monitors:
+          - '10.16.154.78:6789'
+        image: foo
+      scaleIO:
+        gateway: https://localhost:443/api
+        system: scaleio
+        secretRef:
+          name: sio-secret
+      vsphereVolume:
+        volumePath: "[DatastoreName] volumes/myDisk"
+        fsType: ext4
     terminationGracePeriodSeconds: 0

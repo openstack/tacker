@@ -7,3 +7,5 @@ spec:
     resource: deployments
     verb: create
     namespace: curry-ns
+status:
+  allowed: True

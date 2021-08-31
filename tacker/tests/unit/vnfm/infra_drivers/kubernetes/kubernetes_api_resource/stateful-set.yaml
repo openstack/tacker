@@ -31,3 +31,8 @@ spec:
       resources:
         requests:
           storage: 1Gi
+status:
+  conditions:
+    - status: True
+      type: StatefulSet
+  replicas: 1

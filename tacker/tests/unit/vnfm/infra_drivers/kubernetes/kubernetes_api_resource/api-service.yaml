@@ -7,3 +7,5 @@ spec:
   groupPriorityMinimum: 17000
   version: v1beta1
   versionPriority: 5
+  service:
+    name: test

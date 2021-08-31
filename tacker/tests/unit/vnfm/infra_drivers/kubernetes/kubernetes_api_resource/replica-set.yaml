@@ -15,3 +15,8 @@ spec:
       containers:
       - image: nginx
         name: nginx
+status:
+  replicas: 1
+  conditions:
+    - status: True
+      type: ReplicaSet
