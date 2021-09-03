@@ -961,8 +961,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
             additional_params={"key": "value"})
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
-        vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
-        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        vnf_dict = {
+            **db_utils.get_dummy_vnf(instance_id=self.instance_uuid),
+            'before_error_point': fields.ErrorPoint.INITIAL,
+            'status': ''
+        }
         self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
                                  vnf_instance, terminate_vnf_req, vnf_dict)
 
@@ -1506,8 +1509,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             fields.VnfInstanceState.INSTANTIATED
         vnf_instance.save()
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
-        vnf_dict = {"fake": "fake_dict"}
-        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        vnf_dict = {
+            'fake': 'fake_dict',
+            'before_error_point': fields.ErrorPoint.INITIAL,
+            'status': ''
+        }
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
                             heal_vnf_req, vnf_lcm_op_occs_id)
@@ -1550,8 +1556,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             fields.VnfInstanceState.INSTANTIATED
         vnf_instance.save()
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
-        vnf_dict = {"fake": "fake_dict"}
-        vnf_dict['before_error_point'] = fields.ErrorPoint.NOTIFY_PROCESSING
+        vnf_dict = {
+            'fake': 'fake_dict',
+            'before_error_point': fields.ErrorPoint.NOTIFY_PROCESSING,
+            'status': ''
+        }
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
                             heal_vnf_req, vnf_lcm_op_occs_id)
@@ -1594,8 +1603,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             fields.VnfInstanceState.INSTANTIATED
         vnf_instance.save()
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
-        vnf_dict = {"fake": "fake_dict"}
-        vnf_dict['before_error_point'] = fields.ErrorPoint.INTERNAL_PROCESSING
+        vnf_dict = {
+            'fake': 'fake_dict',
+            'before_error_point': fields.ErrorPoint.INTERNAL_PROCESSING,
+            'status': ''
+        }
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
                             heal_vnf_req, vnf_lcm_op_occs_id)
@@ -1637,8 +1649,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             fields.VnfInstanceState.INSTANTIATED
         vnf_instance.save()
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
-        vnf_dict = {"fake": "fake_dict"}
-        vnf_dict['before_error_point'] = fields.ErrorPoint.NOTIFY_COMPLETED
+        vnf_dict = {
+            'fake': 'fake_dict',
+            'before_error_point': fields.ErrorPoint.NOTIFY_COMPLETED,
+            'status': ''
+        }
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
                             heal_vnf_req, vnf_lcm_op_occs_id)
@@ -1700,9 +1715,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
             flavour_id='simple')
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
-        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
-                                       flavour='simple')
-        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        vnf_dict = {
+            **db_utils.get_dummy_vnf_etsi(
+                instance_id=self.instance_uuid, flavour='simple'),
+            'before_error_point': fields.ErrorPoint.INITIAL,
+            'status': ''
+        }
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None
@@ -1835,9 +1853,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.instantiated_vnf_info.vnf_virtual_link_resource_info = \
             [vl_obj]
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
-        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
-                                       flavour='simple')
-        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        vnf_dict = {
+            **db_utils.get_dummy_vnf_etsi(
+                instance_id=self.instance_uuid, flavour='simple'),
+            'before_error_point': fields.ErrorPoint.INITIAL,
+            'status': ''
+        }
         vnfd_yaml = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                  '../../etc/samples/etsi/nfv/'
                                                  'test_heal_grant_unit/'
@@ -2004,10 +2025,13 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
             flavour_id='simple')
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
-        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
-                                       flavour='simple')
-        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
         vnfd_key = 'vnfd_' + vnf_instance.instantiated_vnf_info.flavour_id
+        vnf_dict = {
+            **db_utils.get_dummy_vnf_etsi(
+                instance_id=self.instance_uuid, flavour='simple'),
+            'before_error_point': fields.ErrorPoint.INITIAL,
+            'status': ''
+        }
         vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
         mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
@@ -2098,9 +2122,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
             flavour_id='simple')
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
-        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
-                                       flavour='simple')
-        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        vnf_dict = {
+            **db_utils.get_dummy_vnf_etsi(
+                instance_id=self.instance_uuid, flavour='simple'),
+            'before_error_point': fields.ErrorPoint.INITIAL,
+            'status': ''
+        }
         vnfd_key = 'vnfd_' + vnf_instance.instantiated_vnf_info.flavour_id
         vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
         mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
@@ -2149,8 +2176,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         mock_add_additional_vnf_info.side_effect = Exception
 
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
-        vnf_dict = {"fake": "fake_dict"}
-        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        vnf_dict = {
+            'fake': 'fake_dict',
+            'before_error_point': fields.ErrorPoint.INITIAL,
+            'status': ''
+        }
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
                             heal_vnf_req, vnf_lcm_op_occs_id)
@@ -2179,7 +2209,10 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.create()
 
         heal_vnf_req = objects.HealVnfRequest(cause="healing request")
-        vnf_dict = {"fake": "fake_dict"}
+        vnf_dict = {
+            'fake': 'fake_dict',
+            'status': ''
+        }
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
                             heal_vnf_req, vnf_lcm_op_occs_id)
@@ -3303,7 +3336,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
         vnf_instance.save()
         vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
-        vnf_dict = {"before_error_point": 0}
+        vnf_dict = {"before_error_point": 0, "status": ""}
         change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
 
         op_states = []
@@ -3372,7 +3405,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
         vnf_instance.save()
         vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
-        vnf_dict = {"before_error_point": 0}
+        vnf_dict = {"before_error_point": 0, "status": ""}
         change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
         vnf_virtual_link = (
             vnf_instance.instantiated_vnf_info.vnf_virtual_link_resource_info)
@@ -3462,7 +3495,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
         vnf_instance.save()
         vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
-        vnf_dict = {"before_error_point": 0}
+        vnf_dict = {"before_error_point": 0, "status": ""}
         change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
 
         # Test condition settings.
@@ -3517,7 +3550,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
         vnf_instance.save()
         vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
-        vnf_dict = {"before_error_point": 0}
+        vnf_dict = {"before_error_point": 0, "status": ""}
         change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
 
         # Test condition settings.
@@ -3587,7 +3620,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         vnf_dict = {"before_error_point": 0,
-                    "current_error_point": 6}
+                    "current_error_point": 6, "status": ""}
         m_vnf_lcm_subscriptions = (
             [mock.MagicMock(**fakes.get_vnf_lcm_subscriptions())])
         mock_vnf_lcm_subscriptions_get.return_value = (
@@ -3643,7 +3676,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
         vnf_instance.save()
         vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
-        vnf_dict = {"before_error_point": 1}
+        vnf_dict = {"before_error_point": 1, "status": ""}
         change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
 
         self.conductor.change_ext_conn(
@@ -3697,7 +3730,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_instance.instantiation_state = fields.VnfInstanceState.INSTANTIATED
         vnf_instance.save()
         vnf_instance.instantiated_vnf_info = fakes.get_instantiated_vnf_info()
-        vnf_dict = {"before_error_point": 7}
+        vnf_dict = {"before_error_point": 7, "status": ""}
         change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
 
         self.conductor.change_ext_conn(

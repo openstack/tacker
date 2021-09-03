@@ -107,6 +107,19 @@ cfg.CONF.register_opts(OPTS, 'keystone_authtoken')
 
 LOG = logging.getLogger(__name__)
 
+_INACTIVE_STATUS = ('INACTIVE',)
+_ACTIVE_STATUS = ('ACTIVE',)
+_PENDING_STATUS = ('PENDING_CREATE',
+                   'PENDING_TERMINATE',
+                   'PENDING_DELETE',
+                   'PENDING_HEAL',
+                   'PENDING_SCALE_OUT',
+                   'PENDING_SCALE_IN',
+                   'PENDING_CHANGE_EXT_CONN')
+_ERROR_STATUS = ('ERROR',)
+_ALL_STATUSES = _ACTIVE_STATUS + _INACTIVE_STATUS + _PENDING_STATUS + \
+    _ERROR_STATUS
+
 
 def _delete_csar(context, vnf_package):
     # Delete from glance store
@@ -1964,8 +1977,10 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             vnf_dict['current_error_point'] = \
                 fields.ErrorPoint.NOTIFY_PROCESSING
 
-            if vnf_dict['before_error_point'] <= \
-               fields.ErrorPoint.NOTIFY_PROCESSING:
+            if vnf_dict['status'] == 'ERROR':
+                self._change_vnf_status(context, vnf_instance.id,
+                                        _ERROR_STATUS, 'PENDING_CREATE')
+            elif vnf_dict['before_error_point'] <= EP.NOTIFY_PROCESSING:
                 # change vnf_status
                 if vnf_dict['status'] == 'INACTIVE':
                     vnf_dict['status'] = 'PENDING_CREATE'
@@ -2056,10 +2071,13 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             vnf_dict['current_error_point'] = \
                 fields.ErrorPoint.NOTIFY_PROCESSING
 
-            if vnf_dict['before_error_point'] <= \
-               fields.ErrorPoint.NOTIFY_PROCESSING:
+            if vnf_dict['status'] == 'ERROR':
                 self._change_vnf_status(context, vnf_instance.id,
-                                        constants.ACTIVE, 'PENDING_TERMINATE')
+
+                                        _ERROR_STATUS, 'PENDING_TERMINATE')
+            elif vnf_dict['before_error_point'] <= EP.NOTIFY_PROCESSING:
+                self._change_vnf_status(context, vnf_instance.id,
+                                        _ACTIVE_STATUS, 'PENDING_TERMINATE')
 
             if vnf_dict['before_error_point'] <= \
                fields.ErrorPoint.VNF_CONFIG_END:
@@ -2094,6 +2112,9 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             # set vnf_status to error
             self._change_vnf_status(context, vnf_instance.id,
                                     constants.ALL_STATUSES, 'ERROR')
+
+            self.vnflcm_driver._vnf_instance_update(
+                context, vnf_instance, task_state=None)
 
             # Update vnf_lcm_op_occs table and send notification "FAILED_TEMP"
             self._send_lcm_op_occ_notification(
@@ -2154,8 +2175,10 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             vnf_dict['current_error_point'] = \
                 fields.ErrorPoint.NOTIFY_PROCESSING
 
-            if vnf_dict['before_error_point'] <= \
-               fields.ErrorPoint.NOTIFY_PROCESSING:
+            if vnf_dict['status'] == 'ERROR':
+                self._change_vnf_status(context, vnf_instance.id,
+                                        _ERROR_STATUS, 'PENDING_HEAL')
+            elif vnf_dict['before_error_point'] <= EP.NOTIFY_PROCESSING:
                 # update vnf status to PENDING_HEAL
                 self._change_vnf_status(context, vnf_instance.id,
                                         constants.ACTIVE,
@@ -2235,6 +2258,11 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 vnf_instance,
                 scale_vnf_request,
                 vnf_lcm_op_occ_id)
+
+        if vnf_info['status'] == 'ERROR':
+            self._change_vnf_status(context, vnf_instance.id,
+                                    _ERROR_STATUS,
+                                    'PENDING_' + scale_vnf_request.type)
 
         self.vnflcm_driver.scale_vnf(
             context, vnf_info, vnf_instance, scale_vnf_request)
@@ -2425,7 +2453,12 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             )
 
             vnf_dict['current_error_point'] = EP.NOTIFY_PROCESSING
-            if vnf_dict['before_error_point'] <= EP.NOTIFY_PROCESSING:
+
+            if vnf_dict['status'] == 'ERROR':
+                self._change_vnf_status(context, vnf_instance.id,
+                                        _ERROR_STATUS,
+                                        'PENDING_CHANGE_EXT_CONN')
+            elif vnf_dict['before_error_point'] <= EP.NOTIFY_PROCESSING:
                 # update vnf status to PENDING_CHANGE_EXT_CONN
                 self._change_vnf_status(context, vnf_instance.id,
                                         constants.ACTIVE,

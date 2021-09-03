@@ -520,6 +520,13 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     def _create_stack_with_user_data(self, heatclient, vnf,
                                      base_hot_dict, nested_hot_dict,
                                      hot_param_dict):
+        # Find existing stack
+        filters = {"name": f"vnflcm_{vnf['id']}"}
+        stack_found = heatclient.find_stack(**filters)
+        if stack_found and "status" in vnf and vnf['status'] == 'ERROR':
+            stack = {'stack': {'id': stack_found.id}}
+            return stack
+
         fields = {}
         fields['stack_name'] = ("vnflcm_" + vnf["id"])
         fields['template'] = self._format_base_hot(base_hot_dict)
@@ -554,6 +561,13 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
     @log.log
     def _create_stack(self, heatclient, vnf, fields):
+        # Find existing stack
+        filters = {"name": f"vnflcm_{vnf['id']}"}
+        stack_found = heatclient.find_stack(**filters)
+        if stack_found and "status" in vnf and vnf['status'] == 'ERROR':
+            stack = {'stack': {'id': stack_found.id}}
+            return stack
+
         if 'stack_name' not in fields:
             name = vnf['name'].replace(' ', '_') + '_' + vnf['id']
             if vnf['attributes'].get('failure_count'):

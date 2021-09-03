@@ -1980,10 +1980,11 @@ class TestOpenStack(base.FixturedTestCase):
 
     @mock.patch('tacker.vnfm.infra_drivers.openstack.translate_template.'
                 'TOSCAToHOT._get_unsupported_resource_props')
-    def test_instantiate_vnf(self, mock_get_unsupported_resource_props):
+    @mock.patch.object(hc.HeatClient, "find_stack")
+    def test_instantiate_vnf(self, mock_get_unsupported_resource_props,
+            mock_find_stack):
         vim_connection_info = fd_utils.get_vim_connection_info_object()
         inst_req_info = fd_utils.get_instantiate_vnf_request()
-        vnfd_dict = fd_utils.get_vnfd_dict()
         grant_response = fd_utils.get_grant_response_dict()
 
         url = os.path.join(self.heat_url, 'stacks')
@@ -1992,7 +1993,12 @@ class TestOpenStack(base.FixturedTestCase):
             headers=self.json_headers)
         vnf_instance = fd_utils.get_vnf_instance_object()
 
-        vnfd_dict['before_error_point'] = fields.ErrorPoint.PRE_VIM_CONTROL
+        vnfd_dict = {
+            **fd_utils.get_vnfd_dict(),
+            'before_error_point': fields.ErrorPoint.PRE_VIM_CONTROL,
+            'status': ''
+        }
+
         instance_id = self.openstack.instantiate_vnf(
             self.context, vnf_instance, vnfd_dict, vim_connection_info,
             inst_req_info, grant_response, self.plugin)
@@ -2152,7 +2158,9 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
     @mock.patch('tacker.vnflcm.utils._get_vnf_package_path')
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_vnf_instance_id")
-    def test_heal_vnf_instance(self, mock_get_vnflcm_op_occs,
+    @mock.patch.object(hc.HeatClient, "find_stack")
+    def test_heal_vnf_instance(self, mock_find_stack,
+                               mock_get_vnflcm_op_occs,
                                mock_get_vnf_package_path,
                                mock_get_base_hot_dict):
         nested_hot_dict = {'parameters': {'vnf': 'test'}}

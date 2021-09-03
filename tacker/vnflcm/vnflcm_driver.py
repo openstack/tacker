@@ -1225,6 +1225,12 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                                     vnf_instance,
                                     scale_vnf_request,
                                     vim_connection_info)
+        else:
+            resource_changes = vnf_info.get('resource_changes')
+            if not resource_changes:
+                resource_changes = self._scale_resource_update(
+                    context, vnf_info, vnf_instance, scale_vnf_request,
+                    vim_connection_info, error=True)
 
         vnf_info['current_error_point'] = EP.INTERNAL_PROCESSING
 

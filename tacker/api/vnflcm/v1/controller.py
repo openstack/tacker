@@ -1206,7 +1206,7 @@ class VnfLcmController(wsgi.Controller):
             if max_level < scale_level:
                 return self._make_problem_detail(
                     'can not scale_out', 400, title='can not scale_out')
-            if 'vnf_lcm_op_occs_id' in vnf_info:
+            if 'vnf_lcm_op_occs_id' in vnf_info and vim_type != "kubernetes":
                 num = (scaleGroupDict['scaleGroupDict']
                     [scale_vnf_request.aspect_id]['num'])
                 default = (scaleGroupDict['scaleGroupDict']

@@ -77,6 +77,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         self.FLOATING_IP_FLAG = False
         self.SET_NODE_LABEL_FLAG = False
         self.SET_ZONE_ID_FLAG = False
+        self.nfvo_plugin = NfvoPlugin()
 
     def _check_is_cidr(self, cidr_str):
         # instantiate: check cidr
@@ -134,6 +135,16 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 if err == 'Error: no repositories to show':
                     return []
                 raise exceptions.MgmtDriverRemoteCommandError(err_info=err)
+        elif type == 'check_node':
+            err = result.get_stderr()
+            if result.get_return_code() == 0:
+                pass
+            elif (result.get_return_code() != 0 and
+                  "kubectl: command not found" in err):
+                return "False"
+            else:
+                LOG.error(err)
+                raise exceptions.MgmtDriverRemoteCommandError(err_info=err)
         return result.get_stdout()
 
     def _create_vim(self, context, vnf_instance, server, bearer_token,
@@ -176,14 +187,10 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 'masternode_password': password}
             extra['helm_info'] = str(helm_info)
             vim_info['vim']['extra'] = extra
-        try:
-            nfvo_plugin = NfvoPlugin()
-            created_vim_info = nfvo_plugin.create_vim(context, vim_info)
-        except Exception as e:
-            LOG.error("Failed to register kubernetes vim: {}".format(e))
-            raise exceptions.MgmtDriverOtherError(
-                error_message="Failed to register kubernetes vim: {}".format(
-                    e))
+
+        created_vim_info = self._get_or_create_vim(
+            context, vim_name, server, vim_info)
+
         id = uuidutils.generate_uuid()
         vim_id = created_vim_info.get('id')
         vim_type = 'kubernetes'
@@ -198,6 +205,23 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         vim_connection_infos.append(vim_connection_info)
         vnf_instance.vim_connection_info = vim_connection_infos
         vnf_instance.save()
+
+    def _get_or_create_vim(
+            self, context, vim_name, server, create_vim_info):
+        created_vim_info = self._get_vim_by_name(context, vim_name)
+        if created_vim_info:
+            vim_info = self.nfvo_plugin.get_vim(
+                context, created_vim_info.id)
+            if (vim_info['auth_url'] == server and
+                    vim_info['status'] == 'REACHABLE'):
+                return vim_info
+        try:
+            return self.nfvo_plugin.create_vim(context, create_vim_info)
+        except Exception as e:
+            LOG.error(f"Failed to register kubernetes vim: {e}")
+            raise exceptions.MgmtDriverOtherError(
+                error_message="Failed to register "
+                              f"kubernetes vim: {e}")
 
     def _get_ha_group_resources_list(
             self, heatclient, stack_id, node, additional_params):
@@ -705,6 +729,24 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         commander.close_session()
         LOG.debug("_connect_to_private_registries function complete.")
 
+    def _is_master_installed(self, vm_dict):
+        nic_ip = vm_dict['ssh']['nic_ip']
+        master_name = 'master' + nic_ip.split('.')[-1]
+        user = vm_dict.get('ssh', {}).get('username')
+        password = vm_dict.get('ssh', {}).get('password')
+        host = vm_dict.get('ssh', {}).get('ipaddr')
+        commander = cmd_executer.RemoteCommandExecutor(
+            user=user, password=password,
+            host=host, timeout=K8S_CMD_TIMEOUT)
+        ssh_command = f"kubectl get node | grep {master_name}"
+        result = self._execute_command(commander, ssh_command,
+                                       K8S_CMD_TIMEOUT, 'check_node', 0)
+        if result != "False":
+            for res in result:
+                if res.split(' ')[0].strip() == master_name:
+                    return True
+        return False
+
     def _install_k8s_cluster(self, context, vnf_instance,
                              proxy, script_path,
                              master_vm_dict_list, worker_vm_dict_list,
@@ -764,8 +806,14 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         active_host = ""
         ssl_ca_cert_hash = ""
         kubeadm_token = ""
+        get_node_names = []
         # install master node
         for vm_dict in master_vm_dict_list:
+
+            # check master_node exist in k8s-cluster
+            if self._is_master_installed(vm_dict):
+                continue
+
             if vm_dict.get('ssh', {}).get('nic_ip') == \
                     master_ssh_ips_str.split(',')[0]:
                 active_username = vm_dict.get('ssh', {}).get('username')
@@ -900,10 +948,19 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 commander = cmd_executer.RemoteCommandExecutor(
                     user=user, password=password, host=host,
                     timeout=K8S_CMD_TIMEOUT)
-                ssh_command = "kubectl create -f /tmp/create_admin_token.yaml"
-                self._execute_command(
-                    commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 0)
-                time.sleep(30)
+
+                # Check whether the secret already exists
+                if not self._has_secret(commander):
+                    ssh_command = ("kubectl create -f "
+                                   "/tmp/create_admin_token.yaml")
+                    self._execute_command(
+                        commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 0)
+                    time.sleep(30)
+                else:
+                    ssh_command = "kubectl get node"
+                    get_node_names = self._execute_command(
+                        commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 0)
+
                 ssh_command = "kubectl get secret -n kube-system " \
                               "| grep '^admin-token' " \
                               "| awk '{print $1}' " \
@@ -952,10 +1009,15 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 0)
 
             # execute install k8s command on VM
-            self._install_worker_node(
-                commander, proxy, ha_flag, nic_ip,
-                cluster_ip, kubeadm_token, ssl_ca_cert_hash,
-                http_private_registries)
+            for get_node_name in get_node_names:
+                if ('worker' + nic_ip.split('.')[-1] ==
+                        get_node_name.split(' ')[0]):
+                    break
+            else:
+                self._install_worker_node(
+                    commander, proxy, ha_flag, nic_ip,
+                    cluster_ip, kubeadm_token, ssl_ca_cert_hash,
+                    http_private_registries)
             commander.close_session()
 
             # connect to private registries
@@ -974,6 +1036,12 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
 
         return (server, bearer_token, ssl_ca_cert, project_name,
                 masternode_ip_list)
+
+    def _has_secret(self, commander):
+        ssh_command = ("kubectl get secret -n kube-system "
+                       "| grep '^admin-token'")
+        return self._execute_command(
+            commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 0)
 
     def _check_values(self, additional_param):
         for key, value in additional_param.items():
@@ -1239,8 +1307,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         vim_info = self._get_vim_by_name(
             context, k8s_vim_name)
         if vim_info:
-            nfvo_plugin = NfvoPlugin()
-            nfvo_plugin.delete_vim(context, vim_info.id)
+            self.nfvo_plugin.delete_vim(context, vim_info.id)
 
     def _get_username_pwd(self, vnf_request, vnf_instance, role):
         # heal and scale: get user pwd
@@ -1413,6 +1480,8 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             daemonset_content_str = ''.join(result)
             daemonset_content = json.loads(
                 daemonset_content_str)
+            if not daemonset_content['items']:
+                continue
             ssh_command = \
                 "kubectl drain {resource} --ignore-daemonsets " \
                 "--timeout={k8s_cmd_timeout}s".format(
@@ -2018,6 +2087,18 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 self._execute_command(
                     commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 3)
 
+            # check worker_node exist in k8s-cluster
+            result = self._is_worker_node_installed(
+                commander, fixed_master_name)
+            if not result:
+                continue
+            for res in result:
+                if res.split(' ')[0].strip() == fixed_master_name:
+                    # fixed_master_name is found
+                    break
+            else:
+                continue
+
             # delete master node
             ssh_command = "kubectl delete node " + \
                           fixed_master_name
@@ -2063,6 +2144,11 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 commander, ssh_command, K8S_CMD_TIMEOUT, 'etcd', 3)
             commander.close_session()
 
+    def _is_worker_node_installed(self, commander, fixed_master_name):
+        ssh_command = f"kubectl get node | grep {fixed_master_name}"
+        return self._execute_command(
+            commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 0)
+
     def _delete_worker_node(
             self, fixed_worker_infos, not_fixed_master_infos,
             master_username, master_password):
@@ -2081,6 +2167,8 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             worker_node_pod_info_str = ''.join(result)
             worker_node_pod_info = json.loads(
                 worker_node_pod_info_str)
+            if not worker_node_pod_info['items']:
+                continue
             ssh_command = "kubectl drain {} " \
                           "--ignore-daemonsets " \
                           "--timeout={}s" \
@@ -2259,8 +2347,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             k8s_vim_info = self._get_vim_by_name(
                 context, k8s_vim_name)
             if k8s_vim_info:
-                nfvo_plugin = NfvoPlugin()
-                nfvo_plugin.delete_vim(context, k8s_vim_info.id)
+                self.nfvo_plugin.delete_vim(context, k8s_vim_info.id)
                 for vim_info in vnf_instance.vim_connection_info:
                     if vim_info.vim_id == k8s_vim_info.id:
                         vnf_instance.vim_connection_info.remove(vim_info)
