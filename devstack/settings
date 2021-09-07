@@ -3,6 +3,7 @@ USE_BARBICAN=True
 KUBERNETES_VIM=${KUBERNETES_VIM:-False}
 IS_ZUUL_FT=${IS_ZUUL_FT:-False}
 
+# Install the latest heat-translator and tosca-parser from git repos.
 GITREPO["heat-translator"]=${HEAT_TRANSLATOR_REPO:-${GIT_BASE}/openstack/heat-translator.git}
 GITBRANCH["heat-translator"]=${HEAT_TRANSLATOR_BRANCH:-$TARGET_BRANCH}
 GITDIR["heat-translator"]=$DEST/heat-translator
@@ -10,6 +11,9 @@ GITDIR["heat-translator"]=$DEST/heat-translator
 GITREPO["tosca-parser"]=${TOSCA_PARSER_REPO:-${GIT_BASE}/openstack/tosca-parser.git}
 GITBRANCH["tosca-parser"]=${TOSCA_PARSER_BRANCH:-$TARGET_BRANCH}
 GITDIR["tosca-parser"]=$DEST/tosca-parser
+
+LIBS_FROM_GIT+=heat-translator
+LIBS_FROM_GIT+=tosca-parser
 
 if [ "${TACKER_MODE}" == "all" -o "${IS_ZUUL_FT}" == "True" ]; then
     MGMT_PHYS_NET=${MGMT_PHYS_NET:-mgmtphysnet0}

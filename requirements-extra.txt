@@ -1,8 +1,0 @@
-# This file is used as an input for pip while runnign tox jobs in addition to
-# `requirements.txt`. The reason why separated from `requirements.txt' is
-# because the syntax of `-e git+https://...` cannot be understood in job
-# `tox -e lower-constraints` and it's failed  if it's defined in
-# `requirements.txt`.
-
-#-e git+https://opendev.org/openstack/tosca-parser.git#egg=tosca-parser # Apache-2.0
-#-e git+https://opendev.org/openstack/heat-translator.git#egg=heat-translator # Apache-2.0
