@@ -1,0 +1,44 @@
+# variables in header
+
+api_Major_Version:
+  description: |
+    Indicates the major version of API.
+  in: path
+  required: true
+  type: string
+
+# variables in body
+
+api_Versions:
+  description: |
+    Version(s) supported for the API signalled by the uriPrefix attribute.
+  in: body
+  required: true
+  type: Structure (inlined)
+isDeprecated:
+  description: |
+    This attribute indicates whether use of the version signalled
+    by the version attribute is deprecated (true) or not (false).
+  in: body
+  required: false
+  type: boolean
+retirementDate:
+  description: |
+    The date and time after which the API version will no longer be
+    supported. This attribute may be included if the value of the isDeprecated
+    attribute is set to true and shall be absent otherwise.
+  in: body
+  required: false
+  type: datetime
+uriPrefix:
+  description: |
+    URI prefix for the API.
+  in: body
+  required: true
+  type: string
+version:
+  description: |
+    Supported version.
+  in: body
+  required: true
+  type: String

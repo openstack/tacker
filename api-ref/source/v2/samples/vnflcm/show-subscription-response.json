@@ -1,0 +1,10 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://127.0.0.1:9890/v2/vnflcm/subscriptions/cd87e3d6-9bbe-4ad1-bb21-0f5c3e4e777d"
+        }
+    },
+    "callbackUri": "http://127.0.0.1/",
+    "id": "cd87e3d6-9bbe-4ad1-bb21-0f5c3e4e777d",
+    "verbosity": "FULL"
+}
