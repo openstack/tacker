@@ -1,0 +1,22 @@
+{
+    "_links": {
+        "instantiate": {
+            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_instances/99e2bae9-45d3-4ca1-83f4-34d44ca25bee/instantiate"
+        },
+        "self": {
+            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_instances/99e2bae9-45d3-4ca1-83f4-34d44ca25bee"
+        }
+    },
+    "extensions": {},
+    "id": "99e2bae9-45d3-4ca1-83f4-34d44ca25bee",
+    "instantiationState": "NOT_INSTANTIATED",
+    "metadata": {},
+    "vnfConfigurableProperties": {},
+    "vnfInstanceDescription": "test sample1",
+    "vnfInstanceName": "sample1",
+    "vnfProductName": "Sample VNF",
+    "vnfProvider": "Company",
+    "vnfSoftwareVersion": "1.0",
+    "vnfdId": "da459819-a2eb-442b-b9a2-0c1c02466baf",
+    "vnfdVersion": "1.0"
+}

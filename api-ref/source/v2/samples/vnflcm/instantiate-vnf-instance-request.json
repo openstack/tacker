@@ -1,0 +1,128 @@
+{
+    "extManagedVirtualLinks": [
+        {
+            "id": "7a6fe192-c34b-4029-937d-f1a2e7a00f5a",
+            "resourceId": "11f8a056-0495-4ca6-8de9-94402604663f",
+            "vnfVirtualLinkDescId": "internalVL1"
+        }
+    ],
+    "extVirtualLinks": [
+        {
+            "extCps": [
+                {
+                    "cpConfig": {
+                        "VDU1_CP1_1": {
+                            "cpProtocolData": [
+                                {
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "numDynamicAddresses": 1,
+                                                "type": "IPV4"
+                                            }
+                                        ]
+                                    },
+                                    "layerProtocol": "IP_OVER_ETHERNET"
+                                }
+                            ]
+                        }
+                    },
+                    "cpdId": "VDU1_CP1"
+                },
+                {
+                    "cpConfig": {
+                        "VDU2_CP1_1": {
+                            "cpProtocolData": [
+                                {
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "fixedAddresses": [
+                                                    "10.10.0.101"
+                                                ],
+                                                "type": "IPV4"
+                                            }
+                                        ]
+                                    },
+                                    "layerProtocol": "IP_OVER_ETHERNET"
+                                }
+                            ]
+                        }
+                    },
+                    "cpdId": "VDU2_CP1"
+                }
+            ],
+            "id": "b0b2f836-a275-4374-834e-ed336a563b1e",
+            "resourceId": "1948231e-bbf0-4ff9-a692-40f8d6d5c90d"
+        },
+        {
+            "extCps": [
+                {
+                    "cpConfig": {
+                        "VDU1_CP2_1": {
+                            "cpProtocolData": [
+                                {
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "numDynamicAddresses": 1,
+                                                "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
+                                                "type": "IPV4"
+                                            }
+                                        ]
+                                    },
+                                    "layerProtocol": "IP_OVER_ETHERNET"
+                                }
+                            ]
+                        }
+                    },
+                    "cpdId": "VDU1_CP2"
+                },
+                {
+                    "cpConfig": {
+                        "VDU2_CP2_1": {
+                            "cpProtocolData": [
+                                {
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "fixedAddresses": [
+                                                    "10.10.1.101"
+                                                ],
+                                                "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
+                                                "type": "IPV4"
+                                            }
+                                        ]
+                                    },
+                                    "layerProtocol": "IP_OVER_ETHERNET"
+                                }
+                            ]
+                        }
+                    },
+                    "cpdId": "VDU2_CP2"
+                }
+            ],
+            "id": "6766a8d4-cad1-43f1-b0cb-ce0ef9267661",
+            "resourceId": "5af7e28a-e744-4b4f-a1a4-c7d0f7d93cd7"
+        }
+    ],
+    "flavourId": "simple",
+    "instantiationLevelId": "instantiation_level_1",
+    "vimConnectionInfo": {
+        "vim1": {
+            "accessInfo": {
+                "password": "devstack",
+                "project": "nfv",
+                "projectDomain": "Default",
+                "region": "RegionOne",
+                "userDomain": "Default",
+                "username": "nfv_user"
+            },
+            "interfaceInfo": {
+                "endpoint": "http://localhost/identity/v3"
+            },
+            "vimId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
+        }
+    }
+}

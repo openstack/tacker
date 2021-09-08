@@ -17,6 +17,20 @@ A default VIM should be registered according to :doc:`cli-legacy-vim`.
 CLI Reference for VNF Lifecycle Management
 ------------------------------------------
 
+.. note::
+    Commands call version 1 vnflcm APIs by default.
+    You can call the specific version of vnflcm APIs
+    by using the option **\-\-os-tacker-api-version**.
+    Commands with **\-\-os-tacker-api-version 2** call version 2 vnflcm APIs.
+
+.. note::
+    Xena release does not support version 2 vnflcm APIs of
+    scale vnf, heal vnf, change external vnf connectivity,
+    rollback, retry and fail.
+    The version 2 of these APIs will be supported in future releases.
+    Also, in Xena release, version 2 vnflcm APIs of instantiate vnf
+    and terminate vnf only support VNF, not CNF.
+    CNF will be supported by version 2 vnflcm APIs in future releases.
 
 1. Create VNF Identifier
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -694,5 +708,69 @@ Help:
 
   optional arguments:
     -h, --help           show this help message and exit
+
+
+15. Show VNF LCM API versions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm versions
+
+
+Result:
+
+.. code-block:: console
+
+  $ openstack vnflcm versions
+  +-------------+--------------------------------------------------------------------------------------------+
+  | Field       | Value                                                                                      |
+  +-------------+--------------------------------------------------------------------------------------------+
+  | uriPrefix   | /vnflcm                                                                                    |
+  | apiVersions | [{'version': '1.3.0', 'isDeprecated': False}, {'version': '2.0.0', 'isDeprecated': False}] |
+  +-------------+--------------------------------------------------------------------------------------------+
+
+
+.. note::
+    The command with **\-\-major-version** narrows down the
+    obtained major versions to show.
+
+
+.. code-block:: console
+
+  $ openstack vnflcm versions --major-version 1
+  +-------------+-----------------------------------------------+
+  | Field       | Value                                         |
+  +-------------+-----------------------------------------------+
+  | uriPrefix   | /vnflcm/v1                                    |
+  | apiVersions | [{'version': '1.3.0', 'isDeprecated': False}] |
+  +-------------+-----------------------------------------------+
+
+.. code-block:: console
+
+  $ openstack vnflcm versions --major-version 2
+  +-------------+-----------------------------------------------+
+  | Field       | Value                                         |
+  +-------------+-----------------------------------------------+
+  | uriPrefix   | /vnflcm/v2                                    |
+  | apiVersions | [{'version': '2.0.0', 'isDeprecated': False}] |
+  +-------------+-----------------------------------------------+
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm versions --help
+  usage: openstack vnflcm versions [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                   [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                   [--fit-width] [--print-empty] [--major-version <major-version>]
+
+  Show VnfLcm Api versions
+
+  optional arguments:
+    -h, --help          show this help message and exit
+    --major-version <major-version>
+                        Show only specify major version.
 
 .. _About aspect id : https://docs.openstack.org/tacker/latest/user/etsi_vnf_scaling.html#how-to-identify-aspect-id

@@ -4,6 +4,12 @@ ETSI NFV-SOL VNF error-handling
 
 This document describes how to error-handling VNF in Tacker.
 
+.. note::
+    Rollback and retry are NOT supported in version 2 vnflcm APIs in Xena yet.
+    So, You should recover it by yourself instead if instantiation is failed via v2 API.
+    The recovering process may include deleting a stack via HEAT API.
+
+
 Prerequisites
 -------------
 

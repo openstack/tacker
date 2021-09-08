@@ -1,0 +1,471 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_instances/99e2bae9-45d3-4ca1-83f4-34d44ca25bee"
+        },
+        "terminate": {
+            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_instances/99e2bae9-45d3-4ca1-83f4-34d44ca25bee/terminate"
+        }
+    },
+    "extensions": {},
+    "id": "99e2bae9-45d3-4ca1-83f4-34d44ca25bee",
+    "instantiatedVnfInfo": {
+        "extCpInfo": [
+            {
+                "associatedVnfcCpId": "f52ba062-48fc-4ff1-bad0-e3a5b29d50bd",
+                "cpConfigId": "VDU2_CP2_1",
+                "cpProtocolInfo": [
+                    {
+                        "ipOverEthernet": {
+                            "ipAddresses": [
+                                {
+                                    "addresses": [
+                                        "10.10.1.101"
+                                    ],
+                                    "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
+                                    "type": "IPV4"
+                                }
+                            ]
+                        },
+                        "layerProtocol": "IP_OVER_ETHERNET"
+                    }
+                ],
+                "cpdId": "VDU2_CP2",
+                "extLinkPortId": "c9008244-6561-49cf-a9a3-6218034e6b02",
+                "id": "ef2c2ee9-6cdb-4d68-b091-b8a4babdced5"
+            },
+            {
+                "associatedVnfcCpId": "30711c7a-f02b-4ae5-ac9f-eb61828e0f5e",
+                "cpConfigId": "VDU2_CP1_1",
+                "cpProtocolInfo": [
+                    {
+                        "ipOverEthernet": {
+                            "ipAddresses": [
+                                {
+                                    "addresses": [
+                                        "10.10.0.101"
+                                    ],
+                                    "type": "IPV4"
+                                }
+                            ]
+                        },
+                        "layerProtocol": "IP_OVER_ETHERNET"
+                    }
+                ],
+                "cpdId": "VDU2_CP1",
+                "extLinkPortId": "c19db045-8526-4d2d-8daf-819905f9b3fb",
+                "id": "96d97d70-c431-4a78-8072-42a974d525aa"
+            },
+            {
+                "associatedVnfcCpId": "bdf62eb2-c2cb-4a11-84b7-eda2526c8d11",
+                "cpConfigId": "VDU1_CP1_1",
+                "cpProtocolInfo": [
+                    {
+                        "ipOverEthernet": {
+                            "ipAddresses": [
+                                {
+                                    "isDynamic": true,
+                                    "type": "IPV4"
+                                }
+                            ]
+                        },
+                        "layerProtocol": "IP_OVER_ETHERNET"
+                    }
+                ],
+                "cpdId": "VDU1_CP1",
+                "extLinkPortId": "51043a84-78f4-4bbe-832d-a7fcfbd3cb23",
+                "id": "2c3a08c9-ab43-4bb8-a4b9-b1d9c2c6ff94"
+            },
+            {
+                "associatedVnfcCpId": "1cb04dd2-3a28-4be5-8b87-74a21fbb62dc",
+                "cpConfigId": "VDU1_CP2_1",
+                "cpProtocolInfo": [
+                    {
+                        "ipOverEthernet": {
+                            "ipAddresses": [
+                                {
+                                    "isDynamic": true,
+                                    "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
+                                    "type": "IPV4"
+                                }
+                            ]
+                        },
+                        "layerProtocol": "IP_OVER_ETHERNET"
+                    }
+                ],
+                "cpdId": "VDU1_CP2",
+                "extLinkPortId": "f190426f-63a7-42a5-ad12-44c6bc464f13",
+                "id": "f8428c7d-2268-40f9-9bea-fa9539d118be"
+            }
+        ],
+        "extManagedVirtualLinkInfo": [
+            {
+                "id": "7a6fe192-c34b-4029-937d-f1a2e7a00f5a",
+                "networkResource": {
+                    "resourceId": "11f8a056-0495-4ca6-8de9-94402604663f"
+                },
+                "vnfLinkPorts": [
+                    {
+                        "cpInstanceId": "1c55be13-988f-4499-a8e5-3a9f2d0d3913",
+                        "cpInstanceType": "VNFC_CP",
+                        "id": "b8b0430e-169c-442a-9c48-8fb8c4c3db4d",
+                        "resourceHandle": {
+                            "resourceId": "7fe18c76-85eb-4e90-ba95-df6e6bad2cd6",
+                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimLevelResourceType": "OS::Neutron::Port"
+                        }
+                    },
+                    {
+                        "cpInstanceId": "ab497ce5-b57e-48d1-8bc1-8f58eac6b45d",
+                        "cpInstanceType": "VNFC_CP",
+                        "id": "2950622a-ded8-4160-88dc-2bf0f02529dd",
+                        "resourceHandle": {
+                            "resourceId": "07dc4096-49c7-478d-986a-fd132efd573a",
+                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimLevelResourceType": "OS::Neutron::Port"
+                        }
+                    }
+                ],
+                "vnfVirtualLinkDescId": "internalVL1"
+            }
+        ],
+        "extVirtualLinkInfo": [
+            {
+                "currentVnfExtCpData": [
+                    {
+                        "cpConfig": {
+                            "VDU1_CP1_1": {
+                                "cpProtocolData": [
+                                    {
+                                        "ipOverEthernet": {
+                                            "ipAddresses": [
+                                                {
+                                                    "numDynamicAddresses": 1,
+                                                    "type": "IPV4"
+                                                }
+                                            ]
+                                        },
+                                        "layerProtocol": "IP_OVER_ETHERNET"
+                                    }
+                                ]
+                            }
+                        },
+                        "cpdId": "VDU1_CP1"
+                    },
+                    {
+                        "cpConfig": {
+                            "VDU2_CP1_1": {
+                                "cpProtocolData": [
+                                    {
+                                        "ipOverEthernet": {
+                                            "ipAddresses": [
+                                                {
+                                                    "fixedAddresses": [
+                                                        "10.10.0.101"
+                                                    ],
+                                                    "type": "IPV4"
+                                                }
+                                            ]
+                                        },
+                                        "layerProtocol": "IP_OVER_ETHERNET"
+                                    }
+                                ]
+                            }
+                        },
+                        "cpdId": "VDU2_CP1"
+                    }
+                ],
+                "extLinkPorts": [
+                    {
+                        "cpInstanceId": "96d97d70-c431-4a78-8072-42a974d525aa",
+                        "id": "c19db045-8526-4d2d-8daf-819905f9b3fb",
+                        "resourceHandle": {
+                            "resourceId": "c1f49f87-37ff-437b-84a0-91a346fdec55",
+                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimLevelResourceType": "OS::Neutron::Port"
+                        }
+                    },
+                    {
+                        "cpInstanceId": "2c3a08c9-ab43-4bb8-a4b9-b1d9c2c6ff94",
+                        "id": "51043a84-78f4-4bbe-832d-a7fcfbd3cb23",
+                        "resourceHandle": {
+                            "resourceId": "88bc7eee-0893-4892-b0d3-d58d1c2293a8",
+                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimLevelResourceType": "OS::Neutron::Port"
+                        }
+                    }
+                ],
+                "id": "b0b2f836-a275-4374-834e-ed336a563b1e",
+                "resourceHandle": {
+                    "resourceId": "1948231e-bbf0-4ff9-a692-40f8d6d5c90d"
+                }
+            },
+            {
+                "currentVnfExtCpData": [
+                    {
+                        "cpConfig": {
+                            "VDU1_CP2_1": {
+                                "cpProtocolData": [
+                                    {
+                                        "ipOverEthernet": {
+                                            "ipAddresses": [
+                                                {
+                                                    "numDynamicAddresses": 1,
+                                                    "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
+                                                    "type": "IPV4"
+                                                }
+                                            ]
+                                        },
+                                        "layerProtocol": "IP_OVER_ETHERNET"
+                                    }
+                                ]
+                            }
+                        },
+                        "cpdId": "VDU1_CP2"
+                    },
+                    {
+                        "cpConfig": {
+                            "VDU2_CP2_1": {
+                                "cpProtocolData": [
+                                    {
+                                        "ipOverEthernet": {
+                                            "ipAddresses": [
+                                                {
+                                                    "fixedAddresses": [
+                                                        "10.10.1.101"
+                                                    ],
+                                                    "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
+                                                    "type": "IPV4"
+                                                }
+                                            ]
+                                        },
+                                        "layerProtocol": "IP_OVER_ETHERNET"
+                                    }
+                                ]
+                            }
+                        },
+                        "cpdId": "VDU2_CP2"
+                    }
+                ],
+                "extLinkPorts": [
+                    {
+                        "cpInstanceId": "ef2c2ee9-6cdb-4d68-b091-b8a4babdced5",
+                        "id": "c9008244-6561-49cf-a9a3-6218034e6b02",
+                        "resourceHandle": {
+                            "resourceId": "3c89dfce-2039-41ad-a60b-6be6488bbca6",
+                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimLevelResourceType": "OS::Neutron::Port"
+                        }
+                    },
+                    {
+                        "cpInstanceId": "f8428c7d-2268-40f9-9bea-fa9539d118be",
+                        "id": "f190426f-63a7-42a5-ad12-44c6bc464f13",
+                        "resourceHandle": {
+                            "resourceId": "a0db5863-e420-4191-a2bb-c8536b091bda",
+                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimLevelResourceType": "OS::Neutron::Port"
+                        }
+                    }
+                ],
+                "id": "6766a8d4-cad1-43f1-b0cb-ce0ef9267661",
+                "resourceHandle": {
+                    "resourceId": "5af7e28a-e744-4b4f-a1a4-c7d0f7d93cd7"
+                }
+            }
+        ],
+        "flavourId": "simple",
+        "virtualStorageResourceInfo": [
+            {
+                "id": "0357ecab-bdd8-403f-a91b-b80f287b536f",
+                "storageResource": {
+                    "resourceId": "0ea498c7-a740-4b16-b8fd-93dbd5d8ee7d",
+                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimLevelResourceType": "OS::Cinder::Volume"
+                },
+                "virtualStorageDescId": "VirtualStorage"
+            }
+        ],
+        "vnfState": "STARTED",
+        "vnfVirtualLinkResourceInfo": [
+            {
+                "id": "e651053a-e17e-47e3-9665-6ec028873040",
+                "networkResource": {
+                    "resourceId": "98d5c67b-c7f8-4293-890c-011184b6574b",
+                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimLevelResourceType": "OS::Neutron::Net"
+                },
+                "vnfLinkPorts": [
+                    {
+                        "cpInstanceId": "b1cab6ba-c571-4fbf-80fd-f8e67b9fbf68",
+                        "cpInstanceType": "VNFC_CP",
+                        "id": "d5ec9027-dba4-4b53-be4a-7bbad1ab9f51",
+                        "resourceHandle": {
+                            "resourceId": "42fe1697-30a7-4a79-8547-71de0c43c8b5",
+                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimLevelResourceType": "OS::Neutron::Port"
+                        }
+                    },
+                    {
+                        "cpInstanceId": "f495eec3-1420-467c-b126-19abf8396e11",
+                        "cpInstanceType": "VNFC_CP",
+                        "id": "a5f21c6d-3ba4-4843-b3cc-cc4c8b37be72",
+                        "resourceHandle": {
+                            "resourceId": "5bd09199-1409-46b1-9cd4-191e3fb7c9cb",
+                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimLevelResourceType": "OS::Neutron::Port"
+                        }
+                    }
+                ],
+                "vnfVirtualLinkDescId": "internalVL2"
+            },
+            {
+                "id": "5efa5ab4-4237-4b41-9e39-7f4565992acc",
+                "networkResource": {
+                    "resourceId": "be459310-e24d-4430-a0b9-b9ad391f4e5e",
+                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimLevelResourceType": "OS::Neutron::Net"
+                },
+                "vnfLinkPorts": [
+                    {
+                        "cpInstanceId": "e8111f5b-a713-4f40-a64d-fab56d038487",
+                        "cpInstanceType": "VNFC_CP",
+                        "id": "c02a75f8-a809-49c6-b6dc-bbda31928ef0",
+                        "resourceHandle": {
+                            "resourceId": "86c5a181-4232-4937-ba73-5c494f0d267a",
+                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimLevelResourceType": "OS::Neutron::Port"
+                        }
+                    },
+                    {
+                        "cpInstanceId": "16686d29-8491-41f8-8f2c-6d091f83592f",
+                        "cpInstanceType": "VNFC_CP",
+                        "id": "bfb260e7-cfdd-45ee-8fb9-64f51d8c2064",
+                        "resourceHandle": {
+                            "resourceId": "de311602-f52b-44a7-af11-15b97ca28beb",
+                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimLevelResourceType": "OS::Neutron::Port"
+                        }
+                    }
+                ],
+                "vnfVirtualLinkDescId": "internalVL3"
+            }
+        ],
+        "vnfcInfo": [
+            {
+                "id": "12e3f94b-8177-4621-8476-f9af72dddcaa",
+                "vduId": "VDU2",
+                "vnfcResourceInfoId": "d0c3f928-adca-4c9b-aaa3-1a8b43a9460d",
+                "vnfcState": "STARTED"
+            },
+            {
+                "id": "7ba99664-517a-45bd-b69c-7375018a2e2e",
+                "vduId": "VDU1",
+                "vnfcResourceInfoId": "60d4ffe7-275c-458d-9f40-0a7b43f895fd",
+                "vnfcState": "STARTED"
+            }
+        ],
+        "vnfcResourceInfo": [
+            {
+                "computeResource": {
+                    "resourceId": "edda96a2-b4c2-48ca-a06f-31976f9d9653",
+                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimLevelResourceType": "OS::Nova::Server"
+                },
+                "id": "d0c3f928-adca-4c9b-aaa3-1a8b43a9460d",
+                "vduId": "VDU2",
+                "vnfcCpInfo": [
+                    {
+                        "cpdId": "VDU2_CP1",
+                        "id": "30711c7a-f02b-4ae5-ac9f-eb61828e0f5e",
+                        "vnfExtCpId": "96d97d70-c431-4a78-8072-42a974d525aa"
+                    },
+                    {
+                        "cpdId": "VDU2_CP2",
+                        "id": "f52ba062-48fc-4ff1-bad0-e3a5b29d50bd",
+                        "vnfExtCpId": "ef2c2ee9-6cdb-4d68-b091-b8a4babdced5"
+                    },
+                    {
+                        "cpdId": "VDU2_CP3",
+                        "id": "1c55be13-988f-4499-a8e5-3a9f2d0d3913",
+                        "vnfLinkPortId": "b8b0430e-169c-442a-9c48-8fb8c4c3db4d"
+                    },
+                    {
+                        "cpdId": "VDU2_CP4",
+                        "id": "b1cab6ba-c571-4fbf-80fd-f8e67b9fbf68",
+                        "vnfLinkPortId": "d5ec9027-dba4-4b53-be4a-7bbad1ab9f51"
+                    },
+                    {
+                        "cpdId": "VDU2_CP5",
+                        "id": "e8111f5b-a713-4f40-a64d-fab56d038487",
+                        "vnfLinkPortId": "c02a75f8-a809-49c6-b6dc-bbda31928ef0"
+                    }
+                ]
+            },
+            {
+                "computeResource": {
+                    "resourceId": "66a84389-8234-4394-929f-68e0ea77fde1",
+                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimLevelResourceType": "OS::Nova::Server"
+                },
+                "id": "60d4ffe7-275c-458d-9f40-0a7b43f895fd",
+                "storageResourceIds": [
+                    "0357ecab-bdd8-403f-a91b-b80f287b536f"
+                ],
+                "vduId": "VDU1",
+                "vnfcCpInfo": [
+                    {
+                        "cpdId": "VDU1_CP1",
+                        "id": "bdf62eb2-c2cb-4a11-84b7-eda2526c8d11",
+                        "vnfExtCpId": "2c3a08c9-ab43-4bb8-a4b9-b1d9c2c6ff94"
+                    },
+                    {
+                        "cpdId": "VDU1_CP2",
+                        "id": "1cb04dd2-3a28-4be5-8b87-74a21fbb62dc",
+                        "vnfExtCpId": "f8428c7d-2268-40f9-9bea-fa9539d118be"
+                    },
+                    {
+                        "cpdId": "VDU1_CP3",
+                        "id": "ab497ce5-b57e-48d1-8bc1-8f58eac6b45d",
+                        "vnfLinkPortId": "2950622a-ded8-4160-88dc-2bf0f02529dd"
+                    },
+                    {
+                        "cpdId": "VDU1_CP4",
+                        "id": "f495eec3-1420-467c-b126-19abf8396e11",
+                        "vnfLinkPortId": "a5f21c6d-3ba4-4843-b3cc-cc4c8b37be72"
+                    },
+                    {
+                        "cpdId": "VDU1_CP5",
+                        "id": "16686d29-8491-41f8-8f2c-6d091f83592f",
+                        "vnfLinkPortId": "bfb260e7-cfdd-45ee-8fb9-64f51d8c2064"
+                    }
+                ]
+            }
+        ]
+    },
+    "instantiationState": "INSTANTIATED",
+    "metadata": {},
+    "vimConnectionInfo": {
+        "vim1": {
+            "accessInfo": {
+                "project": "nfv",
+                "projectDomain": "Default",
+                "region": "RegionOne",
+                "userDomain": "Default",
+                "username": "nfv_user"
+            },
+            "interfaceInfo": {
+                "endpoint": "http://localhost/identity/v3"
+            },
+            "vimId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
+        }
+    },
+    "vnfConfigurableProperties": {},
+    "vnfInstanceDescription": "test sample1",
+    "vnfInstanceName": "sample1",
+    "vnfProductName": "Sample VNF",
+    "vnfProvider": "Company",
+    "vnfSoftwareVersion": "1.0",
+    "vnfdId": "da459819-a2eb-442b-b9a2-0c1c02466baf",
+    "vnfdVersion": "1.0"
+}

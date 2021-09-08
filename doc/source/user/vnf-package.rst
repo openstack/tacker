@@ -14,6 +14,10 @@ are available:
 * CSAR with TOSCA-Metadata directory
 * CSAR zip without TOSCA-Metadata directory
 
+.. note:: VNF LCM API version 1 supports both structures.
+          VNF LCM API version 2 supports only
+          *CSAR with TOSCA-Metadata directory*.
+
 .. note:: For more detailed definitions of CSAR, see section 16 in
           `TOSCA-Simple-Profile-YAML-v1.1`_.
 
@@ -308,8 +312,13 @@ can be assigned.
           The trade-off between being able to write scripts freely and
           limiting operations is an issue for the future.
 
+.. note:: User data script is incompatible between VNF LCM API version 1 and 2
+          due to different requirements for them.
 
-Example:
+The requirements of User data script for VNF LCM API version 2 is described
+in :doc:`./userdata_script`.
+
+Following shows an example of user data script for VNF LCM API version 1.
 
 .. code-block:: python
 
@@ -400,4 +409,4 @@ YAML file. The contents is exactly same as described in the previous section.
 .. _NFV-SOL004 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/004/02.06.01_60/gs_NFV-SOL004v020601p.pdf
 .. _NFV-SOL005 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/005/02.06.01_60/gs_NFV-SOL005v020601p.pdf
 .. _NFV-SOL014 v2.8.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/014/02.08.01_60/gs_NFV-SOL014v020801p.pdf
-
+.. _UserData script (VNF LCM v2):

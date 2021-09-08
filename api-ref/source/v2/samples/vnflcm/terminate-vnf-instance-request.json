@@ -1,0 +1,4 @@
+{
+    "gracefulTerminationTimeout": 10,
+    "terminationType": "GRACEFUL"
+}

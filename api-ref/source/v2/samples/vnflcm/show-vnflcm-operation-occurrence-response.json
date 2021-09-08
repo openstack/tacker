@@ -1,0 +1,229 @@
+{
+    "_links": {
+        "self": {
+            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5"
+        },
+        "vnfInstance": {
+            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_instances/e00f0d64-d7a3-459b-8a51-b402d5344296"
+        }
+    },
+    "id": "a790879c-05f9-4475-9c90-1677452d3eb5",
+    "isAutomaticInvocation": false,
+    "isCancelPending": false,
+    "operation": "INSTANTIATE",
+    "operationParams": {
+        "extManagedVirtualLinks": [
+            {
+                "id": "7a6fe192-c34b-4029-937d-f1a2e7a00f5a",
+                "resourceId": "11f8a056-0495-4ca6-8de9-94402604663f",
+                "vnfVirtualLinkDescId": "internalVL1"
+            }
+        ],
+        "extVirtualLinks": [
+            {
+                "extCps": [
+                    {
+                        "cpConfig": {
+                            "VDU1_CP1_1": {
+                                "cpProtocolData": [
+                                    {
+                                        "ipOverEthernet": {
+                                            "ipAddresses": [
+                                                {
+                                                    "numDynamicAddresses": 1,
+                                                    "type": "IPV4"
+                                                }
+                                            ]
+                                        },
+                                        "layerProtocol": "IP_OVER_ETHERNET"
+                                    }
+                                ]
+                            }
+                        },
+                        "cpdId": "VDU1_CP1"
+                    },
+                    {
+                        "cpConfig": {
+                            "VDU2_CP1_1": {
+                                "cpProtocolData": [
+                                    {
+                                        "ipOverEthernet": {
+                                            "ipAddresses": [
+                                                {
+                                                    "fixedAddresses": [
+                                                        "10.10.0.101"
+                                                    ],
+                                                    "type": "IPV4"
+                                                }
+                                            ]
+                                        },
+                                        "layerProtocol": "IP_OVER_ETHERNET"
+                                    }
+                                ]
+                            }
+                        },
+                        "cpdId": "VDU2_CP1"
+                    }
+                ],
+                "id": "b0b2f836-a275-4374-834e-ed336a563b1e",
+                "resourceId": "1948231e-bbf0-4ff9-a692-40f8d6d5c90d"
+            },
+            {
+                "extCps": [
+                    {
+                        "cpConfig": {
+                            "VDU1_CP2_1": {
+                                "cpProtocolData": [
+                                    {
+                                        "ipOverEthernet": {
+                                            "ipAddresses": [
+                                                {
+                                                    "numDynamicAddresses": 1,
+                                                    "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
+                                                    "type": "IPV4"
+                                                }
+                                            ]
+                                        },
+                                        "layerProtocol": "IP_OVER_ETHERNET"
+                                    }
+                                ]
+                            }
+                        },
+                        "cpdId": "VDU1_CP2"
+                    },
+                    {
+                        "cpConfig": {
+                            "VDU2_CP2_1": {
+                                "cpProtocolData": [
+                                    {
+                                        "ipOverEthernet": {
+                                            "ipAddresses": [
+                                                {
+                                                    "fixedAddresses": [
+                                                        "10.10.1.101"
+                                                    ],
+                                                    "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
+                                                    "type": "IPV4"
+                                                }
+                                            ]
+                                        },
+                                        "layerProtocol": "IP_OVER_ETHERNET"
+                                    }
+                                ]
+                            }
+                        },
+                        "cpdId": "VDU2_CP2"
+                    }
+                ],
+                "id": "6766a8d4-cad1-43f1-b0cb-ce0ef9267661",
+                "resourceId": "5af7e28a-e744-4b4f-a1a4-c7d0f7d93cd7"
+            }
+        ],
+        "flavourId": "simple",
+        "instantiationLevelId": "instantiation_level_1",
+        "vimConnectionInfo": {
+            "vim1": {
+                "accessInfo": {
+                    "password": "devstack",
+                    "project": "nfv",
+                    "projectDomain": "Default",
+                    "region": "RegionOne",
+                    "userDomain": "Default",
+                    "username": "nfv_user"
+                },
+                "interfaceInfo": {
+                    "endpoint": "http://localhost/identity/v3"
+                },
+                "vimId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
+            }
+        }
+    },
+    "operationState": "COMPLETED",
+    "resourceChanges": {
+        "affectedVirtualLinks": [
+            {
+                "changeType": "ADDED",
+                "id": "74411165-b969-4539-99a9-3ffdbc8b1ae7",
+                "networkResource": {
+                    "resourceId": "5f4cc2e3-7bce-4e90-ad1a-0d43812a4af5",
+                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimLevelResourceType": "OS::Neutron::Net"
+                },
+                "vnfLinkPortIds": [
+                    "5cf5bba1-3481-4233-a42f-98284c91b6a4",
+                    "68f63717-9e01-4e4e-a3f4-c64e6e0f7a49"
+                ],
+                "vnfVirtualLinkDescId": "internalVL2"
+            },
+            {
+                "changeType": "ADDED",
+                "id": "5b696739-1a38-4df2-8f95-f3826fc3b0b7",
+                "networkResource": {
+                    "resourceId": "349a4dbb-41e9-4db9-b044-0653507b9728",
+                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimLevelResourceType": "OS::Neutron::Net"
+                },
+                "vnfLinkPortIds": [
+                    "474caf76-c227-4b84-9aa8-bb9814488917",
+                    "9fe46983-9497-4377-a959-765734ef7871"
+                ],
+                "vnfVirtualLinkDescId": "internalVL3"
+            }
+        ],
+        "affectedVirtualStorages": [
+            {
+                "changeType": "ADDED",
+                "id": "359a20f2-2c66-49b4-bc4e-3cf673513688",
+                "storageResource": {
+                    "resourceId": "496a70a0-c9df-43ce-8e49-3c708583eef0",
+                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimLevelResourceType": "OS::Cinder::Volume"
+                },
+                "virtualStorageDescId": "VirtualStorage"
+            }
+        ],
+        "affectedVnfcs": [
+            {
+                "affectedVnfcCpIds": [
+                    "e3ba03a1-f8a6-4468-ab97-0e24a8c5ad37",
+                    "e23bf017-6979-48a1-805b-ed459eb78071",
+                    "33a8397b-7f0c-4db7-85eb-8d8c19a35f9e",
+                    "7e9e3e7e-5ba5-4f12-ba1c-fa865719391f",
+                    "bf741bec-5294-4ae6-9486-51a1ebdb3ad7"
+                ],
+                "changeType": "ADDED",
+                "computeResource": {
+                    "resourceId": "7fceb009-ed81-4b95-ad4d-8487870cac48",
+                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimLevelResourceType": "OS::Nova::Server"
+                },
+                "id": "c4453bf6-d185-4d4f-9e6b-fb745bf21229",
+                "vduId": "VDU2"
+            },
+            {
+                "addedStorageResourceIds": [
+                    "359a20f2-2c66-49b4-bc4e-3cf673513688"
+                ],
+                "affectedVnfcCpIds": [
+                    "5c0b46c4-3e08-4397-bbab-89bc196b5abd",
+                    "c3efc6e9-1abc-407c-8421-101730cd8204",
+                    "26847d0b-a64a-4c28-90db-25ed3d101741",
+                    "b1647921-08b2-4cfa-a553-ebf333e602e4",
+                    "29125d8c-d84e-4055-a76a-beed1912bca3"
+                ],
+                "changeType": "ADDED",
+                "computeResource": {
+                    "resourceId": "2f0f1954-0b5f-48a6-8591-f05ca2c3c74e",
+                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimLevelResourceType": "OS::Nova::Server"
+                },
+                "id": "795985f6-f2c1-4a32-b318-6ac424ddf2bf",
+                "vduId": "VDU1"
+            }
+        ]
+    },
+    "startTime": "2021-09-06T07:07:15Z",
+    "stateEnteredTime": "2021-09-06T07:07:15Z",
+    "vnfInstanceId": "e00f0d64-d7a3-459b-8a51-b402d5344296"
+}

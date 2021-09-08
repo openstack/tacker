@@ -1,0 +1,13 @@
+{
+    "uriPrefix": "/vnflcm",
+    "apiVersions": [
+        {
+            "version": "1.3.0",
+            "isDeprecated": false
+        },
+        {
+            "version": "2.0.0",
+            "isDeprecated": false
+        }
+    ]
+}
