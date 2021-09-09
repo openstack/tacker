@@ -17,7 +17,7 @@ topology_template:
             disk_size: 1 GB
       properties:
         name: test-vdu-block-storage
-        image: cirros-0.4.0-x86_64-disk
+        image: cirros-0.5.2-x86_64-disk
         availability_zone: nova
         mgmt_driver: noop
         config: |
@@ -41,7 +41,7 @@ topology_template:
       type: tosca.nodes.BlockStorage.Tacker
       properties:
         size: 1 GB
-        image: cirros-0.4.0-x86_64-disk
+        image: cirros-0.5.2-x86_64-disk
 
     CB1:
           type: tosca.nodes.BlockStorageAttachment

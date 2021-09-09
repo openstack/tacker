@@ -18,7 +18,7 @@ topology_template:
           max_number_of_instances: 1
 
       artifacts:
-        sw_image: ../Files/images/cirros-0.4.0-x86_64-disk.img
+        sw_image: ../Files/images/cirros-0.5.2-x86_64-disk.img
 
       capabilities:
         virtual_compute:

@@ -129,7 +129,7 @@ modification later. This is not works yet. It will be updated.
           type: tosca.nodes.nfv.VDU.Tacker
           properties:
             maintenance: True
-            image: cirros-0.4.0-x86_64-disk
+            image: cirros-0.5.2-x86_64-disk
             capabilities:
               nfv_compute:
                 properties:

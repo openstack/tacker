@@ -94,7 +94,7 @@ Result:
   |                 |                     "properties": {                                       |
   |                 |                         "availability_zone": "nova",                      |
   |                 |                         "flavor": "m1.tiny",                              |
-  |                 |                         "image": "cirros-0.4.0-x86_64-disk",              |
+  |                 |                         "image": "cirros-0.5.2-x86_64-disk",              |
   |                 |                         "mgmt_driver": "noop"                             |
   |                 |                     },                                                    |
   |                 |                     "type": "tosca.nodes.nfv.VDU.Tacker"                  |
@@ -103,7 +103,7 @@ Result:
   |                 |                     "properties": {                                       |
   |                 |                         "availability_zone": "nova",                      |
   |                 |                         "flavor": "m1.tiny",                              |
-  |                 |                         "image": "cirros-0.4.0-x86_64-disk",              |
+  |                 |                         "image": "cirros-0.5.2-x86_64-disk",              |
   |                 |                         "mgmt_driver": "noop"                             |
   |                 |                     },                                                    |
   |                 |                     "type": "tosca.nodes.nfv.VDU.Tacker"                  |
@@ -183,7 +183,7 @@ Result:
   |                 |       flavor: m1.tiny                             |
   |                 |       user_data_format: SOFTWARE_CONFIG           |
   |                 |       availability_zone: nova                     |
-  |                 |       image: cirros-0.4.0-x86_64-disk             |
+  |                 |       image: cirros-0.5.2-x86_64-disk             |
   |                 |       config_drive: false                         |
   |                 |       networks:                                   |
   |                 |       - port:                                     |
@@ -194,7 +194,7 @@ Result:
   |                 |       flavor: m1.tiny                             |
   |                 |       user_data_format: SOFTWARE_CONFIG           |
   |                 |       availability_zone: nova                     |
-  |                 |       image: cirros-0.4.0-x86_64-disk             |
+  |                 |       image: cirros-0.5.2-x86_64-disk             |
   |                 |       config_drive: false                         |
   |                 |       networks:                                   |
   |                 |       - port:                                     |
@@ -403,7 +403,7 @@ Result:
   |                 |       flavor: m1.tiny                                                                         |
   |                 |       user_data_format: SOFTWARE_CONFIG                                                       |
   |                 |       availability_zone: nova                                                                 |
-  |                 |       image: cirros-0.4.0-x86_64-disk                                                         |
+  |                 |       image: cirros-0.5.2-x86_64-disk                                                         |
   |                 |       config_drive: false                                                                     |
   |                 |       networks:                                                                               |
   |                 |       - port:                                                                                 |
@@ -414,7 +414,7 @@ Result:
   |                 |       flavor: m1.tiny                                                                         |
   |                 |       user_data_format: SOFTWARE_CONFIG                                                       |
   |                 |       availability_zone: nova                                                                 |
-  |                 |       image: cirros-0.4.0-x86_64-disk                                                         |
+  |                 |       image: cirros-0.5.2-x86_64-disk                                                         |
   |                 |       config_drive: false                                                                     |
   |                 |       networks:                                                                               |
   |                 |       - port:                                                                                 |
@@ -601,7 +601,7 @@ Result (Updating):
   |                 |       flavor: m1.tiny                                                                         |
   |                 |       user_data_format: SOFTWARE_CONFIG                                                       |
   |                 |       availability_zone: nova                                                                 |
-  |                 |       image: cirros-0.4.0-x86_64-disk                                                         |
+  |                 |       image: cirros-0.5.2-x86_64-disk                                                         |
   |                 |       config_drive: false                                                                     |
   |                 |       networks:                                                                               |
   |                 |       - port:                                                                                 |
@@ -612,7 +612,7 @@ Result (Updating):
   |                 |       flavor: m1.tiny                                                                         |
   |                 |       user_data_format: SOFTWARE_CONFIG                                                       |
   |                 |       availability_zone: nova                                                                 |
-  |                 |       image: cirros-0.4.0-x86_64-disk                                                         |
+  |                 |       image: cirros-0.5.2-x86_64-disk                                                         |
   |                 |       config_drive: false                                                                     |
   |                 |       networks:                                                                               |
   |                 |       - port:                                                                                 |
@@ -713,7 +713,7 @@ Result (Updated):
   |                 |       flavor: m1.tiny                                                                         |
   |                 |       user_data_format: SOFTWARE_CONFIG                                                       |
   |                 |       availability_zone: nova                                                                 |
-  |                 |       image: cirros-0.4.0-x86_64-disk                                                         |
+  |                 |       image: cirros-0.5.2-x86_64-disk                                                         |
   |                 |       config_drive: false                                                                     |
   |                 |       networks:                                                                               |
   |                 |       - port:                                                                                 |
@@ -724,7 +724,7 @@ Result (Updated):
   |                 |       flavor: m1.tiny                                                                         |
   |                 |       user_data_format: SOFTWARE_CONFIG                                                       |
   |                 |       availability_zone: nova                                                                 |
-  |                 |       image: cirros-0.4.0-x86_64-disk                                                         |
+  |                 |       image: cirros-0.5.2-x86_64-disk                                                         |
   |                 |       config_drive: false                                                                     |
   |                 |       networks:                                                                               |
   |                 |       - port:                                                                                 |
@@ -848,12 +848,12 @@ Check the VMs scaled out:
   +--------------------------------------+-------------------------------------------------------+--------+--------------------------+--------------------------+---------+
   | ID                                   | Name                                                  | Status | Networks                 | Image                    | Flavor  |
   +--------------------------------------+-------------------------------------------------------+--------+--------------------------+--------------------------+---------+
-  | dfb04024-666c-4b82-94eb-12766851cfb7 | vn-6okzhe-k6n2umsyoizd-ex2uwxma2tlt-VDU2-ljontrce3bd7 | ACTIVE | net_mgmt=192.168.120.8   | cirros-0.4.0-x86_64-disk | m1.tiny |
-  | e48999e8-5f65-43e4-b8a5-e81e358e2e21 | vn-6okzhe-k6n2umsyoizd-ex2uwxma2tlt-VDU1-3dcglaxrwyzl | ACTIVE | net_mgmt=192.168.120.82  | cirros-0.4.0-x86_64-disk | m1.tiny |
-  | 0abc3f38-647e-4b47-8376-06d2e56c4217 | vn-6okzhe-edilzqp2htvv-ibfssgztffjf-VDU2-43gjj46b2nrr | ACTIVE | net_mgmt=192.168.120.41  | cirros-0.4.0-x86_64-disk | m1.tiny |
-  | 43840dde-1ec3-4da6-aeab-afca96299a9f | vn-6okzhe-qf4qc4l6qk7o-tukln5mwcokq-VDU2-zd7nq3smgjdr | ACTIVE | net_mgmt=192.168.120.250 | cirros-0.4.0-x86_64-disk | m1.tiny |
-  | 84c78850-8a06-41ab-98a7-371224125beb | vn-6okzhe-edilzqp2htvv-ibfssgztffjf-VDU1-qvv2vv37f65t | ACTIVE | net_mgmt=192.168.120.92  | cirros-0.4.0-x86_64-disk | m1.tiny |
-  | 9318b9fe-d655-4088-9910-b5f7481ed059 | vn-6okzhe-qf4qc4l6qk7o-tukln5mwcokq-VDU1-omaexvftqjee | ACTIVE | net_mgmt=192.168.120.69  | cirros-0.4.0-x86_64-disk | m1.tiny |
+  | dfb04024-666c-4b82-94eb-12766851cfb7 | vn-6okzhe-k6n2umsyoizd-ex2uwxma2tlt-VDU2-ljontrce3bd7 | ACTIVE | net_mgmt=192.168.120.8   | cirros-0.5.2-x86_64-disk | m1.tiny |
+  | e48999e8-5f65-43e4-b8a5-e81e358e2e21 | vn-6okzhe-k6n2umsyoizd-ex2uwxma2tlt-VDU1-3dcglaxrwyzl | ACTIVE | net_mgmt=192.168.120.82  | cirros-0.5.2-x86_64-disk | m1.tiny |
+  | 0abc3f38-647e-4b47-8376-06d2e56c4217 | vn-6okzhe-edilzqp2htvv-ibfssgztffjf-VDU2-43gjj46b2nrr | ACTIVE | net_mgmt=192.168.120.41  | cirros-0.5.2-x86_64-disk | m1.tiny |
+  | 43840dde-1ec3-4da6-aeab-afca96299a9f | vn-6okzhe-qf4qc4l6qk7o-tukln5mwcokq-VDU2-zd7nq3smgjdr | ACTIVE | net_mgmt=192.168.120.250 | cirros-0.5.2-x86_64-disk | m1.tiny |
+  | 84c78850-8a06-41ab-98a7-371224125beb | vn-6okzhe-edilzqp2htvv-ibfssgztffjf-VDU1-qvv2vv37f65t | ACTIVE | net_mgmt=192.168.120.92  | cirros-0.5.2-x86_64-disk | m1.tiny |
+  | 9318b9fe-d655-4088-9910-b5f7481ed059 | vn-6okzhe-qf4qc4l6qk7o-tukln5mwcokq-VDU1-omaexvftqjee | ACTIVE | net_mgmt=192.168.120.69  | cirros-0.5.2-x86_64-disk | m1.tiny |
   +--------------------------------------+-------------------------------------------------------+--------+--------------------------+--------------------------+---------+
 
 
@@ -873,10 +873,10 @@ Check the VMs scaled in:
   +--------------------------------------+-------------------------------------------------------+--------+--------------------------+--------------------------+---------+
   | ID                                   | Name                                                  | Status | Networks                 | Image                    | Flavor  |
   +--------------------------------------+-------------------------------------------------------+--------+--------------------------+--------------------------+---------+
-  | dfb04024-666c-4b82-94eb-12766851cfb7 | vn-6okzhe-k6n2umsyoizd-ex2uwxma2tlt-VDU2-ljontrce3bd7 | ACTIVE | net_mgmt=192.168.120.8   | cirros-0.4.0-x86_64-disk | m1.tiny |
-  | e48999e8-5f65-43e4-b8a5-e81e358e2e21 | vn-6okzhe-k6n2umsyoizd-ex2uwxma2tlt-VDU1-3dcglaxrwyzl | ACTIVE | net_mgmt=192.168.120.82  | cirros-0.4.0-x86_64-disk | m1.tiny |
-  | 43840dde-1ec3-4da6-aeab-afca96299a9f | vn-6okzhe-qf4qc4l6qk7o-tukln5mwcokq-VDU2-zd7nq3smgjdr | ACTIVE | net_mgmt=192.168.120.250 | cirros-0.4.0-x86_64-disk | m1.tiny |
-  | 9318b9fe-d655-4088-9910-b5f7481ed059 | vn-6okzhe-qf4qc4l6qk7o-tukln5mwcokq-VDU1-omaexvftqjee | ACTIVE | net_mgmt=192.168.120.69  | cirros-0.4.0-x86_64-disk | m1.tiny |
+  | dfb04024-666c-4b82-94eb-12766851cfb7 | vn-6okzhe-k6n2umsyoizd-ex2uwxma2tlt-VDU2-ljontrce3bd7 | ACTIVE | net_mgmt=192.168.120.8   | cirros-0.5.2-x86_64-disk | m1.tiny |
+  | e48999e8-5f65-43e4-b8a5-e81e358e2e21 | vn-6okzhe-k6n2umsyoizd-ex2uwxma2tlt-VDU1-3dcglaxrwyzl | ACTIVE | net_mgmt=192.168.120.82  | cirros-0.5.2-x86_64-disk | m1.tiny |
+  | 43840dde-1ec3-4da6-aeab-afca96299a9f | vn-6okzhe-qf4qc4l6qk7o-tukln5mwcokq-VDU2-zd7nq3smgjdr | ACTIVE | net_mgmt=192.168.120.250 | cirros-0.5.2-x86_64-disk | m1.tiny |
+  | 9318b9fe-d655-4088-9910-b5f7481ed059 | vn-6okzhe-qf4qc4l6qk7o-tukln5mwcokq-VDU1-omaexvftqjee | ACTIVE | net_mgmt=192.168.120.69  | cirros-0.5.2-x86_64-disk | m1.tiny |
   +--------------------------------------+-------------------------------------------------------+--------+--------------------------+--------------------------+---------+
 
 

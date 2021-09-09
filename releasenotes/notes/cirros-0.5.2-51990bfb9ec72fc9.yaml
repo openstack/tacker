@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+      Update cirros image from 0.4.0 to 0.5.2.

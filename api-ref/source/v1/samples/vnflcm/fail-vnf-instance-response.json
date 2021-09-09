@@ -7,7 +7,7 @@
     "startTime":"2021-01-22 13:41:03+00:00",
     "isAutomaticInvocation":false,
     "operationState":"FAILED",
-    "operationParams":"{\"flavourId\": \"default\", \"instantiationLevelId\": \"n-msc-min\", \"additionalParams\": {\"lcm-operation-user-data\": \"./UserData/lcm_user_data.py\", \"lcm-operation-user-data-class\": \"SampleUserData\", \"sbc_name\": \"sbc\", \"slb_name\": \"slb\", \"image\": \"cirros-0.4.0-x86_64-disk\"}}",
+    "operationParams":"{\"flavourId\": \"default\", \"instantiationLevelId\": \"n-msc-min\", \"additionalParams\": {\"lcm-operation-user-data\": \"./UserData/lcm_user_data.py\", \"lcm-operation-user-data-class\": \"SampleUserData\", \"sbc_name\": \"sbc\", \"slb_name\": \"slb\", \"image\": \"cirros-0.5.2-x86_64-disk\"}}",
     "error":{
         "status":500,
         "detail":"MANUAL ERROR"

@@ -18,7 +18,7 @@ topology_template:
             mem_size: 512 MB
             num_cpus: 2
       properties:
-        image: cirros-0.4.0-x86_64-disk
+        image: cirros-0.5.2-x86_64-disk
         mgmt_driver: noop
         availability_zone: nova
 

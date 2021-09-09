@@ -51,9 +51,9 @@ class VnfPackage:
             "softwareImages": [
                 {
                     "id": "sw_image",
-                    "name": "cirros-0.4.0-x86_64-disk",
+                    "name": "cirros-0.5.2-x86_64-disk",
                     "provider": "Company",
-                    "version": "0.4.0",
+                    "version": "0.5.2",
                     "checksum": {
                         "algorithm": "SHA-512",
                         "hash": sw_image_hash
@@ -67,13 +67,13 @@ class VnfPackage:
                     "userMetadata": {
                         "key": "value"
                     },
-                    "imagePath": "Files/images/cirros-0.4.0-x86_64-disk.img"
+                    "imagePath": "Files/images/cirros-0.5.2-x86_64-disk.img"
                 }
             ],
             "additionalArtifacts": [
                 {
                     "artifactPath":
-                        "Files/images/cirros-0.4.0-x86_64-disk.img",
+                        "Files/images/cirros-0.5.2-x86_64-disk.img",
                     "checksum": {
                         "algorithm": "SHA-512",
                         "hash": add_artifact_hash

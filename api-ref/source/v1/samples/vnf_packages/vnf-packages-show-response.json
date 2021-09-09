@@ -13,11 +13,11 @@
          "size":2000000000, // unit for 'size` is always in Bytes
          "name":"VrtualStorage",
          "checksum":{
-            "hash":"b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d",
+            "hash":"932fcae93574e242dc3d772d5235061747dfe537668443a1f0567d893614b464",
             "algorithm":"sha-256"
          },
          "minDisk":2000000000, // unit for 'minDisk' is always in Bytes
-         "version":"0.4.0",
+         "version":"0.5.2",
          "provider":"provider",
          "minRam":8192000000, // unit for 'minRam' is always in Bytes
          "containerFormat":"bare"
@@ -32,11 +32,11 @@
          "size":1000000000,
          "name":"Software of VDU1",
          "checksum":{
-            "hash":"b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d",
+            "hash":"932fcae93574e242dc3d772d5235061747dfe537668443a1f0567d893614b464",
             "algorithm":"sha-256"
          },
          "minDisk":1000000000,
-         "version":"0.4.0",
+         "version":"0.5.2",
          "provider":"provider",
          "minRam":0,
          "containerFormat":"bare"

@@ -7,7 +7,7 @@ outputs:
     value: {get_attr: [CP1, fixed_ips, 0, ip_address]}
 parameters:
   image_source:
-    default: http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
+    default: http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-x86_64-disk.img
     description: Image source for the server
     type: string
 resources:

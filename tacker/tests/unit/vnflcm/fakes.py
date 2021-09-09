@@ -1118,7 +1118,7 @@ def vnf_dict():
            '          size_of_storage: 1 GB\n' + \
            '          rdma_enabled: true\n        sw_image_data:\n' + \
            '          name: VirtualStorage\n' + \
-           '          version: \'0.4.0\'\n          checksum:\n' + \
+           '          version: \'0.5.2\'\n          checksum:\n' + \
            '            algorithm: sha-512\n' + \
            '            hash: 6513f21e44aa3da349f248188a44bc304a3' + \
            '653a04122d8fb4535423c8e1d14cd6a153f735bb0982e2161b5b5' + \

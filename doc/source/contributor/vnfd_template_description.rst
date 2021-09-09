@@ -81,7 +81,7 @@ availability zone can be described as:
       VDU1:
         type: tosca.nodes.nfv.VDU.Tacker
         properties:
-          image: cirros-0.4.0-x86_64-disk
+          image: cirros-0.5.2-x86_64-disk
           availability_zone: nova
         capabilities:
           nfv_compute:
@@ -101,7 +101,7 @@ OpenStack specific **flavors** can also be used to describe VDU configuration.
       VDU1:
         type: tosca.nodes.nfv.VDU.Tacker
         properties:
-          image: cirros-0.4.0-x86_64-disk
+          image: cirros-0.5.2-x86_64-disk
           flavor: m1.tiny
           availability_zone: nova
 
@@ -190,8 +190,8 @@ the VDU with that image.
       artifacts:
         VNFImage:
           type: tosca.artifacts.Deployment.Image.VM
-          file: http://download.cirros-cloud.net/0.4.0/ \
-                cirros-0.4.0-x86_64-disk.img
+          file: http://download.cirros-cloud.net/0.5.2/ \
+                cirros-0.5.2-x86_64-disk.img
 
 VDU Capabilities
 ^^^^^^^^^^^^^^^^

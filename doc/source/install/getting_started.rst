@@ -82,7 +82,7 @@ Onboarding Sample VNF
                    mem_size: 512 MB
                    disk_size: 1 GB
              properties:
-               image: cirros-0.4.0-x86_64-disk
+               image: cirros-0.5.2-x86_64-disk
                availability_zone: nova
                mgmt_driver: noop
                config: |

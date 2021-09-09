@@ -42,7 +42,7 @@ vnf_dict = {
                     'properties': {
                         'user_data_format': 'SOFTWARE_CONFIG',
                         'availability_zone': 'nova',
-                        'image': 'cirros-0.4.0-x86_64-disk',
+                        'image': 'cirros-0.5.2-x86_64-disk',
                         'config_drive': False,
                         'flavor': {'get_resource': 'VDU1_flavor'},
                         'networks': [{'port': {'get_resource': 'CP1'}}]

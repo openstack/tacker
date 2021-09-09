@@ -313,8 +313,8 @@ def get_vnf_instantiated_info(flavour_id='simple',
 
 
 def get_vnf_software_image_object(image_path=None):
-    image_path = image_path or ("http://download.cirros-cloud.net/0.4.0/"
-                 "cirros-0.4.0-x86_64-disk.img")
+    image_path = image_path or ("http://download.cirros-cloud.net/0.5.2/"
+                 "cirros-0.5.2-x86_64-disk.img")
     vnf_software_image = objects.VnfSoftwareImage(
         name='test-image', image_path=image_path,
         min_disk=10, min_ram=4, disk_format="qcow2",
@@ -500,10 +500,10 @@ def get_original_stack_param():
                 'VDU1': {'flavor': 'm1.tiny', 'image': 'None'},
                 'VirtualStorage': {
                     'flavor': 'None',
-                    'image': 'cirros-0.4.0-x86_64-disk'},
+                    'image': 'cirros-0.5.2-x86_64-disk'},
                 'VDU2': {
                     'flavor': 'm1.tiny',
-                    'image': 'cirros-0.4.0-x86_64-disk'}},
+                    'image': 'cirros-0.5.2-x86_64-disk'}},
                 'CP': {
                     'VDU1_CP1': {
                         'network': 'nw-resource-id-1',
@@ -528,10 +528,10 @@ def get_expect_stack_param():
                 'VDU1': {'flavor': 'm1.tiny', 'image': 'None'},
                 'VirtualStorage': {
                     'flavor': 'None',
-                    'image': 'cirros-0.4.0-x86_64-disk'},
+                    'image': 'cirros-0.5.2-x86_64-disk'},
                 'VDU2': {
                     'flavor': 'm1.tiny',
-                    'image': 'cirros-0.4.0-x86_64-disk'}},
+                    'image': 'cirros-0.5.2-x86_64-disk'}},
                 'CP': {
                     'VDU1_CP1': {
                         'network': 'nw-resource-id-1',

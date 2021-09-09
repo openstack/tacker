@@ -16,7 +16,7 @@ topology_template:
             num_cpus: 2
       properties:
         availability_zone: nova
-        image: cirros-0.4.0-x86_64-disk
+        image: cirros-0.5.2-x86_64-disk
         maintenance: true
         mgmt_driver: noop
       type: tosca.nodes.nfv.VDU.Tacker
