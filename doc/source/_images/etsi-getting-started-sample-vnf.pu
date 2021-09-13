@@ -1,0 +1,9 @@
+@startuml
+scale 300 width
+nwdiag {
+network internalVL1 {
+      address = "10.0.0.0/24"
+			vdu [description="VDU1\n(cirros)" address=CP1];
+  }
+}
+@enduml
