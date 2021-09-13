@@ -33,7 +33,6 @@ from tacker.tests import utils
 VNF_PACKAGE_UPLOAD_TIMEOUT = 300
 VNF_INSTANTIATE_TIMEOUT = 600
 VNF_TERMINATE_TIMEOUT = 600
-VNF_HEAL_TIMEOUT = 600
 RETRY_WAIT_TIME = 5
 
 
@@ -256,6 +255,22 @@ class VnfLcmTest(base.BaseTackerTest):
 
         return result
 
+    def _wait_vnflcm_op_occs(
+            self, context, vnf_instance_id, type, timeout,
+            operation_state='COMPLETED'):
+        start_time = int(time.time())
+        while True:
+            vnflcm_op_occ = self._vnf_notify_get_by_id(
+                context, vnf_instance_id)
+
+            if vnflcm_op_occ.operation_state == operation_state:
+                break
+
+            if ((int(time.time()) - start_time) > timeout):
+                raise Exception("Failed to wait {} instance".format(type))
+
+            time.sleep(RETRY_WAIT_TIME)
+
     def test_instantiate_terminate_vnf_with_vnflcmnoop(self):
         # create vnf instance
         vnf_instance_name = "vnf_with_instantiation_level-%s" % \
@@ -271,24 +286,23 @@ class VnfLcmTest(base.BaseTackerTest):
         request_body = self._instantiate_vnf_instance_request(
             "simple", vim_id=self.vim_id)
         self._instantiate_vnf_instance(vnf_instance['id'], request_body)
-        time.sleep(20)
+        self._wait_vnflcm_op_occs(self.context, vnf_instance['id'],
+                                  'instantiate', VNF_INSTANTIATE_TIMEOUT)
         # show vnf instance
         vnf_instance = self._show_vnf_instance(vnf_instance['id'])
         self.assertEqual(vnf_instance['instantiationState'], 'INSTANTIATED')
         vnflcm_op_occ_ins = self._vnf_notify_get_by_id(
             self.context, vnf_instance['id'], columns_to_join=None)
-        self.assertEqual(vnflcm_op_occ_ins.operation_state, 'COMPLETED')
         self.assertEqual(vnflcm_op_occ_ins.operation, 'INSTANTIATE')
-        time.sleep(20)
         # terminate vnf instance
         terminate_req_body = {
             "terminationType": fields.VnfInstanceTerminationType.FORCEFUL,
         }
         self._terminate_vnf_instance(vnf_instance['id'], terminate_req_body)
-        time.sleep(20)
+        self._wait_vnflcm_op_occs(self.context, vnf_instance['id'],
+                                  'terminate', VNF_TERMINATE_TIMEOUT)
         vnflcm_op_occ_term = self._vnf_notify_get_by_id(
             self.context, vnf_instance['id'], columns_to_join=None)
-        self.assertEqual(vnflcm_op_occ_term.operation_state, 'COMPLETED')
         self.assertEqual(vnflcm_op_occ_term.operation, 'TERMINATE')
         # delete vnf instance
         self._delete_vnf_instance(vnf_instance['id'])
