@@ -14,6 +14,7 @@
 #    under the License.
 
 from functools import cmp_to_key
+from functools import wraps
 import netaddr
 from oslo_config import cfg
 import oslo_i18n
@@ -28,6 +29,30 @@ from tacker.common import exceptions
 from tacker import wsgi
 
 LOG = logging.getLogger(__name__)
+
+
+def validate_supported_params(supported_params):
+    """Decorator for Restful API methods which specifies supported parameters.
+
+    If there are unsupported parameters in the request parameters, the http
+    code 400 Bad Request will be returned and the user will be told which
+    parameters in the request are not supported.
+    """
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            request = kwargs.get('request')
+            if not request:
+                request = args[1]
+            params = set(request.params.keys())
+            unsupported_params = params - supported_params
+            if unsupported_params:
+                msg = _("Not supported parameters: %s") \
+                    % ','.join(unsupported_params)
+                raise exc.HTTPBadRequest(explanation=msg)
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
 
 def get_filters(request, attr_info, skips=None):
