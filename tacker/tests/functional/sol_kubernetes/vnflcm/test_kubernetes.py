@@ -20,8 +20,16 @@ import unittest
 
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
+from sqlalchemy import desc
+from sqlalchemy.orm import joinedload
 
+from tacker.common import exceptions
+from tacker import context
+from tacker.db import api as db_api
+from tacker.db.db_sqlalchemy import api
+from tacker.db.db_sqlalchemy import models
 from tacker.objects import fields
+from tacker.objects import vnf_lcm_op_occs
 from tacker.tests.functional import base
 from tacker.tests import utils
 
@@ -112,6 +120,8 @@ class VnfLcmTest(base.BaseTackerTest):
     def setUp(self):
         super(VnfLcmTest, self).setUp()
         self.base_url = "/vnflcm/v1/vnf_instances"
+        self.base_vnf_lcm_op_occs_url = "/vnflcm/v1/vnf_lcm_op_occs"
+        self.context = context.get_admin_context()
 
         vim_list = self.client.list_vims()
         if not vim_list:
@@ -1044,4 +1054,93 @@ class VnfLcmTest(base.BaseTackerTest):
         }
 
         self._terminate_vnf_instance(vnf_instance['id'], terminate_req_body)
+        self._delete_vnf_instance(vnf_instance['id'])
+
+    @db_api.context_manager.reader
+    def _vnf_notify_get_by_id(self, context, vnf_instance_id,
+                              columns_to_join=None):
+        query = api.model_query(
+            context, models.VnfLcmOpOccs,
+            read_deleted="no", project_only=True).filter_by(
+            vnf_instance_id=vnf_instance_id).order_by(
+            desc("created_at"))
+
+        if columns_to_join:
+            for column in columns_to_join:
+                query = query.options(joinedload(column))
+
+        db_vnflcm_op_occ = query.first()
+
+        if not db_vnflcm_op_occ:
+            raise exceptions.VnfInstanceNotFound(id=vnf_instance_id)
+
+        vnflcm_op_occ = vnf_lcm_op_occs.VnfLcmOpOcc.obj_from_db_obj(
+            context, db_vnflcm_op_occ)
+        return vnflcm_op_occ
+
+    def _wait_vnflcm_op_occs(
+            self, context, vnf_instance_id,
+            operation_state='COMPLETED'):
+        timeout = VNF_INSTANTIATE_TIMEOUT
+        start_time = int(time.time())
+        while True:
+            vnflcm_op_occ = self._vnf_notify_get_by_id(
+                context, vnf_instance_id)
+
+            if vnflcm_op_occ.operation_state == operation_state:
+                break
+
+            if ((int(time.time()) - start_time) > timeout):
+                raise Exception("Failed to wait instantiate instance")
+
+            time.sleep(RETRY_WAIT_TIME)
+
+    def _instantiate_vnf_instance_wait_fail(self, id, request_body):
+        url = os.path.join(self.base_url, id, "instantiate")
+        resp, body = self.http_client.do_request(
+            url, "POST", body=jsonutils.dumps(request_body))
+        self.assertEqual(202, resp.status_code)
+        # wait vnflcm_op_occs.operation_state become FAILED_TEMP
+        self._wait_vnflcm_op_occs(self.context, id, "FAILED_TEMP")
+
+    def _rollback_vnf_instance(self, vnf_lcm_op_occ_id):
+        url = os.path.join(
+            self.base_vnf_lcm_op_occs_url, vnf_lcm_op_occ_id, "rollback")
+        # generate body
+        resp, body = self.http_client.do_request(url, "POST")
+        self.assertEqual(202, resp.status_code)
+
+    def test_rollback_cnf_after_instantiate_fail(self):
+        vnf_instance_name = "vnf_rollback_cnf_after_instantiate_fail"
+        vnf_instance_description = "vnf rollback cnf after instantiate fail"
+        resp, vnf_instance = self._create_vnf_instance(
+            self.vnfd_id_resource,
+            vnf_instance_name=vnf_instance_name,
+            vnf_instance_description=vnf_instance_description)
+
+        self.assertIsNotNone(vnf_instance['id'])
+        self.assertEqual(201, resp.status_code)
+
+        additional_param = {
+            "lcm-kubernetes-def-files": [
+                "Files/kubernetes/statefulset_fail.yaml",
+            ]
+        }
+        request_body = self._instantiate_vnf_instance_request(
+            "simple", vim_id=self.vim_id, additional_param=additional_param)
+
+        self._instantiate_vnf_instance_wait_fail(
+            vnf_instance['id'], request_body)
+
+        # get vnflcm_op_occ id for rollback
+        vnflcm_op_occ = self._vnf_notify_get_by_id(
+            self.context, vnf_instance['id'])
+        vnf_lcm_op_occ_id = vnflcm_op_occ.id
+
+        # rollback operation
+        self._rollback_vnf_instance(vnf_lcm_op_occ_id)
+        # wait vnflcm_op_occs.operation_state become ROLLED_BACK
+        self._wait_vnflcm_op_occs(
+            self.context, vnf_instance['id'], "ROLLED_BACK")
+
         self._delete_vnf_instance(vnf_instance['id'])
