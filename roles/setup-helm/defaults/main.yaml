@@ -1,0 +1,4 @@
+helm_user_home_dir: /home/helm
+helm_user_password: helm_password
+helm_chart_dir: /var/tacker/helm
+vim_name: vim-kubernetes
