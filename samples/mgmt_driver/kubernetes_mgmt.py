@@ -41,10 +41,13 @@ HELM_CMD_TIMEOUT = 30
 HELM_INSTALL_TIMEOUT = 300
 HELM_CHART_DIR = "/var/tacker/helm"
 HELM_CHART_CMP_PATH = "/tmp/tacker-helm.tgz"
+SERVER_WAIT_COMPLETE_TIME = 60
 
 
 class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
-    FLOATING_IP_FLAG = False
+
+    def __init__(self):
+        self._init_flag()
 
     def get_type(self):
         return 'mgmt-drivers-kubernetes'
@@ -59,6 +62,11 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                           instantiate_vnf_request, grant,
                           grant_request, **kwargs):
         pass
+
+    def _init_flag(self):
+        self.FLOATING_IP_FLAG = False
+        self.SET_NODE_LABEL_FLAG = False
+        self.SET_ZONE_ID_FLAG = False
 
     def _check_is_cidr(self, cidr_str):
         # instantiate: check cidr
@@ -182,9 +190,6 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         # ha: get group resources list
         nest_resources_list = heatclient.resources.list(stack_id=stack_id)
         group_stack_name = node.get("aspect_id")
-        if 'lcm-operation-user-data' in additional_params.keys() and \
-                'lcm-operation-user-data-class' in additional_params.keys():
-            group_stack_name = group_stack_name + '_group'
         group_stack_id = ""
         for nest_resources in nest_resources_list:
             if nest_resources.resource_name == group_stack_name:
@@ -225,12 +230,86 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 error_message="Failed to get the cluster ip")
         return cluster_ip
 
+    def _get_zone_id_from_grant(self, vnf_instance, grant, operation_type,
+                                physical_resource_id):
+        zone_id = ''
+        for vnfc_resource in \
+                vnf_instance.instantiated_vnf_info.vnfc_resource_info:
+            if physical_resource_id == \
+                    vnfc_resource.compute_resource.resource_id:
+                vnfc_id = vnfc_resource.id
+                break
+        if not vnfc_id:
+            msg = 'Failed to find Vnfc Resource related ' \
+                  'to this physical_resource_id {}.'.format(
+                      physical_resource_id)
+            LOG.error(msg)
+            raise exceptions.MgmtDriverOtherError(
+                error_message=msg)
+
+        if operation_type == 'HEAL':
+            resources = grant.update_resources
+        else:
+            resources = grant.add_resources
+
+        for resource in resources:
+            if vnfc_id == resource.resource_definition_id:
+                add_resource_zone_id = resource.zone_id
+                break
+        if not add_resource_zone_id:
+            msg = 'Failed to find specified zone id' \
+                  ' related to Vnfc Resource {} in grant'.format(
+                      vnfc_id)
+            LOG.warn(msg)
+        else:
+            for zone in grant.zones:
+                if add_resource_zone_id == zone.id:
+                    zone_id = zone.zone_id
+                    break
+
+        return zone_id
+
+    def _get_pod_affinity_info(self, heatclient, nest_stack_id, stack_id,
+                               vnf_instance, grant):
+        zone_id = ''
+        host_compute = ''
+        nest_resources_list = heatclient.resources.list(
+            stack_id=nest_stack_id)
+        for nest_res in nest_resources_list:
+            if nest_res.resource_type == 'OS::Nova::ServerGroup':
+                pod_affinity_res_info = heatclient.resources.get(
+                    stack_id=nest_stack_id,
+                    resource_name=nest_res.resource_name)
+                srv_grp_policies = pod_affinity_res_info.attributes.get(
+                    'policy')
+                if srv_grp_policies and srv_grp_policies == 'anti-affinity':
+                    srv_grp_phy_res_id = pod_affinity_res_info.\
+                        physical_resource_id
+        lowest_res_list = heatclient.resources.list(stack_id=stack_id)
+        for lowest_res in lowest_res_list:
+            if lowest_res.resource_type == 'OS::Nova::Server':
+                lowest_res_name = lowest_res.resource_name
+                worker_node_res_info = heatclient.resources.get(
+                    stack_id=stack_id, resource_name=lowest_res_name)
+                srv_groups = worker_node_res_info.attributes.get(
+                    'server_groups')
+                if srv_groups and srv_grp_phy_res_id in srv_groups:
+                    host_compute = worker_node_res_info.attributes.get(
+                        'OS-EXT-SRV-ATTR:host')
+                    if self.SET_ZONE_ID_FLAG:
+                        phy_res_id = worker_node_res_info.physical_resource_id
+                        zone_id = self._get_zone_id_from_grant(
+                            vnf_instance, grant, 'INSTANTIATE', phy_res_id)
+        return host_compute, zone_id
+
     def _get_install_info_for_k8s_node(self, nest_stack_id, node,
                                        additional_params, role,
-                                       access_info):
+                                       access_info, vnf_instance, grant):
         # instantiate: get k8s ssh ips
         vm_dict_list = []
         stack_id = ''
+        zone_id = ''
+        host_compute = ''
         heatclient = hc.HeatClient(access_info)
 
         # get ssh_ip and nic_ip and set ssh's values
@@ -278,8 +357,14 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                         stack_id=stack_id,
                         resource_name=node.get('nic_cp_name')).attributes.get(
                         'fixed_ips')[0].get('ip_address')
-
+                if role == 'worker':
+                    # get pod_affinity info
+                    host_compute, zone_id = self._get_pod_affinity_info(
+                        heatclient, nest_stack_id, stack_id,
+                        vnf_instance, grant)
                 vm_dict_list.append({
+                    "host_compute": host_compute,
+                    "zone_id": zone_id,
                     "ssh": {
                         "username": node.get("username"),
                         "password": node.get("password"),
@@ -357,7 +442,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 if retry == 0:
                     LOG.error(e)
                     raise paramiko.SSHException()
-                time.sleep(30)
+                time.sleep(SERVER_WAIT_COMPLETE_TIME)
 
     def _get_vm_cidr_list(self, master_ip, proxy):
         # ha and scale: get vm cidr list
@@ -415,6 +500,42 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         ssh_command += "bash /tmp/install_helm.sh;"
         self._execute_command(
             commander, ssh_command, HELM_INSTALL_TIMEOUT, 'install', 0)
+
+    def _set_node_label(self, commander, nic_ip, host_compute, zone_id):
+        """Set node label function
+
+        This function can set a node label to worker node in kubernetes
+        cluster. After login master node of kubernetes cluster via ssh,
+        it will execute a cli command of kubectl. This command can update
+        the labels on a resource.
+
+        For example:
+        If the following command has been executed.
+            $ kubectl label nodes worker24 CIS-node=compute01
+        The result is:
+            $ kubectl get node --show-labels | grep worker24
+            NAME      STATUS  ROLES  AGE     VERSION   LABELS
+            worker46  Ready   <none> 1m33s   v1.21.0   CIS-node=compute01...
+
+        Then when you deploy pods with this label(`CIS-node`) in
+        pod-affinity rule, the pod will be deployed on different worker nodes.
+        """
+        worker_host_name = 'worker' + nic_ip.split('.')[3]
+        if host_compute:
+            ssh_command = "kubectl label nodes {worker_host_name}" \
+                          " CIS-node={host_compute}".format(
+                              worker_host_name=worker_host_name,
+                              host_compute=host_compute)
+            self._execute_command(
+                commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 0)
+        if zone_id:
+            ssh_command = "kubectl label nodes {worker_host_name}" \
+                          " kubernetes.io/zone={zone_id}".format(
+                              worker_host_name=worker_host_name,
+                              zone_id=zone_id)
+            self._execute_command(
+                commander, ssh_command, K8S_CMD_TIMEOUT, 'common', 0)
+            commander.close_session()
 
     def _install_k8s_cluster(self, context, vnf_instance,
                              proxy, script_path,
@@ -650,6 +771,14 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 cluster_ip, kubeadm_token, ssl_ca_cert_hash)
             commander.close_session()
 
+            # set pod_affinity
+            commander = cmd_executer.RemoteCommandExecutor(
+                user=active_username, password=active_password,
+                host=active_host, timeout=K8S_CMD_TIMEOUT)
+            self._set_node_label(
+                commander, nic_ip, vm_dict.get('host_compute'),
+                vm_dict.get('zone_id'))
+
         return (server, bearer_token, ssl_ca_cert, project_name,
                 masternode_ip_list)
 
@@ -689,6 +818,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
     def instantiate_end(self, context, vnf_instance,
                         instantiate_vnf_request, grant,
                         grant_request, **kwargs):
+        self._init_flag()
         # get vim_connect_info
         if hasattr(instantiate_vnf_request, 'vim_connection_info'):
             vim_connection_info = self._get_vim_connection_info(
@@ -735,6 +865,9 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 raise exceptions.MgmtDriverParamInvalid(param='cluster_cidr')
         else:
             additional_param['master_node']['cluster_cidr'] = '10.96.0.0/12'
+        # check grants exists
+        if grant:
+            self.SET_ZONE_ID_FLAG = True
         # get stack_id
         nest_stack_id = vnf_instance.instantiated_vnf_info.instance_id
         # set vim_name
@@ -747,10 +880,11 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             self._get_install_info_for_k8s_node(
                 nest_stack_id, master_node,
                 instantiate_vnf_request.additional_params,
-                'master', access_info)
+                'master', access_info, vnf_instance, grant)
         worker_vm_dict_list = self._get_install_info_for_k8s_node(
             nest_stack_id, worker_node,
-            instantiate_vnf_request.additional_params, 'worker', access_info)
+            instantiate_vnf_request.additional_params, 'worker',
+            access_info, vnf_instance, grant)
         server, bearer_token, ssl_ca_cert, project_name, masternode_ip_list = \
             self._install_k8s_cluster(context, vnf_instance,
                                       proxy, script_path, master_vm_dict_list,
@@ -781,6 +915,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
     def terminate_end(self, context, vnf_instance,
                       terminate_vnf_request, grant,
                       grant_request, **kwargs):
+        self._init_flag()
         k8s_params = vnf_instance.instantiated_vnf_info.additional_params.get(
             'k8s_cluster_installation_param', {})
         k8s_vim_name = k8s_params.get('vim_name')
@@ -847,10 +982,9 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         # scale: get host resource list
         host_ips_list = []
         node_resource_name = node.get('aspect_id')
-        node_group_resource_name = node.get('aspect_id') + '_group'
         if node_resource_name:
             resources_list = self._get_resources_list(
-                heatclient, stack_id, node_group_resource_name)
+                heatclient, stack_id, node_resource_name)
             for resources in resources_list:
                 resource_info = heatclient.resource_get(
                     resources.physical_resource_id,
@@ -885,7 +1019,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                         paramiko.ssh_exception.NoValidConnectionsError) as e:
                     LOG.debug(e)
                     retry -= 1
-                    time.sleep(30)
+                    time.sleep(SERVER_WAIT_COMPLETE_TIME)
             if master_ip == master_ip_list[-1]:
                 LOG.error('Failed to execute remote command.')
                 raise exceptions.MgmtDriverRemoteCommandError()
@@ -927,7 +1061,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         scale_name_list = kwargs.get('scale_name_list')
         physical_resource_id = heatclient.resource_get(
             stack_id,
-            kwargs.get('scale_vnf_request', {}).aspect_id + '_group') \
+            kwargs.get('scale_vnf_request', {}).aspect_id) \
             .physical_resource_id
         worker_resource_list = heatclient.resource_get_list(
             physical_resource_id)
@@ -1006,6 +1140,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
     def scale_start(self, context, vnf_instance,
                     scale_vnf_request, grant,
                     grant_request, **kwargs):
+        self._init_flag()
         if scale_vnf_request.type == 'SCALE_IN':
             vim_connection_info = \
                 self._get_vim_connection_info(context, vnf_instance)
@@ -1053,11 +1188,13 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             pass
 
     def _get_worker_info(self, worker_node, worker_resource_list,
-                         heatclient, scale_out_id_list):
+                         heatclient, scale_out_id_list, vnf_instance, grant):
         normal_ssh_worker_ip_list = []
         normal_nic_worker_ip_list = []
         add_worker_ssh_ip_list = []
         add_worker_nic_ip_list = []
+        zone_id_dict = {}
+        host_compute_dict = {}
         for worker_resource in worker_resource_list:
             if self.FLOATING_IP_FLAG:
                 ssh_ip = heatclient.resources.get(
@@ -1078,12 +1215,34 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             if worker_resource.physical_resource_id in scale_out_id_list:
                 add_worker_ssh_ip_list.append(ssh_ip)
                 add_worker_nic_ip_list.append(nic_ip)
+                if self.SET_NODE_LABEL_FLAG:
+                    lowest_worker_resources_list = heatclient.resources.list(
+                        stack_id=worker_resource.physical_resource_id)
+                    for lowest_resource in lowest_worker_resources_list:
+                        if lowest_resource.resource_type == \
+                                'OS::Nova::Server':
+                            worker_node_resource_info = \
+                                heatclient.resource_get(
+                                    worker_resource.physical_resource_id,
+                                    lowest_resource.resource_name)
+                            host_compute = worker_node_resource_info.\
+                                attributes.get('OS-EXT-SRV-ATTR:host')
+                            if self.SET_ZONE_ID_FLAG:
+                                physical_resource_id = \
+                                    lowest_resource.physical_resource_id
+                                zone_id = self._get_zone_id_from_grant(
+                                    vnf_instance, grant, 'SCALE',
+                                    physical_resource_id)
+                                zone_id_dict[nic_ip] = zone_id
+                            host_compute_dict[nic_ip] = host_compute
             elif worker_resource.physical_resource_id not in \
                     scale_out_id_list:
                 normal_ssh_worker_ip_list.append(ssh_ip)
                 normal_nic_worker_ip_list.append(nic_ip)
+
         return (add_worker_ssh_ip_list, add_worker_nic_ip_list,
-                normal_ssh_worker_ip_list, normal_nic_worker_ip_list)
+                normal_ssh_worker_ip_list, normal_nic_worker_ip_list,
+                host_compute_dict, zone_id_dict)
 
     def _get_master_info(
             self, master_resource_list, heatclient, master_node):
@@ -1108,9 +1267,20 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             master_nic_ip_list.append(master_nic_ip)
         return master_ssh_ip_list, master_nic_ip_list
 
+    def _check_pod_affinity(self, heatclient, nest_stack_id, worker_node):
+        stack_base_hot_template = heatclient.stacks.template(
+            stack_id=nest_stack_id)
+        worker_instance_group_name = worker_node.get('aspect_id')
+        worker_node_properties = stack_base_hot_template['resources'][
+            worker_instance_group_name][
+            'properties']['resource']['properties']
+        if 'scheduler_hints' in worker_node_properties:
+            self.SET_NODE_LABEL_FLAG = True
+
     def scale_end(self, context, vnf_instance,
                   scale_vnf_request, grant,
                   grant_request, **kwargs):
+        self._init_flag()
         if scale_vnf_request.type == 'SCALE_OUT':
             k8s_cluster_installation_param = \
                 vnf_instance.instantiated_vnf_info. \
@@ -1118,7 +1288,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             vnf_package_path = vnflcm_utils._get_vnf_package_path(
                 context, vnf_instance.vnfd_id)
             nest_stack_id = vnf_instance.instantiated_vnf_info.instance_id
-            resource_name = scale_vnf_request.aspect_id + '_group'
+            resource_name = scale_vnf_request.aspect_id
             vim_connection_info = \
                 self._get_vim_connection_info(context, vnf_instance)
             heatclient = hc.HeatClient(vim_connection_info.access_info)
@@ -1150,7 +1320,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             else:
                 master_resource_list = self._get_resources_list(
                     heatclient, nest_stack_id, master_node.get(
-                        'aspect_id') + '_group')
+                        'aspect_id'))
                 master_ssh_ip_list, master_nic_ip_list = \
                     self._get_master_info(master_resource_list,
                                           heatclient, master_node)
@@ -1165,11 +1335,17 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 heatclient, nest_stack_id, resource_name)
             worker_node = \
                 k8s_cluster_installation_param['worker_node']
+
+            # check pod-affinity flag
+            if grant:
+                self.SET_ZONE_ID_FLAG = True
+            self._check_pod_affinity(heatclient, nest_stack_id, worker_node)
             (add_worker_ssh_ip_list, add_worker_nic_ip_list,
-             normal_ssh_worker_ip_list, normal_nic_worker_ip_list) = \
+             normal_ssh_worker_ip_list, normal_nic_worker_ip_list,
+             host_compute_dict, zone_id_dict) = \
                 self._get_worker_info(
                 worker_node, worker_resource_list,
-                heatclient, scale_out_id_list)
+                heatclient, scale_out_id_list, vnf_instance, grant)
 
             # get kubeadm_token from one of master node
             master_username, master_password = self._get_username_pwd(
@@ -1242,6 +1418,14 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                     commander, proxy, ha_flag, worker_nic_ip,
                     cluster_ip, kubeadm_token, ssl_ca_cert_hash)
                 commander.close_session()
+                if self.SET_NODE_LABEL_FLAG:
+                    commander, _ = self._connect_ssh_scale(
+                        master_ssh_ip_list, master_username,
+                        master_password)
+                    self._set_node_label(
+                        commander, worker_nic_ip,
+                        host_compute_dict.get(worker_nic_ip),
+                        zone_id_dict.get(worker_nic_ip))
 
             hosts_str = '\\n'.join(add_worker_hosts)
             # set /etc/hosts on master node and normal worker node
@@ -1344,7 +1528,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
 
     def _get_worker_node_name(
             self, heatclient, worker_resource_list,
-            target_physical_resource_ids, worker_node):
+            target_physical_resource_ids, worker_node, vnf_instance, grant):
         fixed_worker_infos = {}
         not_fixed_worker_infos = {}
         flag_worker = False
@@ -1376,6 +1560,22 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                         get('fixed_ips')[0].get('ip_address')
                     worker_name = 'worker' + worker_nic_ip.split('.')[-1]
                     fixed_worker_infos[worker_name] = {}
+                    if self.SET_NODE_LABEL_FLAG:
+                        worker_node_resource_info = heatclient.resource_get(
+                            worker_resource.physical_resource_id,
+                            worker_resource_info.resource_name)
+                        host_compute = worker_node_resource_info.attributes.\
+                            get('OS-EXT-SRV-ATTR:host')
+                        fixed_worker_infos[worker_name]['host_compute'] = \
+                            host_compute
+                        if self.SET_ZONE_ID_FLAG:
+                            physical_resource_id = \
+                                worker_resource_info.physical_resource_id
+                            zone_id = self._get_zone_id_from_grant(
+                                vnf_instance, grant, 'HEAL',
+                                physical_resource_id)
+                            fixed_worker_infos[worker_name]['zone_id'] = \
+                                zone_id
                     fixed_worker_infos[worker_name]['worker_ssh_ip'] = \
                         worker_ssh_ip
                     fixed_worker_infos[worker_name]['worker_nic_ip'] = \
@@ -1598,7 +1798,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 self._get_worker_node_name(
                     heatclient, worker_resource_list,
                     target_physical_resource_ids,
-                    worker_node)
+                    worker_node, vnf_instance=None, grant=None)
         if flag_master:
             self._delete_master_node(
                 fixed_master_infos, not_fixed_master_infos,
@@ -1610,16 +1810,10 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
 
     def _get_node_resource_name(self, vnf_additional_params, node):
         if node.get('aspect_id'):
-            # in case of Userdata format
-            if 'lcm-operation-user-data' in vnf_additional_params.keys() and \
-                    'lcm-operation-user-data-class' in \
-                    vnf_additional_params.keys():
-                resource_name = node.get('aspect_id') + '_group'
-            # in case of SOL001 TOSCA-based VNFD with HA master node
-            else:
-                resource_name = node.get('aspect_id')
+            # in case of HA master node
+            resource_name = node.get('aspect_id')
         else:
-            # in case of SOL001 TOSCA-based VNFD with single master node
+            # in case of single master node
             resource_name = node.get('nic_cp_name')
         return resource_name
 
@@ -1684,6 +1878,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
     def heal_start(self, context, vnf_instance,
                    heal_vnf_request, grant,
                    grant_request, **kwargs):
+        self._init_flag()
         stack_id = vnf_instance.instantiated_vnf_info.instance_id
         vnf_additional_params = \
             vnf_instance.instantiated_vnf_info.additional_params
@@ -1846,7 +2041,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             vnf_additional_params, master_resource_name, master_username,
             master_password, vnf_package_path, worker_resource_name,
             worker_username, worker_password, cluster_resource_name,
-            master_node, worker_node):
+            master_node, worker_node, vnf_instance, grant):
         master_ssh_cp_name = master_node.get('nic_cp_name')
         flag_master = False
         flag_worker = False
@@ -1867,12 +2062,18 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 self._get_master_node_name(
                     heatclient, master_resource_list,
                     target_physical_resource_ids, master_node)
+
+            # check pod_affinity flag
+            if grant:
+                self.SET_ZONE_ID_FLAG = True
+            self._check_pod_affinity(heatclient, stack_id, worker_node)
             worker_resource_list = self._get_resources_list(
                 heatclient, stack_id, worker_resource_name)
             flag_worker, fixed_worker_infos, not_fixed_worker_infos = \
                 self._get_worker_node_name(
                     heatclient, worker_resource_list,
-                    target_physical_resource_ids, worker_node)
+                    target_physical_resource_ids,
+                    worker_node, vnf_instance, grant)
             if len(master_resource_list) > 1:
                 cluster_resource = heatclient.resource_get(
                     stack_id, cluster_resource_name)
@@ -1954,6 +2155,16 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 vnf_package_path, script_path, proxy, cluster_ip,
                 kubeadm_token, ssl_ca_cert_hash, ha_flag)
 
+        if self.SET_NODE_LABEL_FLAG:
+            for fixed_worker_name, fixed_worker in fixed_worker_infos.items():
+                commander, _ = self._connect_ssh_scale(
+                    not_fixed_master_ssh_ips,
+                    master_username, master_password)
+                self._set_node_label(
+                    commander, fixed_worker.get('worker_nic_ip'),
+                    fixed_worker.get('host_compute'),
+                    fixed_worker.get('zone_id'))
+
     def _get_all_hosts(self, not_fixed_master_infos, fixed_master_infos,
                        not_fixed_worker_infos, fixed_worker_infos):
         master_hosts = []
@@ -2003,6 +2214,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
     def heal_end(self, context, vnf_instance,
                  heal_vnf_request, grant,
                  grant_request, **kwargs):
+        self._init_flag()
         vnf_package_path = vnflcm_utils._get_vnf_package_path(
             context, vnf_instance.vnfd_id)
         vnf_additional_params = \
@@ -2039,12 +2251,14 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             target_physical_resource_ids = \
                 self._get_target_physical_resource_ids(
                     vnf_instance, heal_vnf_request)
+
             self._heal_and_join_k8s_node(
                 heatclient, stack_id, target_physical_resource_ids,
                 vnf_additional_params, master_resource_name,
                 master_username, master_password, vnf_package_path,
                 worker_resource_name, worker_username, worker_password,
-                cluster_resource_name, master_node, worker_node)
+                cluster_resource_name, master_node, worker_node,
+                vnf_instance, grant)
 
     def change_external_connectivity_start(
             self, context, vnf_instance,
