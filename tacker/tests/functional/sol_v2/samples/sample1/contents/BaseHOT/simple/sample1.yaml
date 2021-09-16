@@ -1,0 +1,125 @@
+heat_template_version: 2013-05-23
+description: 'Simple Base HOT for Sample VNF'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  VDU1_scale_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 3
+      desired_capacity: 1
+      resource:
+        type: VDU1.yaml
+        properties:
+          flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
+          image: { get_param: [ nfv, VDU, VirtualStorage, vcImageId ] }
+          zone: { get_param: [ nfv, VDU, VDU1, locationConstraints] }
+          net1: { get_param: [ nfv, CP, VDU1_CP1, network] }
+          net2: { get_param: [ nfv, CP, VDU1_CP2, network ] }
+          subnet: { get_param: [nfv, CP, VDU1_CP2, fixed_ips, 0, subnet ]}
+          net3: { get_resource: internalVL1 }
+          net4: { get_resource: internalVL2 }
+          net5: { get_resource: internalVL3 }
+
+  VDU1_scale_out:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: 1
+      auto_scaling_group_id:
+        get_resource: VDU1_scale_group
+      adjustment_type: change_in_capacity
+  VDU1_scale_in:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: -1
+      auto_scaling_group_id:
+        get_resource: VDU1_scale_group
+      adjustment_type: change_in_capacity
+
+  VDU2:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU2, computeFlavourId ] }
+      image: { get_param: [ nfv, VDU, VDU2, vcImageId] }
+      availability_zone: { get_param: [ nfv, VDU, VDU2, locationConstraints ] }
+      networks:
+      - port:
+          get_resource: VDU2_CP1
+      - port:
+          get_resource: VDU2_CP2
+      - port:
+          get_resource: VDU2_CP3
+      - port:
+          get_resource: VDU2_CP4
+      - port:
+          get_resource: VDU2_CP5
+
+# extVL with FixedIP
+  VDU2_CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: [ nfv, CP, VDU2_CP1, network ]  }
+      fixed_ips:
+      - ip_address: { get_param: [nfv, CP, VDU2_CP1, fixed_ips, 0, ip_address]}
+
+# extVL with FixedIP and Subnet
+  VDU2_CP2:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: [ nfv, CP, VDU2_CP2, network ]  }
+      fixed_ips:
+      - ip_address: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, ip_address]}
+        subnet: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, subnet]}
+
+  VDU2_CP3:
+    type: OS::Neutron::Port
+    properties:
+# replace the following line to VL's ID when extmanagedVLs are specified in instantiatevnfrequest
+      network: { get_resource: internalVL1 }
+
+  VDU2_CP4:
+    type: OS::Neutron::Port
+    properties:
+# replace the following line to VL's ID when extmanagedVLs are specified in instantiatevnfrequest
+      network: { get_resource: internalVL2 }
+
+  VDU2_CP5:
+    type: OS::Neutron::Port
+    properties:
+# replace the following line to VL's ID when extmanagedVLs are specified in instantiatevnfrequest
+      network: { get_resource: internalVL3 }
+
+# delete the following lines when extmanagedVLs are specified in instantiatevnfrequest
+  internalVL1:
+    type: OS::Neutron::Net
+  internalVL2:
+    type: OS::Neutron::Net
+  internalVL3:
+    type: OS::Neutron::Net
+
+  internalVL1_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL1
+      cidr: 192.168.3.0/24
+  internalVL2_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL2
+      cidr: 192.168.4.0/24
+  internalVL3_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL3
+      cidr: 192.168.5.0/24
+outputs: {}

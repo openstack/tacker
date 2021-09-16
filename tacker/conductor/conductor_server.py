@@ -65,6 +65,8 @@ from tacker.objects import vnfd as vnfd_db
 from tacker.objects import vnfd_attribute as vnfd_attribute_db
 from tacker.plugins.common import constants
 from tacker import service as tacker_service
+from tacker.sol_refactored.conductor import v2_hook
+from tacker.sol_refactored import objects as sol_objects
 from tacker import version
 from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnflcm import vnflcm_driver
@@ -296,7 +298,7 @@ def grant_error_common(function):
     return decorated_function
 
 
-class Conductor(manager.Manager):
+class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
     def __init__(self, host, conf=None):
         if conf:
             self.conf = conf
@@ -2469,6 +2471,7 @@ def init(args, **kwargs):
 def main(manager='tacker.conductor.conductor_server.Conductor'):
     init(sys.argv[1:])
     objects.register_all()
+    sol_objects.register_all()
     logging.setup(CONF, "tacker")
     oslo_messaging.set_transport_defaults(control_exchange='tacker')
     logging.setup(CONF, "tacker")

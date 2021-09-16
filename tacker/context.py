@@ -169,6 +169,7 @@ class Context(ContextBaseWithSession):
     def __init__(self, *args, **kwargs):
         super(Context, self).__init__(*args, **kwargs)
         self._session = None
+        self._api_version = None
 
     @property
     def session(self):
@@ -179,6 +180,14 @@ class Context(ContextBaseWithSession):
         if self._session is None:
             self._session = db_api.get_session()
         return self._session
+
+    @property
+    def api_version(self):
+        return self._api_version
+
+    @api_version.setter
+    def api_version(self, api_version):
+        self._api_version = api_version
 
 
 def get_admin_context():

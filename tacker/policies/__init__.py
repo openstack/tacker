@@ -19,6 +19,7 @@ import itertools
 from tacker.policies import base
 from tacker.policies import vnf_lcm
 from tacker.policies import vnf_package
+from tacker.sol_refactored.api.policies import vnflcm_v2
 
 
 def list_rules():
@@ -26,4 +27,5 @@ def list_rules():
         base.list_rules(),
         vnf_package.list_rules(),
         vnf_lcm.list_rules(),
+        vnflcm_v2.list_rules(),
     )

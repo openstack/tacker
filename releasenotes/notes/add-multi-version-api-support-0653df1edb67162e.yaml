@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Support multi-version of RESTfulAPI. The client can use
+    both VNF LCM API "1.3.0" and "2.0.0" defined by ETSI NFV.
+
+  - |
+    Add new RESTful APIs of List VNF LCM API versions
+    and Show VNF LCM API versions based on ETSI NFV specifications.
+    They enable the client to retrieve supported versions of VNF LCM API.
+
+  - |
+    Add the following new version of RESTful APIs
+    based on ETSI NFV specifications.
+    Version "2.0.0" API of Create VNF, Delete VNF,
+    Instantiate VNF, Terminate VNF, List VNF, Show VNF,
+    List VNF LCM operation occurrence, Show VNF LCM operation occurrence,
+    Create subscription, List subscription, and Show subscription are added.
+
+  - |
+    VNF LCM API "2.0.0" provides a new type of userdata script
+    and utility functions to describe it.
+    They enable the user to freely operate HEAT to meet the unique
+    requirements of VNF.

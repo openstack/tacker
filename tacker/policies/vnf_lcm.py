@@ -23,6 +23,17 @@ VNFLCM = 'os_nfv_orchestration_api:vnf_instances:%s'
 
 rules = [
     policy.DocumentedRuleDefault(
+        name=VNFLCM % 'api_versions',
+        check_str=base.RULE_ANY,
+        description="Get API Versions.",
+        operations=[
+            {
+                'method': 'GET',
+                'path': '/vnflcm/v1/api_versions'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
         name=VNFLCM % 'create',
         check_str=base.RULE_ADMIN_OR_OWNER,
         description="Creates vnf instance.",

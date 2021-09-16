@@ -62,6 +62,18 @@ def validate_mac_address_or_none(instance):
     return True
 
 
+@jsonschema.FormatChecker.cls_checks('mac_address',
+        webob.exc.HTTPBadRequest)
+def validate_mac_address(instance):
+    """Validate instance is a MAC address"""
+
+    if not netaddr.valid_mac(instance):
+        msg = _("'%s' is not a valid mac address")
+        raise webob.exc.HTTPBadRequest(explanation=msg % instance)
+
+    return True
+
+
 def _validate_query_parameter_without_value(parameter_name, instance):
     """The query parameter is a flag without a value."""
     if not (isinstance(instance, str) and len(instance)):
