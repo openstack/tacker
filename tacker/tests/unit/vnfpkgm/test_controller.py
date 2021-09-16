@@ -518,8 +518,6 @@ class TestController(base.TestCase):
                                         mock_vnf_by_id,
                                         mock_upload_vnf_package_content,
                                         mock_glance_store):
-        file_path = "tacker/tests/etc/samples/test_data.zip"
-        file_obj = open(file_path, "rb")
         updates = {'onboarding_state': 'CREATED',
                    'operational_state': 'DISABLED'}
         vnf_package_dict = fakes.fake_vnf_package(updates)
@@ -533,7 +531,7 @@ class TestController(base.TestCase):
             % constants.UUID)
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
-        req.body = jsonutils.dump_as_bytes(file_obj)
+        req.body = jsonutils.dump_as_bytes(mock.mock_open())
         resp = req.get_response(self.app)
         mock_glance_store.assert_called()
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
