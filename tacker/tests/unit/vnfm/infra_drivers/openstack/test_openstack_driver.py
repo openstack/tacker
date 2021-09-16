@@ -185,6 +185,78 @@ class TestOpenStack(base.FixturedTestCase):
             yaml_file_dict = yaml.safe_load(f)
         return yaml_file_dict
 
+    def _read_nested_file(self):
+        yaml_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                    "../../../../etc/samples/",
+                    "nested_hot_data.yaml"))
+        with open(yaml_file, 'r') as f:
+            yaml_file_dict = yaml.safe_load(f)
+        return yaml_file_dict
+
+    def _get_grant_obj(self, zoneid=None):
+        vim_assets = {
+            'compute_resource_flavours': [
+                {'vim_connection_id': uuidsentinel.vim_id,
+                 'vnfd_virtual_compute_desc_id': 'VDU1',
+                 'vim_flavour_id': 'm1.tiny'}],
+            'softwareImages': [
+                {'vim_connection_id': uuidsentinel.vim_id,
+                 'vnfd_software_image_id': 'VDU1',
+                 'vim_software_image_id': 'cirros'}
+            ]}
+        res_add_resource = []
+        resource = {
+            'resource_definition_id': '2c6e5cc7-240d-4458-a683-1fe648351280',
+            'vim_connection_id': uuidsentinel.vim_id,
+            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        res_add_resource.append(resource)
+        resource = {
+            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa9',
+            'vim_connection_id': uuidsentinel.vim_id,
+            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        res_add_resource.append(resource)
+        resource = {
+            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa0',
+            'vim_connection_id': uuidsentinel.vim_id,
+            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        res_add_resource.append(resource)
+        resource = {
+            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa1',
+            'vim_connection_id': uuidsentinel.vim_id,
+            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
+        res_add_resource.append(resource)
+        vim_obj = {'id': '0b9c66bb-9e1f-4bb2-92c3-913074e52e2b',
+               'vim_id': uuidsentinel.vim_id,
+               'vim_type': 'openstack',
+               'access_info': {
+                   'password': 'test_pw',
+                   'username': 'test_user',
+                   'region': 'test_region',
+                   'tenant': uuidsentinel.tenant}}
+
+        if zoneid:
+            zone = {
+                'id': '5e4da3c3-4a55-412a-b624-843921f8b51d',
+                'zone_id': 'nova',
+                'vim_connection_id': uuidsentinel.vim_id}
+        else:
+            zone = {
+                'id': '5e4da3c3-4a55-412a-b624-843921f8b51d',
+                'zone_id': '',
+                'vim_connection_id': uuidsentinel.vim_id}
+
+        grant_dict = {}
+        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
+        grant_dict['vnf_instance_id'] = uuidsentinel.vnf_instance_id
+        grant_dict['vnf_lcm_op_occ_id'] = uuidsentinel.vnf_lcm_op_occ_id
+        grant_dict['add_resources'] = []
+        grant_dict['add_resources'].extend(res_add_resource)
+        grant_dict['vim_assets'] = vim_assets
+        grant_dict['zones'] = [zone]
+        grant_dict['vim_connections'] = [vim_obj]
+
+        return grant_dict
+
     @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
                 '.OpenStack._format_base_hot')
     @mock.patch('tacker.vnflcm.utils._get_vnflcm_interface')
@@ -299,6 +371,7 @@ class TestOpenStack(base.FixturedTestCase):
         mock_find_stack.assert_called_once()
         mock_update_stack_with_user_data.assert_called_once()
 
+    @mock.patch('tacker.tosca.utils.get_scale_group')
     @mock.patch('tacker.vnfm.vim_client.VimClient.get_vim')
     @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
                 '.OpenStack._format_base_hot')
@@ -307,7 +380,11 @@ class TestOpenStack(base.FixturedTestCase):
     def test_create_grant(self, mock_OpenstackClients_heat,
                           mock_get_base_hot_dict,
                           mock_format_base_hot,
-                          mock_get_vim):
+                          mock_get_vim, mock_get_scale_group):
+        mock_get_scale_group.return_value = {
+            'scaleGroupDict': {'VDU1_scale': {'vdu': ['VDU1'],
+            'num': 1, 'maxLevel': 2, 'initialNum': 1,
+            'initialLevel': 0, 'default': 1}}}
         mock_get_vim.return_value = {
             'vim_id': uuidsentinel.vnfd_id,
             'vim_type': 'test',
@@ -331,25 +408,28 @@ class TestOpenStack(base.FixturedTestCase):
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
-        nested_hot_dict = {
-            'VDU1.yaml': {'parameters': {'vnf': 'test',
-            'zone': {'type': 'string'}},
-                'resources': {'VDU1': {'properties':
-                {'availability_zone': {'get_param': 'zone'}}}}}}
+        nested_hot_dict = {'VDU1.yaml': self._read_nested_file()}
         base_hot_dict = self._read_file()
-        base_hot_dict['resources']['VDU1']['properties'].setdefault(
-            'resource', {'properties': {'zone':
-            {'get_param': ['nfv', 'vdu', 'VDU1', 'zone']}}})
+        base_hot_dict['resources'].setdefault(
+            'VDU1_scale',
+            {'properties': {'resource':
+                {'properties': {'zone': {
+                    'get_param': ['nfv', 'VDU', 'VDU1', 'zone']}},
+                'type': 'VDU1.yaml'}},
+             'type': 'OS::Heat::AutoScalingGroup'})
         mock_get_base_hot_dict.return_value = \
             base_hot_dict, nested_hot_dict
-        vim_assets = {'compute_resource_flavours': [
-            {'vim_connection_id': uuidsentinel.vim_id,
-             'vnfd_virtual_compute_desc_id': 'VDU1',
-             'vim_flavour_id': 'm1.tiny'}],
+        vim_assets = {
+            'compute_resource_flavours': [
+                {'vim_connection_id': uuidsentinel.vim_id,
+                 'vnfd_virtual_compute_desc_id': 'VDU1',
+                 'vim_flavour_id': 'm1.tiny'}],
             'softwareImages': [
-            {'vim_connection_id': uuidsentinel.vim_id,
-             'vnfd_software_image_id': 'VDU1',
-             'vim_software_image_id': 'cirros'}]}
+                {'vim_connection_id': uuidsentinel.vim_id,
+                 'vnfd_software_image_id': 'VDU1',
+                 'vim_software_image_id': 'cirros'
+                 }
+            ]}
         res_add_resource = []
         resource = {
             'resource_definition_id': '2c6e5cc7-240d-4458-a683-1fe648351280',
@@ -375,14 +455,15 @@ class TestOpenStack(base.FixturedTestCase):
             'id': '5e4da3c3-4a55-412a-b624-843921f8b51d',
             'zone_id': 'nova',
             'vim_connection_id': uuidsentinel.vim_id}
-        vim_obj = {'id': '0b9c66bb-9e1f-4bb2-92c3-913074e52e2b',
-                   'vim_id': uuidsentinel.vim_id,
-                   'vim_type': 'openstack',
-                   'access_info': {
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'region': 'test_region',
-                       'tenant': uuidsentinel.tenant}}
+        vim_obj = {
+            'id': '0b9c66bb-9e1f-4bb2-92c3-913074e52e2b',
+            'vim_id': uuidsentinel.vim_id,
+            'vim_type': 'openstack',
+            'access_info': {
+                'password': 'test_pw',
+                'username': 'test_user',
+                'region': 'test_region',
+                'tenant': uuidsentinel.tenant}}
         grant_dict = {}
         grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
         grant_dict['vnf_instance_id'] = uuidsentinel.vnf_instance_id
@@ -400,8 +481,8 @@ class TestOpenStack(base.FixturedTestCase):
         vnfc_obj = objects.VnfcResourceInfo()
         vnfc_obj.id = '2c6e5cc7-240d-4458-a683-1fe648351280'
         vnfc_obj.vdu_id = 'VDU1'
-        vnfc_obj.storage_resource_ids = \
-            ['faf14707-da7c-4eec-be99-8099fa1e9fa0']
+        vnfc_obj.storage_resource_ids = (
+            ['faf14707-da7c-4eec-be99-8099fa1e9fa0'])
         compute_resource = objects.ResourceHandle(
             vim_connection_id=uuidsentinel.vim_id,
             resource_id='6e1c286d-c023-4b34-8369-831c6e84cce2')
@@ -413,6 +494,216 @@ class TestOpenStack(base.FixturedTestCase):
                 grant_info=grant_info_test,
                 vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.tosca.utils.get_scale_group')
+    @mock.patch('tacker.vnfm.vim_client.VimClient.get_vim')
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
+                '.OpenStack._format_base_hot')
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_grant_scale(self, mock_OpenstackClients_heat,
+                          mock_get_base_hot_dict,
+                          mock_format_base_hot,
+                          mock_get_vim, mock_get_scale_group):
+        mock_get_scale_group.return_value = {
+            'scaleGroupDict': {'VDU1_scale': {'vdu': ['VDU1'],
+            'num': 1, 'maxLevel': 2, 'initialNum': 1,
+            'initialLevel': 0, 'default': 1}}}
+        mock_get_vim.return_value = {
+            'vim_id': uuidsentinel.vnfd_id,
+            'vim_type': 'test',
+            'vim_auth': {'username': 'test', 'password': 'test'},
+            'placement_attr': {'region': 'TestRegionOne'},
+            'tenant': 'test'
+        }
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = 'simple'
+        vnf_resource = type('', (), {})
+        vnf_resource.resource_identifier = constants.INVALID_UUID
+        grant_info_test = {'vdu_name': {vnf_resource}}
+        nested_hot_dict = {'VDU1.yaml': self._read_nested_file()}
+        del nested_hot_dict['VDU1.yaml']['parameters']['zone']
+        del (nested_hot_dict['VDU1.yaml']['resources']
+            ['VDU1']['properties']['availability_zone'])
+        base_hot_dict = self._read_file()
+        base_hot_dict['resources'].setdefault(
+            'VDU1_scale',
+            {'properties': {'resource':
+                {'properties': {},
+                'type': 'VDU1.yaml'}},
+             'type': 'OS::Heat::AutoScalingGroup'})
+        mock_get_base_hot_dict.return_value = \
+            base_hot_dict, nested_hot_dict
+        grant_dict = self._get_grant_obj(zoneid=True)
+        grant_obj = objects.Grant.obj_from_primitive(
+            grant_dict, context=self.context)
+        vnf['grant'] = grant_obj
+        vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf_instance.instantiated_vnf_info.reinitialize()
+        vnfc_obj = objects.VnfcResourceInfo()
+        vnfc_obj.id = '2c6e5cc7-240d-4458-a683-1fe648351280'
+        vnfc_obj.vdu_id = 'VDU1'
+        vnfc_obj.storage_resource_ids = (
+            ['faf14707-da7c-4eec-be99-8099fa1e9fa0'])
+        compute_resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce2')
+        vnfc_obj.compute_resource = compute_resource
+        vnf_instance.instantiated_vnf_info.vnfc_resource_info = [vnfc_obj]
+        self.openstack.create(self.plugin, self.context, vnf,
+                self.auth_attr, inst_req_info=inst_req_info_test,
+                vnf_package_path=vnf_package_path_test,
+                grant_info=grant_info_test,
+                vnf_instance=vnf_instance)
+
+    @mock.patch('tacker.tosca.utils.get_scale_group')
+    @mock.patch('tacker.vnfm.vim_client.VimClient.get_vim')
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
+                '.OpenStack._format_base_hot')
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_grant_scale_vdu_nolist(self, mock_OpenstackClients_heat,
+                          mock_get_base_hot_dict,
+                          mock_format_base_hot,
+                          mock_get_vim, mock_get_scale_group):
+        mock_get_scale_group.return_value = {
+            'scaleGroupDict': {'VDU1_scale': {'vdu': ['VDUX'],
+            'num': 1, 'maxLevel': 2, 'initialNum': 1,
+            'initialLevel': 0, 'default': 1}}}
+        mock_get_vim.return_value = {
+            'vim_id': uuidsentinel.vnfd_id,
+            'vim_type': 'test',
+            'vim_auth': {'username': 'test', 'password': 'test'},
+            'placement_attr': {'region': 'TestRegionOne'},
+            'tenant': 'test'
+        }
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = 'simple'
+        vnf_resource = type('', (), {})
+        vnf_resource.resource_identifier = constants.INVALID_UUID
+        grant_info_test = {'vdu_name': {vnf_resource}}
+        nested_hot_dict = {'VDU1.yaml': self._read_nested_file()}
+        del nested_hot_dict['VDU1.yaml']['parameters']['zone']
+        del (nested_hot_dict['VDU1.yaml']['resources']
+            ['VDU1']['properties']['availability_zone'])
+        base_hot_dict = self._read_file()
+        base_hot_dict['resources'].setdefault(
+            'VDU1_scale',
+            {'properties': {'resource':
+                {'properties': {},
+                'type': 'VDU1.yaml'}},
+             'type': 'OS::Heat::AutoScalingGroup'})
+        mock_get_base_hot_dict.return_value = \
+            base_hot_dict, nested_hot_dict
+        grant_dict = self._get_grant_obj(zoneid=True)
+        grant_obj = objects.Grant.obj_from_primitive(
+            grant_dict, context=self.context)
+        vnf['grant'] = grant_obj
+        vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf_instance.instantiated_vnf_info.reinitialize()
+        vnfc_obj = objects.VnfcResourceInfo()
+        vnfc_obj.id = '2c6e5cc7-240d-4458-a683-1fe648351280'
+        vnfc_obj.vdu_id = 'VDU1'
+        vnfc_obj.storage_resource_ids = (
+            ['faf14707-da7c-4eec-be99-8099fa1e9fa0'])
+        compute_resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce2')
+        vnfc_obj.compute_resource = compute_resource
+        vnf_instance.instantiated_vnf_info.vnfc_resource_info = [vnfc_obj]
+        self.openstack.create(self.plugin, self.context, vnf,
+                self.auth_attr, inst_req_info=inst_req_info_test,
+                vnf_package_path=vnf_package_path_test,
+                grant_info=grant_info_test,
+                vnf_instance=vnf_instance)
+
+    @mock.patch('tacker.vnfm.vim_client.VimClient.get_vim')
+    @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
+                '.OpenStack._format_base_hot')
+    @mock.patch('tacker.vnflcm.utils.get_base_nest_hot_dict')
+    @mock.patch('tacker.common.clients.OpenstackClients')
+    def test_create_grant_scale_none(self, mock_OpenstackClients_heat,
+                          mock_get_base_hot_dict,
+                          mock_format_base_hot,
+                          mock_get_vim):
+        mock_get_vim.return_value = {
+            'vim_id': uuidsentinel.vnfd_id,
+            'vim_type': 'test',
+            'vim_auth': {'username': 'test', 'password': 'test'},
+            'placement_attr': {'region': 'TestRegionOne'},
+            'tenant': 'test'
+        }
+        vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour='simple')
+        vnf['placement_attr'] = {'region_name': 'dummy_region'}
+        vnf_package_path_test = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "user_data_sample_normal"))
+        inst_req_info_test = type('', (), {})
+        test_json = self._json_load(
+            'instantiate_vnf_request_lcm_userdata.json')
+        inst_req_info_test.additional_params = test_json['additionalParams']
+        inst_req_info_test.ext_virtual_links = None
+        inst_req_info_test.flavour_id = 'simple'
+        vnf_resource = type('', (), {})
+        vnf_resource.resource_identifier = constants.INVALID_UUID
+        grant_info_test = {'vdu_name': {vnf_resource}}
+        nested_hot_dict = {'VDU1.yaml': self._read_nested_file()}
+        base_hot_dict = self._read_file()
+        base_hot_dict['resources'].setdefault(
+            'VDU1',
+            {'properties': {'resource':
+                {'properties': {'zone': {
+                    'get_param': ['nfv', 'VDU', 'VDU1', 'zone']}},
+                'type': 'VDU1.yaml'}},
+             'type': 'OS::Heat::AutoScalingGroup'})
+        mock_get_base_hot_dict.return_value = \
+            base_hot_dict, nested_hot_dict
+        grant_dict = self._get_grant_obj(zoneid=True)
+        grant_obj = objects.Grant.obj_from_primitive(
+            grant_dict, context=self.context)
+        vnf['grant'] = grant_obj
+        vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf_instance.instantiated_vnf_info.reinitialize()
+        vnfc_obj = objects.VnfcResourceInfo()
+        vnfc_obj.id = '2c6e5cc7-240d-4458-a683-1fe648351280'
+        vnfc_obj.vdu_id = 'VDU1'
+        vnfc_obj.storage_resource_ids = (
+            ['faf14707-da7c-4eec-be99-8099fa1e9fa0'])
+        compute_resource = objects.ResourceHandle(
+            vim_connection_id=uuidsentinel.vim_id,
+            resource_id='6e1c286d-c023-4b34-8369-831c6e84cce2')
+        vnfc_obj.compute_resource = compute_resource
+        vnf_instance.instantiated_vnf_info.vnfc_resource_info = [vnfc_obj]
+        self.openstack.create(self.plugin, self.context, vnf,
+                self.auth_attr, inst_req_info=inst_req_info_test,
+                vnf_package_path=vnf_package_path_test,
+                grant_info=grant_info_test,
+                vnf_instance=vnf_instance)
+
+    @mock.patch('tacker.tosca.utils.get_scale_group')
     @mock.patch('tacker.vnfm.vim_client.VimClient.get_vim')
     @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
                 '.OpenStack._format_base_hot')
@@ -421,7 +712,11 @@ class TestOpenStack(base.FixturedTestCase):
     def test_create_grant_zone_add(self, mock_OpenstackClients_heat,
                           mock_get_base_hot_dict,
                           mock_format_base_hot,
-                          mock_get_vim):
+                          mock_get_vim, mock_get_scale_group):
+        mock_get_scale_group.return_value = {
+            'scaleGroupDict': {'VDU1_scale': {'vdu': ['VDU1'],
+            'num': 1, 'maxLevel': 2, 'initialNum': 1,
+            'initialLevel': 0, 'default': 1}}}
         mock_get_vim.return_value = {
             'vim_id': uuidsentinel.vnfd_id,
             'vim_type': 'test',
@@ -445,61 +740,20 @@ class TestOpenStack(base.FixturedTestCase):
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
-        nested_hot_dict = {
-            'VDU1.yaml': {'parameters': {'vnf': 'test'},
-            'resources': {'VDU1': {'properties': {}}}}}
+        nested_hot_dict = {'VDU1.yaml': self._read_nested_file()}
+        del nested_hot_dict['VDU1.yaml']['parameters']['zone']
+        del (nested_hot_dict['VDU1.yaml']['resources']['VDU1']
+            ['properties']['availability_zone'])
+        base_hot_dict = self._read_file()
+        base_hot_dict['resources'].setdefault(
+            'VDU1_scale',
+            {'properties': {'resource':
+                {'properties': {},
+                'type': 'VDU1.yaml'}},
+             'type': 'OS::Heat::AutoScalingGroup'})
         mock_get_base_hot_dict.return_value = \
-            self._read_file(), nested_hot_dict
-        vim_assets = {'compute_resource_flavours': [
-            {'vim_connection_id': uuidsentinel.vim_id,
-             'vnfd_virtual_compute_desc_id': 'VDU1',
-             'vim_flavour_id': 'm1.tiny'}],
-            'softwareImages': [
-            {'vim_connection_id': uuidsentinel.vim_id,
-             'vnfd_software_image_id': 'VDU1',
-             'vim_software_image_id': 'cirros'}]}
-        res_add_resource = []
-        resource = {
-            'resource_definition_id': '2c6e5cc7-240d-4458-a683-1fe648351280',
-            'vim_connection_id': uuidsentinel.vim_id,
-            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
-        res_add_resource.append(resource)
-        resource = {
-            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa9',
-            'vim_connection_id': uuidsentinel.vim_id,
-            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
-        res_add_resource.append(resource)
-        resource = {
-            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa0',
-            'vim_connection_id': uuidsentinel.vim_id,
-            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
-        res_add_resource.append(resource)
-        resource = {
-            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa1',
-            'vim_connection_id': uuidsentinel.vim_id,
-            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
-        res_add_resource.append(resource)
-        zone = {
-            'id': '5e4da3c3-4a55-412a-b624-843921f8b51d',
-            'zone_id': 'nova',
-            'vim_connection_id': uuidsentinel.vim_id}
-        vim_obj = {'id': '0b9c66bb-9e1f-4bb2-92c3-913074e52e2b',
-                   'vim_id': uuidsentinel.vim_id,
-                   'vim_type': 'openstack',
-                   'access_info': {
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'region': 'test_region',
-                       'tenant': uuidsentinel.tenant}}
-        grant_dict = {}
-        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
-        grant_dict['vnf_instance_id'] = uuidsentinel.vnf_instance_id
-        grant_dict['vnf_lcm_op_occ_id'] = uuidsentinel.vnf_lcm_op_occ_id
-        grant_dict['add_resources'] = []
-        grant_dict['add_resources'].extend(res_add_resource)
-        grant_dict['vim_assets'] = vim_assets
-        grant_dict['zones'] = [zone]
-        grant_dict['vim_connections'] = [vim_obj]
+            base_hot_dict, nested_hot_dict
+        grant_dict = self._get_grant_obj(zoneid=True)
         grant_obj = objects.Grant.obj_from_primitive(
             grant_dict, context=self.context)
         vnf['grant'] = grant_obj
@@ -508,8 +762,8 @@ class TestOpenStack(base.FixturedTestCase):
         vnfc_obj = objects.VnfcResourceInfo()
         vnfc_obj.id = '2c6e5cc7-240d-4458-a683-1fe648351280'
         vnfc_obj.vdu_id = 'VDU1'
-        vnfc_obj.storage_resource_ids = \
-            ['faf14707-da7c-4eec-be99-8099fa1e9fa0']
+        vnfc_obj.storage_resource_ids = (
+            ['faf14707-da7c-4eec-be99-8099fa1e9fa0'])
         compute_resource = objects.ResourceHandle(
             vim_connection_id=uuidsentinel.vim_id,
             resource_id='6e1c286d-c023-4b34-8369-831c6e84cce2')
@@ -521,6 +775,7 @@ class TestOpenStack(base.FixturedTestCase):
                 grant_info=grant_info_test,
                 vnf_instance=vnf_instance)
 
+    @mock.patch('tacker.tosca.utils.get_scale_group')
     @mock.patch('tacker.vnfm.vim_client.VimClient.get_vim')
     @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack'
                 '.OpenStack._format_base_hot')
@@ -529,7 +784,11 @@ class TestOpenStack(base.FixturedTestCase):
     def test_create_grant_zone_id_none(self, mock_OpenstackClients_heat,
                           mock_get_base_hot_dict,
                           mock_format_base_hot,
-                          mock_get_vim):
+                          mock_get_vim, mock_get_scale_group):
+        mock_get_scale_group.return_value = {
+            'scaleGroupDict': {'VDU1_scale': {'vdu': ['VDU1'],
+            'num': 1, 'maxLevel': 2, 'initialNum': 1,
+            'initialLevel': 0, 'default': 1}}}
         mock_get_vim.return_value = {
             'vim_id': uuidsentinel.vnfd_id,
             'vim_type': 'test',
@@ -553,61 +812,21 @@ class TestOpenStack(base.FixturedTestCase):
         vnf_resource = type('', (), {})
         vnf_resource.resource_identifier = constants.INVALID_UUID
         grant_info_test = {'vdu_name': {vnf_resource}}
-        nested_hot_dict = {
-            'VDU1.yaml': {'parameters': {'vnf': 'test'},
-            'resources': {'VDU1': {'properties': {}}}}}
+        nested_hot_dict = {'VDU1.yaml': self._read_nested_file()}
+        del nested_hot_dict['VDU1.yaml']['parameters']['zone']
+        del (nested_hot_dict['VDU1.yaml']['resources']['VDU1']
+            ['properties']['availability_zone'])
+        base_hot_dict = self._read_file()
+        base_hot_dict['resources'].setdefault(
+            'VDU1_scale',
+            {'properties':
+                {'resource':
+                    {'properties': {},
+                     'type': 'VDU1.yaml'}},
+             'type': 'OS::Heat::AutoScali:ngGroup'})
         mock_get_base_hot_dict.return_value = \
-            self._read_file(), nested_hot_dict
-        vim_assets = {'compute_resource_flavours': [
-            {'vim_connection_id': uuidsentinel.vim_id,
-             'vnfd_virtual_compute_desc_id': 'VDU1',
-             'vim_flavour_id': 'm1.tiny'}],
-            'softwareImages': [
-            {'vim_connection_id': uuidsentinel.vim_id,
-             'vnfd_software_image_id': 'VDU1',
-             'vim_software_image_id': 'cirros'}]}
-        res_add_resource = []
-        resource = {
-            'resource_definition_id': '2c6e5cc7-240d-4458-a683-1fe648351280',
-            'vim_connection_id': uuidsentinel.vim_id,
-            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
-        res_add_resource.append(resource)
-        resource = {
-            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa9',
-            'vim_connection_id': uuidsentinel.vim_id,
-            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
-        res_add_resource.append(resource)
-        resource = {
-            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa0',
-            'vim_connection_id': uuidsentinel.vim_id,
-            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
-        res_add_resource.append(resource)
-        resource = {
-            'resource_definition_id': 'faf14707-da7c-4eec-be99-8099fa1e9fa1',
-            'vim_connection_id': uuidsentinel.vim_id,
-            'zone_id': '5e4da3c3-4a55-412a-b624-843921f8b51d'}
-        res_add_resource.append(resource)
-        zone = {
-            'id': '5e4da3c3-4a55-412a-b624-843921f8b51d',
-            'zone_id': '',
-            'vim_connection_id': uuidsentinel.vim_id}
-        vim_obj = {'id': '0b9c66bb-9e1f-4bb2-92c3-913074e52e2b',
-                   'vim_id': uuidsentinel.vim_id,
-                   'vim_type': 'openstack',
-                   'access_info': {
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'region': 'test_region',
-                       'tenant': uuidsentinel.tenant}}
-        grant_dict = {}
-        grant_dict['id'] = 'c213e465-8220-487e-9464-f79104e81e96'
-        grant_dict['vnf_instance_id'] = uuidsentinel.vnf_instance_id
-        grant_dict['vnf_lcm_op_occ_id'] = uuidsentinel.vnf_lcm_op_occ_id
-        grant_dict['add_resources'] = []
-        grant_dict['add_resources'].extend(res_add_resource)
-        grant_dict['vim_assets'] = vim_assets
-        grant_dict['zones'] = [zone]
-        grant_dict['vim_connections'] = [vim_obj]
+            base_hot_dict, nested_hot_dict
+        grant_dict = self._get_grant_obj()
         grant_obj = objects.Grant.obj_from_primitive(
             grant_dict, context=self.context)
         vnf['grant'] = grant_obj
@@ -616,8 +835,8 @@ class TestOpenStack(base.FixturedTestCase):
         vnfc_obj = objects.VnfcResourceInfo()
         vnfc_obj.id = '2c6e5cc7-240d-4458-a683-1fe648351280'
         vnfc_obj.vdu_id = 'VDU1'
-        vnfc_obj.storage_resource_ids = \
-            ['faf14707-da7c-4eec-be99-8099fa1e9fa0']
+        vnfc_obj.storage_resource_ids = (
+            ['faf14707-da7c-4eec-be99-8099fa1e9fa0'])
         compute_resource = objects.ResourceHandle(
             vim_connection_id=uuidsentinel.vim_id,
             resource_id='6e1c286d-c023-4b34-8369-831c6e84cce2')

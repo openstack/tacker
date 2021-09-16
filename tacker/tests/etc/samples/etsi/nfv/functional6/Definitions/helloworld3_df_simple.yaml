@@ -273,9 +273,9 @@ topology_template:
         type: tosca.policies.nfv.ScalingAspects
         properties:
           aspects:
-            worker_instance:
-              name: worker_instance_aspect
-              description: worker_instance scaling aspect
+            VDU2_scale:
+              name: VDU2_scale
+              description: VDU2 scaling aspect
               max_scale_level: 2
               step_deltas:
                 - delta_1
@@ -294,14 +294,14 @@ topology_template:
             number_of_instances: 1
         targets: [ VDU2 ]
 
-    - VDU1_scaling_aspect_deltas:
+    - VDU2_scaling_aspect_deltas:
         type: tosca.policies.nfv.VduScalingAspectDeltas
         properties:
-          aspect: worker_instance
+          aspect: VDU2_scale
           deltas:
             delta_1:
               number_of_instances: 1
-        targets: [ VDU1 ]
+        targets: [ VDU2 ]
 
     - instantiation_levels:
         type: tosca.policies.nfv.InstantiationLevels
@@ -310,12 +310,12 @@ topology_template:
             instantiation_level_1:
               description: Smallest size
               scale_info:
-                worker_instance:
+                VDU2_scale:
                   scale_level: 0
             instantiation_level_2:
               description: Largest size
               scale_info:
-                worker_instance:
+                VDU2_scale:
                   scale_level: 2
           default_level: instantiation_level_1
 
