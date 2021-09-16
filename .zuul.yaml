@@ -308,10 +308,7 @@
       - openstack/heat
       - openstack/horizon
       - openstack/keystone
-      # TODO(ueha): temporarily use stable/wallaby branch for solve FT error.
-      # After confirming that it works in the master branch, modify it.
-      - name: openstack/kuryr-kubernetes
-        override-branch: stable/wallaby
+      - openstack/kuryr-kubernetes
       - openstack/mistral
       - openstack/neutron
       - openstack/nova
@@ -396,10 +393,7 @@
           kuryr-kubernetes: https://opendev.org/openstack/kuryr-kubernetes
         devstack_services:
           etcd3: false
-          kubelet: true
-          kubernetes-api: true
-          kubernetes-controller-manager: true
-          kubernetes-scheduler: true
+          kubernetes-master: true
           kuryr-daemon: true
           kuryr-kubernetes: true
           octavia: false
@@ -415,13 +409,12 @@
           CELLSV2_SETUP: singleconductor
           DATABASE_TYPE: mysql
           IS_ZUUL_FT: True
+          K8S_API_SERVER_IP: "{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}"
           KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           KURYR_FORCE_IMAGE_BUILD: true
-          KURYR_K8S_API_PORT: 8080
-          KURYR_K8S_API_URL: "http://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:${KURYR_K8S_API_PORT}"
-          KURYR_K8S_CLOUD_PROVIDER: false
+          KURYR_K8S_API_PORT: 6443
+          KURYR_K8S_API_URL: "https://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:${KURYR_K8S_API_PORT}"
           KURYR_K8S_CONTAINERIZED_DEPLOYMENT: false
-          KURYR_K8S_MULTI_WORKER_TESTS: false
           KURYR_NEUTRON_DEFAULT_SUBNETPOOL_ID: shared-default-subnetpool-v4
           MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           OCTAVIA_AMP_IMAGE_FILE: "/tmp/test-only-amphora-x64-haproxy-ubuntu-bionic.qcow2"
@@ -480,7 +473,7 @@
           $OCTAVIA_CONF:
             controller_worker:
               amp_active_retries: 9999
-      kuryr_k8s_api_url: "http://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:8080"
+      kuryr_k8s_api_url: "https://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:6443"
       helm_version: "3.5.4"
       test_matrix_configs: [neutron]
       zuul_work_dir: src/opendev.org/openstack/tacker

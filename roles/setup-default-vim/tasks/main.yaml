@@ -67,6 +67,41 @@
     - inventory_hostname == 'controller-tacker'
 
 - block:
+  - name: Copy create_admin_token.yaml
+    copy:
+      src: "create_admin_token.yaml"
+      dest: "/tmp/create_admin_token.yaml"
+      mode: 0644
+      owner: stack
+      group: stack
+    become: yes
+
+  - name: Create admin ServiceAccount
+    command: kubectl create -f /tmp/create_admin_token.yaml
+    become: yes
+    become_user: stack
+
+  - name: Get admin secret name
+    shell: >
+      kubectl get secrets -n kube-system -o name
+      | grep admin-token
+    register: admin_secret_name
+    become: yes
+    become_user: stack
+
+  - name: Get admin token from described secret
+    shell: >
+      kubectl get {{ admin_secret_name.stdout }} -n kube-system -o jsonpath="{.data.token}"
+      | base64 -d
+    register: admin_token
+    become: yes
+    become_user: stack
+
+  when:
+    - inventory_hostname == 'controller-k8s'
+    - kuryr_k8s_api_url is defined
+
+- block:
   - name: Copy tools/test-setup-k8s-vim.sh
     copy:
        remote_src=True
@@ -121,6 +156,16 @@
        path: "{{ item }}"
        regexp: "https://127.0.0.1:6443"
        replace: "{{ kuryr_k8s_api_url }}"
+    with_items:
+       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml"
+    when:
+      - p.stat.exists
+
+  - name: Replace k8s auth token in local-k8s-vim.yaml
+    replace:
+       path: "{{ item }}"
+       regexp: "secret_token"
+       replace: "{{ hostvars['controller-k8s'].admin_token.stdout }}"
     with_items:
        - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml"
     when:
