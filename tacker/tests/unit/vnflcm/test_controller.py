@@ -198,7 +198,8 @@ class TestController(base.TestCase):
             'vim_type': 'test',
             'vim_auth': {'username': 'test', 'password': 'test'},
             'placement_attr': {'region': 'TestRegionOne'},
-            'tenant': 'test'
+            'tenant': 'test',
+            'extra': {}
         }
         self.context = context.get_admin_context()
 
@@ -1237,14 +1238,16 @@ class TestController(base.TestCase):
                 "region": "RegionOne",
                 "password": "devstack",
                 "tenant": "85d12da99f8246dfae350dbc7334a473",
-            }
+            },
+            "extra": {}
         }
 
         vim_connection_info = objects.VimConnectionInfo(
             id=vim_info['id'], vim_id=vim_info['vim_id'],
             vim_type=vim_info['vim_type'],
             access_info=vim_info['access_info'],
-            interface_info=vim_info['interface_info'])
+            interface_info=vim_info['interface_info'],
+            extra=vim_info['extra'])
 
         mock_vnf_by_id.return_value = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED,

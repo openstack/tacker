@@ -11,7 +11,12 @@ Content-Type: application/sh
 Algorithm: SHA-256
 Hash: bc859fb8ffb9f92a19139553bdd077428a2c9572196e5844f1c912a7a822c249
 
+Name: Scripts/install_helm.sh
+Content-Type: application/sh
+Algorithm: SHA-256
+Hash: 4af332b05e3e85662d403208e1e6d82e5276cbcd3b82a3562d2e3eb80d1ef714
+
 Name: Scripts/kubernetes_mgmt.py
 Content-Type: text/x-python
 Algorithm: SHA-256
-Hash: b8c558cad30f219634a668f84d6e04998949e941f3909b5c60374b84dff58545
+Hash: bf651994ca7422aadeb0a12fed179f44ab709029c2eee9b2b9c7e8cbf339a66d

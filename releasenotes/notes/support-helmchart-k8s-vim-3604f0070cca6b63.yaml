@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Add new interface for Kubernetes VIM to handle Helm chart. It enables Users
+    to include Helm chart files as MCIOP in their VNF Packages, to instantiate
+    and to terminate CNF with them.
+    And update sample of MgmtDriver to install and configure Helm package for
+    using Helm cli command in the deployed Kubernetes cluster VNF, and to
+    restore the registered helm repositories and charts after the master node is
+    healed.

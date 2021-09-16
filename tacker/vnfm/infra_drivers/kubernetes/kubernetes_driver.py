@@ -31,6 +31,7 @@ from tacker.common.container import kubernetes_utils
 from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import utils
+from tacker.extensions import common_services as cs
 from tacker.extensions import vnfm
 from tacker import objects
 from tacker.objects.fields import ErrorPoint as EP
@@ -39,6 +40,7 @@ from tacker.objects import vnf_package_vnfd as vnfd_obj
 from tacker.objects import vnf_resources as vnf_resource_obj
 from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnfm.infra_drivers import abstract_driver
+from tacker.vnfm.infra_drivers.kubernetes.helm import helm_client
 from tacker.vnfm.infra_drivers.kubernetes.k8s import translate_outputs
 from tacker.vnfm.infra_drivers.kubernetes import translate_template
 from tacker.vnfm.infra_drivers import scale_driver
@@ -70,6 +72,8 @@ def config_opts():
 
 SCALING_POLICY = 'tosca.policies.tacker.Scaling'
 COMMA_CHARACTER = ','
+
+HELM_CHART_DIR_BASE = "/var/tacker/helm"
 
 
 def get_scaling_policy_name(action, policy_name):
@@ -804,6 +808,37 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     LOG.debug(e)
                     pass
 
+    def _get_helm_info(self, vim_connection_info):
+        # replace single quote to double quote
+        helm_info = vim_connection_info.extra.get('helm_info')
+        helm_info_dq = helm_info.replace("'", '"')
+        helm_info_dict = jsonutils.loads(helm_info_dq)
+        return helm_info_dict
+
+    def _helm_uninstall(self, context, vnf_instance):
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        additional_params = inst_vnf_info.additional_params
+        namespace = additional_params.get('namespace', '')
+        helm_inst_param_list = additional_params.get(
+            'using_helm_install_param')
+        vim_info = vnflcm_utils._get_vim(context,
+            vnf_instance.vim_connection_info)
+        vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
+            vim_info, context)
+        helm_info = self._get_helm_info(vim_connection_info)
+        ip_list = helm_info.get('masternode_ip')
+        username = helm_info.get('masternode_username')
+        password = helm_info.get('masternode_password')
+        k8s_objs = []
+        # initialize HelmClient
+        helmclient = helm_client.HelmClient(ip_list[0], username, password)
+        for helm_inst_params in helm_inst_param_list:
+            release_name = helm_inst_params.get('helmreleasename')
+            # execute `helm uninstall` command
+            helmclient.uninstall(release_name, namespace)
+        helmclient.close_session()
+        return k8s_objs
+
     @log.log
     def delete(self, plugin, context, vnf_id, auth_attr, region_name=None,
                vnf_instance=None, terminate_vnf_req=None):
@@ -814,6 +849,11 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 # execute legacy delete method
                 self._delete_legacy(vnf_id, auth_cred)
             else:
+                # check use_helm flag
+                inst_vnf_info = vnf_instance.instantiated_vnf_info
+                if self._is_use_helm_flag(inst_vnf_info.additional_params):
+                    self._helm_uninstall(context, vnf_instance)
+                    return
                 # initialize Kubernetes APIs
                 k8s_client_dict = self.kubernetes.\
                     get_k8s_client_dict(auth=auth_cred)
@@ -962,6 +1002,35 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
 
         return response
 
+    def _post_helm_uninstall(self, context, vnf_instance):
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        additional_params = inst_vnf_info.additional_params
+        helm_inst_param_list = additional_params.get(
+            'using_helm_install_param')
+        vim_info = vnflcm_utils._get_vim(context,
+            vnf_instance.vim_connection_info)
+        vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
+            vim_info, context)
+        helm_info = self._get_helm_info(vim_connection_info)
+        ip_list = helm_info.get('masternode_ip')
+        username = helm_info.get('masternode_username')
+        password = helm_info.get('masternode_password')
+        del_dir = os.path.join(HELM_CHART_DIR_BASE, vnf_instance.id)
+        for ip in ip_list:
+            local_helm_del_flag = False
+            # initialize HelmClient
+            helmclient = helm_client.HelmClient(ip, username, password)
+            for inst_params in helm_inst_param_list:
+                if self._is_exthelmchart(inst_params):
+                    repo_name = inst_params.get('helmrepositoryname')
+                    # execute `helm repo add` command
+                    helmclient.remove_repository(repo_name)
+                else:
+                    local_helm_del_flag = True
+            if local_helm_del_flag:
+                helmclient.delete_helmchart(del_dir)
+            helmclient.close_session()
+
     @log.log
     def delete_wait(self, plugin, context, vnf_id, auth_attr,
                     region_name=None, vnf_instance=None):
@@ -1001,6 +1070,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                         kind = vnf_resource.resource_type.\
                             split(COMMA_CHARACTER)[1]
 
+                        if not k8s_client_dict.get(api_version):
+                            continue
                         try:
                             self._select_k8s_obj_read_api(
                                 k8s_client_dict=k8s_client_dict,
@@ -1019,6 +1090,11 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                         time.sleep(self.STACK_RETRY_WAIT)
                     else:
                         keep_going = False
+
+                # check use_helm flag
+                inst_vnf_info = vnf_instance.instantiated_vnf_info
+                if self._is_use_helm_flag(inst_vnf_info.additional_params):
+                    self._post_helm_uninstall(context, vnf_instance)
         except Exception as e:
             LOG.error('Deleting wait VNF got an error due to %s', e)
             raise
@@ -1138,6 +1214,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 vdu_defs = policy['vdu_defs']
                 is_found = False
                 error_reason = None
+                target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
                 for vnf_resource in vnf_resources:
                     # The resource that matches the following is the resource
                     # to be scaled:
@@ -1154,8 +1231,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                                 split(COMMA_CHARACTER)[0]
                             kind = vnf_resource.resource_type.\
                                 split(COMMA_CHARACTER)[1]
-                            is_found = True
-                            break
+                            if kind in target_kinds:
+                                is_found = True
+                                break
                     if is_found:
                         break
                 else:
@@ -1163,13 +1241,6 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                         "Target VnfResource for aspectId"
                         " {aspect_id} is not found in DB").format(
                         aspect_id=aspect_id)
-                    raise vnfm.CNFScaleFailed(reason=error_reason)
-
-                target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
-                if kind not in target_kinds:
-                    error_reason = _(
-                        "Target kind {kind} is out of scale target").\
-                        format(kind=kind)
                     raise vnfm.CNFScaleFailed(reason=error_reason)
 
                 scale_info = self._call_read_scale_api(
@@ -1304,6 +1375,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 vdu_defs = policy['vdu_defs']
                 is_found = False
                 error_reason = None
+                target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
                 for vnf_resource in vnf_resources:
                     name = vnf_resource.resource_name.\
                         split(COMMA_CHARACTER)[1]
@@ -1314,8 +1386,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                                 split(COMMA_CHARACTER)[0]
                             kind = vnf_resource.resource_type.\
                                 split(COMMA_CHARACTER)[1]
-                            is_found = True
-                            break
+                            if kind in target_kinds:
+                                is_found = True
+                                break
                     if is_found:
                         break
                 else:
@@ -1407,6 +1480,70 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
     def heal_vdu(self, plugin, context, vnf_dict, heal_request_data):
         pass
 
+    def _is_use_helm_flag(self, additional_params):
+        if not additional_params:
+            return False
+        use_helm = additional_params.get('use_helm')
+        if type(use_helm) == str:
+            return use_helm.lower() == 'true'
+        return bool(use_helm)
+
+    def _is_exthelmchart(self, helm_install_params):
+        exthelmchart = helm_install_params.get('exthelmchart')
+        if type(exthelmchart) == str:
+            return exthelmchart.lower() == 'true'
+        return bool(exthelmchart)
+
+    def _pre_helm_install(self, vim_connection_info,
+                          instantiate_vnf_req, vnf_package_path):
+        def _check_param_exists(params_dict, check_param):
+            if check_param not in params_dict.keys():
+                LOG.error("{check_param} is not found".format(
+                    check_param=check_param))
+                raise cs.InputValuesMissing(key=check_param)
+
+        # check helm info in vim_connection_info
+        if 'helm_info' not in vim_connection_info.extra.keys():
+            reason = "helm_info is missing in vim_connection_info.extra."
+            LOG.error(reason)
+            raise vnfm.InvalidVimConnectionInfo(reason=reason)
+        helm_info = self._get_helm_info(vim_connection_info)
+        ip_list = helm_info.get('masternode_ip', [])
+        username = helm_info.get('masternode_username', '')
+        password = helm_info.get('masternode_username', '')
+        if not (ip_list and username and password):
+            reason = "content of helm_info is invalid."
+            LOG.error(reason)
+            raise vnfm.InvalidVimConnectionInfo(reason=reason)
+
+        # check helm install params
+        additional_params = instantiate_vnf_req.additional_params
+        _check_param_exists(additional_params, 'using_helm_install_param')
+        helm_install_param_list = additional_params.get(
+            'using_helm_install_param', [])
+        if not helm_install_param_list:
+            LOG.error("using_helm_install_param is empty.")
+            raise cs.InputValuesMissing(key='using_helm_install_param')
+        for helm_install_params in helm_install_param_list:
+            # common parameter check
+            _check_param_exists(helm_install_params, 'exthelmchart')
+            _check_param_exists(helm_install_params, 'helmreleasename')
+            if self._is_exthelmchart(helm_install_params):
+                # parameter check (case: external helm chart)
+                _check_param_exists(helm_install_params, 'helmchartname')
+                _check_param_exists(helm_install_params, 'exthelmrepo_url')
+                _check_param_exists(helm_install_params, 'helmrepositoryname')
+            else:
+                # parameter check (case: local helm chart)
+                _check_param_exists(helm_install_params, 'helmchartfile_path')
+                chartfile_path = helm_install_params.get('helmchartfile_path')
+                abs_helm_chart_path = os.path.join(
+                    vnf_package_path, chartfile_path)
+                if not os.path.exists(abs_helm_chart_path):
+                    LOG.error('Helm chart file {path} is not found.'.format(
+                        path=chartfile_path))
+                    raise vnfm.CnfDefinitionNotFound(path=chartfile_path)
+
     def _get_target_k8s_files(self, instantiate_vnf_req):
         if instantiate_vnf_req.additional_params and\
                 CNF_TARGET_FILES_KEY in\
@@ -1417,9 +1554,39 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             target_k8s_files = list()
         return target_k8s_files
 
+    def _create_vnf_resource(self, context, vnf_instance, file_content_dict,
+                             namespace=None):
+        vnf_resource = vnf_resource_obj.VnfResource(
+            context=context)
+        vnf_resource.vnf_instance_id = vnf_instance.id
+        metadata = file_content_dict.get('metadata', {})
+        if metadata and metadata.get('namespace', ''):
+            namespace = metadata.get('namespace', '')
+        elif namespace:
+            namespace = namespace
+        else:
+            namespace = ''
+        vnf_resource.resource_name = ','.join([
+            namespace, metadata.get('name', '')])
+        vnf_resource.resource_type = ','.join([
+            file_content_dict.get('apiVersion', ''),
+            file_content_dict.get('kind', '')])
+        vnf_resource.resource_identifier = ''
+        vnf_resource.resource_status = ''
+        return vnf_resource
+
     def pre_instantiation_vnf(self, context, vnf_instance,
                           vim_connection_info, vnf_software_images,
                           instantiate_vnf_req, vnf_package_path):
+        # check use_helm flag
+        if self._is_use_helm_flag(instantiate_vnf_req.additional_params):
+            # parameter check
+            self._pre_helm_install(
+                vim_connection_info, instantiate_vnf_req, vnf_package_path)
+            # NOTE: In case of using helm, vnf_resources is created
+            #       after `helm install` command is executed.
+            return {}
+
         vnf_resources = dict()
         target_k8s_files = self._get_target_k8s_files(instantiate_vnf_req)
         if not target_k8s_files:
@@ -1470,19 +1637,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 file_content_dict_list = yaml.safe_load_all(file_content)
                 vnf_resources_temp = []
                 for file_content_dict in file_content_dict_list:
-                    vnf_resource = vnf_resource_obj.VnfResource(
-                        context=context)
-                    vnf_resource.vnf_instance_id = vnf_instance.id
-                    vnf_resource.resource_name = ','.join([
-                        file_content_dict.get('metadata', {}).get(
-                            'namespace', ''),
-                        file_content_dict.get('metadata', {}).get(
-                            'name', '')])
-                    vnf_resource.resource_type = ','.join([
-                        file_content_dict.get('apiVersion', ''),
-                        file_content_dict.get('kind', '')])
-                    vnf_resource.resource_identifier = ''
-                    vnf_resource.resource_status = ''
+                    vnf_resource = self._create_vnf_resource(
+                        context, vnf_instance, file_content_dict)
                     vnf_resources_temp.append(vnf_resource)
                 vnf_resources[target_k8s_index] = vnf_resources_temp
             return vnf_resources
@@ -1491,13 +1647,76 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             vim_connection_info, vnf_resource):
         pass
 
+    def _helm_install(self, context, vnf_instance, vim_connection_info,
+                      instantiate_vnf_req, vnf_package_path, transformer):
+        additional_params = instantiate_vnf_req.additional_params
+        namespace = additional_params.get('namespace', '')
+        helm_inst_param_list = additional_params.get(
+            'using_helm_install_param')
+        helm_info = self._get_helm_info(vim_connection_info)
+        ip_list = helm_info.get('masternode_ip')
+        username = helm_info.get('masternode_username')
+        password = helm_info.get('masternode_password')
+        vnf_resources = []
+        k8s_objs = []
+        for ip_idx, ip in enumerate(ip_list):
+            # initialize HelmClient
+            helmclient = helm_client.HelmClient(ip, username, password)
+            for inst_params in helm_inst_param_list:
+                release_name = inst_params.get('helmreleasename')
+                parameters = inst_params.get('helmparameter')
+                if self._is_exthelmchart(inst_params):
+                    # prepare using external helm chart
+                    chart_name = inst_params.get('helmchartname')
+                    repo_url = inst_params.get('exthelmrepo_url')
+                    repo_name = inst_params.get('helmrepositoryname')
+                    # execute `helm repo add` command
+                    helmclient.add_repository(repo_name, repo_url)
+                    install_chart_name = '/'.join([repo_name, chart_name])
+                else:
+                    # prepare using local helm chart
+                    chartfile_path = inst_params.get('helmchartfile_path')
+                    src_path = os.path.join(vnf_package_path, chartfile_path)
+                    dst_dir = os.path.join(
+                        HELM_CHART_DIR_BASE, vnf_instance.id)
+                    # put helm chart file to Kubernetes controller node
+                    helmclient.put_helmchart(src_path, dst_dir)
+                    chart_file_name = src_path[src_path.rfind(os.sep) + 1:]
+                    chart_name = "-".join(chart_file_name.split("-")[:-1])
+                    install_chart_name = os.path.join(dst_dir, chart_name)
+                if ip_idx == 0:
+                    # execute `helm install` command
+                    helmclient.install(release_name, install_chart_name,
+                                       namespace, parameters)
+                    # get manifest by using `helm get manifest` command
+                    mf_content = helmclient.get_manifest(
+                        release_name, namespace)
+                    k8s_objs_tmp = transformer.get_k8s_objs_from_manifest(
+                        mf_content, namespace)
+                    for k8s_obj in k8s_objs_tmp:
+                        # set status in k8s_obj to 'Creating'
+                        k8s_obj['status'] = 'Creating'
+                    k8s_objs.extend(k8s_objs_tmp)
+                    mf_content_dicts = list(yaml.safe_load_all(mf_content))
+                    for mf_content_dict in mf_content_dicts:
+                        vnf_resource = self._create_vnf_resource(
+                            context, vnf_instance, mf_content_dict, namespace)
+                        vnf_resources.append(vnf_resource)
+            helmclient.close_session()
+        # save the vnf resources in the db
+        for vnf_resource in vnf_resources:
+            vnf_resource.create()
+        return k8s_objs
+
     def instantiate_vnf(self, context, vnf_instance, vnfd_dict,
                         vim_connection_info, instantiate_vnf_req,
                         grant_response, vnf_package_path,
                         plugin=None):
         target_k8s_files = self._get_target_k8s_files(instantiate_vnf_req)
         auth_attr = vim_connection_info.access_info
-        if not target_k8s_files:
+        use_helm_flag = self._is_use_helm_flag(
+            instantiate_vnf_req.additional_params)
+        if not target_k8s_files and not use_helm_flag:
             # The case is based on TOSCA for CNF operation.
             # It is out of the scope of this patch.
             instance_id = self.create(
@@ -1509,9 +1728,14 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             transformer = translate_outputs.Transformer(
                 None, None, None, k8s_client_dict)
             deployment_dict_list = list()
-            k8s_objs = transformer.\
-                get_k8s_objs_from_yaml(target_k8s_files, vnf_package_path)
-            k8s_objs = transformer.deploy_k8s(k8s_objs)
+            if use_helm_flag:
+                k8s_objs = self._helm_install(
+                    context, vnf_instance, vim_connection_info,
+                    instantiate_vnf_req, vnf_package_path, transformer)
+            else:
+                k8s_objs = transformer.\
+                    get_k8s_objs_from_yaml(target_k8s_files, vnf_package_path)
+                k8s_objs = transformer.deploy_k8s(k8s_objs)
             vnfd_dict['current_error_point'] = EP.POST_VIM_CONTROL
             k8s_objs = self.create_wait_k8s(
                 k8s_objs, k8s_client_dict, vnf_instance)
@@ -1536,6 +1760,29 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             vnfd_dict['instance_id'] = resource_info_str
             return resource_info_str
 
+    def _post_helm_install(self, context, vim_connection_info,
+                           instantiate_vnf_req, transformer):
+        additional_params = instantiate_vnf_req.additional_params
+        namespace = additional_params.get('namespace', '')
+        helm_inst_param_list = additional_params.get(
+            'using_helm_install_param')
+        helm_info = self._get_helm_info(vim_connection_info)
+        ip_list = helm_info.get('masternode_ip')
+        username = helm_info.get('masternode_username')
+        password = helm_info.get('masternode_password')
+        k8s_objs = []
+        # initialize HelmClient
+        helmclient = helm_client.HelmClient(ip_list[0], username, password)
+        for helm_inst_params in helm_inst_param_list:
+            release_name = helm_inst_params.get('helmreleasename')
+            # get manifest by using `helm get manifest` command
+            mf_content = helmclient.get_manifest(release_name, namespace)
+            k8s_objs_tmp = transformer.get_k8s_objs_from_manifest(
+                mf_content, namespace)
+            k8s_objs.extend(k8s_objs_tmp)
+        helmclient.close_session()
+        return k8s_objs
+
     def post_vnf_instantiation(self, context, vnf_instance,
                                vim_connection_info, instantiate_vnf_req):
         """Initially store VnfcResourceInfo after instantiation
@@ -1554,9 +1801,13 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             # initialize Transformer
             transformer = translate_outputs.Transformer(
                 None, None, None, None)
-            # get Kubernetes object
-            k8s_objs = transformer.get_k8s_objs_from_yaml(
-                target_k8s_files, vnf_package_path)
+            if self._is_use_helm_flag(instantiate_vnf_req.additional_params):
+                k8s_objs = self._post_helm_install(context,
+                    vim_connection_info, instantiate_vnf_req, transformer)
+            else:
+                # get Kubernetes object
+                k8s_objs = transformer.get_k8s_objs_from_yaml(
+                    target_k8s_files, vnf_package_path)
             # get TOSCA node templates
             vnfd_dict = vnflcm_utils._get_vnfd_dict(
                 context, vnf_instance.vnfd_id,
@@ -2094,6 +2345,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 aspect_id=scale_vnf_request.aspect_id,
                 tosca=tosca)
             is_found = False
+            target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
             for vnf_resource in vnf_resources:
                 # For CNF operations, Kubernetes resource information is
                 # stored in vnfc_resource as follows:
@@ -2103,11 +2355,12 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 for vdu_id, vdu_def in vdu_defs.items():
                     vdu_properties = vdu_def.get('properties')
                     if rsc_name == vdu_properties.get('name'):
-                        is_found = True
                         namespace = vnf_resource.resource_name.split(',')[0]
                         rsc_kind = vnf_resource.resource_type.split(',')[1]
                         target_vdu_id = vdu_id
-                        break
+                        if rsc_kind in target_kinds:
+                            is_found = True
+                            break
                 if is_found:
                     break
             # extract stored Pod names by vdu_id

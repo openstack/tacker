@@ -65,7 +65,8 @@ class VimClient(object):
                    'vim_name': vim_info.get('name', vim_info['id']),
                    'vim_type': vim_info['type'],
                    'tenant': vim_info['tenant_id'],
-                   'placement_attr': vim_info.get('placement_attr', {})}
+                   'placement_attr': vim_info.get('placement_attr', {}),
+                   'extra': vim_info.get('extra', {})}
         return vim_res
 
     @staticmethod

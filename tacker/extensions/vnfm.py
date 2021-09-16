@@ -129,6 +129,18 @@ class CNFHealWaitFailed(exceptions.TackerException):
     message = _('%(reason)s')
 
 
+class InvalidVimConnectionInfo(exceptions.TackerException):
+    message = _('Invalid vim_connection_info: %(reason)s')
+
+
+class HelmClientRemoteCommandError(exceptions.TackerException):
+    message = _('Failed to execute remote command.')
+
+
+class HelmClientOtherError(exceptions.TackerException):
+    message = _('An error occurred in HelmClient: %(error_message)s.')
+
+
 class ServiceTypeNotFound(exceptions.NotFound):
     message = _('service type %(service_type_id)s could not be found')
 

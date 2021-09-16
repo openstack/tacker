@@ -1117,3 +1117,143 @@ def fake_vim_connection_info():
     return vim_connection.VimConnectionInfo(
         vim_type="kubernetes",
         access_info=access_info)
+
+
+def fake_vim_connection_info_with_extra(del_field=None, multi_ip=False):
+    access_info = {
+        'auth_url': 'http://fake_url:6443',
+        'ssl_ca_cert': None}
+    masternode_ip = ["192.168.0.1"]
+    if multi_ip:
+        masternode_ip.append("192.168.0.2")
+
+    helm_info = {
+        'masternode_ip': masternode_ip,
+        'masternode_username': 'dummy_user',
+        'masternode_password': 'dummy_pass'
+    }
+    if del_field and helm_info.get(del_field):
+        del helm_info[del_field]
+    extra = {
+        'helm_info': str(helm_info)
+    }
+    return vim_connection.VimConnectionInfo(
+        vim_type="kubernetes",
+        access_info=access_info,
+        extra=extra)
+
+
+def fake_inst_vnf_req_for_helmchart(external=True, local=True, namespace=None):
+    additional_params = {"use_helm": "true"}
+    using_helm_install_param = list()
+    if external:
+        using_helm_install_param.append(
+            {
+                "exthelmchart": "true",
+                "helmreleasename": "myrelease-ext",
+                "helmrepositoryname": "sample-charts",
+                "helmchartname": "mychart-ext",
+                "exthelmrepo_url": "http://helmrepo.example.com/sample-charts"
+            }
+        )
+    if local:
+        using_helm_install_param.append(
+            {
+                "exthelmchart": "false",
+                "helmchartfile_path": "Files/kubernetes/localhelm-0.1.0.tgz",
+                "helmreleasename": "myrelease-local",
+                "helmparameter": [
+                    "key1=value1",
+                    "key2=value2"
+                ]
+            }
+        )
+    additional_params['using_helm_install_param'] = using_helm_install_param
+    if namespace:
+        additional_params['namespace'] = namespace
+
+    return objects.InstantiateVnfRequest(additional_params=additional_params)
+
+
+def execute_cmd_helm_client(*args, **kwargs):
+    ssh_command = args[0]
+    if 'helm get manifest' in ssh_command:
+        result = [
+            '---\n',
+            '# Source: localhelm/templates/deployment.yaml\n',
+            'apiVersion: apps/v1\n',
+            'kind: Deployment\n',
+            'metadata:\n',
+            '  name: vdu1\n',
+            'spec:\n',
+            '  replicas: 1\n',
+            '  selector:\n',
+            '    matchLabels:\n',
+            '      app: webserver\n',
+            '  template:\n',
+            '    metadata:\n'
+            '      labels:\n'
+            '        app: webserver\n'
+            '    spec:\n',
+            '      containers:\n',
+            '        - name: nginx\n'
+        ]
+    else:
+        result = ""
+    return result
+
+
+def fake_k8s_objs_deployment_for_helm():
+    obj = [
+        {
+            'status': 'Creating',
+            'object': fake_v1_deployment_for_helm()
+        }
+    ]
+
+    return obj
+
+
+def fake_v1_deployment_for_helm():
+    return client.V1Deployment(
+        api_version='apps/v1',
+        kind='Deployment',
+        metadata=client.V1ObjectMeta(
+            name='vdu1',
+        ),
+        status=client.V1DeploymentStatus(
+            replicas=1,
+            ready_replicas=1
+        ),
+        spec=client.V1DeploymentSpec(
+            replicas=1,
+            selector=client.V1LabelSelector(
+                match_labels={'app': 'webserver'}
+            ),
+            template=client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    labels={'app': 'webserver'}
+                ),
+                spec=client.V1PodSpec(
+                    containers=[
+                        client.V1Container(
+                            name='nginx'
+                        )
+                    ]
+                )
+            )
+        )
+    )
+
+
+def fake_k8s_vim_obj():
+    vim_obj = {'vim_id': '76107920-e588-4865-8eca-f33a0f827071',
+               'vim_name': 'fake_k8s_vim',
+               'vim_auth': {
+                   'auth_url': 'http://localhost:6443',
+                   'password': 'test_pw',
+                   'username': 'test_user',
+                   'project_name': 'test_project'},
+               'vim_type': 'kubernetes',
+               'extra': {}}
+    return vim_obj

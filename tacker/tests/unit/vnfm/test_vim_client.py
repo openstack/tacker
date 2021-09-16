@@ -74,7 +74,7 @@ class TestVIMClient(base.TestCase):
             vim_expect = {'vim_auth': {'password': '****'}, 'vim_id': 'aaaa',
                           'vim_name': 'VIM0', 'vim_type': 'test_vim',
                           'placement_attr': {'regions': ['TestRegionOne']},
-                          'tenant': 'test'}
+                          'tenant': 'test', 'extra': {}}
             self.assertEqual(vim_expect, vim_result)
 
     def test_get_vim_with_default_name(self):
@@ -91,7 +91,7 @@ class TestVIMClient(base.TestCase):
             vim_expect = {'vim_auth': {'password': '****'}, 'vim_id': 'aaaa',
                           'vim_name': 'aaaa', 'vim_type': 'test_vim',
                           'placement_attr': {'regions': ['TestRegionOne']},
-                          'tenant': 'test'}
+                          'tenant': 'test', 'extra': {}}
             self.assertEqual(vim_expect, vim_result)
 
     def test_find_vim_key_with_key_not_found_exception(self):
