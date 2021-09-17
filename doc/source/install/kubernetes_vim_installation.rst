@@ -31,118 +31,200 @@ bring VMs and Pods (and other Kubernetes resources) on the same network.
 
    .. code-block:: console
 
-      # Enable kuryr-kubernetes, docker, octavia
-      KUBERNETES_VIM=True
-      enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes master
-      enable_plugin octavia https://opendev.org/openstack/octavia master
-      enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
-      KURYR_K8S_CLUSTER_IP_RANGE="10.0.0.0/24"
+         # Enable kuryr-kubernetes, docker, octavia
+         KUBERNETES_VIM=True
+         enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes master
+         enable_plugin octavia https://opendev.org/openstack/octavia master
+         enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
+         KURYR_K8S_CLUSTER_IP_RANGE="10.0.0.0/24"
 
-   The public network will be used to launched LoadBalancer for Services in
+   The public network will be used to launch LoadBalancer for Services in
    Kubernetes. The example for setting public subnet is described in [#first]_
 
    For more details, users also see the same examples in [#second]_ and [#third]_.
 
 #. Run stack.sh
 
+   **Command:**
+
    .. code-block:: console
 
-      $ ./stack.sh
+         $ ./stack.sh
 
 #. Get Kubernetes VIM configuration
 
-   * After successful installation, user can get "Bearer Token":
+   After successful installation, users can get authentication information.
 
-   .. code-block:: console
+   * Get "Bearer Token"
 
-      $ TOKEN=$(kubectl describe secret $(kubectl get secrets | grep default | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d '\t')
+     First, you have to confirm Kubernetes Secret name which contains
+     bearer token.
 
-   In the Hyperkube folder /yourdirectory/data/hyperkube/, user can get more
-   information for authenticating to Kubernetes cluster.
+     **Command:**
+
+     .. code-block:: console
+
+         $ kubectl get secret
+
+     **Result:**
+
+     .. code-block:: console
+
+         NAME                  TYPE                                  DATA   AGE
+         default-token-cfx5m   kubernetes.io/service-account-token   3      94m
+
+     Then, you can get the bearer token.
+
+     **Command:**
+
+     .. code-block:: console
+
+         $ TOKEN=$(kubectl get secret default-token-cfx5m -o jsonpath="{.data.token}" | base64 --decode) && echo $TOKEN
+
+     **Result:**
+
+     .. code-block:: console
+
+         eyJhbGciOiJSUzI1NiIsImtpZCI6ImdTeGhkUlBNRkJwemo0eXdpMmxxT2Y1aWkzYUhwRERCTWlxMzZFemFKSkUifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tY2Z4NW0iLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjNhOTNiNjA0LTJjY2EtNDllZi05ODMwLWI5NDZhZjI2OTAyNyIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.yWmZMKuCRn_9Hw07wzee2Gr072NcexuKkaG2HaBamd3BOOAaypb7a12UiKcjqQYsDq32jVGMswSroTJOJtm7xccVbU2lz6CMhTRtDbPKOQm7DLyYdpBoRAoqE8fpy4aF5agqpFYmhYHBoz2VC-sgTwWjuY5XkJ81X9rZWlTCj9p3QkanH2z77lLXo-muthDOOuNm_J05FyR_J1epYXm8JbEpTrj1upaQoKZ9hoKKQrd1crW0stqymcyiLxfPGtSW8dO6GZS4v1vTiIhAEBg3kyQsOPz_nEmDxuYXrcMJxQV8MxWvm3uLOu7wN6-MPsSdw1CQdOfjycTh0D9rG4pxUw
+
+     .. note::
+
+         In Kubernetes data model, values contained under ``.data`` is encoded with
+         Base64 format, thus you must decode it with ``base64 --decode`` or
+         ``base64 -d`` command to use it as a bearer token.
+
+     Before using this token, users have to apply administrator role to this token.
+
+     **Command:**
+
+     .. code-block:: console
+
+         $ kubectl create clusterrolebinding cluster-admin-binding \
+         --clusterrole cluster-admin --serviceaccount=default:default
+
+     **Result:**
+
+     .. code-block:: console
+
+         clusterrolebinding.rbac.authorization.k8s.io/cluster-admin-binding created
 
    * Get ssl_ca_cert:
 
-   .. code-block:: console
+     Users can get more information for authenticating to Kubernetes cluster.
 
-      $ sudo cat /opt/stack/data/hyperkube/ca.crt
-      -----BEGIN CERTIFICATE-----
-      MIIDUzCCAjugAwIBAgIJAI+laRsxtQQMMA0GCSqGSIb3DQEBCwUAMCAxHjAcBgNV
-      BAMMFTE3Mi4xNy4wLjJAMTUwNzU1NTc4MzAeFw0xNzEwMDkxMzI5NDNaFw0yNzEw
-      MDcxMzI5NDNaMCAxHjAcBgNVBAMMFTE3Mi4xNy4wLjJAMTUwNzU1NTc4MzCCASIw
-      DQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALfJ+Lsq8VmXBfZC4OPm96Y1Ots2
-      Np/fuGLEhT+JpHGCK65l4WpBf+FkcNDIb5Jn1EBr5XDEVN1hlzcPdCHu1sAvfTNB
-      AJkq/4TzkenEusxiQ8TQWDnIrAo73tkYPyQMAfXHifyM20gCz/jM+Zy2IoQDArRq
-      MItRdoFa+7rRJntFk56y9NZTzDqnziLFFoT6W3ZdU3BElX6oWarbLWxNNpYlVEbI
-      YdfooLqKTH+25Fh3TKsMVxOdc7A5MggXRHYYkbbDgDAVln9ki9x/c6U+5bQQ9H8+
-      +Lhzdova4gjq/RBJCtiISN7HvLuq+VenArFREgAqr/r/rQZckeAD/4mzQNECAwEA
-      AaOBjzCBjDAdBgNVHQ4EFgQU1zZHXIHhmPDe+ajaNqsOdu5QfbswUAYDVR0jBEkw
-      R4AU1zZHXIHhmPDe+ajaNqsOdu5QfbuhJKQiMCAxHjAcBgNVBAMMFTE3Mi4xNy4w
-      LjJAMTUwNzU1NTc4M4IJAI+laRsxtQQMMAwGA1UdEwQFMAMBAf8wCwYDVR0PBAQD
-      AgEGMA0GCSqGSIb3DQEBCwUAA4IBAQAr8ARlYpIbeML8fbxdAARuZ/dJpbKvyNHC
-      GXJI/Uh4xKmj3LrdDYQjHb1tbRSV2S/gQld+En0L92XGUl/x1pG/GainDVpxpTdt
-      FwA5SMG5HLHrudZBRW2Dqe1ItKjx4ofdjz+Eni17QYnI0CEdJZyq7dBInuCyeOu9
-      y8BhzIOFQALYYL+K7nERKsTSDUnTwgpN7p7CkPnAGUj51zqVu2cOJe48SWoO/9DZ
-      AT0UKTr/agkkjHL0/kv4x+Qhr/ICjd2JbW7ePxQBJ8af+SYuKx7IRVnubnqVMEN6
-      V/kEAK/h2NAKS8OnlBgUMXIojSInmGXJfM5l1GUlQiqiBTv21Fm6
-      -----END CERTIFICATE-----
+     **Command:**
 
-   * Get basic authentication username and password:
+     .. code-block:: console
 
-   .. code-block:: console
+         $ kubectl get secrets default-token-cfx5m -o jsonpath="{.data.ca\.crt}" | base64 --decode
 
-      $ sudo cat /opt/stack/data/hyperkube/basic_auth.csv
-      admin,admin,admin
+     **Result:**
 
-   The basic auth file is a csv file with a minimum of 3 columns: password,
-   user name, user id. If there are more than 3 columns, see the following
-   example:
+     .. code-block:: console
 
-   .. code-block:: console
-
-      password,user,uid,"group1,group2,group3"
-
-   In this example, the user belongs to group1, group2 and group3.
+         -----BEGIN CERTIFICATE-----
+         MIIC5zCCAc+gAwIBAgIBADANBgkqhkiG9w0BAQsFADAVMRMwEQYDVQQDEwprdWJl
+         cm5ldGVzMB4XDTIxMDkwOTA0MDc0NFoXDTMxMDkwNzA0MDc0NFowFTETMBEGA1UE
+         AxMKa3ViZXJuZXRlczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAN7H
+         /ttxemXTrCDCvN59+g22wwWr5GWUEBxQQz04OPXz1GxBY0H2h3fToRdSs3+snD2h
+         6bZ8uryxvXTAlml0IBue/nBxKVRMCRTfqEHEPeNo1yHL2thWGYDfKwEZr9Eg72F5
+         mxu9wYdfQS61wg9b4kLmHCIjA58wBDv8Osccs+28BpxJaBd1oG25JWZhcCFRTQur
+         URy6d1885ahvaqP9L9mhR8zVzVkAr2noNrCo4/bVMIea8n3yQPBKe3ND1UcxpoCk
+         UrfWCrrFsG93RtiivLFJjG8UgUkUhzRfTFoMnTX51Qm2/q/5GZqXSd6z+nU7Bp47
+         DHa0hNSPpKnRnP2WwdECAwEAAaNCMEAwDgYDVR0PAQH/BAQDAgKkMA8GA1UdEwEB
+         /wQFMAMBAf8wHQYDVR0OBBYEFICl4EHfUar/PBfVTfgymIYXe/z5MA0GCSqGSIb3
+         DQEBCwUAA4IBAQA8i+HhuNIJZheNfLgZ+svxmpa1AtdPv8QTrkXTn5OvBJ6l2A2e
+         23fVG+8Eolmd0pwuWCMGv4UKAQ45hCMFKMkuKNs2akYueujTxTLwsIu+1EAVnzWp
+         E5n+RAhgkAZ18VAGW0otrP/T2zFvci9o3pnEYnQ9Es1mFX7GkBbiI/4qYqx5ysZr
+         i5We9jMO//ouJxliJAemRCHMjdqrooMb3k0QyT2lN/1O0TXj0a96pTxoAyivllwk
+         LYnc2CoRegU81LeUPSNJRe5+A6kdXixL12F1182/LQgXWkdRnYwoMypyEUDEr9kf
+         eGr2fBQ+2ywKH7Ho/HVRW+WcJbXt5nfMX5NK
+         -----END CERTIFICATE-----
 
    * Get Kubernetes server url
 
-   By default Kubernetes server listens on https://127.0.0.1:6443 and
-   https://{HOST_IP}:6443
+     By default Kubernetes API server listens on https://127.0.0.1:6443 and
+     https://{HOST_IP}:6443. Users can get this information through
+     ``kubectl cluster-info`` command and try to access API server with
+     the bearer token described in the previous step.
 
-   .. code-block:: console
+     First, you have to confirm the API endpoint that your Kubernetes cluster exposes.
 
-      $ curl http://localhost:8080/api/
-      {
-        "kind": "APIVersions",
-        "versions": [
-          "v1"
-        ],
-        "serverAddressByClientCIDRs": [
-          {
-            "clientCIDR": "0.0.0.0/0",
-            "serverAddress": "192.168.11.110:6443"
-          }
-        ]
-      }
+     **Command:**
+
+     .. code-block:: console
+
+         $ kubectl cluster-info
+
+     **Result:**
+
+     .. code-block:: console
+
+         Kubernetes control plane is running at https://172.30.202.39:6443
+
+         To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+
+     Then, you can confirm the API endpoint and your bearer token are available.
+
+     **Command:**
+
+     .. code-block:: console
+
+         $ curl -k https://172.30.202.39:6443/api/ -H "Authorization: Bearer $TOKEN"
+
+     **Result:**
+
+     .. code-block:: console
+
+         {
+            "kind": "APIVersions",
+            "versions": [
+            "v1"
+            ],
+            "serverAddressByClientCIDRs": [
+               {
+                  "clientCIDR": "0.0.0.0/0",
+                  "serverAddress": "172.30.202.39:6443"
+               }
+            ]
+         }
+
+     .. note::
+
+         Because SSL certificate used in Kubernetes API server is self-signed,
+         curl returns SSL certificate problem in the response. Users can use
+         ``-k`` or ``--insecure`` option to ignore SSL certificate warnings, or
+         ``--cacert <path/to/ssl_ca_cert_file>`` option to use ssl_ca_cert
+         in the verification of API server's SSL certificate.
 
 #. Check Kubernetes cluster installation
 
-   By default, after set KUBERNETES_VIM=True, Devstack creates a public network
-   called net-k8s, and two extra ones for the kubernetes services and pods
-   under the project k8s:
+   By default, after set ``KUBERNETES_VIM=True``, Devstack creates a
+   public network called net-k8s, and two extra ones for the Kubernetes
+   services and pods under the project k8s:
+
+   **Command:**
 
    .. code-block:: console
 
-      $ openstack network list --project admin
-      +--------------------------------------+-----------------+--------------------------------------+
-      | ID                                   | Name            | Subnets                              |
-      +--------------------------------------+-----------------+--------------------------------------+
-      | 28361f77-1875-4070-b0dc-014e26c48aeb | public          | 28c51d19-d437-46e8-9b0e-00bc392c57d6 |
-      | 71c20650-6295-4462-9219-e0007120e64b | k8s-service-net | f2835c3a-f567-44f6-b006-a6f7c52f2396 |
-      | 97c12aef-54f3-41dc-8b80-7f07c34f2972 | k8s-pod-net     | 7759453f-6e8a-4660-b845-964eca537c44 |
-      | 9935fff9-f60c-4fe8-aa77-39ba7ac10417 | net0            | 92b2bd7b-3c14-4d32-8de3-9d3cc4d204cb |
-      | c2120b78-880f-4f28-8dc1-3d33b9f3020b | net_mgmt        | fc7b3f32-5cac-4857-83ab-d3700f4efa60 |
-      | ec194ffc-533e-46b3-8547-6f43d92b91a2 | net1            | 08beb9a1-cd74-4f2d-b2fa-0e5748d80c27 |
-      +--------------------------------------+-----------------+--------------------------------------+
+         $ openstack network list
+
+   **Result:**
+
+   .. code-block:: console
+
+         +--------------------------------------+-----------------+----------------------------------------------------------------------------+
+         | ID                                   | Name            | Subnets                                                                    |
+         +--------------------------------------+-----------------+----------------------------------------------------------------------------+
+         | 060b32dc-c720-432a-967c-e29d01c2734c | k8s-pod-net     | 792ad14d-42a6-4be0-a5f2-6cdb5395bcdc                                       |
+         | 49829476-b297-4d43-bd86-9d7e81bcaebe | k8s-service-net | fdcf3012-37cf-4bbf-9035-2f9bbb99c007                                       |
+         | 6a6d19a5-0ff2-4573-aa98-688b9976d3a5 | net_mgmt        | 2ae0e175-54d4-4a6d-b00c-1609bc205f5f                                       |
+         | 920520a7-7235-4a20-a4c4-b6955dffa90d | public          | 2e375eca-ad17-4f36-88a5-332a5e380323, 9d83c498-ba57-4615-b81c-578afd1d5020 |
+         | 9736903e-adb2-47dc-9a27-46302b4c4e56 | net1            | 843e24c1-3cc0-4d09-8e39-09a0471b6e0a                                       |
+         | ad5dd7dd-eb86-49de-937a-fbbd799c5ecf | net0            | 91ed8b41-f8d6-4ddd-9927-912bf7e342e9                                       |
+         | c827ecc6-0a13-415b-9954-e20984cb0a4f | lb-mgmt-net     | e33011da-bde3-4483-9e93-9e654b395be3                                       |
+         | dab05a83-cf70-4b93-9fc6-9252748ae46c | private         | cc06f27c-1504-401b-b976-895702dac9fa, ffd64f3f-907d-4629-8d63-d9295650a8a1 |
+         +--------------------------------------+-----------------+----------------------------------------------------------------------------+
 
    To check Kubernetes cluster works well, please see some tests in
    kuryr-kubernetes to get more information [#fourth]_.
@@ -156,116 +238,139 @@ bring VMs and Pods (and other Kubernetes resources) on the same network.
 
    .. code-block:: console
 
-      auth_url: "https://192.168.11.110:6443"
-      bearer_token: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tc2ZqcTQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjBiMzZmYTQ2LWFhOTUtMTFlNy05M2Q4LTQwOGQ1Y2Q0ZmJmMSIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.MBjFA18AjD6GyXmlqsdsFpJD_tgPfst2faOimfVob-gBqnAkAU0Op2IEauiBVooFgtvzm-HY2ceArftSlZQQhLDrJGgH0yMAUmYhI8pKcFGd_hxn_Ubk7lPqwR6GIuApkGVMNIlGh7LFLoF23S_yMGvO8CHPM-UbFjpbCOECFdnoHjz-MsMqyoMfGEIF9ga7ZobWcKt_0A4ge22htL2-lCizDvjSFlAj4cID2EM3pnJ1J3GXEqu-W9DUFa0LM9u8fm_AD9hBKVz1dePX1NOWglxxjW4KGJJ8dV9_WEmG2A2B-9Jy6AKW83qqicBjYUUeAKQfjgrTDl6vSJOHYyzCYQ"
-      ssl_ca_cert: "None"
-      project_name: "default"
-      type: "kubernetes"
+         auth_url: "https://172.30.202.39:6443"
+         bearer_token: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImdTeGhkUlBNRkJwemo0eXdpMmxxT2Y1aWkzYUhwRERCTWlxMzZFemFKSkUifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tY2Z4NW0iLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjNhOTNiNjA0LTJjY2EtNDllZi05ODMwLWI5NDZhZjI2OTAyNyIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.yWmZMKuCRn_9Hw07wzee2Gr072NcexuKkaG2HaBamd3BOOAaypb7a12UiKcjqQYsDq32jVGMswSroTJOJtm7xccVbU2lz6CMhTRtDbPKOQm7DLyYdpBoRAoqE8fpy4aF5agqpFYmhYHBoz2VC-sgTwWjuY5XkJ81X9rZWlTCj9p3QkanH2z77lLXo-muthDOOuNm_J05FyR_J1epYXm8JbEpTrj1upaQoKZ9hoKKQrd1crW0stqymcyiLxfPGtSW8dO6GZS4v1vTiIhAEBg3kyQsOPz_nEmDxuYXrcMJxQV8MxWvm3uLOu7wN6-MPsSdw1CQdOfjycTh0D9rG4pxUw"
+         ssl_ca_cert: "None"
+         project_name: "default"
+         type: "kubernetes"
 
    Or vim_config.yaml with ssl_ca_cert enabled:
 
    .. code-block:: console
 
-      auth_url: "https://192.168.11.110:6443"
-      bearer_token: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tc2ZqcTQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjBiMzZmYTQ2LWFhOTUtMTFlNy05M2Q4LTQwOGQ1Y2Q0ZmJmMSIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.MBjFA18AjD6GyXmlqsdsFpJD_tgPfst2faOimfVob-gBqnAkAU0Op2IEauiBVooFgtvzm-HY2ceArftSlZQQhLDrJGgH0yMAUmYhI8pKcFGd_hxn_Ubk7lPqwR6GIuApkGVMNIlGh7LFLoF23S_yMGvO8CHPM-UbFjpbCOECFdnoHjz-MsMqyoMfGEIF9ga7ZobWcKt_0A4ge22htL2-lCizDvjSFlAj4cID2EM3pnJ1J3GXEqu-W9DUFa0LM9u8fm_AD9hBKVz1dePX1NOWglxxjW4KGJJ8dV9_WEmG2A2B-9Jy6AKW83qqicBjYUUeAKQfjgrTDl6vSJOHYyzCYQ"
-      ssl_ca_cert: "-----BEGIN CERTIFICATE-----
-      MIIDUzCCAjugAwIBAgIJANPOjG38TA+fMA0GCSqGSIb3DQEBCwUAMCAxHjAcBgNV
-      BAMMFTE3Mi4xNy4wLjJAMTUwNzI5NDI2NTAeFw0xNzEwMDYxMjUxMDVaFw0yNzEw
-      MDQxMjUxMDVaMCAxHjAcBgNVBAMMFTE3Mi4xNy4wLjJAMTUwNzI5NDI2NTCCASIw
-      DQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKlPwd5Dp484Fb+SjBZeV8qF4k8s
-      Z06NPdlHKuXaxz7+aReGSwz09JittlqQ/2CwSd5834Ll+btfyTyrB4bv+mr/WD3b
-      jxEhnWrUK7oHObzZq0i60Ard6CuiWnv5tP0U5tVPWfNBoHEEPImVcUmgzGSAWW1m
-      ZzGdcpwkqE1NznLsrqYqjT5bio7KUqySRe13WNichDrdYSqEEQwFa+b+BO1bRCvh
-      IYSI0/xT1CDIlPmVucKRn/OVxpuTQ/WuVt7yIMRKIlApsZurZSt7ypR7SlQOLEx/
-      xKsVTbMvhcKIMKdK8pHUJK2pk8uNPAKd7zjpiu04KMa3WsUreIJHcjat6lMCAwEA
-      AaOBjzCBjDAdBgNVHQ4EFgQUxINzbfoA2RzXk584ETZ0agWDDk8wUAYDVR0jBEkw
-      R4AUxINzbfoA2RzXk584ETZ0agWDDk+hJKQiMCAxHjAcBgNVBAMMFTE3Mi4xNy4w
-      LjJAMTUwNzI5NDI2NYIJANPOjG38TA+fMAwGA1UdEwQFMAMBAf8wCwYDVR0PBAQD
-      AgEGMA0GCSqGSIb3DQEBCwUAA4IBAQB7zNVRX++hUXs7+Fg1H2havCkSe63b/oEM
-      J8LPLYWjqdFnLgC+usGq+nhJiuVCqqAIK0dIizGaoXS91hoWuuHWibSlLFRd2wF2
-      Go2oL5pgC/0dKW1D6V1Dl+3mmCVYrDnExXybWGtOsvaUmsnt4ugsb+9AfUtWbCA7
-      tepBsbAHS62buwNdzrzjJV+GNB6KaIEVVAdZdRx+HaZP2kytOXqxaUchIhMHZHYZ
-      U0/5P0Ei56fLqIFO3WXqVj9u615VqX7cad4GQwtSW8sDnZMcQAg8mnR4VqkF8YSs
-      MkFnsNNkfqE9ck/D2auMwRl1IaDPVqAFiWiYZZhw8HsG6K4BYEgk
-      -----END CERTIFICATE-----"
-      project_name: "default"
-      type: "kubernetes"
+         auth_url: "https://172.30.202.39:6443"
+         bearer_token: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImdTeGhkUlBNRkJwemo0eXdpMmxxT2Y1aWkzYUhwRERCTWlxMzZFemFKSkUifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tY2Z4NW0iLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjNhOTNiNjA0LTJjY2EtNDllZi05ODMwLWI5NDZhZjI2OTAyNyIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.yWmZMKuCRn_9Hw07wzee2Gr072NcexuKkaG2HaBamd3BOOAaypb7a12UiKcjqQYsDq32jVGMswSroTJOJtm7xccVbU2lz6CMhTRtDbPKOQm7DLyYdpBoRAoqE8fpy4aF5agqpFYmhYHBoz2VC-sgTwWjuY5XkJ81X9rZWlTCj9p3QkanH2z77lLXo-muthDOOuNm_J05FyR_J1epYXm8JbEpTrj1upaQoKZ9hoKKQrd1crW0stqymcyiLxfPGtSW8dO6GZS4v1vTiIhAEBg3kyQsOPz_nEmDxuYXrcMJxQV8MxWvm3uLOu7wN6-MPsSdw1CQdOfjycTh0D9rG4pxUw"
+         ssl_ca_cert: "-----BEGIN CERTIFICATE-----
+         MIIC5zCCAc+gAwIBAgIBADANBgkqhkiG9w0BAQsFADAVMRMwEQYDVQQDEwprdWJl
+         cm5ldGVzMB4XDTIxMDkwOTA0MDc0NFoXDTMxMDkwNzA0MDc0NFowFTETMBEGA1UE
+         AxMKa3ViZXJuZXRlczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAN7H
+         /ttxemXTrCDCvN59+g22wwWr5GWUEBxQQz04OPXz1GxBY0H2h3fToRdSs3+snD2h
+         6bZ8uryxvXTAlml0IBue/nBxKVRMCRTfqEHEPeNo1yHL2thWGYDfKwEZr9Eg72F5
+         mxu9wYdfQS61wg9b4kLmHCIjA58wBDv8Osccs+28BpxJaBd1oG25JWZhcCFRTQur
+         URy6d1885ahvaqP9L9mhR8zVzVkAr2noNrCo4/bVMIea8n3yQPBKe3ND1UcxpoCk
+         UrfWCrrFsG93RtiivLFJjG8UgUkUhzRfTFoMnTX51Qm2/q/5GZqXSd6z+nU7Bp47
+         DHa0hNSPpKnRnP2WwdECAwEAAaNCMEAwDgYDVR0PAQH/BAQDAgKkMA8GA1UdEwEB
+         /wQFMAMBAf8wHQYDVR0OBBYEFICl4EHfUar/PBfVTfgymIYXe/z5MA0GCSqGSIb3
+         DQEBCwUAA4IBAQA8i+HhuNIJZheNfLgZ+svxmpa1AtdPv8QTrkXTn5OvBJ6l2A2e
+         23fVG+8Eolmd0pwuWCMGv4UKAQ45hCMFKMkuKNs2akYueujTxTLwsIu+1EAVnzWp
+         E5n+RAhgkAZ18VAGW0otrP/T2zFvci9o3pnEYnQ9Es1mFX7GkBbiI/4qYqx5ysZr
+         i5We9jMO//ouJxliJAemRCHMjdqrooMb3k0QyT2lN/1O0TXj0a96pTxoAyivllwk
+         LYnc2CoRegU81LeUPSNJRe5+A6kdXixL12F1182/LQgXWkdRnYwoMypyEUDEr9kf
+         eGr2fBQ+2ywKH7Ho/HVRW+WcJbXt5nfMX5NK
+         -----END CERTIFICATE-----"
+         project_name: "default"
+         type: "kubernetes"
 
-   You can also specify username and password for Kubernetes VIM configuration:
+   Run Tacker command for register VIM:
 
-   .. code-block:: console
-
-      auth_url: "https://192.168.11.110:6443"
-      username: "admin"
-      password: "admin"
-      ssl_ca_cert: "-----BEGIN CERTIFICATE-----
-      MIIDUzCCAjugAwIBAgIJANPOjG38TA+fMA0GCSqGSIb3DQEBCwUAMCAxHjAcBgNV
-      BAMMFTE3Mi4xNy4wLjJAMTUwNzI5NDI2NTAeFw0xNzEwMDYxMjUxMDVaFw0yNzEw
-      MDQxMjUxMDVaMCAxHjAcBgNVBAMMFTE3Mi4xNy4wLjJAMTUwNzI5NDI2NTCCASIw
-      DQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKlPwd5Dp484Fb+SjBZeV8qF4k8s
-      Z06NPdlHKuXaxz7+aReGSwz09JittlqQ/2CwSd5834Ll+btfyTyrB4bv+mr/WD3b
-      jxEhnWrUK7oHObzZq0i60Ard6CuiWnv5tP0U5tVPWfNBoHEEPImVcUmgzGSAWW1m
-      ZzGdcpwkqE1NznLsrqYqjT5bio7KUqySRe13WNichDrdYSqEEQwFa+b+BO1bRCvh
-      IYSI0/xT1CDIlPmVucKRn/OVxpuTQ/WuVt7yIMRKIlApsZurZSt7ypR7SlQOLEx/
-      xKsVTbMvhcKIMKdK8pHUJK2pk8uNPAKd7zjpiu04KMa3WsUreIJHcjat6lMCAwEA
-      AaOBjzCBjDAdBgNVHQ4EFgQUxINzbfoA2RzXk584ETZ0agWDDk8wUAYDVR0jBEkw
-      R4AUxINzbfoA2RzXk584ETZ0agWDDk+hJKQiMCAxHjAcBgNVBAMMFTE3Mi4xNy4w
-      LjJAMTUwNzI5NDI2NYIJANPOjG38TA+fMAwGA1UdEwQFMAMBAf8wCwYDVR0PBAQD
-      AgEGMA0GCSqGSIb3DQEBCwUAA4IBAQB7zNVRX++hUXs7+Fg1H2havCkSe63b/oEM
-      J8LPLYWjqdFnLgC+usGq+nhJiuVCqqAIK0dIizGaoXS91hoWuuHWibSlLFRd2wF2
-      Go2oL5pgC/0dKW1D6V1Dl+3mmCVYrDnExXybWGtOsvaUmsnt4ugsb+9AfUtWbCA7
-      tepBsbAHS62buwNdzrzjJV+GNB6KaIEVVAdZdRx+HaZP2kytOXqxaUchIhMHZHYZ
-      U0/5P0Ei56fLqIFO3WXqVj9u615VqX7cad4GQwtSW8sDnZMcQAg8mnR4VqkF8YSs
-      MkFnsNNkfqE9ck/D2auMwRl1IaDPVqAFiWiYZZhw8HsG6K4BYEgk
-      -----END CERTIFICATE-----"
-      project_name: "default"
-      type: "kubernetes"
-
-   User can change the authentication like username, password, etc. Please see
-   Kubernetes document [#fifth]_ to read more information about Kubernetes
-   authentication.
-
-   Run Tacker command for register vim:
+   **Command:**
 
    .. code-block:: console
 
-      $ openstack vim register --config-file vim_config.yaml vim-kubernetes
+         $ openstack vim register --config-file vim_config.yaml vim-kubernetes
 
-      $ openstack vim list
-      +--------------------------------------+----------------------------------+----------------+------------+------------+------------------------------------------------------------+-----------+
-      | id                                   | tenant_id                        | name           | type       | is_default | placement_attr                                             | status    |
-      +--------------------------------------+----------------------------------+----------------+------------+------------+------------------------------------------------------------+-----------+
-      | 45456bde-6179-409c-86a1-d8cd93bd0c6d | a6f9b4bc9a4d439faa91518416ec0999 | vim-kubernetes | kubernetes | False      | {u'regions': [u'default', u'kube-public', u'kube-system']} | REACHABLE |
-      +--------------------------------------+----------------------------------+----------------+------------+------------+------------------------------------------------------------+-----------+
-
-   In ``placement_attr``, there are three regions: 'default', 'kube-public',
-   'kube-system', that map to ``namespace`` in Kubernetes environment.
-
-   Other related commands to Kubernetes VIM:
+   **Result:**
 
    .. code-block:: console
 
-      $ cat kubernetes-VIM-update.yaml
-      username: "admin"
-      password: "admin"
-      project_name: "default"
-      ssl_ca_cert: "None"
-      type: "kubernetes"
+         +----------------+-----------------------------------------------+
+         | Field          | Value                                         |
+         +----------------+-----------------------------------------------+
+         | auth_cred      | {                                             |
+         |                |     "bearer_token": "***",                    |
+         |                |     "ssl_ca_cert": "None",                    |
+         |                |     "auth_url": "https://172.30.202.39:6443", |
+         |                |     "username": "None",                       |
+         |                |     "key_type": "barbican_key",               |
+         |                |     "secret_uuid": "***",                     |
+         |                |     "password": "***"                         |
+         |                | }                                             |
+         | auth_url       | https://172.30.202.39:6443                    |
+         | created_at     | 2021-09-17 01:26:28.372552                    |
+         | description    |                                               |
+         | id             | 884ec305-c8ca-47ef-8cba-fafceabeda30          |
+         | is_default     | False                                         |
+         | name           | vim-kubernetes                                |
+         | placement_attr | {                                             |
+         |                |     "regions": [                              |
+         |                |         "default",                            |
+         |                |         "kube-node-lease",                    |
+         |                |         "kube-public",                        |
+         |                |         "kube-system"                         |
+         |                |     ]                                         |
+         |                | }                                             |
+         | project_id     | 8cd3cc798ae14227a84f7b50c5ef984a              |
+         | status         | PENDING                                       |
+         | type           | kubernetes                                    |
+         | updated_at     | None                                          |
+         | vim_project    | {                                             |
+         |                |     "name": "default"                         |
+         |                | }                                             |
+         +----------------+-----------------------------------------------+
 
+   In ``placement_attr``, there are four regions: 'default', 'kube-node-lease',
+   'kube-public' and 'kube-system', that map to ``namespace`` in Kubernetes environment.
 
-      $ tacker vim-update vim-kubernetes --config-file kubernetes-VIM-update.yaml
-      $ tacker vim-show vim-kubernetes
-      $ tacker vim-delete vim-kubernetes
+   After the successful installation of VIM, you can get VIM information as follows:
 
-   When update Kubernetes VIM, user can update VIM information (such as username,
-   password, bearer_token and ssl_ca_cert) except auth_url and type of VIM.
+   **Command:**
+
+   .. code-block:: console
+
+         $ openstack vim list
+
+   **Result:**
+
+   .. code-block:: console
+
+         +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
+         | ID                                   | Name           | Tenant_id                        | Type       | Is Default | Status    |
+         +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
+         | 884ec305-c8ca-47ef-8cba-fafceabeda30 | vim-kubernetes | 8cd3cc798ae14227a84f7b50c5ef984a | kubernetes | False      | REACHABLE |
+         +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
+
+   You can update those VIM information with :command:`openstack vim set`:
+
+   **Command:**
+
+   .. code-block:: console
+
+         $ openstack vim set --config-file path/to/updated/config 884ec305-c8ca-47ef-8cba-fafceabeda30
+
+   When updating Kubernetes VIM, you can update VIM information (such as bearer_token
+   and ssl_ca_cert) except auth_url and type of VIM.
+
+   You can get the detail of VIM information with :command:`openstack vim show`:
+
+   **Command:**
+
+   .. code-block:: console
+
+         $ openstack vim show 884ec305-c8ca-47ef-8cba-fafceabeda30
+
+   If you no longer use the Kubernetes VIM, you can delete it with :command:`openstack vim delete`:
+
+   **Command:**
+
+   .. code-block:: console
+
+         $ openstack vim delete 884ec305-c8ca-47ef-8cba-fafceabeda30
 
 
 References
 ----------
 
 .. [#first] https://github.com/openstack-dev/devstack/blob/master/doc/source/networking.rst#shared-guest-interface
-.. [#second] https://opendev.org/openstack/tacker/src/branch/master/doc/source/install/devstack.rst
+.. [#second] https://docs.openstack.org/tacker/latest/install/devstack.html
 .. [#third] https://opendev.org/openstack/tacker/src/branch/master/devstack/local.conf.kubernetes
-.. [#fourth] https://github.com/openstack/kuryr-kubernetes/blob/master/doc/source/installation/testing_connectivity.rst
-.. [#fifth] https://kubernetes.io/docs/admin/authentication
+.. [#fourth] https://docs.openstack.org/kuryr-kubernetes/latest/installation/testing_connectivity.html
