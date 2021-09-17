@@ -175,6 +175,8 @@ def _populate_flavour_data(tosca):
 
                 # get from lower-vnfd data
                 tpl_dict['topology_template'] = dict()
+                tpl_dict['topology_template']['groups'] = \
+                    tp.tpl.get('groups')
                 tpl_dict['topology_template']['policies'] = \
                     tp.tpl.get('policies')
                 tpl_dict['topology_template']['node_templates'] = \

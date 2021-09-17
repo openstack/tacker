@@ -1100,7 +1100,7 @@ def vnf_dict():
            ' flavour for Sample VNF\n\nimports:\n' + \
            '  - etsi_nfv_sol001_common_types.yaml\n' + \
            '  - etsi_nfv_sol001_vnfd_types.yaml\n\n' + \
-           'topology_template:\n  node_templates:\n' + \
+           'topology_template:\n  groups:\n  node_templates:\n' + \
            '    VNF:\n      type: nec.ossmano.VNF\n' + \
            '      properties:\n' + \
            '        flavour_description: A simple flavour\n' + \
@@ -1224,6 +1224,7 @@ def vnf_dict():
             }
         }
     }
+
     return vnf_dict
 
 
