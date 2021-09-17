@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
 import time
 import yaml
 
@@ -447,3 +448,31 @@ class BaseTackerTest(base.BaseTestCase):
         self.validate_vnf_instance(vnfd_instance, vnf_instance)
 
         return vnf_instance, tosca_dict
+
+    def _list_op_occs(self, filter_string=''):
+        show_url = os.path.join(
+            self.base_vnf_lcm_op_occs_url)
+        resp, response_body = self.http_client.do_request(
+            show_url + filter_string, "GET")
+        return resp, response_body
+
+    def _assert_occ_list(self, resp, op_occs_list):
+        self.assertEqual(200, resp.status_code)
+
+        # Only check required parameters.
+        for op_occs_info in op_occs_list:
+            self.assertIsNotNone(op_occs_info.get('id'))
+            self.assertIsNotNone(op_occs_info.get('operationState'))
+            self.assertIsNotNone(op_occs_info.get('stateEnteredTime'))
+            self.assertIsNotNone(op_occs_info.get('vnfInstanceId'))
+            self.assertIsNotNone(op_occs_info.get('operation'))
+            self.assertIsNotNone(op_occs_info.get('isAutomaticInvocation'))
+            self.assertIsNotNone(op_occs_info.get('isCancelPending'))
+
+            _links = op_occs_info.get('_links')
+            self.assertIsNotNone(_links.get('self'))
+            self.assertIsNotNone(_links.get('self').get('href'))
+            self.assertIsNotNone(_links.get('vnfInstance'))
+            self.assertIsNotNone(_links.get('vnfInstance').get('href'))
+            self.assertIsNotNone(_links.get('grant'))
+            self.assertIsNotNone(_links.get('grant').get('href'))

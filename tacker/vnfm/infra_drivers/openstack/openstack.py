@@ -49,6 +49,7 @@ from tacker.vnfm.infra_drivers.openstack import constants as infra_cnst
 from tacker.vnfm.infra_drivers.openstack import glance_client as gc
 from tacker.vnfm.infra_drivers.openstack import heat_client as hc
 from tacker.vnfm.infra_drivers.openstack import translate_template
+from tacker.vnfm.infra_drivers.openstack import update_template as ut
 from tacker.vnfm.infra_drivers.openstack import vdu
 from tacker.vnfm.infra_drivers import scale_driver
 from tacker.vnfm.lcm_user_data.constants import USER_DATA_TIMEOUT
@@ -58,6 +59,7 @@ eventlet.monkey_patch(time=True)
 
 SCALING_GROUP_RESOURCE = "OS::Heat::AutoScalingGroup"
 NOVA_SERVER_RESOURCE = "OS::Nova::Server"
+NEUTRON_PORT_RESOURCE = "OS::Neutron::Port"
 
 VNF_PACKAGE_HOT_DIR = 'Files'
 
@@ -1725,6 +1727,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                                 ip_addr, vnfc_rsc.id)
                                             raise exceptions.InvalidIpAddr(
                                                 id=vnfc_rsc.id)
+                                        ip_addr = fixed_ip.get('ip_address')
                                         ip_addresses.addresses.append(ip_addr)
                                         ip_addresses.subnet_id = fixed_ip.get(
                                             'subnet_id')
@@ -1743,7 +1746,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                             resource.resource_id =\
                                                 rsc_info.physical_resource_id
                                             resource.vim_level_resource_type =\
-                                                'OS::Neutron::Port'
+                                                NEUTRON_PORT_RESOURCE
                                             if not vl.vnf_link_ports:
                                                 vl.vnf_link_ports = []
                                             link_port_info = objects.\
@@ -2264,14 +2267,61 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     def change_ext_conn_vnf(self, context, vnf_instance, vnf_dict,
             vim_connection_info, change_ext_conn_req):
 
-        base_hot_dict, nested_hot_dict = \
-            vnflcm_utils.get_base_nest_hot_dict(
-                context,
-                vnf_instance.instantiated_vnf_info.flavour_id,
-                vnf_instance.vnfd_id)
-        stack_param = yaml.safe_load(
-            vnf_dict['attributes']['stack_param'])
+        access_info = vim_connection_info.access_info
+        heatclient = hc.HeatClient(access_info,
+            region_name=access_info.get('region'))
 
+        hot_updater = ut.HOTUpdater(heatclient)
+        hot_updater.get_templates_from_stack(
+            vnf_instance.instantiated_vnf_info.instance_id)
+
+        if 'stack_param' in vnf_dict['attributes']:
+            LOG.debug('Target VNF instantiated with userdata.')
+            self._change_ext_conn_vnf_with_userdata(
+                context,
+                hot_updater,
+                vnf_instance,
+                vnf_dict,
+                vim_connection_info,
+                change_ext_conn_req)
+        else:
+            LOG.debug('Target VNF instantiated with '
+                'translating heat-template.')
+            self._change_ext_conn_vnf_with_tosca(
+                context,
+                hot_updater,
+                vnf_instance,
+                vnf_dict,
+                vim_connection_info,
+                change_ext_conn_req)
+
+    def _get_fixed_ips_from_ip_addr(self, ip_addr):
+        fixed_ips = dict()
+        updated_fixed_ips = []
+        if ip_addr.fixed_addresses:
+            for address in ip_addr.fixed_addresses:
+                fixed_ips = dict(ip_address=address)
+                if ip_addr.subnet_id:
+                    fixed_ips.update(dict(subnet=ip_addr.subnet_id))
+                updated_fixed_ips.append(fixed_ips)
+        elif ip_addr.num_dynamic_addresses > 0:
+            if ip_addr.subnet_id:
+                fixed_ips.update(dict(subnet=ip_addr.subnet_id))
+                updated_fixed_ips.append(fixed_ips)
+            else:
+                updated_fixed_ips = None
+
+        return updated_fixed_ips
+
+    def _change_ext_conn_vnf_with_userdata(
+            self,
+            context,
+            hot_updater,
+            vnf_instance,
+            vnf_dict,
+            vim_connection_info,
+            change_ext_conn_req):
+        stack_param = yaml.safe_load(vnf_dict['attributes']['stack_param'])
         LOG.debug('before stack_param: {}'.format(stack_param))
         cp_param = stack_param['nfv']['CP']
 
@@ -2293,33 +2343,64 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     # and ip_addresses cannot get, do nothing
                     continue
 
-                fixed_ips = dict()
-                updated_fixed_ips = []
-                if ip_addr.fixed_addresses:
-                    for address in ip_addr.fixed_addresses:
-                        fixed_ips = dict(ip_address=address)
-                        if ip_addr.subnet_id:
-                            fixed_ips.update(dict(subnet=ip_addr.subnet_id))
-                        updated_fixed_ips.append(fixed_ips)
-                elif ip_addr.num_dynamic_addresses > 0:
-                    if ip_addr.subnet_id:
-                        fixed_ips.update(dict(subnet=ip_addr.subnet_id))
-                        updated_fixed_ips.append(fixed_ips)
+                updated_fixed_ips = self._get_fixed_ips_from_ip_addr(ip_addr)
                 if updated_fixed_ips:
                     cp_param[cpd_id].update(
                         dict(fixed_ips=updated_fixed_ips))
-
         LOG.debug('after stack_param: {}'.format(stack_param))
-
-        access_info = vim_connection_info.access_info
-        heatclient = hc.HeatClient(access_info,
-            region_name=access_info.get('region'))
 
         # Update heat-stack with BaseHOT and parameters
         self._update_stack_with_user_data(
-            heatclient, vnf_instance, base_hot_dict, nested_hot_dict,
-            stack_param, vnf_instance.instantiated_vnf_info.instance_id)
+            hot_updater.heatclient,
+            vnf_instance,
+            hot_updater.template,
+            hot_updater.nested_templates,
+            stack_param,
+            vnf_instance.instantiated_vnf_info.instance_id)
         vnf_dict['attributes'].update({'stack_param': str(stack_param)})
+
+    def _change_ext_conn_vnf_with_tosca(
+            self,
+            context,
+            hot_updater,
+            vnf_instance,
+            vnf_dict,
+            vim_connection_info,
+            change_ext_conn_req):
+        for ext_virtual_link in change_ext_conn_req.ext_virtual_links:
+            for ext_cp in ext_virtual_link.ext_cps:
+                cpd_id = ext_cp.cpd_id
+
+                try:
+                    ip_addr = ext_cp.cp_config[0].cp_protocol_data[0].\
+                        ip_over_ethernet.ip_addresses[0]
+                except IndexError:
+                    # If the element under ext_cp does not exist,
+                    # and ip_addresses cannot get, do nothing
+                    continue
+
+                updated_fixed_ips = self._get_fixed_ips_from_ip_addr(ip_addr)
+                hot_updater.update_resource_property(
+                    cpd_id,
+                    resource_types=[NEUTRON_PORT_RESOURCE],
+                    network=ext_virtual_link.resource_id,
+                    fixed_ips=updated_fixed_ips)
+
+        # Set parameters to update heat-stack
+        update_parameters = {
+            'template': self._format_base_hot(hot_updater.template),
+        }
+        if hot_updater.nested_templates:
+            files_dict = dict()
+            for name, value in hot_updater.nested_templates.items():
+                files_dict[name] = self._format_base_hot(value)
+                update_parameters['files'] = files_dict
+
+        # Update heat-stack
+        self._update_stack(
+            hot_updater.heatclient,
+            vnf_instance.instantiated_vnf_info.instance_id,
+            update_parameters)
 
     @log.log
     def change_ext_conn_vnf_wait(self, context, vnf_instance,
