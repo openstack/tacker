@@ -60,10 +60,10 @@ class ViewBuilder(base.BaseViewBuilder):
 
         return user_data_response
 
-    def create(self, request, vnf_package):
+    def create(self, vnf_package):
         return self._get_vnf_package(vnf_package)
 
-    def show(self, request, vnf_package):
+    def show(self, vnf_package):
         return self._get_vnf_package(vnf_package)
 
     def patch(self, vnf_package, new_vnf_package):
@@ -77,7 +77,7 @@ class ViewBuilder(base.BaseViewBuilder):
 
         return response
 
-    def index(self, request, vnf_packages, all_fields=True,
+    def index(self, vnf_packages, all_fields=True,
             exclude_fields=None, fields=None, exclude_default=False):
 
         # Find out which fields are to be returned in the response.

@@ -62,13 +62,16 @@ class TestController(base.TestCase):
 
     @mock.patch.object(vnf_package, '_vnf_package_create')
     @mock.patch.object(vnf_package.VnfPackage, '_from_db_object')
-    def test_create_with_status_202(self, mock_from_db, mock_vnf_pack):
+    def test_create_with_status_201(self, mock_from_db, mock_vnf_pack):
         body = {'userDefinedData': {'abc': 'xyz'}}
         req = fake_request.HTTPRequest.blank('/vnf_packages')
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
         resp = req.get_response(self.app)
+        location_pattern = (r'http://localhost/vnfpkgm/v1/vnf_packages/'
+                            r'([a-f]|\d|-){36}')
+        self.assertRegex(resp.headers['location'], location_pattern)
         self.assertEqual(http_client.CREATED, resp.status_code)
 
     @mock.patch.object(vnf_package, '_vnf_package_create')
@@ -81,6 +84,9 @@ class TestController(base.TestCase):
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
         resp = req.get_response(self.app)
+        location_pattern = (r'http://localhost/vnfpkgm/v1/vnf_packages/'
+                            r'([a-f]|\d|-){36}')
+        self.assertRegex(resp.headers['location'], location_pattern)
         self.assertEqual(http_client.CREATED, resp.status_code)
 
     @mock.patch.object(VnfSoftwareImage, 'get_by_id')

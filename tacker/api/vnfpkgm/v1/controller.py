@@ -90,7 +90,10 @@ class VnfPkgmController(wsgi.Controller):
 
         vnf_package.create()
 
-        return self._view_builder.create(request, vnf_package)
+        headers = {"location": '/vnfpkgm/v1/vnf_packages/%s' % vnf_package.id}
+        result = self._view_builder.create(vnf_package)
+
+        return wsgi.ResponseObject(result, headers=headers)
 
     @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
@@ -111,7 +114,7 @@ class VnfPkgmController(wsgi.Controller):
             msg = _("Can not find requested vnf package: %s") % id
             raise webob.exc.HTTPNotFound(explanation=msg)
 
-        return self._view_builder.show(request, vnf_package)
+        return self._view_builder.show(vnf_package)
 
     @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN))
@@ -148,9 +151,11 @@ class VnfPkgmController(wsgi.Controller):
         vnf_packages = vnf_package_obj.VnfPackagesList.get_by_filters(
             request.context, read_deleted='no', filters=filters)
 
-        return self._view_builder.index(request, vnf_packages,
-                all_fields=all_fields, exclude_fields=exclude_fields,
-                fields=fields, exclude_default=exclude_default)
+        return self._view_builder.index(vnf_packages,
+                                        all_fields=all_fields,
+                                        exclude_fields=exclude_fields,
+                                        fields=fields,
+                                        exclude_default=exclude_default)
 
     @wsgi.response(http_client.NO_CONTENT)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,
