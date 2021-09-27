@@ -968,21 +968,14 @@ class VnfLcmController(wsgi.Controller):
             vnf_lcm_subscription = vnf_lcm_subscription.create(filter)
             LOG.debug("vnf_lcm_subscription %s" % vnf_lcm_subscription)
         except exceptions.SeeOther as e:
-            if re.search("^303", str(e)):
-                res = self._make_problem_detail(
-                    "See Other", 303, title='See Other')
-                link = (
-                    'LINK',
-                    CONF.vnf_lcm.endpoint_url.rstrip("/") +
-                    "/vnflcm/v1/subscriptions/" +
-                    str(e)[
-                        3:])
-                res.headerlist.append(link)
-                return res
-            else:
-                LOG.error(traceback.format_exc())
-                return self._make_problem_detail(
-                    str(e), 500, title='Internal Server Error')
+            res = webob.Response(content_type='application/json')
+            res.status_int = http_client.SEE_OTHER.value
+            location = (
+                'Location',
+                CONF.vnf_lcm.endpoint_url.rstrip("/") +
+                "/vnflcm/v1/subscriptions/" + str(e))
+            res.headerlist.append(location)
+            return res
 
         result = self._view_builder.subscription_create(vnf_lcm_subscription,
                                                         filter)

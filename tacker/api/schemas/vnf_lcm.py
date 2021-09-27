@@ -187,7 +187,7 @@ _vimConnectionInfo = {
 _versions = {
     'type': 'array',
     'items': {
-        'type': 'objects',
+        'type': 'object',
         'properties': {
             'vnfSoftwareVersion': {'type': 'string'},
             'vnfdVersions': {
@@ -212,15 +212,15 @@ _vnf_products = {
 }
 
 _vnf_products_from_providers = {
-    'type': 'object',
-    'properties': {
+    'type': 'array',
+    'items': {
         'type': 'object',
         'properties': {
             'vnfProvider': {'type': 'string'},
             'vnfProducts': _vnf_products
-        }
-    },
-    'required': ['vnfProvider']
+        },
+        'required': ['vnfProvider']
+    }
 }
 
 _lifecycle_change_notifications_filter = {

@@ -3942,7 +3942,7 @@ class TestController(base.TestCase):
                 'notificationTypes': ['VnfLcmOperationOccurrenceNotification'],
                 'vnfInstanceSubscriptionFilter': {
                     "vnfdIds": [],
-                    "vnfProductsFromProviders": {
+                    "vnfProductsFromProviders": [{
                         "vnfProvider": "Vnf Provider 1",
                         "vnfProducts": [
                             {
@@ -3955,7 +3955,7 @@ class TestController(base.TestCase):
                                 ]
                             }
                         ]
-                    }
+                    }]
                 }
             }
         }
