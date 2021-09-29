@@ -20,9 +20,9 @@ resources:
           zone: { get_param: [ nfv, vdu, VDU1, zone ] }
           net1: { get_param: [ nfv, CP, VDU1_CP1, network ] }
           net2: { get_param: [ nfv, CP, VDU1_CP2, network ] }
-          net3: { get_resource: extmanageNW_1 }
-          net4: { get_resource: extmanageNW_2 }
-          net5: { get_resource: internalNW_1 }
+          net3: { get_resource: internalVL1 }
+          net4: { get_resource: internalVL2 }
+          net5: { get_resource: internalVL3 }
           subnet: { get_param: [nfv, CP, VDU1_CP2, fixed_ips, 0, subnet]}
   VDU1_scale_scale_out:
     type: OS::Heat::ScalingPolicy
@@ -52,9 +52,9 @@ resources:
           zone: { get_param: [ nfv, vdu, VDU2, zone ] }
           net1: { get_param: [ nfv, CP, VDU2_CP1, network ] }
           net2: { get_param: [ nfv, CP, VDU2_CP2, network ] }
-          net3: { get_resource: extmanageNW_1 }
-          net4: { get_resource: extmanageNW_2 }
-          net5: { get_resource: internalNW_1 }
+          net3: { get_resource: internalVL1 }
+          net4: { get_resource: internalVL2 }
+          net5: { get_resource: internalVL3 }
           ip1: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, ip_address]}
           subnet: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, subnet]}
   VDU2_scale_scale_out:
@@ -75,27 +75,31 @@ resources:
     type: OS::Neutron::Net
   extmanageNW_2:
     type: OS::Neutron::Net
-  internalNW_1:
+  internalVL1:
     type: OS::Neutron::Net
-  extmanageNW_1_subnet:
+  internalVL2:
+    type: OS::Neutron::Net
+  internalVL3:
+    type: OS::Neutron::Net
+  internalVL1_subnet:
     type: OS::Neutron::Subnet
     properties:
       ip_version: 4
       network:
-        get_resource: extmanageNW_1
+        get_resource: internalVL1
       cidr: 192.168.3.0/24
-  extmanageNW_2_subnet:
+  internalVL2_subnet:
     type: OS::Neutron::Subnet
     properties:
       ip_version: 4
       network:
-        get_resource: extmanageNW_2
+        get_resource: internalVL2
       cidr: 192.168.4.0/24
-  internalNW_1_subnet:
+  internalVL3_subnet:
     type: OS::Neutron::Subnet
     properties:
       ip_version: 4
       network:
-        get_resource: internalNW_1
+        get_resource: internalVL3
       cidr: 192.168.5.0/24
 outputs: {}

@@ -106,6 +106,7 @@ def _set_ext_virtual_link_cp1(networks_id, external_ports_id):
     ext_virtual_link_cp1 = {
         "id": uuidsentinel.evl1_id,
         "resourceId": networks_id[0],
+        "vimConnectionId": uuidsentinel.vim_connection_id,
         "extCps": [ext_vdu1_cp1, ext_vdu2_cp1],
         "extLinkPorts": [
             _set_ext_link_port1(external_ports_id),
@@ -194,6 +195,7 @@ def _set_ext_virtual_link_cp2(networks_id, external_subnets_id):
     ext_virtual_link_cp2 = {
         "id": uuidsentinel.evl2_id,
         "resourceId": networks_id[1],
+        "vimConnectionId": uuidsentinel.vim_connection_id,
         "extCps": [
             _set_ext_cps_vdu1_cp2(external_subnets_id),
             _set_ext_cps_vdu2_cp2(external_subnets_id)
@@ -206,6 +208,7 @@ def _set_ext_virtual_link_cp2_in_num_dynamic(networks_id, external_subnets_id):
     ext_virtual_link_cp2_in_num_dynamic = {
         "id": uuidsentinel.evl2_id,
         "resourceId": networks_id[1],
+        "vimConnectionId": uuidsentinel.vim_connection_id,
         "extCps": [
             _set_ext_cps_vdu1_cp2_in_num_dynamic(external_subnets_id),
             _set_ext_cps_vdu2_cp2_in_num_dynamic(external_subnets_id)
