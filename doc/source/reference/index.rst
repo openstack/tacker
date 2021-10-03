@@ -21,6 +21,7 @@ Reference
 .. toctree::
    :maxdepth: 1
 
+   vim_config.rst
    mistral_workflows_usage_guide.rst
    block_storage_usage_guide.rst
    reservation_policy_usage_guide.rst

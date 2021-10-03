@@ -19,29 +19,27 @@
 Kubernetes VIM Installation
 ===========================
 
-This document describes the way to install Kubernetes VIM via Devstack and
-how to register Kubernetes VIM in Tacker.
+Tacker uses kuryr-kubernetes for deploying Kubernetes cluster and sets up
+native Neutron-based network among Kubernetes and OpenStack VIMs.
+It deploys VMs and Kubernetes resources on the same network.
 
-To do that job, Tacker reuses the efforts from Kuryr-Kubernetes project in
-creating Kubernetes cluster and setting up native Neutron-based networking
-between Kubernetes and OpenStack VIMs. Features from Kuryr-Kubernetes will
-bring VMs and Pods (and other Kubernetes resources) on the same network.
+#. Edit ``local.conf`` for Kubernetes
 
-#. Edit local.conf file by adding the following content
+   Add following plugin configurations for kuryr-kubernetes.
 
    .. code-block:: console
 
-         # Enable kuryr-kubernetes, docker, octavia
-         KUBERNETES_VIM=True
-         enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes master
-         enable_plugin octavia https://opendev.org/openstack/octavia master
-         enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
-         KURYR_K8S_CLUSTER_IP_RANGE="10.0.0.0/24"
+     # Enable kuryr-kubernetes, docker, octavia
+     KUBERNETES_VIM=True
+     enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes master
+     enable_plugin octavia https://opendev.org/openstack/octavia master
+     enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
+     KURYR_K8S_CLUSTER_IP_RANGE="10.0.0.0/24"
 
-   The public network will be used to launch LoadBalancer for Services in
-   Kubernetes. The example for setting public subnet is described in [#first]_
+   Public network is used to launch LoadBalancer for Services in Kubernetes.
+   Setting public subnet is described in [#first]_.
 
-   For more details, users also see the same examples in [#second]_ and [#third]_.
+   You can find whole of examples of ``local.conf`` in [#second]_ and [#third]_.
 
 #. In CentOS environment install Kubernetes packages and start ovn services
    before executing stack.sh.
@@ -71,7 +69,7 @@ bring VMs and Pods (and other Kubernetes resources) on the same network.
       $ sudo systemctl start ovs-vswitchd.service
       $ sudo systemctl start ovsdb-server.service
 
-#. Run stack.sh
+#. Run devstack installation
 
    **Command:**
 
@@ -79,9 +77,31 @@ bring VMs and Pods (and other Kubernetes resources) on the same network.
 
          $ ./stack.sh
 
-#. Get Kubernetes VIM configuration
+#. Setup Kubernetes VIM configuration
 
-   After successful installation, users can get authentication information.
+   Now you are ready to register Kubernetes VIM if you complete devstack
+   installation.
+   You can setup configuration file for Kubernetes VIM by using a dedicated
+   script for the job or editing it from scratch.
+
+   The first way is to run ``gen_vim_config.sh`` with options for generating
+   the configuration file as described in :doc:`here </reference/vim_config>`.
+   Go to ``TACKER_ROOT`` directory which is the root of tacker's repository.
+   You need to add ``-t k8s`` at least for Kubernetes, or it generates
+   configurations for OpenStack. You can skip steps below before the section
+   ``Register Kubernetes VIM``.
+
+   .. code-block:: console
+
+     $ cd TACKER_ROOT
+     $ bash tools/gen_vim_config.sh -t k8s
+
+   This script tries to get all required parameters from your environment
+   although you can give any of parameters with specific options.
+   Refer the usages in help message, ``-h`` option, for the details.
+
+   On the other hand, you're required to get required parameters with
+   ``kubectl`` command if you edit the configuration from scratch.
 
    * Get "Bearer Token"
 
@@ -259,10 +279,10 @@ bring VMs and Pods (and other Kubernetes resources) on the same network.
 
 #. Register Kubernetes VIM
 
-   In vim_config.yaml, project_name is fixed as "default", that will use to
-   support multi tenant on Kubernetes in the future.
+   In ``vim_config.yaml``, project_name is fixed as "default", that will use
+   to support multi tenant on Kubernetes in the future.
 
-   Create vim_config.yaml file for Kubernetes VIM as the following examples:
+   Create ``vim_config.yaml`` file for Kubernetes VIM as following examples:
 
    .. code-block:: console
 
@@ -272,7 +292,7 @@ bring VMs and Pods (and other Kubernetes resources) on the same network.
          project_name: "default"
          type: "kubernetes"
 
-   Or vim_config.yaml with ssl_ca_cert enabled:
+   Or ``vim_config.yaml`` with ``ssl_ca_cert`` enabled:
 
    .. code-block:: console
 

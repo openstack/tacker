@@ -88,29 +88,44 @@ error:
 Register VIM
 ------------
 
-#. Create the ``vim_config.yaml``:
+#. Prepare VIM configuration file:
 
-   These parameters need to be changed as your environment. This is an
-   example named as ``vim_config.yaml`` for devstack installed OpenStack
-   VIM.
+   You can use a setup script for generating VIM configuration or edit it from
+   scratch as described in :doc:`here </reference/vim_config>`.
+   This script finds parameters for the configuration, such as user
+   name or password, from your environment variables.
+   Here is an example of generating OpenStack VIM configuration as
+   ``vim_config.yaml``. In this document, ``TACKER_ROOT`` is the root of
+   tacker's repository on your server.
 
    .. code-block:: console
 
-     $ vi ./vim_config.yaml
+     $ bash TACKER_ROOT/tools/gen_vim_config.sh
+     Config for OpenStack VIM 'vim_config.yaml' generated.
+
+   There are several options for configuring parameters from command
+   line supported. Refer help with ``-h`` for details.
+
+   You can also use a sample configuration file `vim_config.yaml`_ instead of
+   using the script.
+
+   .. code-block:: console
+
+     $ cp TACKER_ROOT/samples/etsi_getting_started/tosca/vim/vim_config.yaml ./
+     $ vi vim_config.yaml
 
    .. literalinclude:: ../../../samples/etsi_getting_started/tosca/vim/vim_config.yaml
       :language: yaml
 
-#. Register the VIM as default VIM:
+#. Register Default VIM:
 
-   The parameter ``--is-default`` should be added to register the VIM as
-   default. It helps you in the step of VNF instantiation.
+   Once you setup VIM configuration file, you register default VIM via
+   ``openstack`` command with ``--is-default`` option.
 
    .. code-block:: console
 
-     $ openstack vim register \
-         --config-file ./vim_config.yaml \
-         --is-default --fit-width openstack-admin-vim
+     $ openstack vim register --config-file ./vim_config.yaml \
+       --is-default --fit-width openstack-admin-vim
 
      +----------------+-------------------------------------------------+
      | Field          | Value                                           |
@@ -148,7 +163,7 @@ Register VIM
      |                | }                                               |
      +----------------+-------------------------------------------------+
 
-#. Check the status of registered VIM:
+#. Confirm that the status of registered VIM is ``REACHABLE`` as ready to use:
 
    .. code-block:: console
 
@@ -163,8 +178,8 @@ Register VIM
      | 6b4168     |            | 8c         |           |            |           |
      +------------+------------+------------+-----------+------------+-----------+
 
-Create & Upload VNF Package
----------------------------
+Create and Upload VNF Package
+-----------------------------
 
 Prepare VNF Package
 ^^^^^^^^^^^^^^^^^^^
@@ -184,7 +199,7 @@ Prepare VNF Package
      $ mkdir -p ./sample_vnf_package_csar/BaseHOT/simple \
          ./sample_vnf_package_csar/UserData
 
-#. Create ``TOSCA.meata`` file:
+#. Create a ``TOSCA.meta`` file:
 
    .. code-block:: console
 
@@ -731,3 +746,4 @@ Trouble Shooting
 .. [#] https://forge.etsi.org/rep/nfv/SOL001
 .. [#] https://docs.openstack.org/tacker/latest/user/vnfd-sol001.html
 .. [#] https://docs.openstack.org/python-openstackclient/pike/cli/command-objects/network.html
+.. _vim_config.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/etsi_getting_started/tosca/vim/vim_config.yaml
