@@ -81,7 +81,7 @@ class VnfdAttribute(base.TackerObject, base.TackerObjectDictCompat,
     fields = {
         'id': fields.UUIDField(nullable=False),
         'vnfd_id': fields.UUIDField(nullable=False),
-        'key': fields.StringField(nullable=True),
+        'key': fields.StringField(nullable=False),
         'value': fields.StringField(nullable=True),
     }
 

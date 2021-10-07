@@ -41,7 +41,9 @@ from tacker.conductor import conductor_server
 import tacker.conf
 from tacker import context
 from tacker import context as t_context
+from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
+from tacker.db.vnfm import vnfm_db
 from tacker.glance_store import store as glance_store
 from tacker import objects
 from tacker.objects import fields
@@ -240,9 +242,49 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch.object(glance_store, 'delete_csar')
     def test_delete_vnf_package(self, mock_delete_csar):
-        self.vnf_package.__setattr__('onboarding_state', 'ONBOARDED')
+        self.vnf_package.onboarding_state = 'ONBOARDED'
+        vnfd_id = uuidsentinel.vnfd_id
+
+        # create VnfPackageVnfd
+        vnf_pack_vnfd_data = fake_obj.get_vnf_package_vnfd_data(
+            self.vnf_package.id, vnfd_id)
+        vnf_pack_vnfd = objects.VnfPackageVnfd(
+            self.context, **vnf_pack_vnfd_data)
+        vnf_pack_vnfd.create()
+        self.vnf_package.vnfd = vnf_pack_vnfd
+
+        # create Legacy Vnfd
+        vnfd = objects.Vnfd(self.context)
+        vnfd.id = vnfd_id
+        vnfd.tenant_id = uuidsentinel.tenant_id
+        vnfd.name = 'dummy_name'
+        vnfd.create()
+
+        # create Legacy VnfdAttribute
+        vnfd_attr = objects.VnfdAttribute(self.context)
+        vnfd_attr.id = uuidsentinel.vnfd_attr_id
+        vnfd_attr.vnfd_id = vnfd_id
+        vnfd_attr.key = 'dummy_key'
+        vnfd_attr.create()
+
+        # check Vnfd and VnfdAttribute were created
+        self.assertIsNotNone(
+            api.model_query(self.context, vnfm_db.VNFDAttribute)
+            .filter_by(vnfd_id=vnfd_id).first())
+        self.assertIsNotNone(
+            api.model_query(self.context, vnfm_db.VNFD)
+            .filter_by(id=vnfd_id).first())
+
         self.conductor.delete_vnf_package(self.context, self.vnf_package)
+
+        # check Vnfd and VnfdAttribute were deleted
         mock_delete_csar.assert_called()
+        self.assertIsNone(
+            api.model_query(self.context, vnfm_db.VNFDAttribute)
+            .filter_by(vnfd_id=vnfd_id).first())
+        self.assertIsNone(
+            api.model_query(self.context, vnfm_db.VNFD)
+            .filter_by(id=vnfd_id).first())
 
     def test_get_vnf_package_vnfd_with_tosca_meta_file_in_csar(self):
         fake_csar = fakes.create_fake_csar_dir(self.vnf_package.id,
