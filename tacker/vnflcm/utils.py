@@ -64,6 +64,7 @@ def _get_vim(context, vim_connection_info):
     vim_info = {'id': vim_res['vim_id'], 'vim_id': vim_res['vim_id'],
                 'vim_type': vim_res['vim_type'],
                 'access_info': vim_res['vim_auth'],
+                'tenant_id': vim_res['tenant'],
                 'extra': vim_res.get('extra', {})}
 
     return vim_info

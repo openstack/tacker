@@ -1255,5 +1255,6 @@ def fake_k8s_vim_obj():
                    'username': 'test_user',
                    'project_name': 'test_project'},
                'vim_type': 'kubernetes',
+               'tenant': uuidsentinel.tenant_id,
                'extra': {}}
     return vim_obj

@@ -739,6 +739,30 @@ def get_dummy_vim_connection_info():
         'vim_id': 'fake_vim_id', 'vim_type': 'openstack', 'extra': {}}
 
 
+def get_dummy_openstack_vim_obj():
+    return {'vim_id': uuidsentinel.vim_id,
+            'vim_name': 'fake_vim',
+            'vim_type': 'openstack',
+            'vim_auth': {
+                'auth_url': 'http://localhost/identity',
+                'password': 'test_pw',
+                'username': 'test_user',
+                'project_name': 'test_project'},
+            'tenant': uuidsentinel.tenant_id}
+
+
+def get_dummy_k8s_vim_obj():
+    return {'vim_id': uuidsentinel.vim_id,
+            'vim_name': 'fake_vim',
+            'vim_type': 'kubernetes',
+            'vim_auth': {
+                'auth_url': 'http://localhost/8443',
+                'password': 'test_pw',
+                'username': 'test_user',
+                'project_name': 'test_project'},
+            'tenant': uuidsentinel.tenant_id}
+
+
 def get_dummy_instantiate_vnf_request(**updates):
     instantiate_vnf_request = {
         'additional_params': None, 'created_at': '', 'deleted': '',

@@ -130,10 +130,13 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
 
     def _stub_get_vim(self):
         vim_obj = {'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                   'vim_name': 'fake_vim', 'vim_auth':
-                       {'auth_url': 'http://localhost/identity', 'password':
-                           'test_pw', 'username': 'test_user', 'project_name':
-                           'test_project'}, 'vim_type': 'openstack'}
+                   'vim_name': 'fake_vim',
+                   'vim_auth':
+                       {'auth_url': 'http://localhost/identity',
+                        'password': 'test_pw', 'username': 'test_user',
+                        'project_name': 'test_project'},
+                   'vim_type': 'openstack',
+                   'tenant': uuidsentinel.tenant_id}
         self.vim_client.get_vim.return_value = vim_obj
 
     @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
