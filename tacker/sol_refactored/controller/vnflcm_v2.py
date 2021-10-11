@@ -344,6 +344,21 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         return sol_wsgi.SolResponse(202, None)
 
+    def lcm_op_occ_rollback(self, request, id):
+        context = request.context
+        lcmocc = lcmocc_utils.get_lcmocc(context, id)
+
+        return self._lcm_op_occ_rollback(context, lcmocc)
+
+    @coordinate.lock_vnf_instance('{lcmocc.vnfInstanceId}')
+    def _lcm_op_occ_rollback(self, context, lcmocc):
+        if lcmocc.operationState != v2fields.LcmOperationStateType.FAILED_TEMP:
+            raise sol_ex.LcmOpOccNotFailedTemp(lcmocc_id=lcmocc.id)
+
+        self.conductor_rpc.rollback_lcm_op(context, lcmocc.id)
+
+        return sol_wsgi.SolResponse(202, None)
+
     def lcm_op_occ_delete(self, request, id):
         # not allowed to delete on the specification
         if not CONF.v2_vnfm.test_enable_lcm_op_occ_delete:

@@ -159,6 +159,15 @@ rules = [
              'path': VNF_LCM_OP_OCCS_ID_PATH + '/retry'}
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name=POLICY_NAME.format('lcm_op_occ_rollback'),
+        check_str=RULE_ANY,
+        description="Rollback VnfLcmOpOcc.",
+        operations=[
+            {'method': 'POST',
+             'path': VNF_LCM_OP_OCCS_ID_PATH + '/rollback'}
+        ]
+    ),
     # NOTE: 'DELETE' is not defined in the specification. It is for test
     # use since it is convenient to be able to delete under development.
     # It is available when config parameter

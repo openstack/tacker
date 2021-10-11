@@ -181,3 +181,55 @@ class ConductorV2(object):
         # send notification COMPLETED or FAILED_TEMP
         self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
                                                   self.endpoint)
+
+    @log.log
+    def rollback_lcm_op(self, context, lcmocc_id):
+        lcmocc = lcmocc_utils.get_lcmocc(context, lcmocc_id)
+
+        self._rollback_lcm_op(context, lcmocc)
+
+    @coordinate.lock_vnf_instance('{lcmocc.vnfInstanceId}', delay=True)
+    def _rollback_lcm_op(self, context, lcmocc):
+        # just consistency check
+        if lcmocc.operationState != fields.LcmOperationStateType.FAILED_TEMP:
+            LOG.error("VnfLcmOpOcc unexpected operationState.")
+            return
+
+        inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
+
+        lcmocc.operationState = fields.LcmOperationStateType.ROLLING_BACK
+        lcmocc.update(context)
+        # send notification ROLLING_BACK
+        self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
+                                                  self.endpoint)
+
+        try:
+            vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId)
+            grant_req, grant = lcmocc_utils.get_grant_req_and_grant(context,
+                                                                    lcmocc)
+            self.vnflcm_driver.post_grant(context, lcmocc, inst, grant_req,
+                                          grant, vnfd)
+            self.vnflcm_driver.rollback(context, lcmocc, inst, grant_req,
+                                        grant, vnfd)
+
+            lcmocc.operationState = fields.LcmOperationStateType.ROLLED_BACK
+            with context.session.begin(subtransactions=True):
+                # it is not necessary to update inst DB because it was not
+                # changed when the operationState became FAILED_TEMP.
+                # NOTE: inst object may be changed in driver's rollback
+                # method temporary but must not save it.
+                lcmocc.update(context)
+                # grant_req and grant are not necessary any more.
+                grant_req.delete(context)
+                grant.delete(context)
+        except Exception as ex:
+            LOG.exception("ROLLING_BACK %s failed", lcmocc.operation)
+            lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
+            self._set_lcmocc_error(lcmocc, ex)
+            lcmocc.update(context)
+            # grant_req and grant are already saved. they are not deleted
+            # while oprationState is FAILED_TEMP.
+
+        # send notification ROLLED_BACK or FAILED_TEMP
+        self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
+                                                  self.endpoint)

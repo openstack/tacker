@@ -183,3 +183,11 @@ class TestVnflcmV2(db_base.SqlTestCase):
         self.assertRaises(sol_ex.LcmOpOccNotFailedTemp,
             self.controller.lcm_op_occ_retry, request=self.request,
             id=lcmocc_id)
+
+    def test_rollback_not_failed_temp(self):
+        _, lcmocc_id = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED)
+
+        self.assertRaises(sol_ex.LcmOpOccNotFailedTemp,
+            self.controller.lcm_op_occ_rollback, request=self.request,
+            id=lcmocc_id)
