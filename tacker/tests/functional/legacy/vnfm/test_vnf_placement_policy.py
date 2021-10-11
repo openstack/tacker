@@ -11,7 +11,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-import unittest
 import yaml
 
 from tackerclient.common import exceptions
@@ -93,8 +92,6 @@ class VnfTestCreate(base.BaseTackerTest):
                 distinct_comp_hosts = set(compute_hosts)
                 self.assertEqual(len(compute_hosts), len(distinct_comp_hosts))
 
-    @unittest.skip("Until BUG "
-                   "https://storyboard.openstack.org/#!/story/2009164")
     def test_create_delete_vnf_with_placement_policy_affinity(self):
         self._test_create_delete_vnf(
             vnf_name='test_vnf_with_placement_policy_affinity',
@@ -102,8 +99,6 @@ class VnfTestCreate(base.BaseTackerTest):
             vdu_name='affinity-vdu',
             placement_policy='affinity')
 
-    @unittest.skip("Until BUG "
-                   "https://storyboard.openstack.org/#!/story/2009164")
     def test_create_delete_vnf_with_placement_policy_anti_affinity(self):
         self._test_create_delete_vnf(
             vnf_name='test_vnf_with_placement_policy_anti_affinity',
@@ -111,8 +106,6 @@ class VnfTestCreate(base.BaseTackerTest):
             vdu_name='anti-affinity-vdu-multi-comp-nodes',
             placement_policy='anti-affinity')
 
-    @unittest.skip("Until BUG "
-                   "https://storyboard.openstack.org/#!/story/2009164")
     def test_vnf_with_policy_anti_affinity_insufficient_comp_nodes(self):
         self._test_create_delete_vnf(
             vnf_name='test_vnf_anti_affinity_insufficient_comp_nodes',
