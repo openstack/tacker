@@ -67,14 +67,6 @@ if [ "${TACKER_MODE}" == "all" ]; then
         done
     fi
 elif [ "${TACKER_MODE}" == "standalone" ]; then
-    # TODO(takahashi-tsc) Remove gawk installation after the following bug is fixed.
-    # https://bugs.launchpad.net/devstack/+bug/1909041
-    # post-config requires gawk.
-    # Generally, gawk is requires by Nova,
-    # but Nova is not mandatory for Tacker.
-    # So we install gawk manually until the bug is fixed.
-    install_package gawk
-
     enable_service dstat
     enable_service tacker
     enable_service tacker-conductor
