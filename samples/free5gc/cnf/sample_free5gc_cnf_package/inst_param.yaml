@@ -1,0 +1,32 @@
+{
+  "flavourId": "simple",
+  "additionalParams": {
+      "free5gc": {
+          "ssh_master_node_ip": "10.10.0.166",
+          "master_node_username": "ubuntu",
+          "master_node_password": "ubuntu",
+        },
+      "lcm-kubernetes-def-files": [
+          "Files/kubernetes/unix-daemonset.yaml",
+          "Files/kubernetes/free5gc-configmap.yaml",
+          "Files/kubernetes/free5gc-mongodb.yaml",
+          "Files/kubernetes/free5gc-nrf.yaml",
+          "Files/kubernetes/free5gc-udr.yaml",
+          "Files/kubernetes/free5gc-upf.yaml",
+          "Files/kubernetes/free5gc-pcf.yaml",
+          "Files/kubernetes/free5gc-ausf.yaml",
+          "Files/kubernetes/free5gc-nssf.yaml",
+          "Files/kubernetes/free5gc-udm.yaml",
+          "Files/kubernetes/free5gc-amf.yaml",
+          "Files/kubernetes/free5gc-webui.yaml",
+          "Files/kubernetes/free5gc-smf.yaml",
+        ],
+    },
+  "vimConnectionInfo": [
+      {
+        "id": "kubernetes_vim",
+        "vimId": "9b723654-33cf-4c76-b3dd-904510f5499d",
+        "vimType": "kubernetes",
+      },
+    ],
+}

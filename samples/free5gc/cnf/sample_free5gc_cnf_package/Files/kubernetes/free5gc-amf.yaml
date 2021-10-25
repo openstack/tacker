@@ -1,0 +1,93 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ngap-svc
+  namespace: default
+spec:
+  ports:
+  - protocol: SCTP
+    port: 38412
+    targetPort: 38412
+  selector:
+    app: free5gc-amf
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: free5gc-amf-deployment
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: free5gc-amf
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: free5gc-amf
+    spec:
+      containers:
+      - name: myapp-container
+        image: eno/free5gc
+        imagePullPolicy: Never
+        command: ["/bin/sh"]
+        args: ["-c", "./bin/amf "]
+        volumeMounts:
+        - name: amfcfg
+          mountPath: /go/src/free5gc/config/amfcfg.yaml
+          subPath: amfcfg.yaml
+        ports:
+          - containerPort: 38412
+      initContainers:
+      - name: init-network-client
+        image: sdnvortex/network-controller:v0.4.9
+        command: ["/go/bin/client"]
+        args: ["-s=unix:///tmp/vortex.sock", "-b=br1", "-n=eth1", "-i=192.168.2.2/23", "-g=192.168.3.254"]
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_UUID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        volumeMounts:
+        - mountPath: /tmp/
+          name: grpc-sock
+      - name: init-network-client-ngap
+        image: sdnvortex/network-controller:v0.4.9
+        command: ["/go/bin/client"]
+        args: ["-s=unix:///tmp/vortex.sock", "-b=br2", "-n=eth2", "-i=192.168.20.20/24"]
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_UUID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        volumeMounts:
+        - mountPath: /tmp/
+          name: grpc-sock
+      volumes:
+      - name: grpc-sock
+        hostPath:
+          path: /tmp/vortex/
+      - name: amfcfg
+        configMap:
+          name: free5gc-configmap
+          items:
+          - key: amfcfg.yaml
+            path: amfcfg.yaml

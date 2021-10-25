@@ -1,0 +1,74 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/free5gc_top.vnfd.yaml
+
+Name: Files/kubernetes/free5gc-amf.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 9ff05bcde8a286273eb9ff6b24250cc9e57be9e7e032faf8293691e18cfa6aa0
+
+Name: Files/kubernetes/free5gc-ausf.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: b47b97941ce0815dc0c80317e5323d51d29f1937fab37ef47d081652f0773100
+
+Name: Files/kubernetes/free5gc-configmap.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: cdee7916e30fb98775b493c42a3cc8a40b2db5a0e478767609deeb0c0d3aec9d
+
+Name: Files/kubernetes/free5gc-mongodb.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: ec2ee0dc124c573ff0af795ce36ed83358ad026099c576769612e79cde3bf4d4
+
+Name: Files/kubernetes/free5gc-nrf.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: e7042c937431aa3d65a01b5602adb23a98a280c8575dc54f02ab50e4174cf2dc
+
+Name: Files/kubernetes/free5gc-nssf.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: e871ac354e333a3c038b202f5014fcd56068ded2a2f7317e529d1585a3327d60
+
+Name: Files/kubernetes/free5gc-pcf.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 43e3307266eea8a95f90a27848d719820c2aa6c5d13e741e5e83cb94e36bec8f
+
+Name: Files/kubernetes/free5gc-smf.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: ce9e16e8418967d265430a7ed77736f85cba317098d9b526293f09babd24ed72
+
+Name: Files/kubernetes/free5gc-udm.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: d5b451fcb0d66c38f8312e515f882f3fe7d4bae4cf17991bb6142670b70d2224
+
+Name: Files/kubernetes/free5gc-udr.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: c44011cbf73ea59f021326620612142e0455116f7d1ec86234ab319e2c9db131
+
+Name: Files/kubernetes/free5gc-upf.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 2ea6b86e65f41a7327f2a4af410cc619be67edff00329ecf12bc842c0a007707
+
+Name: Files/kubernetes/free5gc-webui.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: a2e33991eacd9235717e958e02aecfd59fa07b95844c699cb1d85df99a449125
+
+Name: Files/kubernetes/unix-daemonset.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: cf3d6b578c568e730d9f392754fb644b6c10e1096a29cb47105f8e396f047dff
+
+Name: Scripts/free5gc_mgmt_cnf.py
+Content-Type: text/x-python
+Algorithm: SHA-256
+Hash: fe2c75ec84382e04271d37384882ce3173cd87670a14ece7b57e8692beb388ed
