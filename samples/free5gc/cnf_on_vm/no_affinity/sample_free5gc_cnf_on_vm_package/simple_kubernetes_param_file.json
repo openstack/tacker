@@ -1,0 +1,82 @@
+{
+    "flavourId": "simple",
+    "vimConnectionInfo": [{
+        "id": "3cc2c4ff-525c-48b4-94c9-29247223322f",
+        "vimId": "c3369b54-e376-4423-bb61-afd255900fea",
+        "vimType": "openstack"
+    }],
+    "additionalParams": {
+        "k8s_cluster_installation_param": {
+            "script_path": "Scripts/install_k8s_cluster.sh",
+            "master_node": {
+                "aspect_id": "master_instance",
+                "ssh_cp_name": "masterNode_CP1",
+                "nic_cp_name": "masterNode_CP1",
+                "username": "ubuntu",
+                "password": "ubuntu",
+                "cluster_cp_name": "masterNode_CP1"
+            },
+            "worker_node": {
+                "aspect_id": "worker_instance",
+                "ssh_cp_name": "workerNode_CP1",
+                "nic_cp_name": "workerNode_CP1",
+                "username": "ubuntu",
+                "password": "ubuntu"
+            },
+            "proxy": {
+                "http_proxy": "http://user:password@host:port",
+                "https_proxy": "http://user:password@host:port"
+            }
+        },
+        "lcm-operation-user-data": "./UserData/k8s_cluster_user_data.py",
+        "lcm-operation-user-data-class": "KubernetesClusterUserData"
+    },
+    "extVirtualLinks": [
+        {
+            "id": "net0_master",
+            "resourceId": "1642ac54-642c-407c-9c7d-e94c55ba5d33",
+            "extCps": [{
+                "cpdId": "masterNode_CP1",
+                "cpConfig": [{
+                        "linkPortId": "2642ac54-642c-407c-9c7d-e94c55ba5d33"
+                }]
+            }]
+        }, {
+            "id": "net0_worker",
+            "resourceId": "1642ac54-642c-407c-9c7d-e94c55ba5d33",
+            "extCps": [{
+                "cpdId": "workerNode_CP1",
+                "cpConfig": [{
+                        "linkPortId": "3642ac54-642c-407c-9c7d-e94c55ba5d33"
+                }]
+            }]
+        }, {
+            "id": "br1_net_worker",
+            "resourceId": "bd384a35-c4bb-48f8-8bd0-197c3970d616",
+            "extCps": [{
+                "cpdId": "workerNode_CP2",
+                "cpConfig": [{
+                        "linkPortId": "0129ab10-7ce2-6a1f-adc0-acc6e004f4a9"
+                }]
+            }]
+        }, {
+            "id": "br2_net_worker",
+            "resourceId": "506966a9-7fc2-4865-993c-e0e167b65ade",
+            "extCps": [{
+                "cpdId": "workerNode_CP3",
+                "cpConfig": [{
+                        "linkPortId": "3233274b-e78e-98f6-8540-220963784207"
+                }]
+            }]
+        }, {
+            "id": "br3_net_worker",
+            "resourceId": "b8d6848b-0d2e-45ec-ae08-357ab3c0a0de",
+            "extCps": [{
+                "cpdId": "workerNode_CP4",
+                "cpConfig": [{
+                        "linkPortId": "9e5f5b25-e397-6983-3fda-eed56a348f49"
+                }]
+            }]
+        }
+    ]
+}

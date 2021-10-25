@@ -1,0 +1,785 @@
+apiVersion: v1
+data:
+  free5GC.conf: |
+    db_uri: mongodb://mongodb-svc/free5GC
+    #all logging levels
+    #panic
+    #fatal
+    #error
+    #warn
+    #info
+    #debug
+    #trace
+    logger:
+    # network function
+      AMF:
+        debugLevel: trace
+        ReportCaller: false
+      SMF:
+        debugLevel: trace
+        ReportCaller: false
+      UDR:
+        debugLevel: trace
+        ReportCaller: false
+      UDM:
+        debugLevel: trace
+        ReportCaller: false
+      NRF:
+        debugLevel: trace
+        ReportCaller: false
+      PCF:
+        debugLevel: trace
+        ReportCaller: false
+      AUSF:
+        debugLevel: trace
+        ReportCaller: false
+      N3IWF:
+        debugLevel: trace
+        ReportCaller: false
+    # library
+      NAS:
+        debugLevel: trace
+        ReportCaller: false
+      FSM:
+        debugLevel: trace
+        ReportCaller: false
+      NGAP:
+        debugLevel: trace
+        ReportCaller: false
+      NamfComm:
+        debugLevel: trace
+        ReportCaller: false
+      NamfEventExposure:
+        debugLevel: trace
+        ReportCaller: false
+      NsmfPDUSession:
+        debugLevel: trace
+        ReportCaller: false
+      NudrDataRepository:
+        debugLevel: trace
+        ReportCaller: false
+      OpenApi:
+        debugLevel: trace
+        ReportCaller: false
+      Aper:
+        debugLevel: trace
+        ReportCaller: false
+      CommonConsumerTest:
+        debugLevel: trace
+        ReportCaller: false
+    # webui
+      WEBUI:
+        debugLevel: trace
+        ReportCaller: false
+  amfcfg.yaml: |
+    info:
+      version: 1.0.0
+      description: AMF initial local configuration
+    configuration:
+      amfName: AMF
+      ngapIpList:
+        - 192.168.2.2
+        - 192.168.20.20
+      sbi:
+        scheme: http
+        registerIPv4: 192.168.2.2
+        bindingIPv4: 192.168.2.2
+        port: 29518
+      serviceNameList:
+        - namf-comm
+        - namf-evts
+        - namf-mt
+        - namf-loc
+        - namf-oam
+      servedGuamiList:
+        - plmnId:
+            mcc: 208
+            mnc: 93
+          amfId: cafe00
+      supportTaiList:
+        - plmnId:
+            mcc: 208
+            mnc: 93
+          tac: 1
+      plmnSupportList:
+        - plmnId:
+            mcc: 208
+            mnc: 93
+          snssaiList:
+            - sst: 1
+              sd: 010203
+            - sst: 2
+              sd: 112233
+      supportDnnList:
+        - internet
+      nrfUri: http://192.168.2.5:8000
+      security:
+        integrityOrder:
+          - NIA2
+        cipheringOrder:
+          - NEA0
+      networkName:
+        full: free5GC
+        short: free
+      t3502: 720
+      t3512: 3600
+      non3gppDeregistrationTimer: 3240
+      # retransmission timer for paging message
+    t3513:
+      enable: true     # true or false
+      expireTime: 6s   # default is 6 seconds
+      maxRetryTimes: 4 # the max number of retransmission
+    # retransmission timer for NAS Deregistration Request message
+    t3522:
+      enable: true     # true or false
+      expireTime: 6s   # default is 6 seconds
+      maxRetryTimes: 4 # the max number of retransmission
+    # retransmission timer for NAS Registration Accept message
+    t3550:
+      enable: true     # true or false
+      expireTime: 6s   # default is 6 seconds
+      maxRetryTimes: 4 # the max number of retransmission
+    # retransmission timer for NAS Authentication Request/Security Mode Command message
+    t3560:
+      enable: true     # true or false
+      expireTime: 6s   # default is 6 seconds
+      maxRetryTimes: 4 # the max number of retransmission
+    # retransmission timer for NAS Notification message
+    t3565:
+      enable: true     # true or false
+      expireTime: 6s   # default is 6 seconds
+      maxRetryTimes: 4 # the max number of retransmission
+
+    # the kind of log output
+      # debugLevel: how detailed to output, value: trace, debug, info, warn, error, fatal, panic
+      # ReportCaller: enable the caller report or not, value: true or false
+    logger:
+      AMF:
+        debugLevel: debug
+        ReportCaller: false
+      NAS:
+        debugLevel: debug
+        ReportCaller: false
+      FSM:
+        debugLevel: debug
+        ReportCaller: false
+      NGAP:
+        debugLevel: debug
+        ReportCaller: false
+      Aper:
+        debugLevel: info
+        ReportCaller: false
+      PathUtil:
+        debugLevel: debug
+        ReportCaller: false
+      OpenApi:
+        debugLevel: debug
+        ReportCaller: false
+  smfcfg.yaml: |
+      info:
+        version: 1.0.0
+        description: SMF initial local configuration
+
+      configuration:
+        smfName: SMF
+        sbi:
+          scheme: http
+          registerIPv4: 192.168.2.3
+          bindingIPv4: 192.168.2.3
+          port: 29502
+          tls:
+            key: free5gc/support/TLS/smf.key
+            pem: free5gc/support/TLS/smf.pem
+        serviceNameList:
+          - nsmf-pdusession
+          - nsmf-event-exposure
+          - nsmf-oam
+        snssaiInfos: # the S-NSSAI (Single Network Slice Selection Assistance Information) list supported by this AMF
+            - sNssai: # S-NSSAI (Single Network Slice Selection Assistance Information)
+                sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 010203 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+              dnnInfos: # DNN information list
+                - dnn: internet # Data Network Name
+                  dns: # the IP address of DNS
+                    ipv4: 8.8.8.8
+                    ipv6: 2001:4860:4860::8888
+                  ueSubnet: 60.60.0.0/24 # should be CIDR type
+            - sNssai: # S-NSSAI (Single Network Slice Selection Assistance Information)
+                sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 112233 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+              dnnInfos: # DNN information list
+                - dnn: internet # Data Network Name
+                  dns: # the IP address of DNS
+                    ipv4: 8.8.8.8
+                    ipv6: 2001:4860:4860::8888
+                  ueSubnet: 60.60.10.0/24 # should be CIDR type
+        pfcp:
+          addr:  192.168.2.3
+        userplane_information: # list of userplane information
+          up_nodes: # information of userplane node (AN or UPF)
+            gNB1: # the name of the node
+              type: AN # the type of the node (AN or UPF)
+            UPF:  # the name of the node
+              type: UPF # the type of the node (AN or UPF)
+              node_id: 192.168.2.13 # the IP/FQDN of N4 interface on this UPF (PFCP)
+              sNssaiUpfInfos: # S-NSSAI information list for this UPF
+                - sNssai: # S-NSSAI (Single Network Slice Selection Assistance Information)
+                    sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                    sd: 010203 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                  dnnUpfInfoList: # DNN information list for this S-NSSAI
+                    - dnn: internet
+              interfaces: # Interface list for this UPF
+                - interfaceType: N3 # the type of the interface (N3 or N9)
+                  endpoints: # the IP address of this N3/N9 interface on this UPF
+                    - 192.168.20.14
+                  networkInstance: internet # Data Network Name (DNN)
+            UPF2:  # the name of the node
+              type: UPF # the type of the node (AN or UPF)
+              node_id: 192.168.2.15 # the IP/FQDN of N4 interface on this UPF (PFCP)
+              sNssaiUpfInfos: # S-NSSAI information list for this UPF
+                - sNssai: # S-NSSAI (Single Network Slice Selection Assistance Information)
+                    sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+                    sd: 112233 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                  dnnUpfInfoList: # DNN information list for this S-NSSAI
+                    - dnn: internet
+              interfaces: # Interface list for this UPF
+                - interfaceType: N3 # the type of the interface (N3 or N9)
+                  endpoints: # the IP address of this N3/N9 interface on this UPF
+                    - 192.168.20.15
+                  networkInstance: internet # Data Network Name (DNN)
+          links: # the topology graph of userplane, A and B represent the two nodes of each link
+            - A: gNB1
+              B: UPF
+            - A: gNB1
+              B: UPF2
+        nrfUri: http://192.168.2.5:8000
+  ausfcfg.yaml: |
+    info:
+      version: 1.0.0
+      description: AUSF initial local configuration
+    configuration:
+      sbi:
+        scheme: http
+        registerIPv4: 192.168.2.4
+        bindingIPv4: 192.168.2.4
+        port: 29509
+      serviceNameList:
+        - nausf-auth
+      nrfUri: http://192.168.2.5:8000
+      plmnSupportList:
+        - mcc: 208
+          mnc: 93
+      groupId: ausfGroup001
+    logger:
+      AUSF:
+        debugLevel: trace
+        ReportCaller: false
+      PathUtil:
+        debugLevel: trace
+        ReportCaller: false
+      OpenApi:
+        debugLevel: trace
+        ReportCaller: false
+  nrfcfg.yaml: |
+    info:
+      version: 1.0.0
+      description: NRF initial local configuration
+    configuration:
+      MongoDBName: "free5gc"
+      MongoDBUrl: "mongodb://mongodb-svc:27017"
+      DefaultServiceIP: "192.168.2.5"
+      sbi: # Service-based interface information
+        scheme: http # the protocol for sbi (http or https)
+        registerIPv4: 192.168.2.5 # IP used to serve NFs or register to another NRF
+        bindingIPv4: 192.168.2.5  # IP used to bind the service
+        port: 8000 # port used to bind the service
+      DefaultPlmnId:
+        mcc: "208"
+        mnc: "93"
+      serviceNameList:
+        - nnrf-nfm
+        - nnrf-disc
+    logger:
+      NRF:
+        debugLevel: info
+        ReportCaller: false
+      PathUtil:
+        debugLevel: info
+        ReportCaller: false
+      OpenApi:
+        debugLevel: info
+        ReportCaller: false
+      MongoDBLibrary:
+        debugLevel: info
+        ReportCaller: false
+  nssfcfg.yaml: |
+    info:
+      version: 1.0.0
+      description: NSSF initial local configuration
+
+    configuration:
+      nssfName: NSSF # the name of this NSSF
+      sbi: # Service-based interface information
+        scheme: http # the protocol for sbi (http or https)
+        registerIPv4: 192.168.2.6 # IP used to register to NRF
+        bindingIPv4: 192.168.2.6  # IP used to bind the service
+        port: 8000 # Port used to bind the service
+      serviceNameList: # the SBI services provided by this SMF, refer to TS 29.531
+        - nnssf-nsselection # Nnssf_NSSelection service
+        - nnssf-nssaiavailability # Nnssf_NSSAIAvailability service
+      nrfUri: http://192.168.2.5:8000 # a valid URI of NRF
+      supportedPlmnList: # the PLMNs (Public land mobile network) list supported by this NSSF
+        - mcc: 208 # Mobile Country Code (3 digits string, digit: 0~9)
+          mnc: 93 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+      supportedNssaiInPlmnList: # Supported S-NSSAI List for each PLMN
+        - plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+            mcc: 208 # Mobile Country Code (3 digits string, digit: 0~9)
+            mnc: 93 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+          supportedSnssaiList: # Supported S-NSSAIs of the PLMN
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 010203 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 112233 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 000003 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+      nsiList: # List of available Network Slice Instance (NSI)
+        - snssai: # S-NSSAI of this NSI
+            sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+          nsiInformationList: # Information list of this NSI
+            # the NRF to be used to select the NFs/services within the selected NSI, and an optonal ID
+            - nrfId: http://192.168.2.5:8000/nnrf-nfm/v1/nf-instances
+              nsiId: 10
+        - snssai: # S-NSSAI of this NSI
+            sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+            sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+          nsiInformationList: # Information list of this NSI
+            # the NRF to be used to select the NFs/services within the selected NSI, and an optonal ID
+            - nrfId: http://192.168.2.5:8000/nnrf-nfm/v1/nf-instances
+              nsiId: 11
+        - snssai: # S-NSSAI of this NSI
+            sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+            sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+          nsiInformationList: # Information list of this NSI
+            # the NRF to be used to select the NFs/services within the selected NSI, and an optonal ID
+            - nrfId: http://192.168.2.5:8000/nnrf-nfm/v1/nf-instances
+              nsiId: 12
+            - nrfId: http://192.168.2.5:8000/nnrf-nfm/v1/nf-instances
+              nsiId: 12
+        - snssai: # S-NSSAI of this NSI
+            sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+            sd: 000003 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+          nsiInformationList: # Information list of this NSI
+            # the NRF to be used to select the NFs/services within the selected NSI, and an optonal ID
+            - nrfId: http://192.168.2.5:8000/nnrf-nfm/v1/nf-instances
+              nsiId: 13
+        - snssai: # S-NSSAI of this NSI
+            sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+          nsiInformationList: # Information list of this NSI
+            # the NRF to be used to select the NFs/services within the selected NSI, and an optonal ID
+            - nrfId: http://192.168.2.5:8000/nnrf-nfm/v1/nf-instances
+              nsiId: 20
+        - snssai: # S-NSSAI of this NSI
+            sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+            sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+          nsiInformationList: # Information list of this NSI
+            # the NRF to be used to select the NFs/services within the selected NSI, and an optonal ID
+            - nrfId: http://192.168.2.5:8000/nnrf-nfm/v1/nf-instances
+              nsiId: 21
+        - snssai: # S-NSSAI of this NSI
+            sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+            sd: 010203 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+          nsiInformationList: # Information list of this NSI
+            # the NRF to be used to select the NFs/services within the selected NSI, and an optonal ID
+            - nrfId: http://192.168.2.5:8000/nnrf-nfm/v1/nf-instances
+              nsiId: 22
+        - snssai: # S-NSSAI of this NSI
+            sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+            sd: 112233 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+          nsiInformationList: # Information list of this NSI
+            # the NRF to be used to select the NFs/services within the selected NSI, and an optonal ID
+            - nrfId: http://192.168.2.5:8000/nnrf-nfm/v1/nf-instances
+              nsiId: 23
+      amfSetList: # List of AMF Sets that my be assigned by this NSSF
+        - amfSetId: 1 # the AMF Set identifier
+          amfList: # Instance ID of the AMFs in this set
+            - ffa2e8d7-3275-49c7-8631-6af1df1d9d26
+            - 0e8831c3-6286-4689-ab27-1e2161e15cb1
+            - a1fba9ba-2e39-4e22-9c74-f749da571d0d
+          # URI of the NRF used to determine the list of candidate AMF(s) from the AMF Set
+          nrfAmfSet: http://192.168.2.5:8000/nnrf-nfm/v1/nf-instances
+          # the Nssai availability data information per TA supported by the AMF
+          supportedNssaiAvailabilityData:
+            - tai: # Tracking Area Identifier
+                plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+                  mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                tac: 33456 # Tracking Area Code (uinteger, range: 0~16777215)
+              supportedSnssaiList: # Supported S-NSSAIs of the tracking area
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - tai: # Tracking Area Identifier
+                plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+                  mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                tac: 33457 # Tracking Area Code (uinteger, range: 0~16777215)
+              supportedSnssaiList: # Supported S-NSSAIs of the tracking area
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+        - amfSetId: 2 # the AMF Set identifier
+          # URI of the NRF used to determine the list of candidate AMF(s) from the AMF Set
+          nrfAmfSet: http://localhost:8084/nnrf-nfm/v1/nf-instances
+          # the Nssai availability data information per TA supported by the AMF
+          supportedNssaiAvailabilityData:
+            - tai: # Tracking Area Identifier
+                plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+                  mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                tac: 33456 # Tracking Area Code (uinteger, range: 0~16777215)
+              supportedSnssaiList: # Supported S-NSSAIs of the tracking area
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000003 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - tai: # Tracking Area Identifier
+                plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+                  mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                tac: 33458 # Tracking Area Code (uinteger, range: 0~16777215)
+              supportedSnssaiList: # Supported S-NSSAIs of the tracking area
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+      amfList: # List of AMFs that may be assigned by this NSSF
+        - nfId: 469de254-2fe5-4ca0-8381-af3f500af77c # ID of this AMF
+          # The NSSAI availability data information per TA supported by the AMF
+          supportedNssaiAvailabilityData:
+            - tai: # Tracking Area Identifier
+                plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+                  mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                tac: 33456 # Tracking Area Code (uinteger, range: 0~16777215)
+              supportedSnssaiList: # Supported S-NSSAIs of the tracking area
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+            - tai: # Tracking Area Identifier
+                plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+                  mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                tac: 33457 # Tracking Area Code (uinteger, range: 0~16777215)
+              supportedSnssaiList: # Supported S-NSSAIs of the tracking area
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+        - nfId: fbe604a8-27b2-417e-bd7c-8a7be2691f8d # ID of this AMF
+          # The NSSAI availability data information per TA supported by the AMF
+          supportedNssaiAvailabilityData:
+            - tai: # Tracking Area Identifier
+                plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+                  mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                tac: 33458 # Tracking Area Code (uinteger, range: 0~16777215)
+              supportedSnssaiList: # Supported S-NSSAIs of the tracking area
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000003 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+            - tai: # Tracking Area Identifier
+                plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+                  mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                tac: 33459 # Tracking Area Code (uinteger, range: 0~16777215)
+              supportedSnssaiList: # Supported S-NSSAIs of the tracking area
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+                - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+        - nfId: b9e6e2cb-5ce8-4cb6-9173-a266dd9a2f0c # ID of this AMF
+          # The NSSAI availability data information per TA supported by the AMF
+          supportedNssaiAvailabilityData:
+            - tai: # Tracking Area Identifier
+                plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+                  mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                tac: 33456 # Tracking Area Code (uinteger, range: 0~16777215)
+              supportedSnssaiList: # Supported S-NSSAIs of the tracking area
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+            - tai: # Tracking Area Identifier
+                plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+                  mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+                  mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+                tac: 33458 # Tracking Area Code (uinteger, range: 0~16777215)
+              supportedSnssaiList: # Supported S-NSSAIs of the tracking area
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+                - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+                - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+      taList: # List of supported tracking area and their related information of this NSSF instance
+        - tai: # Tracking Area Identity
+            plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+              mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+              mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+            tac: 33456 # Tracking Area Code (uinteger, range: 0~16777215)
+          accessType: 3GPP_ACCESS # Access type of the tracking area
+          supportedSnssaiList: # List of supported S-NSSAIs of the tracking area
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+        - tai: # Tracking Area Identity
+            plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+              mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+              mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+            tac: 33457 # Tracking Area Code (uinteger, range: 0~16777215)
+          accessType: 3GPP_ACCESS # Access type of the tracking area
+          supportedSnssaiList: # List of supported S-NSSAIs of the tracking area
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+        - tai: # Tracking Area Identifier
+            plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+              mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+              mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+            tac: 33458 # Tracking Area Code (uinteger, range: 0~16777215)
+          accessType: 3GPP_ACCESS # Access type of the tracking area
+          supportedSnssaiList: # List of supported S-NSSAIs of the tracking area
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 000003 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+          restrictedSnssaiList: # List of restricted S-NSSAIs of the tracking area
+            - homePlmnId: # Home PLMN identifier
+                mcc: 310 # Mobile Country Code (3 digits string, digit: 0~9)
+                mnc: 560 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+              sNssaiList: # the S-NSSAIs List
+                - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000003 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+        - tai: # Tracking Area Identifier
+            plmnId: # Public Land Mobile Network ID, <PLMN ID> = <MCC><MNC>
+              mcc: 466 # Mobile Country Code (3 digits string, digit: 0~9)
+              mnc: 92 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+            tac: 33459 # Tracking Area Code (uinteger, range: 0~16777215)
+          accessType: 3GPP_ACCESS # Access type of the tracking area
+          supportedSnssaiList: # List of supported S-NSSAIs of the tracking area
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+            - sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+            - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+              sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+          restrictedSnssaiList: # List of restricted S-NSSAIs of the tracking area
+            - homePlmnId: # Home PLMN identifier
+                mcc: 310 # Mobile Country Code (3 digits string, digit: 0~9)
+                mnc: 560 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+              sNssaiList: # the S-NSSAIs List
+                - sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+                  sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+      # List of mappings of S-NSSAI in the serving network and the value of the home network
+      mappingListFromPlmn:
+        - operatorName: NTT Docomo # Home PLMN name
+          homePlmnId: # Home PLMN identifier
+            mcc: 440 # Mobile Country Code (3 digits string, digit: 0~9)
+            mnc: 10 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+          mappingOfSnssai: # List of S-NSSAIs mapping
+            - servingSnssai: # S-NSSAI in the serving network
+                sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+              homeSnssai: # S-NSSAI in the home network
+                sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 1 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - servingSnssai: # S-NSSAI in the serving network
+                sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+              homeSnssai: # S-NSSAI in the home network
+                sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 000003 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - servingSnssai: # S-NSSAI in the serving network
+                sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 000003 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+              homeSnssai: # S-NSSAI in the home network
+                sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 000004 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - servingSnssai: # S-NSSAI in the serving network
+                sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+              homeSnssai: # S-NSSAI in the home network
+                sst: 2 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+        - operatorName: AT&T Mobility # Home PLMN name
+          homePlmnId: # Home PLMN identifier
+            mcc: 310 # Mobile Country Code (3 digits string, digit: 0~9)
+            mnc: 560 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
+          mappingOfSnssai:
+            - servingSnssai: # S-NSSAI in the serving network
+                sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 000001 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+              homeSnssai: # S-NSSAI in the home network
+                sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+            - servingSnssai: # S-NSSAI in the serving network
+                sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 000002 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+              homeSnssai: # S-NSSAI in the home network
+                sst: 1 # Slice/Service Type (uinteger, range: 0~255)
+                sd: 000003 # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
+
+    # the kind of log output
+      # debugLevel: how detailed to output, value: trace, debug, info, warn, error, fatal, panic
+      # ReportCaller: enable the caller report or not, value: true or false
+    logger:
+      NSSF:
+        debugLevel: info
+        ReportCaller: false
+      PathUtil:
+        debugLevel: info
+        ReportCaller: false
+      OpenApi:
+        debugLevel: info
+        ReportCaller: false
+  pcfcfg.yaml: |
+    info:
+      version: 1.0.0
+      description: PCF initial local configuration
+
+    configuration:
+      pcfName: PCF # the name of this PCF
+      sbi: # Service-based interface information
+        scheme: http # the protocol for sbi (http or https)
+        registerIPv4:  192.168.2.9 # IP used to register to NRF
+        bindingIPv4: 192.168.2.9  # IP used to bind the service
+        port: 8000              # port used to bind the service
+      timeFormat: 2019-01-02 15:04:05 # time format of this PCF
+      defaultBdtRefId: BdtPolicyId-   # BDT Reference ID, indicating transfer policies of background data transfer.
+      nrfUri: http://192.168.2.5:8000  # a valid URI of NRF
+      serviceList:   # the SBI services provided by this PCF, refer to TS 29.507
+        - serviceName: npcf-am-policy-control # Npcf_AMPolicyControl service
+        - serviceName: npcf-smpolicycontrol   # Npcf_SMPolicyControl service
+          suppFeat: 3fff # the features supported by Npcf_SMPolicyControl, name defined in TS 29.512 5.8-1, value defined in TS 29.571 5.2.2
+        - serviceName: npcf-bdtpolicycontrol    # Npcf_BDTPolicyControl service
+        - serviceName: npcf-policyauthorization # Npcf_PolicyAuthorization service
+          suppFeat: 3    # the features supported by Npcf_PolicyAuthorization, name defined in TS 29.514 5.8-1, value defined in TS 29.571 5.2.2
+        - serviceName: npcf-eventexposure       # Npcf_EventExposure service
+        - serviceName: npcf-ue-policy-control   # Npcf_UEPolicyControl service
+      mongodb:       # the mongodb connected by this PCF
+        name: free5gc                  # name of the mongodb
+        url: mongodb://mongodb-svc:27017 # a valid URL of the mongodb
+
+    # the kind of log output
+      # debugLevel: how detailed to output, value: trace, debug, info, warn, error, fatal, panic
+      # ReportCaller: enable the caller report or not, value: true or false
+    logger:
+      PCF:
+        debugLevel: info
+        ReportCaller: false
+      PathUtil:
+        debugLevel: info
+        ReportCaller: false
+      OpenApi:
+        debugLevel: info
+        ReportCaller: false
+  udmcfg.yaml: |
+    info:
+      version: 1.0.0
+      description: UDM initial local configuration
+
+    configuration:
+      serviceNameList: # the SBI services provided by this UDM, refer to TS 29.503
+        - nudm-sdm # Nudm_SubscriberDataManagement service
+        - nudm-uecm # Nudm_UEContextManagement service
+        - nudm-ueau # Nudm_UEAuthenticationManagement service
+        - nudm-ee # Nudm_EventExposureManagement service
+        - nudm-pp # Nudm_ParameterProvisionDataManagement service
+      sbi: # Service-based interface information
+        scheme: http # the protocol for sbi (http or https)
+        registerIPv4: 192.168.2.7 # IP used to register to NRF
+        bindingIPv4: 192.168.2.7  # IP used to bind the service
+        port: 8000 # Port used to bind the service
+        tls: # the local path of TLS key
+          log: free5gc/udmsslkey.log # UDM keylog
+          pem: free5gc/support/TLS/udm.pem # UDM TLS Certificate
+          key: free5gc/support/TLS/udm.key # UDM TLS Private key
+      nrfUri: http://192.168.2.5:8000 # a valid URI of NRF
+
+      # test data set from TS33501-f60 Annex C.4
+      keys:
+        udmProfileAHNPublicKey: 5a8d38864820197c3394b92613b20b91633cbd897119273bf8e4a6f4eec0a650
+        udmProfileAHNPrivateKey: c53c22208b61860b06c62e5406a7b330c2b577aa5558981510d128247d38bd1d
+        udmProfileBHNPublicKey: 0472DA71976234CE833A6907425867B82E074D44EF907DFB4B3E21C1C2256EBCD15A7DED52FCBB097A4ED250E036C7B9C8C7004C4EEDC4F068CD7BF8D3F900E3B4
+        udmProfileBHNPrivateKey: F1AB1074477EBCC7F554EA1C5FC368B1616730155E0041AC447D6301975FECDA
+
+    # the kind of log output
+      # debugLevel: how detailed to output, value: trace, debug, info, warn, error, fatal, panic
+      # ReportCaller: enable the caller report or not, value: true or false
+    logger:
+      UDM:
+        debugLevel: trace
+        ReportCaller: false
+      OpenApi:
+        debugLevel: trace
+        ReportCaller: false
+      PathUtil:
+        debugLevel: trace
+        ReportCaller: false
+  udrcfg.yaml: |
+    info:
+      version: 1.0.0
+      description: UDR initial local configuration
+    configuration:
+      sbi:
+        scheme: http
+        registerIPv4: 192.168.2.8
+        bindingIPv4: 192.168.2.8
+        port: 29504
+      mongodb:
+        name: free5gc
+        url: mongodb://mongodb-svc:27017
+      nrfUri: http://192.168.2.5:8000
+  webuicfg.yaml: |
+      info:
+        version: 1.0.0
+        description: WebUI initial local configuration
+
+      configuration:
+        mongodb:
+          name: free5gc
+          url: mongodb://mongodb-svc:27017
+
+kind: ConfigMap
+metadata:
+  name: free5gc-configmap
+  namespace: default

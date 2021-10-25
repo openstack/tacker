@@ -1,0 +1,84 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: webui-svc
+  namespace: default
+spec:
+  ports:
+  - name: http
+    protocol: TCP
+    port: 5000
+    targetPort: 5000
+    nodePort: 30050
+  selector:
+    app: free5gc-webui
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: free5gc-webui-deployment
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: free5gc-webui
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: free5gc-webui
+    spec:
+      containers:
+      - name: myapp-container
+        image: eno/free5gc
+        imagePullPolicy: Never
+        command: ["/bin/sh"]
+        args: ["-c", "./webconsole/bin/webconsole"]
+        volumeMounts:
+        - name: webuicfg
+          mountPath: /go/src/free5gc/config/webuicfg.yaml
+          subPath: webuicfg.yaml
+        - name: free5gc
+          mountPath: /go/src/free5gc/config/free5GC.conf
+          subPath: free5GC.conf
+        ports:
+        - containerPort: 5000
+      initContainers:
+      - name: init-network-client
+        image: sdnvortex/network-controller:v0.4.9
+        command: ["/go/bin/client"]
+        args: ["-s=unix:///tmp/vortex.sock", "-b=br1", "-n=eth1", "-i=192.168.2.11/23", "-g=192.168.3.254"]
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_UUID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        volumeMounts:
+        - mountPath: /tmp/
+          name: grpc-sock
+      volumes:
+      - name: grpc-sock
+        hostPath:
+          path: /tmp/vortex/
+      - name: webuicfg
+        configMap:
+          name: free5gc-configmap
+          items:
+          - key: webuicfg.yaml
+            path: webuicfg.yaml
+      - name: free5gc
+        configMap:
+          name: free5gc-configmap
+          items:
+          - key: free5GC.conf
+            path: free5GC.conf

@@ -1,0 +1,53 @@
+heat_template_version: 2013-05-23
+description: 'workerNode HOT for Sample VNF'
+
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  net1:
+    type: string
+  net2:
+    type: string
+  net3:
+    type: string
+  net4:
+    type: string
+
+resources:
+  workerNode:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: flavor }
+      name: workerNode
+      image: { get_param: image }
+      networks:
+      - port:
+          get_resource: workerNode_CP1
+      - port:
+          get_resource: workerNode_CP2
+      - port:
+          get_resource: workerNode_CP3
+      - port:
+          get_resource: workerNode_CP4
+
+  workerNode_CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net1 }
+
+  workerNode_CP2:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net2 }
+
+  workerNode_CP3:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net3 }
+
+  workerNode_CP4:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net4 }

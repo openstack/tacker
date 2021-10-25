@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: free5gc-smf-deployment
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: free5gc-smf
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: free5gc-smf
+    spec:
+      containers:
+      - name: myapp-container
+        image: eno/free5gc
+        imagePullPolicy: Never
+        command: ["/bin/sh"]
+        args: ["-c", "./bin/smf"]
+        volumeMounts:
+        - name: smfcfg
+          mountPath: /go/src/free5gc/config/smfcfg.yaml
+          subPath: smfcfg.yaml
+        - name: free5gc
+          mountPath: /go/src/free5gc/config/free5GC.conf
+          subPath: free5GC.conf
+      initContainers:
+      - name: init-network-client
+        image: sdnvortex/network-controller:v0.4.9
+        command: ["/go/bin/client"]
+        args: ["-s=unix:///tmp/vortex.sock", "-b=br1", "-n=eth1", "-i=192.168.2.3/23", "-g=192.168.3.254", "--route-gw=192.168.20.0/24,192.168.3.254"]
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_UUID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        volumeMounts:
+        - mountPath: /tmp/
+          name: grpc-sock
+
+      volumes:
+      - name: grpc-sock
+        hostPath:
+          path: /tmp/vortex/
+      - name: smfcfg
+        configMap:
+          name: free5gc-configmap
+          items:
+          - key: smfcfg.yaml
+            path: smfcfg.yaml
+      - name: free5gc
+        configMap:
+          name: free5gc-configmap
+          items:
+          - key: free5GC.conf
+            path: free5GC.conf

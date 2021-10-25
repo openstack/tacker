@@ -1,0 +1,65 @@
+description: VNF type definition
+imports:
+- etsi_nfv_sol001_common_types.yaml
+- etsi_nfv_sol001_vnfd_types.yaml
+node_types:
+  company.provider.VNF:
+    derived_from: tosca.nodes.nfv.VNF
+    interfaces:
+      Vnflcm:
+        type: tosca.interfaces.nfv.Vnflcm
+    properties:
+      descriptor_id:
+        constraints:
+        - valid_values:
+          - a8bb9888-7c63-4293-a95e-2ef102ae1d3a
+        default: a8bb9888-7c63-4293-a95e-2ef102ae1d3a
+        type: string
+      descriptor_version:
+        constraints:
+        - valid_values:
+          - '1.0'
+        default: '1.0'
+        type: string
+      flavour_description:
+        default: ''
+        type: string
+      flavour_id:
+        constraints:
+        - valid_values:
+          - simple
+        default: simple
+        type: string
+      product_name:
+        constraints:
+        - valid_values:
+          - Sample VNF
+        default: Sample VNF
+        type: string
+      provider:
+        constraints:
+        - valid_values:
+          - Company
+        default: Company
+        type: string
+      software_version:
+        constraints:
+        - valid_values:
+          - '1.0'
+        default: '1.0'
+        type: string
+      vnfm_info:
+        default:
+        - Tacker
+        entry_schema:
+          constraints:
+          - valid_values:
+            - Tacker
+          type: string
+        type: list
+    requirements:
+    - virtual_link_external:
+        capability: tosca.capabilities.nfv.VirtualLinkable
+    - virtual_link_internal:
+        capability: tosca.capabilities.nfv.VirtualLinkable
+tosca_definitions_version: tosca_simple_yaml_1_2
