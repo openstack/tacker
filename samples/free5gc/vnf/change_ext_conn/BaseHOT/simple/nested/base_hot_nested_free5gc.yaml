@@ -1,0 +1,50 @@
+heat_template_version: 2013-05-23
+description: 'free5gc HOT for Sample VNF'
+
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  net1:
+    type: string
+  net2:
+    type: string
+  ip1:
+    type: string
+  subnet:
+    type: string
+
+
+resources:
+  free5gc:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: flavor }
+      name: free5gc
+      image: { get_param: image }
+      networks:
+      - port:
+          get_resource: free5gc_CP
+      - port:
+          get_resource: free5gc_UPF_CP
+
+  free5gc_CP:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net1 }
+
+  free5gc_UPF_CP:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net2 }
+      fixed_ips:
+      - ip_address: { get_param: ip1}
+        subnet: { get_param: subnet}
+
+  free5gc_FloatingIP:
+    properties:
+      floating_network: public
+      port_id:
+        get_resource: free5gc_CP
+    type: OS::Neutron::FloatingIP

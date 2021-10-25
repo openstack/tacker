@@ -1,0 +1,41 @@
+    {
+        "flavourId": "simple",
+        "vimConnectionInfo": [{
+            "id": "3cc2c4ff-525c-48b4-94c9-29247223322f",
+            "vimId": "c3369b54-e376-4423-bb61-afd255900fea",　　# set the vim uuid to use
+            "vimType": "openstack"
+        }],
+        "additionalParams": {
+            "free5gc": {
+              "aspect_id": "free5gc_instance",
+              "ssh_cp_name": "free5gc_FloatingIP",
+              "username": "admin",
+              "password": "pass1234",
+              "amf_cp_name": "free5gc_CP",
+              "smf_cp_name": "free5gc_CP",
+              "upf_cp_name": "free5gc_UPF_CP",
+              "modify_script_path": "Scripts/modify_config.sh"
+            },
+            "lcm-operation-user-data": "./UserData/lcm_user_data.py",
+            "lcm-operation-user-data-class": "SampleUserData"
+        },
+        "extVirtualLinks": [{
+            "id": "free5gc",
+            "resourceId": "1642ac54-642c-407c-9c7d-e94c55ba5d33",  # set the network uuid  to use
+            "extCps": [{
+                "cpdId": "free5gc_CP",
+                "cpConfig": [{
+                        "linkPortId": "2642ac54-642c-407c-9c7d-e94c55ba5d33"
+                }]
+            }]
+        },{
+            "id": "free5gc_upf",
+            "resourceId": "9a558796-b635-4fa4-8fd2-21d1d16911a8",  # set the network uuid  to use
+            "extCps": [{
+                "cpdId": "free5gc_UPF_CP",
+                "cpConfig": [{
+                        "linkPortId": "3642ac54-642c-407c-9c7d-e94c55ba5d33"
+                }]
+            }]
+        }]
+    }
