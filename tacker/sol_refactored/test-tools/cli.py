@@ -89,6 +89,12 @@ class Client(object):
             path, "POST", body=req_body, version="2.0.0")
         self.print(resp, body)
 
+    def scale(self, id, req_body):
+        path = self.path + '/' + id + '/scale'
+        resp, body = self.client.do_request(
+            path, "POST", body=req_body, version="2.0.0")
+        self.print(resp, body)
+
     def retry(self, id):
         path = self.path + '/' + id + '/retry'
         resp, body = self.client.do_request(path, "POST", version="2.0.0")
@@ -97,6 +103,7 @@ class Client(object):
     def rollback(self, id):
         path = self.path + '/' + id + '/rollback'
         resp, body = self.client.do_request(path, "POST", version="2.0.0")
+        self.print(resp, body)
 
     def fail(self, id):
         path = self.path + '/' + id + '/fail'
@@ -112,6 +119,7 @@ def usage():
     print("  inst delete {id}")
     print("  inst inst {id} body(path of content)")
     print("  inst term {id} body(path of content)")
+    print("  inst scale {id} body(path of content)")
     print("  subsc create body(path of content)")
     print("  subsc list [body(path of content)]")
     print("  subsc show {id}")
@@ -137,7 +145,8 @@ if __name__ == '__main__':
     action = sys.argv[2]
 
     if resource == "inst":
-        if action not in ["create", "list", "show", "delete", "inst", "term"]:
+        if action not in ["create", "list", "show", "delete", "inst", "term",
+                          "scale"]:
             usage()
         client = Client("/vnflcm/v2/vnf_instances")
     elif resource == "subsc":
@@ -179,6 +188,10 @@ if __name__ == '__main__':
         if len(sys.argv) != 5:
             usage()
         client.term(sys.argv[3], get_body(sys.argv[4]))
+    elif action == "scale":
+        if len(sys.argv) != 5:
+            usage()
+        client.scale(sys.argv[3], get_body(sys.argv[4]))
     elif action == "retry":
         if len(sys.argv) != 4:
             usage()

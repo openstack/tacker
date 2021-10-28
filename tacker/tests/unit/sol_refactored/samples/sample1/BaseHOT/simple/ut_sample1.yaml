@@ -24,20 +24,6 @@ resources:
           net4: { get_resource: internalVL2 }
           net5: { get_resource: internalVL3 }
           affinity: { get_resource: nfvi_node_affinity }
-  VDU1_scale_out:
-    type: OS::Heat::ScalingPolicy
-    properties:
-      scaling_adjustment: 1
-      auto_scaling_group_id:
-        get_resource: VDU1_scale_group
-      adjustment_type: change_in_capacity
-  VDU1_scale_in:
-    type: OS::Heat::ScalingPolicy
-    properties:
-      scaling_adjustment: -1
-      auto_scaling_group_id:
-        get_resource: VDU1_scale_group
-      adjustment_type: change_in_capacity
 
   VDU2:
     type: OS::Nova::Server

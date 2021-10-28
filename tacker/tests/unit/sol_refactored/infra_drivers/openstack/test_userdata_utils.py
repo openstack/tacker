@@ -23,10 +23,10 @@ SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
 SAMPLE_FLAVOUR_ID = "simple"
 
 
-class TestVnfd(base.BaseTestCase):
+class TestUserDataUtils(base.BaseTestCase):
 
     def setUp(self):
-        super(TestVnfd, self).setUp()
+        super(TestUserDataUtils, self).setUp()
         cur_dir = os.path.dirname(__file__)
         sample_dir = os.path.join(cur_dir, "../..", "samples")
 
@@ -58,7 +58,6 @@ class TestVnfd(base.BaseTestCase):
         self.assertEqual(expected_result, result)
 
     def test_get_param_flavor(self):
-        req = {'flavourId': SAMPLE_FLAVOUR_ID}
         flavor = 'm1.large'
         grant = {
             'vimAssets': {
@@ -69,17 +68,16 @@ class TestVnfd(base.BaseTestCase):
             }
         }
 
-        result = userdata_utils.get_param_flavor('VDU1', req,
+        result = userdata_utils.get_param_flavor('VDU1', SAMPLE_FLAVOUR_ID,
             self.vnfd_1, grant)
         self.assertEqual(flavor, result)
 
         # if not exist in grant, get from VNFD
-        result = userdata_utils.get_param_flavor('VDU2', req,
+        result = userdata_utils.get_param_flavor('VDU2', SAMPLE_FLAVOUR_ID,
             self.vnfd_1, grant)
         self.assertEqual('m1.tiny', result)
 
     def test_get_param_image(self):
-        req = {'flavourId': SAMPLE_FLAVOUR_ID}
         image_id = 'f30e149d-b3c7-497a-8b19-a092bc81e47b'
         grant = {
             'vimAssets': {
@@ -92,7 +90,7 @@ class TestVnfd(base.BaseTestCase):
             }
         }
 
-        result = userdata_utils.get_param_image('VDU2', req,
+        result = userdata_utils.get_param_image('VDU2', SAMPLE_FLAVOUR_ID,
             self.vnfd_1, grant)
         self.assertEqual(image_id, result)
 
@@ -117,6 +115,40 @@ class TestVnfd(base.BaseTestCase):
 
         result = userdata_utils.get_param_zone('VDU1', grant_req, grant)
         self.assertEqual('nova', result)
+
+    def test_get_param_capacity(self):
+        # test get_current_capacity at the same time
+        grant_req = {
+            'addResources': [
+                {'id': 'dd60c89a-29a2-43bc-8cff-a534515523df',
+                 'type': 'COMPUTE', 'resourceTemplateId': 'VDU1'},
+                {'id': '49b99140-c897-478c-83fa-ba3698912b18',
+                 'type': 'COMPUTE', 'resourceTemplateId': 'VDU1'},
+                {'id': 'b03c4b75-ca17-4773-8a50-9a53df78a007',
+                 'type': 'COMPUTE', 'resourceTemplateId': 'VDU2'}
+            ],
+            'removeResources': [
+                {'id': '0837249d-ac2a-4963-bf98-bc0755eec663',
+                 'type': 'COMPUTE', 'resourceTemplateId': 'VDU1'},
+                {'id': '3904e9d1-c0ec-4c3c-b29e-c8942a20f866',
+                 'type': 'COMPUTE', 'resourceTemplateId': 'VDU2'}
+            ]
+        }
+        inst = {
+            'instantiatedVnfInfo': {
+                'vnfcResourceInfo': [
+                    {'id': 'cdf36e11-f6ca-4c80-aaf1-0d2e764a2f3a',
+                     'vduId': 'VDU2'},
+                    {'id': 'c8cb522d-ddf8-4136-9c85-92bab8f2993d',
+                     'vduId': 'VDU1'}
+                ]
+            }
+        }
+
+        result = userdata_utils.get_param_capacity('VDU1', inst, grant_req)
+        self.assertEqual(2, result)
+        result = userdata_utils.get_param_capacity('VDU2', inst, grant_req)
+        self.assertEqual(1, result)
 
     def test_get_parama_network(self):
         res_id = "8fe7cc1a-e4ac-41b9-8b89-ed14689adb9c"

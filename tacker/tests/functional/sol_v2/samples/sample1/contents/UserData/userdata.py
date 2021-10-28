@@ -60,14 +60,18 @@ class UserData(userdata_utils.AbstractUserData):
             if 'computeFlavourId' in vdu_value:
                 vdu_value['computeFlavourId'] = (
                     userdata_utils.get_param_flavor(
-                        vdu_name, req, vnfd, grant))
+                        vdu_name, flavour_id, vnfd, grant))
             if 'vcImageId' in vdu_value:
                 vdu_value['vcImageId'] = userdata_utils.get_param_image(
-                    vdu_name, req, vnfd, grant)
+                    vdu_name, flavour_id, vnfd, grant)
             if 'locationConstraints' in vdu_value:
                 vdu_value['locationConstraints'] = (
                     userdata_utils.get_param_zone(
                         vdu_name, grant_req, grant))
+            if 'desired_capacity' in vdu_value:
+                vdu_value['desired_capacity'] = (
+                    userdata_utils.get_param_capacity(
+                        vdu_name, inst, grant_req))
 
         cps = nfv_dict.get('CP', {})
         for cp_name, cp_value in cps.items():

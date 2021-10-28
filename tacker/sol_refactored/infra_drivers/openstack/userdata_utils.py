@@ -20,23 +20,29 @@ from tacker.sol_refactored.common import vnfd_utils
 
 
 class AbstractUserData(metaclass=abc.ABCMeta):
+    """Definition of each method
+
+    Args:
+        req: Request dict for each API
+             (ex. InstantiateVnfRequest for instantiate)
+        inst: VnfInstance dict
+        grant_req: GrantRequest dict
+        grant: Grant dict
+        tmp_csar_dir: directory path that csar contents are extracted
+
+    Returns:
+        dict of parameters for create/update heat stack.
+        see the example of userdata_default.py.
+    """
 
     @staticmethod
     @abc.abstractmethod
     def instantiate(req, inst, grant_req, grant, tmp_csar_dir):
-        """Definition of instantiate method
+        raise sol_ex.UserDataClassNotImplemented()
 
-        Args:
-            req: InstantiateVnfRequest dict
-            inst: VnfInstance dict
-            grant_req: GrantRequest dict
-            grant: Grant dict
-            tmp_csar_dir: directory path that csar contents are extracted
-
-        Returns:
-            dict of parameters for create heat stack.
-            see the example of userdata_default.py.
-        """
+    @staticmethod
+    @abc.abstractmethod
+    def scale(req, inst, grant_req, grant, tmp_csar_dir):
         raise sol_ex.UserDataClassNotImplemented()
 
 
@@ -83,7 +89,7 @@ def init_nfv_dict(hot_template):
     return nfv
 
 
-def get_param_flavor(vdu_name, req, vnfd, grant):
+def get_param_flavor(vdu_name, flavour_id, vnfd, grant):
     # try to get from grant
     if 'vimAssets' in grant:
         assets = grant['vimAssets']
@@ -96,10 +102,10 @@ def get_param_flavor(vdu_name, req, vnfd, grant):
     # if specified in VNFD, use it
     # NOTE: if not found. parameter is set to None.
     #       may be error when stack create
-    return vnfd.get_compute_flavor(req['flavourId'], vdu_name)
+    return vnfd.get_compute_flavor(flavour_id, vdu_name)
 
 
-def get_param_image(vdu_name, req, vnfd, grant):
+def get_param_image(vdu_name, flavour_id, vnfd, grant):
     # try to get from grant
     if 'vimAssets' in grant:
         assets = grant['vimAssets']
@@ -112,7 +118,7 @@ def get_param_image(vdu_name, req, vnfd, grant):
     # if specified in VNFD, use it
     # NOTE: if not found. parameter is set to None.
     #       may be error when stack create
-    sw_images = vnfd.get_sw_image(req['flavourId'])
+    sw_images = vnfd.get_sw_image(flavour_id)
     for name, image in sw_images.items():
         if name == vdu_name:
             return image
@@ -131,6 +137,37 @@ def get_param_zone(vdu_name, grant_req, grant):
                     for zone in grant['zones']:
                         if zone['id'] == res['zoneId']:  # must be found
                             return zone['zoneId']
+
+
+def get_current_capacity(vdu_name, inst):
+    count = 0
+    inst_vnfcs = (inst.get('instantiatedVnfInfo', {})
+                      .get('vnfcResourceInfo', []))
+    for inst_vnfc in inst_vnfcs:
+        if inst_vnfc['vduId'] == vdu_name:
+            count += 1
+
+    return count
+
+
+def get_param_capacity(vdu_name, inst, grant_req):
+    # NOTE: refer grant_req here since interpretation of VNFD was done when
+    # making grant_req.
+    count = get_current_capacity(vdu_name, inst)
+
+    add_reses = grant_req.get('addResources', [])
+    for res_def in add_reses:
+        if (res_def['type'] == 'COMPUTE' and
+                res_def['resourceTemplateId'] == vdu_name):
+            count += 1
+
+    rm_reses = grant_req.get('removeResources', [])
+    for res_def in rm_reses:
+        if (res_def['type'] == 'COMPUTE' and
+                res_def['resourceTemplateId'] == vdu_name):
+            count -= 1
+
+    return count
 
 
 def _get_fixed_ips_from_extcp(extcp):

@@ -52,7 +52,7 @@ class TestVnflcmV2(db_base.SqlTestCase):
             instantiationState=inst_state
         )
 
-        req = {"flavourId": "simple"}  # instantate request
+        req = {"flavourId": "simple"}  # instantiate request
         lcmocc = objects.VnfLcmOpOccV2(
             # required fields
             id=uuidutils.generate_uuid(),
@@ -259,3 +259,93 @@ class TestVnflcmV2(db_base.SqlTestCase):
         # check grant_req and grant are deleted
         self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
             lcmocc_utils.get_grant_req_and_grant, self.context, lcmocc)
+
+    def test_scale_not_instantiated(self):
+        inst_id, _ = self._create_inst_and_lcmocc('NOT_INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED)
+        body = {"aspectId": "aspect_1", "type": "SCALE_OUT"}
+
+        self.assertRaises(sol_ex.VnfInstanceIsNotInstantiated,
+            self.controller.scale, request=self.request, id=inst_id,
+            body=body)
+
+    def test_scale_lcmocc_in_progress(self):
+        inst_id, _ = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.FAILED_TEMP)
+        body = {"aspectId": "aspect_1", "type": "SCALE_OUT"}
+
+        self.assertRaises(sol_ex.OtherOperationInProgress,
+            self.controller.scale, request=self.request, id=inst_id,
+            body=body)
+
+    def _prepare_db_for_scale_param_check(self, scale_status,
+            max_scale_levels):
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=uuidutils.generate_uuid(),
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
+            flavourId='small',
+            vnfState='STARTED',
+            scaleStatus=scale_status,
+            maxScaleLevels=max_scale_levels
+        )
+        inst.create(self.context)
+
+        return inst.id
+
+    def test_scale_invalid_aspect_id(self):
+        scale_status = [
+            objects.ScaleInfoV2(
+                aspectId="aspect_2",
+                scaleLevel=0
+            )
+        ]
+        max_scale_levels = [
+            objects.ScaleInfoV2(
+                aspectId="aspect_2",
+                scaleLevel=3
+            )
+        ]
+        inst_id = self._prepare_db_for_scale_param_check(scale_status,
+                                                         max_scale_levels)
+        body = {"aspectId": "aspect_1", "type": "SCALE_OUT"}
+
+        self.assertRaises(sol_ex.InvalidScaleAspectId,
+            self.controller.scale, request=self.request, id=inst_id,
+            body=body)
+
+    def test_scale_invalid_number_of_steps(self):
+        scale_status = [
+            objects.ScaleInfoV2(
+                aspectId="aspect_1",
+                scaleLevel=1
+            )
+        ]
+        max_scale_levels = [
+            objects.ScaleInfoV2(
+                aspectId="aspect_1",
+                scaleLevel=3
+            )
+        ]
+        inst_id = self._prepare_db_for_scale_param_check(scale_status,
+                                                         max_scale_levels)
+        body = {"aspectId": "aspect_1", "type": "SCALE_OUT",
+                "numberOfSteps": 3}
+
+        self.assertRaises(sol_ex.InvalidScaleNumberOfSteps,
+            self.controller.scale, request=self.request, id=inst_id,
+            body=body)
+
+        body = {"aspectId": "aspect_1", "type": "SCALE_IN",
+                "numberOfSteps": 2}
+
+        self.assertRaises(sol_ex.InvalidScaleNumberOfSteps,
+            self.controller.scale, request=self.request, id=inst_id,
+            body=body)

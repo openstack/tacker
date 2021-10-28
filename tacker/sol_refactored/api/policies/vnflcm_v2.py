@@ -93,6 +93,15 @@ rules = [
              'path': VNF_INSTANCES_ID_PATH + '/terminate'}
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name=POLICY_NAME.format('scale'),
+        check_str=RULE_ANY,
+        description="Scale vnf instance.",
+        operations=[
+            {'method': 'POST',
+             'path': VNF_INSTANCES_ID_PATH + '/scale'}
+        ]
+    ),
 
     # TODO(oda-g): add more lcm operations etc when implemented.
 

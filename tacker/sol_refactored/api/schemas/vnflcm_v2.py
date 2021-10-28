@@ -77,6 +77,22 @@ TerminateVnfRequest_V200 = {
     'additionalProperties': True,
 }
 
+# SOL003 5.5.2.5
+ScaleVnfRequest_V200 = {
+    'type': 'object',
+    'properties': {
+        'type': {
+            'type': 'string',
+            'enum': ['SCALE_OUT', 'SCALE_IN']
+        },
+        'aspectId': common_types.IdentifierInVnfd,
+        'numberOfSteps': {'type': 'integer', 'minimum': 1},
+        'additionalParams': parameter_types.keyvalue_pairs,
+    },
+    'required': ['type', 'aspectId'],
+    'additionalProperties': True,
+}
+
 # SOL013 8.3.4
 _SubscriptionAuthentication = {
     'type': 'object',

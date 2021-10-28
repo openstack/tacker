@@ -302,6 +302,12 @@ topology_template:
               max_scale_level: 2
               step_deltas:
                 - delta_1
+            Invalid_scale:
+              name: Invalid_scale
+              description: Invalid scaling aspect
+              max_scale_level: 2
+              step_deltas:
+                - delta_missing
 
     - VDU1_initial_delta:
         type: tosca.policies.nfv.VduInitialDelta
@@ -325,6 +331,15 @@ topology_template:
             delta_1:
               number_of_instances: 1
         targets: [ VDU1 ]
+
+    - VDU1_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: Invalid_scale
+          deltas:
+            delta_dummy:  # delta_missing is missing
+              number_of_instances: 1
+        targets: [ VDU2 ]
 
     - instantiation_levels:
         type: tosca.policies.nfv.InstantiationLevels

@@ -11,7 +11,7 @@ resources:
     properties:
       min_size: 1
       max_size: 3
-      desired_capacity: 1
+      desired_capacity: { get_param: [ nfv, VDU, VDU1, desired_capacity ] }
       resource:
         type: VDU1.yaml
         properties:
@@ -19,20 +19,9 @@ resources:
           image: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
           net5: { get_resource: internalVL3 }
           affinity: { get_resource: nfvi_node_affinity }
-  VDU1_scale_out:
-    type: OS::Heat::ScalingPolicy
-    properties:
-      scaling_adjustment: 1
-      auto_scaling_group_id:
-        get_resource: VDU1_scale_group
-      adjustment_type: change_in_capacity
-  VDU1_scale_in:
-    type: OS::Heat::ScalingPolicy
-    properties:
-      scaling_adjustment: -1
-      auto_scaling_group_id:
-        get_resource: VDU1_scale_group
-      adjustment_type: change_in_capacity
+
+# NOTE: Resource definition of OS::Heat::ScalingPolicy is omitted.
+# It is not used by v2 scale implementation unlike v1.
 
   VDU2:
     type: OS::Nova::Server
