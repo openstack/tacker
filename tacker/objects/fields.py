@@ -180,6 +180,18 @@ class VnfInstanceTerminationTypeField(BaseEnumField):
     AUTO_TYPE = VnfInstanceTerminationType()
 
 
+# SOL003 5.5.4.6 Enumeration: CancelModeType
+class VnfInstanceCancelModeType(BaseTackerEnum):
+    FORCEFUL = 'FORCEFUL'
+    GRACEFUL = 'GRACEFUL'
+
+    ALL = (FORCEFUL, GRACEFUL)
+
+
+class VnfInstanceCancelTypeField(BaseEnumField):
+    AUTO_TYPE = VnfInstanceCancelModeType()
+
+
 class VnfcState(BaseTackerEnum):
     STARTED = 'STARTED'
     STOPPED = 'STOPPED'

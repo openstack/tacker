@@ -3339,6 +3339,13 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_dict = {"before_error_point": 0}
         change_ext_conn_req = fakes.get_change_ext_conn_request_obj()
 
+        op_states = []
+
+        def _store_operation(context, notification_data):
+            op_states.append(notification_data['operationState'])
+
+        mock_send_notification.side_effect = _store_operation
+
         # Test condition settings.
         mock_exec.return_value = False
 
@@ -3348,14 +3355,16 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             vnf_dict,
             change_ext_conn_req,
             vnf_lcm_op_occs_id)
-        mock_change_vnf_status.assert_called_with(self.context,
-            mock.ANY, (constants.ACTIVE,),
+        mock_change_vnf_status.assert_called_with(
+            self.context, mock.ANY, (constants.ACTIVE,),
             constants.PENDING_CHANGE_EXT_CONN)
-        mock_update_vnf_attributes.assert_called_with(self.context,
-            mock.ANY, mock.ANY, mock.ANY, (constants.ACTIVE,))
-        self.assertEqual(
-            mock_send_notification.call_args[0][1].get('operationState'),
-            'PROCESSING')
+        mock_update_vnf_attributes.assert_called_with(
+            self.context, mock.ANY, mock.ANY, mock.ANY,
+            (constants.ACTIVE,))
+
+        self.assertEqual(2, mock_send_notification.call_count)
+        self.assertEqual('PROCESSING', op_states[0])
+        self.assertEqual('COMPLETED', op_states[1])
 
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_update_instantiated_vnf_info_change_ext_conn')
@@ -3429,6 +3438,13 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         ]
         mock_grants.return_value = MockResponse(json_data=res_grant)
 
+        op_states = []
+
+        def _store_operation(context, notification_data):
+            op_states.append(notification_data['operationState'])
+
+        mock_send_notification.side_effect = _store_operation
+
         self.conductor.change_ext_conn(
             self.context,
             vnf_instance,
@@ -3440,9 +3456,10 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             constants.PENDING_CHANGE_EXT_CONN)
         mock_update_vnf_attributes.assert_called_with(self.context,
             mock.ANY, mock.ANY, mock.ANY, (constants.ACTIVE,))
-        self.assertEqual(
-            mock_send_notification.call_args[0][1].get('operationState'),
-            'PROCESSING')
+
+        self.assertEqual(2, mock_send_notification.call_count)
+        self.assertEqual('PROCESSING', op_states[0])
+        self.assertEqual('COMPLETED', op_states[1])
 
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_update_instantiated_vnf_info_change_ext_conn')

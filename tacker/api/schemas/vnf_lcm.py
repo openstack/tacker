@@ -388,3 +388,13 @@ change_ext_conn = {
     'required': ['extVirtualLinks'],
     'additionalProperties': True,
 }
+
+cancel = {
+    'type': 'object',
+    'properties': {
+        'cancelMode': {'type': 'string',
+                       'enum': ['FORCEFUL', 'GRACEFUL']},
+    },
+    'required': ['cancelMode'],
+    'additionalProperties': True,
+}

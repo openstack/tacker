@@ -938,6 +938,38 @@ def vnflcm_rollback_insta(error_point=7):
         created_at=dt)
 
 
+def vnflcm_cancel_insta(error_point=7):
+    default_datetime = datetime.datetime(
+        2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    ext_link_port_info = objects.ExtLinkPortInfo(
+        resource_handle=objects.ResourceHandle(
+            resource_id="109f5049-b51e-409a-9a99-d740ba5f3acb",
+            vim_level_resource_type="LINKPORT"),
+        cp_instance_id="f5c68d94-5736-4e38-ade5-c9462514f8b9",
+        id="1d868d02-ecd4-4402-8e6b-54e77ebdcc28")
+    changed_ext_connectivity_values = objects.ExtVirtualLinkInfo(
+        id=constants.UUID,
+        resource_handle=objects.ResourceHandle(
+            vim_connection_id=constants.UUID,
+            resource_id=constants.UUID,
+            vim_level_resource_type="OS::Neutron::Net"),
+        ext_link_ports=[ext_link_port_info]
+    )
+    return objects.VnfLcmOpOcc(
+        state_entered_time=default_datetime,
+        start_time=default_datetime,
+        vnf_instance_id=uuidsentinel.vnf_instance_id,
+        operation='INSTANTIATE',
+        operation_state='PROCESSING',
+        is_automatic_invocation=False,
+        operation_params='{}',
+        error_point=error_point,
+        id=constants.UUID,
+        grant_id=constants.UUID,
+        created_at=default_datetime,
+        changed_ext_connectivity=[changed_ext_connectivity_values])
+
+
 def vnflcm_fail_insta(error_point=7):
     default_datetime = datetime.datetime(
         2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)

@@ -24,6 +24,7 @@ def register_all():
     # NOTE(bhagyashris): You must make sure your object gets imported in this
     # function in order for it to be registered by services that may
     # need to receive it via RPC.
+    __import__('tacker.objects.cancel_mode')
     __import__('tacker.objects.heal_vnf_request')
     __import__('tacker.objects.vnf_package')
     __import__('tacker.objects.vnf_package_vnfd')

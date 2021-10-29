@@ -295,19 +295,20 @@ def _get_affected_resources(old_vnf_instance=None,
                                              new_vnf_storage_resource_ids)
 
         # return new affected resources
-        for affected_vls in new_affected_resources['affectedVirtualLinks']:
+        for affected_vls in new_affected_resources.get(
+                'affectedVirtualLinks', []):
             if (affected_vls['networkResource']
                     ['resourceId'] in vnf_vl_resource_ids):
                 affected_resources['affectedVirtualLinks'].append(affected_vls)
 
-        affected_storages = new_affected_resources['affectedVirtualStorages']
-        for affected_storage in affected_storages:
+        for affected_storage in new_affected_resources.get(
+                'affectedVirtualStorages', []):
             if (affected_storage['storageResource']
                     ['resourceId'] in vnf_storage_resource_ids):
                 affected_resources['affectedVirtualStorages'].append(
                     affected_storage)
 
-        for affected_vnfc in new_affected_resources['affectedVnfcs']:
+        for affected_vnfc in new_affected_resources.get('affectedVnfcs', []):
             if (affected_vnfc['computeResource']
                     ['resourceId'] in vnfc_resource_ids):
 
