@@ -53,13 +53,18 @@ class Keystone(object):
         return ses.get_endpoint(service_type, region_name)
 
     def initialize_client(self, **kwargs):
-        verify = 'True' == kwargs.pop('cert_verify', 'True') or False
+        verify = 'True' == kwargs.pop('cert_verify', 'True')
         if 'token' in kwargs:
             auth_plugin = identity.v3.Token(**kwargs)
         else:
             auth_plugin = identity.v3.Password(**kwargs)
         ses = self.get_session(auth_plugin=auth_plugin, verify=verify)
-        cli = client.Client(DEFAULT_IDENTITY_VERSION, session=ses)
+        # note: Using `interface` may be an appropriate way to control
+        # the keystone endpoint, e.g., client.Client(DEFAULT_IDENTITY_VERSION,
+        # session=ses, interface=interface), but it requires the modification
+        # in the DB schema. Thus, use `endpoint_override` for now.
+        cli = client.Client(DEFAULT_IDENTITY_VERSION, session=ses,
+                            endpoint_override=auth_plugin.auth_url)
         return cli
 
     @staticmethod
