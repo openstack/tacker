@@ -129,10 +129,12 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     @coordinate.lock_vnf_instance('{id}')
     def delete(self, request, id):
         context = request.context
-        inst = inst_utils.get_inst(request.context, id)
+        inst = inst_utils.get_inst(context, id)
 
         if inst.instantiationState != 'NOT_INSTANTIATED':
             raise sol_ex.VnfInstanceIsInstantiated(inst_id=id)
+
+        lcmocc_utils.check_lcmocc_in_progress(context, id)
 
         inst.delete(context)
 
@@ -150,6 +152,8 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         if inst.instantiationState != 'NOT_INSTANTIATED':
             raise sol_ex.VnfInstanceIsInstantiated(inst_id=id)
+
+        lcmocc_utils.check_lcmocc_in_progress(context, id)
 
         now = datetime.utcnow()
         lcmocc = objects.VnfLcmOpOccV2(
@@ -191,6 +195,8 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         if inst.instantiationState != 'INSTANTIATED':
             raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
+
+        lcmocc_utils.check_lcmocc_in_progress(context, id)
 
         now = datetime.utcnow()
         lcmocc = objects.VnfLcmOpOccV2(
@@ -322,6 +328,21 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         resp_body = self._lcmocc_view.detail(lcmocc)
 
         return sol_wsgi.SolResponse(200, resp_body)
+
+    def lcm_op_occ_retry(self, request, id):
+        context = request.context
+        lcmocc = lcmocc_utils.get_lcmocc(context, id)
+
+        return self._lcm_op_occ_retry(context, lcmocc)
+
+    @coordinate.lock_vnf_instance('{lcmocc.vnfInstanceId}')
+    def _lcm_op_occ_retry(self, context, lcmocc):
+        if lcmocc.operationState != v2fields.LcmOperationStateType.FAILED_TEMP:
+            raise sol_ex.LcmOpOccNotFailedTemp(lcmocc_id=lcmocc.id)
+
+        self.conductor_rpc.retry_lcm_op(context, lcmocc.id)
+
+        return sol_wsgi.SolResponse(202, None)
 
     def lcm_op_occ_delete(self, request, id):
         # not allowed to delete on the specification

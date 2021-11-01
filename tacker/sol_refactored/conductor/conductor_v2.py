@@ -39,10 +39,6 @@ class ConductorV2(object):
         self.endpoint = CONF.v2_vnfm.endpoint
         self.nfvo_client = nfvo_client.NfvoClient()
 
-    def _get_lcm_op_method(self, op, postfix):
-        method = getattr(self.vnflcm_driver, "%s_%s" % (op.lower(), postfix))
-        return method
-
     def _set_lcmocc_error(self, lcmocc, ex):
         if isinstance(ex, sol_ex.SolException):
             problem_details = ex.make_problem_details()
@@ -84,10 +80,13 @@ class ConductorV2(object):
 
             # NOTE: perform grant exchange mainly but also perform
             # something to do at STATING phase ex. request check.
-            grant_method = self._get_lcm_op_method(lcmocc.operation, 'grant')
-            grant_req, grant = grant_method(context, lcmocc, inst, vnfd)
+            grant_req, grant = self.vnflcm_driver.grant(context, lcmocc,
+                                                        inst, vnfd)
+            self.vnflcm_driver.post_grant(context, lcmocc, inst, grant_req,
+                                          grant, vnfd)
 
             lcmocc.operationState = fields.LcmOperationStateType.PROCESSING
+            lcmocc.grantId = grant.id
             lcmocc.update(context)
         except Exception as ex:
             LOG.exception("STARTING %s failed", lcmocc.operation)
@@ -103,17 +102,8 @@ class ConductorV2(object):
             return
 
         try:
-            # perform preamble LCM script
-            start_method = self._get_lcm_op_method(lcmocc.operation, 'start')
-            start_method(context, lcmocc, inst, grant_req, grant, vnfd)
-
-            process_method = self._get_lcm_op_method(lcmocc.operation,
-                                                     'process')
-            process_method(context, lcmocc, inst, grant_req, grant, vnfd)
-
-            # perform postamble LCM script
-            end_method = self._get_lcm_op_method(lcmocc.operation, 'end')
-            end_method(context, lcmocc, inst, grant_req, grant, vnfd)
+            self.vnflcm_driver.process(context, lcmocc, inst, grant_req,
+                                       grant, vnfd)
 
             lcmocc.operationState = fields.LcmOperationStateType.COMPLETED
             # update inst and lcmocc at the same time
@@ -124,7 +114,69 @@ class ConductorV2(object):
             LOG.exception("PROCESSING %s failed", lcmocc.operation)
             lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
             self._set_lcmocc_error(lcmocc, ex)
+            with context.session.begin(subtransactions=True):
+                # save grant_req and grant to be used when retry
+                # NOTE: grant_req is saved because it is necessary to interpret
+                # the contents of grant. Though grant can be gotten from NFVO,
+                # it is saved here with grant_req so that it is not necessary
+                # to communicate with NFVO when retry. They are saved temporary
+                # and will be deleted when operationState becomes an end state
+                # (COMPLETED/FAILED/ROLLED_BACK).
+                grant_req.create(context)
+                grant.create(context)
+                lcmocc.update(context)
+
+        # send notification COMPLETED or FAILED_TEMP
+        self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
+                                                  self.endpoint)
+
+    @log.log
+    def retry_lcm_op(self, context, lcmocc_id):
+        lcmocc = lcmocc_utils.get_lcmocc(context, lcmocc_id)
+
+        self._retry_lcm_op(context, lcmocc)
+
+    @coordinate.lock_vnf_instance('{lcmocc.vnfInstanceId}', delay=True)
+    def _retry_lcm_op(self, context, lcmocc):
+        # just consistency check
+        if lcmocc.operationState != fields.LcmOperationStateType.FAILED_TEMP:
+            LOG.error("VnfLcmOpOcc unexpected operationState.")
+            return
+
+        inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
+
+        lcmocc.operationState = fields.LcmOperationStateType.PROCESSING
+        lcmocc.update(context)
+        # send notification PROCESSING
+        self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
+                                                  self.endpoint)
+
+        try:
+            vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId,
+                                             all_contents=True)
+            grant_req, grant = lcmocc_utils.get_grant_req_and_grant(context,
+                                                                    lcmocc)
+            self.vnflcm_driver.post_grant(context, lcmocc, inst, grant_req,
+                                          grant, vnfd)
+            self.vnflcm_driver.process(context, lcmocc, inst, grant_req,
+                                       grant, vnfd)
+
+            lcmocc.operationState = fields.LcmOperationStateType.COMPLETED
+            lcmocc.error = None  # clear error
+            # update inst and lcmocc at the same time
+            with context.session.begin(subtransactions=True):
+                inst.update(context)
+                lcmocc.update(context)
+                # grant_req and grant are not necessary any more.
+                grant_req.delete(context)
+                grant.delete(context)
+        except Exception as ex:
+            LOG.exception("PROCESSING %s failed", lcmocc.operation)
+            lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
+            self._set_lcmocc_error(lcmocc, ex)
             lcmocc.update(context)
+            # grant_req and grant are already saved. they are not deleted
+            # while oprationState is FAILED_TEMP.
 
         # send notification COMPLETED or FAILED_TEMP
         self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,

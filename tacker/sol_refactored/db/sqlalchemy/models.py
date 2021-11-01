@@ -98,3 +98,57 @@ class VnfLcmOpOccV2(model_base.BASE):
     changedExtConnectivity = sa.Column(sa.JSON(), nullable=True)
     modificationsTriggeredByVnfPkgChange = sa.Column(sa.JSON(), nullable=True)
     vnfSnapshotInfoId = sa.Column(sa.String(255), nullable=True)
+
+
+class GrantV1(model_base.BASE):
+    """Type: Grant
+
+    NFV-SOL 003
+    - v3.3.1 9.5.2.3 (API version: 1.4.0)
+    """
+
+    __tablename__ = 'GrantV1'
+    id = sa.Column(sa.String(255), nullable=False, primary_key=True)
+    vnfInstanceId = sa.Column(sa.String(255), nullable=False)
+    vnfLcmOpOccId = sa.Column(sa.String(255), nullable=False)
+    vimConnectionInfo = sa.Column(sa.JSON(), nullable=True)
+    zones = sa.Column(sa.JSON(), nullable=True)
+    zoneGroups = sa.Column(sa.JSON(), nullable=True)
+    addResources = sa.Column(sa.JSON(), nullable=True)
+    tempResources = sa.Column(sa.JSON(), nullable=True)
+    removeResources = sa.Column(sa.JSON(), nullable=True)
+    updateResources = sa.Column(sa.JSON(), nullable=True)
+    vimAssets = sa.Column(sa.JSON(), nullable=True)
+    extVirtualLinks = sa.Column(sa.JSON(), nullable=True)
+    extManagedVirtualLinks = sa.Column(sa.JSON(), nullable=True)
+    additionalParams = sa.Column(sa.JSON(), nullable=True)
+
+
+class GrantRequestV1(model_base.BASE):
+    """Type: GrantRequest
+
+    NFV-SOL 003
+    - v3.3.1 9.5.2.2 (API version: 1.4.0)
+    """
+
+    __tablename__ = 'GrantRequestV1'
+    vnfInstanceId = sa.Column(sa.String(255), nullable=False)
+    vnfLcmOpOccId = sa.Column(sa.String(255), nullable=False, primary_key=True)
+    vnfdId = sa.Column(sa.String(255), nullable=False)
+    dstVnfdId = sa.Column(sa.String(255), nullable=True)
+    flavourId = sa.Column(sa.String(255), nullable=True)
+    operation = sa.Column(sa.Enum(
+        'INSTANTIATE', 'SCALE', 'SCALE_TO_LEVEL', 'CHANGE_FLAVOUR',
+        'TERMINATE', 'HEAL', 'OPERATE', 'CHANGE_EXT_CONN',
+        'CREATE_SNAPSHOT', 'REVERT_TO_SNAPSHOT', 'CHANGE_VNFPKG',
+        create_constraint=True, validate_strings=True),
+        nullable=False)
+    isAutomaticInvocation = sa.Column(sa.Boolean, nullable=False)
+    instantiationLevelId = sa.Column(sa.String(255), nullable=True)
+    addResources = sa.Column(sa.JSON(), nullable=True)
+    tempResources = sa.Column(sa.JSON(), nullable=True)
+    removeResources = sa.Column(sa.JSON(), nullable=True)
+    updateResources = sa.Column(sa.JSON(), nullable=True)
+    placementConstraints = sa.Column(sa.JSON(), nullable=True)
+    vimConstraints = sa.Column(sa.JSON(), nullable=True)
+    additionalParams = sa.Column(sa.JSON(), nullable=True)

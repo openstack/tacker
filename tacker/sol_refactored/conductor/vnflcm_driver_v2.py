@@ -28,6 +28,7 @@ from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.infra_drivers.openstack import openstack
 from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
+from tacker.sol_refactored.objects.v2 import fields as v2fields
 
 
 LOG = logging.getLogger(__name__)
@@ -40,6 +41,68 @@ class VnfLcmDriverV2(object):
     def __init__(self):
         self.endpoint = CONF.v2_vnfm.endpoint
         self.nfvo_client = nfvo_client.NfvoClient()
+
+    def grant(self, context, lcmocc, inst, vnfd):
+        method = getattr(self, "%s_%s" % (lcmocc.operation.lower(), 'grant'))
+        return method(context, lcmocc, inst, vnfd)
+
+    def post_grant(self, context, lcmocc, inst, grant_req, grant, vnfd):
+        method = getattr(self,
+                         "%s_%s" % (lcmocc.operation.lower(), 'post_grant'),
+                         None)
+        if method:
+            method(context, lcmocc, inst, grant_req, grant, vnfd)
+
+    def _exec_mgmt_driver_script(self, operation, flavour_id, req, inst,
+            grant_req, grant, vnfd):
+        script = vnfd.get_interface_script(flavour_id, operation)
+        if script is None:
+            return
+
+        tmp_csar_dir = vnfd.make_tmp_csar_dir()
+        script_dict = {
+            'operation': operation,
+            'request': req.to_dict(),
+            'vnf_instance': inst.to_dict(),
+            'grant_request': grant_req.to_dict(),
+            'grant_response': grant.to_dict(),
+            'tmp_csar_dir': tmp_csar_dir
+        }
+        # script is relative path to Definitions/xxx.yaml
+        script_path = os.path.join(tmp_csar_dir, "Definitions", script)
+
+        out = subprocess.run(["python3", script_path],
+            input=pickle.dumps(script_dict),
+            capture_output=True)
+
+        vnfd.remove_tmp_csar_dir(tmp_csar_dir)
+
+        if out.returncode != 0:
+            LOG.debug("execute %s failed: %s", operation, out.stderr)
+            msg = "{} failed: {}".format(operation, out.stderr)
+            raise sol_ex.MgmtDriverExecutionFailed(sol_detail=msg)
+
+        LOG.debug("execute %s of %s success.", operation, script)
+
+    def process(self, context, lcmocc, inst, grant_req, grant, vnfd):
+        # perform preamble LCM script
+        req = lcmocc.operationParams
+        operation = "%s_%s" % (lcmocc.operation.lower(), 'start')
+        if lcmocc.operation == v2fields.LcmOperationType.INSTANTIATE:
+            flavour_id = req.flavourId
+        else:
+            flavour_id = inst.instantiatedVnfInfo.flavourId
+        self._exec_mgmt_driver_script(operation,
+            flavour_id, req, inst, grant_req, grant, vnfd)
+
+        # main process
+        method = getattr(self, "%s_%s" % (lcmocc.operation.lower(), 'process'))
+        method(context, lcmocc, inst, grant_req, grant, vnfd)
+
+        # perform postamble LCM script
+        operation = "%s_%s" % (lcmocc.operation.lower(), 'end')
+        self._exec_mgmt_driver_script(operation,
+            flavour_id, req, inst, grant_req, grant, vnfd)
 
     def _get_link_ports(self, inst_req):
         names = []
@@ -167,19 +230,24 @@ class VnfLcmDriverV2(object):
                 href=inst_utils.inst_href(inst.id, self.endpoint)))
 
         # NOTE: if not granted, 403 error raised.
-        grant_res = self.nfvo_client.grant(context, grant_req)
+        grant = self.nfvo_client.grant(context, grant_req)
 
+        return grant_req, grant
+
+    def instantiate_post_grant(self, context, lcmocc, inst, grant_req,
+            grant, vnfd):
         # set inst vimConnectionInfo
+        req = lcmocc.operationParams
         vim_infos = {}
         if req.obj_attr_is_set('vimConnectionInfo'):
             vim_infos = req.vimConnectionInfo
 
-        if grant_res.obj_attr_is_set('vimConnectionInfo'):
+        if grant.obj_attr_is_set('vimConnectionInfo'):
             # if NFVO returns vimConnectionInfo use it.
             # As the controller does for req.vimConnectionInfo, if accessInfo
             # or interfaceInfo is not specified, get them from VIM DB.
             # vimId must be in VIM DB.
-            res_vim_infos = grant_res.vimConnectioninfo
+            res_vim_infos = grant.vimConnectioninfo
             for key, res_vim_info in res_vim_infos.items():
                 if not (res_vim_info.obj_attr_is_set('accessInfo') and
                         res_vim_info.obj_attr_is_set('interfaceInfo')):
@@ -199,8 +267,6 @@ class VnfLcmDriverV2(object):
 
         inst.vimConnectionInfo = vim_infos
 
-        return grant_req, grant_res
-
     def instantiate_process(self, context, lcmocc, inst, grant_req,
             grant, vnfd):
         req = lcmocc.operationParams
@@ -214,49 +280,6 @@ class VnfLcmDriverV2(object):
 
         inst.instantiationState = 'INSTANTIATED'
         lcmocc_utils.make_instantiate_lcmocc(lcmocc, inst)
-
-    def _exec_mgmt_driver_script(self, operation, flavour_id, req, inst,
-            grant_req, grant, vnfd):
-        script = vnfd.get_interface_script(flavour_id, operation)
-        if script is None:
-            return
-
-        tmp_csar_dir = vnfd.make_tmp_csar_dir()
-        script_dict = {
-            'operation': operation,
-            'request': req.to_dict(),
-            'vnf_instance': inst.to_dict(),
-            'grant_request': grant_req.to_dict(),
-            'grant_response': grant.to_dict(),
-            'tmp_csar_dir': tmp_csar_dir
-        }
-        # script is relative path to Definitions/xxx.yaml
-        script_path = os.path.join(tmp_csar_dir, "Definitions", script)
-
-        out = subprocess.run(["python3", script_path],
-            input=pickle.dumps(script_dict),
-            capture_output=True)
-
-        vnfd.remove_tmp_csar_dir(tmp_csar_dir)
-
-        if out.returncode != 0:
-            LOG.debug("execute %s failed: %s", operation, out.stderr)
-            msg = "{} failed: {}".format(operation, out.stderr)
-            raise sol_ex.MgmtDriverExecutionFailed(sol_detail=msg)
-
-        LOG.debug("execute %s of %s success.", operation, script)
-
-    def instantiate_start(self, context, lcmocc, inst, grant_req,
-            grant, vnfd):
-        req = lcmocc.operationParams
-        self._exec_mgmt_driver_script('instantiate_start',
-            req.flavourId, req, inst, grant_req, grant, vnfd)
-
-    def instantiate_end(self, context, lcmocc, inst, grant_req,
-            grant, vnfd):
-        req = lcmocc.operationParams
-        self._exec_mgmt_driver_script('instantiate_end',
-            req.flavourId, req, inst, grant_req, grant, vnfd)
 
     def terminate_grant(self, context, lcmocc, inst, vnfd):
         # grant exchange
@@ -375,17 +398,3 @@ class VnfLcmDriverV2(object):
 
         # reset vimConnectionInfo
         inst.vimConnectionInfo = {}
-
-    def terminate_start(self, context, lcmocc, inst, grant_req,
-            grant, vnfd):
-        req = lcmocc.operationParams
-        flavour_id = inst.instantiatedVnfInfo.flavourId
-        self._exec_mgmt_driver_script('terminate_start',
-            flavour_id, req, inst, grant_req, grant, vnfd)
-
-    def terminate_end(self, context, lcmocc, inst, grant_req,
-            grant, vnfd):
-        req = lcmocc.operationParams
-        flavour_id = inst.instantiatedVnfInfo.flavourId
-        self._exec_mgmt_driver_script('terminate_end',
-            flavour_id, req, inst, grant_req, grant, vnfd)

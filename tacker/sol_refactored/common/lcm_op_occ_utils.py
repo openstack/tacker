@@ -44,15 +44,21 @@ def lcmocc_href(lcmocc_id, endpoint):
     return "{}/v2/vnflcm/vnf_lcm_op_occs/{}".format(endpoint, lcmocc_id)
 
 
+def lcmocc_task_href(lcmocc_id, task, endpoint):
+    return "{}/v2/vnflcm/vnf_lcm_op_occs/{}/{}".format(endpoint, lcmocc_id,
+                                                       task)
+
+
 def make_lcmocc_links(lcmocc, endpoint):
     links = objects.VnfLcmOpOccV2_Links()
     links.self = objects.Link(href=lcmocc_href(lcmocc.id, endpoint))
     links.vnfInstance = objects.Link(
         href=inst_utils.inst_href(lcmocc.vnfInstanceId, endpoint))
+    links.retry = objects.Link(
+        href=lcmocc_task_href(lcmocc.vnfInstanceId, 'retry', endpoint))
     # TODO(oda-g): add when implemented
     # links.grant
     # links.cancel
-    # links.retry
     # links.rollback
     # links.fail
     # links.vnfSnapshot
@@ -179,3 +185,27 @@ def make_instantiate_lcmocc(lcmocc, inst):
 
 def make_terminate_lcmocc(lcmocc, inst):
     _make_instantiate_lcmocc(lcmocc, inst, 'REMOVED')
+
+
+def get_grant_req_and_grant(context, lcmocc):
+    grant_reqs = objects.GrantRequestV1.get_by_filter(context,
+                                                      vnfLcmOpOccId=lcmocc.id)
+    grant = objects.GrantV1.get_by_id(context, lcmocc.grantId)
+    if not grant_reqs or grant is None:
+        raise sol_ex.GrantRequestOrGrantNotFound(lcmocc_id=lcmocc.id)
+
+    # len(grant_reqs) == 1 because vnfLcmOpOccId is primary key.
+    return grant_reqs[0], grant
+
+
+def check_lcmocc_in_progress(context, inst_id):
+    # if the controller or conductor executes an operation for the vnf
+    # instance (i.e. operationState is ...ING), other operation for
+    # the same vnf instance is exculed by the coordinator.
+    # check here is existence of lcmocc for the vnf instance with
+    # FAILED_TEMP operationState.
+    lcmoccs = objects.VnfLcmOpOccV2.get_by_filter(
+        context, vnfInstanceId=inst_id,
+        operationState=fields.LcmOperationStateType.FAILED_TEMP)
+    if lcmoccs:
+        raise sol_ex.OtherOperationInProgress(inst_id=inst_id)

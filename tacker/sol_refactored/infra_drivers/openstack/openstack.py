@@ -46,14 +46,16 @@ class Openstack(object):
 
         LOG.debug("stack fields: %s", fields)
 
-        # create stack
+        stack_name = fields['stack_name']
+
+        # create or update stack
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
-        heat_client.create_stack(fields)
-
-        # wait stack created
-        stack_name = fields['stack_name']
-        heat_client.wait_stack_create(stack_name)
+        status, _ = heat_client.get_status(stack_name)
+        if status is None:
+            heat_client.create_stack(fields)
+        else:
+            heat_client.update_stack(stack_name, fields)
 
         # get stack resource
         heat_reses = heat_client.get_resources(stack_name)
@@ -532,4 +534,3 @@ class Openstack(object):
         heat_client = heat_utils.HeatClient(vim_info)
         stack_name = heat_utils.get_stack_name(inst)
         heat_client.delete_stack(stack_name)
-        heat_client.wait_stack_delete(stack_name)
