@@ -84,9 +84,11 @@ class VnfLcmDriverV2(object):
         add_reses = []
         nodes = vnfd.get_vdu_nodes(flavour_id)
         link_port_names = self._get_link_ports(req)
-        for name in nodes.keys():
+        for name, node in nodes.items():
             num = vnfd.get_vdu_num(flavour_id, name, inst_level)
             vdu_cp_names = vnfd.get_vdu_cps(flavour_id, name)
+            vdu_storage_names = vnfd.get_vdu_storages(node)
+
             for _ in range(num):
                 res_def = objects.ResourceDefinitionV1(
                     id=uuidutils.generate_uuid(),
@@ -104,16 +106,22 @@ class VnfLcmDriverV2(object):
                         resourceTemplateId=cp_name)
                     add_reses.append(res_def)
 
-        nodes = vnfd.get_storage_nodes(flavour_id)
-        for name in nodes.keys():
-            res_def = objects.ResourceDefinitionV1(
-                id=uuidutils.generate_uuid(),
-                type='STORAGE',
-                resourceTemplateId=name)
-            add_reses.append(res_def)
+            for storage_name in vdu_storage_names:
+                for _ in range(num):
+                    res_def = objects.ResourceDefinitionV1(
+                        id=uuidutils.generate_uuid(),
+                        type='STORAGE',
+                        resourceTemplateId=storage_name)
+                    add_reses.append(res_def)
 
+        ext_mgd_vls = []
+        if req.obj_attr_is_set('extManagedVirtualLinks'):
+            ext_mgd_vls = [ext_mgd_vl.vnfVirtualLinkDescId
+                           for ext_mgd_vl in req.extManagedVirtualLinks]
         nodes = vnfd.get_virtual_link_nodes(flavour_id)
         for name in nodes.keys():
+            if name in ext_mgd_vls:
+                continue
             res_def = objects.ResourceDefinitionV1(
                 id=uuidutils.generate_uuid(),
                 type='VL',
@@ -277,9 +285,13 @@ class VnfLcmDriverV2(object):
                     for cp_info in inst_vnc.vnfcCpInfo:
                         res_def = objects.ResourceDefinitionV1(
                             id=uuidutils.generate_uuid(),
+                            resourceTemplateId=cp_info.cpdId,
                             type='LINKPORT')
                         rm_reses.append(res_def)
-                        vnfc_cps[cp_info.id] = res_def
+                        if cp_info.obj_attr_is_set('vnfExtCpId'):
+                            vnfc_cps[cp_info.vnfExtCpId] = res_def
+                        else:  # vnfLinkPortId
+                            vnfc_cps[cp_info.vnfLinkPortId] = res_def
 
         if inst_info.obj_attr_is_set('vnfVirtualLinkResourceInfo'):
             for inst_vl in inst_info.vnfVirtualLinkResourceInfo:
@@ -292,8 +304,8 @@ class VnfLcmDriverV2(object):
 
                 if inst_vl.obj_attr_is_set('vnfLinkPorts'):
                     for port in inst_vl.vnfLinkPorts:
-                        if port.cpInstanceId in vnfc_cps:
-                            res_def = vnfc_cps[port.cpInstanceId]
+                        if port.id in vnfc_cps:
+                            res_def = vnfc_cps[port.id]
                             res_def.resource = port.resourceHandle
 
         if inst_info.obj_attr_is_set('virtualStorageResourceInfo'):
@@ -317,10 +329,10 @@ class VnfLcmDriverV2(object):
         if inst_info.obj_attr_is_set('extManagedVirtualLinkInfo'):
             for ext_mgd_vl in inst_info.extManagedVirtualLinkInfo:
                 if ext_mgd_vl.obj_attr_is_set('vnfLinkPorts'):
-                    for port in ext_vl.extLinkPorts:
+                    for port in ext_mgd_vl.vnfLinkPorts:
                         if (port.obj_attr_is_set('cpInstanceId') and
-                                port.cpInstanceId in vnfc_cps):
-                            res_def = vnfc_cps[port.cpInstanceId]
+                                port.id in vnfc_cps):
+                            res_def = vnfc_cps[port.id]
                             res_def.resource = port.resourceHandle
 
         if rm_reses:

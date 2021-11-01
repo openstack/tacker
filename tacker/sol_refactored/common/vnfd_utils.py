@@ -185,6 +185,13 @@ class Vnfd(object):
                     break
         return cps
 
+    def get_vdu_storages(self, vdu_node):
+        storages = [req['virtual_storage']
+                    for req in vdu_node.get('requirements', [])
+                    if 'virtual_storage' in req]
+
+        return storages
+
     def get_base_hot(self, flavour_id):
         # NOTE: this method is openstack specific
         hot_dict = {}

@@ -86,6 +86,16 @@ class TestVnfd(base.BaseTestCase):
 
         self.assertEqual(expected_result, result)
 
+    def test_get_vdu_storages(self):
+        vdu_nodes = self.vnfd_1.get_vdu_nodes(SAMPLE_FLAVOUR_ID)
+        expected_result = ['VirtualStorage']
+        result = self.vnfd_1.get_vdu_storages(vdu_nodes['VDU1'])
+        self.assertEqual(expected_result, result)
+
+        expected_result = []
+        result = self.vnfd_1.get_vdu_storages(vdu_nodes['VDU2'])
+        self.assertEqual(expected_result, result)
+
     def test_get_base_hot(self):
         result = self.vnfd_1.get_base_hot(SAMPLE_FLAVOUR_ID)
         # check keys and sampling data
