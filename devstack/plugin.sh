@@ -29,6 +29,7 @@ if is_service_enabled tacker; then
         echo_summary "Configuring Tacker"
         configure_tacker
         create_tacker_accounts
+        create_keystone_endpoint
 
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
         # Initialize and start the tacker service

@@ -24,6 +24,9 @@ class Uuid(TypeDecorator):
 
     def process_bind_param(self, value, dialect):
         if value is not None:
+            # If value is typed as List, only use first element.
+            if isinstance(value, list):
+                value = value[0]
             try:
                 uuid.UUID(value, version=4)
             except ValueError:

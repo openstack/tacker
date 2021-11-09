@@ -13,6 +13,7 @@
 # - install_tacker
 # - configure_tacker
 # - create_tacker_accounts
+# - create_keystone_endpoint
 # - init_tacker
 # - start_tacker
 # - tacker_horizon_install
@@ -141,6 +142,17 @@ function create_tacker_accounts {
             "$TACKER_PROTOCOL://$TACKER_HOST:$TACKER_PORT/" \
             "$TACKER_PROTOCOL://$TACKER_HOST:$TACKER_PORT/"
     fi
+}
+
+# create_keystone_endpoint() - create admin endpoint for keystone
+function create_keystone_endpoint {
+    KEYSTONE_SERVICE=$(get_or_create_service "keystone" \
+        "identity" "Keystone Identity Service")
+    get_or_create_endpoint $KEYSTONE_SERVICE \
+        "$REGION_NAME" \
+        "${KEYSTONE_SERVICE_PROTOCOL}://${KEYSTONE_SERVICE_HOST}/identity" \
+        "${KEYSTONE_SERVICE_PROTOCOL}://${KEYSTONE_SERVICE_HOST}/identity" \
+        "${KEYSTONE_SERVICE_PROTOCOL}://${KEYSTONE_SERVICE_HOST}/identity"
 }
 
 # stack.sh entry points
@@ -468,25 +480,25 @@ function tacker_setup_default_vim_resources {
     openstack --os-region-name $REGION_NAME --os-project-name $DEFAULT_VIM_PROJECT_NAME \
               --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
               --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
-              --os-password $DEFAULT_VIM_PASSWORD keypair create userKey
+              --os-password $DEFAULT_VIM_PASSWORD --os-cloud "" keypair create userKey
 
     openstack --os-region-name $REGION_NAME --os-project-name $DEFAULT_VIM_PROJECT_NAME \
           --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
           --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
-          --os-password $DEFAULT_VIM_PASSWORD \
+          --os-password $DEFAULT_VIM_PASSWORD --os-cloud "" \
           security group create \
           --description "tacker functest security group" test_secgrp
 
     openstack --os-region-name $REGION_NAME --os-project-name $DEFAULT_VIM_PROJECT_NAME \
           --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
           --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
-          --os-password $DEFAULT_VIM_PASSWORD \
+          --os-password $DEFAULT_VIM_PASSWORD --os-cloud "" \
           security group rule create \
           --ingress --protocol icmp test_secgrp
     openstack --os-region-name $REGION_NAME --os-project-name $DEFAULT_VIM_PROJECT_NAME \
           --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
           --os-project-domain-id default --os-auth-url $KEYSTONE_SERVICE_URI \
-          --os-password $DEFAULT_VIM_PASSWORD \
+          --os-password $DEFAULT_VIM_PASSWORD --os-cloud "" \
           security group rule create \
           --ingress --protocol tcp --dst-port 22 test_secgrp
 
