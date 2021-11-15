@@ -49,6 +49,9 @@ apidoc_excluded_paths = [
     'vnfm/workflows',
     'db/migration/alembic_migrations/*',
     'db/migration/alembic_migrations',
+    # TODO(ueha): Excluding 'db/types.py' will be removed after the issue of
+    # TypeDecorator is fixed.
+    'db/types.py',
     'hacking']
 apidoc_separate_modules = True
 
