@@ -359,6 +359,35 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         return sol_wsgi.SolResponse(202, None)
 
+    def lcm_op_occ_fail(self, request, id):
+        context = request.context
+        lcmocc = lcmocc_utils.get_lcmocc(context, id)
+
+        return self._lcm_op_occ_fail(context, lcmocc)
+
+    @coordinate.lock_vnf_instance('{lcmocc.vnfInstanceId}')
+    def _lcm_op_occ_fail(self, context, lcmocc):
+        if lcmocc.operationState != v2fields.LcmOperationStateType.FAILED_TEMP:
+            raise sol_ex.LcmOpOccNotFailedTemp(lcmocc_id=lcmocc.id)
+
+        inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
+        grant_req, grant = lcmocc_utils.get_grant_req_and_grant(context,
+                                                                lcmocc)
+
+        lcmocc.operationState = v2fields.LcmOperationStateType.FAILED
+        with context.session.begin(subtransactions=True):
+            lcmocc.update(context)
+            grant_req.delete(context)
+            grant.delete(context)
+
+        # send notification FAILED
+        self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
+                                                  self.endpoint)
+
+        resp_body = self._lcmocc_view.detail(lcmocc)
+
+        return sol_wsgi.SolResponse(200, resp_body)
+
     def lcm_op_occ_delete(self, request, id):
         # not allowed to delete on the specification
         if not CONF.v2_vnfm.test_enable_lcm_op_occ_delete:
