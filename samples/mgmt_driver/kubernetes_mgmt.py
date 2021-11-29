@@ -274,7 +274,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             msg = 'Failed to find specified zone id' \
                   ' related to Vnfc Resource {} in grant'.format(
                       vnfc_id)
-            LOG.warn(msg)
+            LOG.warning(msg)
         else:
             for zone in grant.zones:
                 if add_resource_zone_id == zone.id:

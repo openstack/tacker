@@ -9,6 +9,7 @@ Tacker Specific Commandments
 ----------------------------
 
 - [N320] Validate that LOG messages, except debug ones, have translations
+- [T301] Log.warn is deprecated. Enforce use of LOG.warning.
 
 Creating Unit Tests
 -------------------

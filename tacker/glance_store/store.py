@@ -52,8 +52,8 @@ def get_csar_data_iter(body):
         return data_iter
     except Exception as e:
         error = encodeutils.exception_to_unicode(e)
-        LOG.warn("Failed to open csar URL: %(url)s due to error: %(error)s",
-                 {"url": url, "error": error})
+        LOG.warning("Failed to open csar URL: %(url)s due to error: %(error)s",
+                    {"url": url, "error": error})
         raise exceptions.VNFPackageURLInvalid(url=url)
 
 
@@ -73,10 +73,10 @@ def store_csar(context, package_uuid, body):
             context=context)
     except Exception as e:
         error = encodeutils.exception_to_unicode(e)
-        LOG.warn("Failed to store csar data in glance store for "
-                 "package %(uuid)s due to error: %(error)s",
-                 {"uuid": package_uuid,
-                 "error": error})
+        LOG.warning("Failed to store csar data in glance store for "
+                    "package %(uuid)s due to error: %(error)s",
+                    {"uuid": package_uuid,
+                    "error": error})
         raise exceptions.UploadFailedToGlanceStore(uuid=package_uuid,
                                                    error=error)
     finally:
