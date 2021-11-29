@@ -91,6 +91,10 @@
       - openstack/mistral
       - openstack/mistral-dashboard
       - openstack/networking-sfc
+      # TODO(ueha): Remove after the following hotfix is applied to
+      # python-aodhclient installed by pip.
+      # https://review.opendev.org/c/openstack/python-aodhclient/+/819393
+      - openstack/python-aodhclient
       - openstack/python-barbicanclient
       - openstack/python-blazarclient
       - openstack/python-mistralclient
@@ -129,6 +133,10 @@
           heat: https://opendev.org/openstack/heat
           networking-sfc: https://opendev.org/openstack/networking-sfc
           aodh: https://opendev.org/openstack/aodh
+          # TODO(ueha): Remove after the following hotfix is applied to
+          # python-aodhclient installed by pip.
+          # https://review.opendev.org/c/openstack/python-aodhclient/+/819393
+          python-aodhclient: https://opendev.org/openstack/python-aodhclient
           barbican: https://opendev.org/openstack/barbican
           mistral: https://opendev.org/openstack/mistral
           blazar: https://opendev.org/openstack/blazar
