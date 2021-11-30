@@ -43,6 +43,34 @@ bring VMs and Pods (and other Kubernetes resources) on the same network.
 
    For more details, users also see the same examples in [#second]_ and [#third]_.
 
+#. In CentOS environment install Kubernetes packages and start ovn services
+   before executing stack.sh.
+
+   **Command:**
+
+   .. code-block:: console
+
+      $ sudo cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+        [kubernetes]
+        name=Kubernetes
+        baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=1
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+        EOF
+      $ sudo chmod 755 /etc/yum.repos.d/kubernetes.repo
+      $ sudo dnf install kubeadm -y
+      $ sudo yum install -y centos-release-openstack-victoria
+      $ sudo yum install -y openvswitch
+      $ sudo yum install -y openvswitch-ovn-common
+      $ sudo yum install -y openvswitch-ovn-central
+      $ sudo yum install -y openvswitch-ovn-host
+      $ sudo systemctl start ovn-northd.service
+      $ sudo systemctl start ovn-controller.service
+      $ sudo systemctl start ovs-vswitchd.service
+      $ sudo systemctl start ovsdb-server.service
+
 #. Run stack.sh
 
    **Command:**
