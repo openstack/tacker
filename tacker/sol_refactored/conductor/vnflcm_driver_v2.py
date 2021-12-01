@@ -283,6 +283,12 @@ class VnfLcmDriverV2(object):
 
                 if inst_vnc.obj_attr_is_set('vnfcCpInfo'):
                     for cp_info in inst_vnc.vnfcCpInfo:
+                        if not (cp_info.obj_attr_is_set('vnfExtCpId') or
+                                cp_info.obj_attr_is_set('vnfLinkPortId')):
+                            # it means extLinkPorts of extVirtualLinks was
+                            # specified. so it is not the resource to be
+                            # deleted.
+                            continue
                         res_def = objects.ResourceDefinitionV1(
                             id=uuidutils.generate_uuid(),
                             resourceTemplateId=cp_info.cpdId,

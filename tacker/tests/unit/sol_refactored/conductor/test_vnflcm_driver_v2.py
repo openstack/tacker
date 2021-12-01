@@ -386,7 +386,8 @@ _inst_info_example = {
                 {
                     "id": "259c5895-7be6-4bed-8a94-221c41b3d08f",
                     "cpdId": "VDU1_CP1",
-                    "vnfExtCpId": "7a7fa30f-a303-4856-bc8b-b836cb682892"
+                    # when extLinkPorts of extVitualLinks specified, there is
+                    # no vnfExtCpId nor vnfLinkPortId.
                 },
                 {
                     "id": "e23d970d-9ea9-4c26-9d67-8f244383ea3c",
@@ -687,7 +688,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
                                    'res_id_VirtualStorage_2']
             },
             'LINKPORT': {
-                'VDU1_CP1': ['res_id_VDU1_1_CP1', 'res_id_VDU1_2_CP1'],
+                'VDU1_CP1': ['res_id_VDU1_1_CP1'],
                 'VDU1_CP2': ['res_id_VDU1_1_CP2', 'res_id_VDU1_2_CP2'],
                 'VDU1_CP3': ['res_id_VDU1_1_CP3', 'res_id_VDU1_2_CP3'],
                 'VDU1_CP4': ['res_id_VDU1_1_CP4', 'res_id_VDU1_2_CP4'],
