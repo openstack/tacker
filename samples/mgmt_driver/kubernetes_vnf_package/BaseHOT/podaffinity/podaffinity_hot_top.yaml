@@ -33,7 +33,7 @@ resources:
       max_size: 5
       desired_capacity: 3
       resource:
-        type: master_instance.hot.yaml
+        type: podaffinity_nested_master.yaml
         properties:
           flavor: { get_param: [ nfv, VDU, masterNode, flavor ] }
           image: { get_param: [ nfv, VDU, masterNode, image ] }
@@ -64,7 +64,7 @@ resources:
       max_size: 4
       desired_capacity: 2
       resource:
-        type: worker_instance.hot.yaml
+        type: podaffinity_nested_worker.yaml
         properties:
           flavor: { get_param: [ nfv, VDU, workerNode, flavor ] }
           image: { get_param: [ nfv, VDU, workerNode, image ] }
