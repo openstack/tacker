@@ -16,11 +16,12 @@ resources:
         type: VDU1.yaml
         properties:
           flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
-          image: { get_param: [ nfv, VDU, VirtualStorage, vcImageId ] }
+          image: { get_param: [ nfv, VDU, VDU1-VirtualStorage, vcImageId ] }
           zone: { get_param: [ nfv, VDU, VDU1, locationConstraints] }
           net1: { get_param: [ nfv, CP, VDU1_CP1, network] }
           net2: { get_param: [ nfv, CP, VDU1_CP2, network ] }
-          subnet: { get_param: [nfv, CP, VDU1_CP2, fixed_ips, 0, subnet ]}
+          subnet1: { get_param: [nfv, CP, VDU1_CP1, fixed_ips, 0, subnet ]}
+          subnet2: { get_param: [nfv, CP, VDU1_CP2, fixed_ips, 0, subnet ]}
           net3: { get_resource: internalVL1 }
           net4: { get_resource: internalVL2 }
           net5: { get_resource: internalVL3 }
@@ -44,11 +45,12 @@ resources:
     type: OS::Nova::Server
     properties:
       flavor: { get_param: [ nfv, VDU, VDU2, computeFlavourId ] }
-      image: { get_param: [ nfv, VDU, VDU2, vcImageId] }
+      name: VDU2
       availability_zone: { get_param: [ nfv, VDU, VDU2, locationConstraints ] }
+      block_device_mapping_v2: [{"volume_id": { get_resource: VDU2-VirtualStorage }}]
       networks:
-      - port:
-          get_resource: VDU2_CP1
+      - port: { get_param: [ nfv, CP, VDU2_CP1-1, port ]  }
+      - port: { get_param: [ nfv, CP, VDU2_CP1-2, port ]  }
       - port:
           get_resource: VDU2_CP2
       - port:
@@ -58,13 +60,17 @@ resources:
       - port:
           get_resource: VDU2_CP5
 
-# extVL with FixedIP
-  VDU2_CP1:
-    type: OS::Neutron::Port
+  VDU2-VirtualStorage:
+    type: OS::Cinder::Volume
     properties:
-      network: { get_param: [ nfv, CP, VDU2_CP1, network ]  }
-      fixed_ips:
-      - ip_address: { get_param: [nfv, CP, VDU2_CP1, fixed_ips, 0, ip_address]}
+      image: { get_param: [ nfv, VDU, VDU2-VirtualStorage, vcImageId] }
+      size: 1
+      volume_type: { get_resource: multi }
+  multi:
+    type: OS::Cinder::VolumeType
+    properties:
+      name: VDU2-multi
+      metadata: { multiattach: "<is> True" }
 
 # extVL with FixedIP and Subnet
   VDU2_CP2:
@@ -74,6 +80,7 @@ resources:
       fixed_ips:
       - ip_address: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, ip_address]}
         subnet: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, subnet]}
+      - subnet: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 1, subnet]}
 
   VDU2_CP3:
     type: OS::Neutron::Port

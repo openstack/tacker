@@ -34,12 +34,7 @@ shutil.rmtree(tmp_dir)
 
 create_req = paramgen.sample2_create(vnfd_id)
 terminate_req = paramgen.sample2_terminate()
-
-net_ids = utils.get_network_ids(['net0', 'net1', 'net_mgmt'])
-subnet_ids = utils.get_subnet_ids(['subnet0', 'subnet1'])
-
-instantiate_req = paramgen.sample2_instantiate(
-    net_ids, subnet_ids, "http://localhost/identity/v3")
+instantiate_req = paramgen.sample2_instantiate()
 
 with open("create_req", "w") as f:
     f.write(json.dumps(create_req, indent=2))

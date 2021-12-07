@@ -42,11 +42,22 @@ shutil.rmtree(tmp_dir)
 create_req = paramgen.sample1_create(vnfd_id)
 terminate_req = paramgen.sample1_terminate()
 
-net_ids = utils.get_network_ids(['net0', 'net1', 'net_mgmt'])
-subnet_ids = utils.get_subnet_ids(['subnet0', 'subnet1'])
+print('#####################################################################\n'
+      '# Run pre.py if an error occurs                                     #\n'
+      '#  - If an error occurs, run the pre.py script in advance           #\n'
+      '#    to create the openstack resource required to run this script.  #\n'
+      '# Run post.py when you finish tests                                 #\n'
+      '#  - When you no longer need these openstack resources              #\n'
+      '#    after testing, run post.py and delete them.                    #\n'
+      '#####################################################################')
+
+net_ids = utils.get_network_ids(['net0', 'net1', 'net_mgmt', 'ft-net0'])
+subnet_ids = utils.get_subnet_ids(
+    ['subnet0', 'subnet1', 'ft-ipv4-subnet0', 'ft-ipv6-subnet0'])
+port_ids = utils.get_port_ids(['VDU2_CP1-1', 'VDU2_CP1-2'])
 
 instantiate_req = paramgen.sample1_instantiate(
-    net_ids, subnet_ids, "http://localhost/identity/v3")
+    net_ids, subnet_ids, port_ids, "http://localhost/identity/v3")
 
 with open("create_req", "w") as f:
     f.write(json.dumps(create_req, indent=2))

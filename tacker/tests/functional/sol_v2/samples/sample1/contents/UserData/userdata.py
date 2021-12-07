@@ -19,10 +19,34 @@ from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.infra_drivers.openstack import userdata_utils
 
 
-class DefaultUserData(userdata_utils.AbstractUserData):
+class UserData(userdata_utils.AbstractUserData):
 
     @staticmethod
     def instantiate(req, inst, grant_req, grant, tmp_csar_dir):
+        def _get_param_port(cp_name, grant, req):
+            # see grant first then instantiateVnfRequest
+            vls = grant.get('extVirtualLinks', []) + req.get('extVirtualLinks',
+                                                             [])
+            port_ids = []
+            for vl in vls:
+                link_port_ids = []
+                for extcp in vl['extCps']:
+                    if extcp['cpdId'] == cp_name:
+                        link_port_ids = _get_link_port_ids_from_extcp(extcp)
+                if 'extLinkPorts' not in vl:
+                    continue
+                for extlp in vl['extLinkPorts']:
+                    if extlp['id'] in link_port_ids:
+                        port_ids.append(extlp['resourceHandle']['resourceId'])
+            return port_ids
+
+        def _get_link_port_ids_from_extcp(extcp):
+            link_port_ids = []
+            for cp_conf in extcp['cpConfig'].values():
+                if 'linkPortId' in cp_conf:
+                    link_port_ids.append(cp_conf['linkPortId'])
+            return link_port_ids
+
         vnfd = userdata_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
         flavour_id = req['flavourId']
 
@@ -65,6 +89,16 @@ class DefaultUserData(userdata_utils.AbstractUserData):
                             'ip_address')
                     fixed_ips.append(ips_i)
                 cp_value['fixed_ips'] = fixed_ips
+            # NOTE: In the case where multiple cpConfigs corresponding
+            # to a single cpdId are defined, always get the first element
+            # of cpConfig. This is because, according to the current
+            # SOL definitions, the key of cpConfig is the ID managed by
+            # the API consumer, and it is not possible to uniquely determine
+            # which element of cpConfig should be selected by cpdId.
+            # See SOL003 v3.3.1 4.4.1.10 Type: VnfExtCpData.
+            if 'port' in cp_value:
+                cp_value['port'] = _get_param_port(
+                    cp_name, grant, req).pop()
 
         userdata_utils.apply_ext_managed_vls(top_hot, req, grant)
 

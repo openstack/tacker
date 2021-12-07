@@ -17,6 +17,7 @@ import os
 import shutil
 import tempfile
 import time
+import urllib
 import yaml
 
 from oslo_config import cfg
@@ -38,7 +39,7 @@ VNF_PACKAGE_UPLOAD_TIMEOUT = 300
 
 
 class BaseSolV2Test(base.BaseTestCase):
-    """Base test case class for SOL v2 functionl tests."""
+    """Base test case class for SOL v2 functional tests."""
 
     @classmethod
     def setUpClass(cls):
@@ -63,6 +64,10 @@ class BaseSolV2Test(base.BaseTestCase):
         cls.tacker_client = http_client.HttpClient(auth)
         cls.neutron_client = http_client.HttpClient(auth,
                                                     service_type='network')
+        cls.glance_client = http_client.HttpClient(auth,
+                                                   service_type='image')
+        cls.nova_client = http_client.HttpClient(auth,
+                                                 service_type='compute')
         cls.heat_client = heat_utils.HeatClient(vim_info)
 
     @classmethod
@@ -138,6 +143,11 @@ class BaseSolV2Test(base.BaseTestCase):
 
         cls.tacker_client.do_request(path, "DELETE")
 
+    def get_vnf_package(self, pkg_id):
+        path = "/vnfpkgm/v1/vnf_packages/{}".format(pkg_id)
+        resp, body = self.tacker_client.do_request(path, "GET")
+        return body
+
     def get_network_ids(self, networks):
         path = "/v2.0/networks"
         resp, body = self.neutron_client.do_request(path, "GET")
@@ -156,6 +166,100 @@ class BaseSolV2Test(base.BaseTestCase):
                 subnet_ids[subnet['name']] = subnet['id']
         return subnet_ids
 
+    def create_network(self, name):
+        path = "/v2.0/networks"
+        req_body = {
+            "network": {
+                # "admin_state_up": true,
+                "name": name
+            }
+        }
+        try:
+            resp, resp_body = self.neutron_client.do_request(
+                path, "POST", body=req_body)
+            return resp_body['network']['id']
+        except Exception as e:
+            self.fail("Failed, create network for name=<%s>, %s" %
+                (name, e))
+
+    def delete_network(self, net_id):
+        path = "/v2.0/networks/{}".format(net_id)
+        try:
+            self.neutron_client.do_request(path, "DELETE")
+        except Exception as e:
+            self.fail("Failed, delete network for id=<%s>, %s" %
+                (net_id, e))
+
+    def create_subnet(self, net_id, sub_name, sub_range, ip_version):
+        path = "/v2.0/subnets"
+        req_body = {
+            "subnet": {
+                "name": sub_name,
+                "network_id": net_id,
+                "cidr": sub_range,
+                "ip_version": ip_version
+            }
+        }
+        try:
+            resp, resp_body = self.neutron_client.do_request(
+                path, "POST", body=req_body)
+            return resp_body['subnet']['id']
+        except Exception as e:
+            self.fail("Failed, create subnet for name=<%s>, %s" %
+                (sub_name, e))
+
+    def delete_subnet(self, sub_id):
+        path = "/v2.0/subnets/{}".format(sub_id)
+        try:
+            self.neutron_client.do_request(path, "DELETE")
+        except Exception as e:
+            self.fail("Failed, delete subnet for id=<%s>, %s" %
+                (sub_id, e))
+
+    def create_port(self, network_id, name):
+        path = "/v2.0/ports"
+        req_body = {
+            'port': {
+                'network_id': network_id,
+                'name': name
+            }
+        }
+        try:
+            resp, resp_body = self.neutron_client.do_request(
+                path, "POST", body=req_body)
+            return resp_body['port']['id']
+        except Exception as e:
+            self.fail("Failed, create port for net_id=<%s>, %s" %
+                (network_id, e))
+
+    def delete_port(self, port_id):
+        path = "/v2.0/ports/{}".format(port_id)
+        try:
+            self.neutron_client.do_request(path, "DELETE")
+        except Exception as e:
+            self.fail("Failed, delete port for id=<%s>, %s" %
+                (port_id, e))
+
+    def get_image_id(self, image_name):
+        path = "/v2.0/images"
+        resp, resp_body = self.glance_client.do_request(path, "GET")
+
+        image_id = None
+        for image in resp_body.get('images'):
+            if image_name == image['name']:
+                image_id = image['id']
+        return image_id
+
+    def get_server_details(self, server_name):
+        path = "/servers/detail"
+        resp, resp_body = self.nova_client.do_request(path, "GET")
+
+        server_details = None
+        for server in resp_body.get('servers'):
+            if server_name == server['name']:
+                server_details = server
+        return server_details
+
     def create_vnf_instance(self, req_body):
         path = "/vnflcm/v2/vnf_instances"
         return self.tacker_client.do_request(
@@ -168,6 +272,13 @@ class BaseSolV2Test(base.BaseTestCase):
 
     def show_vnf_instance(self, inst_id):
         path = "/vnflcm/v2/vnf_instances/{}".format(inst_id)
+        return self.tacker_client.do_request(
+            path, "GET", version="2.0.0")
+
+    def list_vnf_instance(self, filter_expr=None):
+        path = "/vnflcm/v2/vnf_instances"
+        if filter_expr:
+            path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
         return self.tacker_client.do_request(
             path, "GET", version="2.0.0")
 
@@ -196,3 +307,92 @@ class BaseSolV2Test(base.BaseTestCase):
                 continue
             else:  # FAILED_TEMP or ROLLED_BACK
                 raise Exception("Operation failed. state: %s" % state)
+
+    def wait_lcmocc_failed_temp(self, lcmocc_id):
+        # NOTE: It is not necessary to set timeout because the operation
+        # itself set timeout and the state will become 'FAILED_TEMP'.
+        path = "/vnflcm/v2/vnf_lcm_op_occs/{}".format(lcmocc_id)
+        while True:
+            time.sleep(5)
+            _, body = self.tacker_client.do_request(
+                path, "GET", expected_status=[200], version="2.0.0")
+            state = body['operationState']
+            if state == 'FAILED_TEMP':
+                return
+            elif state in ['STARTING', 'PROCESSING']:
+                continue
+            elif state == 'COMPLETED':
+                raise Exception("Operation unexpected COMPLETED.")
+            else:  # ROLLED_BACK
+                raise Exception("Operation failed. state: %s" % state)
+
+    def show_lcmocc(self, lcmocc_id):
+        path = "/vnflcm/v2/vnf_lcm_op_occs/{}".format(lcmocc_id)
+        return self.tacker_client.do_request(
+            path, "GET", version="2.0.0")
+
+    def list_lcmocc(self, filter_expr=None):
+        path = "/vnflcm/v2/vnf_lcm_op_occs"
+        if filter_expr:
+            path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
+        return self.tacker_client.do_request(
+            path, "GET", version="2.0.0")
+
+    def create_subscription(self, req_body):
+        path = "/vnflcm/v2/subscriptions"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="2.0.0")
+
+    def delete_subscription(self, sub_id):
+        path = "/vnflcm/v2/subscriptions/{}".format(sub_id)
+        return self.tacker_client.do_request(
+            path, "DELETE", version="2.0.0")
+
+    def show_subscription(self, sub_id):
+        path = "/vnflcm/v2/subscriptions/{}".format(sub_id)
+        return self.tacker_client.do_request(
+            path, "GET", version="2.0.0")
+
+    def list_subscriptions(self, filter_expr=None):
+        path = "/vnflcm/v2/subscriptions"
+        if filter_expr:
+            path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
+        return self.tacker_client.do_request(
+            path, "GET", version="2.0.0")
+
+    def _check_resp_headers(self, resp, supported_headers):
+        unsupported_headers = ['Link', 'Retry-After',
+                               'Content-Range', 'WWW-Authenticate']
+        for s in supported_headers:
+            if s not in resp.headers:
+                raise Exception("Supported header doesn't exist: %s" % s)
+        for u in unsupported_headers:
+            if u in resp.headers:
+                raise Exception("Unsupported header exist: %s" % u)
+
+    def check_resp_headers_in_create(self, resp):
+        # includes location header and response body
+        supported_headers = ['Version', 'Location', 'Content-Type',
+                             'Accept-Ranges']
+        self._check_resp_headers(resp, supported_headers)
+
+    def check_resp_headers_in_operation_task(self, resp):
+        # includes location header and no response body
+        supported_headers = ['Version', 'Location']
+        self._check_resp_headers(resp, supported_headers)
+
+    def check_resp_headers_in_get(self, resp):
+        # includes response body and no location header
+        supported_headers = ['Version', 'Content-Type',
+                             'Accept-Ranges']
+        self._check_resp_headers(resp, supported_headers)
+
+    def check_resp_headers_in_delete(self, resp):
+        # no location header and response body
+        supported_headers = ['Version']
+        self._check_resp_headers(resp, supported_headers)
+
+    def check_resp_body(self, body, expected_attrs):
+        for attr in expected_attrs:
+            if attr not in body:
+                raise Exception("Expected attribute doesn't exist: %s" % attr)

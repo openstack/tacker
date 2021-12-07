@@ -18,7 +18,9 @@ parameters:
     type: string
   net5:
     type: string
-  subnet:
+  subnet1:
+    type: string
+  subnet2:
     type: string
 
 resources:
@@ -27,7 +29,7 @@ resources:
     properties:
       flavor: { get_param: flavor }
       name: VDU1
-      block_device_mapping_v2: [{"volume_id": { get_resource: VirtualStorage }}]
+      block_device_mapping_v2: [{"volume_id": { get_resource: VDU1-VirtualStorage }}]
       networks:
       - port:
           get_resource: VDU1_CP1
@@ -44,7 +46,7 @@ resources:
 
       availability_zone: { get_param: zone }
 
-  VirtualStorage:
+  VDU1-VirtualStorage:
     type: OS::Cinder::Volume
     properties:
       image: { get_param: image }
@@ -61,6 +63,8 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: { get_param: net1 }
+      fixed_ips:
+      - subnet: { get_param: subnet1}
 
 # extVL with numDynamicAddresses and subnet
   VDU1_CP2:
@@ -68,7 +72,7 @@ resources:
     properties:
       network: { get_param: net2 }
       fixed_ips:
-      - subnet: { get_param: subnet}
+      - subnet: { get_param: subnet2}
 
 # delete the following line when extmanagedVLs' Ports are specified in instantiatevnfrequest
   VDU1_CP3:
