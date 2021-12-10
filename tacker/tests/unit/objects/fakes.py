@@ -62,6 +62,7 @@ filter = {
     "usageState": ["NOT_IN_USE"],
     "vnfPkgId": ["f04857cb-abdc-405f-8254-01501f3fa059"],
     "vnfdId": ["b1bb0ce7-5555-0001-95ed-4840d70a1209"],
+    "vnfInstanceSubscriptionFilter": {"vnfdIds": []},
     "vnfProductsFromProviders": [
         {
             "vnfProvider": "xxxxx",
