@@ -46,3 +46,36 @@ Grab the code::
 
 
 .. include:: ../../../TESTING.rst
+
+Linting
+-------
+
+Tacker project supports the configuration of `Pylint`_, a lint tool for
+Python code.
+
+You can get Pylint CLI tool from PyPI:
+
+.. code-block:: console
+
+    $ pip install pylint
+
+Then you can check your code with Pylint like:
+
+.. code-block:: console
+
+    $ pylint path/to/code
+
+If you want to check the entire Tacker code:
+
+.. code-block:: console
+
+    $ pylint tacker/
+
+``.pylintrc`` in Tacker repository root is a configuration file of Pylint.
+
+If you want to check Pylint messages, detailed CLI configurations
+and configurations in ``.pylintrc``, please refer to
+`Pylint official reference`_.
+
+.. _Pylint: https://pylint.org/
+.. _Pylint official reference: https://pylint.pycqa.org/en/latest/
