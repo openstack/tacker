@@ -400,6 +400,8 @@ topology_template:
                 leaf: 1048576
         targets: [ internalVL3 ]
 
+# For zuul test, because it only have one Availability Zone,
+# so it cannot realize the AntiAffinityRule for VDU1.
     - policy_antiaffinity_vdu1:
         type: tosca.policies.nfv.AntiAffinityRule
         targets: [ VDU1 ]

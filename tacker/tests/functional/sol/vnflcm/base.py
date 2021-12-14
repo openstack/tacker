@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 import yaml
 import zipfile
 
+from novaclient import client as nova_client
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 
@@ -395,6 +396,15 @@ class BaseVnfLcmTest(base.BaseTackerTest):
                 image_id_list.append(image.id)
 
         return image_id_list
+
+    @classmethod
+    def _list_zone(cls):
+        try:
+            zone = cls.nova_client.services.list()
+        except nova_client.exceptions.ClientException:
+            print("availability zone does not exists.", flush=True)
+            return []
+        return zone
 
     def _register_subscription(self, request_body, http_client=None):
         if http_client is None:

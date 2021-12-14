@@ -110,8 +110,13 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             - Show subscription.
         """
         vnf_package_info = self._register_vnf_package_mock_response()
-        glance_image = self._list_glance_image()[0]
-
+        glance_image = fake_grant.Grant.get_sw_image()
+        flavour_vdu_dict = fake_grant.Grant.get_compute_flavor()
+        zone_name_list = []
+        availability_zone_info = self._list_zone()
+        zone_name_list = list(set(
+            [zone.zone for zone in availability_zone_info
+             if zone.binary == 'nova-compute']))
         # Create subscription and register it.
         callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
             self._testMethodName)
@@ -142,8 +147,11 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
             fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
             callback=lambda req_headers,
-            req_body: fake_grant.Grant.make_inst_response_body(req_body,
-                self.vim['tenant_id'], glance_image.id))
+            req_body: fake_grant.Grant.make_inst_response_body(
+                req_body,
+                self.vim['tenant_id'], glance_image,
+                flavour_vdu_dict,
+                zone_name_list))
 
         # Instantiate vnf instance
         request_body = fake_vnflcm.VnfInstances.\
@@ -175,7 +183,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             req_body: fake_grant.Grant.make_change_ext_conn_response_body(
                 req_body,
                 self.vim['tenant_id'],
-                glance_image.id))
+                zone_name_list))
 
         # Change external connectivity
         request_body = \
@@ -255,7 +263,13 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription
         """
         vnf_package_info = self._register_vnf_package_mock_response()
-        glance_image = self._list_glance_image()[0]
+        glance_image = fake_grant.Grant.get_sw_image()
+        flavour_vdu_dict = fake_grant.Grant.get_compute_flavor()
+        zone_name_list = []
+        availability_zone_info = self._list_zone()
+        zone_name_list = list(set(
+            [zone.zone for zone in availability_zone_info
+             if zone.binary == 'nova-compute']))
 
         # Create subscription and register it.
         callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
@@ -284,8 +298,12 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
             fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
             callback=lambda req_headers,
-            req_body: fake_grant.Grant.make_inst_response_body(req_body,
-                self.vim['tenant_id'], glance_image.id))
+            req_body: fake_grant.Grant.make_inst_response_body(
+                req_body,
+                self.vim['tenant_id'],
+                glance_image,
+                flavour_vdu_dict,
+                zone_name_list))
 
         # Instantiate vnf instance
         request_body = fake_vnflcm.VnfInstances.\
@@ -305,8 +323,12 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
             fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
             callback=lambda req_headers,
-            req_body: fake_grant.Grant.make_heal_response_body(req_body,
-                self.vim['tenant_id'], glance_image.id))
+            req_body: fake_grant.Grant.make_heal_response_body(
+                req_body,
+                self.vim['tenant_id'],
+                glance_image,
+                flavour_vdu_dict,
+                zone_name_list))
 
         # Heal vnf (exists vnfc_instace_id)
         vnfc_instance_id_list = []
@@ -369,7 +391,15 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         """
         vnf_package_info = self._register_vnf_package_mock_response(
             package_dir='functional7')
-        glance_image = self._list_glance_image()[0]
+        glance_image = fake_grant.Grant.get_sw_image(
+            package_dir='functional7')
+        flavour_vdu_dict = fake_grant.Grant.get_compute_flavor(
+            package_dir='functional7')
+        zone_name_list = []
+        availability_zone_info = self._list_zone()
+        zone_name_list = list(set(
+            [zone.zone for zone in availability_zone_info
+             if zone.binary == 'nova-compute']))
 
         # Create subscription and register it.
         callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
@@ -398,8 +428,12 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
             fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
             callback=lambda req_headers,
-            req_body: fake_grant.Grant.make_inst_response_body(req_body,
-                self.vim['tenant_id'], glance_image.id))
+            req_body: fake_grant.Grant.make_inst_response_body(
+                req_body,
+                self.vim['tenant_id'],
+                glance_image,
+                flavour_vdu_dict,
+                zone_name_list))
 
         # Instantiate vnf instance
         request_body = fake_vnflcm.VnfInstances.\
@@ -416,11 +450,16 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # Set Fake server response for Grant-Req(Scale-out)
-        vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
-             fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
-             callback=lambda req_headers,
-             req_body: fake_grant.Grant.make_scaleout_response_body(req_body,
-                 self.vim['tenant_id'], glance_image.id))
+        vnflcm_base.FAKE_SERVER_MANAGER.set_callback(
+            'POST',
+            fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
+            callback=lambda req_headers,
+            req_body: fake_grant.Grant.make_scale_response_body(
+                req_body,
+                self.vim['tenant_id'],
+                glance_image,
+                flavour_vdu_dict,
+                zone_name_list))
 
         # Scale-out vnf instance
         stack = self._get_heat_stack(vnf_instance_id)
@@ -437,10 +476,14 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
                                scale_type='SCALE_OUT')
 
         # Set Fake server response for Grant-Req(Scale-in)
-        vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
-             fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
-             callback=lambda req_headers,
-             req_body: fake_grant.Grant.make_scalein_response_body(req_body))
+        vnflcm_base.FAKE_SERVER_MANAGER.set_callback(
+            'POST',
+            fake_grant.Grant.GRANT_REQ_PATH, status_code=201,
+            callback=lambda req_headers,
+            req_body: fake_grant.Grant.make_scale_response_body(
+                req_body,
+                self.vim['tenant_id'], glance_image, flavour_vdu_dict,
+                zone_name_list))
 
         # Scale-in vnf instance
         stack = self._get_heat_stack(vnf_instance_id)

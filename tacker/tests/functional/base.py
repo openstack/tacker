@@ -101,6 +101,7 @@ class BaseTackerTest(base.BaseTestCase):
         cls.h_client = cls.heatclient()
         cls.glance_client = cls.glanceclient()
         cls.cinder_client = cls.cinderclient()
+        cls.nova_client = cls.novaclient()
 
     @classmethod
     def get_credentials(cls, vim_conf_file=None):
