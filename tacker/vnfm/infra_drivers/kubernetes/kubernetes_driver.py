@@ -1229,6 +1229,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                         if name == vdu_properties.get('name'):
                             namespace = vnf_resource.resource_name.\
                                 split(COMMA_CHARACTER)[0]
+                            if not namespace:
+                                namespace = "default"
                             kind = vnf_resource.resource_type.\
                                 split(COMMA_CHARACTER)[1]
                             if kind in target_kinds:
@@ -1384,6 +1386,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                         if name == vdu_properties.get('name'):
                             namespace = vnf_resource.resource_name.\
                                 split(COMMA_CHARACTER)[0]
+                            if not namespace:
+                                namespace = "default"
                             kind = vnf_resource.resource_type.\
                                 split(COMMA_CHARACTER)[1]
                             if kind in target_kinds:
@@ -2128,6 +2132,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     vnfc_resource.metadata.get(info['kind']))
                 info['name'] = rsc_metadata.get('name')
                 info['namespace'] = rsc_metadata.get('namespace')
+                if not info['namespace']:
+                    info['namespace'] = "default"
                 k8s_resources.append(info)
             # exclude duplicate entries
             k8s_resources = list(map(jsonutils.loads,
