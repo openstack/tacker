@@ -102,3 +102,4 @@ Kubernetes Cluster VNF
    :maxdepth: 1
 
    mgmt_driver_deploy_k8s_usage_guide
+   mgmt_driver_deploy_k8s_and_cnf_with_helm
