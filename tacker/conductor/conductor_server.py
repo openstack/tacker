@@ -1791,7 +1791,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                         notification_type=notification.get('notificationType')
                     )
             if not vnf_lcm_subscriptions:
-                LOG.warn(
+                LOG.warning(
                     "vnf_lcm_subscription not found id[%s]" %
                     notification.get('vnfInstanceId'))
                 return -1
@@ -1851,20 +1851,20 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                                     "reason": str(e)})
                             self._retry_check(num)
                 except Exception as e:
-                    LOG.warn("send error[%s]" % str(e))
-                    LOG.warn(traceback.format_exc())
+                    LOG.warning("send error[%s]" % str(e))
+                    LOG.warning(traceback.format_exc())
                     continue
 
         except Exception as e:
-            LOG.warn("Internal Sever Error[%s]" % str(e))
-            LOG.warn(traceback.format_exc())
+            LOG.warning("Internal Sever Error[%s]" % str(e))
+            LOG.warning(traceback.format_exc())
             return -2
         return 0
 
     def _retry_check(self, retry_count):
         time.sleep(CONF.vnf_lcm.retry_wait)
         if retry_count == CONF.vnf_lcm.retry_num:
-            LOG.warn(
+            LOG.warning(
                 "Number of retries exceeded retry count [%s]" %
                 CONF.vnf_lcm.retry_num)
 
