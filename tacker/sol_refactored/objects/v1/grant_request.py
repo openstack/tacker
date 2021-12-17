@@ -21,7 +21,8 @@ from tacker.sol_refactored.objects.v1 import fields as v1fields
 # NFV-SOL 003
 # - v3.3.1 9.5.2.2 (API version: 1.4.0)
 @base.TackerObjectRegistry.register
-class GrantRequestV1(base.TackerObject, base.TackerObjectDictCompat):
+class GrantRequestV1(base.TackerPersistentObject,
+                     base.TackerObjectDictCompat):
 
     # Version 1.0: Initial version
     VERSION = '1.0'

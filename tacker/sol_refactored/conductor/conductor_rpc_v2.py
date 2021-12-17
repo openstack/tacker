@@ -31,10 +31,16 @@ class VnfLcmRpcApiV2(object):
         fanout=False,
         version='1.0')
 
-    def start_lcm_op(self, context, lcmocc_id):
+    def _cast_lcm_op(self, context, lcmocc_id, method):
         serializer = objects_base.TackerObjectSerializer()
 
         client = rpc.get_client(self.target, version_cap=None,
                                 serializer=serializer)
         cctxt = client.prepare()
-        cctxt.cast(context, 'start_lcm_op', lcmocc_id=lcmocc_id)
+        cctxt.cast(context, method, lcmocc_id=lcmocc_id)
+
+    def start_lcm_op(self, context, lcmocc_id):
+        self._cast_lcm_op(context, lcmocc_id, 'start_lcm_op')
+
+    def retry_lcm_op(self, context, lcmocc_id):
+        self._cast_lcm_op(context, lcmocc_id, 'retry_lcm_op')

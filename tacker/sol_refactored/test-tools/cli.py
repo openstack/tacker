@@ -89,6 +89,11 @@ class Client(object):
             path, "POST", body=req_body, version="2.0.0")
         self.print(resp, body)
 
+    def retry(self, id):
+        path = self.path + '/' + id + '/retry'
+        resp, body = self.client.do_request(path, "POST", version="2.0.0")
+        self.print(resp, body)
+
 
 def usage():
     print("usage: cli resource action [arg...]")
@@ -105,7 +110,13 @@ def usage():
     print("  lcmocc list [body(path of content)]")
     print("  lcmocc show {id}")
     print("  lcmocc delete {id}")
+    print("  lcmocc retry {id}")
     os._exit(1)
+
+
+def get_body(arg):
+    with open(arg) as fp:
+        return json.load(fp)
 
 
 if __name__ == '__main__':
@@ -113,59 +124,50 @@ if __name__ == '__main__':
         usage()
     resource = sys.argv[1]
     action = sys.argv[2]
-    if resource not in ["inst", "subsc", "lcmocc"]:
-        usage()
+
     if resource == "inst":
         if action not in ["create", "list", "show", "delete", "inst", "term"]:
             usage()
-    if resource == "subsc":
-        if action not in ["create", "list", "show", "delete"]:
-            usage()
-    if resource == "lcmocc":
-        if action not in ["list", "show", "delete"]:
-            usage()
-    if action in ["create", "show", "delete"]:
-        if len(sys.argv) != 4:
-            usage()
-        arg1 = sys.argv[3]
-    elif action in ["inst", "term"]:
-        if len(sys.argv) != 5:
-            usage()
-        arg1 = sys.argv[3]
-        arg2 = sys.argv[4]
-    else:  # list
-        arg1 = None
-        if len(sys.argv) == 4:
-            arg1 = sys.argv[3]
-        elif len(sys.argv) != 3:
-            usage()
-
-    if resource == "inst":
         client = Client("/vnflcm/v2/vnf_instances")
     elif resource == "subsc":
+        if action not in ["create", "list", "show", "delete"]:
+            usage()
         client = Client("/vnflcm/v2/subscriptions")
     elif resource == "lcmocc":
+        if action not in ["list", "show", "delete", "retry"]:
+            usage()
         client = Client("/vnflcm/v2/vnf_lcm_op_occs")
+    else:
+        usage()
 
     if action == "create":
-        with open(arg1) as fp:
-            body = json.load(fp)
-        client.create(body)
+        if len(sys.argv) != 4:
+            usage()
+        client.create(get_body(sys.argv[3]))
     elif action == "list":
         body = None
-        if arg1 is not None:
-            with open(arg1) as fp:
-                body = json.load(fp)
+        if len(sys.argv) == 4:
+            body = get_body(sys.argv[3])
+        elif len(sys.argv) != 3:
+            usage()
         client.list(body)
     elif action == "show":
-        client.show(arg1)
+        if len(sys.argv) != 4:
+            usage()
+        client.show(sys.argv[3])
     elif action == "delete":
-        client.delete(arg1)
+        if len(sys.argv) != 4:
+            usage()
+        client.delete(sys.argv[3])
     elif action == "inst":
-        with open(arg2) as fp:
-            body = json.load(fp)
-        client.inst(arg1, body)
+        if len(sys.argv) != 5:
+            usage()
+        client.inst(sys.argv[3], get_body(sys.argv[4]))
     elif action == "term":
-        with open(arg2) as fp:
-            body = json.load(fp)
-        client.term(arg1, body)
+        if len(sys.argv) != 5:
+            usage()
+        client.term(sys.argv[3], get_body(sys.argv[4]))
+    elif action == "retry":
+        if len(sys.argv) != 4:
+            usage()
+        client.retry(sys.argv[3])

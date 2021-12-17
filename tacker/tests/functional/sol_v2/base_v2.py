@@ -47,7 +47,7 @@ class BaseSolV2Test(base.BaseTestCase):
         cfg.CONF(args=['--config-file', '/etc/tacker/tacker.conf'],
                  project='tacker',
                  version='%%prog %s' % version.version_info.release_string())
-        objects.register_all(False)
+        objects.register_all()
 
         vim_info = cls.get_vim_info()
         cls.auth_url = vim_info.interfaceInfo['endpoint']

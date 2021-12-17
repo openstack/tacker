@@ -40,15 +40,29 @@ class HeatClient(object):
         self.client = http_client.HttpClient(auth,
                                              service_type='orchestration')
 
-    def create_stack(self, fields):
+    def create_stack(self, fields, wait=True):
         path = "stacks"
         resp, body = self.client.do_request(path, "POST",
                 expected_status=[201], body=fields)
 
-    def delete_stack(self, stack_name):
+        if wait:
+            self.wait_stack_create(fields["stack_name"])
+
+    def update_stack(self, stack_name, fields, wait=True):
+        path = "stacks/{}".format(stack_name)
+        resp, body = self.client.do_request(path, "PATCH",
+                 expected_status=[202], body=fields)
+
+        if wait:
+            self.wait_stack_update(stack_name)
+
+    def delete_stack(self, stack_name, wait=True):
         path = "stacks/{}".format(stack_name)
         resp, body = self.client.do_request(path, "DELETE",
                 expected_status=[204, 404])
+
+        if wait:
+            self.wait_stack_delete(stack_name)
 
     def get_status(self, stack_name):
         path = "stacks/{}".format(stack_name)
@@ -99,6 +113,10 @@ class HeatClient(object):
     def wait_stack_create(self, stack_name):
         self._wait_completion(stack_name, "Stack create",
             "CREATE_COMPLETE", "CREATE_IN_PROGRESS", "CREATE_FAILED")
+
+    def wait_stack_update(self, stack_name):
+        self._wait_completion(stack_name, "Stack update",
+            "UPDATE_COMPLETE", "UPDATE_IN_PROGRESS", "UPDATE_FAILED")
 
     def wait_stack_delete(self, stack_name):
         self._wait_completion(stack_name, "Stack delete",

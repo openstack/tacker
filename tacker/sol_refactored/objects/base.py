@@ -25,7 +25,7 @@ from oslo_utils import versionutils
 from oslo_versionedobjects import base as ovoo_base
 from oslo_versionedobjects import exception as ovoo_exc
 
-from tacker.sol_refactored.db import api as db_api
+from tacker.db import api as db_api
 from tacker.sol_refactored.db.sqlalchemy import models
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects import fields as obj_fields
@@ -221,6 +221,8 @@ class TackerObject(ovoo_base.VersionedObject):
         for name, field in self.fields.items():
             if not self.obj_attr_is_set(name):
                 continue
+            if getattr(self, name) is None:
+                continue
             if isinstance(field, obj_fields.ObjectField):
                 obj[name] = getattr(self, name).to_dict()
             elif isinstance(field, obj_fields.ListOfObjectsField):
@@ -379,6 +381,14 @@ class TackerPersistentObject(TackerObject):
         return [cls.from_db_obj(item) for item in result]
 
     @classmethod
+    @db_api.context_manager.reader
+    def get_by_filter(cls, context, *args, **kwargs):
+        model_cls = getattr(models, cls.__name__)
+        query = context.session.query(model_cls).filter_by(**kwargs)
+        result = query.all()
+        return [cls.from_db_obj(item) for item in result]
+
+    @classmethod
     def from_db_obj(cls, db_obj):
         inst = cls()
         for name, field in cls.fields.items():
@@ -416,6 +426,9 @@ class TackerPersistentObject(TackerObject):
         for name, field in self.fields.items():
             name_ = get_model_field(name)
             if not self.obj_attr_is_set(name):
+                continue
+            if getattr(self, name) is None:
+                obj[name_] = None
                 continue
             if isinstance(field, obj_fields.ObjectField):
                 obj[name_] = getattr(self, name).to_json()

@@ -210,3 +210,12 @@ class ResponseTooBig(SolHttpError400):
 class LocalNfvoGrantFailed(SolHttpError403):
     title = 'Grant failed'
     # detail set in the code
+
+
+class LcmOpOccNotFailedTemp(SolHttpError409):
+    message = _("LCM operation %(lcmocc_id)s not FAILED_TEMP.")
+
+
+class GrantRequestOrGrantNotFound(SolHttpError404):
+    message = _("GrantRequest or Grant for LCM operation "
+                "%(lcmocc_id)s not found.")

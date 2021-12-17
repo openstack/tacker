@@ -150,6 +150,15 @@ rules = [
              'path': VNF_LCM_OP_OCCS_ID_PATH}
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name=POLICY_NAME.format('lcm_op_occ_retry'),
+        check_str=RULE_ANY,
+        description="Retry VnfLcmOpOcc.",
+        operations=[
+            {'method': 'POST',
+             'path': VNF_LCM_OP_OCCS_ID_PATH + '/retry'}
+        ]
+    ),
     # NOTE: 'DELETE' is not defined in the specification. It is for test
     # use since it is convenient to be able to delete under development.
     # It is available when config parameter

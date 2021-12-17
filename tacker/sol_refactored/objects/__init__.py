@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from tacker.sol_refactored.db import api as db_api
 from tacker.sol_refactored.objects.common import fields  # noqa
 
 # NOTE: You may scratch your head as you see code that imports
@@ -24,7 +23,7 @@ from tacker.sol_refactored.objects.common import fields  # noqa
 # the object.
 
 
-def register_all(init_db=True):
+def register_all():
     # NOTE: You must make sure your object gets imported in this
     # function in order for it to be registered by services that may
     # need to receive it via RPC.
@@ -120,6 +119,3 @@ def register_all(init_db=True):
     __import__(objects_root + '.v2.vnf_snapshot')
     __import__(objects_root + '.v2.vnf_state_snapshot_info')
     __import__(objects_root + '.v2.vnf_virtual_link_resource_info')
-
-    if init_db:
-        db_api.configure()
