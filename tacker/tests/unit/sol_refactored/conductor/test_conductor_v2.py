@@ -264,3 +264,78 @@ class TestConductorV2(db_base.SqlTestCase):
         # check grant_req and grant remain
         # it's OK if no exception raised
         lcmocc_utils.get_grant_req_and_grant(self.context, lcmocc)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'post_grant')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'rollback')
+    def test_rollback_lcm_op_rolled_back(self, mocked_rollback,
+            mocked_post_grant, mocked_get_vnfd,
+            mocked_send_lcmocc_notification):
+        # prepare
+        lcmocc = self._create_inst_and_lcmocc(
+            op_state=fields.LcmOperationStateType.FAILED_TEMP)
+        self._create_grant_req_and_grant(lcmocc)
+        mocked_get_vnfd.return_value = mock.Mock()
+
+        op_state = []
+
+        def _store_state(context, lcmocc, inst, endpoint):
+            op_state.append(lcmocc.operationState)
+
+        mocked_send_lcmocc_notification.side_effect = _store_state
+
+        # run rollback_lcm_op
+        self.conductor.rollback_lcm_op(self.context, lcmocc.id)
+
+        # check operationState transition
+        self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
+        self.assertEqual(fields.LcmOperationStateType.ROLLING_BACK,
+                         op_state[0])
+        self.assertEqual(fields.LcmOperationStateType.ROLLED_BACK, op_state[1])
+
+        # check grant_req and grant are deleted
+        self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
+            lcmocc_utils.get_grant_req_and_grant, self.context, lcmocc)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'post_grant')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'rollback')
+    def test_rollback_lcm_op_failed_temp(self, mocked_rollback,
+            mocked_post_grant, mocked_get_vnfd,
+            mocked_send_lcmocc_notification):
+        # prepare
+        lcmocc = self._create_inst_and_lcmocc(
+            op_state=fields.LcmOperationStateType.FAILED_TEMP)
+        self._create_grant_req_and_grant(lcmocc)
+        mocked_get_vnfd.return_value = mock.Mock()
+        ex = sol_ex.StackOperationFailed(sol_detail="unit test",
+                                         sol_title="stack failed")
+        mocked_rollback.side_effect = ex
+
+        op_state = []
+
+        def _store_state(context, lcmocc, inst, endpoint):
+            op_state.append(lcmocc.operationState)
+
+        mocked_send_lcmocc_notification.side_effect = _store_state
+
+        # run rollback_lcm_op
+        self.conductor.rollback_lcm_op(self.context, lcmocc.id)
+
+        # check operationState transition
+        self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
+        self.assertEqual(fields.LcmOperationStateType.ROLLING_BACK,
+                         op_state[0])
+        self.assertEqual(fields.LcmOperationStateType.FAILED_TEMP, op_state[1])
+
+        # check lcmocc.error
+        # get lcmocc from DB to be sure lcmocc saved to DB
+        lcmocc = lcmocc_utils.get_lcmocc(self.context, lcmocc.id)
+        expected = ex.make_problem_details()
+        self.assertEqual(expected, lcmocc.error.to_dict())
+
+        # check grant_req and grant remain
+        # it's OK if no exception raised
+        lcmocc_utils.get_grant_req_and_grant(self.context, lcmocc)

@@ -219,3 +219,7 @@ class LcmOpOccNotFailedTemp(SolHttpError409):
 class GrantRequestOrGrantNotFound(SolHttpError404):
     message = _("GrantRequest or Grant for LCM operation "
                 "%(lcmocc_id)s not found.")
+
+
+class RollbackNotSupported(SolHttpError422):
+    message = _("Rollback of %(op)s is not supported.")

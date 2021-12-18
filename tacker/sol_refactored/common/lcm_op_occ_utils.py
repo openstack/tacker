@@ -56,10 +56,11 @@ def make_lcmocc_links(lcmocc, endpoint):
         href=inst_utils.inst_href(lcmocc.vnfInstanceId, endpoint))
     links.retry = objects.Link(
         href=lcmocc_task_href(lcmocc.vnfInstanceId, 'retry', endpoint))
+    links.rollback = objects.Link(
+        href=lcmocc_task_href(lcmocc.vnfInstanceId, 'rollback', endpoint))
     # TODO(oda-g): add when implemented
     # links.grant
     # links.cancel
-    # links.rollback
     # links.fail
     # links.vnfSnapshot
 

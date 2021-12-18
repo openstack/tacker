@@ -46,6 +46,7 @@ class VnflcmAPIRouterV2(sol_wsgi.SolAPIRouter):
                                  "DELETE": "subscription_delete"}),
         ("/vnf_lcm_op_occs", {"GET": "lcm_op_occ_list"}),
         ("/vnf_lcm_op_occs/{id}/retry", {"POST": "lcm_op_occ_retry"}),
+        ("/vnf_lcm_op_occs/{id}/rollback", {"POST": "lcm_op_occ_rollback"}),
         # NOTE: 'DELETE' is not defined in the specification. It is for test
         # use since it is convenient to be able to delete under development.
         # It is available when config parameter

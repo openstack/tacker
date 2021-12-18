@@ -104,6 +104,15 @@ class VnfLcmDriverV2(object):
         self._exec_mgmt_driver_script(operation,
             flavour_id, req, inst, grant_req, grant, vnfd)
 
+    def rollback(self, context, lcmocc, inst, grant_req, grant, vnfd):
+        method = getattr(self,
+                         "%s_%s" % (lcmocc.operation.lower(), 'rollback'),
+                         None)
+        if method:
+            method(context, lcmocc, inst, grant_req, grant, vnfd)
+        else:
+            raise sol_ex.RollbackNotSupported(op=lcmocc.operation)
+
     def _get_link_ports(self, inst_req):
         names = []
         if inst_req.obj_attr_is_set('extVirtualLinks'):
@@ -280,6 +289,17 @@ class VnfLcmDriverV2(object):
 
         inst.instantiationState = 'INSTANTIATED'
         lcmocc_utils.make_instantiate_lcmocc(lcmocc, inst)
+
+    def instantiate_rollback(self, context, lcmocc, inst, grant_req,
+            grant, vnfd):
+        req = lcmocc.operationParams
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
+            driver = openstack.Openstack()
+            driver.instantiate_rollback(req, inst, grant_req, grant, vnfd)
+        else:
+            # only support openstack at the moment
+            raise sol_ex.SolException(sol_detail='not support vim type')
 
     def terminate_grant(self, context, lcmocc, inst, vnfd):
         # grant exchange

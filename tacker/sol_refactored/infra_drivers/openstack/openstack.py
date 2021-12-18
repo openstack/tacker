@@ -522,6 +522,14 @@ class Openstack(object):
 
         inst.instantiatedVnfInfo = inst_vnf_info
 
+    def instantiate_rollback(self, req, inst, grant_req, grant, vnfd):
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        heat_client = heat_utils.HeatClient(vim_info)
+        stack_name = heat_utils.get_stack_name(inst)
+        status, _ = heat_client.get_status(stack_name)
+        if status is not None:
+            heat_client.delete_stack(stack_name)
+
     def terminate(self, req, inst, grant_req, grant, vnfd):
         if req.terminationType == 'GRACEFUL':
             timeout = CONF.v2_vnfm.default_graceful_termination_timeout

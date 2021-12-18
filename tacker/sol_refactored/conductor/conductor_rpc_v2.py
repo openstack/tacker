@@ -44,3 +44,6 @@ class VnfLcmRpcApiV2(object):
 
     def retry_lcm_op(self, context, lcmocc_id):
         self._cast_lcm_op(context, lcmocc_id, 'retry_lcm_op')
+
+    def rollback_lcm_op(self, context, lcmocc_id):
+        self._cast_lcm_op(context, lcmocc_id, 'rollback_lcm_op')
