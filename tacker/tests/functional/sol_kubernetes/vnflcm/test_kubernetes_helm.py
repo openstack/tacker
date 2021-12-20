@@ -33,7 +33,8 @@ from tacker.tests import utils
 VNF_PACKAGE_UPLOAD_TIMEOUT = 300
 VNF_INSTANTIATE_TIMEOUT = 600
 VNF_TERMINATE_TIMEOUT = 600
-VNF_HEAL_TIMEOUT = 600
+VNF_HEAL_SOL002_TIMEOUT = 600
+VNF_HEAL_SOL003_TIMEOUT = 1200
 VNF_SCALE_TIMEOUT = 600
 RETRY_WAIT_TIME = 5
 
@@ -291,7 +292,7 @@ class VnfLcmKubernetesHelmTest(base.BaseTackerTest):
         return vnflcm_op_occ
 
     def _wait_vnflcm_op_occs(
-            self, context, vnf_instance_id,
+            self, context, vnf_instance_id, timeout,
             operation_state='COMPLETED'):
         start_time = int(time.time())
         while True:
@@ -301,8 +302,9 @@ class VnfLcmKubernetesHelmTest(base.BaseTackerTest):
             if vnflcm_op_occ.operation_state == operation_state:
                 break
 
-            if ((int(time.time()) - start_time) > VNF_HEAL_TIMEOUT):
-                raise Exception("Failed to wait heal instance")
+            if ((int(time.time()) - start_time) > timeout):
+                raise Exception("Timeout waiting for transition to"
+                                " {} state.".format(operation_state))
 
             time.sleep(RETRY_WAIT_TIME)
 
@@ -318,7 +320,7 @@ class VnfLcmKubernetesHelmTest(base.BaseTackerTest):
             # scale operation
             self._scale_vnf_instance(id, type, aspect_id, number_of_steps)
             # wait vnflcm_op_occs.operation_state become COMPLETE
-            self._wait_vnflcm_op_occs(self.context, id)
+            self._wait_vnflcm_op_occs(self.context, id, VNF_SCALE_TIMEOUT)
             # check scaleStatus after scale operation
             vnf_instance = self._show_vnf_instance(id)
             scale_status_after = \
@@ -372,7 +374,8 @@ class VnfLcmKubernetesHelmTest(base.BaseTackerTest):
         # test heal SOL-002 (partial heal)
         self._heal_vnf_instance(vnf_instance['id'], vnfc_instance_id)
         # wait vnflcm_op_occs.operation_state become COMPLETE
-        self._wait_vnflcm_op_occs(self.context, vnf_instance['id'])
+        self._wait_vnflcm_op_occs(self.context, vnf_instance['id'],
+                                  VNF_HEAL_SOL002_TIMEOUT)
         # check vnfcResourceInfo after heal operation
         vnf_instance = self._show_vnf_instance(vnf_instance['id'])
         after_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance)
@@ -399,7 +402,8 @@ class VnfLcmKubernetesHelmTest(base.BaseTackerTest):
         vnfc_instance_id = []
         self._heal_vnf_instance(vnf_instance['id'], vnfc_instance_id)
         # wait vnflcm_op_occs.operation_state become COMPLETE
-        self._wait_vnflcm_op_occs(self.context, vnf_instance['id'])
+        self._wait_vnflcm_op_occs(self.context, vnf_instance['id'],
+                                  VNF_HEAL_SOL003_TIMEOUT)
         # check vnfcResourceInfo after heal operation
         vnf_instance = self._show_vnf_instance(vnf_instance['id'])
         after_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance)
