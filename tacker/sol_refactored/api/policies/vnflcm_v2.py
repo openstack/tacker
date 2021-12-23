@@ -111,6 +111,15 @@ rules = [
              'path': VNF_INSTANCES_ID_PATH + '/scale'}
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name=POLICY_NAME.format('change_ext_conn'),
+        check_str=RULE_ANY,
+        description="Change external vnf connectivity.",
+        operations=[
+            {'method': 'POST',
+             'path': VNF_INSTANCES_ID_PATH + '/change_ext_conn'}
+        ]
+    ),
 
     # TODO(oda-g): add more lcm operations etc when implemented.
 

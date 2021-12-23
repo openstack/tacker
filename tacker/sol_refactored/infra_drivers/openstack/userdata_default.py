@@ -144,3 +144,97 @@ class DefaultUserData(userdata_utils.AbstractUserData):
         fields = {'parameters': {'nfv': {'VDU': new_vdus}}}
 
         return fields
+
+    @staticmethod
+    def change_ext_conn(req, inst, grant_req, grant, tmp_csar_dir):
+        # change_ext_conn is interested in 'CP' only.
+        # This method returns only 'CP' part in the 'nfv' dict from
+        # ChangeExtVnfConnectivityRequest.
+        # It is applied to json merge patch against the existing 'nfv'
+        # dict by the caller.
+        # NOTE: complete 'nfv' dict can not be made at the moment
+        # since InstantiateVnfRequest is necessary to make it.
+
+        vnfd = userdata_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
+        flavour_id = inst['instantiatedVnfInfo']['flavourId']
+
+        hot_dict = vnfd.get_base_hot(flavour_id)
+        top_hot = hot_dict['template']
+
+        nfv_dict = userdata_utils.init_nfv_dict(top_hot)
+
+        cps = nfv_dict.get('CP', {})
+        new_cps = {}
+        for cp_name, cp_value in cps.items():
+            if 'network' in cp_value:
+                network = userdata_utils.get_param_network(cp_name, grant, req)
+                if network is None:
+                    continue
+                new_cps.setdefault(cp_name, {})
+                new_cps[cp_name]['network'] = network
+            if 'fixed_ips' in cp_value:
+                ext_fixed_ips = userdata_utils.get_param_fixed_ips(
+                    cp_name, grant, req)
+                fixed_ips = []
+                for i in range(len(ext_fixed_ips)):
+                    if i not in cp_value['fixed_ips']:
+                        break
+                    ips_i = cp_value['fixed_ips'][i]
+                    if 'subnet' in ips_i:
+                        ips_i['subnet'] = ext_fixed_ips[i].get('subnet')
+                    if 'ip_address' in ips_i:
+                        ips_i['ip_address'] = ext_fixed_ips[i].get(
+                            'ip_address')
+                    fixed_ips.append(ips_i)
+                new_cps.setdefault(cp_name, {})
+                new_cps[cp_name]['fixed_ips'] = fixed_ips
+
+        fields = {'parameters': {'nfv': {'CP': new_cps}}}
+
+        return fields
+
+    @staticmethod
+    def change_ext_conn_rollback(req, inst, grant_req, grant, tmp_csar_dir):
+        # NOTE: This method is not called by a userdata script but
+        # is called by the openstack infra_driver directly now.
+        # It is thought that it is suitable that this method defines
+        # here since it is very likely to scale method above.
+
+        vnfd = userdata_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
+        flavour_id = inst['instantiatedVnfInfo']['flavourId']
+
+        hot_dict = vnfd.get_base_hot(flavour_id)
+        top_hot = hot_dict['template']
+
+        nfv_dict = userdata_utils.init_nfv_dict(top_hot)
+
+        cps = nfv_dict.get('CP', {})
+        new_cps = {}
+        for cp_name, cp_value in cps.items():
+            if 'network' in cp_value:
+                network = userdata_utils.get_param_network_from_inst(
+                    cp_name, inst)
+                if network is None:
+                    continue
+                new_cps.setdefault(cp_name, {})
+                new_cps[cp_name]['network'] = network
+            if 'fixed_ips' in cp_value:
+                ext_fixed_ips = userdata_utils.get_param_fixed_ips_from_inst(
+                    cp_name, inst)
+                fixed_ips = []
+                for i in range(len(ext_fixed_ips)):
+                    if i not in cp_value['fixed_ips']:
+                        break
+                    ips_i = cp_value['fixed_ips'][i]
+                    if 'subnet' in ips_i:
+                        ips_i['subnet'] = ext_fixed_ips[i].get('subnet')
+                    if 'ip_address' in ips_i:
+                        ips_i['ip_address'] = ext_fixed_ips[i].get(
+                            'ip_address')
+                    fixed_ips.append(ips_i)
+                new_cps.setdefault(cp_name, {})
+                new_cps[cp_name]['fixed_ips'] = fixed_ips
+
+        fields = {'parameters': {'nfv': {'CP': new_cps}}}
+
+        return fields

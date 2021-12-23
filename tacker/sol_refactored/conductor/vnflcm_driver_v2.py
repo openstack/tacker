@@ -36,6 +36,11 @@ LOG = logging.getLogger(__name__)
 CONF = config.CONF
 
 
+# sub method for making id
+def _make_combination_id(a, b):
+    return '{}-{}'.format(a, b)
+
+
 class VnfLcmDriverV2(object):
 
     def __init__(self):
@@ -256,7 +261,7 @@ class VnfLcmDriverV2(object):
             for cp_name in cp_names:
                 add_reses.append(
                     objects.ResourceDefinitionV1(
-                        id="{}-{}".format(cp_name, vdu_res_id),
+                        id=_make_combination_id(cp_name, vdu_res_id),
                         type='LINKPORT',
                         resourceTemplateId=cp_name
                     )
@@ -264,7 +269,7 @@ class VnfLcmDriverV2(object):
             for storage_name in storage_names:
                 add_reses.append(
                     objects.ResourceDefinitionV1(
-                        id="{}-{}".format(storage_name, vdu_res_id),
+                        id=_make_combination_id(storage_name, vdu_res_id),
                         type='STORAGE',
                         resourceTemplateId=storage_name
                     )
@@ -427,7 +432,7 @@ class VnfLcmDriverV2(object):
                         # deleted.
                         continue
                     res_def = objects.ResourceDefinitionV1(
-                        id="{}-{}".format(cp_info.cpdId, vdu_res_id),
+                        id=_make_combination_id(cp_info.cpdId, vdu_res_id),
                         resourceTemplateId=cp_info.cpdId,
                         type='LINKPORT')
                     rm_reses.append(res_def)
@@ -443,7 +448,8 @@ class VnfLcmDriverV2(object):
                             str_name = inst_str.virtualStorageDescId
                             rm_reses.append(
                                 objects.ResourceDefinitionV1(
-                                    id="{}-{}".format(str_name, vdu_res_id),
+                                    id=_make_combination_id(str_name,
+                                                            vdu_res_id),
                                     type='STORAGE',
                                     resourceTemplateId=str_name,
                                     resource=inst_str.storageResource
@@ -650,6 +656,17 @@ class VnfLcmDriverV2(object):
             setattr(inst, attr, inst_utils.json_merge_patch(
                 base, getattr(req, attr)))
 
+    def _merge_vim_connection_info(self, inst, req):
+        # used by MODIFY_INFO and CHANGE_EXT_CONN
+        # inst.vimConnectionInfo exists since req.vimConnectionInfo
+        # can be set only if vnf instance is INSTANTIATED.
+        inst_viminfo = inst.to_dict()['vimConnectionInfo']
+        req_viminfo = req.to_dict()['vimConnectionInfo']
+        merge = inst_utils.json_merge_patch(inst_viminfo, req_viminfo)
+        inst.vimConnectionInfo = {
+            key: objects.VimConnectionInfo.from_dict(value)
+            for key, value in merge.items()}
+
     def modify_info_process(self, context, lcmocc, inst, grant_req,
             grant, vnfd):
         req = lcmocc.operationParams
@@ -685,14 +702,7 @@ class VnfLcmDriverV2(object):
             self._modify_from_req(inst, req, attr)
 
         if req.obj_attr_is_set('vimConnectionInfo'):
-            # inst.vimConnectionInfo exists since req.vimConnectionInfo
-            # can be set only if vnf instance is INSTANTIATED.
-            inst_viminfo = inst.to_dict()['vimConnectionInfo']
-            req_viminfo = req.to_dict()['vimConnectionInfo']
-            merge = inst_utils.json_merge_patch(inst_viminfo, req_viminfo)
-            inst.vimConnectionInfo = {
-                key: objects.VimConnectionInfo.from_dict(value)
-                for key, value in merge.items()}
+            self._merge_vim_connection_info(inst, req)
 
         if req.obj_attr_is_set('vnfcInfoModifications'):
             for vnfc_mod in req.vnfcInfoModifications:
@@ -712,3 +722,106 @@ class VnfLcmDriverV2(object):
             grant, vnfd):
         # DB is not updated, rollback does nothing and makes it successful.
         pass
+
+    def change_ext_conn_grant(self, grant_req, req, inst, vnfd):
+        inst_info = inst.instantiatedVnfInfo
+
+        cp_names = set()
+        link_ports = set()
+        for ext_vl in req.extVirtualLinks:
+            for ext_cp in ext_vl.extCps:
+                cp_names.add(ext_cp.cpdId)
+                for cp_config in ext_cp.cpConfig.values():
+                    if cp_config.obj_attr_is_set('linkPortId'):
+                        link_ports.add(ext_cp.cpdId)
+
+        add_reses = []
+        rm_reses = []
+        update_reses = []
+        rm_vnfc_cps = {}
+        for inst_vnfc in inst_info.vnfcResourceInfo:
+            if not inst_vnfc.obj_attr_is_set('vnfcCpInfo'):
+                continue
+            vnfc_cps = {cp_info.cpdId for cp_info in inst_vnfc.vnfcCpInfo}
+            if not vnfc_cps & cp_names:
+                continue
+
+            old_vdu_res_id = uuidutils.generate_uuid()
+            new_vdu_res_id = uuidutils.generate_uuid()
+            update_reses.append(
+                objects.ResourceDefinitionV1(
+                    id=new_vdu_res_id,
+                    type='COMPUTE',
+                    resourceTemplateId=inst_vnfc.vduId,
+                    resource=inst_vnfc.computeResource
+                )
+            )
+
+            for cp_info in inst_vnfc.vnfcCpInfo:
+                if cp_info.cpdId not in cp_names:
+                    continue
+
+                if cp_info.obj_attr_is_set('vnfExtCpId'):
+                    # if there is not vnfExtCpId, it means extLinkPorts of
+                    # extVirtualLinks was specified.
+                    res_def = objects.ResourceDefinitionV1(
+                        id=_make_combination_id(cp_info.cpdId, old_vdu_res_id),
+                        resourceTemplateId=cp_info.cpdId,
+                        type='LINKPORT')
+                    rm_reses.append(res_def)
+                    rm_vnfc_cps[cp_info.vnfExtCpId] = res_def
+
+                if cp_info.cpdId not in link_ports:
+                    add_reses.append(
+                        objects.ResourceDefinitionV1(
+                            id=_make_combination_id(cp_info.cpdId,
+                                                    new_vdu_res_id),
+                            resourceTemplateId=cp_info.cpdId,
+                            type='LINKPORT'
+                        )
+                    )
+
+        # fill resourceHandle of rm_reses
+        if inst_info.obj_attr_is_set('extVirtualLinkInfo'):
+            for ext_vl in inst_info.extVirtualLinkInfo:
+                if ext_vl.obj_attr_is_set('extLinkPorts'):
+                    for port in ext_vl.extLinkPorts:
+                        if (port.obj_attr_is_set('cpInstanceId') and
+                                port.cpInstanceId in rm_vnfc_cps):
+                            res_def = rm_vnfc_cps[port.cpInstanceId]
+                            res_def.resource = port.resourceHandle
+
+        if add_reses:
+            grant_req.addResources = add_reses
+        if rm_reses:
+            grant_req.removeResources = rm_reses
+        if update_reses:
+            grant_req.updateResources = update_reses
+
+        if req.obj_attr_is_set('additionalParams'):
+            grant_req.additionalParams = req.additionalParams
+
+    def change_ext_conn_process(self, context, lcmocc, inst, grant_req,
+            grant, vnfd):
+        req = lcmocc.operationParams
+        if req.obj_attr_is_set('vimConnectionInfo'):
+            self._merge_vim_connection_info(inst, req)
+
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
+            driver = openstack.Openstack()
+            driver.change_ext_conn(req, inst, grant_req, grant, vnfd)
+        else:
+            # only support openstack at the moment
+            raise sol_ex.SolException(sol_detail='not support vim type')
+
+    def change_ext_conn_rollback(self, context, lcmocc, inst, grant_req,
+            grant, vnfd):
+        req = lcmocc.operationParams
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
+            driver = openstack.Openstack()
+            driver.change_ext_conn_rollback(req, inst, grant_req, grant, vnfd)
+        else:
+            # only support openstack at the moment
+            raise sol_ex.SolException(sol_detail='not support vim type')

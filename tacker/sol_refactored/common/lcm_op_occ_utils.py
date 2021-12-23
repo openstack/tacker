@@ -329,7 +329,8 @@ def _change_vnf_info(lcmocc, inst_saved, inst):
 def update_lcmocc(lcmocc, inst_saved, inst):
     # if operation is MODIFY_INFO, make changedInfo of lcmocc.
     # for other operations, make ResourceChanges of lcmocc
-    # from instantiatedVnfInfo.
+    # from instantiatedVnfInfo. In addition if operation is
+    # CHANGE_EXT_CONN, make changedExtConnectivity of lcmocc.
     # NOTE: grant related info such as resourceDefinitionId, zoneId
     # and so on are not included in lcmocc since such info are not
     # included in instantiatedVnfInfo.
@@ -430,6 +431,53 @@ def update_lcmocc(lcmocc, inst_saved, inst):
         if affected_ext_link_ports:
             change_info.affectedExtLinkPorts = affected_ext_link_ports
         lcmocc.resourceChanges = change_info
+
+    if lcmocc.operation == fields.LcmOperationType.CHANGE_EXT_CONN:
+        _, added_ext_vls, common_ext_vls = _calc_diff('extVirtualLinkInfo')
+
+        def _get_ext_vl(vl_id, vl_array):
+            for vl in vl_array:
+                if vl.id == vl_id:
+                    return vl
+
+        chg_ext_conn = [_get_ext_vl(ext_vl_id, inst_info.extVirtualLinkInfo)
+                        for ext_vl_id in added_ext_vls]
+
+        for ext_vl_id in common_ext_vls:
+            ext_vl = _get_ext_vl(ext_vl_id, inst_info.extVirtualLinkInfo)
+            ext_vl_saved = _get_ext_vl(ext_vl_id,
+                                       inst_info_saved.extVirtualLinkInfo)
+            cp_data = []
+            if ext_vl.obj_attr_is_set('currentVnfExtCpData'):
+                cp_data = sorted(ext_vl.to_dict()['currentVnfExtCpData'],
+                                 key=lambda x: x['cpdId'])
+            cp_data_saved = []
+            if ext_vl_saved.obj_attr_is_set('currentVnfExtCpData'):
+                cp_data_saved = sorted(
+                    ext_vl_saved.to_dict()['currentVnfExtCpData'],
+                    key=lambda x: x['cpdId'])
+            if cp_data != cp_data_saved:
+                chg_ext_conn.append(ext_vl)
+                continue
+
+            # NOTE: For ports created by the heat, the id is not changed if
+            # its resourceId is not changed. But for ports given outside the
+            # heat, the resourceId may be changed without changing the id,
+            # so it is a policy to set changedExtConnectivity when there is
+            # a change in "id" or "resourceHandle.resourceId".
+            port_ids = set()
+            if ext_vl.obj_attr_is_set('extLinkPorts'):
+                port_ids = {(port.id, port.resourceHandle.resourceId)
+                            for port in ext_vl.extLinkPorts}
+            port_ids_saved = set()
+            if ext_vl_saved.obj_attr_is_set('extLinkPorts'):
+                port_ids_saved = {(port.id, port.resourceHandle.resourceId)
+                                  for port in ext_vl_saved.extLinkPorts}
+            if port_ids != port_ids_saved:
+                chg_ext_conn.append(ext_vl)
+
+        if chg_ext_conn:
+            lcmocc.changedExtConnectivity = chg_ext_conn
 
 
 def get_grant_req_and_grant(context, lcmocc):

@@ -93,6 +93,26 @@ ScaleVnfRequest_V200 = {
     'additionalProperties': True,
 }
 
+# SOL003 5.5.2.11
+ChangeExtVnfConnectivityRequest_V200 = {
+    'type': 'object',
+    'properties': {
+        'extVirtualLinks': {
+            'type': 'array',
+            'items': common_types.ExtVirtualLinkData
+        },
+        'vimConnectionInfo': {
+            'type': 'object',
+            'patternProperties': {
+                '^.*$': common_types.VimConnectionInfo
+            },
+        },
+        'additionalParams': parameter_types.keyvalue_pairs,
+    },
+    'required': ['extVirtualLinks'],
+    'additionalProperties': True,
+}
+
 # SOL013 8.3.4
 _SubscriptionAuthentication = {
     'type': 'object',

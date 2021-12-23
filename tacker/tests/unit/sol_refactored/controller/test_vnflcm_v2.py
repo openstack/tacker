@@ -29,6 +29,34 @@ from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests.unit.db import base as db_base
 
 
+_change_ext_conn_req_example = {
+    "extVirtualLinks": [
+        {
+            "id": "id_ext_vl_1",
+            "resourceId": "res_id_ext_vl_1",
+            "extCps": [
+                {
+                    "cpdId": "VDU2_CP2",
+                    "cpConfig": {
+                        "VDU2_CP2_1": {
+                            "linkPortId": "link_port_id_VDU2_CP2"
+                        }
+                    }
+                }
+            ],
+            "extLinkPorts": [
+                {
+                    "id": "link_port_id_VDU2_CP2",
+                    "resourceHandle": {
+                        "resourceId": "res_id_VDU2_CP2"
+                    }
+                }
+            ]
+        }
+    ]
+}
+
+
 class TestVnflcmV2(db_base.SqlTestCase):
 
     def setUp(self):
@@ -459,3 +487,19 @@ class TestVnflcmV2(db_base.SqlTestCase):
         self.assertRaises(sol_ex.SolValidationError,
             self.controller.update, request=self.request, id=inst.id,
             body=body)
+
+    def test_change_ext_conn_not_instantiated(self):
+        inst_id, _ = self._create_inst_and_lcmocc('NOT_INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED)
+
+        self.assertRaises(sol_ex.VnfInstanceIsNotInstantiated,
+            self.controller.change_ext_conn, request=self.request, id=inst_id,
+            body=_change_ext_conn_req_example)
+
+    def test_change_ext_conn_lcmocc_in_progress(self):
+        inst_id, _ = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.FAILED_TEMP)
+
+        self.assertRaises(sol_ex.OtherOperationInProgress,
+            self.controller.change_ext_conn, request=self.request, id=inst_id,
+            body=_change_ext_conn_req_example)

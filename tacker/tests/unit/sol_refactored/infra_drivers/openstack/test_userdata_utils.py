@@ -210,6 +210,59 @@ class TestUserDataUtils(base.BaseTestCase):
         result = userdata_utils.get_param_fixed_ips('VDU2_CP2', {}, req)
         self.assertEqual(expected_result, result)
 
+    def _inst_example_get_network_fixed_ips_from_inst(self):
+        ext_cp = {
+            "cpdId": "VDU2_CP2",
+            "cpConfig": {
+                "VDU2_CP2_1": {
+                    "cpProtocolData": [
+                        {
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [
+                                    {
+                                        "type": "IPV4",
+                                        "fixedAddresses": [
+                                            "ip_address"
+                                        ],
+                                        "subnetId": "subnet_id"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+        inst = {
+            "instantiatedVnfInfo": {
+                "extVirtualLinkInfo": [
+                    {
+                        "id": "8b49f4b6-1ff9-4a03-99cf-ff445b788436",
+                        "resourceHandle": {
+                            "resourceId": "ext_vl_res_id"
+                        },
+                        "currentVnfExtCpData": [ext_cp]
+                    }
+                ]
+            }
+        }
+        return inst
+
+    def test_get_parama_network_from_inst(self):
+        inst = self._inst_example_get_network_fixed_ips_from_inst()
+
+        result = userdata_utils.get_param_network_from_inst('VDU2_CP2', inst)
+        self.assertEqual("ext_vl_res_id", result)
+
+    def test_get_param_fixed_ips_from_inst(self):
+        inst = self._inst_example_get_network_fixed_ips_from_inst()
+
+        expected_result = [{'ip_address': 'ip_address', 'subnet': 'subnet_id'}]
+
+        result = userdata_utils.get_param_fixed_ips_from_inst('VDU2_CP2', inst)
+        self.assertEqual(expected_result, result)
+
     def test_apply_ext_managed_vls(self):
         hot_dict = self.vnfd_1.get_base_hot(SAMPLE_FLAVOUR_ID)
         top_hot = hot_dict['template']

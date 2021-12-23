@@ -142,7 +142,84 @@ _instantiate_req_example = {
     }
 }
 
-# heat resources example
+# ChangeExtVnfConnectivityRequest example
+_change_ext_conn_req_example = {
+    "extVirtualLinks": [
+        {
+            "id": "id_ext_vl_3",
+            "resourceId": "res_id_ext_vl_3",
+            "extCps": [
+                {
+                    "cpdId": "VDU2_CP1",
+                    "cpConfig": {
+                        "VDU2_CP1_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "fixedAddresses": [
+                                                    "20.10.0.102"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "id_ext_vl_4",
+            "resourceId": "res_id_id_ext_vl_4",
+            "extCps": [
+                {
+                    "cpdId": "VDU1_CP2",
+                    "cpConfig": {
+                        "VDU1_CP2_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "numDynamicAddresses": 1,
+                                                "subnetId": "res_id_subnet_4"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "cpdId": "VDU2_CP2",
+                    "cpConfig": {
+                        "VDU2_CP2_1": {
+                            "linkPortId": "link_port_id_VDU2_CP2_modified"
+                        }
+                    }
+                }
+            ],
+            "extLinkPorts": [
+                {
+                    "id": "link_port_id_VDU2_CP2_modified",
+                    "resourceHandle": {
+                        "resourceId": "res_id_VDU2_CP2_modified"
+                    }
+                }
+            ]
+        }
+    ]
+}
+
+# heat resources examples
 # NOTE:
 # - following attributes which are not related to tests are omitted.
 #   updated_time, logical_resource_id, resource_status, resource_status_reason
@@ -169,7 +246,7 @@ _stack_id_VDU1_2 = (
     "myet4efobvvp-aptv6apap2h5/dd94d2ae-a02b-4fab-a492-514c422299ec")
 _href_VDU1_2 = "".join((_url, _stack_id_VDU1_2))
 
-_heat_reses_example = [
+_heat_reses_example_base = [
     {
         "creation_time": "2021-12-10T00:40:46Z",
         "resource_name": "VDU2",
@@ -182,21 +259,6 @@ _heat_reses_example = [
             }
         ],
         "required_by": []
-    },
-    {
-        "creation_time": "2021-12-10T00:40:46Z",
-        "resource_name": "VDU2_CP1",
-        "physical_resource_id": "res_id_VDU2_CP1",
-        "resource_type": "OS::Neutron::Port",
-        "links": [
-            {
-                "href": _href,
-                "rel": "stack"
-            }
-        ],
-        "required_by": [
-            "VDU2"
-        ]
     },
     {
         "creation_time": "2021-12-10T00:40:47Z",
@@ -439,22 +501,6 @@ _heat_reses_example = [
     },
     {
         "creation_time": "2021-12-10T00:41:45Z",
-        "resource_name": "VDU1_CP2",
-        "physical_resource_id": "res_id_VDU1_CP2_1",
-        "resource_type": "OS::Neutron::Port",
-        "links": [
-            {
-                "href": _href_VDU1_1,
-                "rel": "stack"
-            }
-        ],
-        "required_by": [
-            "VDU1"
-        ],
-        "parent_resource": "bemybz4ugeso"
-    },
-    {
-        "creation_time": "2021-12-10T00:41:45Z",
         "resource_name": "VDU1_CP1",
         "physical_resource_id": "res_id_VDU1_CP1_1",
         "resource_type": "OS::Neutron::Port",
@@ -566,22 +612,6 @@ _heat_reses_example = [
     },
     {
         "creation_time": "2021-12-10T01:03:53Z",
-        "resource_name": "VDU1_CP2",
-        "physical_resource_id": "res_id_VDU1_CP2_2",
-        "resource_type": "OS::Neutron::Port",
-        "links": [
-            {
-                "href": _href_VDU1_2,
-                "rel": "stack"
-            }
-        ],
-        "required_by": [
-            "VDU1"
-        ],
-        "parent_resource": "myet4efobvvp"
-    },
-    {
-        "creation_time": "2021-12-10T01:03:53Z",
         "resource_name": "VDU1_CP1",
         "physical_resource_id": "res_id_VDU1_CP1_2",
         "resource_type": "OS::Neutron::Port",
@@ -647,7 +677,115 @@ _heat_reses_example = [
     }
 ]
 
-# expected results
+_heat_reses_example_cps_before = [
+    {
+        "creation_time": "2021-12-10T00:40:46Z",
+        "resource_name": "VDU2_CP1",
+        "physical_resource_id": "res_id_VDU2_CP1",
+        "resource_type": "OS::Neutron::Port",
+        "links": [
+            {
+                "href": _href,
+                "rel": "stack"
+            }
+        ],
+        "required_by": [
+            "VDU2"
+        ]
+    },
+    {
+        "creation_time": "2021-12-10T00:41:45Z",
+        "resource_name": "VDU1_CP2",
+        "physical_resource_id": "res_id_VDU1_CP2_1",
+        "resource_type": "OS::Neutron::Port",
+        "links": [
+            {
+                "href": _href_VDU1_1,
+                "rel": "stack"
+            }
+        ],
+        "required_by": [
+            "VDU1"
+        ],
+        "parent_resource": "bemybz4ugeso"
+    },
+    {
+        "creation_time": "2021-12-10T01:03:53Z",
+        "resource_name": "VDU1_CP2",
+        "physical_resource_id": "res_id_VDU1_CP2_2",
+        "resource_type": "OS::Neutron::Port",
+        "links": [
+            {
+                "href": _href_VDU1_2,
+                "rel": "stack"
+            }
+        ],
+        "required_by": [
+            "VDU1"
+        ],
+        "parent_resource": "myet4efobvvp"
+    }
+]
+
+_heat_reses_example_cps_after = [
+    {
+        "creation_time": "2021-12-10T00:40:46Z",
+        "resource_name": "VDU2_CP1",
+        "physical_resource_id": "res_id_VDU2_CP1_modified",
+        "resource_type": "OS::Neutron::Port",
+        "links": [
+            {
+                "href": _href,
+                "rel": "stack"
+            }
+        ],
+        "required_by": [
+            "VDU2"
+        ]
+    },
+    {
+        "creation_time": "2021-12-10T00:41:45Z",
+        "resource_name": "VDU1_CP2",
+        "physical_resource_id": "res_id_VDU1_CP2_1_modified",
+        "resource_type": "OS::Neutron::Port",
+        "links": [
+            {
+                "href": _href_VDU1_1,
+                "rel": "stack"
+            }
+        ],
+        "required_by": [
+            "VDU1"
+        ],
+        "parent_resource": "bemybz4ugeso"
+    },
+    {
+        "creation_time": "2021-12-10T01:03:53Z",
+        "resource_name": "VDU1_CP2",
+        "physical_resource_id": "res_id_VDU1_CP2_2_modified",
+        "resource_type": "OS::Neutron::Port",
+        "links": [
+            {
+                "href": _href_VDU1_2,
+                "rel": "stack"
+            }
+        ],
+        "required_by": [
+            "VDU1"
+        ],
+        "parent_resource": "myet4efobvvp"
+    }
+]
+
+# heat resources example for other than change_ext_conn
+_heat_reses_example = (
+    _heat_reses_example_base + _heat_reses_example_cps_before)
+
+# heat resources example after executing change_ext_conn
+_heat_reses_example_change_ext_conn = (
+    _heat_reses_example_base + _heat_reses_example_cps_after)
+
+# expected results (other than change_ext_conn)
 _expected_inst_info = {
     "flavourId": "simple",
     "vnfState": "STARTED",
@@ -1228,6 +1366,417 @@ _expected_inst_info_vnfc_updated["vnfcInfo"] = [
     }
 ]
 
+# expected results for change_ext_conn
+_expected_inst_info_change_ext_conn = {
+    "flavourId": "simple",
+    "vnfState": "STARTED",
+    "extCpInfo": [
+        {
+            'id': 'cp-req-link_port_id_VDU2_CP2_modified',
+            'cpdId': 'VDU2_CP2',
+            'cpConfigId': 'VDU2_CP2_1',
+            'extLinkPortId': 'req-link_port_id_VDU2_CP2_modified',
+        },
+        {
+            "id": "cp-res_id_VDU1_CP1_1",
+            "cpdId": "VDU1_CP1",
+            "cpConfigId": "VDU1_CP1_1",
+            "cpProtocolInfo": [
+                {
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                        "ipAddresses": [
+                            {
+                                "type": "IPV4",
+                                "isDynamic": True
+                            }
+                        ]
+                    }
+                }
+            ],
+            "extLinkPortId": "res_id_VDU1_CP1_1",
+            "associatedVnfcCpId": "VDU1_CP1-res_id_VDU1_1"
+        },
+        {
+            "id": "cp-res_id_VDU1_CP1_2",
+            "cpdId": "VDU1_CP1",
+            "cpConfigId": "VDU1_CP1_1",
+            "cpProtocolInfo": [
+                {
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                        "ipAddresses": [
+                            {
+                                "type": "IPV4",
+                                "isDynamic": True
+                            }
+                        ]
+                    }
+                }
+            ],
+            "extLinkPortId": "res_id_VDU1_CP1_2",
+            "associatedVnfcCpId": "VDU1_CP1-res_id_VDU1_2"
+        },
+        {
+            "id": "cp-res_id_VDU1_CP2_1_modified",
+            "cpdId": "VDU1_CP2",
+            "cpConfigId": "VDU1_CP2_1",
+            "cpProtocolInfo": [
+                {
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                        "ipAddresses": [
+                            {
+                                "type": "IPV4",
+                                "isDynamic": True,
+                                "subnetId": "res_id_subnet_4"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "extLinkPortId": "res_id_VDU1_CP2_1_modified",
+            "associatedVnfcCpId": "VDU1_CP2-res_id_VDU1_1"
+        },
+        {
+            "id": "cp-res_id_VDU1_CP2_2_modified",
+            "cpdId": "VDU1_CP2",
+            "cpConfigId": "VDU1_CP2_1",
+            "cpProtocolInfo": [
+                {
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                        "ipAddresses": [
+                            {
+                                "type": "IPV4",
+                                "isDynamic": True,
+                                "subnetId": "res_id_subnet_4"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "extLinkPortId": "res_id_VDU1_CP2_2_modified",
+            "associatedVnfcCpId": "VDU1_CP2-res_id_VDU1_2"
+        },
+        {
+            "id": "cp-res_id_VDU2_CP1_modified",
+            "cpdId": "VDU2_CP1",
+            "cpConfigId": "VDU2_CP1_1",
+            "cpProtocolInfo": [
+                {
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                        "ipAddresses": [
+                            {
+                                "type": "IPV4",
+                                "addresses": [
+                                    "20.10.0.102"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ],
+            "extLinkPortId": "res_id_VDU2_CP1_modified",
+            "associatedVnfcCpId": "VDU2_CP1-res_id_VDU2"
+        }
+    ],
+    "extVirtualLinkInfo": [
+        {
+            "id": "id_ext_vl_1",
+            "resourceHandle": {
+                "resourceId": "res_id_ext_vl_1"
+            },
+            "extLinkPorts": [
+                {
+                    "id": "res_id_VDU1_CP1_1",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_id_1",
+                        "resourceId": "res_id_VDU1_CP1_1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU1_CP1_1"
+                },
+                {
+                    "id": "res_id_VDU1_CP1_2",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_id_1",
+                        "resourceId": "res_id_VDU1_CP1_2",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU1_CP1_2"
+                }
+            ],
+            "currentVnfExtCpData": [
+                {
+                    "cpdId": "VDU1_CP1",
+                    "cpConfig": {
+                        "VDU1_CP1_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "numDynamicAddresses": 1
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "id_ext_vl_3",
+            "resourceHandle": {
+                "resourceId": "res_id_ext_vl_3"
+            },
+            "extLinkPorts": [
+                {
+                    "id": "res_id_VDU2_CP1_modified",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_id_1",
+                        "resourceId": "res_id_VDU2_CP1_modified",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU2_CP1_modified"
+                }
+            ],
+            "currentVnfExtCpData": [
+                {
+                    "cpdId": "VDU2_CP1",
+                    "cpConfig": {
+                        "VDU2_CP1_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "fixedAddresses": [
+                                                    "20.10.0.102"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "id_ext_vl_4",
+            "resourceHandle": {
+                "resourceId": "res_id_id_ext_vl_4"
+            },
+            "extLinkPorts": [
+                {
+                    "id": "req-link_port_id_VDU2_CP2_modified",
+                    "resourceHandle": {
+                        "resourceId": "res_id_VDU2_CP2_modified",
+                    },
+                    "cpInstanceId": "cp-req-link_port_id_VDU2_CP2_modified"
+                },
+                {
+                    "id": "res_id_VDU1_CP2_1_modified",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_id_1",
+                        "resourceId": "res_id_VDU1_CP2_1_modified",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU1_CP2_1_modified"
+                },
+                {
+                    "id": "res_id_VDU1_CP2_2_modified",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_id_1",
+                        "resourceId": "res_id_VDU1_CP2_2_modified",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU1_CP2_2_modified"
+                }
+            ],
+            "currentVnfExtCpData": [
+                {
+                    "cpdId": "VDU1_CP2",
+                    "cpConfig": {
+                        "VDU1_CP2_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "numDynamicAddresses": 1,
+                                                "subnetId": "res_id_subnet_4"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "cpdId": "VDU2_CP2",
+                    "cpConfig": {
+                        "VDU2_CP2_1": {
+                            "linkPortId": "link_port_id_VDU2_CP2_modified"
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "vnfcResourceInfo": [
+        {
+            "id": "res_id_VDU1_2",
+            "vduId": "VDU1",
+            "computeResource": {
+                "vimConnectionId": "vim_id_1",
+                "resourceId": "res_id_VDU1_2",
+                "vimLevelResourceType": "OS::Nova::Server"
+            },
+            "storageResourceIds": [
+                "res_id_VirtualStorage_2"
+            ],
+            "vnfcCpInfo": [
+                {
+                    "id": "VDU1_CP1-res_id_VDU1_2",
+                    "cpdId": "VDU1_CP1",
+                    "vnfExtCpId": "cp-res_id_VDU1_CP1_2"
+                },
+                {
+                    "id": "VDU1_CP2-res_id_VDU1_2",
+                    "cpdId": "VDU1_CP2",
+                    "vnfExtCpId": "cp-res_id_VDU1_CP2_2_modified"
+                },
+                {
+                    "id": "VDU1_CP3-res_id_VDU1_2",
+                    "cpdId": "VDU1_CP3",
+                    "vnfLinkPortId": "res_id_VDU1_CP3_2"
+                },
+                {
+                    "id": "VDU1_CP4-res_id_VDU1_2",
+                    "cpdId": "VDU1_CP4",
+                    "vnfLinkPortId": "res_id_VDU1_CP4_2"
+                },
+                {
+                    "id": "VDU1_CP5-res_id_VDU1_2",
+                    "cpdId": "VDU1_CP5",
+                    "vnfLinkPortId": "res_id_VDU1_CP5_2"
+                }
+            ],
+            "metadata": {
+                "creation_time": "2021-12-10T01:03:49Z",
+                "parent_stack_id": _stack_id_VDU1_scale,
+                "parent_resource_name": "myet4efobvvp"
+            }
+        },
+        {
+            "id": "res_id_VDU1_1",
+            "vduId": "VDU1",
+            "computeResource": {
+                "vimConnectionId": "vim_id_1",
+                "resourceId": "res_id_VDU1_1",
+                "vimLevelResourceType": "OS::Nova::Server"
+            },
+            "storageResourceIds": [
+                "res_id_VirtualStorage_1"
+            ],
+            "vnfcCpInfo": [
+                {
+                    "id": "VDU1_CP1-res_id_VDU1_1",
+                    "cpdId": "VDU1_CP1",
+                    "vnfExtCpId": "cp-res_id_VDU1_CP1_1"
+                },
+                {
+                    "id": "VDU1_CP2-res_id_VDU1_1",
+                    "cpdId": "VDU1_CP2",
+                    "vnfExtCpId": "cp-res_id_VDU1_CP2_1_modified"
+                },
+                {
+                    "id": "VDU1_CP3-res_id_VDU1_1",
+                    "cpdId": "VDU1_CP3",
+                    "vnfLinkPortId": "res_id_VDU1_CP3_1"
+                },
+                {
+                    "id": "VDU1_CP4-res_id_VDU1_1",
+                    "cpdId": "VDU1_CP4",
+                    "vnfLinkPortId": "res_id_VDU1_CP4_1"
+                },
+                {
+                    "id": "VDU1_CP5-res_id_VDU1_1",
+                    "cpdId": "VDU1_CP5",
+                    "vnfLinkPortId": "res_id_VDU1_CP5_1"
+                }
+            ],
+            "metadata": {
+                "creation_time": "2021-12-10T00:41:43Z",
+                "parent_stack_id": _stack_id_VDU1_scale,
+                "parent_resource_name": "bemybz4ugeso"
+            }
+        },
+        {
+            "id": "res_id_VDU2",
+            "vduId": "VDU2",
+            "computeResource": {
+                "vimConnectionId": "vim_id_1",
+                "resourceId": "res_id_VDU2",
+                "vimLevelResourceType": "OS::Nova::Server"
+            },
+            "vnfcCpInfo": [
+                {
+                    "id": "VDU2_CP1-res_id_VDU2",
+                    "cpdId": "VDU2_CP1",
+                    "vnfExtCpId": "cp-res_id_VDU2_CP1_modified"
+                },
+                {
+                    "id": "VDU2_CP2-res_id_VDU2",
+                    "cpdId": "VDU2_CP2",
+                    # "vnfExtCpId" does not exist since it is specified by
+                    # linkPortIds.
+                },
+                {
+                    "id": "VDU2_CP3-res_id_VDU2",
+                    "cpdId": "VDU2_CP3",
+                    "vnfLinkPortId": "res_id_VDU2_CP3"
+                },
+                {
+                    "id": "VDU2_CP4-res_id_VDU2",
+                    "cpdId": "VDU2_CP4",
+                    "vnfLinkPortId": "res_id_VDU2_CP4"
+                },
+                {
+                    "id": "VDU2_CP5-res_id_VDU2",
+                    "cpdId": "VDU2_CP5",
+                    "vnfLinkPortId": "res_id_VDU2_CP5"
+                }
+            ],
+            "metadata": {
+                "creation_time": "2021-12-10T00:40:46Z"
+            }
+        }
+    ],
+    # other members are not changed from _expected_inst_info
+    "extManagedVirtualLinkInfo":
+        _expected_inst_info["extManagedVirtualLinkInfo"],
+    "vnfVirtualLinkResourceInfo":
+        _expected_inst_info["vnfVirtualLinkResourceInfo"],
+    "virtualStorageResourceInfo":
+        _expected_inst_info["virtualStorageResourceInfo"],
+    "vnfcInfo": _expected_inst_info["vnfcInfo"]
+}
+
 
 class TestOpenstack(base.BaseTestCase):
 
@@ -1258,6 +1807,7 @@ class TestOpenstack(base.BaseTestCase):
 
         if "extVirtualLinkInfo" in expected:
             self.assertIn("extVirtualLinkInfo", result)
+            result["extVirtualLinkInfo"].sort(key=_get_key)
             for ext_vl in result["extVirtualLinkInfo"]:
                 if "extLinkPorts" in ext_vl:
                     ext_vl["extLinkPorts"].sort(key=_get_key)
@@ -1350,3 +1900,30 @@ class TestOpenstack(base.BaseTestCase):
         # check
         result = inst.to_dict()["instantiatedVnfInfo"]
         self._check_inst_info(_expected_inst_info_vnfc_updated, result)
+
+    def test_make_instantiated_vnf_info_change_ext_conn(self):
+        # prepare
+        req = objects.ChangeExtVnfConnectivityRequest.from_dict(
+            _change_ext_conn_req_example)
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _expected_inst_info)
+        vim_info = {
+            "vim1": objects.VimConnectionInfo.from_dict(
+                _vim_connection_info_example)
+        }
+        inst = objects.VnfInstanceV2(
+            instantiatedVnfInfo=inst_info,
+            vimConnectionInfo=vim_info
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_EXT_CONN
+        )
+        grant = objects.GrantV1()
+
+        # execute make_instantiated_vnf_info
+        self.driver._make_instantiated_vnf_info(req, inst, grant_req, grant,
+            self.vnfd_1, _heat_reses_example_change_ext_conn)
+
+        # check
+        result = inst.to_dict()["instantiatedVnfInfo"]
+        self._check_inst_info(_expected_inst_info_change_ext_conn, result)
