@@ -47,8 +47,24 @@ class TestFilterExpr(base.BaseTestCase):
 
     def test_match_bool(self):
         fexp = vnflcm_view.FilterExpr('eq',
-            ['foo/bar'], ['false'])
+            ['foo', 'bar'], ['false'])
         self.assertFalse(fexp.match({'foo': {'bar': True}}))
+
+        fexp2 = vnflcm_view.FilterExpr('eq',
+            ['foo', 'bar'], ['true'])
+        self.assertTrue(fexp2.match({'foo': {'bar': True}}))
+
+        fexp3 = vnflcm_view.FilterExpr('eq',
+            ['foo', 'bar'], ['invalid'])
+        self.assertRaises(sol_ex.InvalidAttributeFilter,
+                          fexp3.match,
+                          {'foo': {'bar': True}})
+
+    def test_match_key(self):
+        fexp = vnflcm_view.FilterExpr('eq',
+            ['foo', vnflcm_view.KeyAttribute()], ['abc'])
+        self.assertFalse(fexp.match({'foo': {'bar': True}}))
+        self.assertTrue(fexp.match({'foo': {'abc': False}}))
 
 
 class TestAttributeSelector(base.BaseTestCase):
@@ -67,11 +83,13 @@ class TestAttributeSelector(base.BaseTestCase):
                           [], exclude_default='1', exclude_fields='b')
 
     def test_filter_default(self):
-        selector = vnflcm_view.AttributeSelector(['foo', 'bar'])
+        selector = vnflcm_view.AttributeSelector(
+            ['foo', 'hoge/foo1', 'bar'])
         obj = mock.NonCallableMagicMock()
         obj.fields.__getitem__.return_value = FakeField(True)
         r = selector.filter(obj, {'foo': 1, 'bar': 2, 'baz': 3})
         self.assertEqual(r, {'baz': 3})
+        obj.fields.__getitem__.assert_called_with('bar')
 
     def test_filter_exclude_default(self):
         selector = vnflcm_view.AttributeSelector(['foo', 'bar'],
@@ -137,6 +155,13 @@ class TestBaseViewBuilder(base.BaseTestCase):
         self.assertEqual(len(f4), 2)
         self.assertEqual(len(f4[0].values), 2)
         self.assertEqual(len(f4[1].values), 2)
+
+        f5 = builder.parse_filter("(eq,foo/@key,'abc')")
+        self.assertEqual(len(f5), 1)
+        self.assertEqual(len(f5[0].attr), 2)
+        self.assertEqual(f5[0].attr[0], 'foo')
+        self.assertIsInstance(f5[0].attr[1], vnflcm_view.KeyAttribute)
+        self.assertEqual(len(f5[0].values), 1)
 
     def test_parse_filter_invalid(self):
         builder = vnflcm_view.BaseViewBuilder()

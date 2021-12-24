@@ -30,6 +30,11 @@ from tacker.sol_refactored import objects
 LOG = logging.getLogger(__name__)
 
 
+class KeyAttribute(object):
+    """A placeholder class for handling @key in filter attribute names"""
+    pass
+
+
 class FilterExpr(object):
     def __init__(self, op, attr, values):
         self.op = op
@@ -72,8 +77,10 @@ class FilterExpr(object):
     def match(self, val):
         try:
             for a in self.attr:
-                # TODO(toshii): handle "@key"
-                val = val[a]
+                if isinstance(a, KeyAttribute):
+                    val = list(val.keys())
+                else:
+                    val = val[a]
         except KeyError:
             LOG.debug("Attr %s not found in %s", self.attr, val)
             return False
@@ -85,13 +92,28 @@ class FilterExpr(object):
             if isinstance(val, datetime):
                 self.values[0] = parser.isoparse(self.values[0])
             elif isinstance(val, bool):
-                self.values[0] = bool(self.values[0])
+                if self.values[0] == 'true':
+                    self.values[0] = True
+                elif self.values[0] == 'false':
+                    self.values[0] = False
+                else:
+                    raise sol_ex.InvalidAttributeFilter(
+                        sol_detail="invalid value for boolean")
             elif isinstance(val, int):
                 self.values = [int(v) for v in self.values]
             elif isinstance(val, float):
                 self.values = [float(v) for v in self.values]
 
-        return getattr(self, "match_" + self.op)(val)
+        # NOTE: This might not be SOL013 compliant when there are
+        # multiple filters with a same attribute prefix.
+        match_fn = getattr(self, "match_" + self.op)
+        if isinstance(val, list):
+            for v in val:
+                if match_fn(v):
+                    return True
+            return False
+        else:
+            return match_fn(val)
 
 
 class AttributeSelector(object):
@@ -128,14 +150,17 @@ class AttributeSelector(object):
                 return odict
             excl_fields = [k for k in odict.keys() if k not in self.fields]
 
-        for k in excl_fields:
-            klist = k.split('/')
-            if len(klist) > 1:
-                # TODO(toshii): check if this nested field is nullable
-                pass
-            else:
-                if not obj.fields[klist[0]].nullable:
-                    continue
+        for attr in excl_fields:
+            klist = attr.split('/')
+
+            # Check if the specified attribute has a lower cardinality bound
+            # of 0. (SOL013 5.3.2.1)
+            obj1 = obj
+            for key in klist[:-1]:
+                obj1 = getattr(obj1, key)
+            if not obj1.fields[klist[-1]].nullable:
+                continue
+
             val = odict
             deleted_ptr = deleted
             try:
@@ -148,14 +173,14 @@ class AttributeSelector(object):
                         if k1 not in deleted_ptr:
                             deleted_ptr[k1] = {}
                         deleted_ptr = deleted_ptr[k1]
-            except KeyError:
+            except (KeyError, TypeError):
                 pass
         if not self.fields:
             return odict
 
         # Readd partial dictionary content
-        for k in self.fields:
-            klist = k.split('/')
+        for attr in self.fields:
+            klist = attr.split('/')
             val = odict
             deleted_ptr = deleted
             try:
@@ -194,11 +219,12 @@ class BaseViewBuilder(object):
                 elif m.group(1) == 'b':
                     return '@'
 
+            if string == '@key':
+                return KeyAttribute()
             s1 = self.tildeEscape_re.sub(repl, string)
             return re.sub('~0', '~', s1)
 
         attrs = attr.split('/')
-        # TODO(toshii): handle "@key"
         return [tilde_unescape(a) for a in attrs]
 
     def parse_values(self, values):
