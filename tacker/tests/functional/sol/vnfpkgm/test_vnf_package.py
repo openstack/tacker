@@ -526,3 +526,14 @@ class VnfPackageTest(base.BaseTackerTest):
         self.assertEqual(206, response[0].status_code)
         self.assertEqual('6', response[0].headers['Content-Length'])
         self.assertIsNotNone(response[1])
+
+    def test_vnf_package_software_image_path(self):
+        filter_expr = {
+            'filter': '(eq,id,%s)' % self.package_id2,
+            'exclude_fields': 'checksum,softwareImages/checksum,'
+                              'additionalArtifacts/checksum'}
+        filter_url = self.base_url + "?" + urllib.parse.urlencode(filter_expr)
+        resp, body = self.http_client.do_request(filter_url, "GET")
+        image_path = body[0]['softwareImages'][0]['imagePath']
+        expected_result = self.package2.get('softwareImages')[0]['imagePath']
+        self.assertEqual(image_path, expected_result)
