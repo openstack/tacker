@@ -150,6 +150,21 @@ So the first step of installing tacker is to clone Devstack and prepare your
       .. literalinclude:: ../../../devstack/local.conf.standalone
           :language: ini
 
+#. In CentOS environment install and start ovn services before executing
+   stack.sh.
+
+   .. code-block:: console
+
+       $ sudo yum install -y centos-release-openstack-victoria
+       $ sudo yum install -y openvswitch
+       $ sudo yum install -y openvswitch-ovn-common
+       $ sudo yum install -y openvswitch-ovn-central
+       $ sudo yum install -y openvswitch-ovn-host
+       $ sudo systemctl start ovn-northd.service
+       $ sudo systemctl start ovn-controller.service
+       $ sudo systemctl start ovs-vswitchd.service
+       $ sudo systemctl start ovsdb-server.service
+
 #. Execute installation script
 
    After saving the ``local.conf``, we can run ``stack.sh`` in the terminal
