@@ -77,6 +77,11 @@ class Client(object):
             self.path + '/' + id, "DELETE", version="2.0.0")
         self.print(resp, body)
 
+    def update(self, id, req_body):
+        resp, body = self.client.do_request(
+            self.path + '/' + id, "PATCH", body=req_body, version="2.0.0")
+        self.print(resp, body)
+
     def inst(self, id, req_body):
         path = self.path + '/' + id + '/instantiate'
         resp, body = self.client.do_request(
@@ -117,6 +122,7 @@ def usage():
     print("  inst list [body(path of content)]")
     print("  inst show {id}")
     print("  inst delete {id}")
+    print("  inst update {id} body(path of content)")
     print("  inst inst {id} body(path of content)")
     print("  inst term {id} body(path of content)")
     print("  inst scale {id} body(path of content)")
@@ -145,8 +151,8 @@ if __name__ == '__main__':
     action = sys.argv[2]
 
     if resource == "inst":
-        if action not in ["create", "list", "show", "delete", "inst", "term",
-                          "scale"]:
+        if action not in ["create", "list", "show", "delete", "update",
+                          "inst", "term", "scale"]:
             usage()
         client = Client("/vnflcm/v2/vnf_instances")
     elif resource == "subsc":
@@ -180,6 +186,10 @@ if __name__ == '__main__':
         if len(sys.argv) != 4:
             usage()
         client.delete(sys.argv[3])
+    elif action == "update":
+        if len(sys.argv) != 5:
+            usage()
+        client.update(sys.argv[3], get_body(sys.argv[4]))
     elif action == "inst":
         if len(sys.argv) != 5:
             usage()

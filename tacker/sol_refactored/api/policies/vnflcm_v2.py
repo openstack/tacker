@@ -76,6 +76,15 @@ rules = [
         ]
     ),
     policy.DocumentedRuleDefault(
+        name=POLICY_NAME.format('update'),
+        check_str=RULE_ANY,
+        description="Modify vnf instance information.",
+        operations=[
+            {'method': 'PATCH',
+             'path': VNF_INSTANCES_ID_PATH}
+        ]
+    ),
+    policy.DocumentedRuleDefault(
         name=POLICY_NAME.format('instantiate'),
         check_str=RULE_ANY,
         description="Instantiate vnf instance.",

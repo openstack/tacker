@@ -16,6 +16,7 @@
 from tacker import context
 from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored import objects
+from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests import base
 
 
@@ -1088,6 +1089,150 @@ _expected_resource_changes_terminate = {
     ]
 }
 
+# update_lcmocc  modifies an "Individual VNF instance" example
+_modify_inst_saved_example = {
+    "id": "1098e2dc-d954-484e-b417-e594ff03c55b",
+    "vnfInstanceName": "instance_name",
+    "vnfInstanceDescription": "description",
+    "vnfdId": "a93b7f96-f0e1-49f2-b3f0-75f5b4a94d0f",
+    "vnfProvider": "provider",
+    "vnfProductName": "product name",
+    "vnfSoftwareVersion": "software version",
+    "vnfdVersion": "vnfd version",
+    "instantiationState": "INSTANTIATED",
+    "vnfConfigurableProperties": {
+        "vnfproperties": "example"
+    },
+    "metadata": {
+        "metadata": "example"
+    },
+    "extensions": {
+        "extensions": "example"
+    },
+    "vimConnectionInfo": {
+        "vim1": {
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+            "vimId": "ca925611-f020-4b0e-a56d-3fd5c6d5bc3d",
+            "interfaceInfo": {"endpoint": "http://localhost/identity/v3"},
+            "accessInfo": {
+                "username": "nfv_user",
+                "region": "RegionOne",
+                "password": "devstack",
+                "project": "nfv",
+                "projectDomain": "Default",
+                "userDomain": "Default"
+            },
+            "extra": {
+                "key": "value"
+            }
+        }
+    },
+    "instantiatedVnfInfo": {
+        "vnfcInfo": [
+            {
+                "id": "VDU1-vnfc_res_info_id_VDU1",
+                "vnfcConfigurableProperties": {"key": "value"}
+            },
+            {
+                "id": "VDU2-vnfc_res_info_id_VDU2",
+                "vnfcConfigurableProperties": {"key": "value"}
+            }
+        ]
+    }
+}
+
+_modify_inst_example = {
+    "id": "1098e2dc-d954-484e-b417-e594ff03c55b",
+    "vnfInstanceName": "instance_name_1",
+    "vnfdId": "a93b7f96-f0e1-49f2-b3f0-75f5b4a94dff",
+    "vnfProvider": "provider",
+    "vnfProductName": "product name",
+    "vnfSoftwareVersion": "software version_1",
+    "vnfdVersion": "vnfd version_1",
+    "metadata": {
+        "metadata": "example_1"
+    },
+    "extensions": {
+        "extensions": "example"
+    },
+    "vimConnectionInfo": {
+        "vim1": {
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+            "vimId": "ca925611-f020-4b0e-a56d-3fd5c6d5bc3d",
+            "interfaceInfo": {"endpoint": "http://localhost/identity/v3"},
+            "accessInfo": {
+                "username": "nfv_user",
+                "region": "RegionOne",
+                "password": "devstack",
+                "project": "nfv",
+                "projectDomain": "Default",
+                "userDomain": "Default"
+            },
+            "extra": {
+                "key": "value",
+                "key_add": "value"
+            }
+        }
+    },
+    "instantiatedVnfInfo": {
+        "vnfcInfo": [
+            {
+                "id": "VDU1-vnfc_res_info_id_VDU1",
+                "vnfcConfigurableProperties": {
+                    "key": "value_mod",
+                    "key_add": "value"
+                }
+            },
+            {
+                "id": "VDU2-vnfc_res_info_id_VDU2",
+                "vnfcConfigurableProperties": {}
+            }
+        ]
+    }
+}
+
+_expected_changedInfo = {
+    "vnfInstanceName": "instance_name_1",
+    "vnfdId": "a93b7f96-f0e1-49f2-b3f0-75f5b4a94dff",
+    "vnfSoftwareVersion": "software version_1",
+    "vnfdVersion": "vnfd version_1",
+    "metadata": {
+        "metadata": "example_1"
+    },
+    "vimConnectionInfo": {
+        "vim1": {
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+            "vimId": "ca925611-f020-4b0e-a56d-3fd5c6d5bc3d",
+            "interfaceInfo": {"endpoint": "http://localhost/identity/v3"},
+            "accessInfo": {
+                "username": "nfv_user",
+                "region": "RegionOne",
+                "password": "devstack",
+                "project": "nfv",
+                "projectDomain": "Default",
+                "userDomain": "Default"
+            },
+            "extra": {
+                "key": "value",
+                "key_add": "value"
+            }
+        }
+    },
+    "vnfcInfoModifications": [
+        {
+            "id": "VDU1-vnfc_res_info_id_VDU1",
+            "vnfcConfigurableProperties": {
+                "key": "value_mod",
+                "key_add": "value"
+            }
+        },
+        {
+            "id": "VDU2-vnfc_res_info_id_VDU2",
+            "vnfcConfigurableProperties": {}
+        }
+    ]
+}
+
 
 class TestLcmOpOccUtils(base.BaseTestCase):
 
@@ -1132,7 +1277,8 @@ class TestLcmOpOccUtils(base.BaseTestCase):
         inst.instantiatedVnfInfo = (
             objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
                 _inst_info_example_1))
-        lcmocc = objects.VnfLcmOpOccV2()
+        lcmocc = objects.VnfLcmOpOccV2(
+            operation=fields.LcmOperationType.INSTANTIATE)
 
         # execute update_lcmocc
         lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
@@ -1153,7 +1299,8 @@ class TestLcmOpOccUtils(base.BaseTestCase):
         inst.instantiatedVnfInfo = (
             objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
                 _inst_info_example_2))
-        lcmocc = objects.VnfLcmOpOccV2()
+        lcmocc = objects.VnfLcmOpOccV2(
+            operation=fields.LcmOperationType.SCALE)
 
         # execute update_lcmocc
         lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
@@ -1174,7 +1321,8 @@ class TestLcmOpOccUtils(base.BaseTestCase):
         inst.instantiatedVnfInfo = (
             objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
                 _inst_info_example_1))
-        lcmocc = objects.VnfLcmOpOccV2()
+        lcmocc = objects.VnfLcmOpOccV2(
+            operation=fields.LcmOperationType.SCALE)
 
         # execute update_lcmocc
         lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
@@ -1194,7 +1342,8 @@ class TestLcmOpOccUtils(base.BaseTestCase):
         inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
             flavourId="SAMPLE_VNFD_ID",
             vnfState='STOPPED')
-        lcmocc = objects.VnfLcmOpOccV2()
+        lcmocc = objects.VnfLcmOpOccV2(
+            operation=fields.LcmOperationType.TERMINATE)
 
         # execute update_lcmocc
         lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
@@ -1203,3 +1352,17 @@ class TestLcmOpOccUtils(base.BaseTestCase):
         lcmocc = lcmocc.to_dict()
         self.assertEqual(_expected_resource_changes_terminate,
             self._sort_resource_changes(lcmocc['resourceChanges']))
+
+    def test_update_lcmocc_modify(self):
+        # prepare
+        inst_saved = objects.VnfInstanceV2.from_dict(
+            _modify_inst_saved_example)
+        inst = objects.VnfInstanceV2.from_dict(_modify_inst_example)
+        lcmocc = objects.VnfLcmOpOccV2(
+            operation=fields.LcmOperationType.MODIFY_INFO)
+
+        # execute update_lcmocc
+        lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
+        # check changedInfo
+        lcmocc = lcmocc.to_dict()
+        self.assertEqual(_expected_changedInfo, lcmocc['changedInfo'])

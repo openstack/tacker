@@ -121,7 +121,8 @@ keyvalue_pairs = {
             'anyOf': [
                 {'type': 'array'},
                 {'type': 'string', 'maxLength': 255},
-                {'type': 'object'}
+                {'type': 'object'},
+                {'type': 'null'}
             ]
         }
     },

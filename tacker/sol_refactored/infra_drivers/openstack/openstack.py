@@ -738,15 +738,31 @@ class Openstack(object):
         # make vnfcInfo
         # NOTE: vnfcInfo only exists in SOL002
         if vnfc_res_infos:
-            inst_vnf_info.vnfcInfo = [
-                objects.VnfcInfoV2(
-                    id=_make_combination_id(vnfc_res_info.vduId,
-                                            vnfc_res_info.id),
-                    vduId=vnfc_res_info.vduId,
-                    vnfcResourceInfoId=vnfc_res_info.id,
-                    vnfcState='STARTED'
-                )
-                for vnfc_res_info in sorted_vnfc_res_infos
-            ]
+            vnfc_infos = []
+            old_vnfc_infos = []
+            if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+                    inst.instantiatedVnfInfo.obj_attr_is_set('vnfcInfo')):
+                old_vnfc_infos = inst.instantiatedVnfInfo.vnfcInfo
+
+            for vnfc_res_info in sorted_vnfc_res_infos:
+                vnfc_info = None
+                vnfc_id = _make_combination_id(vnfc_res_info.vduId,
+                                               vnfc_res_info.id)
+                for old_vnfc_info in old_vnfc_infos:
+                    if old_vnfc_info.id == vnfc_id:
+                        # re-use current object since
+                        # vnfcConfigurableProperties may be set.
+                        vnfc_info = old_vnfc_info
+                        break
+                if vnfc_info is None:
+                    vnfc_info = objects.VnfcInfoV2(
+                        id=vnfc_id,
+                        vduId=vnfc_res_info.vduId,
+                        vnfcResourceInfoId=vnfc_res_info.id,
+                        vnfcState='STARTED'
+                    )
+                vnfc_infos.append(vnfc_info)
+
+            inst_vnf_info.vnfcInfo = vnfc_infos
 
         inst.instantiatedVnfInfo = inst_vnf_info

@@ -59,7 +59,7 @@ ResourceHandle = {
 VimConnectionInfo = {
     'type': 'object',
     'properties': {
-        'vimId': Identifier,
+        'vimId': {'type': 'string', 'maxLength': 255},
         'vimType': {'type': 'string', 'minLength': 1, 'maxLength': 255},
         'interfaceInfo': parameter_types.keyvalue_pairs,
         'accessInfo': parameter_types.keyvalue_pairs,
@@ -240,5 +240,16 @@ ExtManagedVirtualLinkData = {
         'extManagedMultisiteVirtualLinkId': Identifier
     },
     'required': ['id', 'vnfVirtualLinkDescId', 'resourceId'],
+    'additionalProperties': True,
+}
+
+# SOL002 5.5.3.24
+VnfcInfoModifications = {
+    'type': 'object',
+    'properties': {
+        'id': IdentifierInVnf,
+        'vnfcConfigurableProperties': parameter_types.keyvalue_pairs,
+    },
+    'required': ['id', 'vnfcConfigurableProperties'],
     'additionalProperties': True,
 }

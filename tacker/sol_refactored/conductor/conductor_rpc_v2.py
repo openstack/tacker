@@ -47,3 +47,6 @@ class VnfLcmRpcApiV2(object):
 
     def rollback_lcm_op(self, context, lcmocc_id):
         self._cast_lcm_op(context, lcmocc_id, 'rollback_lcm_op')
+
+    def modify_vnfinfo(self, context, lcmocc_id):
+        self._cast_lcm_op(context, lcmocc_id, 'modify_vnfinfo')

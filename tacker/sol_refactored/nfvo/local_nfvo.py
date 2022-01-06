@@ -51,6 +51,7 @@ class LocalNfvo(object):
 
     def __init__(self):
         self.inst_vim_info = {}
+        self.inst_vnfd_id = {}
 
     def onboarded_show(self, context, id):
         pkg_vnfd = vnf_package_vnfd.VnfPackageVnfd().get_by_vnfdId(
@@ -303,3 +304,24 @@ class LocalNfvo(object):
                     # never happen. just for code consistency.
                     return
                 self._glance_delete_images(vim_info, inst.id)
+        elif lcmocc.operation == v2_fields.LcmOperationType.MODIFY_INFO:
+            if (lcmocc.operationState ==
+                    v2_fields.LcmOperationStateType.PROCESSING):
+                # register vnfdId of vnf instance so that
+                # it is used later to check vnfdId change.
+                self.inst_vnfd_id[inst.id] = inst.vnfdId
+            elif (lcmocc.operationState ==
+                    v2_fields.LcmOperationStateType.FAILED_TEMP):
+                self.inst_vnfd_id.pop(inst.id, None)
+            elif (lcmocc.operationState ==
+                    v2_fields.LcmOperationStateType.COMPLETED):
+                vnfd_id = self.inst_vnfd_id.pop(inst.id, None)
+                if vnfd_id is None:
+                    # never happen. just for code consistency.
+                    return
+                if vnfd_id != inst.vnfdId:
+                    # vnfdId is changed. change usage_state of vnf package
+                    self._update_vnf_pkg_usage_state(context, vnfd_id,
+                        fields.PackageUsageStateType.NOT_IN_USE)
+                    self._update_vnf_pkg_usage_state(context, inst.vnfdId,
+                        fields.PackageUsageStateType.IN_USE)

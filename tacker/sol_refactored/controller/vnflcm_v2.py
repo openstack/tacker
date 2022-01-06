@@ -149,11 +149,12 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
                                                        self.endpoint)
         return sol_wsgi.SolResponse(204, None)
 
-    def _new_lcmocc(self, inst_id, operation, req_body):
+    def _new_lcmocc(self, inst_id, operation, req_body,
+            op_state=v2fields.LcmOperationStateType.STARTING):
         now = datetime.utcnow()
         lcmocc = objects.VnfLcmOpOccV2(
             id=uuidutils.generate_uuid(),
-            operationState=v2fields.LcmOperationStateType.STARTING,
+            operationState=op_state,
             stateEnteredTime=now,
             startTime=now,
             vnfInstanceId=inst_id,
@@ -163,6 +164,52 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
             operationParams=req_body)
 
         return lcmocc
+
+    @validator.schema(schema.VnfInfoModificationRequest_V200, '2.0.0')
+    @coordinate.lock_vnf_instance('{id}')
+    def update(self, request, id, body):
+        context = request.context
+        inst = inst_utils.get_inst(context, id)
+
+        lcmocc_utils.check_lcmocc_in_progress(context, id)
+        if (inst.instantiationState == 'NOT_INSTANTIATED'
+                and 'vimConnectionInfo' in body):
+            msg = 'vimConnectionInfo cannot be modified in NOT_INSTANTIATED.'
+            raise sol_ex.SolValidationError(detail=msg)
+
+        # check vnf package operational state
+        if 'vnfdId' in body and body['vnfdId'] != inst.vnfdId:
+            req_vnfd_id = body['vnfdId']
+            pkg_info = self.nfvo_client.get_vnf_package_info_vnfd(
+                context, req_vnfd_id)
+            if pkg_info.operationalState != "ENABLED":
+                # NOTE: Response code 422 is not specified in SOL003,
+                # but 422 will be returned here. This is because
+                # instance create returns 422 for the same reason.
+                # In addition, SOL013 defines 422 as common error situations.
+                raise sol_ex.VnfdIdNotEnabled(vnfd_id=req_vnfd_id)
+
+        if 'vnfcInfoModifications' in body:
+            vnfc_id = []
+            if inst.obj_attr_is_set('instantiatedVnfInfo'):
+                inst_info = inst.instantiatedVnfInfo
+                if inst_info.obj_attr_is_set('vnfcInfo'):
+                    vnfc_id = [vnfc.id for vnfc in inst_info.vnfcInfo]
+            for vnfc_mod in body['vnfcInfoModifications']:
+                if vnfc_mod['id'] not in vnfc_id:
+                    raise sol_ex.SolValidationError(
+                        detail="vnfcInstanceId(%s) does not exist."
+                        % vnfc_mod['id'])
+
+        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.MODIFY_INFO,
+            body, v2fields.LcmOperationStateType.PROCESSING)
+        lcmocc.create(context)
+
+        self.conductor_rpc.modify_vnfinfo(context, lcmocc.id)
+
+        location = lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)
+
+        return sol_wsgi.SolResponse(202, None, location=location)
 
     @validator.schema(schema.InstantiateVnfRequest_V200, '2.0.0')
     @coordinate.lock_vnf_instance('{id}')
@@ -433,8 +480,9 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         lcmocc.operationState = v2fields.LcmOperationStateType.FAILED
         with context.session.begin(subtransactions=True):
             lcmocc.update(context)
-            grant_req.delete(context)
-            grant.delete(context)
+            if grant_req is not None:
+                grant_req.delete(context)
+                grant.delete(context)
 
         # send notification FAILED
         self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,

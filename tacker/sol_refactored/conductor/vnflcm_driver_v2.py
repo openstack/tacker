@@ -109,6 +109,11 @@ class VnfLcmDriverV2(object):
         LOG.debug("execute %s of %s success.", operation, script)
 
     def _make_inst_info_common(self, lcmocc, inst_saved, inst, vnfd):
+        if not inst.obj_attr_is_set('instantiatedVnfInfo'):
+            # NOTE: This is only the case that operation is MODIFY_INFO
+            # and vnf instance is never instantiated after creation.
+            return
+
         # make vim independent part of instantiatedVnfInfo.
         # scaleStatus and maxScaleLevels at the moment.
         inst_info = inst.instantiatedVnfInfo
@@ -145,11 +150,17 @@ class VnfLcmDriverV2(object):
             if scale_status:
                 inst_info.scaleStatus = scale_status
                 inst_info.maxScaleLevels = max_scale_levels
+
+            if req.obj_attr_is_set('localizationLanguage'):
+                inst_info.localizationLanguage = req.localizationLanguage
         elif lcmocc.operation != v2fields.LcmOperationType.TERMINATE:
             inst_info_saved = inst_saved.instantiatedVnfInfo
             if inst_info_saved.obj_attr_is_set('scaleStatus'):
                 inst_info.scaleStatus = inst_info_saved.scaleStatus
                 inst_info.maxScaleLevels = inst_info_saved.maxScaleLevels
+            if inst_info_saved.obj_attr_is_set('localizationLanguage'):
+                inst_info.localizationLanguage = (
+                    inst_info_saved.localizationLanguage)
 
         if lcmocc.operation == v2fields.LcmOperationType.SCALE:
             # adjust scaleStatus
@@ -162,17 +173,33 @@ class VnfLcmDriverV2(object):
                     aspect_info.scaleLevel += num_steps
                     break
 
+    def _script_method_name(self, operation):
+        # According to the definition in etsi_nfv_sol001_vnfd_types.yaml,
+        # get script method name from lcmocc.operation.
+        # only MODIFY_INFO and CHANGE_EXT_CONN are exceptional.
+        if operation == v2fields.LcmOperationType.MODIFY_INFO:
+            return "modify_information"
+        elif operation == v2fields.LcmOperationType.CHANGE_EXT_CONN:
+            return "change_external_connectivity"
+        else:
+            return operation.lower()
+
     def process(self, context, lcmocc, inst, grant_req, grant, vnfd):
         # save inst to use updating lcmocc after process done
         inst_saved = inst.obj_clone()
 
         # perform preamble LCM script
         req = lcmocc.operationParams
-        operation = "%s_%s" % (lcmocc.operation.lower(), 'start')
+        operation = "{}_start".format(
+            self._script_method_name(lcmocc.operation))
         if lcmocc.operation == v2fields.LcmOperationType.INSTANTIATE:
             flavour_id = req.flavourId
-        else:
+        elif inst.obj_attr_is_set('instantiatedVnfInfo'):
             flavour_id = inst.instantiatedVnfInfo.flavourId
+        else:
+            # NOTE: This is only the case that operation is MODIFY_INFO
+            # and vnf instance is never instantiated after creation.
+            flavour_id = None
         self._exec_mgmt_driver_script(operation,
             flavour_id, req, inst, grant_req, grant, vnfd)
 
@@ -181,7 +208,7 @@ class VnfLcmDriverV2(object):
         method(context, lcmocc, inst, grant_req, grant, vnfd)
 
         # perform postamble LCM script
-        operation = "%s_%s" % (lcmocc.operation.lower(), 'end')
+        operation = "{}_end".format(self._script_method_name(lcmocc.operation))
         self._exec_mgmt_driver_script(operation,
             flavour_id, req, inst, grant_req, grant, vnfd)
 
@@ -352,6 +379,9 @@ class VnfLcmDriverV2(object):
     def instantiate_process(self, context, lcmocc, inst, grant_req,
             grant, vnfd):
         req = lcmocc.operationParams
+        for attr in ['vnfConfigurableProperties', 'extensions']:
+            self._modify_from_req(inst, req, attr)
+
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
@@ -606,3 +636,79 @@ class VnfLcmDriverV2(object):
         else:
             # only support openstack at the moment
             raise sol_ex.SolException(sol_detail='not support vim type')
+
+    def _modify_from_vnfd_prop(self, inst, vnfd_prop, attr):
+        if vnfd_prop.get(attr):
+            setattr(inst, attr, vnfd_prop[attr])
+        elif inst.obj_attr_is_set(attr):
+            # set {} since attribute deletion is not supported.
+            setattr(inst, attr, {})
+
+    def _modify_from_req(self, inst, req, attr):
+        if req.obj_attr_is_set(attr):
+            base = getattr(inst, attr) if inst.obj_attr_is_set(attr) else {}
+            setattr(inst, attr, inst_utils.json_merge_patch(
+                base, getattr(req, attr)))
+
+    def modify_info_process(self, context, lcmocc, inst, grant_req,
+            grant, vnfd):
+        req = lcmocc.operationParams
+
+        if req.obj_attr_is_set('vnfInstanceName'):
+            inst.vnfInstanceName = req.vnfInstanceName
+
+        if req.obj_attr_is_set('vnfInstanceDescription'):
+            inst.vnfInstanceDescription = req.vnfInstanceDescription
+
+        if req.obj_attr_is_set('vnfdId') and req.vnfdId != inst.vnfdId:
+            # NOTE: When vnfdId is changed, the values of attributes
+            # in the VnfInstance needs update from new VNFD.
+            inst.vnfdId = req.vnfdId
+
+            pkg_info = self.nfvo_client.get_vnf_package_info_vnfd(
+                context, inst.vnfdId)
+
+            new_vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId)
+            new_vnfd_prop = new_vnfd.get_vnfd_properties()
+
+            inst.vnfProvider = pkg_info.vnfProvider
+            inst.vnfProductName = pkg_info.vnfProductName
+            inst.vnfSoftwareVersion = pkg_info.vnfSoftwareVersion
+            inst.vnfdVersion = pkg_info.vnfdVersion
+
+            attrs = ['vnfConfigurableProperties', 'metadata', 'extensions']
+            for attr in attrs:
+                self._modify_from_vnfd_prop(inst, new_vnfd_prop, attr)
+
+        attrs = ['vnfConfigurableProperties', 'metadata', 'extensions']
+        for attr in attrs:
+            self._modify_from_req(inst, req, attr)
+
+        if req.obj_attr_is_set('vimConnectionInfo'):
+            # inst.vimConnectionInfo exists since req.vimConnectionInfo
+            # can be set only if vnf instance is INSTANTIATED.
+            inst_viminfo = inst.to_dict()['vimConnectionInfo']
+            req_viminfo = req.to_dict()['vimConnectionInfo']
+            merge = inst_utils.json_merge_patch(inst_viminfo, req_viminfo)
+            inst.vimConnectionInfo = {
+                key: objects.VimConnectionInfo.from_dict(value)
+                for key, value in merge.items()}
+
+        if req.obj_attr_is_set('vnfcInfoModifications'):
+            for vnfc_mod in req.vnfcInfoModifications:
+                # existence of ids are checked by controller
+                for vnfc_info in inst.instantiatedVnfInfo.vnfcInfo:
+                    if vnfc_mod.id == vnfc_info.id:
+                        prop_base = {}
+                        if vnfc_info.obj_attr_is_set(
+                                'vnfcConfigurableProperties'):
+                            prop_base = vnfc_info.vnfcConfigurableProperties
+                        vnfc_info.vnfcConfigurableProperties = (
+                            inst_utils.json_merge_patch(prop_base,
+                                vnfc_mod.vnfcConfigurableProperties))
+                        break
+
+    def modify_info_rollback(self, context, lcmocc, inst, grant_req,
+            grant, vnfd):
+        # DB is not updated, rollback does nothing and makes it successful.
+        pass

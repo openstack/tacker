@@ -266,3 +266,27 @@ LccnSubscriptionRequest_V200 = {
     'required': ['callbackUri'],
     'additionalProperties': True,
 }
+
+# SOL003 5.5.2.12
+VnfInfoModificationRequest_V200 = {
+    'type': 'object',
+    'properties': {
+        'vnfInstanceName': {'type': 'string', 'maxLength': 255},
+        'vnfInstanceDescription': {'type': 'string', 'maxLength': 1024},
+        'vnfdId': common_types.Identifier,
+        'vnfConfigurableProperties': parameter_types.keyvalue_pairs,
+        'metadata': parameter_types.keyvalue_pairs,
+        'extensions': parameter_types.keyvalue_pairs,
+        'vimConnectionInfo': {
+            'type': 'object',
+            'patternProperties': {
+                '^.*$': common_types.VimConnectionInfo
+            },
+        },
+        'vnfcInfoModifications': {
+            'type': 'array',
+            'items': common_types.VnfcInfoModifications
+        },
+    },
+    'additionalProperties': True,
+}
