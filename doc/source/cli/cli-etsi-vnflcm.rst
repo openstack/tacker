@@ -24,13 +24,10 @@ CLI Reference for VNF Lifecycle Management
     Commands with **\-\-os-tacker-api-version 2** call version 2 vnflcm APIs.
 
 .. note::
-    Xena release does not support version 2 vnflcm APIs of
-    scale vnf, heal vnf, change external vnf connectivity,
-    rollback, retry and fail.
-    The version 2 of these APIs will be supported in future releases.
-    Also, in Xena release, version 2 vnflcm APIs of instantiate vnf
-    and terminate vnf only support VNF, not CNF.
-    CNF will be supported by version 2 vnflcm APIs in future releases.
+    In Yoga release, version 2 vnflcm APIs of instantiate vnf,
+    terminate vnf, scale vnf, heal vnf, change external vnf connectivity,
+    rollback, retry and fail only support VNF, not CNF. CNF will be supported
+    by version 2 vnflcm APIs in future releases.
 
 1. Create VNF Identifier
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -412,6 +409,8 @@ Help:
 10. Rollback VNF Lifecycle Management Operation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
+
 .. code-block:: console
 
   $ openstack vnflcm op rollback VNF_LCM_OP_OCC_ID
@@ -441,7 +440,7 @@ Help:
 11. Retry
 ^^^^^^^^^
 
-  The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
+The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
 
 .. code-block:: console
 
@@ -474,7 +473,7 @@ Help:
 12. Fail
 ^^^^^^^^
 
-  The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
+The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
 
 .. code-block:: console
 
