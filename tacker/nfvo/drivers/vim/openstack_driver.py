@@ -117,8 +117,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         Initialize keystoneclient with provided authentication attributes.
         """
-        verify = 'True' == vim_obj['auth_cred'].get('cert_verify', 'True') \
-                 or False
+        verify = 'True' == vim_obj['auth_cred'].get('cert_verify', 'True')
         auth_url = vim_obj['auth_url']
         keystone_version = NfvoPlugin.validate_keystone_auth_url(
             auth_url=auth_url,
