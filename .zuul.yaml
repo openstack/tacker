@@ -276,6 +276,15 @@
         tox_envlist: dsvm-functional-sol-v2
 
 - job:
+    name: tacker-functional-devstack-multinode-sol-multi-tenant
+    parent: tacker-functional-devstack-multinode-sol
+    description: |
+      Multinodes job for SOL Multi tenant devstack-based functional tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-sol-multi-tenant
+
+- job:
     name: tacker-functional-devstack-multinode-sol-separated-nfvo
     parent: tacker-functional-devstack-multinode-sol
     description: |
@@ -522,3 +531,4 @@
         - tacker-functional-devstack-multinode-sol-kubernetes
         - tacker-functional-devstack-multinode-libs-master
         - tacker-functional-devstack-multinode-sol-v2
+        - tacker-functional-devstack-multinode-sol-multi-tenant

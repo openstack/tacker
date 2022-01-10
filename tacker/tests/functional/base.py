@@ -454,10 +454,12 @@ class BaseTackerTest(base.BaseTestCase):
 
         return vnf_instance, tosca_dict
 
-    def _list_op_occs(self, filter_string=''):
+    def _list_op_occs(self, filter_string='', http_client=None):
+        if http_client is None:
+            http_client = self.http_client
         show_url = os.path.join(
             self.base_vnf_lcm_op_occs_url)
-        resp, response_body = self.http_client.do_request(
+        resp, response_body = http_client.do_request(
             show_url + filter_string, "GET")
         return resp, response_body
 

@@ -209,6 +209,12 @@ def _create_instantiate_vnf_request_body(flavour_id,
 class BaseVnfLcmTest(base.BaseTackerTest):
 
     is_setup_error = False
+    # NOTE: If prepare_fake_server is set(by default) then this base
+    # class will prepare(create and start) the fake http server which
+    # takes time and can add up more time in gate CI. Any child class
+    # can set it false. For example, BaseVnfLcmMultiTenantTest which
+    # create their own servers for two different tenants.
+    prepare_fake_server = True
 
     @classmethod
     def setUpClass(cls):
@@ -217,13 +223,15 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         we set up fake NFVO server for test at here.
         '''
         super(BaseVnfLcmTest, cls).setUpClass()
-        cls._prepare_start_fake_server(FAKE_SERVER_MANAGER,
+        if cls.prepare_fake_server:
+            cls._prepare_start_fake_server(FAKE_SERVER_MANAGER,
                 FAKE_SERVER_PORT)
 
     @classmethod
     def tearDownClass(cls):
         super(BaseVnfLcmTest, cls).tearDownClass()
-        FAKE_SERVER_MANAGER.stop_server()
+        if cls.prepare_fake_server:
+            FAKE_SERVER_MANAGER.stop_server()
 
     def setUp(self):
         super(BaseVnfLcmTest, self).setUp()
@@ -231,10 +239,10 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         if self.is_setup_error:
             self.fail("Faild, not exists pre-registered image.")
 
-        callback_url = os.path.join(
-            MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        self._clear_history_and_set_callback(FAKE_SERVER_MANAGER,
+        if self.prepare_fake_server:
+            callback_url = os.path.join(MOCK_NOTIFY_CALLBACK_URL,
+                self._testMethodName)
+            self._clear_history_and_set_callback(FAKE_SERVER_MANAGER,
                 callback_url)
 
         self.tacker_client = base.BaseTackerTest.tacker_http_client()

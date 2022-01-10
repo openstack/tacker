@@ -206,6 +206,8 @@ class FakeServerManager(object):
     """Manager class to manage dummy server setting and control"""
 
     SERVER_PORT = 9990
+    SERVER_PORT_T1 = 9995
+    SERVER_PORT_T2 = 9996
     SERVER_INVOKE_CHECK_INTERVAL = 10
 
     def __init__(self):
