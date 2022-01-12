@@ -34,7 +34,8 @@ topology_template:
       flavour_id: simple
     requirements:
       virtual_link_external1_1: [ VDU1_CP1, virtual_link ]
-      virtual_link_external1_2: [ VDU2_CP1, virtual_link ]
+      virtual_link_external1_2: [ VDU2_CP1-1, virtual_link ]
+      virtual_link_external1_3: [ VDU2_CP1-2, virtual_link ]
       virtual_link_external2_1: [ VDU1_CP2, virtual_link ]
       virtual_link_external2_2: [ VDU2_CP2, virtual_link ]
 
@@ -79,7 +80,7 @@ topology_template:
             virtual_local_storage:
               - size_of_storage: 3 GB
       requirements:
-        - virtual_storage: VirtualStorage
+        - virtual_storage: VDU1-VirtualStorage
 
     VDU2:
       type: tosca.nodes.nfv.Vdu.Compute
@@ -89,17 +90,6 @@ topology_template:
         vdu_profile:
           min_number_of_instances: 1
           max_number_of_instances: 1
-        sw_image_data:
-          name: VDU2-image
-          version: '0.5.2'
-          checksum:
-            algorithm: sha-256
-            hash: 932fcae93574e242dc3d772d5235061747dfe537668443a1f0567d893614b464
-          container_format: bare
-          disk_format: qcow2
-          min_disk: 0 GB
-          min_ram: 256 MB
-          size: 12 GB
       capabilities:
         virtual_compute:
           properties:
@@ -115,19 +105,17 @@ topology_template:
               num_virtual_cpu: 1
             virtual_local_storage:
               - size_of_storage: 3 GB
-      artifacts:
-        sw_image:
-          type: tosca.artifacts.nfv.SwImage
-          file: ../Files/images/cirros-0.5.2-x86_64-disk.img
+      requirements:
+        - virtual_storage: VDU2-VirtualStorage
 
-    VirtualStorage:
+    VDU1-VirtualStorage:
       type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
       properties:
         virtual_block_storage_data:
           size_of_storage: 1 GB
           rdma_enabled: true
         sw_image_data:
-          name: cirros-0.5.2-x86_64-disk
+          name: VDU1-VirtualStorage-image
           version: '0.5.2'
           checksum:
             algorithm: sha-256
@@ -137,6 +125,32 @@ topology_template:
           min_disk: 0 GB
           min_ram: 256 MB
           size: 12 GB
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: ../Files/images/cirros-0.5.2-x86_64-disk.img
+
+    VDU2-VirtualStorage:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 1 GB
+          rdma_enabled: true
+        sw_image_data:
+          name: VDU2-VirtualStorage-image
+          version: '0.5.2'
+          checksum:
+            algorithm: sha-256
+            hash: 932fcae93574e242dc3d772d5235061747dfe537668443a1f0567d893614b464
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 0 GB
+          min_ram: 256 MB
+          size: 12 GB
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: ../Files/images/cirros-0.5.2-x86_64-disk.img
 
     VDU1_CP1:
       type: tosca.nodes.nfv.VduCp
@@ -181,7 +195,7 @@ topology_template:
         - virtual_binding: VDU1
         - virtual_link: internalVL3
 
-    VDU2_CP1:
+    VDU2_CP1-1:
       type: tosca.nodes.nfv.VduCp
       properties:
         layer_protocols: [ ipv4 ]
@@ -189,7 +203,7 @@ topology_template:
       requirements:
         - virtual_binding: VDU2
 
-    VDU2_CP2:
+    VDU2_CP1-2:
       type: tosca.nodes.nfv.VduCp
       properties:
         layer_protocols: [ ipv4 ]
@@ -197,11 +211,19 @@ topology_template:
       requirements:
         - virtual_binding: VDU2
 
-    VDU2_CP3:
+    VDU2_CP2:
       type: tosca.nodes.nfv.VduCp
       properties:
         layer_protocols: [ ipv4 ]
         order: 2
+      requirements:
+        - virtual_binding: VDU2
+
+    VDU2_CP3:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 3
       requirements:
         - virtual_binding: VDU2
         - virtual_link: internalVL1
@@ -210,7 +232,7 @@ topology_template:
       type: tosca.nodes.nfv.VduCp
       properties:
         layer_protocols: [ ipv4 ]
-        order: 3
+        order: 4
       requirements:
         - virtual_binding: VDU2
         - virtual_link: internalVL2
@@ -219,7 +241,7 @@ topology_template:
       type: tosca.nodes.nfv.VduCp
       properties:
         layer_protocols: [ ipv4 ]
-        order: 4
+        order: 5
       requirements:
         - virtual_binding: VDU2
         - virtual_link: internalVL3

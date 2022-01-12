@@ -273,6 +273,12 @@
       Multinodes job for SOL V2 devstack-based functional tests
     host-vars:
       controller-tacker:
+        devstack_local_conf:
+          post-config:
+            # Skip notification endpoint testing in create subscription
+            $TACKER_CONF:
+              v2_nfvo:
+                test_callback_uri: False
         tox_envlist: dsvm-functional-sol-v2
 
 - job:

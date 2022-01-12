@@ -50,6 +50,18 @@ def make_zip(sample_dir, tmp_dir, vnfd_id, image_path=None):
     shutil.make_archive(zip_file_path, "zip", tmp_contents)
 
 
+def create_network(network):
+    # assume OS_* environment variables are already set
+    subprocess.run(
+        ["openstack", "net", "create", network])
+
+
+def delete_network(network):
+    # assume OS_* environment variables are already set
+    subprocess.run(
+        ["openstack", "net", "delete", network])
+
+
 def get_network_ids(networks):
     # assume OS_* environment variables are already set
     net_ids = {}
@@ -61,6 +73,13 @@ def get_network_ids(networks):
     return net_ids
 
 
+def create_subnet(subnet, network, sub_range, version):
+    # assume OS_* environment variables are already set
+    subprocess.run(
+        ["openstack", "subnet", "create", subnet, "--network", network,
+         "--subnet-range", sub_range, "--ip-version", version])
+
+
 def get_subnet_ids(subnets):
     # assume OS_* environment variables are already set
     subnet_ids = {}
@@ -70,3 +89,26 @@ def get_subnet_ids(subnets):
             capture_output=True, encoding='utf-8')
         subnet_ids[subnet] = json.loads(p.stdout)['id']
     return subnet_ids
+
+
+def create_port(port, network):
+    # assume OS_* environment variables are already set
+    subprocess.run(
+        ["openstack", "port", "create", port, "--network", network])
+
+
+def delete_port(port):
+    # assume OS_* environment variables are already set
+    subprocess.run(
+        ["openstack", "port", "delete", port])
+
+
+def get_port_ids(ports):
+    # assume OS_* environment variables are already set
+    port_ids = {}
+    for port in ports:
+        p = subprocess.run(
+            ["openstack", "port", "show", port, "-c", "id", "-f", "json"],
+            capture_output=True, encoding='utf-8')
+        port_ids[port] = json.loads(p.stdout)['id']
+    return port_ids

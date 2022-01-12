@@ -81,18 +81,23 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
             vnfSoftwareVersion=pkg_info.vnfSoftwareVersion,
             vnfdVersion=pkg_info.vnfdVersion,
             instantiationState='NOT_INSTANTIATED',
-            # optional fields
-            # NOTE: it is OK to absent but fill empty value to make them
-            # handle easy.
-            vnfInstanceName=body.get('vnfInstanceName', ""),
-            vnfInstanceDescription=body.get('vnfInstanceDescription', ""),
-            vnfConfigurableProperties=vnfd_prop['vnfConfigurableProperties'],
-            metadata=metadata,
-            extensions=vnfd_prop['extensions']
             # not set at the moment. will be set when instantiate.
             # vimConnectionInfo
             # instantiatedVnfInfo
         )
+
+        # set optional fields
+        if body.get('vnfInstanceName'):
+            inst.vnfInstanceName = body['vnfInstanceName']
+        if body.get('vnfInstanceDescription'):
+            inst.vnfInstanceDescription = body['vnfInstanceDescription']
+        if vnfd_prop.get('vnfConfigurableProperties'):
+            inst.vnfConfigurableProperties = vnfd_prop[
+                'vnfConfigurableProperties']
+        if metadata:
+            inst.metadata = metadata
+        if vnfd_prop.get('extensions'):
+            inst.extensions = vnfd_prop['extensions']
 
         inst.create(context)
 
