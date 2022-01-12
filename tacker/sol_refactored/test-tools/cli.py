@@ -98,6 +98,11 @@ class Client(object):
         path = self.path + '/' + id + '/rollback'
         resp, body = self.client.do_request(path, "POST", version="2.0.0")
 
+    def fail(self, id):
+        path = self.path + '/' + id + '/fail'
+        resp, body = self.client.do_request(path, "POST", version="2.0.0")
+        self.print(resp, body)
+
 
 def usage():
     print("usage: cli resource action [arg...]")
@@ -116,6 +121,7 @@ def usage():
     print("  lcmocc delete {id}")
     print("  lcmocc retry {id}")
     print("  lcmocc rollback {id}")
+    print("  lcmocc fail {id}")
     os._exit(1)
 
 
@@ -139,7 +145,8 @@ if __name__ == '__main__':
             usage()
         client = Client("/vnflcm/v2/subscriptions")
     elif resource == "lcmocc":
-        if action not in ["list", "show", "delete", "retry", "rollback"]:
+        if action not in ["list", "show", "delete", "retry", "rollback",
+                          "fail"]:
             usage()
         client = Client("/vnflcm/v2/vnf_lcm_op_occs")
     else:
@@ -180,3 +187,7 @@ if __name__ == '__main__':
         if len(sys.argv) != 4:
             usage()
         client.rollback(sys.argv[3])
+    elif action == "fail":
+        if len(sys.argv) != 4:
+            usage()
+        client.fail(sys.argv[3])

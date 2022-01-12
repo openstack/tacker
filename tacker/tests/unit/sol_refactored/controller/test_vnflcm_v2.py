@@ -21,6 +21,7 @@ from oslo_utils import uuidutils
 from tacker import context
 from tacker.sol_refactored.api import api_version
 from tacker.sol_refactored.common import exceptions as sol_ex
+from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored.controller import vnflcm_v2
 from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
@@ -39,7 +40,7 @@ class TestVnflcmV2(db_base.SqlTestCase):
         self.request = mock.Mock()
         self.request.context = self.context
 
-    def _create_inst_and_lcmocc(self, inst_state, op_state):
+    def _set_inst_and_lcmocc(self, inst_state, op_state):
         inst = objects.VnfInstanceV2(
             # required fields
             id=uuidutils.generate_uuid(),
@@ -62,7 +63,13 @@ class TestVnflcmV2(db_base.SqlTestCase):
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
             isCancelPending=False,
-            operationParams=req)
+            operationParams=req
+        )
+
+        return inst, lcmocc
+
+    def _create_inst_and_lcmocc(self, inst_state, op_state):
+        inst, lcmocc = self._set_inst_and_lcmocc(inst_state, op_state)
 
         inst.create(self.context)
         lcmocc.create(self.context)
@@ -191,3 +198,64 @@ class TestVnflcmV2(db_base.SqlTestCase):
         self.assertRaises(sol_ex.LcmOpOccNotFailedTemp,
             self.controller.lcm_op_occ_rollback, request=self.request,
             id=lcmocc_id)
+
+    def test_fail_not_failed_temp(self):
+        _, lcmocc_id = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED)
+
+        self.assertRaises(sol_ex.LcmOpOccNotFailedTemp,
+            self.controller.lcm_op_occ_fail, request=self.request,
+            id=lcmocc_id)
+
+    def _prepare_db_for_fail(self):
+        inst, lcmocc = self._set_inst_and_lcmocc('NOT_INSTANTIATED',
+            fields.LcmOperationStateType.FAILED_TEMP)
+
+        inst.create(self.context)
+        lcmocc.create(self.context)
+
+        grant_req = objects.GrantRequestV1(
+            # required fields
+            vnfInstanceId=lcmocc.vnfInstanceId,
+            vnfLcmOpOccId=lcmocc.id,
+            vnfdId=uuidutils.generate_uuid(),
+            operation=lcmocc.operation,
+            isAutomaticInvocation=lcmocc.isAutomaticInvocation
+        )
+
+        grant = objects.GrantV1(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfInstanceId=lcmocc.vnfInstanceId,
+            vnfLcmOpOccId=lcmocc.id
+        )
+
+        grant_req.create(self.context)
+        grant.create(self.context)
+        lcmocc.grantId = grant.id
+        lcmocc.update(self.context)
+
+        return lcmocc
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
+    def test_lcm_op_occ_fail(self, mocked_send_lcmocc_notification):
+        # prepare
+        lcmocc = self._prepare_db_for_fail()
+
+        op_state = []
+
+        def _store_state(context, lcmocc, inst, endpoint):
+            op_state.append(lcmocc.operationState)
+
+        mocked_send_lcmocc_notification.side_effect = _store_state
+
+        # run lcm_op_occ_fail
+        self.controller.lcm_op_occ_fail(self.request, lcmocc.id)
+
+        # check operationstate
+        self.assertEqual(1, mocked_send_lcmocc_notification.call_count)
+        self.assertEqual(fields.LcmOperationStateType.FAILED, op_state[0])
+
+        # check grant_req and grant are deleted
+        self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
+            lcmocc_utils.get_grant_req_and_grant, self.context, lcmocc)
