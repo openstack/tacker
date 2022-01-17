@@ -12,7 +12,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+import ipaddress
 import os
 import time
 
@@ -69,14 +69,19 @@ class PrivateRegistryMgmtDriver(
         # get IP address from heat
         resource_info = heatclient.resources.get(
             stack_id=stack_id, resource_name=cp_name)
-        fixed_ips = resource_info.attributes.get("fixed_ips")
-        if fixed_ips:
-            cp_ip_address = fixed_ips[0].get("ip_address")
-        else:
-            cp_ip_address = ""
+        cp_ip_address = resource_info.attributes.get('floating_ip_address')
+        if cp_ip_address is None and resource_info.attributes.get('fixed_ips'):
+            cp_ip_address = resource_info.attributes.get(
+                'fixed_ips')[0].get("ip_address")
 
         # check result
-        if not cp_ip_address:
+        try:
+            ipaddress.ip_address(cp_ip_address)
+        except ValueError:
+            err_msg = "The IP address of Private registry VM is invalid."
+            LOG.error(err_msg)
+            raise exceptions.MgmtDriverOtherError(error_message=err_msg)
+        if cp_ip_address is None:
             err_msg = "Failed to get IP address for Private registry VM"
             LOG.error(err_msg)
             raise exceptions.MgmtDriverOtherError(error_message=err_msg)

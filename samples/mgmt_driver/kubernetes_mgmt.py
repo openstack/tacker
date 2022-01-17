@@ -287,6 +287,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                                vnf_instance, grant):
         zone_id = ''
         host_compute = ''
+        srv_grp_phy_res_id_list = []
         nest_resources_list = heatclient.resources.list(
             stack_id=nest_stack_id)
         for nest_res in nest_resources_list:
@@ -297,8 +298,8 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 srv_grp_policies = pod_affinity_res_info.attributes.get(
                     'policy')
                 if srv_grp_policies and srv_grp_policies == 'anti-affinity':
-                    srv_grp_phy_res_id = pod_affinity_res_info.\
-                        physical_resource_id
+                    srv_grp_phy_res_id_list.append(
+                        pod_affinity_res_info.physical_resource_id)
         lowest_res_list = heatclient.resources.list(stack_id=stack_id)
         for lowest_res in lowest_res_list:
             if lowest_res.resource_type == 'OS::Nova::Server':
@@ -307,7 +308,9 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                     stack_id=stack_id, resource_name=lowest_res_name)
                 srv_groups = worker_node_res_info.attributes.get(
                     'server_groups')
-                if srv_groups and srv_grp_phy_res_id in srv_groups:
+                srv_grp_phy_res_id = set(
+                    srv_grp_phy_res_id_list) & set(srv_groups)
+                if srv_grp_phy_res_id:
                     host_compute = worker_node_res_info.attributes.get(
                         'OS-EXT-SRV-ATTR:host')
                     if self.SET_ZONE_ID_FLAG:
@@ -648,7 +651,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                         self._execute_command(
                             commander, ssh_command,
                             PR_CMD_TIMEOUT, 'common', 0)
-                    transport.close()
+                    break
                 except paramiko.SSHException as e:
                     LOG.debug(e)
                     retry -= 1
@@ -657,6 +660,13 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                         commander.close_session()
                         raise paramiko.SSHException()
                     time.sleep(SERVER_WAIT_COMPLETE_TIME)
+                except (exceptions.MgmtDriverOtherError,
+                        exceptions.MgmtDriverRemoteCommandError) as ex:
+                    LOG.error(ex)
+                    commander.close_session()
+                    raise ex
+                finally:
+                    transport.close()
 
         # connect to private registries
         for pr_info in pr_connection_info:
@@ -2149,7 +2159,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         storage_server_param = vnf_instance.instantiated_vnf_info \
             .additional_params.get('k8s_cluster_installation_param')\
             .get('storage_server', {})
-        target_ss_cp_name = storage_server_param.get('ssh_cp_name', None)
+        target_ss_cp_name = storage_server_param.get('nic_cp_name', None)
         for vnfc_instance_id in heal_vnf_request.vnfc_instance_id:
             instantiated_vnf_info = vnf_instance.instantiated_vnf_info
             vnfc_resource_info = instantiated_vnf_info.vnfc_resource_info
@@ -2711,9 +2721,19 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             stack_id=stack_id,
             resource_name=ssh_cp_name
         )
-        ssh_ip_address = resource_info.attributes \
-            .get('fixed_ips')[0].get('ip_address')
-        if not ssh_ip_address:
+        ssh_ip_address = resource_info.attributes.get('floating_ip_address')
+        if ssh_ip_address is None and resource_info.attributes.get(
+                'fixed_ips'):
+            ssh_ip_address = resource_info.attributes.get(
+                'fixed_ips')[0].get('ip_address')
+
+        try:
+            ipaddress.ip_address(ssh_ip_address)
+        except ValueError:
+            raise exceptions.MgmtDriverOtherError(
+                error_message="The IP address of "
+                              "Storage server VM is invalid.")
+        if ssh_ip_address is None:
             raise exceptions.MgmtDriverOtherError(
                 error_message="Failed to get IP address for "
                               "Storage server VM")

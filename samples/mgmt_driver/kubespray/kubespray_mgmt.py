@@ -373,7 +373,7 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 'ansible_host': master_vm.get('ssh_ip'),
                 'ip': master_vm.get('nic_ip'),
                 'ansible_user': master_node.get('username'),
-                'ansible_password': master_node.get('username'),
+                'ansible_password': master_node.get('password'),
             }
             hosts_yaml_content['all']['children']['kube_control_plane'][
                 'hosts'][key] = None
@@ -386,7 +386,7 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 'ansible_host': worker_vm.get('ssh_ip'),
                 'ip': worker_vm.get('nic_ip'),
                 'ansible_user': worker_node.get('username'),
-                'ansible_password': worker_node.get('username'),
+                'ansible_password': worker_node.get('password'),
             }
             hosts_yaml_content['all']['children']['kube_node'][
                 'hosts'][key] = None
