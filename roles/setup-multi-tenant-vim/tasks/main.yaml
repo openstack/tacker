@@ -1,0 +1,129 @@
+- block:
+  - name: Create first OpenStack project, user and assign role
+    shell: |
+       openstack --os-cloud devstack-admin project create \
+       --domain {{ os_domain_tenant1 }} \
+       --description 'Test multi tenant policy' {{ os_project_tenant1 }}
+       openstack --os-cloud devstack-admin user create \
+       --domain {{ os_domain_tenant1 }} --project {{ os_project_tenant1 }} \
+       --password {{ os_password_tenant1 }} {{ os_username_tenant1 }}
+       openstack --os-cloud devstack-admin role add \
+       --project {{ os_project_tenant1 }} \
+       --user {{ os_username_tenant1 }} {{ os_member_role }}
+
+  - name: Create second OpenStack project, user and assign role
+    shell: |
+       openstack --os-cloud devstack-admin project create \
+       --domain {{ os_domain_tenant2 }} \
+       --description 'Test multi tenant policy' {{ os_project_tenant2 }}
+       openstack --os-cloud devstack-admin user create \
+       --domain {{ os_domain_tenant2 }} --project {{ os_project_tenant2 }} \
+       --password {{ os_password_tenant2 }} {{ os_username_tenant2 }}
+       openstack --os-cloud devstack-admin role add \
+       --project {{ os_project_tenant2 }} \
+       --user {{ os_username_tenant2 }} {{ os_member_role }}
+
+  - name: Get stackenv from devstack environment
+    slurp:
+      src: "{{ devstack_base_dir }}/devstack/.stackenv"
+    register: stackenv
+
+  - name: Set a keystone authentication uri
+    set_fact:
+      auth_uri: "{{
+                stackenv.content
+                | b64decode
+                | regex_replace('\n', ' ')
+                | regex_replace('^.*KEYSTONE_SERVICE_URI=([^ ]+).*$', '\\1')
+                }}"
+
+  - name: Request authentication token for first tenant
+    shell: >
+       openstack --os-auth-url {{ auth_uri }}
+       --os-project-domain-name {{ os_domain_tenant1 }}
+       --os-user-domain-name {{ os_domain_tenant1 }}
+       --os-project-name {{ os_project_tenant1 }}
+       --os-username {{ os_username_tenant1 }}
+       --os-password {{ os_password_tenant1 }}
+       token issue
+
+  - name: Generate OpenStack VIM config for first tenant
+    shell: >
+       {{ zuul_work_dir }}/tools/gen_vim_config.sh --type openstack
+       --os-user {{ os_username_tenant1 }}
+       --os-password {{ os_password_tenant1 }}
+       --project {{ os_project_tenant1 }}
+       --os-project-domain {{ os_domain_tenant1 }}
+       --os-user-domain {{ os_domain_tenant1 }}
+       --endpoint {{ auth_uri }} --os-disable-cert-verify
+       -o {{ os_vim_conf_path_tenant1 }}
+
+  - name: Cat OpenStack VIM config for first tenant
+    shell: cat {{ os_vim_conf_path_tenant1 }}
+
+  - name: Register OpenStack VIM for first tenant
+    shell: >
+       openstack vim register
+       --os-username {{ os_username_tenant1 }}
+       --os-password {{ os_password_tenant1 }}
+       --os-project-name {{ os_project_tenant1 }}
+       --os-auth-url {{ auth_uri }}
+       --os-project-domain-name {{ os_domain_tenant1 }}
+       --os-user-domain-name {{ os_domain_tenant1 }}
+       --config-file {{ os_vim_conf_path_tenant1 }}
+       --is-default
+       --description "VIM for testing multi tenant"
+       {{ os_vim_name_tenant1 }}
+
+  - name: Copy first tenant vim config file
+    copy:
+       remote_src=True
+       src={{ os_vim_conf_path_tenant1 }}
+       dest={{ zuul_work_dir }}/tacker/tests/etc/samples/{{ os_vim_conf_name_tenant1 }}
+
+  - name: Request authentication token for second tenant
+    shell: >
+       openstack --os-auth-url {{ auth_uri }}
+       --os-project-domain-name {{ os_domain_tenant2 }}
+       --os-user-domain-name {{ os_domain_tenant2 }}
+       --os-project-name {{ os_project_tenant2 }}
+       --os-username {{ os_username_tenant2 }}
+       --os-password {{ os_password_tenant2 }}
+       token issue
+
+  - name: Generate OpenStack VIM config for second tenant
+    shell: >
+       {{ zuul_work_dir }}/tools/gen_vim_config.sh --type openstack
+       --os-user {{ os_username_tenant2 }}
+       --os-password {{ os_password_tenant2 }}
+       --project {{ os_project_tenant2 }}
+       --os-project-domain {{ os_domain_tenant2 }}
+       --os-user-domain {{ os_domain_tenant2 }}
+       --endpoint {{ auth_uri }} --os-disable-cert-verify
+       -o {{ os_vim_conf_path_tenant2 }}
+
+  - name: Cat OpenStack VIM config
+    shell: cat {{ os_vim_conf_path_tenant2 }}
+
+  - name: Register OpenStack VIM for second tenant
+    shell: >
+       openstack vim register
+       --os-username {{ os_username_tenant2 }}
+       --os-password {{ os_password_tenant2 }}
+       --os-project-name {{ os_project_tenant2 }}
+       --os-auth-url {{ auth_uri }}
+       --os-project-domain-name {{ os_domain_tenant2 }}
+       --os-user-domain-name {{ os_domain_tenant2 }}
+       --config-file {{ os_vim_conf_path_tenant2 }}
+       --is-default
+       --description "VIM for testing multi tenant"
+       {{ os_vim_name_tenant2 }}
+
+  - name: Copy second tenant vim config file
+    copy:
+       remote_src=True
+       src={{ os_vim_conf_path_tenant2 }}
+       dest={{ zuul_work_dir }}/tacker/tests/etc/samples/{{ os_vim_conf_name_tenant2 }}
+
+  when:
+    - inventory_hostname == 'controller-tacker'

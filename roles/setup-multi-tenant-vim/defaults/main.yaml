@@ -1,0 +1,15 @@
+os_username_tenant1: test_user_1
+os_password_tenant1: devstack
+os_project_tenant1: test_tenant_1
+os_domain_tenant1: Default
+os_vim_name_tenant1: VIM_TEST
+os_vim_conf_name_tenant1: local-tenant1-vim.yaml
+os_vim_conf_path_tenant1: /tmp/local-tenant1-vim.yaml
+os_username_tenant2: test_user_2
+os_password_tenant2: devstack
+os_project_tenant2: test_tenant_2
+os_domain_tenant2: Default
+os_vim_name_tenant2: VIM_DEMO
+os_vim_conf_name_tenant2: local-tenant2-vim.yaml
+os_vim_conf_path_tenant2: /tmp/local-tenant2-vim.yaml
+os_member_role: member
