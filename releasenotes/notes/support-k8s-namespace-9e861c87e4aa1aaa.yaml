@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The user specifies the target namespace in the InstantiateVnfRequest to
+    deploy the CNF on the Kubernetes VIM. The additionalParams field provides
+    the new parameter ``namespace`` for the target namespace. The Kubernetes
+    resources in the VNF must be in the same namespace.

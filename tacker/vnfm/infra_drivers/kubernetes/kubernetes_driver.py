@@ -42,6 +42,7 @@ from tacker.vnfm.infra_drivers import abstract_driver
 from tacker.vnfm.infra_drivers.kubernetes.helm import helm_client
 from tacker.vnfm.infra_drivers.kubernetes.k8s import translate_outputs
 from tacker.vnfm.infra_drivers.kubernetes import translate_template
+from tacker.vnfm.infra_drivers.kubernetes import utils as k8s_utils
 from tacker.vnfm.infra_drivers import scale_driver
 from urllib.parse import urlparse
 
@@ -760,11 +761,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         return pvc_list_for_delete
 
     @log.log
-    def _delete_k8s_obj(self, kind, k8s_client_dict, vnf_resource, body):
-        namespace = vnf_resource.resource_name.\
-            split(COMMA_CHARACTER)[0]
-        name = vnf_resource.resource_name.\
-            split(COMMA_CHARACTER)[1]
+    def _delete_k8s_obj(self, kind, k8s_client_dict, vnf_resource, body,
+                        namespace):
+        name = vnf_resource.resource_name
         api_version = vnf_resource.resource_type.\
             split(COMMA_CHARACTER)[0]
 
@@ -820,7 +819,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
     def _helm_uninstall(self, context, vnf_instance):
         inst_vnf_info = vnf_instance.instantiated_vnf_info
         additional_params = inst_vnf_info.additional_params
-        namespace = additional_params.get('namespace', '')
+        namespace = vnf_instance.vnf_metadata['namespace']
         helm_inst_param_list = additional_params.get(
             'using_helm_install_param')
         vim_info = vnflcm_utils._get_vim(context,
@@ -897,6 +896,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     # 7. Delete `Namespace` finally
                     'Namespace'
                 ]
+                namespace = vnf_instance.vnf_metadata['namespace']
                 for kind in ordered_kind:
                     for vnf_resource in vnf_resources:
                         obj_kind = vnf_resource.resource_type.\
@@ -906,7 +906,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                                 kind=obj_kind,
                                 k8s_client_dict=k8s_client_dict,
                                 vnf_resource=vnf_resource,
-                                body=body)
+                                body=body, namespace=namespace)
         except Exception as e:
             LOG.error('Deleting VNF got an error due to %s', e)
             raise
@@ -987,8 +987,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                           name_with_underscores).lower()
 
         snake_case_kind = convert(kind)
+        kubernetes = translate_outputs.Transformer(None, None, None, None)
         try:
-            if namespace:
+            if 'namespaced' in kubernetes.method_value.get(kind):
                 read_api = eval('k8s_client_dict[api_version].'
                                 'read_namespaced_%s' % snake_case_kind)
                 response = read_api(name=name, namespace=namespace)
@@ -1049,6 +1050,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     get_by_vnf_instance_id(context, vnf_instance.id)
                 k8s_client_dict = self.kubernetes.\
                     get_k8s_client_dict(auth=auth_cred)
+                namespace = vnf_instance.vnf_metadata['namespace']
 
                 keep_going = True
                 stack_retries = self.STACK_RETRIES
@@ -1057,10 +1059,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     count = 0
 
                     for vnf_resource in vnf_resources:
-                        namespace = vnf_resource.resource_name.\
-                            split(COMMA_CHARACTER)[0]
-                        name = vnf_resource.resource_name.\
-                            split(COMMA_CHARACTER)[1]
+                        name = vnf_resource.resource_name
                         api_version = vnf_resource.resource_type.\
                             split(COMMA_CHARACTER)[0]
                         kind = vnf_resource.resource_type.\
@@ -1192,7 +1191,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         vdu_defs = policy['vdu_defs']
         inst_additional_params = (vnf_instance.instantiated_vnf_info
                                   .additional_params)
-        namespace = inst_additional_params.get('namespace', '')
+        namespace = vnf_instance.vnf_metadata['namespace']
         helm_install_params = inst_additional_params.get(
             'using_helm_install_param', [])
         # Get releasename and chartname from Helm install params in Instantiate
@@ -1279,6 +1278,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 if self._is_use_helm_flag(inst_vnf_info.additional_params):
                     self._helm_scale(context, vnf_instance, policy)
                     return
+                namespace = vnf_instance.vnf_metadata['namespace']
                 vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
                     context, policy['vnf_instance_id'])
                 app_v1_api_client = self.kubernetes.get_app_v1_api_client(
@@ -1295,15 +1295,10 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     # name defined in `metadata.name` of Kubernetes object
                     # file) matches the value of `properties.name` of VDU
                     # defined in VNFD.
-                    name = vnf_resource.resource_name.\
-                        split(COMMA_CHARACTER)[1]
+                    name = vnf_resource.resource_name
                     for vdu_id, vdu_def in vdu_defs.items():
                         vdu_properties = vdu_def.get('properties')
                         if name == vdu_properties.get('name'):
-                            namespace = vnf_resource.resource_name.\
-                                split(COMMA_CHARACTER)[0]
-                            if not namespace:
-                                namespace = "default"
                             kind = vnf_resource.resource_type.\
                                 split(COMMA_CHARACTER)[1]
                             if kind in target_kinds:
@@ -1440,6 +1435,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 # execute legacy scale_wait method
                 self._scale_wait_legacy(policy, auth_cred)
             else:
+                vnf_instance = objects.VnfInstance.get_by_id(
+                    context, policy['vnf_instance_id'])
+                namespace = vnf_instance.vnf_metadata['namespace']
                 vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
                     context, policy['vnf_instance_id'])
                 core_v1_api_client = self.kubernetes.get_core_v1_api_client(
@@ -1452,15 +1450,10 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 error_reason = None
                 target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
                 for vnf_resource in vnf_resources:
-                    name = vnf_resource.resource_name.\
-                        split(COMMA_CHARACTER)[1]
+                    name = vnf_resource.resource_name
                     for vdu_id, vdu_def in vdu_defs.items():
                         vdu_properties = vdu_def.get('properties')
                         if name == vdu_properties.get('name'):
-                            namespace = vnf_resource.resource_name.\
-                                split(COMMA_CHARACTER)[0]
-                            if not namespace:
-                                namespace = "default"
                             kind = vnf_resource.resource_type.\
                                 split(COMMA_CHARACTER)[1]
                             if kind in target_kinds:
@@ -1644,20 +1637,12 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             target_k8s_files = list()
         return target_k8s_files
 
-    def _create_vnf_resource(self, context, vnf_instance, file_content_dict,
-                             namespace=None):
+    def _create_vnf_resource(self, context, vnf_instance, file_content_dict):
         vnf_resource = vnf_resource_obj.VnfResource(
             context=context)
         vnf_resource.vnf_instance_id = vnf_instance.id
         metadata = file_content_dict.get('metadata', {})
-        if metadata and metadata.get('namespace', ''):
-            namespace = metadata.get('namespace', '')
-        elif namespace:
-            namespace = namespace
-        else:
-            namespace = ''
-        vnf_resource.resource_name = ','.join([
-            namespace, metadata.get('name', '')])
+        vnf_resource.resource_name = metadata.get('name', ' ')
         vnf_resource.resource_type = ','.join([
             file_content_dict.get('apiVersion', ''),
             file_content_dict.get('kind', '')])
@@ -1675,6 +1660,16 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                                    instantiate_vnf_req, vnf_package_path)
             # NOTE: In case of using helm, vnf_resources is created
             #       after `helm install` command is executed.
+
+            namespace = (instantiate_vnf_req.additional_params
+                         .get('namespace', ''))
+            if not namespace:
+                namespace = 'default'
+            if not vnf_instance.vnf_metadata:
+                vnf_instance.vnf_metadata = {}
+            vnf_instance.vnf_metadata['namespace'] = namespace
+            vnf_instance.save()
+
             return {}
 
         vnf_resources = dict()
@@ -1713,6 +1708,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 setattr(vnf_instance, 'task_state', None)
                 vnf_instance.save()
                 raise exceptions.VnfArtifactNotFound(id=vnf_package.id)
+
+            chk_namespaces = []
+
             for target_k8s_index, target_k8s_file \
                     in enumerate(target_k8s_files):
                 if ((urlparse(target_k8s_file).scheme == 'file') or
@@ -1730,7 +1728,18 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     vnf_resource = self._create_vnf_resource(
                         context, vnf_instance, file_content_dict)
                     vnf_resources_temp.append(vnf_resource)
+
+                    metadata = file_content_dict.get('metadata', {})
+                    chk_namespaces.append(
+                        {'namespace': metadata.get('namespace', ''),
+                         'kind': file_content_dict.get('kind', '')})
+
                 vnf_resources[target_k8s_index] = vnf_resources_temp
+
+            LOG.debug(f"all manifest namespace and kind: {chk_namespaces}")
+            k8s_utils.check_and_save_namespace(
+                instantiate_vnf_req, chk_namespaces, vnf_instance)
+
             return vnf_resources
 
     def delete_vnf_instance_resource(self, context, vnf_instance,
@@ -1740,7 +1749,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
     def _helm_install(self, context, vnf_instance, vim_connection_info,
                       instantiate_vnf_req, vnf_package_path, transformer):
         additional_params = instantiate_vnf_req.additional_params
-        namespace = additional_params.get('namespace', '')
+        namespace = vnf_instance.vnf_metadata['namespace']
         helm_inst_param_list = additional_params.get(
             'using_helm_install_param')
         ips, username, password = self._get_helm_info(vim_connection_info)
@@ -1787,7 +1796,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     mf_content_dicts = list(yaml.safe_load_all(mf_content))
                     for mf_content_dict in mf_content_dicts:
                         vnf_resource = self._create_vnf_resource(
-                            context, vnf_instance, mf_content_dict, namespace)
+                            context, vnf_instance, mf_content_dict)
                         vnf_resources.append(vnf_resource)
             helmclient.close_session()
         # save the vnf resources in the db
@@ -1800,6 +1809,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                         grant_response, vnf_package_path,
                         plugin=None):
         target_k8s_files = self._get_target_k8s_files(instantiate_vnf_req)
+        namespace = vnf_instance.vnf_metadata['namespace']
         auth_attr = vim_connection_info.access_info
         use_helm_flag = self._is_use_helm_flag(
             instantiate_vnf_req.additional_params)
@@ -1821,7 +1831,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     instantiate_vnf_req, vnf_package_path, transformer)
             else:
                 k8s_objs = transformer.\
-                    get_k8s_objs_from_yaml(target_k8s_files, vnf_package_path)
+                    get_k8s_objs_from_yaml(target_k8s_files, vnf_package_path,
+                                           namespace)
                 k8s_objs = transformer.deploy_k8s(k8s_objs)
             vnfd_dict['current_error_point'] = EP.POST_VIM_CONTROL
             k8s_objs = self.create_wait_k8s(
@@ -1848,9 +1859,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             return resource_info_str
 
     def _post_helm_install(self, context, vim_connection_info,
-                           instantiate_vnf_req, transformer):
+                           instantiate_vnf_req, transformer, namespace):
         additional_params = instantiate_vnf_req.additional_params
-        namespace = additional_params.get('namespace', '')
         helm_inst_param_list = additional_params.get(
             'using_helm_install_param')
         ips, username, password = self._get_helm_info(vim_connection_info)
@@ -1877,6 +1887,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         """
         auth_attr = vim_connection_info.access_info
         auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        namespace = vnf_instance.vnf_metadata['namespace']
         try:
             # get Kubernetes object files
             target_k8s_files = self._get_target_k8s_files(instantiate_vnf_req)
@@ -1887,11 +1898,12 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 None, None, None, None)
             if self._is_use_helm_flag(instantiate_vnf_req.additional_params):
                 k8s_objs = self._post_helm_install(context,
-                    vim_connection_info, instantiate_vnf_req, transformer)
+                    vim_connection_info, instantiate_vnf_req, transformer,
+                    namespace)
             else:
                 # get Kubernetes object
                 k8s_objs = transformer.get_k8s_objs_from_yaml(
-                    target_k8s_files, vnf_package_path)
+                    target_k8s_files, vnf_package_path, namespace)
             # get TOSCA node templates
             vnfd_dict = vnflcm_utils._get_vnfd_dict(
                 context, vnf_instance.vnfd_id,
@@ -1920,9 +1932,6 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     # Skip if rsc_kind is not target kind
                     continue
                 rsc_name = k8s_obj.get('object').metadata.name
-                namespace = k8s_obj.get('object').metadata.namespace
-                if not namespace:
-                    namespace = "default"
                 # get V1PodList by namespace
                 if namespace in pod_list_dict.keys():
                     pod_list = pod_list_dict.get(namespace)
@@ -1976,14 +1985,11 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         return vnfc_resources
 
     def _get_added_pod_names(self, core_v1_api_client, inst_vnf_info, vdu_id,
-                             vnfc_resource, pod_list_dict):
+                             vnfc_resource, pod_list_dict, namespace):
         compute_resource = vnfc_resource.compute_resource
         rsc_kind = compute_resource.vim_level_resource_type
         rsc_metadata = jsonutils.loads(
             vnfc_resource.metadata.get(rsc_kind))
-        namespace = rsc_metadata.get('namespace')
-        if not namespace:
-            namespace = "default"
         rsc_name = rsc_metadata.get('name')
         # Get pod list from kubernetes
         if namespace in pod_list_dict.keys():
@@ -2028,6 +2034,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         auth_attr = vim_connection_info.access_info
         auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
         inst_vnf_info = vnf_instance.instantiated_vnf_info
+        namespace = vnf_instance.vnf_metadata['namespace']
         try:
             core_v1_api_client = self.kubernetes.get_core_v1_api_client(
                 auth=auth_cred)
@@ -2049,7 +2056,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     continue
                 actual_pod_names, added_pod_names = self._get_added_pod_names(
                     core_v1_api_client, inst_vnf_info, vdu_id, vnfc_resource,
-                    pod_list_dict)
+                    pod_list_dict, namespace)
 
                 if added_pod_names:
                     heal_target_ids = heal_vnf_request.vnfc_instance_id
@@ -2078,9 +2085,6 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 pod_name = compute_resource.resource_id
                 rsc_metadata = jsonutils.loads(
                     vnfc_resource.metadata.get(rsc_kind))
-                namespace = rsc_metadata.get('namespace')
-                if not namespace:
-                    namespace = "default"
 
                 if rsc_kind == 'Pod':
                     rsc_name = rsc_metadata.get('name')
@@ -2185,6 +2189,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         # initialize Kubernetes APIs
         auth_attr = vim_connection_info.access_info
         auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        namespace = vnf_instance.vnf_metadata['namespace']
         try:
             core_v1_api_client = self.kubernetes.get_core_v1_api_client(
                 auth=auth_cred)
@@ -2211,7 +2216,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 rsc_metadata = jsonutils.loads(
                     vnfc_resource.metadata.get(info['kind']))
                 info['name'] = rsc_metadata.get('name')
-                info['namespace'] = rsc_metadata.get('namespace')
+                info['namespace'] = namespace
                 if not info['namespace']:
                     info['namespace'] = "default"
                 k8s_resources.append(info)
@@ -2301,6 +2306,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         auth_attr = vim_connection_info.access_info
         auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
         inst_vnf_info = vnf_instance.instantiated_vnf_info
+        namespace = vnf_instance.vnf_metadata['namespace']
         try:
             core_v1_api_client = self.kubernetes.get_core_v1_api_client(
                 auth=auth_cred)
@@ -2328,7 +2334,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 # (Deployment, DaemonSet, ReplicaSet)
                 actual_pod_names, added_pod_names = self._get_added_pod_names(
                     core_v1_api_client, inst_vnf_info, vdu_id, vnfc_resource,
-                    pod_list_dict)
+                    pod_list_dict, namespace)
 
                 updated_vnfc_ids = []
                 # Update entries that pod was not found when heal_vnf method
@@ -2430,18 +2436,18 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 extract_policy_infos=extract_policy_infos,
                 aspect_id=scale_vnf_request.aspect_id,
                 tosca=tosca)
+            namespace = vnf_instance.vnf_metadata['namespace']
             is_found = False
             target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
             for vnf_resource in vnf_resources:
                 # For CNF operations, Kubernetes resource information is
                 # stored in vnfc_resource as follows:
-                #   - resource_name : "namespace,name"
+                #   - resource_name : "name"
                 #   - resource_type : "api_version,kind"
-                rsc_name = vnf_resource.resource_name.split(',')[1]
+                rsc_name = vnf_resource.resource_name
                 for vdu_id, vdu_def in vdu_defs.items():
                     vdu_properties = vdu_def.get('properties')
                     if rsc_name == vdu_properties.get('name'):
-                        namespace = vnf_resource.resource_name.split(',')[0]
                         rsc_kind = vnf_resource.resource_type.split(',')[1]
                         target_vdu_id = vdu_id
                         if rsc_kind in target_kinds:

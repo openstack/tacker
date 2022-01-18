@@ -161,10 +161,12 @@ class TestKubernetesHelm(base.TestCase):
                           self.helm_client.get_value,
                           'fake_release_name', '', 'foo.bar')
 
+    @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
     @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     def test_pre_instantiation_vnf_helm(self, mock_vnfd_dict,
-                                        mock_vnf_package_vnfd_get_by_id):
+                                        mock_vnf_package_vnfd_get_by_id,
+                                        mock_save):
         vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
         vnf_software_images = None
@@ -179,10 +181,12 @@ class TestKubernetesHelm(base.TestCase):
             instantiate_vnf_req, vnf_package_path)
         self.assertEqual(vnf_resources, {})
 
+    @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
     @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     def test_pre_helm_install_with_bool_param(self, mock_vnfd_dict,
-                                              mock_vnf_package_vnfd_get_by_id):
+                                              mock_vnf_package_vnfd_get_by_id,
+                                              mock_save):
         vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
         vnf_software_images = None
@@ -334,7 +338,7 @@ class TestKubernetesHelm(base.TestCase):
             base_hot_dict)
         self.assertEqual(
             result,
-            "{'namespace': '', 'name': 'vdu1', " +
+            "{'namespace': 'default', 'name': 'vdu1', " +
             "'apiVersion': 'apps/v1', 'kind': 'Deployment', " +
             "'status': 'Create_complete'}")
         self.assertEqual(mock_read_namespaced_deployment.call_count, 1)
@@ -351,6 +355,7 @@ class TestKubernetesHelm(base.TestCase):
             mock_connect, mock_from_transport, mock_put, mock_close,
             mock_vnf_resource_create):
         vnf_instance = fd_utils.get_vnf_instance_object()
+        vnf_instance.vnf_metadata['namespace'] = 'dummy_namespace'
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
         deployment_obj = fakes.fake_v1_deployment_for_helm()
         mock_read_namespaced_deployment.return_value = deployment_obj
@@ -401,7 +406,7 @@ class TestKubernetesHelm(base.TestCase):
             base_hot_dict)
         self.assertEqual(
             result,
-            "{'namespace': '', 'name': 'vdu1', " +
+            "{'namespace': 'default', 'name': 'vdu1', " +
             "'apiVersion': 'apps/v1', 'kind': 'Deployment', " +
             "'status': 'Create_complete'}")
         self.assertEqual(mock_read_namespaced_deployment.call_count, 1)

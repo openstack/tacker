@@ -1049,10 +1049,8 @@ def get_scale_policy(type, aspect_id='vdu1', delta_num=1, is_legacy=False,
 def get_vnf_resource_list(kind, name='fake_name'):
     vnf_resource = models.VnfResource()
     vnf_resource.vnf_instance_id = uuidsentinel.vnf_instance_id
-    vnf_resource.resource_name = \
-        _("fake_namespace,{name}").format(name=name)
-    vnf_resource.resource_type = \
-        _("v1,{kind}").format(kind=kind)
+    vnf_resource.resource_name = name
+    vnf_resource.resource_type = f"v1,{kind}"
     return [vnf_resource]
 
 

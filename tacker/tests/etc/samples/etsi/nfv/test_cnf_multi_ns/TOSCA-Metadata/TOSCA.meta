@@ -1,0 +1,24 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml
+
+Name: Files/kubernetes/deployment_has_namespace.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: c33b1ec0793619e4752fb0bca2c5c20c9ae2e1717ade94e7d4466efc80a7c6f4
+
+Name: Files/kubernetes/deployment_no_namespace.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 064c5f54722d74dd7faae6a3f83a504eed579135b366b1251e6d2f024951a7a0
+
+Name: Files/kubernetes/namespace01.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 6cee66e9786c158edae7da6b1c4639246070cb6ccbfcfbe7f5cec4184552b07d
+
+Name: Files/kubernetes/namespace02.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 04a7db97412b8d88fe6390c34489ac8e963c70d828c11737592723a7fbd30d8c

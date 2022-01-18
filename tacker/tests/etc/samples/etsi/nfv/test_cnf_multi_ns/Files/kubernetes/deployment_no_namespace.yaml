@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vdu2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webserver
+  template:
+    metadata:
+      labels:
+        app: webserver
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          protocol: TCP
