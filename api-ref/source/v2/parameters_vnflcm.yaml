@@ -621,6 +621,14 @@ graceful_termination_timeout:
   in: body
   required: false
   type: integer
+grant_id:
+  description: |
+    Identifier of the grant related to this VNF LCM operation occurrence.
+    Shall be set to the value of the "id" attribute in the "Grant"
+    representing the associated "Individual Grant", if such grant exists.
+  in: body
+  required: false
+  type: string
 instantiated_vnf_info:
   description: |
     Information specific to an instantiated VNF instance. This attribute shall
@@ -718,7 +726,7 @@ link_port_id:
   in: body
   required: false
   type: string
-localizataion_language:
+localization_language:
   description: |
     Localization language of the VNF to be instantiated.
     The value shall comply with the format defined in
@@ -801,6 +809,19 @@ parent_cp_config_id:
   in: body
   required: false
   type: string
+removed_storage_resource_ids:
+  description: |
+    References to VirtualStorage resources that
+    have been removed.
+    The value contains the identifier of a
+    VirtualStorageResourceInfo item that has been
+    removed from the VNFC, and might no longer
+    exist in the VnfInstance.
+    It shall be provided if at least one storage
+    resource was removed from the VNFC.
+  in: body
+  required: false
+  type: array
 resource_changes:
   description: |
     This attribute contains information about the cumulative

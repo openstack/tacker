@@ -4,12 +4,6 @@ ETSI NFV-SOL VNF error-handling
 
 This document describes how to error-handling VNF in Tacker.
 
-.. note::
-    Rollback and retry are NOT supported in version 2 vnflcm APIs in Xena yet.
-    So, You should recover it by yourself instead if instantiation is failed via v2 API.
-    The recovering process may include deleting a stack via HEAT API.
-
-
 Prerequisites
 -------------
 
@@ -237,11 +231,55 @@ the **callbackUri** set in 'Create a new subscription'.
 **vnfLcmOpOccId** included in this 'Notification' corresponds
 to VNF_LCM_OP_OCC_ID.
 
-See `Tacker API reference`_. for details on the APIs used here.
+See `VNF LCM v1 API`_ and `VNF LCM v2 API`_
+for details on the APIs used here.
 
 
 Rollback VNF LCM Operation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+    Rollback of Scale-Out has a difference in operation result between v1 and v2.
+    In v1, the oldest VNFc(VM) is deleted. In v2, the newest VNFc(VM) is deleted.
+
+.. list-table::
+   :widths: 10 40 15 15 10 10
+   :header-rows: 1
+
+   * - LCM Operation
+     - Description of Rollback
+     - Precondition
+     - Postcondition
+     - Support in v1
+     - Support in v2
+   * - Instantiate
+     - | VNFM removes all VMs and resources.
+       | e.g. Tacker executes Heat stack-delete for deletion of the target VM.
+     - FAILED_TEMP
+     - ROLLED_BACK or FAILED_TEMP
+     - X
+     - X
+   * - Scale-out
+     - | VNFM reverts changes of VMs and resources specified in the middle of scale-out operation.
+       | There are differences in the operation results of v1 and v2. See note.
+       | e.g. Tacker reverts desired_capacity and executes Heat stack-update.
+     - FAILED_TEMP
+     - ROLLED_BACK or FAILED_TEMP
+     - X
+     - X
+   * - Modify
+     - VNFM reverts the update of the VNF instance information.
+     - FAILED_TEMP
+     - ROLLED_BACK or FAILED_TEMP
+     -
+     - X
+   * - Change external connectivity
+     - | VNFM reverts changes of the external connectivity for VNF instances.
+       | e.g. Tacker reverts stack parameters and executes Heat stack-update.
+     - FAILED_TEMP
+     - ROLLED_BACK or FAILED_TEMP
+     -
+     - X
 
 This manual describes the following operations as use cases for
 rollback operations.
@@ -296,7 +334,54 @@ Result:
 
 
 Fail VNF LCM Operation
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :widths: 10 40 15 15 10 10
+   :header-rows: 1
+
+   * - LCM Operation
+     - Description of Fail
+     - Precondition
+     - Postcondition
+     - Support in v1
+     - Support in v2
+   * - Instantiate
+     - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
+     - FAILED_TEMP
+     - FAILED
+     - X
+     - X
+   * - Terminate
+     - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
+     - FAILED_TEMP
+     - FAILED
+     - X
+     - X
+   * - Heal
+     - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
+     - FAILED_TEMP
+     - FAILED
+     - X
+     - X
+   * - Scale
+     - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
+     - FAILED_TEMP
+     - FAILED
+     - X
+     - X
+   * - Modify
+     - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
+     - FAILED_TEMP
+     - FAILED
+     - X
+     - X
+   * - Change external connectivity
+     - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
+     - FAILED_TEMP
+     - FAILED
+     - X
+     - X
 
 This manual describes the following operations as use cases for
 fail operations.
@@ -353,6 +438,53 @@ Result:
 Retry VNF LCM Operation
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+.. list-table::
+   :widths: 10 40 15 15 10 10
+   :header-rows: 1
+
+   * - LCM Operation
+     - Description of Fail
+     - Precondition
+     - Postcondition
+     - Support in v1
+     - Support in v2
+   * - Instantiate
+     - VNFM retries a Instantiate operation.
+     - FAILED_TEMP
+     - COMPLETED or FAILED_TEMP
+     - X
+     - X
+   * - Terminate
+     - VNFM retries a Terminate operation.
+     - FAILED_TEMP
+     - COMPLETED or FAILED_TEMP
+     - X
+     - X
+   * - Heal
+     - VNFM retries a Heal operation.
+     - FAILED_TEMP
+     - COMPLETED or FAILED_TEMP
+     - X
+     - X
+   * - Scale
+     - VNFM retries a Scale operation.
+     - FAILED_TEMP
+     - COMPLETED or FAILED_TEMP
+     - X
+     - X
+   * - Modify
+     - VNFM retries a Modify operation.
+     - FAILED_TEMP
+     - COMPLETED or FAILED_TEMP
+     - X
+     - X
+   * - Change external connectivity
+     - VNFM retries a Change external connectivity operation.
+     - FAILED_TEMP
+     - COMPLETED or FAILED_TEMP
+     - X
+     - X
+
 This manual describes the following operations as use cases for
 retry operations.
 
@@ -380,6 +512,7 @@ Result:
 If "Retry VNF lifecycle management operation" is successful,
 then another LCM can be operational.
 
-.. _Tacker API reference : https://docs.openstack.org/api-ref/nfv-orchestration/v1/index.html
+.. _VNF LCM v1 API : https://docs.openstack.org/api-ref/nfv-orchestration/v1/vnflcm.html
+.. _VNF LCM v2 API : https://docs.openstack.org/api-ref/nfv-orchestration/v2/vnflcm.html
 .. _Keystone API reference : https://docs.openstack.org/api-ref/identity/v3/#password-authentication-with-scoped-authorization
 

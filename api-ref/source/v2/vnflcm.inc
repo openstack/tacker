@@ -9,14 +9,8 @@ This interface manages the VNF lifecycle management operations of VNF instances.
 This interface allows the NFVO to invoke VNF lifecycle management operations
 of VNF instances towards the VNFM.
 
-.. note::
-    TODO: Xena release does not support version 2 vnflcm APIs of
-    scale vnf, heal vnf, change external vnf connectivity,
-    rollback, retry and fail.
-    The version 2 of these APIs will be supported in future releases.
-
-Creates a new VNF instance resource (v2)
-========================================
+Create a new VNF instance resource (v2)
+=======================================
 
 .. rest_method::  POST /vnflcm/v2/vnf_instances
 
@@ -167,7 +161,7 @@ Request Parameters
   - interfaceInfo: vim_connection_info_interface_info
   - accessInfo: vim_connection_info_access_info
   - extra: vim_connection_info_extra
-  - localizationLanguage: localizataion_language
+  - localizationLanguage: localization_language
   - additionalParams: vnf_instance_additional_params
   - extensions: vnf_instance_extensions
   - vnfConfigurableProperties: vnf_instance_vnf_configurable_properties
@@ -258,7 +252,7 @@ Request Parameters
 
   - vnfInstanceId: vnf_instance_id
 
-Show VNF Instance (v2)
+Show VNF instance (v2)
 ======================
 
 .. rest_method::  GET /vnflcm/v2/vnf_instances/{vnfInstanceId}
@@ -404,7 +398,7 @@ Response Example
 .. literalinclude:: samples/vnflcm/show-vnf-instance-response.json
    :language: javascript
 
-List VNF Instance (v2)
+List VNF instance (v2)
 ======================
 
 .. rest_method::  GET /vnflcm/v2/vnf_instances
@@ -599,6 +593,7 @@ Response Parameters
   - stateEnteredTime: state_entered_time
   - startTime: start_time
   - vnfInstanceId: vnf_lcm_vnf_instance_id
+  - grantId: grant_id
   - operation: operation
   - isAutomaticInvocation: is_automatic_invocation
   - operationParams: operation_params
@@ -618,6 +613,7 @@ Response Parameters
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - affectedVnfcCpIds: affected_vnfc_cp_ids
   - addedStorageResourceIds: added_storage_resource_ids
+  - removedStorageResourceIds: removed_storage_resource_ids
   - affectedVirtualLinks: affected_virtual_links
   - id: affected_virtual_links_id
   - vnfVirtualLinkDescId: vnf_virtual_link_resource_info_vnf_virtual_link_desc_id
@@ -693,6 +689,7 @@ Response Parameters
   - stateEnteredTime: state_entered_time
   - startTime: start_time
   - vnfInstanceId: vnf_lcm_vnf_instance_id
+  - grantId: grant_id
   - operation: operation
   - isAutomaticInvocation: is_automatic_invocation
   - operationParams: operation_params
@@ -712,6 +709,7 @@ Response Parameters
   - vimLevelResourceType: resource_handle_vim_level_resource_type
   - affectedVnfcCpIds: affected_vnfc_cp_ids
   - addedStorageResourceIds: added_storage_resource_ids
+  - removedStorageResourceIds: removed_storage_resource_ids
   - affectedVirtualLinks: affected_virtual_links
   - id: affected_virtual_links_id
   - vnfVirtualLinkDescId: vnf_virtual_link_resource_info_vnf_virtual_link_desc_id
@@ -737,6 +735,154 @@ Response Example
 .. literalinclude:: samples/vnflcm/list-vnflcm-operation-occurrence-response.json
    :language: javascript
 
+Retry a VNF LCM operation occurrence (v2)
+=========================================
+
+.. rest_method::  POST /vnflcm/v2/vnf_lcm_op_occs/{vnfLcmOpOccId}/retry
+
+The POST method starts retrying a VNF lifecycle operation if that operation
+has experienced a temporary failure, i.e. the related
+"Individual VNF LCM operation occurrence" resource is in "FAILED_TEMP" state.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 202
+
+.. rest_status_code:: error status.yaml
+
+  - 401
+  - 404
+  - 409
+  - 422
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfLcmOpOccId: vnf_lcm_op_occ_id
+
+Fail a VNF LCM operation occurrence (v2)
+========================================
+
+.. rest_method::  POST /vnflcm/v2/vnf_lcm_op_occs/{vnfLcmOpOccId}/fail
+
+The POST method marks a VNF lifecycle management operation occurrence
+as "finally failed" if that operation occurrence is in "FAILED_TEMP" state.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 200
+
+.. rest_status_code:: error status.yaml
+
+  - 401
+  - 404
+  - 406
+  - 409
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfLcmOpOccId: vnf_lcm_op_occ_id
+
+Response Parameters
+-------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - id: vnf_lcm_op_occ_id_response
+  - operationState: operation_state
+  - stateEnteredTime: state_entered_time
+  - startTime: start_time
+  - vnfInstanceId: vnf_instance_id
+  - grantId: grant_id
+  - operation: operation
+  - isAutomaticInvocation: is_automatic_invocation
+  - operationParams: operation_params
+  - isCancelPending: is_cancel_pending
+  - error: error
+  - title: error_title
+  - status: error_status
+  - detail: error_detail
+  - resourceChanges: resource_changes
+  - affectedVnfcs: affected_vnfcs
+  - id: affected_vnfcs_id
+  - vduId: affected_vnfcs_vdu_id
+  - changeType: affected_vnfcs_change_type
+  - computeResource: vnfc_resource_info_compute_resource
+  - vimConnectionId: vim_connection_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - affectedVnfcCpIds: affected_vnfc_cp_ids
+  - addedStorageResourceIds: added_storage_resource_ids
+  - removedStorageResourceIds: removed_storage_resource_ids
+  - affectedVirtualLinks: affected_virtual_links
+  - id: affected_virtual_links_id
+  - vnfVirtualLinkDescId: vnf_virtual_link_resource_info_vnf_virtual_link_desc_id
+  - changeType: affected_virtual_links_change_type
+  - networkResource: vnf_virtual_link_resource_info_network_resource
+  - vimConnectionId: vim_connection_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - affectedVirtualStorages: affected_virtual_storages
+  - id: affected_virtual_storages_id
+  - virtualStorageDescId: affected_virtual_storages_virtual_storage_desc_id
+  - changeType: affected_virtual_storages_change_type
+  - storageResource: virtual_storage_resource_info_storage_resource
+  - vimConnectionId: vim_connection_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - _links: vnf_instance_links
+
+Response Example
+----------------
+
+.. literalinclude:: samples/vnflcm/fail-vnflcm-operation-occurrence-response.json
+   :language: javascript
+
+Rollback a VNF LCM operation occurrence (v2)
+============================================
+
+.. rest_method::  POST /vnflcm/v2/vnf_lcm_op_occs/{vnfLcmOpOccId}/rollback
+
+The POST method starts rolling back a VNF lifecycle operation if that operation
+has experienced a temporary failure, i.e. the related
+"Individual VNF LCM operation occurrence" resource is in "FAILED_TEMP" state.
+In case of rolling back an occurrence of the "InstantiateVnf" operation,
+the VNFM shall request to the VIM the release of the virtualised
+resources that were allocated for the related VNF instance.
+The "rollback" task shall be supported by the VNFM for any VNF LCM operation occurrence
+that represents an "InstantiateVnf" operation in FAILED_TEMP state.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 202
+
+.. rest_status_code:: error status.yaml
+
+  - 401
+  - 404
+  - 409
+  - 422
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfLcmOpOccId: vnf_lcm_op_occ_id
 
 Create a new subscription (v2)
 ==============================
