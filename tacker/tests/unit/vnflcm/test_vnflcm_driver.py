@@ -1819,6 +1819,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             **update)
         scale_name_list = ["fake"]
         grp_id = "fake_id"
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.SCALING)
+
         driver = vnflcm_driver.VnfLcmDriver()
         driver._scale_vnf(self.context, vnf_info, vnf_instance,
                           scale_vnf_request, vim_connection_info,
@@ -1855,11 +1859,14 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             **update)
         scale_name_list = ["fake"]
         grp_id = "fake_id"
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.SCALING)
+
         with open(vnf_info["attributes"]["heat_template"], "r") as f:
             mock_safe_load.return_value = yaml.safe_load(f)
             print(mock_safe_load.return_value)
         driver = vnflcm_driver.VnfLcmDriver()
-
         driver._scale_vnf(self.context, vnf_info, vnf_instance,
                           scale_vnf_request, vim_connection_info,
                           scale_name_list, grp_id, op_occ)
@@ -1895,11 +1902,13 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             **update)
         scale_name_list = ["fake"]
         grp_id = "fake_id"
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.SCALING)
         with open(vnf_info["attributes"]["heat_template"], "r") as f:
             mock_safe_load.return_value = yaml.safe_load(f)
             print(mock_safe_load.return_value)
         driver = vnflcm_driver.VnfLcmDriver()
-
         driver._scale_vnf(self.context, vnf_info, vnf_instance,
                           scale_vnf_request, vim_connection_info,
                           scale_name_list, grp_id, op_occ)
@@ -1935,6 +1944,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             **update)
         scale_name_list = ["fake"]
         grp_id = "fake_id"
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.SCALING)
+
         with open(vnf_info["attributes"]["heat_template"], "r") as f:
             mock_safe_load.return_value = yaml.safe_load(f)
             print(mock_safe_load.return_value)
@@ -2033,6 +2046,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         mock_yaml_safe_load.return_value = fakes.vnfd_dict_cnf()
         driver = vnflcm_driver.VnfLcmDriver()
         self.vim_client.get_vim.return_value = fakes.get_dummy_k8s_vim_obj()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.SCALING)
         driver.scale_vnf(self.context, vnf_info, vnf_instance,
             scale_vnf_request)
 
@@ -2065,7 +2081,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         scale_name_list = ["fake"]
         grp_id = "fake_id"
         driver = vnflcm_driver.VnfLcmDriver()
-
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.SCALING)
         msg = 'Unknown scale type'
         self.assertRaisesRegex(exceptions.VnfScaleFailed, msg,
                                driver._scale_vnf, self.context, vnf_info,

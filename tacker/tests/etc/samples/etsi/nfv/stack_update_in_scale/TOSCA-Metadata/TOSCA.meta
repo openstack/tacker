@@ -1,0 +1,4 @@
+TOSCA-Meta-File-Version: 1.0
+CSAR-Version: 1.1
+Created-by: Onboarding portal
+Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml

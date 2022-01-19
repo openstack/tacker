@@ -1,0 +1,72 @@
+heat_template_version: 2013-05-23
+description: 'VDU1 HOT for Sample VNF'
+
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  zone:
+    type: string
+  net1:
+    type: string
+  net2:
+    type: string
+  net3:
+    type: string
+  net4:
+    type: string
+  net5:
+    type: string
+
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: flavor }
+      name: VDU1
+      block_device_mapping_v2: [{"volume_id": { get_resource: VirtualStorage }}]
+      networks:
+      - port:
+          get_resource: VDU1_CP1
+      - port:
+          get_resource: VDU1_CP2
+      - port:
+          get_resource: VDU1_CP3
+      - port:
+          get_resource: VDU1_CP4
+      - port:
+          get_resource: VDU1_CP5
+      availability_zone: { get_param: zone }
+
+  VirtualStorage:
+    type: OS::Cinder::Volume
+    properties:
+      image: { get_param: image }
+      size: 1
+      volume_type: { get_resource: multi }
+  multi:
+    type: OS::Cinder::VolumeType
+    properties:
+      name: { get_resource: VDU1_CP1 }
+      metadata: { multiattach: "<is> True" }
+  VDU1_CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net1 }
+  VDU1_CP2:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net2 }
+  VDU1_CP3:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net3 }
+  VDU1_CP4:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net4 }
+  VDU1_CP5:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net5 }

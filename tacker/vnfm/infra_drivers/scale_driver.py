@@ -74,7 +74,8 @@ class VnfScaleAbstractDriver(extensions.PluginInterface,
               scale_vnf_request,
               region_name,
               scale_name_list,
-              grp_id):
+              grp_id,
+              vnf_instance):
         pass
 
     @abc.abstractmethod
@@ -84,7 +85,8 @@ class VnfScaleAbstractDriver(extensions.PluginInterface,
               auth_attr,
               vnf_info,
               scale_vnf_request,
-              region_name):
+              region_name,
+              vnf_instance):
         pass
 
     @abc.abstractmethod

@@ -177,21 +177,148 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         post_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
         self._assert_scale_vnf(resp, vnf_instance_id, vnf_package_id,
             pre_stack_resource_list, post_stack_resource_list,
-            scale_type='SCALE_OUT')
+            scale_type='SCALE_OUT', expected_stack_status='CREATE_COMPLETE')
 
         # Scale-in vnf instance
         stack = self._get_heat_stack(vnf_instance_id)
         pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
 
-        request_body = fake_vnflcm.VnfInstances.make_scale_request_body(
-            'SCALE_IN')
+        request_body = (fake_vnflcm.VnfInstances
+                        .make_reverse_scale_request_body('SCALE_IN'))
         resp, _ = self._scale_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
 
         post_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
         self._assert_scale_vnf(resp, vnf_instance_id, vnf_package_id,
             pre_stack_resource_list, post_stack_resource_list,
-            scale_type='SCALE_IN')
+            scale_type='SCALE_IN', expected_stack_status='UPDATE_COMPLETE')
+
+        # Terminate VNF
+        stack = self._get_heat_stack(vnf_instance_id)
+        resources_list = self._get_heat_resource_list(stack.id)
+        resource_name_list = [r.resource_name for r in resources_list]
+        glance_image_id_list = self._get_glance_image_list_from_stack_resource(
+            stack.id, resource_name_list)
+
+        terminate_req_body = fake_vnflcm.VnfInstances.make_term_request_body()
+        resp, _ = self._terminate_vnf_instance(
+            vnf_instance_id, terminate_req_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_terminate_vnf(resp, vnf_instance_id, stack.id,
+            resource_name_list, glance_image_id_list, vnf_package_id)
+
+        # Delete VNF
+        resp, _ = self._delete_vnf_instance(vnf_instance_id)
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Subscription delete
+        resp, response_body = self._delete_subscription(subscription_id)
+        self.assertEqual(204, resp.status_code)
+
+        resp, _ = self._show_subscription(subscription_id)
+        self.assertEqual(404, resp.status_code)
+
+    def test_stack_update_in_scaling(self):
+        """Test basic life cycle operations with sample VNFD.
+
+        In this test case, we do following steps.
+            - Create subscription.
+            - Create VNF package.
+            - Upload VNF package.
+            - Create VNF instance.
+            - Instantiate VNF.
+            - Get VNF informations.
+            - Scale-Out VNF
+            - Scale-In VNF
+            - Terminate VNF
+            - Delete VNF
+            - Delete subscription
+        """
+        # Create subscription and register it.
+        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        request_body = fake_vnflcm.Subscription.make_create_request_body(
+            'http://localhost:{}{}'.format(
+                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                callback_url))
+        resp, response_body = self._register_subscription(request_body)
+        self.assertEqual(201, resp.status_code)
+        self.assert_http_header_location_for_subscription(resp.headers)
+        self.assert_notification_get(callback_url)
+        subscription_id = response_body.get('id')
+        self.addCleanup(
+            self._delete_subscription,
+            subscription_id)
+
+        # Pre Setting: Create vnf package.
+        sample_name = 'stack_update_in_scale'
+        csar_package_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "../../../etc/samples/etsi/nfv",
+                sample_name))
+        tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
+            csar_package_path)
+        # upload vnf package
+        vnf_package_id, vnfd_id = vnflcm_base._create_and_upload_vnf_package(
+            self.tacker_client, user_defined_data={
+                "key": sample_name}, temp_csar_path=tempname)
+
+        # Post Setting: Reserve deleting vnf package.
+        self.addCleanup(vnflcm_base._delete_vnf_package, self.tacker_client,
+            vnf_package_id)
+
+        # Create vnf instance
+        resp, vnf_instance = self._create_vnf_instance_from_body(
+            fake_vnflcm.VnfInstances.make_create_request_body(vnfd_id))
+        vnf_instance_id = vnf_instance['id']
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
+
+        # Instantiate vnf instance
+        request_body = (fake_vnflcm.VnfInstances.
+                        make_inst_request_body_include_num_dynamic(
+                            self.vim['tenant_id'], self.ext_networks,
+                            self.ext_mngd_networks,
+                            self.ext_link_ports, self.ext_subnets))
+        resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_instantiate_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Show vnf instance
+        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
+        self.assertEqual(200, resp.status_code)
+
+        # Scale-out vnf instance
+        stack = self._get_heat_stack(vnf_instance_id)
+        pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+
+        request_body = fake_vnflcm.VnfInstances.make_scale_request_body(
+            'SCALE_OUT')
+        resp, _ = self._scale_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+
+        post_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+        self._assert_scale_vnf(resp, vnf_instance_id, vnf_package_id,
+            pre_stack_resource_list, post_stack_resource_list,
+            scale_type='SCALE_OUT', expected_stack_status='CREATE_COMPLETE')
+
+        # Scale-in vnf instance
+
+        stack = self._get_heat_stack(vnf_instance_id)
+        pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+
+        request_body = (fake_vnflcm.VnfInstances
+                        .make_reverse_scale_request_body('SCALE_IN'))
+        resp, _ = self._scale_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+
+        post_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+        self._assert_scale_vnf(resp, vnf_instance_id, vnf_package_id,
+            pre_stack_resource_list, post_stack_resource_list,
+            scale_type='SCALE_IN', expected_stack_status='UPDATE_COMPLETE')
 
         # Terminate VNF
         stack = self._get_heat_stack(vnf_instance_id)
@@ -421,6 +548,235 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assertIsNotNone(
             image_after_heal, "failed to retrieve image")
         self.assertNotEqual(image_before_update, image_after_heal)
+
+        # Terminate VNF
+        stack = self._get_heat_stack(vnf_instance_id)
+        resources_list = self._get_heat_resource_list(stack.id)
+        resource_name_list = [r.resource_name for r in resources_list]
+        glance_image_id_list = self._get_glance_image_list_from_stack_resource(
+            stack.id,
+            resource_name_list)
+
+        terminate_req_body = fake_vnflcm.VnfInstances.make_term_request_body()
+        resp, _ = self._terminate_vnf_instance(
+            vnf_instance_id, terminate_req_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_terminate_vnf(
+            resp,
+            vnf_instance_id,
+            stack.id,
+            resource_name_list,
+            glance_image_id_list,
+            vnf_package_id)
+
+        # Delete VNF
+        resp, _ = self._delete_vnf_instance(vnf_instance_id)
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Subscription delete
+        resp, response_body = self._delete_subscription(subscription_id)
+        self.assertEqual(204, resp.status_code)
+
+        resp, show_body = self._show_subscription(subscription_id)
+        self.assertEqual(404, resp.status_code)
+
+    def test_stack_param_heal_term(self):
+        """Test basic life cycle operations.
+
+        In this test case, we do following steps.
+            - Create subscription.
+            - Get subscription information.
+            - Get list of subscriptions
+            - Get list of subscriptions with filter
+            - Create VNF package.
+            - Upload VNF package.
+            - Create VNF instance.
+            - Instantiate VNF.
+            - Get list of VNF instances.
+            - Get information of instantiated VNF.
+            - Heal VNF.
+            - Create new VNF package for update.
+            - Upload new VNF package.
+            - Update VNF with new package.
+            - Validate stack parameters for values from package
+            - Terminate VNF.
+            - Delete subscription.
+        """
+        # Create subscription and register it.
+        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        request_body = fake_vnflcm.Subscription.make_create_request_body(
+            'http://localhost:{}{}'.format(
+                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                callback_url))
+        resp, response_body = self._register_subscription(request_body)
+        self.assertEqual(201, resp.status_code)
+        self.assert_http_header_location_for_subscription(resp.headers)
+        self.assert_notification_get(callback_url)
+        subscription_id = response_body.get('id')
+        self.addCleanup(self._delete_subscription, subscription_id)
+
+        # Subscription show
+        resp, body = self._wait_show_subscription(subscription_id)
+        self.assert_subscription_show(resp, body)
+
+        # Subscription list
+        resp, _ = self._list_subscription()
+        self.assertEqual(200, resp.status_code)
+
+        # Subscription list filter 1
+        filter_expr = {
+            'filter': "filter=(eq,id,{})".format(body.get('id'))}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(1, len(subscription_body))
+
+        # Subscription list filter 2
+        filter_expr = {
+            'filter': "filter=(neq,callbackUri,{})".format(
+                'http://localhost:{}{}'.format(
+                    vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                    os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                        self._testMethodName)))}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(0, len(subscription_body))
+
+        # Subscription list filter 3
+        filter_expr = {
+            'filter': "filter=(neq,id,{})".format(body.get('id'))}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(0, len(subscription_body))
+
+        # Subscription list filter 4
+        filter_expr = {
+            'filter': "filter=(eq,callbackUri,{})".format(
+                'http://localhost:{}{}'.format(
+                    vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                    os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                        self._testMethodName)))}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(1, len(subscription_body))
+
+        # Subscription list filter 5
+        filter_expr = {
+            'filter': "filter=(in,operationTypes,{})".format("sample")}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(400, resp.status_code)
+        self.assertEqual(3, len(subscription_body))
+
+        # Subscription list filter 6
+        filter_expr = {
+            'filter': "filter=(eq,vnfSoftwareVersion,{})".format('1.0')}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(1, len(subscription_body))
+
+        # Subscription list filter 7
+        filter_expr = {
+            'filter': "filter=(eq,operationTypes,{})".format(
+                "SCALE_TO_LEVEL")}
+        resp, subscription_body = self._list_subscription_filter(
+            params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(0, len(subscription_body))
+
+        # Pre Setting: Create vnf package.
+        sample_name = 'functional'
+        csar_package_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "../../../etc/samples/etsi/nfv",
+                sample_name))
+        tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
+            csar_package_path)
+        # upload vnf package
+        vnf_package_id, vnfd_id = vnflcm_base._create_and_upload_vnf_package(
+            self.tacker_client, user_defined_data={
+                "key": sample_name}, temp_csar_path=tempname)
+
+        # Post Setting: Reserve deleting vnf package.
+        self.addCleanup(vnflcm_base._delete_vnf_package, self.tacker_client,
+            vnf_package_id)
+
+        # Create vnf instance
+        resp, vnf_instance = self._create_vnf_instance_from_body(
+            fake_vnflcm.VnfInstances.make_create_request_body(vnfd_id))
+        vnf_instance_id = vnf_instance['id']
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
+        vnf_instance_name = vnf_instance['vnfInstanceName']
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
+
+        # Instantiate vnf instance
+        request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
+            self.vim['tenant_id'], self.ext_networks, self.ext_mngd_networks,
+            self.ext_link_ports, self.ext_subnets)
+        resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_instantiate_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # List vnf instance
+        filter_expr = {
+            'filter': "(eq,id,{});(eq,vnfInstanceName,{})".format(
+                vnf_instance_id, vnf_instance_name)}
+        resp, vnf_instances = self._list_vnf_instance(params=filter_expr)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(1, len(vnf_instances))
+
+        # Show vnf instance
+        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
+        self.assertEqual(200, resp.status_code)
+
+        # Update vnf (vnfdId)
+        sample_name = 'stack_update_in_heal'
+        csar_package_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "../../../etc/samples/etsi/nfv",
+                sample_name))
+        tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
+            csar_package_path)
+        # upload vnf package
+        update_vnf_package_id, update_vnfd_id = (vnflcm_base
+            ._create_and_upload_vnf_package(
+                self.tacker_client,
+                user_defined_data={"key": sample_name},
+                temp_csar_path=tempname))
+
+        request_body = fake_vnflcm.VnfInstances.make_update_request_body(
+            vnfd_id=update_vnfd_id)
+        resp, _ = self._update_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_update_vnf(resp, vnf_instance_id,
+            after_id=request_body['vnfdId'], old_id=vnfd_id)
+        vnf_package_id = update_vnf_package_id
+
+        # Heal vnf (exists vnfc_instace_id)
+        vnfc_instance_id_list = [
+            vnfc.get('id') for vnfc in vnf_instance.get(
+                'instantiatedVnfInfo', {}).get(
+                'vnfcResourceInfo', [])]
+        request_body = fake_vnflcm.VnfInstances.make_heal_request_body(
+            [vnfc_instance_id_list[1]])
+        resp, _ = self._heal_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_heal_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Check of stack param desired_capacity existence in stack
+        stack_after_heal = self._get_heat_stack_show(vnf_instance_id)
+        self.assertIsNotNone(
+            stack_after_heal, "failed to retrieve stack")
+        self.assertIsNotNone(stack_after_heal.get('desired_capacity'))
 
         # Terminate VNF
         stack = self._get_heat_stack(vnf_instance_id)
@@ -1735,13 +2091,13 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             vnf_pkg_id,
             pre_stack_resource_list,
             post_stack_resource_list,
-            scale_type):
+            scale_type, expected_stack_status):
         super().assert_scale_vnf(
             resp,
             vnf_instance_id,
             pre_stack_resource_list,
             post_stack_resource_list,
-            scale_type=scale_type)
+            scale_type=scale_type, expected_stack_status=expected_stack_status)
 
         resp, vnf_pkg_info = vnflcm_base._show_vnf_package(
             self.tacker_client, vnf_pkg_id)

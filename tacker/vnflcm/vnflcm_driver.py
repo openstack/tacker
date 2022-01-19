@@ -1321,7 +1321,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 scale_vnf_request=scale_vnf_request,
                 region_name=vim_connection_info.access_info.get('region_name'),
                 scale_name_list=scale_name_list,
-                grp_id=grp_id
+                grp_id=grp_id,
+                vnf_instance=vnf_instance
             )
             vnf_info['current_error_point'] = EP.POST_VIM_CONTROL
             self._vnf_manager.invoke(
@@ -1342,7 +1343,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 auth_attr=vim_connection_info.access_info,
                 vnf_info=vnf_info,
                 scale_vnf_request=scale_vnf_request,
-                region_name=vim_connection_info.access_info.get('region_name')
+                region_name=vim_connection_info.access_info.get('region_name'),
+                vnf_instance=vnf_instance
             )
             vnf_info['current_error_point'] = EP.POST_VIM_CONTROL
             self._vnf_manager.invoke(
@@ -1587,7 +1589,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     region_name=vim_connection_info.access_info.get(
                         'region_name'),
                     scale_name_list=scale_name_list,
-                    grp_id=grp_id)
+                    grp_id=grp_id,
+                    vnf_instance=vnf_instance)
                 self._vnf_manager.invoke(
                     vim_connection_info.vim_type,
                     'scale_update_wait',

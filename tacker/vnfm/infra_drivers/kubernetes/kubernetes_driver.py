@@ -2509,14 +2509,14 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
               scale_vnf_request,
               region_name,
               scale_name_list,
-              grp_id):
+              grp_id,
+              vnf_instance):
         # NOTE(ueha): The `is_reverse` option is not supported in kubernetes
         # VIM, and returns an error response to the user if `is_reverse` is
         # true. However, since this method is called in the sequence of
         # rollback operation, implementation is required.
         vnf_instance_id = vnf_info['vnf_lcm_op_occ'].vnf_instance_id
         aspect_id = scale_vnf_request.aspect_id
-        vnf_instance = objects.VnfInstance.get_by_id(context, vnf_instance_id)
         vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
             vnf_instance.vnfd_id,
             vnf_instance.instantiated_vnf_info.flavour_id)
