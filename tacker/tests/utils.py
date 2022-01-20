@@ -121,6 +121,9 @@ def create_csar_with_unique_vnfd_id(csar_dir):
     for (dpath, _, fnames) in os.walk(common_dir):
         if not fnames:
             continue
+        if ('test_cnf' in csar_dir and
+                re.search('images|kubernetes|Scripts', dpath)):
+            continue
         for fname in fnames:
             src_file = os.path.join(dpath, fname)
             dst_file = os.path.relpath(os.path.join(dpath, fname), common_dir)
@@ -189,9 +192,6 @@ def create_csar_with_unique_artifact(csar_dir):
 
     for (dpath, _, fnames) in os.walk(common_dir):
         if not fnames:
-            continue
-        if ('vnf_instance' in csar_dir and 'kubernetes' in dpath) or \
-                ('vnf_instance' in csar_dir and 'Scripts' in dpath):
             continue
         for fname in fnames:
             src_file = os.path.join(dpath, fname)
