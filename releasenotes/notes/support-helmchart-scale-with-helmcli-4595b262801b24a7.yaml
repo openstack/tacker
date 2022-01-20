@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    Change scale operation of CNF that is instantiated with Helm chart to
+    perform using Helm cli by specifying replica count parameters for each
+    aspect_id at instantiation in advance.
+    This change makes that upgrading the Helm values (e.g. nodeSelector or
+    tolerations) directly in Kubernetes VIM after a scale operation from Tacker
+    does not change the number of replicas.

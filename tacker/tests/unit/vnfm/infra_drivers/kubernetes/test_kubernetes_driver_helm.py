@@ -18,9 +18,9 @@ import paramiko
 from ddt import ddt
 from kubernetes import client
 from oslo_serialization import jsonutils
+from tacker.common import exceptions
 from tacker import context
 from tacker.db.db_sqlalchemy import models
-from tacker.extensions import common_services as cs
 from tacker.extensions import vnfm
 from tacker import objects
 from tacker.tests.unit import base
@@ -41,17 +41,18 @@ class FakeRemoteCommandExecutor(mock.Mock):
 
 
 class FakeCommander(mock.Mock):
-    def config(self, is_success, errmsg=None):
+    def config(self, is_success, errmsg=None, stdout=''):
         self.is_success = is_success
         self.errmsg = errmsg
+        self.stdout = stdout
 
     def execute_command(self, *args, **kwargs):
         is_success = self.is_success
         fake_result = FakeCmdResult()
         stderr = ''
-        stdout = ''
+        stdout = self.stdout
         return_code = (0) if is_success else (1)
-        stderr, stdout = ('', '') if is_success else ('err', '')
+        stderr, stdout = ('', stdout) if is_success else ('err', stdout)
         if self.errmsg:
             stderr = [self.errmsg]
         fake_result.set_std(stderr, stdout, return_code)
@@ -145,19 +146,43 @@ class TestKubernetesHelm(base.TestCase):
                           self.helm_client._execute_command,
                           ssh_command, timeout, retry)
 
-    def test_pre_instantiation_vnf_helm(self):
+    @mock.patch.object(eventlet, 'monkey_patch')
+    def test_helmclient_get_value_nested_param(self, mock_monkey_patch):
+        stdout = ['{"foo":{"bar":1}}']
+        self.helm_client.commander.config(True, stdout=stdout)
+        res = self.helm_client.get_value('fake_release_name', '', 'foo.bar')
+        self.assertEqual(res, 1)
+
+    @mock.patch.object(eventlet, 'monkey_patch')
+    def test_helmclient_get_value_missing_param(self, mock_monkey_patch):
+        stdout = ['{"foo":1}']
+        self.helm_client.commander.config(True, stdout=stdout)
+        self.assertRaises(vnfm.HelmClientMissingParamsError,
+                          self.helm_client.get_value,
+                          'fake_release_name', '', 'foo.bar')
+
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_pre_instantiation_vnf_helm(self, mock_vnfd_dict,
+                                        mock_vnf_package_vnfd_get_by_id):
         vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
         vnf_software_images = None
         vnf_package_path = self.package_path
         instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart()
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_package_vnfd())
         vnf_resources = self.kubernetes.pre_instantiation_vnf(
             self.context, vnf_instance, vim_connection_info,
             vnf_software_images,
             instantiate_vnf_req, vnf_package_path)
         self.assertEqual(vnf_resources, {})
 
-    def test_pre_helm_install_with_bool_param(self):
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_pre_helm_install_with_bool_param(self, mock_vnfd_dict,
+                                              mock_vnf_package_vnfd_get_by_id):
         vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
         vnf_software_images = None
@@ -168,6 +193,9 @@ class TestKubernetesHelm(base.TestCase):
             'using_helm_install_param']
         using_helm_inst_params[0]['exthelmchart'] = True
         using_helm_inst_params[1]['exthelmchart'] = False
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_package_vnfd())
         vnf_resources = self.kubernetes.pre_instantiation_vnf(
             self.context, vnf_instance, vim_connection_info,
             vnf_software_images,
@@ -175,12 +203,14 @@ class TestKubernetesHelm(base.TestCase):
         self.assertEqual(vnf_resources, {})
 
     def test_pre_helm_install_invaid_vimconnectioninfo_no_helm_info(self):
+        vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
         del vim_connection_info.extra['helm_info']
         vnf_package_path = self.package_path
         instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart()
         exc = self.assertRaises(vnfm.InvalidVimConnectionInfo,
                                 self.kubernetes._pre_helm_install,
+                                self.context, vnf_instance,
                                 vim_connection_info, instantiate_vnf_req,
                                 vnf_package_path)
         msg = ("Invalid vim_connection_info: "
@@ -188,12 +218,14 @@ class TestKubernetesHelm(base.TestCase):
         self.assertEqual(msg, exc.format_message())
 
     def test_pre_helm_install_invaid_vimconnectioninfo_no_masternode_ip(self):
+        vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra(
             del_field='masternode_ip')
         vnf_package_path = self.package_path
         instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart()
         exc = self.assertRaises(vnfm.InvalidVimConnectionInfo,
                                 self.kubernetes._pre_helm_install,
+                                self.context, vnf_instance,
                                 vim_connection_info, instantiate_vnf_req,
                                 vnf_package_path)
         msg = ("Invalid vim_connection_info: "
@@ -201,6 +233,7 @@ class TestKubernetesHelm(base.TestCase):
         self.assertEqual(msg, exc.format_message())
 
     def test_pre_helm_install_invalid_helm_param(self):
+        vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
         vnf_package_path = self.package_path
         instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart(
@@ -208,8 +241,9 @@ class TestKubernetesHelm(base.TestCase):
         using_helm_inst_params = instantiate_vnf_req.additional_params[
             'using_helm_install_param']
         del using_helm_inst_params[0]['exthelmchart']
-        exc = self.assertRaises(cs.InputValuesMissing,
+        exc = self.assertRaises(exceptions.InvalidInput,
                                 self.kubernetes._pre_helm_install,
+                                self.context, vnf_instance,
                                 vim_connection_info, instantiate_vnf_req,
                                 vnf_package_path)
         msg = ("Parameter input values missing for the key '{param}'".format(
@@ -217,12 +251,14 @@ class TestKubernetesHelm(base.TestCase):
         self.assertEqual(msg, exc.format_message())
 
     def test_pre_helm_install_empty_helm_param(self):
+        vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
         vnf_package_path = self.package_path
         instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart(
             external=False, local=False)
-        exc = self.assertRaises(cs.InputValuesMissing,
+        exc = self.assertRaises(exceptions.InvalidInput,
                                 self.kubernetes._pre_helm_install,
+                                self.context, vnf_instance,
                                 vim_connection_info, instantiate_vnf_req,
                                 vnf_package_path)
         msg = ("Parameter input values missing for the key '{param}'".format(
@@ -230,6 +266,7 @@ class TestKubernetesHelm(base.TestCase):
         self.assertEqual(msg, exc.format_message())
 
     def test_pre_helm_install_invalid_chartfile_path(self):
+        vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
         vnf_package_path = self.package_path
         instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart(
@@ -239,11 +276,34 @@ class TestKubernetesHelm(base.TestCase):
         using_helm_inst_params[0]['helmchartfile_path'] = 'invalid_path'
         exc = self.assertRaises(vnfm.CnfDefinitionNotFound,
                                 self.kubernetes._pre_helm_install,
+                                self.context, vnf_instance,
                                 vim_connection_info, instantiate_vnf_req,
                                 vnf_package_path)
         msg = _("CNF definition file with path {path} is not found "
                 "in vnf_artifacts.").format(
             path=using_helm_inst_params[0]['helmchartfile_path'])
+        self.assertEqual(msg, exc.format_message())
+
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_pre_helm_install_missing_replica_values(
+            self, mock_vnfd_dict, mock_vnf_package_vnfd_get_by_id):
+        vnf_instance = fd_utils.get_vnf_instance_object()
+        vim_connection_info = fakes.fake_vim_connection_info_with_extra()
+        vnf_package_path = self.package_path
+        instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart(
+            external=False)
+        instantiate_vnf_req.additional_params['helm_replica_values'] = {}
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_package_vnfd())
+        exc = self.assertRaises(exceptions.InvalidInput,
+                                self.kubernetes._pre_helm_install,
+                                self.context, vnf_instance,
+                                vim_connection_info, instantiate_vnf_req,
+                                vnf_package_path)
+        aspect_id = 'vdu1_aspect'
+        msg = f"Replica value for aspectId '{aspect_id}' is missing"
         self.assertEqual(msg, exc.format_message())
 
     @mock.patch.object(objects.VnfResource, 'create')
@@ -507,3 +567,109 @@ class TestKubernetesHelm(base.TestCase):
                                     region_name=None,
                                     vnf_instance=vnf_instance)
         self.assertEqual(mock_read_namespaced_deployment.call_count, 0)
+
+    @mock.patch.object(helm_client.HelmClient, '_execute_command')
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_scale_in_with_local_helmchart(self, mock_vnf_instance_get_by_id,
+                                           mock_get_vim, mock_command):
+        policy = fakes.get_scale_policy(type='in', aspect_id='vdu1_aspect',
+                                        vdu_name='myrelease-ext-mychart-ext')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        mock_get_vim.return_value = fakes.fake_k8s_vim_obj()
+        vim_connection_info = fakes.fake_vim_connection_info_with_extra()
+        instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart(
+            local=False)
+        vnf_instance = copy.deepcopy(self.vnf_instance)
+        vnf_instance.vim_connection_info = [vim_connection_info]
+        vnf_instance.scale_status = [scale_status]
+        vnf_instance.instantiated_vnf_info.additional_params = \
+            instantiate_vnf_req.additional_params
+        mock_vnf_instance_get_by_id.return_value = vnf_instance
+        mock_command.side_effect = fakes.execute_cmd_helm_client
+        self.kubernetes.scale(context=self.context, plugin=None,
+                              auth_attr=utils.get_vim_auth_obj(),
+                              policy=policy,
+                              region_name=None)
+
+    @mock.patch.object(helm_client.HelmClient, '_execute_command')
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_scale_out_with_ext_helmchart(self, mock_vnf_instance_get_by_id,
+                                          mock_get_vim, mock_command):
+        policy = fakes.get_scale_policy(type='out', aspect_id='vdu1_aspect',
+                                        vdu_name='myrelease-local-localhelm')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        mock_get_vim.return_value = fakes.fake_k8s_vim_obj()
+        vim_connection_info = fakes.fake_vim_connection_info_with_extra()
+        instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart(
+            external=False, namespace='dummy_namespace')
+        vnf_instance = copy.deepcopy(self.vnf_instance)
+        vnf_instance.vim_connection_info = [vim_connection_info]
+        vnf_instance.scale_status = [scale_status]
+        vnf_instance.instantiated_vnf_info.additional_params = \
+            instantiate_vnf_req.additional_params
+        mock_vnf_instance_get_by_id.return_value = vnf_instance
+        mock_command.side_effect = fakes.execute_cmd_helm_client
+        self.kubernetes.scale(context=self.context, plugin=None,
+                              auth_attr=utils.get_vim_auth_obj(),
+                              policy=policy,
+                              region_name=None)
+
+    @mock.patch.object(helm_client.HelmClient, '_execute_command')
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_scale_in_less_than_min_replicas(self, mock_vnf_instance_get_by_id,
+                                             mock_get_vim, mock_command):
+        policy = fakes.get_scale_policy(type='in', aspect_id='vdu1_aspect',
+                                        vdu_name='myrelease-ext-mychart-ext')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        mock_get_vim.return_value = fakes.fake_k8s_vim_obj()
+        vim_connection_info = fakes.fake_vim_connection_info_with_extra()
+        instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart(
+            local=False)
+        vnf_instance = copy.deepcopy(self.vnf_instance)
+        vnf_instance.vim_connection_info = [vim_connection_info]
+        vnf_instance.scale_status = [scale_status]
+        vnf_instance.instantiated_vnf_info.additional_params = \
+            instantiate_vnf_req.additional_params
+        mock_vnf_instance_get_by_id.return_value = vnf_instance
+        mock_command.side_effect = [['{"replicaCount":1}'], '']
+        exc = self.assertRaises(vnfm.CNFScaleFailed,
+                                self.kubernetes.scale,
+                                self.context, None, utils.get_vim_auth_obj(),
+                                policy, None)
+        msg = ("CNF Scale Failed with reason: The number of target replicas "
+               "after scaling [0] is out of range")
+        self.assertEqual(msg, exc.format_message())
+
+    @mock.patch.object(helm_client.HelmClient, '_execute_command')
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_scale_out_over_max_replicas(self, mock_vnf_instance_get_by_id,
+                                         mock_get_vim, mock_command):
+        policy = fakes.get_scale_policy(type='out', aspect_id='vdu1_aspect',
+                                        vdu_name='myrelease-local-localhelm')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        mock_get_vim.return_value = fakes.fake_k8s_vim_obj()
+        vim_connection_info = fakes.fake_vim_connection_info_with_extra()
+        instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart(
+            external=False)
+        vnf_instance = copy.deepcopy(self.vnf_instance)
+        vnf_instance.vim_connection_info = [vim_connection_info]
+        vnf_instance.scale_status = [scale_status]
+        vnf_instance.instantiated_vnf_info.additional_params = \
+            instantiate_vnf_req.additional_params
+        mock_vnf_instance_get_by_id.return_value = vnf_instance
+        mock_command.side_effect = [['{"replicaCount":3}'], '']
+        exc = self.assertRaises(vnfm.CNFScaleFailed,
+                                self.kubernetes.scale,
+                                self.context, None, utils.get_vim_auth_obj(),
+                                policy, None)
+        msg = ("CNF Scale Failed with reason: The number of target replicas "
+               "after scaling [4] is out of range")
+        self.assertEqual(msg, exc.format_message())
