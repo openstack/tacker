@@ -149,6 +149,21 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
                                                        self.endpoint)
         return sol_wsgi.SolResponse(204, None)
 
+    def _new_lcmocc(self, inst_id, operation, req_body):
+        now = datetime.utcnow()
+        lcmocc = objects.VnfLcmOpOccV2(
+            id=uuidutils.generate_uuid(),
+            operationState=v2fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=now,
+            startTime=now,
+            vnfInstanceId=inst_id,
+            operation=operation,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_body)
+
+        return lcmocc
+
     @validator.schema(schema.InstantiateVnfRequest_V200, '2.0.0')
     @coordinate.lock_vnf_instance('{id}')
     def instantiate(self, request, id, body):
@@ -160,17 +175,8 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         lcmocc_utils.check_lcmocc_in_progress(context, id)
 
-        now = datetime.utcnow()
-        lcmocc = objects.VnfLcmOpOccV2(
-            id=uuidutils.generate_uuid(),
-            operationState=v2fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=now,
-            startTime=now,
-            vnfInstanceId=id,
-            operation=v2fields.LcmOperationType.INSTANTIATE,
-            isAutomaticInvocation=False,
-            isCancelPending=False,
-            operationParams=body)
+        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.INSTANTIATE,
+                                  body)
 
         req_param = lcmocc.operationParams
         # if there is partial vimConnectionInfo check and fulfill here.
@@ -203,18 +209,63 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         lcmocc_utils.check_lcmocc_in_progress(context, id)
 
-        now = datetime.utcnow()
-        lcmocc = objects.VnfLcmOpOccV2(
-            id=uuidutils.generate_uuid(),
-            operationState=v2fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=now,
-            startTime=now,
-            vnfInstanceId=id,
-            operation=v2fields.LcmOperationType.TERMINATE,
-            isAutomaticInvocation=False,
-            isCancelPending=False,
-            operationParams=body)
+        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.TERMINATE,
+                                  body)
+        lcmocc.create(context)
 
+        self.conductor_rpc.start_lcm_op(context, lcmocc.id)
+
+        location = lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)
+
+        return sol_wsgi.SolResponse(202, None, location=location)
+
+    def _get_current_scale_level(self, inst, aspect_id):
+        if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+                inst.instantiatedVnfInfo.obj_attr_is_set('scaleStatus')):
+            for scale_info in inst.instantiatedVnfInfo.scaleStatus:
+                if scale_info.aspectId == aspect_id:
+                    return scale_info.scaleLevel
+
+    def _get_max_scale_level(self, inst, aspect_id):
+        if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+                inst.instantiatedVnfInfo.obj_attr_is_set('maxScaleLevels')):
+            for scale_info in inst.instantiatedVnfInfo.maxScaleLevels:
+                if scale_info.aspectId == aspect_id:
+                    return scale_info.scaleLevel
+
+    @validator.schema(schema.ScaleVnfRequest_V200, '2.0.0')
+    @coordinate.lock_vnf_instance('{id}')
+    def scale(self, request, id, body):
+        context = request.context
+        inst = inst_utils.get_inst(context, id)
+
+        if inst.instantiationState != 'INSTANTIATED':
+            raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
+
+        lcmocc_utils.check_lcmocc_in_progress(context, id)
+
+        # check parameters
+        aspect_id = body['aspectId']
+        if 'numberOfSteps' not in body:
+            # set default value (1) defined by SOL specification for
+            # the convenience of the following methods.
+            body['numberOfSteps'] = 1
+
+        scale_level = self._get_current_scale_level(inst, aspect_id)
+        max_scale_level = self._get_max_scale_level(inst, aspect_id)
+        if scale_level is None or max_scale_level is None:
+            raise sol_ex.InvalidScaleAspectId(aspect_id=aspect_id)
+
+        num_steps = body['numberOfSteps']
+        if body['type'] == 'SCALE_IN':
+            num_steps *= -1
+        scale_level += num_steps
+        if scale_level < 0 or scale_level > max_scale_level:
+            raise sol_ex.InvalidScaleNumberOfSteps(
+                num_steps=body['numberOfSteps'])
+
+        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.SCALE,
+                                  body)
         lcmocc.create(context)
 
         self.conductor_rpc.start_lcm_op(context, lcmocc.id)

@@ -46,8 +46,11 @@ def make_inst_links(inst, endpoint):
         links.instantiate = objects.Link(href=self_href + "/instantiate")
     else:  # 'INSTANTIATED'
         links.terminate = objects.Link(href=self_href + "/terminate")
+        links.scale = objects.Link(href=self_href + "/scale")
         # TODO(oda-g): add when the operation supported
-        # links.scale = objects.Link(href = self_href + "/scale")
+        # links.heal = objects.Link(href=self_href + "/heal")
+        # links.changeExtConn = objects.Link(
+        #     href=self_href + "/change_ext_conn")
         # etc.
 
     return links

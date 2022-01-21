@@ -15,6 +15,7 @@
 
 import os
 
+from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnfd_utils
 from tacker.tests import base
 
@@ -100,9 +101,6 @@ class TestVnfd(base.BaseTestCase):
         result = self.vnfd_1.get_base_hot(SAMPLE_FLAVOUR_ID)
         # check keys and sampling data
         self.assertEqual(['VDU1.yaml'], list(result['files'].keys()))
-        self.assertEqual(1,
-            result['template']['resources']['VDU1_scale_out']['properties']
-            ['scaling_adjustment'])
         self.assertEqual({'get_param': 'net3'},
             result['files']['VDU1.yaml']['resources']['VDU1_CP3']
             ['properties']['network'])
@@ -159,3 +157,25 @@ class TestVnfd(base.BaseTestCase):
         result = self.vnfd_1.get_interface_script(SAMPLE_FLAVOUR_ID,
             "scale_end")
         self.assertEqual(None, result)
+
+    def test_get_scale_vdu_and_num(self):
+        expected_result = {'VDU1': 1}
+        result = self.vnfd_1.get_scale_vdu_and_num(SAMPLE_FLAVOUR_ID,
+            'VDU1_scale')
+        self.assertEqual(expected_result, result)
+
+    def test_get_scale_vdu_and_num_no_delta(self):
+        self.assertRaises(sol_ex.DeltaMissingInVnfd,
+            self.vnfd_1.get_scale_vdu_and_num, SAMPLE_FLAVOUR_ID,
+            'Invalid_scale')
+
+    def test_get_scale_info_from_inst_level(self):
+        expected_result = {'VDU1_scale': {'scale_level': 2}}
+        result = self.vnfd_1.get_scale_info_from_inst_level(
+            SAMPLE_FLAVOUR_ID, 'instantiation_level_2')
+        self.assertEqual(expected_result, result)
+
+    def test_get_max_scale_level(self):
+        result = self.vnfd_1.get_max_scale_level(SAMPLE_FLAVOUR_ID,
+            'VDU1_scale')
+        self.assertEqual(2, result)

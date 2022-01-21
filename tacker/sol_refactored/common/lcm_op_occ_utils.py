@@ -117,76 +117,237 @@ def make_lcmocc_notif_data(subsc, lcmocc, endpoint):
     return notif_data
 
 
-def _make_instantiate_lcmocc(lcmocc, inst, change_type):
+def _make_affected_vnfc(vnfc, change_type):
+    affected_vnfc = objects.AffectedVnfcV2(
+        id=vnfc.id,
+        vduId=vnfc.vduId,
+        changeType=change_type,
+        computeResource=vnfc.computeResource
+    )
+    if vnfc.obj_attr_is_set('vnfcCpInfo'):
+        cp_ids = [cp.id for cp in vnfc.vnfcCpInfo]
+        affected_vnfc.affectedVnfcCpIds = cp_ids
+    if vnfc.obj_attr_is_set('storageResourceIds'):
+        str_ids = vnfc.storageResourceIds
+        if change_type == 'ADDED':
+            affected_vnfc.addedStorageResourceIds = str_ids
+        else:  # 'REMOVED'
+            affected_vnfc.removedStorageResourceIds = str_ids
+
+    return affected_vnfc
+
+
+def _make_affected_vl(vl, change_type):
+    affected_vl = objects.AffectedVirtualLinkV2(
+        id=vl.id,
+        vnfVirtualLinkDescId=vl.vnfVirtualLinkDescId,
+        changeType=change_type,
+        networkResource=vl.networkResource
+    )
+    if vl.obj_attr_is_set('vnfLinkPorts'):
+        affected_vl.vnfLinkPortIds = [port.id for port in vl.vnfLinkPorts]
+
+    return affected_vl
+
+
+def _make_affected_vls_link_port_change(vls_saved, vls, common_vls):
+    affected_vls = []
+
+    for vl_id in common_vls:
+        old_ports = set()
+        new_ports = set()
+        for vl in vls_saved:
+            if vl.id == vl_id:
+                old_vl = vl
+                if vl.obj_attr_is_set('vnfLinkPorts'):
+                    old_ports = {port.id for port in vl.vnfLinkPorts}
+        for vl in vls:
+            if vl.id == vl_id:
+                new_vl = vl
+                if vl.obj_attr_is_set('vnfLinkPorts'):
+                    new_ports = {port.id for port in vl.vnfLinkPorts}
+        add_ports = new_ports - old_ports
+        rm_ports = old_ports - new_ports
+        # assume there are not add_ports and rm_ports at the same time.
+        if add_ports:
+            affected_vl = objects.AffectedVirtualLinkV2(
+                id=new_vl.id,
+                vnfVirtualLinkDescId=new_vl.vnfVirtualLinkDescId,
+                changeType='LINK_PORT_ADDED',
+                networkResource=new_vl.networkResource,
+                vnfLinkPortIds=list(add_ports)
+            )
+            affected_vls.append(affected_vl)
+        elif rm_ports:
+            affected_vl = objects.AffectedVirtualLinkV2(
+                id=old_vl.id,
+                vnfVirtualLinkDescId=old_vl.vnfVirtualLinkDescId,
+                changeType='LINK_PORT_REMOVED',
+                networkResource=old_vl.networkResource,
+                vnfLinkPortIds=list(rm_ports)
+            )
+            affected_vls.append(affected_vl)
+
+    return affected_vls
+
+
+def _make_affected_strg(strg, change_type):
+    return objects.AffectedVirtualStorageV2(
+        id=strg.id,
+        virtualStorageDescId=strg.virtualStorageDescId,
+        changeType=change_type,
+        storageResource=strg.storageResource
+    )
+
+
+def _make_affected_ext_link_ports(inst_info_saved, inst_info):
+    affected_ext_link_ports = []
+
+    ext_vl_ports_saved = set()
+    ext_vl_ports = set()
+    if inst_info_saved.obj_attr_is_set('extVirtualLinkInfo'):
+        for ext_vl in inst_info_saved.extVirtualLinkInfo:
+            if ext_vl.obj_attr_is_set('extLinkPorts'):
+                ext_vl_ports_saved |= {port.id
+                    for port in ext_vl.extLinkPorts}
+    if inst_info.obj_attr_is_set('extVirtualLinkInfo'):
+        for ext_vl in inst_info.extVirtualLinkInfo:
+            if ext_vl.obj_attr_is_set('extLinkPorts'):
+                ext_vl_ports |= {port.id
+                    for port in ext_vl.extLinkPorts}
+    add_ext_vl_ports = ext_vl_ports - ext_vl_ports_saved
+    rm_ext_vl_ports = ext_vl_ports_saved - ext_vl_ports
+
+    if add_ext_vl_ports:
+        for ext_vl in inst_info.extVirtualLinkInfo:
+            if not ext_vl.obj_attr_is_set('extLinkPorts'):
+                continue
+            affected_ext_link_ports += [
+                objects.AffectedExtLinkPortV2(
+                    id=port.id,
+                    changeType='ADDED',
+                    extCpInstanceId=port.cpInstanceId,
+                    resourceHandle=port.resourceHandle
+                )
+                for port in ext_vl.extLinkPorts
+                if port.id in add_ext_vl_ports
+            ]
+    if rm_ext_vl_ports:
+        for ext_vl in inst_info_saved.extVirtualLinkInfo:
+            if not ext_vl.obj_attr_is_set('extLinkPorts'):
+                continue
+            affected_ext_link_ports += [
+                objects.AffectedExtLinkPortV2(
+                    id=port.id,
+                    changeType='REMOVED',
+                    extCpInstanceId=port.cpInstanceId,
+                    resourceHandle=port.resourceHandle
+                )
+                for port in ext_vl.extLinkPorts
+                if port.id in rm_ext_vl_ports
+            ]
+
+    return affected_ext_link_ports
+
+
+def update_lcmocc(lcmocc, inst_saved, inst):
     # make ResourceChanges of lcmocc from instantiatedVnfInfo.
     # NOTE: grant related info such as resourceDefinitionId, zoneId
     # and so on are not included in lcmocc since such info are not
     # included in instantiatedVnfInfo.
 
+    if inst_saved.obj_attr_is_set('instantiatedVnfInfo'):
+        inst_info_saved = inst_saved.instantiatedVnfInfo
+    else:
+        # dummy
+        inst_info_saved = objects.VnfInstanceV2_InstantiatedVnfInfo()
+
     inst_info = inst.instantiatedVnfInfo
 
-    lcmocc_vncs = []
-    if inst_info.obj_attr_is_set('vnfcResourceInfo'):
-        for inst_vnc in inst_info.vnfcResourceInfo:
-            lcmocc_vnc = objects.AffectedVnfcV2(
-                id=inst_vnc.id,
-                vduId=inst_vnc.vduId,
-                changeType=change_type,
-                computeResource=inst_vnc.computeResource
-            )
-            if inst_vnc.obj_attr_is_set('vnfcCpInfo'):
-                cp_ids = [cp.id for cp in inst_vnc.vnfcCpInfo]
-                lcmocc_vnc.affectedVnfcCpIds = cp_ids
-            if inst_vnc.obj_attr_is_set('storageResourceIds'):
-                str_ids = inst_vnc.storageResourceIds
-                if change_type == 'ADDED':
-                    lcmocc_vnc.addedStorageResourceIds = str_ids
-                else:  # 'REMOVED'
-                    lcmocc_vnc.removedStorageResourceIds = str_ids
-            lcmocc_vncs.append(lcmocc_vnc)
+    # NOTE: objects may be re-created. so compare 'id' instead of object
+    # itself.
+    def _calc_diff(attr):
+        # NOTE: instantiatedVnfInfo object is dict compat
+        objs_saved = set()
+        if inst_info_saved.obj_attr_is_set(attr):
+            objs_saved = {obj.id for obj in inst_info_saved[attr]}
+        objs = set()
+        if inst_info.obj_attr_is_set(attr):
+            objs = {obj.id for obj in inst_info[attr]}
 
-    lcmocc_vls = []
-    if inst_info.obj_attr_is_set('vnfVirtualLinkResourceInfo'):
-        for inst_vl in inst_info.vnfVirtualLinkResourceInfo:
-            lcmocc_vl = objects.AffectedVirtualLinkV2(
-                id=inst_vl.id,
-                vnfVirtualLinkDescId=inst_vl.vnfVirtualLinkDescId,
-                changeType=change_type,
-                networkResource=inst_vl.networkResource
-            )
-            if inst_vl.obj_attr_is_set('vnfLinkPorts'):
-                port_ids = [port.id for port in inst_vl.vnfLinkPorts]
-                lcmocc_vl.vnfLinkPortIds = port_ids
-            lcmocc_vls.append(lcmocc_vl)
+        # return removed_objs, added_objs, common_objs
+        return objs_saved - objs, objs - objs_saved, objs_saved & objs
 
-    lcmocc_strs = []
-    if inst_info.obj_attr_is_set('virtualStorageResourceInfo'):
-        for inst_str in inst_info.virtualStorageResourceInfo:
-            lcmocc_str = objects.AffectedVirtualStorageV2(
-                id=inst_str.id,
-                virtualStorageDescId=inst_str.virtualStorageDescId,
-                changeType=change_type,
-                storageResource=inst_str.storageResource
-            )
-            lcmocc_strs.append(lcmocc_str)
+    removed_vnfcs, added_vnfcs, _ = _calc_diff('vnfcResourceInfo')
+    affected_vnfcs = []
+    if removed_vnfcs:
+        affected_vnfcs += [_make_affected_vnfc(vnfc, 'REMOVED')
+                           for vnfc in inst_info_saved.vnfcResourceInfo
+                           if vnfc.id in removed_vnfcs]
+    if added_vnfcs:
+        affected_vnfcs += [_make_affected_vnfc(vnfc, 'ADDED')
+                           for vnfc in inst_info.vnfcResourceInfo
+                           if vnfc.id in added_vnfcs]
 
-    if lcmocc_vncs or lcmocc_vls or lcmocc_strs:
+    removed_vls, added_vls, common_vls = _calc_diff(
+        'vnfVirtualLinkResourceInfo')
+    affected_vls = []
+    if removed_vls:
+        affected_vls += [_make_affected_vl(vl, 'REMOVED')
+                         for vl in inst_info_saved.vnfVirtualLinkResourceInfo
+                         if vl.id in removed_vls]
+    if added_vls:
+        affected_vls += [_make_affected_vl(vl, 'ADDED')
+                         for vl in inst_info.vnfVirtualLinkResourceInfo
+                         if vl.id in added_vls]
+    if common_vls:
+        affected_vls += _make_affected_vls_link_port_change(
+            inst_info_saved.vnfVirtualLinkResourceInfo,
+            inst_info.vnfVirtualLinkResourceInfo, common_vls)
+
+    removed_mgd_vls, added_mgd_vls, common_mgd_vls = _calc_diff(
+        'extManagedVirtualLinkInfo')
+    if removed_mgd_vls:
+        affected_vls += [_make_affected_vl(vl, 'LINK_PORT_REMOVED')
+                         for vl in inst_info_saved.extManagedVirtualLinkInfo
+                         if vl.id in removed_mgd_vls]
+    if added_mgd_vls:
+        affected_vls += [_make_affected_vl(vl, 'LINK_PORT_ADDED')
+                         for vl in inst_info.extManagedVirtualLinkInfo
+                         if vl.id in added_mgd_vls]
+    if common_mgd_vls:
+        affected_vls += _make_affected_vls_link_port_change(
+            inst_info_saved.extManagedVirtualLinkInfo,
+            inst_info.extManagedVirtualLinkInfo, common_mgd_vls)
+
+    removed_strgs, added_strgs, _ = _calc_diff('virtualStorageResourceInfo')
+    affected_strgs = []
+    if removed_strgs:
+        affected_strgs += [
+            _make_affected_strg(strg, 'REMOVED')
+            for strg in inst_info_saved.virtualStorageResourceInfo
+            if strg.id in removed_strgs
+        ]
+    if added_strgs:
+        affected_strgs += [_make_affected_strg(strg, 'ADDED')
+                           for strg in inst_info.virtualStorageResourceInfo
+                           if strg.id in added_strgs]
+
+    affected_ext_link_ports = _make_affected_ext_link_ports(
+        inst_info_saved, inst_info)
+
+    if (affected_vnfcs or affected_vls or affected_strgs or
+            affected_ext_link_ports):
         change_info = objects.VnfLcmOpOccV2_ResourceChanges()
-        if lcmocc_vncs:
-            change_info.affectedVnfcs = lcmocc_vncs
-        if lcmocc_vls:
-            change_info.affectedVirtualLinks = lcmocc_vls
-        if lcmocc_strs:
-            change_info.affectedVirtualStorages = lcmocc_strs
+        if affected_vnfcs:
+            change_info.affectedVnfcs = affected_vnfcs
+        if affected_vls:
+            change_info.affectedVirtualLinks = affected_vls
+        if affected_strgs:
+            change_info.affectedVirtualStorages = affected_strgs
+        if affected_ext_link_ports:
+            change_info.affectedExtLinkPorts = affected_ext_link_ports
         lcmocc.resourceChanges = change_info
-
-
-def make_instantiate_lcmocc(lcmocc, inst):
-    _make_instantiate_lcmocc(lcmocc, inst, 'ADDED')
-
-
-def make_terminate_lcmocc(lcmocc, inst):
-    _make_instantiate_lcmocc(lcmocc, inst, 'REMOVED')
 
 
 def get_grant_req_and_grant(context, lcmocc):
@@ -203,7 +364,7 @@ def get_grant_req_and_grant(context, lcmocc):
 def check_lcmocc_in_progress(context, inst_id):
     # if the controller or conductor executes an operation for the vnf
     # instance (i.e. operationState is ...ING), other operation for
-    # the same vnf instance is exculed by the coordinator.
+    # the same vnf instance is exculded by the coordinator.
     # check here is existence of lcmocc for the vnf instance with
     # FAILED_TEMP operationState.
     lcmoccs = objects.VnfLcmOpOccV2.get_by_filter(

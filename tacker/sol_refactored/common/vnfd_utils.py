@@ -358,3 +358,59 @@ class Vnfd(object):
                 raise sol_ex.SolHttpError422(sol_detail=msg)
 
             return script
+
+    def get_scale_vdu_and_num(self, flavour_id, aspect_id):
+        aspects = self.get_policy_values_by_type(flavour_id,
+            'tosca.policies.nfv.ScalingAspects')
+        delta = None
+        for aspect in aspects:
+            value = aspect['properties']['aspects'].get(aspect_id)
+            if value is not None:
+                # expect there is one delta.
+                # NOTE: Tacker does not support non-uniform deltas defined in
+                # ETSI NFV SOL001 8. Therefore, uniform delta corresponding
+                # to number_of_instances can be set and number_of_instances is
+                # the same regardless of scale_level.
+                delta = value['step_deltas'][0]
+                break
+
+        if delta is None:
+            return {}
+
+        aspect_deltas = self.get_policy_values_by_type(flavour_id,
+            'tosca.policies.nfv.VduScalingAspectDeltas')
+        vdu_num_inst = {}
+        for aspect_delta in aspect_deltas:
+            if aspect_delta.get('properties', {}).get('aspect') == aspect_id:
+                num_inst = (aspect_delta['properties']['deltas']
+                            .get(delta, {}).get('number_of_instances'))
+                # NOTE: it is not checked whether 'delta' defined in
+                # ScaleingAspects exists in VduScalingAspectDeltas at
+                # the loading of vnf package. this is a mistake of the
+                # VNFD definition.
+                if num_inst is None:
+                    raise sol_ex.DeltaMissingInVnfd(delta=delta)
+                for vdu_name in aspect_delta['targets']:
+                    vdu_num_inst[vdu_name] = num_inst
+
+        return vdu_num_inst
+
+    def get_scale_info_from_inst_level(self, flavour_id, inst_level):
+        policies = self.get_policy_values_by_type(flavour_id,
+            'tosca.policies.nfv.InstantiationLevels')
+        for policy in policies:
+            return (policy['properties']['levels']
+                    .get(inst_level, {})
+                    .get('scale_info', {}))
+        return {}
+
+    def get_max_scale_level(self, flavour_id, aspect_id):
+        aspects = self.get_policy_values_by_type(flavour_id,
+            'tosca.policies.nfv.ScalingAspects')
+        for aspect in aspects:
+            value = aspect['properties']['aspects'].get(aspect_id)
+            if value is not None:
+                return value['max_scale_level']
+
+        # should not occur
+        return 0

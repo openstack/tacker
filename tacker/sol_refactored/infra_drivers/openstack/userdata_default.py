@@ -36,14 +36,18 @@ class DefaultUserData(userdata_utils.AbstractUserData):
             if 'computeFlavourId' in vdu_value:
                 vdu_value['computeFlavourId'] = (
                     userdata_utils.get_param_flavor(
-                        vdu_name, req, vnfd, grant))
+                        vdu_name, flavour_id, vnfd, grant))
             if 'vcImageId' in vdu_value:
                 vdu_value['vcImageId'] = userdata_utils.get_param_image(
-                    vdu_name, req, vnfd, grant)
+                    vdu_name, flavour_id, vnfd, grant)
             if 'locationConstraints' in vdu_value:
                 vdu_value['locationConstraints'] = (
                     userdata_utils.get_param_zone(
                         vdu_name, grant_req, grant))
+            if 'desired_capacity' in vdu_value:
+                vdu_value['desired_capacity'] = (
+                    userdata_utils.get_param_capacity(
+                        vdu_name, inst, grant_req))
 
         cps = nfv_dict.get('CP', {})
         for cp_name, cp_value in cps.items():
@@ -82,5 +86,61 @@ class DefaultUserData(userdata_utils.AbstractUserData):
         }
         for key, value in hot_dict.get('files', {}).items():
             fields['files'][key] = yaml.safe_dump(value)
+
+        return fields
+
+    @staticmethod
+    def scale(req, inst, grant_req, grant, tmp_csar_dir):
+        # scale is interested in 'desired_capacity' only.
+        # This method returns only 'desired_capacity' part in the
+        # 'nfv' dict. It is applied to json merge patch against
+        # the existing 'nfv' dict by the caller.
+        # NOTE: complete 'nfv' dict can not be made at the moment
+        # since InstantiateVnfRequest is necessary to make it.
+
+        vnfd = userdata_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
+        flavour_id = inst['instantiatedVnfInfo']['flavourId']
+
+        hot_dict = vnfd.get_base_hot(flavour_id)
+        top_hot = hot_dict['template']
+
+        nfv_dict = userdata_utils.init_nfv_dict(top_hot)
+
+        vdus = nfv_dict.get('VDU', {})
+        new_vdus = {}
+        for vdu_name, vdu_value in vdus.items():
+            if 'desired_capacity' in vdu_value:
+                capacity = userdata_utils.get_param_capacity(
+                    vdu_name, inst, grant_req)
+                new_vdus[vdu_name] = {'desired_capacity': capacity}
+
+        fields = {'parameters': {'nfv': {'VDU': new_vdus}}}
+
+        return fields
+
+    @staticmethod
+    def scale_rollback(req, inst, grant_req, grant, tmp_csar_dir):
+        # NOTE: This method is not called by a userdata script but
+        # is called by the openstack infra_driver directly now.
+        # It is thought that it is suitable that this method defines
+        # here since it is very likely to scale method above.
+
+        vnfd = userdata_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
+        flavour_id = inst['instantiatedVnfInfo']['flavourId']
+
+        hot_dict = vnfd.get_base_hot(flavour_id)
+        top_hot = hot_dict['template']
+
+        nfv_dict = userdata_utils.init_nfv_dict(top_hot)
+
+        vdus = nfv_dict.get('VDU', {})
+        new_vdus = {}
+        for vdu_name, vdu_value in vdus.items():
+            if 'desired_capacity' in vdu_value:
+                capacity = userdata_utils.get_current_capacity(
+                    vdu_name, inst)
+                new_vdus[vdu_name] = {'desired_capacity': capacity}
+
+        fields = {'parameters': {'nfv': {'VDU': new_vdus}}}
 
         return fields

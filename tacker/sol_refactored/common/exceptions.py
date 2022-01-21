@@ -223,3 +223,20 @@ class GrantRequestOrGrantNotFound(SolHttpError404):
 
 class RollbackNotSupported(SolHttpError422):
     message = _("Rollback of %(op)s is not supported.")
+
+
+class UnexpectedParentResourceDefinition(SolHttpError422):
+    message = _("Parent resource is necessary for VDU definition.")
+
+
+class InvalidScaleAspectId(SolHttpError400):
+    message = _("Invalid aspectId '%(aspect_id)s'.")
+
+
+class InvalidScaleNumberOfSteps(SolHttpError400):
+    message = _("Invalid numberOfSteps '%(num_steps)d'.")
+
+
+class DeltaMissingInVnfd(SolHttpError400):
+    message = _("Delta '%(delta)s' is not defined in "
+                "VduScalingAspectDeltas.")

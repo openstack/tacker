@@ -126,11 +126,11 @@ _inst_req_example = {
     }
 }
 
-# instantiatedVnfInfo example for terminate grant test
+# instantiatedVnfInfo example for terminate/scale grant test
 # NOTE:
 # - some identifiers are modified to make check easy.
-# - some attributes which are not related to make terminate grant
-#   retuest are omitted.
+# - some attributes which are not related to make terminate/scale grant
+#   request are omitted.
 _inst_info_example = {
     "flavourId": "simple",
     "vnfState": "STARTED",
@@ -386,7 +386,7 @@ _inst_info_example = {
                 {
                     "id": "259c5895-7be6-4bed-8a94-221c41b3d08f",
                     "cpdId": "VDU1_CP1",
-                    # when extLinkPorts of extVitualLinks specified, there is
+                    # when extLinkPorts of extVirtualLinks specified, there is
                     # no vnfExtCpId nor vnfLinkPortId.
                 },
                 {
@@ -534,6 +534,18 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         self.vnfd_1 = vnfd_utils.Vnfd(SAMPLE_VNFD_ID)
         self.vnfd_1.init_from_csar_dir(os.path.join(sample_dir, "sample1"))
 
+    def _grant_req_links(self, lcmocc_id, inst_id):
+        return {
+            'vnfLcmOpOcc': {
+                'href': '{}/v2/vnflcm/vnf_lcm_op_occs/{}'.format(
+                    self.driver.endpoint, lcmocc_id)
+            },
+            'vnfInstance': {
+                'href': '{}/v2/vnflcm/vnf_instances/{}'.format(
+                    self.driver.endpoint, inst_id)
+            }
+        }
+
     @mock.patch.object(nfvo_client.NfvoClient, 'grant')
     def test_instantiate_grant(self, mocked_grant):
         # prepare
@@ -551,7 +563,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         lcmocc = objects.VnfLcmOpOccV2(
             # required fields
             id=uuidutils.generate_uuid(),
-            operationState=fields.LcmOperationStateType.PROCESSING,
+            operationState=fields.LcmOperationStateType.STARTING,
             stateEnteredTime=datetime.utcnow(),
             startTime=datetime.utcnow(),
             vnfInstanceId=inst.id,
@@ -563,7 +575,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         mocked_grant.return_value = objects.GrantV1()
 
         # run instantiate_grant
-        grant_req, _ = self.driver.instantiate_grant(
+        grant_req, _ = self.driver.grant(
             self.context, lcmocc, inst, self.vnfd_1)
 
         # check grant_req is constructed according to intention
@@ -575,7 +587,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             'flavourId': SAMPLE_FLAVOUR_ID,
             'operation': 'INSTANTIATE',
             'isAutomaticInvocation': False,
-            'instantiationLevelId': 'instantiation_level_2'
+            'instantiationLevelId': 'instantiation_level_2',
+            '_links': self._grant_req_links(lcmocc.id, inst.id)
         }
         for key, value in expected_fixed_items.items():
             self.assertEqual(value, grant_req[key])
@@ -641,7 +654,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         lcmocc = objects.VnfLcmOpOccV2(
             # required fields
             id=uuidutils.generate_uuid(),
-            operationState=fields.LcmOperationStateType.PROCESSING,
+            operationState=fields.LcmOperationStateType.STARTING,
             stateEnteredTime=datetime.utcnow(),
             startTime=datetime.utcnow(),
             vnfInstanceId=inst.id,
@@ -653,7 +666,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         mocked_grant.return_value = objects.GrantV1()
 
         # run terminate_grant
-        grant_req, _ = self.driver.terminate_grant(
+        grant_req, _ = self.driver.grant(
             self.context, lcmocc, inst, self.vnfd_1)
 
         # check grant_req is constructed according to intention
@@ -663,7 +676,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             'vnfLcmOpOccId': lcmocc.id,
             'vnfdId': SAMPLE_VNFD_ID,
             'operation': 'TERMINATE',
-            'isAutomaticInvocation': False
+            'isAutomaticInvocation': False,
+            '_links': self._grant_req_links(lcmocc.id, inst.id)
         }
         for key, value in expected_fixed_items.items():
             self.assertEqual(value, grant_req[key])
@@ -711,3 +725,198 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         for key, value in check_reses.items():
             for name, ids in value.items():
                 self.assertEqual(expected_res_ids[key][name], ids)
+
+    def _scale_grant_prepare(self, scale_type):
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_example)
+        inst.instantiatedVnfInfo = inst_info
+        req = objects.ScaleVnfRequest.from_dict(
+            {"type": scale_type,
+             "aspectId": "VDU1_scale",
+             "numberOfSteps": 1})
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.SCALE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        return inst, lcmocc
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_scale_grant_scale_out(self, mocked_grant):
+        # prepare
+        inst, lcmocc = self._scale_grant_prepare('SCALE_OUT')
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run scale_grant scale-out
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_1)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': SAMPLE_VNFD_ID,
+            'operation': 'SCALE',
+            'isAutomaticInvocation': False,
+            '_links': self._grant_req_links(lcmocc.id, inst.id)
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        add_reses = grant_req['addResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': []},
+            'STORAGE': {'VirtualStorage': []},
+            'LINKPORT': {'VDU1_CP1': [], 'VDU1_CP2': [], 'VDU1_CP3': [],
+                         'VDU1_CP4': [], 'VDU1_CP5': []}
+        }
+        expected_num = {
+            'COMPUTE': {'VDU1': 1},
+            'STORAGE': {'VirtualStorage': 1},
+            'LINKPORT': {'VDU1_CP1': 1, 'VDU1_CP2': 1, 'VDU1_CP3': 1,
+                         'VDU1_CP4': 1, 'VDU1_CP5': 1}
+        }
+        for res in add_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['id'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(expected_num[key][name], len(ids))
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_scale_grant_scale_in(self, mocked_grant):
+        # prepare
+        inst, lcmocc = self._scale_grant_prepare('SCALE_IN')
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run scale_grant scale-in
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_1)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': SAMPLE_VNFD_ID,
+            'operation': 'SCALE',
+            'isAutomaticInvocation': False,
+            '_links': self._grant_req_links(lcmocc.id, inst.id)
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        rm_reses = grant_req['removeResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': []},
+            'STORAGE': {'VirtualStorage': []},
+            'LINKPORT': {'VDU1_CP1': [], 'VDU1_CP2': [], 'VDU1_CP3': [],
+                         'VDU1_CP4': [], 'VDU1_CP5': []}
+        }
+        expected_res_ids = {
+            'COMPUTE': {
+                'VDU1': ['res_id_VDU1_1']
+            },
+            'STORAGE': {
+                'VirtualStorage': ['res_id_VirtualStorage_1']
+            },
+            'LINKPORT': {
+                'VDU1_CP1': ['res_id_VDU1_1_CP1'],
+                'VDU1_CP2': ['res_id_VDU1_1_CP2'],
+                'VDU1_CP3': ['res_id_VDU1_1_CP3'],
+                'VDU1_CP4': ['res_id_VDU1_1_CP4'],
+                'VDU1_CP5': ['res_id_VDU1_1_CP5']
+            }
+        }
+        for res in rm_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['resource']['resourceId'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(expected_res_ids[key][name], ids)
+
+    def test_make_inst_info_common_instantiate(self):
+        # prepare
+        inst_saved = objects.VnfInstanceV2(
+            # only set used members in the method
+            instantiatedVnfInfo=objects.VnfInstanceV2_InstantiatedVnfInfo()
+        )
+        inst = inst_saved.obj_clone()
+        req = objects.InstantiateVnfRequestV2.from_dict(_inst_req_example)
+        lcmocc = objects.VnfLcmOpOccV2(
+            # only set used members in the method
+            operation=fields.LcmOperationType.INSTANTIATE,
+            operationParams=req)
+
+        # run _make_inst_info_common
+        self.driver._make_inst_info_common(
+            lcmocc, inst_saved, inst, self.vnfd_1)
+
+        inst = inst.to_dict()
+        expected_scale_status = [{'aspectId': 'VDU1_scale', 'scaleLevel': 2}]
+        expected_max_scale_levels = [
+            {'aspectId': 'VDU1_scale', 'scaleLevel': 2}]
+
+        self.assertEqual(expected_scale_status,
+                         inst['instantiatedVnfInfo']['scaleStatus'])
+        self.assertEqual(expected_max_scale_levels,
+                         inst['instantiatedVnfInfo']['maxScaleLevels'])
+
+    def test_make_inst_info_common_scale(self):
+        # prepare
+        inst_saved = objects.VnfInstanceV2(
+            # only set used members in the method
+            instantiatedVnfInfo=objects.VnfInstanceV2_InstantiatedVnfInfo()
+        )
+        inst_saved.instantiatedVnfInfo.scaleStatus = [
+            objects.ScaleInfoV2(aspectId='VDU1_scale', scaleLevel=2)
+        ]
+        inst_saved.instantiatedVnfInfo.maxScaleLevels = [
+            objects.ScaleInfoV2(aspectId='VDU1_scale', scaleLevel=2)
+        ]
+        inst = objects.VnfInstanceV2(
+            # only set used members in the method
+            instantiatedVnfInfo=objects.VnfInstanceV2_InstantiatedVnfInfo()
+        )
+        req = objects.ScaleVnfRequest.from_dict(
+            {"type": "SCALE_IN",
+             "aspectId": "VDU1_scale",
+             "numberOfSteps": 1})
+        lcmocc = objects.VnfLcmOpOccV2(
+            # only set used members in the method
+            operation=fields.LcmOperationType.SCALE,
+            operationParams=req)
+
+        # run _make_inst_info_common
+        self.driver._make_inst_info_common(
+            lcmocc, inst_saved, inst, self.vnfd_1)
+
+        inst = inst.to_dict()
+        expected_scale_status = [{'aspectId': 'VDU1_scale', 'scaleLevel': 1}]
+        expected_max_scale_levels = [
+            {'aspectId': 'VDU1_scale', 'scaleLevel': 2}]
+
+        self.assertEqual(expected_scale_status,
+                         inst['instantiatedVnfInfo']['scaleStatus'])
+        self.assertEqual(expected_max_scale_levels,
+                         inst['instantiatedVnfInfo']['maxScaleLevels'])

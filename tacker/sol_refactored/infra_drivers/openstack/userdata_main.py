@@ -20,7 +20,7 @@ import sys
 import traceback
 
 
-def main(operation):
+def main():
     script_dict = pickle.load(sys.stdin.buffer)
 
     req = script_dict['request']
@@ -39,11 +39,8 @@ def main(operation):
     module = importlib.import_module(class_module)
     klass = getattr(module, userdata_class)
 
-    if operation == 'INSTANTIATE':
-        stack_dict = klass.instantiate(
-            req, inst, grant_req, grant, tmp_csar_dir)
-    else:
-        raise Exception("Unknown operation")
+    method = getattr(klass, grant_req['operation'].lower())
+    stack_dict = method(req, inst, grant_req, grant, tmp_csar_dir)
 
     pickle.dump(stack_dict, sys.stdout.buffer)
     sys.stdout.flush()
@@ -51,7 +48,7 @@ def main(operation):
 
 if __name__ == "__main__":
     try:
-        main(sys.argv[1])
+        main()
         os._exit(0)
     except Exception:
         sys.stderr.write(traceback.format_exc())

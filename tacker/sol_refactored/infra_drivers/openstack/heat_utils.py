@@ -123,6 +123,22 @@ class HeatClient(object):
             "DELETE_COMPLETE", "DELETE_IN_PROGRESS", "DELETE_FAILED",
             none_is_done=True)
 
+    def get_parameters(self, stack_name):
+        path = "stacks/{}".format(stack_name)
+        resp, body = self.client.do_request(path, "GET",
+                expected_status=[200])
+
+        return body["stack"]["parameters"]
+
+    def mark_unhealthy(self, stack_id, resource_name):
+        path = "stacks/{}/resources/{}".format(stack_id, resource_name)
+        fields = {
+            "mark_unhealthy": True,
+            "resource_status_reason": "marked by tacker"
+        }
+        resp, body = self.client.do_request(path, "PATCH",
+                 expected_status=[200], body=fields)
+
 
 def get_reses_by_types(heat_reses, types):
     return [res for res in heat_reses if res['resource_type'] in types]
@@ -146,3 +162,19 @@ def get_port_reses(heat_reses):
 
 def get_stack_name(inst):
     return "vnf-" + inst.id
+
+
+def get_resource_stack_id(heat_res):
+    # return the form "stack_name/stack_id"
+    for link in heat_res.get('links', []):
+        if link['rel'] == 'stack':
+            items = link['href'].split('/')
+            return "{}/{}".format(items[-2], items[-1])
+
+
+def get_parent_resource(heat_res, heat_reses):
+    parent = heat_res.get('parent_resource')
+    if parent:
+        for res in heat_reses:
+            if res['resource_name'] == parent:
+                return res
