@@ -82,12 +82,6 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
 
         # test heal SOL-003 (entire heal)
         vnfc_instance_id = []
-        self._heal_vnf_instance(vnf_instance['id'], vnfc_instance_id)
-        # wait vnflcm_op_occs.operation_state become COMPLETE
-        self._wait_vnflcm_op_occs(self.context, vnf_instance['id'],
-                                  vnflcm_base.VNF_HEAL_SOL003_TIMEOUT)
-        # check vnfcResourceInfo after heal operation
-        vnf_instance = self._show_vnf_instance(vnf_instance['id'])
         after_vnfc_rscs = self._test_heal(vnf_instance, vnfc_instance_id)
         # check id and pod name (as computeResource.resourceId) is changed
         for before_vnfc_rsc in before_vnfc_rscs:
