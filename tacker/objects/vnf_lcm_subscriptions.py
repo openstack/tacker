@@ -308,12 +308,11 @@ def _vnf_lcm_subscriptions_id_get(context,
 
 def _add_filter_data(context, subscription_id, filter):
     with db_api.context_manager.writer.using(context):
-        vnf_instance_subscription_filter = \
-            filter.get('vnfInstanceSubscriptionFilter')
 
-        vnf_products_from_providers = \
-            vnf_instance_subscription_filter.get(
-                'vnfProductsFromProviders')
+        vnf_products_from_providers = (
+            filter.get('vnfInstanceSubscriptionFilter', {})
+            .get('vnfProductsFromProviders'))
+
         if vnf_products_from_providers:
             vnf_products_from_providers = vnf_products_from_providers[0]
 

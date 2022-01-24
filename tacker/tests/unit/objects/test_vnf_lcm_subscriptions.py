@@ -12,6 +12,8 @@
 # limitations under the License.
 from unittest import mock
 
+import ddt
+
 from tacker import context
 from tacker import objects
 from tacker.tests.unit.db.base import SqlTestCase
@@ -19,6 +21,7 @@ from tacker.tests.unit.objects import fakes
 from tacker.tests import uuidsentinel
 
 
+@ddt.ddt
 class TestVnfLcmSubScriptions(SqlTestCase):
 
     def setUp(self):
@@ -112,63 +115,26 @@ class TestVnfLcmSubScriptions(SqlTestCase):
         return subscription_obj
 
     @mock.patch.object(objects.vnf_lcm_subscriptions,
-                       '_vnf_lcm_subscriptions_create')
-    def test_create(self, mock_vnf_lcm_subscriptions_create):
-        filter = fakes.filter
-        subscription_obj = \
+                       '_vnf_lcm_subscriptions_id_get')
+    @ddt.data(
+        fakes.filter,
+        {"notificationTypes": ["VnfIdentifierCreationNotification"]}
+    )
+    def test_create(self, filter, mock_vnf_lcm_subscriptions_id_get):
+        """Test that the `create` method returns a created filter
+
+        Also, test `_vnf_lcm_subscriptions_create` method, which is called
+        from the `create` method, works correctly and a created filter will be
+        returned.
+
+        Case 1: All available parameters are set
+        Case 2: Only the required parameter is set
+        """
+
+        mock_vnf_lcm_subscriptions_id_get.return_value = None
+        subscription_obj = (
             objects.vnf_lcm_subscriptions.LccnSubscriptionRequest(
-                context=self.context)
-        mock_vnf_lcm_subscriptions_create.return_value = \
-            '{\
-                "filter": "{"operationStates": ["COMPLETED"],\
-                "vnfInstanceNames": ["xxxxxxxxxxxxxxxxxx"],\
-                "operationTypes": ["INSTANTIATE"],\
-                "vnfdIds": ["405d73c7-e964-4c8b-a914-41478ccd7c42"],\
-                "vnfProductsFromProviders": [{\
-                    "vnfProvider": "x2x", \
-                    "vnfProducts": [{\
-                        "vnfProductName": "x2xx", \
-                        "versions": [{\
-                            "vnfSoftwareVersion": "xx2XX", \
-                            "vnfdVersions": ["ss2"]\
-                        }]\
-                    }]\
-                }, \
-                {\
-                    "vnfProvider": "z2z",\
-                    "vnfProducts": [{\
-                        "vnfProductName": "z2zx", \
-                        "versions": [{\
-                            "vnfSoftwareVersion": "xx3XX",\
-                            "vnfdVersions": \
-                            ["s3sx", "s3sa"]\
-                        }\
-                    ]},\
-                    {\
-                        "vnfProductName": "zz3ex",\
-                        "versions": [{\
-                            "vnfSoftwareVersion": "xxe3eXz",\
-                            "vnfdVersions": ["ss3xz", "s3esaz"]\
-                        },\
-                        {\
-                            "vnfSoftwareVersion": "xxeeeXw", \
-                            "vnfdVersions": ["ss3xw", "ss3w"]\
-                        }]\
-                    }]\
-                }],\
-                "notificationTypes": [\
-                    "VnfLcmOperationOccurrenceNotification"],\
-                "vnfInstanceIds": ["fb0b9a12-4b55-47ac-9ca8-5fdd52c4c07f"]}",\
-                "callbackUri": "http://localhost/xxx",\
-                "_links": {\
-                    "self": {\
-                        "href":\
-                            "http://localhost:9890//vnflcm/v1/subscriptions\
-                            /530a3c43-043a-4b84-9d65-aa0df49f7ced"\
-                    }\
-                },\
-                "id": "530a3c43-043a-4b84-9d65-aa0df49f7ced"\
-            }'
+                context=self.context, **fakes.subscription_data))
 
         result = subscription_obj.create(filter)
         self.assertTrue(filter, result)
