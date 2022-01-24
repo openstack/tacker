@@ -47,7 +47,19 @@ OPTS = [
     cfg.BoolOpt(
         'verify_notification_ssl',
         default=True,
-        help="Verify the certificate to send notification by ssl")]
+        help="Verify the certificate to send notification by ssl"),
+    cfg.IntOpt(
+        'lcm_op_occ_num',
+        default=100,
+        help="Number of lcm_op_occs contained in 1 page"),
+    cfg.IntOpt(
+        'vnf_instance_num',
+        default=100,
+        help="Number of vnf_instances contained in 1 page"),
+    cfg.IntOpt(
+        'nextpage_expiration_time',
+        default=3600,
+        help="Expiration time (sec) for paging")]
 
 vnf_lcm_group = cfg.OptGroup('vnf_lcm',
     title='vnf_lcm options',
