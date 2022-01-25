@@ -1,0 +1,53 @@
+heat_template_version: 2013-05-23
+description: 'Simple Base HOT for Sample VNF'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  VDU1_scale:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 3
+      desired_capacity: { get_param: [ nfv, VDU, VDU1, desired_capacity ] }
+      resource:
+        type: base_hot_nested_VDU1.yaml
+        properties:
+          flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
+          image: { get_param: [ nfv, VDU, VDU1-VirtualStorage, vcImageId] }
+          net1: { get_param: [ nfv, CP, VDU1_CP1, network] }
+
+  VDU1_scale_out:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: 1
+      auto_scaling_group_id:
+        get_resource: VDU1_scale
+      adjustment_type: change_in_capacity
+  VDU1_scale_in:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: -1
+      auto_scaling_group_id:
+        get_resource: VDU1_scale
+      adjustment_type: change_in_capacity
+
+  VDU2:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU2, computeFlavourId ] }
+      image: { get_param: [ nfv, VDU, VDU2, vcImageId] }
+      networks:
+      - port:
+          get_resource: VDU2_CP1
+
+  VDU2_CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: [ nfv, CP, VDU2_CP1, network ]  }
+      fixed_ips:
+      - ip_address: { get_param: [nfv, CP, VDU2_CP1, fixed_ips, 0, ip_address]}
+
+outputs: {}

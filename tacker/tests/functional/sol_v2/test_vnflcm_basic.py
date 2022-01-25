@@ -762,15 +762,15 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
                         stack_name_1 = href.split("/")[7]
                         break
 
-        _, port_info = self.heat_client.get_resource_info(
-            stack_name_1, stack_id_1, 'VDU1_CP1')
+        port_info = self.heat_client.get_resource_info(
+            f"{stack_name_1}/{stack_id_1}", 'VDU1_CP1')
         before_physical_resource_id_1 = port_info['physical_resource_id']
         before_fixed_ips_1 = port_info['attributes']['fixed_ips']
 
         stack_id_2 = self.heat_client.get_stack_resource(stack_name)['stack'][
             'id']
-        _, port_info = self.heat_client.get_resource_info(
-            stack_name, stack_id_2, 'VDU2_CP2')
+        port_info = self.heat_client.get_resource_info(
+            f"{stack_name}/{stack_id_2}", 'VDU2_CP2')
         before_physical_resource_id_2 = port_info['physical_resource_id']
         before_fixed_ips_2 = port_info['attributes']['fixed_ips']
 
@@ -782,15 +782,15 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        _, port_info = self.heat_client.get_resource_info(
-            stack_name_1, stack_id_1, 'VDU1_CP1')
+        port_info = self.heat_client.get_resource_info(
+            f"{stack_name_1}/{stack_id_1}", 'VDU1_CP1')
         after_physical_resource_id_1 = port_info['physical_resource_id']
         after_fixed_ips_1 = port_info['attributes']['fixed_ips']
 
         stack_id_2 = self.heat_client.get_stack_resource(stack_name)['stack'][
             'id']
-        _, port_info = self.heat_client.get_resource_info(
-            stack_name, stack_id_2, 'VDU2_CP2')
+        port_info = self.heat_client.get_resource_info(
+            f"{stack_name}/{stack_id_2}", 'VDU2_CP2')
         after_physical_resource_id_2 = port_info['physical_resource_id']
         after_fixed_ips_2 = port_info['attributes']['fixed_ips']
 
@@ -2859,8 +2859,8 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         # 14. Change external connectivity
         stack_id = self.heat_client.get_stack_resource(stack_name)['stack'][
             'id']
-        _, port_info = self.heat_client.get_resource_info(
-            stack_name, stack_id, 'VDU2_CP2')
+        port_info = self.heat_client.get_resource_info(
+            f"{stack_name}/{stack_id}", 'VDU2_CP2')
         before_physical_resource_id = port_info['physical_resource_id']
         before_fixed_ips = port_info['attributes']['fixed_ips']
 
@@ -2871,8 +2871,8 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        _, port_info = self.heat_client.get_resource_info(
-            stack_name, stack_id, 'VDU2_CP2')
+        port_info = self.heat_client.get_resource_info(
+            f"{stack_name}/{stack_id}", 'VDU2_CP2')
         after_physical_resource_id = port_info['physical_resource_id']
         after_fixed_ips = port_info['attributes']['fixed_ips']
 

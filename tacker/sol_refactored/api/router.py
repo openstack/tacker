@@ -40,6 +40,7 @@ class VnflcmAPIRouterV2(sol_wsgi.SolAPIRouter):
         ("/vnf_instances/{id}/terminate", {"POST": "terminate"}),
         ("/vnf_instances/{id}/scale", {"POST": "scale"}),
         ("/vnf_instances/{id}/change_ext_conn", {"POST": "change_ext_conn"}),
+        ("/vnf_instances/{id}/change_vnfpkg", {"POST": "change_vnfpkg"}),
         ("/api_versions", {"GET": "api_versions"}),
         ("/subscriptions", {"GET": "subscription_list",
                             "POST": "subscription_create"}),

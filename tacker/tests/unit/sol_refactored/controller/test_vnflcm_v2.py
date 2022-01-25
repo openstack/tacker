@@ -125,6 +125,74 @@ class TestVnflcmV2(db_base.SqlTestCase):
         self.assertRaises(sol_ex.VnfdIdNotEnabled,
             self.controller.create, request=self.request, body=body)
 
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnf_package_info_vnfd')
+    def test_change_vnfpkg_pkg_disabled(self,
+                                        mocked_get_vnf_package_info_vnfd):
+        vnfd_id = uuidutils.generate_uuid()
+        inst_id, _ = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED)
+        body = {"vnfdId": vnfd_id}
+        pkg_info = objects.VnfPkgInfoV2(
+            id=uuidutils.generate_uuid(),
+            vnfdId=vnfd_id,
+            vnfProvider="provider",
+            vnfProductName="product",
+            vnfSoftwareVersion="software version",
+            vnfdVersion="vnfd version",
+            operationalState="DISABLED"
+        )
+        mocked_get_vnf_package_info_vnfd.return_value = pkg_info
+        self.assertRaises(sol_ex.VnfdIdNotEnabled,
+            self.controller.change_vnfpkg, request=self.request, id=inst_id,
+                          body=body)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnf_package_info_vnfd')
+    def test_change_vnfpkg_pkg_no_additional_params(
+            self, mocked_get_vnf_package_info_vnfd):
+        vnfd_id = uuidutils.generate_uuid()
+        inst_id, _ = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED)
+        body = {"vnfdId": vnfd_id}
+        pkg_info = objects.VnfPkgInfoV2(
+            id=uuidutils.generate_uuid(),
+            vnfdId=vnfd_id,
+            vnfProvider="provider",
+            vnfProductName="product",
+            vnfSoftwareVersion="software version",
+            vnfdVersion="vnfd version",
+            operationalState="ENABLED"
+        )
+        mocked_get_vnf_package_info_vnfd.return_value = pkg_info
+        self.assertRaises(sol_ex.SolValidationError,
+            self.controller.change_vnfpkg, request=self.request, id=inst_id,
+                          body=body)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnf_package_info_vnfd')
+    def test_change_vnfpkg_pkg_upgrade_type(
+            self, mocked_get_vnf_package_info_vnfd):
+        vnfd_id = uuidutils.generate_uuid()
+        inst_id, _ = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED)
+        body = {
+            "vnfdId": vnfd_id,
+            "additionalParams": {
+                "upgrade_type": "BuleGreen"
+            }
+        }
+        pkg_info = objects.VnfPkgInfoV2(
+            id=uuidutils.generate_uuid(),
+            vnfdId=vnfd_id,
+            vnfProvider="provider",
+            vnfProductName="product",
+            vnfSoftwareVersion="software version",
+            vnfdVersion="vnfd version",
+            operationalState="ENABLED"
+        )
+        mocked_get_vnf_package_info_vnfd.return_value = pkg_info
+        self.assertRaises(sol_ex.NotSupportUpgradeType,
+            self.controller.change_vnfpkg, request=self.request, id=inst_id,
+                          body=body)
+
     def test_delete_instantiated(self):
         inst_id, _ = self._create_inst_and_lcmocc('INSTANTIATED',
             fields.LcmOperationStateType.COMPLETED)
@@ -155,6 +223,26 @@ class TestVnflcmV2(db_base.SqlTestCase):
 
         self.assertRaises(sol_ex.OtherOperationInProgress,
             self.controller.instantiate, request=self.request, id=inst_id,
+            body=body)
+
+    def test_change_vnfpkg_not_instantiated(self):
+        vnfd_id = uuidutils.generate_uuid()
+        inst_id, _ = self._create_inst_and_lcmocc('NOT_INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED)
+        body = {"vnfdId": vnfd_id}
+
+        self.assertRaises(sol_ex.VnfInstanceIsNotInstantiated,
+            self.controller.change_vnfpkg, request=self.request, id=inst_id,
+            body=body)
+
+    def test_change_vnfpkg_lcmocc_in_progress(self):
+        vnfd_id = uuidutils.generate_uuid()
+        inst_id, _ = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.FAILED_TEMP)
+        body = {"vnfdId": vnfd_id}
+
+        self.assertRaises(sol_ex.OtherOperationInProgress,
+            self.controller.change_vnfpkg, request=self.request, id=inst_id,
             body=body)
 
     def test_terminate_not_instantiated(self):

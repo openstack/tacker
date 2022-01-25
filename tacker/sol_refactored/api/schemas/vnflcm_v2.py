@@ -77,6 +77,33 @@ TerminateVnfRequest_V200 = {
     'additionalProperties': True,
 }
 
+# SOL002 5.5.2.11a
+# SOL003 5.5.2.11a
+ChangeCurrentVnfPkgRequest_V200 = {
+    'type': 'object',
+    'properties': {
+        'vnfdId': common_types.Identifier,
+        'extVirtualLinks': {
+            'type': 'array',
+            'items': common_types.ExtVirtualLinkData},
+        'extManagedVirtualLinks': {
+            'type': 'array',
+            'items': common_types.ExtManagedVirtualLinkData},
+        # NOTE: 'vimConnectionInfo' field supports only NFV-SOL 003
+        'vimConnectionInfo': {
+            'type': 'object',
+            'patternProperties': {
+                '^.*$': common_types.VimConnectionInfo
+            },
+        },
+        'additionalParams': parameter_types.keyvalue_pairs,
+        'extensions': parameter_types.keyvalue_pairs,
+        'vnfConfigurableProperties': parameter_types.keyvalue_pairs
+    },
+    'required': ['vnfdId'],
+    'additionalProperties': True,
+}
+
 # SOL003 5.5.2.5
 ScaleVnfRequest_V200 = {
     'type': 'object',
@@ -263,6 +290,7 @@ _LifecycleChangeNotificationsFilter = {
                     'SCALE',
                     'SCALE_TO_LEVEL',
                     'CHANGE_FLAVOUR',
+                    'CHANGE_VNFPKG',
                     'TERMINATE',
                     'HEAL',
                     'OPERATE',

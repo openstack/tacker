@@ -126,6 +126,8 @@ def _make_affected_vnfc(vnfc, change_type, strgs):
         changeType=change_type,
         computeResource=vnfc.computeResource
     )
+    if vnfc.obj_attr_is_set('metadata'):
+        affected_vnfc.metadata = vnfc.metadata
     if vnfc.obj_attr_is_set('vnfcCpInfo'):
         cp_ids = [cp.id for cp in vnfc.vnfcCpInfo]
         affected_vnfc.affectedVnfcCpIds = cp_ids
@@ -381,7 +383,15 @@ def update_lcmocc(lcmocc, inst_saved, inst):
                            for strg in inst_info.virtualStorageResourceInfo
                            if strg.id in added_strgs]
 
-    removed_vnfcs, added_vnfcs, _ = _calc_diff('vnfcResourceInfo')
+    removed_vnfcs, added_vnfcs, common_objs = _calc_diff('vnfcResourceInfo')
+    updated_vnfcs = []
+    if lcmocc.operation == fields.LcmOperationType.CHANGE_VNFPKG:
+        updated_vnfcs = [
+            obj.id for obj in inst_info.vnfcResourceInfo
+            if obj.metadata.get('current_vnfd_id') != inst_saved.vnfdId
+            and obj.id in common_objs and
+            obj.metadata.get('current_vnfd_id') is not None]
+
     affected_vnfcs = []
     if removed_vnfcs:
         affected_vnfcs += [
@@ -395,6 +405,11 @@ def update_lcmocc(lcmocc, inst_saved, inst):
             for vnfc in inst_info.vnfcResourceInfo
             if vnfc.id in added_vnfcs
         ]
+
+    if updated_vnfcs:
+        affected_vnfcs += [_make_affected_vnfc(vnfc, 'MODIFIED', added_strgs)
+                           for vnfc in inst_info.vnfcResourceInfo
+                           if vnfc.id in updated_vnfcs]
 
     removed_vls, added_vls, common_vls = _calc_diff(
         'vnfVirtualLinkResourceInfo')
@@ -489,6 +504,17 @@ def update_lcmocc(lcmocc, inst_saved, inst):
 
         if chg_ext_conn:
             lcmocc.changedExtConnectivity = chg_ext_conn
+
+
+def get_inst_lcmocc(context, inst):
+    lcmoccs = objects.VnfLcmOpOccV2.get_by_filter(
+        context, vnfInstanceId=inst.id,
+        operationState=fields.LcmOperationStateType.COMPLETED,
+        operation=fields.LcmOperationType.INSTANTIATE)
+    inst_lcmocc = [inst_lcmocc for inst_lcmocc in lcmoccs
+                   if inst_lcmocc.startTime ==
+                   max([lcmocc.startTime for lcmocc in lcmoccs])][0]
+    return inst_lcmocc
 
 
 def get_grant_req_and_grant(context, lcmocc):

@@ -64,10 +64,13 @@ class VnfLcmDriverV2(object):
         grant_req = objects.GrantRequestV1(
             vnfInstanceId=inst.id,
             vnfLcmOpOccId=lcmocc.id,
-            vnfdId=inst.vnfdId,
             operation=lcmocc.operation,
             isAutomaticInvocation=lcmocc.isAutomaticInvocation
         )
+        if lcmocc.operation == v2fields.LcmOperationType.CHANGE_VNFPKG:
+            grant_req.vnfdId = lcmocc.operationParams.get('vnfdId')
+        else:
+            grant_req.vnfdId = inst.vnfdId
         grant_req._links = objects.GrantRequestV1_Links(
             vnfLcmOpOcc=objects.Link(
                 href=lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)),
@@ -953,6 +956,78 @@ class VnfLcmDriverV2(object):
             # only support openstack at the moment
             raise sol_ex.SolException(sol_detail='not support vim type')
 
+    def change_vnfpkg_grant(self, grant_req, req, inst, vnfd):
+        inst_info = inst.instantiatedVnfInfo
+        grant_req.flavourId = inst_info.flavourId
+        target_vdu_ids = [
+            vdu_param.get('vdu_id')
+            for vdu_param in req.additionalParams.get('vdu_params', [])
+        ]
+
+        if req.additionalParams.get('upgrade_type') == 'RollingUpdate':
+            update_reses = []
+            add_reses = []
+            remove_reses = []
+            if inst_info.obj_attr_is_set('vnfcResourceInfo'):
+                for inst_vnc in inst_info.vnfcResourceInfo:
+                    if inst_vnc.vduId in target_vdu_ids:
+                        vdu_res_id = uuidutils.generate_uuid()
+                        res_def = objects.ResourceDefinitionV1(
+                            id=vdu_res_id,
+                            type='COMPUTE',
+                            resourceTemplateId=inst_vnc.vduId)
+                        update_reses.append(res_def)
+                        nodes = vnfd.get_vdu_nodes(inst_info.flavourId)
+                        vdu_storage_names = vnfd.get_vdu_storages(
+                            nodes[inst_vnc.vduId])
+                        for vdu_storage_name in vdu_storage_names:
+                            res_def = objects.ResourceDefinitionV1(
+                                id=_make_combination_id(
+                                    vdu_storage_name, vdu_res_id),
+                                type='STORAGE',
+                                resourceTemplateId=vdu_storage_name)
+                            add_reses.append(res_def)
+                        if inst_vnc.obj_attr_is_set('storageResourceIds'):
+                            inst_stor_info = (
+                                inst_info.virtualStorageResourceInfo)
+                            for str_info in inst_stor_info:
+                                if str_info.id in inst_vnc.storageResourceIds:
+                                    res_def = objects.ResourceDefinitionV1(
+                                        id=uuidutils.generate_uuid(),
+                                        type='STORAGE',
+                                        resourceTemplateId=(
+                                            str_info.virtualStorageDescId),
+                                        resource=str_info.storageResource)
+                                    remove_reses.append(res_def)
+            if update_reses:
+                grant_req.updateResources = update_reses
+
+            if add_reses:
+                grant_req.addResources = add_reses
+
+            if remove_reses:
+                grant_req.removeResources = remove_reses
+        else:
+            # TODO(YiFeng): Blue-Green type will be supported in Zed release.
+            # not reach here at the moment
+            pass
+
+    def change_vnfpkg_process(
+            self, context, lcmocc, inst, grant_req, grant, vnfd):
+        inst_saved = inst.obj_clone()
+        req = lcmocc.operationParams
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
+            driver = openstack.Openstack()
+            try:
+                driver.change_vnfpkg(req, inst, grant_req, grant, vnfd)
+            except Exception as ex:
+                lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
+                raise Exception from ex
+        else:
+            # only support openstack at the moment
+            raise sol_ex.SolException(sol_detail='not support vim type')
+
     def change_ext_conn_rollback(self, context, lcmocc, inst, grant_req,
             grant, vnfd):
         req = lcmocc.operationParams
@@ -960,6 +1035,18 @@ class VnfLcmDriverV2(object):
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
             driver.change_ext_conn_rollback(req, inst, grant_req, grant, vnfd)
+        else:
+            # only support openstack at the moment
+            raise sol_ex.SolException(sol_detail='not support vim type')
+
+    def change_vnfpkg_rollback(
+            self, context, lcmocc, inst, grant_req, grant, vnfd):
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        req = lcmocc.operationParams
+        driver = openstack.Openstack()
+        if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
+            driver.change_vnfpkg_rollback(
+                req, inst, grant_req, grant, vnfd, lcmocc)
         else:
             # only support openstack at the moment
             raise sol_ex.SolException(sol_detail='not support vim type')

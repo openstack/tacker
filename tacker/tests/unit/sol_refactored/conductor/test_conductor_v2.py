@@ -70,6 +70,36 @@ class TestConductorV2(db_base.SqlTestCase):
 
         return lcmocc
 
+    def _change_vnfpkg_lcmocc(
+            self, op_state=fields.LcmOperationStateType.STARTING):
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=uuidutils.generate_uuid(),
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        req = {"vnfdId": uuidutils.generate_uuid()}
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=op_state,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_VNFPKG,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        inst.create(self.context)
+        lcmocc.create(self.context)
+
+        return lcmocc
+
     def _make_grant_req_and_grant(self, lcmocc):
         grant_req = objects.GrantRequestV1(
             # required fields
@@ -128,6 +158,34 @@ class TestConductorV2(db_base.SqlTestCase):
         # check grant_req and grant are deleted
         self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
             lcmocc_utils.get_grant_req_and_grant, self.context, lcmocc)
+
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'process')
+    @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'grant')
+    def test_start_lcm_op_change_vnfpkg_completed(
+            self, mocked_grant, mocked_get_vnfd,
+            mocked_send_lcmocc_notification, mocked_process):
+        # prepare
+        lcmocc = self._change_vnfpkg_lcmocc()
+        mocked_get_vnfd.return_value = mock.Mock()
+        mocked_grant.return_value = self._make_grant_req_and_grant(lcmocc)
+        mocked_process.return_value = mock.Mock()
+        op_state = []
+
+        def _store_state(context, lcmocc, inst, endpoint):
+            op_state.append(lcmocc.operationState)
+
+        mocked_send_lcmocc_notification.side_effect = _store_state
+
+        # run start_lcm_op
+        self.conductor.start_lcm_op(self.context, lcmocc.id)
+
+        # check operationState transition
+        self.assertEqual(3, mocked_send_lcmocc_notification.call_count)
+        self.assertEqual(fields.LcmOperationStateType.STARTING, op_state[0])
+        self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[1])
+        self.assertEqual(fields.LcmOperationStateType.COMPLETED, op_state[2])
 
     @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
     @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
