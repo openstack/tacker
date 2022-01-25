@@ -379,6 +379,61 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         return sol_wsgi.SolResponse(202, None, location=location)
 
+    @validator.schema(schema.ChangeCurrentVnfPkgRequest_V200, '2.0.0')
+    @coordinate.lock_vnf_instance('{id}')
+    def change_vnfpkg(self, request, id, body):
+        context = request.context
+        inst = inst_utils.get_inst(context, id)
+        vnfd_id = body['vnfdId']
+
+        if inst.instantiationState != 'INSTANTIATED':
+            raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
+
+        lcmocc_utils.check_lcmocc_in_progress(context, id)
+
+        pkg_info = self.nfvo_client.get_vnf_package_info_vnfd(
+            context, vnfd_id)
+        if pkg_info.operationalState != "ENABLED":
+            raise sol_ex.VnfdIdNotEnabled(vnfd_id=vnfd_id)
+
+        additional_params = body.get('additionalParams')
+        if additional_params is None:
+            raise sol_ex.SolValidationError(
+                detail="Change Current VNF Package "
+                       "operation must have 'additionalParams'")
+        upgrade_type = additional_params.get('upgrade_type', '')
+        if upgrade_type != 'RollingUpdate':
+            raise sol_ex.NotSupportUpgradeType(upgrade_type=upgrade_type)
+        if additional_params.get('vdu_params'):
+            vdu_ids = [vdu.get('vdu_id') for vdu in
+                       additional_params.get('vdu_params')]
+            if None in vdu_ids:
+                raise sol_ex.SolValidationError(
+                    detail="If you set vdu_params in additionalParams, you"
+                           "must set vduId for each element.")
+            for vdu in additional_params.get('vdu_params'):
+                for attr in ['old_vnfc_param', 'new_vnfc_param']:
+                    if vdu.get(attr):
+                        vdu_keys = vdu.get(attr).keys()
+                        if set(vdu_keys).difference(set(
+                                ['cp_name', 'username', 'password'])):
+                            raise sol_ex.SolValidationError(
+                                detail=f"If you set {attr} in "
+                                       f"additionalParams, you must set"
+                                       f" 'cp_name', 'username' and"
+                                       f" 'password'")
+
+        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.CHANGE_VNFPKG,
+                                  body)
+
+        lcmocc.create(context)
+
+        self.conductor_rpc.start_lcm_op(context, lcmocc.id)
+
+        location = lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)
+
+        return sol_wsgi.SolResponse(202, None, location=location)
+
     @validator.schema(schema.LccnSubscriptionRequest_V200, '2.0.0')
     def subscription_create(self, request, body):
         context = request.context

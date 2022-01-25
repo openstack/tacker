@@ -14,6 +14,7 @@
 #    under the License.
 
 from oslo_log import log as logging
+from oslo_utils import uuidutils
 
 from tacker.common import log
 from tacker import context as tacker_context
@@ -103,8 +104,12 @@ class ConductorV2(object):
                                                   self.endpoint)
 
         try:
-            vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId,
-                                             all_contents=True)
+            if lcmocc.operation == fields.LcmOperationType.CHANGE_VNFPKG:
+                vnfd = self.nfvo_client.get_vnfd(
+                    context, lcmocc.operationParams.vnfdId, all_contents=True)
+            else:
+                vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId,
+                                                 all_contents=True)
 
             # NOTE: perform grant exchange mainly but also perform
             # something to do at STATING phase ex. request check.
@@ -237,20 +242,38 @@ class ConductorV2(object):
 
         try:
             vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId)
-            grant_req, grant = lcmocc_utils.get_grant_req_and_grant(context,
-                                                                    lcmocc)
+            grant_req, grant = lcmocc_utils.get_grant_req_and_grant(
+                context, lcmocc)
             self.vnflcm_driver.post_grant(context, lcmocc, inst, grant_req,
                                           grant, vnfd)
-            self.vnflcm_driver.rollback(context, lcmocc, inst, grant_req,
-                                        grant, vnfd)
+            if lcmocc.operation == fields.LcmOperationType.CHANGE_VNFPKG:
+                inst_lcmocc = lcmocc_utils.get_inst_lcmocc(context, inst)
+                inst_grant_req = objects.GrantRequestV1(
+                    vnfInstanceId=inst.id,
+                    vnfLcmOpOccId=inst_lcmocc.id,
+                    operation=inst_lcmocc.operation,
+                    isAutomaticInvocation=lcmocc.isAutomaticInvocation
+                )
+                inst_grant = objects.GrantV1(
+                    id=uuidutils.generate_uuid(),
+                    vnfInstanceId=inst_grant_req.vnfInstanceId,
+                    vnfLcmOpOccId=inst_grant_req.vnfLcmOpOccId
+                )
+                self.vnflcm_driver.rollback(
+                    context, lcmocc, inst, inst_grant_req, inst_grant, vnfd)
+            else:
+                self.vnflcm_driver.rollback(context, lcmocc, inst, grant_req,
+                                            grant, vnfd)
 
             lcmocc.operationState = fields.LcmOperationStateType.ROLLED_BACK
             with context.session.begin(subtransactions=True):
                 lcmocc.update(context)
                 # NOTE: Basically inst is not changed. But there is a case
                 # that VIM resources may be changed while rollback. Only
-                # change_ext_conn_rollback at the moment.
-                if lcmocc.operation == fields.LcmOperationType.CHANGE_EXT_CONN:
+                # change_ext_conn_rollback and change_vnfpkg at the moment.
+                if lcmocc.operation in [
+                    fields.LcmOperationType.CHANGE_EXT_CONN,
+                        fields.LcmOperationType.CHANGE_VNFPKG]:
                     inst.update(context)
                 # grant_req and grant are not necessary any more.
                 if grant_req is not None:

@@ -15,10 +15,18 @@
 
 import copy
 import os
+import requests
+import subprocess
+
+from datetime import datetime
+from oslo_utils import uuidutils
+from unittest import mock
 
 from tacker import context
 from tacker.sol_refactored.common import vnfd_utils
+from tacker.sol_refactored.infra_drivers.openstack import heat_utils
 from tacker.sol_refactored.infra_drivers.openstack import openstack
+from tacker.sol_refactored.nfvo import glance_utils
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests import base
@@ -33,6 +41,21 @@ _vim_connection_info_example = {
     "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
     # "interfaceInfo": omitted
     # "accessInfo": omitted
+}
+
+_vim_connection_info_for_change_vnfpkg = {
+    "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+    "vimId": uuidutils.generate_uuid(),
+    "interfaceInfo": {"endpoint": "http://127.0.0.1/identity"},
+    "accessInfo": {
+        "username": "nfv_user",
+        "region": "RegionOne",
+        "password": "devstack",
+        "project": "nfv",
+        "projectDomain": "Default",
+        "userDomain": "Default"
+    }
+
 }
 
 _instantiate_req_example = {
@@ -219,6 +242,54 @@ _change_ext_conn_req_example = {
     ]
 }
 
+_change_vnfpkg_example = {
+    "vnfdId": uuidutils.generate_uuid(),
+    "additionalParams": {
+        "upgrade_type": "RollingUpdate",
+        "lcm-operation-coordinate-old-vnf": "Scripts/coordinate_old_vnf.py",
+        "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
+        "lcm-operation-coordinate-new-vnf": "Scripts/coordinate_new_vnf.py",
+        "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
+        "vdu_params": [{
+            "vdu_id": "VDU1",
+            "old_vnfc_param": {
+                "cp_name": "CP1",
+                "username": "ubuntu",
+                "password": "ubuntu"
+            },
+            "new_vnfc_param": {
+                "cp_name": "CP1",
+                "username": "ubuntu",
+                "password": "ubuntu"
+            },
+        }]
+    }
+}
+
+_change_vnfpkg_example_2 = {
+    "vnfdId": uuidutils.generate_uuid(),
+    "additionalParams": {
+        "upgrade_type": "RollingUpdate",
+        "lcm-operation-coordinate-old-vnf": "Scripts/coordinate_old_vnf.py",
+        "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
+        "lcm-operation-coordinate-new-vnf": "Scripts/coordinate_new_vnf.py",
+        "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
+        "vdu_params": [{
+            "vdu_id": "VDU2",
+            "old_vnfc_param": {
+                "cp_name": "CP1",
+                "username": "ubuntu",
+                "password": "ubuntu"
+            },
+            "new_vnfc_param": {
+                "cp_name": "CP1",
+                "username": "ubuntu",
+                "password": "ubuntu"
+            },
+        }]
+    }
+}
+
 # heat resources examples
 # NOTE:
 # - following attributes which are not related to tests are omitted.
@@ -234,6 +305,7 @@ _href = "".join((_url, _stack_id))
 _stack_id_VDU1_scale = (
     "vnf-768c24d2-2ea6-4225-b1c7-79e42abfbde6-VDU1_scale_group-dv4kv7qtcwhw/"
     "53ee92b6-8193-4df5-90f7-2738e61fba2c")
+
 _href_VDU1_scale = "".join((_url, _stack_id_VDU1_scale))
 
 _stack_id_VDU1_1 = (
@@ -784,6 +856,375 @@ _heat_reses_example = (
 # heat resources example after executing change_ext_conn
 _heat_reses_example_change_ext_conn = (
     _heat_reses_example_base + _heat_reses_example_cps_after)
+
+# change vnfpkg before inst info
+_inst_info_example = {
+    "flavourId": "simple",
+    "vnfState": "STARTED",
+    "extCpInfo": [
+        {
+            "id": "90561570-264c-4472-b84f-1fff98513475",
+            "cpdId": "VDU2_CP1",
+            "cpConfigId": "VDU2_CP1_1",
+            # "cpProtocolInfo": omitted
+            "extLinkPortId": "ac27c99b-73c8-4e91-b730-90deade72af4",
+            "associatedVnfcCpId": "be955786-a0c7-4b61-8cd8-9bb8bcb1c6e3"
+        },
+        {
+            "id": "f9f4b4b2-50e2-4c73-b89b-e0665e65ffbe",
+            "cpdId": "VDU2_CP2",
+            "cpConfigId": "VDU2_CP2_1",
+            # "cpProtocolInfo": omitted
+            "extLinkPortId": "12567a13-9fbd-4803-ad9f-d94ced266cd8",
+            "associatedVnfcCpId": "c54fa2fc-185a-49a7-bb89-f30f7c3be6a4"
+        },
+        {
+            "id": "05474d0b-a1f7-4be5-b57e-ef6873e1f3b6",
+            "cpdId": "VDU1_CP2",
+            "cpConfigId": "VDU1_CP2_1",
+            # "cpProtocolInfo": omitted
+            "extLinkPortId": "aa6646da-2e59-4de9-9b72-c62e7c4d9142",
+            "associatedVnfcCpId": "fdbb289f-87c8-40d0-bf06-da07b41ba124"
+        },
+        {
+            "id": "42ede9a6-c2b8-4c0d-a337-26342ffb236c",
+            "cpdId": "VDU1_CP1",
+            "cpConfigId": "VDU1_CP1_1",
+            # "cpProtocolInfo": omitted
+            "extLinkPortId": "efd0eb4e-4e55-4ac8-8b9b-403ec79faf2d",
+            "associatedVnfcCpId": "235f920c-8b49-4894-9c36-73f5a3b9f74d"
+        },
+        {
+            "id": "4f0ab1ad-b7de-482f-a69b-1093c71d2ceb",
+            "cpdId": "VDU1_CP2",
+            "cpConfigId": "VDU1_CP2_1",
+            # "cpProtocolInfo": omitted
+            "extLinkPortId": "a6c4c043-e082-4873-a871-02467af66224",
+            "associatedVnfcCpId": "e23d970d-9ea9-4c26-9d67-8f244383ea3c"
+        },
+        {
+            "id": "7a7fa30f-a303-4856-bc8b-b836cb682892",
+            "cpdId": "VDU1_CP1",
+            "cpConfigId": "VDU1_CP1_1",
+            # "cpProtocolInfo": omitted
+            "extLinkPortId": "f58df4d9-08ff-41b7-ab73-95ebfb8103c4",
+            "associatedVnfcCpId": "259c5895-7be6-4bed-8a94-221c41b3d08f"
+        }
+    ],
+    "extVirtualLinkInfo": [
+        {
+            "id": "137bdf0b-835c-43f0-b0d2-5c002599118a",
+            "resourceHandle": {
+                "resourceId": "6f97f400-2861-482a-ba78-65b652aaf8fc"
+            },
+            "extLinkPorts": [
+                {
+                    "id": "ac27c99b-73c8-4e91-b730-90deade72af4",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU2_CP1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "90561570-264c-4472-b84f-1fff98513475"
+                },
+                {
+                    "id": "efd0eb4e-4e55-4ac8-8b9b-403ec79faf2d",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU1_1_CP1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "42ede9a6-c2b8-4c0d-a337-26342ffb236c"
+                },
+                {
+                    "id": "f58df4d9-08ff-41b7-ab73-95ebfb8103c4",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU1_2_CP1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "7a7fa30f-a303-4856-bc8b-b836cb682892"
+                }
+            ],
+            # "currentVnfExtCpData": omitted
+        },
+        {
+            "id": "d8141a5a-6b6e-4dab-9bf5-158f23a617d7",
+            "resourceHandle": {
+                "resourceId": "02bc95e0-3d43-4d11-83b8-f7b15d8661a9"
+            },
+            "extLinkPorts": [
+                {
+                    "id": "12567a13-9fbd-4803-ad9f-d94ced266cd8",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU2_CP2",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "f9f4b4b2-50e2-4c73-b89b-e0665e65ffbe"
+                },
+                {
+                    "id": "aa6646da-2e59-4de9-9b72-c62e7c4d9142",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU1_1_CP2",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "05474d0b-a1f7-4be5-b57e-ef6873e1f3b6"
+                },
+                {
+                    "id": "a6c4c043-e082-4873-a871-02467af66224",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU1_2_CP2",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "4f0ab1ad-b7de-482f-a69b-1093c71d2ceb"
+                }
+            ],
+            # "currentVnfExtCpData": omitted
+        }
+    ],
+    "extManagedVirtualLinkInfo": [
+        {
+            "id": "bad53df7-f1fa-482d-91b1-caec382aeec2",
+            "vnfVirtualLinkDescId": "internalVL1",
+            "networkResource": {
+                "resourceId": "56730009-169c-4f96-8141-828acf1ee067"
+            },
+            "vnfLinkPorts": [
+                {
+                    "id": "74f387fe-6355-4af3-adc7-cdb507d5fa5f",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU2_CP3",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "5b0b336b-c207-4fa8-8b41-a5ad87d85cd0",
+                    "cpInstanceType": "VNFC_CP"
+                },
+                {
+                    "id": "4064ec55-b862-4527-a911-8752d3aa765a",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU1_1_CP3",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "b0732fb7-a42a-4077-aebc-d22b67b64f13",
+                    "cpInstanceType": "VNFC_CP"
+                },
+                {
+                    "id": "f3c9e62d-0f31-4a36-bd99-eecd8def0871",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU1_2_CP3",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "9c65f67e-feb2-447c-b0e7-a4f896185b4f",
+                    "cpInstanceType": "VNFC_CP"
+                }
+            ]
+        }
+    ],
+    "vnfcResourceInfo": [
+        {
+            "id": "res_id_VDU1_2",
+            "vduId": "VDU1",
+            "computeResource": {
+                "vimConnectionId": "vim_id_1",
+                "resourceId": "res_id_VDU1_2",
+                "vimLevelResourceType": "OS::Nova::Server"
+            },
+            "storageResourceIds": [
+                "res_id_VirtualStorage_2"
+            ],
+            "vnfcCpInfo": [
+                {
+                    "id": "VDU1_CP1-res_id_VDU1_2",
+                    "cpdId": "VDU1_CP1",
+                    "vnfExtCpId": "cp-res_id_VDU1_CP1_2"
+                },
+                {
+                    "id": "VDU1_CP2-res_id_VDU1_2",
+                    "cpdId": "VDU1_CP2",
+                    "vnfExtCpId": "cp-res_id_VDU1_CP2_2"
+                },
+                {
+                    "id": "VDU1_CP3-res_id_VDU1_2",
+                    "cpdId": "VDU1_CP3",
+                    "vnfLinkPortId": "res_id_VDU1_CP3_2"
+                },
+                {
+                    "id": "VDU1_CP4-res_id_VDU1_2",
+                    "cpdId": "VDU1_CP4",
+                    "vnfLinkPortId": "res_id_VDU1_CP4_2"
+                },
+                {
+                    "id": "VDU1_CP5-res_id_VDU1_2",
+                    "cpdId": "VDU1_CP5",
+                    "vnfLinkPortId": "res_id_VDU1_CP5_2"
+                }
+            ],
+            "metadata": {
+                "creation_time": "2021-12-10T01:03:49Z",
+                "stack_id": "vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-"
+                            "VDU1_scale_group-2zmsxtwtsj7n-"
+                            "fkwryhyv6qbr-qoemdwxw7o5c/"
+                            "d7aeba20-1b00-4bff-b050-6b42a262c84d",
+                "parent_resource_name": "fkwryhyv6qbr"
+            }
+        },
+        {
+            "id": "res_id_VDU2_1",
+            "vduId": "VDU2",
+            "computeResource": {
+                "vimConnectionId": "vim_id_1",
+                "resourceId": "res_id_VDU2_1",
+                "vimLevelResourceType": "OS::Nova::Server"
+            },
+            "storageResourceIds": [
+                "res_id_VirtualStorage_2"
+            ],
+            "vnfcCpInfo": [
+                {
+                    "id": "VDU2_CP1-res_id_VDU2_1",
+                    "cpdId": "VDU2_CP1",
+                    "vnfExtCpId": "cp-res_id_VDU2_CP1_1"
+                },
+                {
+                    "id": "VDU2_CP2-res_id_VDU2_1",
+                    "cpdId": "VDU2_CP2",
+                    "vnfExtCpId": "cp-res_id_VDU2_CP2_1"
+                },
+                {
+                    "id": "VDU2_CP3-res_id_VDU2_1",
+                    "cpdId": "VDU2_CP3",
+                    "vnfLinkPortId": "res_id_VDU2_CP3_1"
+                },
+                {
+                    "id": "VDU2_CP4-res_id_VDU2_1",
+                    "cpdId": "VDU2_CP4",
+                    "vnfLinkPortId": "res_id_VDU2_CP4_1"
+                },
+                {
+                    "id": "VDU2_CP5-res_id_VDU2_1",
+                    "cpdId": "VDU2_CP5",
+                    "vnfLinkPortId": "res_id_VDU2_CP5_1"
+                }
+            ],
+            "metadata": {
+                "creation_time": "2021-12-10T00:41:43Z",
+                "stack_id": 'vnf-d7aeba20-1b00-4bff-b050-6b42a262c84d/'
+                            'd7aeba20-1b00-4bff-b050-6b42a262c84d'
+            }
+        },
+    ],
+    "vnfVirtualLinkResourceInfo": [
+        {
+            "id": "18bd0111-d5e1-4aa3-b2d8-5b89833c6351",
+            "vnfVirtualLinkDescId": "internalVL3",
+            "networkResource": {
+                # "vimConnectionId": omitted
+                "resourceId": "res_id_internalVL3",
+                "vimLevelResourceType": "OS::Neutron::Net"
+            },
+            "vnfLinkPorts": [
+                {
+                    "id": "4dd7cadd-b9a1-484f-b2f2-1ff50ef0d90f",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU2_CP5",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "39a7d895-3b19-4330-b6ec-ae3557ea9c01",
+                    "cpInstanceType": "VNFC_CP"
+                },
+                {
+                    "id": "ace663cd-431b-402a-b2ae-d0824c996edb",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU1_1_CP5",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "33194d65-ecd6-48d9-8ef7-c15ce9fef46c",
+                    "cpInstanceType": "VNFC_CP"
+                },
+                {
+                    "id": "e0f98917-70ff-4f79-8747-9d7fc22827a4",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU1_2_CP5",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "c9112298-61eb-4bba-b285-ed3419593b1b",
+                    "cpInstanceType": "VNFC_CP"
+                }
+            ]
+        },
+        {
+            "id": "047aa313-b591-4529-aa98-cb8ce2b82e28",
+            "vnfVirtualLinkDescId": "internalVL2",
+            "networkResource": {
+                # "vimConnectionId": omitted
+                "resourceId": "res_id_internalVL2",
+                "vimLevelResourceType": "OS::Neutron::Net"
+            },
+            "vnfLinkPorts": [
+                {
+                    "id": "8e01813f-35fc-4a35-8f64-0da08a45ea21",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU2_CP4",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "2cb2b3a8-a7a0-41da-b3b8-4b82f576b090",
+                    "cpInstanceType": "VNFC_CP"
+                },
+                {
+                    "id": "1666a0f7-6a34-474e-87a2-07fb0c30ecdb",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU1_1_CP4",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "a49f8fb8-6fd9-4e9f-a6dd-0d268e51c83c",
+                    "cpInstanceType": "VNFC_CP"
+                },
+                {
+                    "id": "bce3159b-caca-45b7-8bb7-88015e951e56",
+                    "resourceHandle": {
+                        # "vimConnectionId": omitted
+                        "resourceId": "res_id_VDU1_2_CP4",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "0716ac20-612a-4ac2-8c87-d83be31dd4b5",
+                    "cpInstanceType": "VNFC_CP"
+                }
+            ]
+        }
+    ],
+    "virtualStorageResourceInfo": [
+        {
+            "id": "2135b13c-e630-4700-8f8d-85b6e48f7871",
+            "virtualStorageDescId": "VirtualStorage",
+            "storageResource": {
+                # "vimConnectionId": omitted
+                "resourceId": "res_id_VirtualStorage_1",
+                "vimLevelResourceType": "OS::Cinder::Volume"
+            }
+        },
+        {
+            "id": "739f7012-7973-485b-b34f-b006bc336150",
+            "virtualStorageDescId": "VirtualStorage",
+            "storageResource": {
+                # "vimConnectionId": omitted
+                "resourceId": "res_id_VirtualStorage_2",
+                "vimLevelResourceType": "OS::Cinder::Volume"
+            }
+        }
+    ],
+    # "vnfcInfo": omitted
+}
 
 # expected results (other than change_ext_conn)
 _expected_inst_info = {
@@ -1785,6 +2226,381 @@ _expected_inst_info_change_ext_conn = {
     "vnfcInfo": _expected_inst_info["vnfcInfo"]
 }
 
+mock_resource = {
+    'resources': [{
+        'updated_time': '2021-12-27T02:53:29Z',
+        'creation_time': '2021-12-27T02:53:29Z',
+        'logical_resource_id': 'VDU1',
+        'resource_name': 'VDU1',
+        'physical_resource_id': 'e79ebeaf-1b26-4ff9-9895-f4c78a8a39a6',
+        'resource_status': 'CREATE_COMPLETE',
+        'resource_status_reason': 'state changed',
+        'resource_type': 'OS::Nova::Server',
+        'required_by': [],
+        'parent_resource': 'fkwryhyv6qbr'
+    }, {
+        'updated_time': '2021-12-27T03:16:02Z',
+        'creation_time': '2021-12-27T02:53:27Z',
+        'logical_resource_id': 'fkwryhyv6qbr',
+        'resource_name': 'fkwryhyv6qbr',
+        'physical_resource_id': 'd7aeba20-1b00-4bff-b050-6b42a262c84d',
+        'resource_status': 'UPDATE_COMPLETE',
+        'resource_status_reason': 'state changed',
+        'resource_type': 'VDU1.yaml',
+        'required_by': [],
+        'parent_resource': 'VDU1_scale_group'
+    }, {
+        'updated_time': '2021-12-27T03:16:01Z',
+        'creation_time': '2021-12-27T02:53:20Z',
+        'logical_resource_id': 'VDU1_scale_group',
+        'resource_name': 'VDU1_scale_group',
+        'physical_resource_id': '53ba8388-287d-411e-93c9-bd27cec8d0ec',
+        'resource_status': 'UPDATE_COMPLETE',
+        'resource_status_reason': 'state changed',
+        'resource_type': 'OS::Heat::AutoScalingGroup',
+        'required_by': ['VDU1_scale_in', 'VDU1_scale_out']
+    }]
+}
+
+mock_resource_template = {
+    'heat_template_version': '2015-04-30', 'resources': {
+        'fkwryhyv6qbr': {'type': 'VDU1.yaml', 'properties': {
+            'flavor': 'm1.tiny',
+            'image': 'cirros-0.5.2-x86_64-disk',
+            'net1': '9b243768-1193-414b-b7c5-b56dfa765da4',
+            'net2': '094e43b4-056c-49ce-8203-c7cd955003a6',
+            'net3': '31451e60-ef7b-42f2-a4c7-2ca67d6c5caf',
+            'net4': 'dfc1c440-50b0-442f-bcd4-bd090b3272a5',
+            'net5': '2b2ecd2d-1f53-4b29-9c9d-7855c2fee7e3',
+            'subnet': '1368ba79-5710-4ef6-b481-829fa22711c7'}}},
+    'outputs': {'refs_map': {'value': {'fkwryhyv6qbr': {
+        'get_resource': 'fkwryhyv6qbr'}}}}}
+
+mock_resource_template_2 = {
+    'heat_template_version': '2015-04-30',
+    'description': 'Simple Base HOT for Sample VNF',
+    'parameters': {'nfv': {'type': 'json'}},
+    'resources': {'VDU2': {
+        'type': 'OS::Nova::Server',
+        'properties': {
+            'flavor': {'get_param': [
+                'nfv', 'VDU', 'VDU2', 'computeFlavourId']},
+            'image': {'get_param': [
+                'nfv', 'VDU', 'VDU2', 'vcImageId']},
+            'networks': [
+                {'port': {'get_resource': 'VDU2_CP1'}},
+                {'port': {'get_resource': 'VDU2_CP2'}},
+                {'port': {'get_resource': 'VDU2_CP3'}},
+                {'port': {'get_resource': 'VDU2_CP4'}},
+                {'port': {'get_resource': 'VDU2_CP5'}}],
+            'scheduler_hints': {
+                'group': {
+                    'get_resource': 'nfvi_node_affinity'}}}}
+    }
+}
+
+mock_resource_template_3 = {
+    'heat_template_version': '2015-04-30', 'resources': {'VDU2': {
+        'type': 'VDU2.yaml',
+        'properties': {'flavor': 'm1.tiny',
+                       'image': 'cirros-0.5.2-x86_64-disk',
+                       'net1': '9b243768-1193-414b-b7c5-b56dfa765da4',
+                       'net2': '094e43b4-056c-49ce-8203-c7cd955003a6',
+                       'net3': '31451e60-ef7b-42f2-a4c7-2ca67d6c5caf',
+                       'net4': 'dfc1c440-50b0-442f-bcd4-bd090b3272a5',
+                       'net5': '2b2ecd2d-1f53-4b29-9c9d-7855c2fee7e3',
+                       'subnet': '1368ba79-5710-4ef6-b481-829fa22711c7',
+                       'block_device_mapping_v2': ''}}},
+    'outputs': {'refs_map': {'value': {'VDU2': {'get_resource': 'VDU2'}}}}}
+
+mock_resource_list = {
+    'resources': [{
+        'updated_time': '2021-12-27T03:16:02Z',
+        'creation_time': '2021-12-27T02:53:27Z',
+        'logical_resource_id': 'fkwryhyv6qbr',
+        'resource_name': 'fkwryhyv6qbr',
+        'physical_resource_id': 'd7aeba20-1b00-4bff-b050-6b42a262c84d',
+        'resource_status': 'UPDATE_COMPLETE',
+        'resource_status_reason': 'state changed',
+        'resource_type': 'VDU1.yaml',
+        'links': [{
+            'href': 'http://192.168.10.115/heat-api/v1/'
+                    '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                    'vnf-d7aeba20-1b00-4bff-b050-6b42a262c84d/'
+                    'd7aeba20-1b00-4bff-b050-6b42a262c84d/resources/'
+                    'fkwryhyv6qbr',
+            'rel': 'self'
+        }, {
+            'href': 'http://192.168.10.115/heat-api/v1/'
+                    '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                    'vnf-d7aeba20-1b00-4bff-b050-6b42a262c84d/'
+                    'd7aeba20-1b00-4bff-b050-6b42a262c84d',
+            'rel': 'stack'
+        }, {
+            'href': 'http://192.168.10.115/heat-api/v1/'
+                    '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                    'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-'
+                    'VDU1_scale_group-2zmsxtwtsj7n-fkwryhyv6qbr-qoemdwxw7o5c/'
+                    'd7aeba20-1b00-4bff-b050-6b42a262c84d',
+            'rel': 'nested'
+        }],
+        'required_by': [],
+        'parent_resource': 'VDU1_scale_group'
+    }
+    ]
+}
+
+mock_resource_list_2 = {
+    'resources': [
+        {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU1',
+            'resource_name': 'VDU1',
+            'physical_resource_id': 'e79ebeaf-1b26-4ff9-9895-f4c78a8a39a6',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Nova::Server',
+            'links': [{
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-'
+                        'VDU1_scale_group-2zmsxtwtsj7n-fkwryhyv6qbr-'
+                        'qoemdwxw7o5c/d7aeba20-1b00-4bff-b050-6b42a262c84d'
+                        '/resources/VDU1',
+                'rel': 'self'
+            }, {
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-'
+                        'VDU1_scale_group-2zmsxtwtsj7n-fkwryhyv6qbr-'
+                        'qoemdwxw7o5c/d7aeba20-1b00-4bff-b050-6b42a262c84d',
+                'rel': 'stack'
+            }],
+
+            'required_by': [],
+            'parent_resource': 'fkwryhyv6qbr'
+        }, {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU1_CP4',
+            'resource_name': 'VDU1_CP4',
+            'physical_resource_id': 'c625b32c-5b2e-4366-824e-0921f4efd954',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Neutron::Port',
+            'required_by': ['VDU1'],
+            'parent_resource': 'fkwryhyv6qbr'
+        }, {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU1_CP1',
+            'resource_name': 'VDU1_CP1',
+            'physical_resource_id': 'd13bab44-a728-4a3d-9c85-b70d77b5c7f4',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Neutron::Port',
+            'required_by': ['VDU1'],
+            'parent_resource': 'fkwryhyv6qbr'
+        }, {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU1_CP3',
+            'resource_name': 'VDU1_CP3',
+            'physical_resource_id': 'a231fd59-42e3-4636-a93d-695976ce03ef',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Neutron::Port',
+            'required_by': ['VDU1'],
+            'parent_resource': 'fkwryhyv6qbr'
+        }, {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU1_CP5',
+            'resource_name': 'VDU1_CP5',
+            'physical_resource_id': '8703f963-2e00-4931-8bce-ddbcaf1205e4',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Neutron::Port',
+            'required_by': ['VDU1'],
+            'parent_resource': 'fkwryhyv6qbr'
+        }, {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VirtualStorage',
+            'resource_name': 'VirtualStorage',
+            'physical_resource_id': '29809bc8-4a3d-412e-b6e2-5122995faccc',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Cinder::Volume',
+            'required_by': ['VDU1'],
+            'parent_resource': 'fkwryhyv6qbr'
+        }, {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU1_CP2',
+            'resource_name': 'VDU1_CP2',
+            'physical_resource_id': '963ba654-e3f1-4b78-8187-756dbd043916',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Neutron::Port',
+            'required_by': ['VDU1'],
+            'parent_resource': 'fkwryhyv6qbr'
+        }
+    ]
+}
+
+
+mock_resource_list_3 = {
+    'resources': [
+        {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU2',
+            'resource_name': 'VDU2',
+            'physical_resource_id': 'res_id_VDU2_1',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Nova::Server',
+            'links': [{
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72/resources/VDU2',
+                'rel': 'self'
+            }, {
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72',
+                'rel': 'stack'
+            }],
+            'required_by': []
+        }, {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU2_CP4',
+            'resource_name': 'VDU2_CP4',
+            'physical_resource_id': 'c625b32c-5b2e-4366-824e-0921f4efd954',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Neutron::Port',
+            'links': [{
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72/resources/'
+                        'VDU2_CP4',
+                'rel': 'self'
+            }, {
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72',
+                'rel': 'stack'
+            }],
+            'required_by': ['VDU2']
+        }, {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU2_CP1',
+            'resource_name': 'VDU2_CP1',
+            'physical_resource_id': 'd13bab44-a728-4a3d-9c85-b70d77b5c7f4',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Neutron::Port',
+            'links': [{
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72/resources/'
+                        'VDU2_CP1',
+                'rel': 'self'
+            }, {
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72',
+                'rel': 'stack'
+            }],
+            'required_by': ['VDU2']
+        }, {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU2_CP3',
+            'resource_name': 'VDU2_CP3',
+            'physical_resource_id': 'a231fd59-42e3-4636-a93d-695976ce03ef',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Neutron::Port',
+            'links': [{
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72/resources/'
+                        'VDU2_CP3',
+                'rel': 'self'
+            }, {
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72',
+                'rel': 'stack'
+            }],
+
+            'required_by': ['VDU2']
+        }, {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU2_CP5',
+            'resource_name': 'VDU2_CP5',
+            'physical_resource_id': '8703f963-2e00-4931-8bce-ddbcaf1205e4',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Neutron::Port',
+            'links': [{
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72/resources/'
+                        'VDU2_CP5',
+                'rel': 'self'
+            }, {
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72',
+                'rel': 'stack'
+            }],
+            'required_by': ['VDU2']
+        }, {
+            'updated_time': '2021-12-27T02:53:29Z',
+            'creation_time': '2021-12-27T02:53:29Z',
+            'logical_resource_id': 'VDU2_CP2',
+            'resource_name': 'VDU2_CP2',
+            'physical_resource_id': '963ba654-e3f1-4b78-8187-756dbd043916',
+            'resource_status': 'CREATE_COMPLETE',
+            'resource_status_reason': 'state changed',
+            'resource_type': 'OS::Neutron::Port',
+            'links': [{
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72/resources/'
+                        'VDU2_CP2',
+                'rel': 'self'
+            }, {
+                'href': 'http://192.168.10.115/heat-api/v1/'
+                        '11ee4693b37c4b7995ab2ae331e9adf3/stacks/'
+                        'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7/'
+                        'ddea2e52-532a-491c-b8fc-9c759e35fd72',
+                'rel': 'stack'
+            }],
+            'required_by': ['VDU2']
+        }
+    ]
+}
+
 
 class TestOpenstack(base.BaseTestCase):
 
@@ -1935,3 +2751,395 @@ class TestOpenstack(base.BaseTestCase):
         # check
         result = inst.to_dict()["instantiatedVnfInfo"]
         self._check_inst_info(_expected_inst_info_change_ext_conn, result)
+
+    @mock.patch.object(heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(subprocess, 'run')
+    @mock.patch.object(glance_utils.GlanceClient, 'get_image')
+    @mock.patch.object(heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(heat_utils.HeatClient, 'get_resource_list')
+    @mock.patch.object(heat_utils.HeatClient, 'get_template')
+    @mock.patch.object(heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(heat_utils.HeatClient, 'get_resource_info')
+    @mock.patch.object(heat_utils.HeatClient, 'get_stack_resource')
+    def test_change_vnfpkg_404(
+            self, mocked_get_stack_resource, mocked_get_resource_info,
+            mocked_get_resources, mocked_get_template,
+            mocked_get_resource_list, mocked_update_stack,
+            mocked_get_image, mocked_run, mocked_get_parameters):
+        # prepare
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_vnfpkg_example)
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_example)
+        vim_info = {
+            "vim1": objects.VimConnectionInfo.from_dict(
+                _vim_connection_info_for_change_vnfpkg)
+        }
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst.vimConnectionInfo = vim_info
+        inst.instantiatedVnfInfo = inst_info
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_VNFPKG
+        )
+        grant = objects.GrantV1()
+        stack_body = {'stack': {'id': uuidutils.generate_uuid(),
+                                'name': 'test'}}
+        stack_body_2 = {'stack': {
+            'stack_name':
+                'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-VDU1_scale_group'}}
+        mocked_get_stack_resource.side_effect = [stack_body, stack_body_2]
+
+        body_2 = {"attributes": {"floating_ip_address": "192.168.0.1"}}
+        body_3 = {"attributes": {
+            "image": {"id": "image-1.0.0-x86_64-disk"},
+            "flavor": {"original_name": "m1.tiny"}
+        }
+        }
+        mocked_get_resource_info.side_effect = [None,
+                                                body_2, body_3]
+        mocked_get_resources.side_effect = [mock_resource['resources'],
+                                            _heat_reses_example]
+        mocked_get_template.return_value = mock_resource_template
+        mocked_get_resource_list.side_effect = [mock_resource_list,
+                                                mock_resource_list_2]
+        mocked_update_stack.return_value = mock.Mock()
+        resp_image = requests.Response()
+        resp_image.name = "image-1.0.0-x86_64-disk"
+        mocked_get_image.return_value = resp_image
+        out = requests.Response()
+        out.returncode = 0
+        mocked_run.return_value = out
+        parameter = {
+            'nfv': '{"VDU":{"VDU1":{"vcImageId":""},'
+                   '"VDU2":{"vcImageId":""},'
+                   '"VirtualStorage":{"vcImageId":""}}}'
+        }
+        mocked_get_parameters.return_value = parameter
+        # execute change_vnfpkg
+        self.driver.change_vnfpkg(req, inst, grant_req, grant,
+                                  self.vnfd_1)
+
+        # check
+        for vnfc_res in inst.instantiatedVnfInfo.vnfcResourceInfo:
+            if vnfc_res.vduId == "VDU1":
+                self.assertEqual(vnfc_res.id,
+                                'e79ebeaf-1b26-4ff9-9895-f4c78a8a39a6')
+                self.assertEqual(vnfc_res.computeResource.resourceId,
+                                 'e79ebeaf-1b26-4ff9-9895-f4c78a8a39a6')
+                self.assertIn('current_vnfd_id', vnfc_res.metadata)
+
+    @mock.patch.object(heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(subprocess, 'run')
+    @mock.patch.object(glance_utils.GlanceClient, 'get_image')
+    @mock.patch.object(heat_utils.HeatClient, 'get_resource_list')
+    @mock.patch.object(heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(heat_utils.HeatClient, 'get_template')
+    @mock.patch.object(heat_utils.HeatClient, 'get_resource_info')
+    @mock.patch.object(heat_utils.HeatClient, 'get_stack_resource')
+    def test_change_vnfpkg_200(
+            self, mocked_get_stack_resource, mocked_get_resource_info,
+            mocked_get_template, mocked_get_parameters,
+            mocked_update_stack, mocked_get_resource_list, mocked_get_image,
+            mocked_run, mocked_get_resources):
+        # prepare
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_vnfpkg_example_2)
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_example)
+        vim_info = {
+            "vim1": objects.VimConnectionInfo.from_dict(
+                _vim_connection_info_for_change_vnfpkg)
+        }
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id="d7aeba20-1b00-4bff-b050-6b42a262c84d",
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst.vimConnectionInfo = vim_info
+        inst.instantiatedVnfInfo = inst_info
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_VNFPKG
+        )
+        grant = objects.GrantV1()
+        stack_body = {'stack': {'id': "d7aeba20-1b00-4bff-b050-6b42a262c84d",
+                                'name': 'test'}}
+        stack_body_2 = {'stack': {
+            'stack_name':
+                'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-VDU1_scale_group'}}
+        mocked_get_stack_resource.side_effect = [stack_body, stack_body_2]
+
+        body = {"resource": "resource"}
+        body_2 = {"attributes": {"floating_ip_address": "192.168.0.1"}}
+        body_3 = {"attributes": {
+            "image": {"id": "image-1.0.0-x86_64-disk"},
+            "flavor": {"original_name": "m1.tiny"}
+        }
+        }
+        mocked_get_resource_info.side_effect = [body['resource'], body_2,
+                                                body_3]
+        mocked_get_resources.side_effect = [mock_resource['resources'],
+                                            _heat_reses_example]
+        mocked_get_template.return_value = mock_resource_template_2
+        mocked_get_resource_list.return_value = mock_resource_list_3
+        mocked_update_stack.return_value = mock.Mock()
+        resp_image = requests.Response()
+        resp_image.name = "image-1.0.0-x86_64-disk"
+        mocked_get_image.return_value = resp_image
+        out = requests.Response()
+        out.returncode = 0
+        mocked_run.return_value = out
+        parameter = {
+            'nfv': '{"VDU":{"VDU1":{"vcImageId":""},'
+                   '"VDU2":{"vcImageId":""},'
+                   '"VirtualStorage":{"vcImageId":""}}}'
+        }
+        mocked_get_parameters.return_value = parameter
+        # execute change_vnfpkg
+        self.driver.change_vnfpkg(req, inst, grant_req, grant,
+                                  self.vnfd_1)
+
+        # check
+        for vnfc_res in inst.instantiatedVnfInfo.vnfcResourceInfo:
+            if vnfc_res.vduId == "VDU2":
+                self.assertEqual(vnfc_res.id,
+                                 'res_id_VDU2_1')
+                self.assertEqual(vnfc_res.computeResource.resourceId,
+                                 'res_id_VDU2_1')
+                self.assertIn('current_vnfd_id', vnfc_res.metadata)
+
+    @mock.patch.object(heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(subprocess, 'run')
+    @mock.patch.object(glance_utils.GlanceClient, 'get_image')
+    @mock.patch.object(heat_utils.HeatClient, 'get_resource_info')
+    @mock.patch.object(heat_utils.HeatClient, 'get_resource_list')
+    @mock.patch.object(heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(heat_utils.HeatClient, 'get_template')
+    @mock.patch.object(heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(heat_utils.HeatClient, 'get_stack_resource')
+    def test_change_vnfpkg_rollback(
+            self, mocked_get_stack_resource, mocked_get_resources,
+            mocked_get_template, mocked_update_stack,
+            mocked_get_resource_list, mocked_get_resource_info,
+            mocked_get_image, mocked_run, mocked_get_parameters):
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_vnfpkg_example)
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_example)
+        vim_info = {
+            "vim1": objects.VimConnectionInfo.from_dict(
+                _vim_connection_info_for_change_vnfpkg)
+        }
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst.vimConnectionInfo = vim_info
+        inst.instantiatedVnfInfo = inst_info
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_VNFPKG
+        )
+        grant = objects.GrantV1()
+
+        affected_vnfcs = objects.AffectedVnfcV2(
+            id=uuidutils.generate_uuid(),
+            vduId='VDU1',
+            vnfdId=SAMPLE_VNFD_ID,
+            changeType='ADDED',
+            metadata={
+                "creation_time": "2021-12-10T01:03:49Z",
+                "stack_id": "vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-"
+                            "VDU1_scale_group-2zmsxtwtsj7n-"
+                            "fkwryhyv6qbr-qoemdwxw7o5c/"
+                            "d7aeba20-1b00-4bff-b050-6b42a262c84d",
+                "parent_resource_name": "fkwryhyv6qbr"
+            }
+        )
+        resource_change = objects.VnfLcmOpOccV2_ResourceChanges(
+            affectedVnfcs=[affected_vnfcs]
+        )
+
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.FAILED_TEMP,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_VNFPKG,
+            resourceChanges=resource_change,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        stack_body = {'stack': {'id': uuidutils.generate_uuid(),
+                                'name': 'test'}}
+        stack_body_2 = {'stack': {
+            'stack_name':
+                'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-VDU1_scale_group'}}
+        mocked_get_stack_resource.side_effect = [stack_body, stack_body_2]
+
+        body = {"attributes": {"floating_ip_address": "192.168.0.1"}}
+        body_2 = {"attributes": {
+            "image": {"id": "image-1.0.0-x86_64-disk"},
+            "flavor": {"original_name": "m1.tiny"}
+        }
+        }
+        mocked_get_resource_info.side_effect = [body, body_2]
+        mocked_get_resources.side_effect = [mock_resource['resources'],
+                                            _heat_reses_example]
+        mocked_get_template.return_value = mock_resource_template
+        mocked_get_resource_list.return_value = mock_resource_list_2
+        mocked_update_stack.return_value = mock.Mock()
+        resp_image = requests.Response()
+        resp_image.name = "image-1.0.0-x86_64-disk"
+        mocked_get_image.return_value = resp_image
+        out = requests.Response()
+        out.returncode = 0
+        mocked_run.return_value = out
+        parameter = {
+            'nfv': '{"VDU":{"VDU1":{"vcImageId":""},'
+                   '"VDU2":{"vcImageId":""},'
+                   '"VirtualStorage":{"vcImageId":""}}}'
+        }
+        mocked_get_parameters.return_value = parameter
+        self.driver.change_vnfpkg_rollback(req, inst, grant_req, grant,
+                                  self.vnfd_1, lcmocc)
+        # check
+        for vnfc_res in inst.instantiatedVnfInfo.vnfcResourceInfo:
+            if vnfc_res.vduId == "VDU1":
+                self.assertEqual(vnfc_res.id,
+                                 'e79ebeaf-1b26-4ff9-9895-f4c78a8a39a6')
+                self.assertEqual(vnfc_res.computeResource.resourceId,
+                                 'e79ebeaf-1b26-4ff9-9895-f4c78a8a39a6')
+                self.assertIn('current_vnfd_id', vnfc_res.metadata)
+
+    @mock.patch.object(heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(subprocess, 'run')
+    @mock.patch.object(glance_utils.GlanceClient, 'get_image')
+    @mock.patch.object(heat_utils.HeatClient, 'get_resource_info')
+    @mock.patch.object(heat_utils.HeatClient, 'get_resource_list')
+    @mock.patch.object(heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(heat_utils.HeatClient, 'get_template')
+    @mock.patch.object(heat_utils.HeatClient, 'get_stack_resource')
+    def test_change_vnfpkg_rollback_same(
+            self, mocked_get_stack_resource, mocked_get_template,
+            mocked_get_parameters, mocked_update_stack,
+            mocked_get_resource_list, mocked_get_resource_info,
+            mocked_get_image, mocked_run, mocked_get_resources):
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_vnfpkg_example_2)
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_example)
+        vim_info = {
+            "vim1": objects.VimConnectionInfo.from_dict(
+                _vim_connection_info_for_change_vnfpkg)
+        }
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id="d7aeba20-1b00-4bff-b050-6b42a262c84d",
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst.vimConnectionInfo = vim_info
+        inst.instantiatedVnfInfo = inst_info
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_VNFPKG
+        )
+        grant = objects.GrantV1()
+
+        affected_vnfcs = objects.AffectedVnfcV2(
+            id=uuidutils.generate_uuid(),
+            vduId='VDU2',
+            vnfdId=SAMPLE_VNFD_ID,
+            changeType='MODIFIED',
+            metadata={
+                "creation_time": "2021-12-10T01:03:49Z",
+                "stack_id": 'vnf-d7aeba20-1b00-4bff-b050-6b42a262c84d/'
+                            'd7aeba20-1b00-4bff-b050-6b42a262c84d'
+            }
+        )
+        resource_change = objects.VnfLcmOpOccV2_ResourceChanges(
+            affectedVnfcs=[affected_vnfcs]
+        )
+
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.FAILED_TEMP,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_VNFPKG,
+            resourceChanges=resource_change,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        stack_body = {'stack': {'id': 'd7aeba20-1b00-4bff-b050-6b42a262c84d',
+                      'name': 'test'}}
+        stack_body_2 = {'stack': {
+            'stack_name':
+                'vnf-d7aeba20-1b00-4bff-b050-6b42a262c84d-VDU1_scale_group'}}
+        mocked_get_stack_resource.side_effect = [stack_body, stack_body_2]
+
+        body = {"attributes": {"floating_ip_address": "192.168.0.1"}}
+        body_2 = {"attributes": {
+            "image": {
+                "id": "image-1.0.0-x86_64-disk"},
+            "flavor": {"original_name": "m1.tiny"}
+        }
+        }
+        mocked_get_resource_info.side_effect = [body, body_2]
+        mocked_get_resources.side_effect = [mock_resource['resources'],
+                                            _heat_reses_example]
+        mocked_get_template.return_value = mock_resource_template_3
+        mocked_get_resource_list.return_value = mock_resource_list_3
+        mocked_update_stack.return_value = mock.Mock()
+        resp_image = requests.Response()
+        resp_image.name = "image-1.0.0-x86_64-disk"
+        mocked_get_image.return_value = resp_image
+        out = requests.Response()
+        out.returncode = 0
+        mocked_run.return_value = out
+        parameter = {
+            'nfv': '{"VDU":{"VDU1":{"vcImageId":""},'
+                   '"VDU2":{"vcImageId":""},'
+                   '"VirtualStorage":{"vcImageId":""}}}'
+        }
+        mocked_get_parameters.return_value = parameter
+        self.driver.change_vnfpkg_rollback(req, inst, grant_req, grant,
+                                  self.vnfd_1, lcmocc)
+        # check
+        for vnfc_res in inst.instantiatedVnfInfo.vnfcResourceInfo:
+            if vnfc_res.vduId == "VDU2":
+                self.assertEqual(vnfc_res.id,
+                                 'res_id_VDU2_1')
+                self.assertEqual(vnfc_res.computeResource.resourceId,
+                                 'res_id_VDU2_1')
+                self.assertIn('current_vnfd_id', vnfc_res.metadata)

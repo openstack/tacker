@@ -49,7 +49,7 @@ class HeatClient(object):
             self.wait_stack_create(fields["stack_name"])
 
     def update_stack(self, stack_name, fields, wait=True):
-        path = "stacks/{}".format(stack_name)
+        path = f"stacks/{stack_name}"
         resp, body = self.client.do_request(path, "PATCH",
                  expected_status=[202], body=fields)
 
@@ -57,7 +57,7 @@ class HeatClient(object):
             self.wait_stack_update(stack_name)
 
     def delete_stack(self, stack_name, wait=True):
-        path = "stacks/{}".format(stack_name)
+        path = f"stacks/{stack_name}"
         resp, body = self.client.do_request(path, "DELETE",
                 expected_status=[204, 404])
 
@@ -65,7 +65,7 @@ class HeatClient(object):
             self.wait_stack_delete(stack_name)
 
     def get_status(self, stack_name):
-        path = "stacks/{}".format(stack_name)
+        path = f"stacks/{stack_name}"
         resp, body = self.client.do_request(path, "GET",
                 expected_status=[200, 404])
 
@@ -78,7 +78,7 @@ class HeatClient(object):
     def get_resources(self, stack_name):
         # NOTE: Because it is necessary to get nested stack info, it is
         # necessary to specify 'nested_depth=2'.
-        path = "stacks/{}/resources?nested_depth=2".format(stack_name)
+        path = f"stacks/{stack_name}/resources?nested_depth=2"
         resp, body = self.client.do_request(path, "GET",
                 expected_status=[200])
 
@@ -134,23 +134,29 @@ class HeatClient(object):
             raise sol_ex.StackOperationFailed
         return body
 
-    def get_resource_info(self, stack_name, stack_id, resource_name):
-        path = f"stacks/{stack_name}/{stack_id}/resources/{resource_name}"
+    def get_resource_info(self, nested_stack_id, resource_name):
+        path = f"stacks/{nested_stack_id}/resources/{resource_name}"
         resp, body = self.client.do_request(path, "GET",
                                             expected_status=[200, 404])
         if resp.status_code == 404:
-            return resp, None
-        return resp, body['resource']
+            return None
+        return body['resource']
+
+    def get_resource_list(self, stack_id):
+        path = f"stacks/{stack_id}/resources"
+        resp, body = self.client.do_request(path, "GET",
+                                            expected_status=[200, 404])
+        return body
 
     def get_parameters(self, stack_name):
-        path = "stacks/{}".format(stack_name)
+        path = f"stacks/{stack_name}"
         resp, body = self.client.do_request(path, "GET",
                 expected_status=[200])
 
         return body["stack"]["parameters"]
 
     def mark_unhealthy(self, stack_id, resource_name):
-        path = "stacks/{}/resources/{}".format(stack_id, resource_name)
+        path = f"stacks/{stack_id}/resources/{resource_name}"
         fields = {
             "mark_unhealthy": True,
             "resource_status_reason": "marked by tacker"
@@ -159,14 +165,14 @@ class HeatClient(object):
                  expected_status=[200], body=fields)
 
     def get_template(self, stack_name):
-        path = "stacks/{}/template".format(stack_name)
+        path = f"stacks/{stack_name}/template"
         resp, body = self.client.do_request(path, "GET",
                 expected_status=[200])
 
         return body
 
     def get_files(self, stack_name):
-        path = "stacks/{}/files".format(stack_name)
+        path = f"stacks/{stack_name}/files"
         resp, body = self.client.do_request(path, "GET",
                 expected_status=[200])
 
@@ -205,9 +211,34 @@ def get_resource_stack_id(heat_res):
             return "{}/{}".format(items[-2], items[-1])
 
 
+def get_parent_nested_id(res):
+    for link in res.get('links', []):
+        if link['rel'] == 'nested':
+            items = link['href'].split('/')
+            return "{}/{}".format(items[-2], items[-1])
+
+
 def get_parent_resource(heat_res, heat_reses):
     parent = heat_res.get('parent_resource')
     if parent:
         for res in heat_reses:
             if res['resource_name'] == parent:
                 return res
+
+
+def get_group_stack_id(heat_reses, vdu_id):
+    parent_resources = [heat_res for heat_res in heat_reses
+                        if heat_res.get('resource_name') == vdu_id]
+    if parent_resources:
+        parent_resource = parent_resources[0].get('parent_resource')
+    else:
+        raise sol_ex.VduIdNotFound(vdu_id=vdu_id)
+    group_resource_name = [heat_res for heat_res in
+                           heat_reses if
+                           heat_res.get('resource_name') ==
+                           parent_resource][0].get('parent_resource')
+    group_stack_id = [heat_res for heat_res in
+                      heat_reses if
+                      heat_res.get('resource_name') ==
+                      group_resource_name][0].get('physical_resource_id')
+    return group_stack_id

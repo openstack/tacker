@@ -76,6 +76,9 @@ class BaseSolV2Test(base.BaseTestCase):
                                                  service_type='compute')
         cls.heat_client = heat_utils.HeatClient(vim_info)
 
+        cls.cinder_client = http_client.HttpClient(
+            auth, service_type='block-storage')
+
     @classmethod
     def tearDownClass(cls):
         super(BaseSolV2Test, cls).tearDownClass()
@@ -328,10 +331,20 @@ class BaseSolV2Test(base.BaseTestCase):
         return self.tacker_client.do_request(
             path, "POST", body=req_body, version="2.0.0")
 
+    def change_vnfpkg(self, inst_id, req_body):
+        path = "/vnflcm/v2/vnf_instances/{}/change_vnfpkg".format(inst_id)
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="2.0.0")
+
     def terminate_vnf_instance(self, inst_id, req_body):
         path = "/vnflcm/v2/vnf_instances/{}/terminate".format(inst_id)
         return self.tacker_client.do_request(
             path, "POST", body=req_body, version="2.0.0")
+
+    def rollback(self, lcmocc_id):
+        path = "/vnflcm/v2/vnf_lcm_op_occs/{}/rollback".format(lcmocc_id)
+        return self.tacker_client.do_request(
+            path, "POST", version="2.0.0")
 
     def wait_lcmocc_complete(self, lcmocc_id):
         # NOTE: It is not necessary to set timeout because the operation
@@ -476,3 +489,21 @@ class BaseSolV2Test(base.BaseTestCase):
             callback_url)
         self.assertEqual(1, len(notify_mock_responses))
         self.assertEqual(204, notify_mock_responses[0].status_code)
+
+    def get_current_vdu_image(
+            self, stack_id, stack_name, resource_name):
+        vdu_info = self.heat_client.get_resource_info(
+            f"{stack_name}/{stack_id}", resource_name)
+        if vdu_info.get('attributes').get('image'):
+            image_id = vdu_info.get('attributes').get('image').get('id')
+        else:
+            volume_ids = [volume.get('id') for volume in vdu_info.get(
+                'attributes').get('os-extended-volumes:volumes_attached')]
+            for volume_id in volume_ids:
+                path = f"/volumes/{volume_id}"
+                resp, resp_body = self.cinder_client.do_request(path, "GET")
+                if resp_body['volume']['volume_image_metadata']:
+                    image_id = resp_body['volume'][
+                        'volume_image_metadata'].get('image_id')
+
+        return image_id

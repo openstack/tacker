@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add Change Current VNF Package API based on ETSI NFV specifications.
+    Tacker supports a VNF upgrade using this API.
+    Currently, it only supports "RollingUpdate" out of several methods for
+    a VNF upgrade.
+

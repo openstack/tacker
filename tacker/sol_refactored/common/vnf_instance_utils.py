@@ -49,6 +49,7 @@ def make_inst_links(inst, endpoint):
         links.scale = objects.Link(href=self_href + "/scale")
         links.heal = objects.Link(href=self_href + "/heal")
         links.changeExtConn = objects.Link(href=self_href + "/change_ext_conn")
+        links.changeVnfPkg = objects.Link(href=self_href + "/change_vnfpkg")
         # NOTE: add when the operation supported
 
     return links
