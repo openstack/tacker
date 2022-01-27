@@ -341,7 +341,7 @@ _inst_info_example = {
     ],
     "vnfcResourceInfo": [
         {
-            "id": "cdf36e11-f6ca-4c80-aaf1-0d2e764a2f3a",
+            "id": "vnfc_res_info_id_VDU2",
             "vduId": "VDU2",
             "computeResource": {
                 # "vimConnectionId": omitted
@@ -377,7 +377,7 @@ _inst_info_example = {
             ]
         },
         {
-            "id": "c8cb522d-ddf8-4136-9c85-92bab8f2993d",
+            "id": "vnfc_res_info_id_VDU1_1",
             "vduId": "VDU1",
             "computeResource": {
                 # "vimConnectionId": omitted
@@ -414,7 +414,7 @@ _inst_info_example = {
             ]
         },
         {
-            "id": "9f6537ca-9fe3-4fa3-8e57-87930f90a1c6",
+            "id": "vnfc_res_info_id_VDU1_2",
             "vduId": "VDU1",
             "computeResource": {
                 # "vimConnectionId": omitted
@@ -556,7 +556,26 @@ _inst_info_example = {
             }
         }
     ],
-    # "vnfcInfo": omitted
+    "vnfcInfo": [
+        {
+            "id": "VDU2-vnfc_res_info_id_VDU2",
+            "vduId": "VDU2",
+            "vnfcResourceInfoId": "vnfc_res_info_id_VDU2",
+            "vnfcState": "STARTED"
+        },
+        {
+            "id": "VDU1-vnfc_res_info_id_VDU1_1",
+            "vduId": "VDU1",
+            "vnfcResourceInfoId": "vnfc_res_info_id_VDU1_1",
+            "vnfcState": "STARTED"
+        },
+        {
+            "id": "VDU1-vnfc_res_info_id_VDU1_2",
+            "vduId": "VDU1",
+            "vnfcResourceInfoId": "vnfc_res_info_id_VDU1_2",
+            "vnfcState": "STARTED"
+        }
+    ]
 }
 
 # modify_info_process example
@@ -638,7 +657,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
     @mock.patch.object(nfvo_client.NfvoClient, 'grant')
     def test_instantiate_grant(self, mocked_grant):
         # prepare
-        req = objects.InstantiateVnfRequestV2.from_dict(_inst_req_example)
+        req = objects.InstantiateVnfRequest.from_dict(_inst_req_example)
         inst = objects.VnfInstanceV2(
             # required fields
             id=uuidutils.generate_uuid(),
@@ -951,7 +970,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             instantiatedVnfInfo=objects.VnfInstanceV2_InstantiatedVnfInfo()
         )
         inst = inst_saved.obj_clone()
-        req = objects.InstantiateVnfRequestV2.from_dict(_inst_req_example)
+        req = objects.InstantiateVnfRequest.from_dict(_inst_req_example)
         lcmocc = objects.VnfLcmOpOccV2(
             # only set used members in the method
             operation=fields.LcmOperationType.INSTANTIATE,
@@ -1371,3 +1390,301 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         for key, value in check_reses.items():
             for name, ids in value.items():
                 self.assertEqual(expected_num[key][name], len(ids))
+
+    def _heal_grant_prepare(self, req):
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_example)
+        inst.instantiatedVnfInfo = inst_info
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.HEAL,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        return inst, lcmocc
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_heal_grant_SOL002(self, mocked_grant):
+        # prepare
+        req = objects.HealVnfRequest(
+            vnfcInstanceId=["VDU1-vnfc_res_info_id_VDU1_2",
+                            "VDU2-vnfc_res_info_id_VDU2"]
+        )
+        inst, lcmocc = self._heal_grant_prepare(req)
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run heal_grant
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_1)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': SAMPLE_VNFD_ID,
+            'operation': 'HEAL',
+            'isAutomaticInvocation': False,
+            '_links': self._grant_req_links(lcmocc.id, inst.id)
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        # check removeResources
+        rm_reses = grant_req['removeResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': [], 'VDU2': []}
+        }
+        expected_res_ids = {
+            'COMPUTE': {
+                'VDU1': ['res_id_VDU1_2'],
+                'VDU2': ['res_id_VDU2']
+            }
+        }
+        for res in rm_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['resource']['resourceId'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(expected_res_ids[key][name], ids)
+
+        # check addResources
+        add_reses = grant_req['addResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': [], 'VDU2': []}
+        }
+        for res in add_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['id'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(len(expected_res_ids[key][name]), len(ids))
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_heal_grant_SOL002_all(self, mocked_grant):
+        # prepare
+        req = objects.HealVnfRequest(
+            vnfcInstanceId=["VDU1-vnfc_res_info_id_VDU1_2",
+                            "VDU2-vnfc_res_info_id_VDU2"],
+            additionalParams={'all': True}
+        )
+        inst, lcmocc = self._heal_grant_prepare(req)
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run heal_grant
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_1)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': SAMPLE_VNFD_ID,
+            'operation': 'HEAL',
+            'isAutomaticInvocation': False,
+            '_links': self._grant_req_links(lcmocc.id, inst.id)
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        # check removeResources
+        rm_reses = grant_req['removeResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': [], 'VDU2': []},
+            'STORAGE': {'VirtualStorage': []}
+        }
+        expected_res_ids = {
+            'COMPUTE': {
+                'VDU1': ['res_id_VDU1_2'],
+                'VDU2': ['res_id_VDU2']
+            },
+            'STORAGE': {
+                'VirtualStorage': ['res_id_VirtualStorage_2']
+            }
+        }
+        for res in rm_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['resource']['resourceId'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(expected_res_ids[key][name], ids)
+
+        # check addResources
+        add_reses = grant_req['addResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': [], 'VDU2': []},
+            'STORAGE': {'VirtualStorage': []}
+        }
+        for res in add_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['id'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(len(expected_res_ids[key][name]), len(ids))
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_heal_grant_SOL003(self, mocked_grant):
+        # prepare
+        req = objects.HealVnfRequest()
+        inst, lcmocc = self._heal_grant_prepare(req)
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run heal_grant
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_1)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': SAMPLE_VNFD_ID,
+            'operation': 'HEAL',
+            'isAutomaticInvocation': False,
+            '_links': self._grant_req_links(lcmocc.id, inst.id)
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        # check removeResources
+        rm_reses = grant_req['removeResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': [], 'VDU2': []}
+        }
+        expected_res_ids = {
+            'COMPUTE': {
+                'VDU1': ['res_id_VDU1_1', 'res_id_VDU1_2'],
+                'VDU2': ['res_id_VDU2']
+            }
+        }
+        for res in rm_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['resource']['resourceId'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(expected_res_ids[key][name], ids)
+
+        # check addResources
+        add_reses = grant_req['addResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': [], 'VDU2': []}
+        }
+        for res in add_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['id'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(len(expected_res_ids[key][name]), len(ids))
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_heal_grant_SOL003_all(self, mocked_grant):
+        # prepare
+        req = objects.HealVnfRequest(
+            additionalParams={'all': True}
+        )
+        inst, lcmocc = self._heal_grant_prepare(req)
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run heal_grant
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_1)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': SAMPLE_VNFD_ID,
+            'operation': 'HEAL',
+            'isAutomaticInvocation': False,
+            '_links': self._grant_req_links(lcmocc.id, inst.id)
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        # check removeResources
+        rm_reses = grant_req['removeResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': [], 'VDU2': []},
+            'STORAGE': {'VirtualStorage': []},
+            'LINKPORT': {'VDU1_CP1': [], 'VDU1_CP2': [], 'VDU1_CP3': [],
+                         'VDU1_CP4': [], 'VDU1_CP5': [],
+                         'VDU2_CP1': [], 'VDU2_CP2': [], 'VDU2_CP3': [],
+                         'VDU2_CP4': [], 'VDU2_CP5': []},
+            'VL': {'internalVL2': [], 'internalVL3': []}
+        }
+        expected_res_ids = {
+            'COMPUTE': {
+                'VDU1': ['res_id_VDU1_1', 'res_id_VDU1_2'],
+                'VDU2': ['res_id_VDU2']
+            },
+            'STORAGE': {
+                'VirtualStorage': ['res_id_VirtualStorage_1',
+                                   'res_id_VirtualStorage_2']
+            },
+            'LINKPORT': {
+                'VDU1_CP1': ['res_id_VDU1_1_CP1'],
+                'VDU1_CP2': ['res_id_VDU1_1_CP2', 'res_id_VDU1_2_CP2'],
+                'VDU1_CP3': ['res_id_VDU1_1_CP3', 'res_id_VDU1_2_CP3'],
+                'VDU1_CP4': ['res_id_VDU1_1_CP4', 'res_id_VDU1_2_CP4'],
+                'VDU1_CP5': ['res_id_VDU1_1_CP5', 'res_id_VDU1_2_CP5'],
+                'VDU2_CP1': ['res_id_VDU2_CP1'],
+                'VDU2_CP2': ['res_id_VDU2_CP2'],
+                'VDU2_CP3': ['res_id_VDU2_CP3'],
+                'VDU2_CP4': ['res_id_VDU2_CP4'],
+                'VDU2_CP5': ['res_id_VDU2_CP5']
+            },
+            'VL': {
+                'internalVL2': ['res_id_internalVL2'],
+                'internalVL3': ['res_id_internalVL3']
+            }
+        }
+        for res in rm_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['resource']['resourceId'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(expected_res_ids[key][name], ids)
+
+        # check addResources
+        add_reses = grant_req['addResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': [], 'VDU2': []},
+            'STORAGE': {'VirtualStorage': []},
+            'LINKPORT': {'VDU1_CP1': [], 'VDU1_CP2': [], 'VDU1_CP3': [],
+                         'VDU1_CP4': [], 'VDU1_CP5': [],
+                         'VDU2_CP1': [], 'VDU2_CP2': [], 'VDU2_CP3': [],
+                         'VDU2_CP4': [], 'VDU2_CP5': []},
+            'VL': {'internalVL2': [], 'internalVL3': []}
+        }
+        for res in add_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['id'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(len(expected_res_ids[key][name]), len(ids))

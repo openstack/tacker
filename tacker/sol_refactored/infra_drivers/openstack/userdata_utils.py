@@ -50,6 +50,11 @@ class AbstractUserData(metaclass=abc.ABCMeta):
     def change_ext_conn(req, inst, grant_req, grant, tmp_csar_dir):
         raise sol_ex.UserDataClassNotImplemented()
 
+    @staticmethod
+    @abc.abstractmethod
+    def heal(req, inst, grant_req, grant, tmp_csar_dir):
+        raise sol_ex.UserDataClassNotImplemented()
+
 
 def get_vnfd(vnfd_id, csar_dir):
     vnfd = vnfd_utils.Vnfd(vnfd_id)

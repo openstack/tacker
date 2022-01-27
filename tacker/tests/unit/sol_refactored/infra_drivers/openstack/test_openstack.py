@@ -1129,7 +1129,8 @@ _expected_inst_info = {
             "metadata": {
                 "creation_time": "2021-12-10T01:03:49Z",
                 "parent_stack_id": _stack_id_VDU1_scale,
-                "parent_resource_name": "myet4efobvvp"
+                "parent_resource_name": "myet4efobvvp",
+                "stack_id": _stack_id_VDU1_2
             }
         },
         {
@@ -1173,7 +1174,8 @@ _expected_inst_info = {
             "metadata": {
                 "creation_time": "2021-12-10T00:41:43Z",
                 "parent_stack_id": _stack_id_VDU1_scale,
-                "parent_resource_name": "bemybz4ugeso"
+                "parent_resource_name": "bemybz4ugeso",
+                "stack_id": _stack_id_VDU1_1
             }
         },
         {
@@ -1213,7 +1215,8 @@ _expected_inst_info = {
                 }
             ],
             "metadata": {
-                "creation_time": "2021-12-10T00:40:46Z"
+                "creation_time": "2021-12-10T00:40:46Z",
+                "stack_id": _stack_id
             }
         }
     ],
@@ -1309,7 +1312,8 @@ _expected_inst_info = {
                 "vimConnectionId": "vim_id_1",
                 "resourceId": "res_id_VirtualStorage_1",
                 "vimLevelResourceType": "OS::Cinder::Volume"
-            }
+            },
+            "metadata": {"stack_id": _stack_id_VDU1_1}
         },
         {
             "id": "res_id_VirtualStorage_2",
@@ -1318,7 +1322,8 @@ _expected_inst_info = {
                 "vimConnectionId": "vim_id_1",
                 "resourceId": "res_id_VirtualStorage_2",
                 "vimLevelResourceType": "OS::Cinder::Volume"
-            }
+            },
+            "metadata": {"stack_id": _stack_id_VDU1_2}
         }
     ],
     "vnfcInfo": [
@@ -1679,7 +1684,8 @@ _expected_inst_info_change_ext_conn = {
             "metadata": {
                 "creation_time": "2021-12-10T01:03:49Z",
                 "parent_stack_id": _stack_id_VDU1_scale,
-                "parent_resource_name": "myet4efobvvp"
+                "parent_resource_name": "myet4efobvvp",
+                "stack_id": _stack_id_VDU1_2
             }
         },
         {
@@ -1723,7 +1729,8 @@ _expected_inst_info_change_ext_conn = {
             "metadata": {
                 "creation_time": "2021-12-10T00:41:43Z",
                 "parent_stack_id": _stack_id_VDU1_scale,
-                "parent_resource_name": "bemybz4ugeso"
+                "parent_resource_name": "bemybz4ugeso",
+                "stack_id": _stack_id_VDU1_1
             }
         },
         {
@@ -1763,7 +1770,8 @@ _expected_inst_info_change_ext_conn = {
                 }
             ],
             "metadata": {
-                "creation_time": "2021-12-10T00:40:46Z"
+                "creation_time": "2021-12-10T00:40:46Z",
+                "stack_id": _stack_id
             }
         }
     ],
@@ -1857,7 +1865,7 @@ class TestOpenstack(base.BaseTestCase):
 
     def test_make_instantiated_vnf_info_new(self):
         # prepare
-        req = objects.InstantiateVnfRequestV2.from_dict(
+        req = objects.InstantiateVnfRequest.from_dict(
             _instantiate_req_example)
         inst = objects.VnfInstanceV2(
             vimConnectionInfo=req.vimConnectionInfo

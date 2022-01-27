@@ -238,3 +238,11 @@ class DefaultUserData(userdata_utils.AbstractUserData):
         fields = {'parameters': {'nfv': {'CP': new_cps}}}
 
         return fields
+
+    @staticmethod
+    def heal(req, inst, grant_req, grant, tmp_csar_dir):
+        # It is not necessary to change parameters at heal basically.
+
+        fields = {'parameters': {'nfv': {}}}
+
+        return fields

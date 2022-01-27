@@ -20,7 +20,7 @@ from tacker.sol_refactored.objects import fields
 # NFV-SOL 003
 # - v3.3.1 5.5.2.9 (API version: 2.0.0)
 @base.TackerObjectRegistry.register
-class HealVnfRequestV2(base.TackerObject, base.TackerObjectDictCompat):
+class HealVnfRequest(base.TackerObject, base.TackerObjectDictCompat):
 
     # Version 1.0: Initial version
     VERSION = '1.0'
@@ -30,5 +30,7 @@ class HealVnfRequestV2(base.TackerObject, base.TackerObjectDictCompat):
         'additionalParams': fields.KeyValuePairsField(nullable=True),
         # NOTE: following fields are defined in NFV-SOL 002 v3.3.1 5.5.2.9
         'vnfcInstanceId': fields.ListOfStringsField(nullable=True),
+        # NOTE: 'healScript' is not supported. It can be specified but
+        # make no effect at all.
         'healScript': fields.StringField(nullable=True),
     }

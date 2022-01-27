@@ -27,7 +27,7 @@ class OperationParam(fields.FieldType):
             raise ValueError(_("'operation' must have been coerced "
                                "before 'operationParams'"))
         if obj.operation == v2fields.LcmOperationType.INSTANTIATE:
-            cls = objects.InstantiateVnfRequestV2
+            cls = objects.InstantiateVnfRequest
         elif obj.operation == v2fields.LcmOperationType.SCALE:
             cls = objects.ScaleVnfRequest
         elif obj.operation == v2fields.LcmOperationType.SCALE_TO_LEVEL:

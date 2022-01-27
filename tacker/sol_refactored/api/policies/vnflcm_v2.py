@@ -112,6 +112,15 @@ rules = [
         ]
     ),
     policy.DocumentedRuleDefault(
+        name=POLICY_NAME.format('heal'),
+        check_str=RULE_ANY,
+        description="Heal vnf instance.",
+        operations=[
+            {'method': 'POST',
+             'path': VNF_INSTANCES_ID_PATH + '/heal'}
+        ]
+    ),
+    policy.DocumentedRuleDefault(
         name=POLICY_NAME.format('change_ext_conn'),
         check_str=RULE_ANY,
         description="Change external vnf connectivity.",
@@ -120,9 +129,7 @@ rules = [
              'path': VNF_INSTANCES_ID_PATH + '/change_ext_conn'}
         ]
     ),
-
-    # TODO(oda-g): add more lcm operations etc when implemented.
-
+    # NOTE: add when the operation supported
     policy.DocumentedRuleDefault(
         name=POLICY_NAME.format('subscription_create'),
         check_str=RULE_ANY,

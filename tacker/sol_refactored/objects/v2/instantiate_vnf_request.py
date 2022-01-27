@@ -20,7 +20,7 @@ from tacker.sol_refactored.objects import fields
 # NFV-SOL 003
 # - v3.3.1 5.5.2.4 (API version: 2.0.0)
 @base.TackerObjectRegistry.register
-class InstantiateVnfRequestV2(base.TackerObject, base.TackerObjectDictCompat):
+class InstantiateVnfRequest(base.TackerObject, base.TackerObjectDictCompat):
 
     # Version 1.0: Initial version
     VERSION = '1.0'

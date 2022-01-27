@@ -122,7 +122,8 @@ keyvalue_pairs = {
                 {'type': 'array'},
                 {'type': 'string', 'maxLength': 255},
                 {'type': 'object'},
-                {'type': 'null'}
+                {'type': 'null'},
+                {'type': 'boolean'}
             ]
         }
     },

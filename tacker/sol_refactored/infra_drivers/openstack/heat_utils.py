@@ -85,21 +85,20 @@ class HeatClient(object):
         return body['resources']
 
     def _wait_completion(self, stack_name, operation, complete_status,
-            progress_status, failed_status, none_is_done=False):
+            progress_status, failed_status):
         # NOTE: timeout is specified for each stack operation. so it is
         # not forever loop.
         def _check_status():
             status, status_reason = self.get_status(stack_name)
-            if (status == complete_status or
-                    (status is None and none_is_done)):
+            if status in complete_status:
                 LOG.info("%s %s done.", operation, stack_name)
                 raise loopingcall.LoopingCallDone()
-            elif status == failed_status:
+            elif status in failed_status:
                 LOG.error("% %s failed.", operation, stack_name)
                 sol_title = "%s failed" % operation
                 raise sol_ex.StackOperationFailed(sol_title=sol_title,
                                                   sol_detail=status_reason)
-            elif status != progress_status:
+            elif status not in progress_status:
                 LOG.error("%s %s failed. status: %s", operation,
                           stack_name, status)
                 sol_title = "%s failed" % operation
@@ -112,16 +111,20 @@ class HeatClient(object):
 
     def wait_stack_create(self, stack_name):
         self._wait_completion(stack_name, "Stack create",
-            "CREATE_COMPLETE", "CREATE_IN_PROGRESS", "CREATE_FAILED")
+            ["CREATE_COMPLETE"], ["CREATE_IN_PROGRESS"], ["CREATE_FAILED"])
 
     def wait_stack_update(self, stack_name):
         self._wait_completion(stack_name, "Stack update",
-            "UPDATE_COMPLETE", "UPDATE_IN_PROGRESS", "UPDATE_FAILED")
+            ["UPDATE_COMPLETE"], ["UPDATE_IN_PROGRESS"], ["UPDATE_FAILED"])
 
     def wait_stack_delete(self, stack_name):
+        # NOTE: wait until stack is deleted in the DB since it is necessary
+        # for some operations (ex. heal-all).
+        # It is expected that it takes short time after "DELETE_COMPLETE".
+        # So timeout after "DELETE_COMPLETE" is not specified.
         self._wait_completion(stack_name, "Stack delete",
-            "DELETE_COMPLETE", "DELETE_IN_PROGRESS", "DELETE_FAILED",
-            none_is_done=True)
+            [None], ["DELETE_IN_PROGRESS", "DELETE_COMPLETE"],
+            ["DELETE_FAILED"])
 
     def get_parameters(self, stack_name):
         path = "stacks/{}".format(stack_name)
@@ -138,6 +141,20 @@ class HeatClient(object):
         }
         resp, body = self.client.do_request(path, "PATCH",
                  expected_status=[200], body=fields)
+
+    def get_template(self, stack_name):
+        path = "stacks/{}/template".format(stack_name)
+        resp, body = self.client.do_request(path, "GET",
+                expected_status=[200])
+
+        return body
+
+    def get_files(self, stack_name):
+        path = "stacks/{}/files".format(stack_name)
+        resp, body = self.client.do_request(path, "GET",
+                expected_status=[200])
+
+        return body
 
 
 def get_reses_by_types(heat_reses, types):

@@ -321,6 +321,43 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         return sol_wsgi.SolResponse(202, None, location=location)
 
+    @validator.schema(schema.HealVnfRequest_V200, '2.0.0')
+    @coordinate.lock_vnf_instance('{id}')
+    def heal(self, request, id, body):
+        context = request.context
+        inst = inst_utils.get_inst(context, id)
+
+        if inst.instantiationState != 'INSTANTIATED':
+            raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
+
+        lcmocc_utils.check_lcmocc_in_progress(context, id)
+
+        # check parameter for later use
+        is_all = body.get('additionalParams', {}).get('all', False)
+        if not isinstance(is_all, bool):
+            raise sol_ex.SolValidationError(
+                detail="additionalParams['all'] must be bool.")
+
+        if 'vnfcInstanceId' in body:
+            inst_info = inst.instantiatedVnfInfo
+            vnfc_id = []
+            if inst_info.obj_attr_is_set('vnfcInfo'):
+                vnfc_id = [vnfc.id for vnfc in inst_info.vnfcInfo]
+            for req_vnfc_id in body['vnfcInstanceId']:
+                if req_vnfc_id not in vnfc_id:
+                    raise sol_ex.SolValidationError(
+                        detail="vnfcInstanceId(%s) does not exist."
+                        % req_vnfc_id)
+
+        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.HEAL, body)
+        lcmocc.create(context)
+
+        self.conductor_rpc.start_lcm_op(context, lcmocc.id)
+
+        location = lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)
+
+        return sol_wsgi.SolResponse(202, None, location=location)
+
     @validator.schema(schema.ChangeExtVnfConnectivityRequest_V200, '2.0.0')
     @coordinate.lock_vnf_instance('{id}')
     def change_ext_conn(self, request, id, body):

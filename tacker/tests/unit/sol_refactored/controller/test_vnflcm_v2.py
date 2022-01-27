@@ -503,3 +503,83 @@ class TestVnflcmV2(db_base.SqlTestCase):
         self.assertRaises(sol_ex.OtherOperationInProgress,
             self.controller.change_ext_conn, request=self.request, id=inst_id,
             body=_change_ext_conn_req_example)
+
+    def test_heal_not_instantiated(self):
+        inst_id, _ = self._create_inst_and_lcmocc('NOT_INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED)
+        body = {"cause": "Healing VNF instance"}
+
+        self.assertRaises(sol_ex.VnfInstanceIsNotInstantiated,
+            self.controller.heal, request=self.request, id=inst_id,
+            body=body)
+
+    def test_heal_lcmocc_in_progress(self):
+        inst_id, _ = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.FAILED_TEMP)
+        body = {"cause": "Healing VNF instance"}
+
+        self.assertRaises(sol_ex.OtherOperationInProgress,
+            self.controller.heal, request=self.request, id=inst_id,
+            body=body)
+
+    def _prepare_db_for_heal_param_check(self):
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=uuidutils.generate_uuid(),
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
+            flavourId='small',
+            vnfState='STARTED',
+            vnfcInfo=[
+                objects.VnfcInfoV2(
+                    id="VDU2-vnfc_res_info_id_VDU2",
+                    vduId="VDU2",
+                    vnfcResourceInfoId="vnfc_res_info_id_VDU2",
+                    vnfcState="STARTED"
+                ),
+                objects.VnfcInfoV2(
+                    id="VDU1-vnfc_res_info_id_VDU1",
+                    vduId="VDU1",
+                    vnfcResourceInfoId="vnfc_res_info_id_VDU1",
+                    vnfcState="STARTED"
+                ),
+                objects.VnfcInfoV2(
+                    id="VDU1-vnfc_res_info_id_VDU2",
+                    vduId="VDU1",
+                    vnfcResourceInfoId="vnfc_res_info_id_VDU2",
+                    vnfcState="STARTED"
+                ),
+            ]
+        )
+        inst.create(self.context)
+
+        return inst.id
+
+    def test_heal_invalid_additional_params(self):
+        inst_id = self._prepare_db_for_heal_param_check()
+        body = {
+            "additionalParams": {"all": "string"}
+        }
+
+        self.assertRaises(sol_ex.SolValidationError,
+            self.controller.heal, request=self.request, id=inst_id,
+            body=body)
+
+    def test_heal_invalid_vnfcinstance_id(self):
+        inst_id = self._prepare_db_for_heal_param_check()
+        body = {
+            "vnfcInstanceId": [
+                "VDU2-vnfc_res_info_id_VDU2",
+                "VDU2-vnfc_res_info_id_VDU1"
+            ]
+        }
+
+        self.assertRaises(sol_ex.SolValidationError,
+            self.controller.heal, request=self.request, id=inst_id,
+            body=body)
