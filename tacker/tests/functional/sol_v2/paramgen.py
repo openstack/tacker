@@ -16,7 +16,17 @@
 from oslo_utils import uuidutils
 
 
-def sub1_create():
+def sub_create_min(callback_uri):
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return {
+        "callbackUri": callback_uri
+    }
+
+
+def sub_create_max(callback_uri):
     # All attributes are set.
     # NOTE: All of the following cardinality attributes are set.
     # In addition, 0..N or 1..N attributes are set to 2 or more.
@@ -110,19 +120,29 @@ def sub1_create():
                 ]
             },
             "notificationTypes": [
+                "VnfLcmOperationOccurrenceNotification",
                 "VnfIdentifierCreationNotification",
                 "VnfLcmOperationOccurrenceNotification"
             ],
             "operationTypes": [
                 "INSTANTIATE",
-                "TERMINATE"
+                "SCALE",
+                "TERMINATE",
+                "HEAL",
+                "MODIFY_INFO",
+                "CHANGE_EXT_CONN"
             ],
             "operationStates": [
                 "COMPLETED",
-                "FAILED"
+                "FAILED",
+                "FAILED_TEMP",
+                "PROCESSING",
+                "ROLLING_BACK",
+                "ROLLED_BACK",
+                "STARTING"
             ]
         },
-        "callbackUri": "http://127.0.0.1/",
+        "callbackUri": callback_uri,
         "authentication": {
             "authType": [
                 "BASIC"
@@ -137,17 +157,41 @@ def sub1_create():
     }
 
 
-def sub2_create():
-    # Omit except for required attributes
-    # NOTE: Only the following cardinality attributes are set.
-    #  - 1
-    #  - 1..N (1)
-    return {
-        "callbackUri": "http://127.0.0.1/"
-    }
-
-
 def sample1_create(vnfd_id):
+    # All attributes are set.
+    # NOTE: All of the following cardinality attributes are set.
+    # In addition, 0..N or 1..N attributes are set to 2 or more.
+    #  - 0..1 (1)
+    #  - 0..N (2 or more)
+    #  - 1
+    #  - 1..N (2 or more)
+    return create_vnf_max(vnfd_id)
+
+
+def sample1_terminate():
+    # All attributes are set.
+    # NOTE: All of the following cardinality attributes are set.
+    # In addition, 0..N or 1..N attributes are set to 2 or more.
+    #  - 0..1 (1)
+    #  - 0..N (2 or more)
+    #  - 1
+    #  - 1..N (2 or more)
+    return terminate_vnf_max()
+
+
+def sample1_instantiate(net_ids, subnets, ports, auth_url):
+    # All attributes are set.
+    # NOTE: All of the following cardinality attributes are set.
+    # In addition, 0..N or 1..N attributes are set to 2 or more.
+    #  - 0..1 (1)
+    #  - 0..N (2 or more)
+    #  - 1
+    #  - 1..N (2 or more)
+
+    return instantiate_vnf_max(net_ids, subnets, ports, auth_url)
+
+
+def create_vnf_max(vnfd_id):
     # All attributes are set.
     # NOTE: All of the following cardinality attributes are set.
     # In addition, 0..N or 1..N attributes are set to 2 or more.
@@ -157,13 +201,13 @@ def sample1_create(vnfd_id):
     #  - 1..N (2 or more)
     return {
         "vnfdId": vnfd_id,
-        "vnfInstanceName": "sample1",
-        "vnfInstanceDescription": "test sample1",
+        "vnfInstanceName": "sample",
+        "vnfInstanceDescription": "test sample",
         "metadata": {"dummy-key": "dummy-val"}
     }
 
 
-def sample1_terminate():
+def terminate_vnf_max():
     # All attributes are set.
     # NOTE: All of the following cardinality attributes are set.
     # In addition, 0..N or 1..N attributes are set to 2 or more.
@@ -178,7 +222,7 @@ def sample1_terminate():
     }
 
 
-def sample1_instantiate(net_ids, subnets, ports, auth_url):
+def instantiate_vnf_max(net_ids, subnets, ports, auth_url):
     # All attributes are set.
     # NOTE: All of the following cardinality attributes are set.
     # In addition, 0..N or 1..N attributes are set to 2 or more.
@@ -409,7 +453,7 @@ def sample1_instantiate(net_ids, subnets, ports, auth_url):
         },
         "extra": {"dummy-key": "dummy-val"}
     }
-    addParams = {
+    add_params = {
         "lcm-operation-user-data": "./UserData/userdata.py",
         "lcm-operation-user-data-class": "UserData",
         "nfv": {"CP": {"VDU2_CP1-2": {"port": ports['VDU2_CP1-2']}}}
@@ -431,12 +475,37 @@ def sample1_instantiate(net_ids, subnets, ports, auth_url):
             "vim2": vim_2
         },
         "localizationLanguage": "ja",
-        "additionalParams": addParams,
-        "extensions": {"dummy-key": "dummy-val"}
+        "additionalParams": add_params,
+        "extensions": {"dummy-key": "dummy-val"},
+        "vnfConfigurableProperties": {"dummy-key": "dummy-val"}
     }
 
 
 def sample2_create(vnfd_id):
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return create_vnf_min(vnfd_id)
+
+
+def sample2_terminate():
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return terminate_vnf_min()
+
+
+def sample2_instantiate():
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return instantiate_vnf_min()
+
+
+def create_vnf_min(vnfd_id):
     # Omit except for required attributes
     # NOTE: Only the following cardinality attributes are set.
     #  - 1
@@ -446,7 +515,7 @@ def sample2_create(vnfd_id):
     }
 
 
-def sample2_terminate():
+def terminate_vnf_min():
     # Omit except for required attributes
     # NOTE: Only the following cardinality attributes are set.
     #  - 1
@@ -456,11 +525,27 @@ def sample2_terminate():
     }
 
 
-def sample2_instantiate():
+def instantiate_vnf_min():
     # Omit except for required attributes
     # NOTE: Only the following cardinality attributes are set.
     #  - 1
     #  - 1..N (1)
     return {
         "flavourId": "simple"
+    }
+
+
+def scaleout_vnf_max():
+    # All attributes are set.
+    # NOTE: All of the following cardinality attributes are set.
+    # In addition, 0..N or 1..N attributes are set to 2 or more.
+    #  - 0..1 (1)
+    #  - 0..N (2 or more)
+    #  - 1
+    #  - 1..N (2 or more)
+    return {
+        "type": "SCALE_OUT",
+        "aspectId": "VDU1_scale",
+        "numberOfSteps": 1,
+        "additionalParams": {"dummy-key": "dummy-value"}
     }

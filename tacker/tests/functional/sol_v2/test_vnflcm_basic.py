@@ -97,9 +97,9 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
           - is_all=True
               All of the following cardinality attributes are set.
               In addition, 0..N or 1..N attributes are set to 2 or more.
+              0..1 is set to 1.
               - 0..1 (1)
               - 0..N (2 or more)
-              - 1
               - 1..N (2 or more)
           - is_all=False
               Omit except for required attributes.
@@ -115,14 +115,17 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
           - 3. List subscription with attribute-based filtering
           - 4. Delete a subscription
         """
-        # NOTE: Skip notification endpoint testing in subscription creation
-        # by setting "v2_nfvo.test_callback_uri = False" to 'tacker.conf'
-        # in '.zuul.yaml'.
 
         # 0. Pre-setting
-        sub_req = paramgen.sub2_create()
+        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+                                    self._testMethodName)
+        callback_uri = ('http://localhost:'
+                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{callback_url}')
+
+        sub_req = paramgen.sub_create_min(callback_uri)
         if is_all:
-            sub_req = paramgen.sub1_create()
+            sub_req = paramgen.sub_create_max(callback_uri)
 
         # 1. Create a new subscription
         resp, body = self.create_subscription(sub_req)
@@ -162,9 +165,9 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         * About attributes:
           All of the following cardinality attributes are set.
           In addition, 0..N or 1..N attributes are set to 2 or more.
+          0..1 is set to 1.
           - 0..1 (1)
           - 0..N (2 or more)
-          - 1
           - 1..N (2 or more)
 
         * About LCM operations:
@@ -240,7 +243,7 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1).get('usageState')
+        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
         self.assertEqual('IN_USE', usage_state)
 
         # 2. Instantiate a VNF instance
@@ -444,7 +447,7 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(404, resp.status_code)
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1).get('usageState')
+        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
         self.assertEqual('NOT_IN_USE', usage_state)
 
     def test_sample2(self):
@@ -490,7 +493,7 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_2).get('usageState')
+        usage_state = self.get_vnf_package(self.vnf_pkg_2)['usageState']
         self.assertEqual('IN_USE', usage_state)
 
         # 2. Instantiate a VNF instance
@@ -554,5 +557,5 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(404, resp.status_code)
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_2).get('usageState')
+        usage_state = self.get_vnf_package(self.vnf_pkg_2)['usageState']
         self.assertEqual('NOT_IN_USE', usage_state)
