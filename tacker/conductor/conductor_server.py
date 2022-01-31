@@ -388,7 +388,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 vnf_sw_image.min_ram = 0
         vnf_sw_image.min_disk = sw_image.get('min_disk')
         vnf_sw_image.size = sw_image.get('size')
-        vnf_sw_image.image_path = ''
+        vnf_sw_image.image_path = sw_image.get('image_path')
         vnf_sw_image.software_image_id = sw_image['software_image_id']
         vnf_sw_image.metadata = sw_image.get('metadata', dict())
         vnf_sw_image.create()
