@@ -122,8 +122,8 @@ class VnfInstanceIsNotInstantiated(SolHttpError409):
     message = _("VnfInstance %(inst_id)s isn't instantiated.")
 
 
-class SubscriptionNotFound(SolHttpError404):
-    message = _("Subscription %(subsc_id)s not found.")
+class LccnSubscriptionNotFound(SolHttpError404):
+    message = _("LccnSubscription %(subsc_id)s not found.")
 
 
 class VnfLcmOpOccNotFound(SolHttpError404):
