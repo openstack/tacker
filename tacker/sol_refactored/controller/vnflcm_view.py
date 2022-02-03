@@ -32,7 +32,9 @@ LOG = logging.getLogger(__name__)
 
 class KeyAttribute(object):
     """A placeholder class for handling @key in filter attribute names"""
-    pass
+
+    def __str__(self):
+        return "@key"
 
 
 class FilterExpr(object):
@@ -77,6 +79,10 @@ class FilterExpr(object):
     def match(self, val):
         try:
             for a in self.attr:
+                # NOTE(toshii): The attribute specified by "@key"
+                # must be a dict, not a list of dicts. SOL013 isn't
+                # very clear on this topic and the current implementation
+                # doesn't support the latter.
                 if isinstance(a, KeyAttribute):
                     val = list(val.keys())
                 else:
@@ -84,6 +90,10 @@ class FilterExpr(object):
         except KeyError:
             LOG.debug("Attr %s not found in %s", self.attr, val)
             return False
+        except (AttributeError, TypeError):
+            raise sol_ex.InvalidAttributeFilter(
+                sol_detail="AttrName %s is invalid" % '/'.join([
+                    str(x) for x in self.attr]))
         LOG.debug("Key %s type %s", self.attr, type(val))
         # If not str, assume type conversion is already done.
         # Note: It is assumed that the type doesn't change between calls,

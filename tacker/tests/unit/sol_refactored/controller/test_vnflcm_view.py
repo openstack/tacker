@@ -66,6 +66,14 @@ class TestFilterExpr(base.BaseTestCase):
         self.assertFalse(fexp.match({'foo': {'bar': True}}))
         self.assertTrue(fexp.match({'foo': {'abc': False}}))
 
+    def test_match_invalid(self):
+        fexp = vnflcm_view.FilterExpr('eq',
+            ['foo', 'bar', vnflcm_view.KeyAttribute()], ['abc'])
+        self.assertRaises(sol_ex.InvalidAttributeFilter,
+                          fexp.match, {'foo': 1})
+        self.assertRaises(sol_ex.InvalidAttributeFilter,
+                          fexp.match, {'foo': [1, 2, 3]})
+
 
 class TestAttributeSelector(base.BaseTestCase):
 
