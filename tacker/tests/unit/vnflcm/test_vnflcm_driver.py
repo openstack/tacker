@@ -1875,11 +1875,12 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "save")
     @mock.patch.object(driver_manager.DriverManager, "invoke")
-    def test_scale_in_cnf(self, mock_invoke, mock_vnf_instance_get_by_id,
-                    mock_lcm_save, mock_vim, mock_vnf_package_vnfd,
-                    mock_vnfd_dict, mock_yaml_safe_load, mock_init_hash,
-                    mock_get_service_plugins):
+    def test_scale_in_cnf(self, mock_invoke, mock_vnf_instance_save,
+            mock_vnf_instance_get_by_id, mock_lcm_save, mock_vim,
+            mock_vnf_package_vnfd, mock_vnfd_dict, mock_yaml_safe_load,
+            mock_init_hash, mock_get_service_plugins):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -1934,10 +1935,12 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "save")
     @mock.patch.object(driver_manager.DriverManager, "invoke")
-    def test_scale_out_cnf(self, mock_invoke, mock_vnf_instance_get_by_id,
-                    mock_lcm_save, mock_vnf_package_vnfd, mock_vnfd_dict,
-                    mock_yaml_safe_load, mock_get_service_plugins):
+    def test_scale_out_cnf(self, mock_invoke,
+            mock_vnf_instance_save, mock_vnf_instance_get_by_id,
+            mock_lcm_save, mock_vnf_package_vnfd, mock_vnfd_dict,
+            mock_yaml_safe_load, mock_get_service_plugins):
         vnf_info = fakes.vnf_dict_cnf()
         vnf_info['vnf_lcm_op_occ'] = fakes.vnflcm_scale_out_cnf()
         vnf_info['scale_level'] = 0
