@@ -1797,6 +1797,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(driver_manager.DriverManager, "invoke")
     def test_scale_true(self, mock_invoke, mock_init_hash,
                         mock_get_service_plugins):
+        op_occ = mock.MagicMock()
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -1810,11 +1811,18 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         vnf_info['vnf_lcm_op_occ'] = mock.ANY
         vim_connection_info = vim_connection.VimConnectionInfo(
             vim_type="openstack")
+        update = {'vim_connection_info': [vim_connection_info]}
+        scale_status = objects.ScaleInfo(aspect_id='vdu1_aspect',
+                                         scale_level=1)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status=scale_status,
+            **update)
         scale_name_list = ["fake"]
         grp_id = "fake_id"
         driver = vnflcm_driver.VnfLcmDriver()
-        driver.scale(self.context, vnf_info, scale_vnf_request,
-        vim_connection_info, scale_name_list, grp_id)
+        driver._scale_vnf(self.context, vnf_info, vnf_instance,
+                          scale_vnf_request, vim_connection_info,
+                          scale_name_list, grp_id, op_occ)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -1825,6 +1833,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_scale_false_in(self, mock_invoke, mock_safe_load,
                             mock_init_hash,
                             mock_get_service_plugins):
+        op_occ = mock.MagicMock()
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -1838,14 +1847,22 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         vnf_info['vnf_lcm_op_occ'] = mock.ANY
         vim_connection_info = vim_connection.VimConnectionInfo(
             vim_type="openstack")
+        update = {'vim_connection_info': [vim_connection_info]}
+        scale_status = objects.ScaleInfo(aspect_id='vdu1_aspect',
+                                         scale_level=1)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status=scale_status,
+            **update)
         scale_name_list = ["fake"]
         grp_id = "fake_id"
         with open(vnf_info["attributes"]["heat_template"], "r") as f:
             mock_safe_load.return_value = yaml.safe_load(f)
             print(mock_safe_load.return_value)
         driver = vnflcm_driver.VnfLcmDriver()
-        driver.scale(self.context, vnf_info, scale_vnf_request,
-        vim_connection_info, scale_name_list, grp_id)
+
+        driver._scale_vnf(self.context, vnf_info, vnf_instance,
+                          scale_vnf_request, vim_connection_info,
+                          scale_name_list, grp_id, op_occ)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -1856,6 +1873,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_scale_false_out_initial(self, mock_invoke, mock_safe_load,
                                      mock_init_hash,
                                      mock_get_service_plugins):
+        op_occ = mock.MagicMock()
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -1869,14 +1887,22 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         vnf_info['vnf_lcm_op_occ'] = mock.ANY
         vim_connection_info = vim_connection.VimConnectionInfo(
             vim_type="openstack")
+        update = {'vim_connection_info': [vim_connection_info]}
+        scale_status = objects.ScaleInfo(aspect_id='vdu1_aspect',
+                                         scale_level=1)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status=scale_status,
+            **update)
         scale_name_list = ["fake"]
         grp_id = "fake_id"
         with open(vnf_info["attributes"]["heat_template"], "r") as f:
             mock_safe_load.return_value = yaml.safe_load(f)
             print(mock_safe_load.return_value)
         driver = vnflcm_driver.VnfLcmDriver()
-        driver.scale(self.context, vnf_info, scale_vnf_request,
-        vim_connection_info, scale_name_list, grp_id)
+
+        driver._scale_vnf(self.context, vnf_info, vnf_instance,
+                          scale_vnf_request, vim_connection_info,
+                          scale_name_list, grp_id, op_occ)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -1887,6 +1913,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_scale_false_out_level_up(self, mock_invoke, mock_safe_load,
                                       mock_init_hash,
                                       mock_get_service_plugins):
+        op_occ = mock.MagicMock()
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -1900,14 +1927,21 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         vnf_info['vnf_lcm_op_occ'] = mock.ANY
         vim_connection_info = vim_connection.VimConnectionInfo(
             vim_type="openstack")
+        update = {'vim_connection_info': [vim_connection_info]}
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status=scale_status,
+            **update)
         scale_name_list = ["fake"]
         grp_id = "fake_id"
         with open(vnf_info["attributes"]["heat_template"], "r") as f:
             mock_safe_load.return_value = yaml.safe_load(f)
             print(mock_safe_load.return_value)
         driver = vnflcm_driver.VnfLcmDriver()
-        driver.scale(self.context, vnf_info, scale_vnf_request,
-        vim_connection_info, scale_name_list, grp_id)
+        driver._scale_vnf(self.context, vnf_info, vnf_instance,
+                          scale_vnf_request, vim_connection_info,
+                          scale_name_list, grp_id, op_occ)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -2009,6 +2043,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(driver_manager.DriverManager, "invoke")
     def test_scale_scale_type_unknown(self, mock_invoke, mock_init_hash,
                         mock_get_service_plugins):
+        op_occ = mock.MagicMock()
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -2021,20 +2056,22 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         scale_vnf_request = fakes.scale_request("UNKNOWN", "SP1", 1, "True")
         vim_connection_info = vim_connection.VimConnectionInfo(
             vim_type="openstack")
+        update = {'vim_connection_info': [vim_connection_info]}
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status=scale_status,
+            **update)
         scale_name_list = ["fake"]
         grp_id = "fake_id"
         driver = vnflcm_driver.VnfLcmDriver()
 
         msg = 'Unknown scale type'
-        self.assertRaisesRegex(exceptions.VnfScaleFailed,
-                               msg,
-                               driver.scale,
-                               self.context,
-                               vnf_info,
-                               scale_vnf_request,
-                               vim_connection_info,
-                               scale_name_list,
-                               grp_id)
+        self.assertRaisesRegex(exceptions.VnfScaleFailed, msg,
+                               driver._scale_vnf, self.context, vnf_info,
+                               vnf_instance, scale_vnf_request,
+                               vim_connection_info, scale_name_list, grp_id,
+                               op_occ)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
@@ -2043,6 +2080,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(driver_manager.DriverManager, "invoke")
     def test_scale_vim_type_unknown(self, mock_invoke, mock_init_hash,
                         mock_get_service_plugins):
+        op_occ = mock.MagicMock()
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -2055,20 +2093,22 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         scale_vnf_request = fakes.scale_request("SCALE_OUT", "SP1", 1, "True")
         vim_connection_info = vim_connection.VimConnectionInfo(
             vim_type="unknown")
+        update = {'vim_connection_info': [vim_connection_info]}
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, scale_status=scale_status,
+            **update)
         scale_name_list = ["fake"]
         grp_id = "fake_id"
         driver = vnflcm_driver.VnfLcmDriver()
 
         msg = 'Unknown vim type'
-        self.assertRaisesRegex(exceptions.VnfScaleFailed,
-                               msg,
-                               driver.scale,
-                               self.context,
-                               vnf_info,
-                               scale_vnf_request,
-                               vim_connection_info,
-                               scale_name_list,
-                               grp_id)
+        self.assertRaisesRegex(exceptions.VnfScaleFailed, msg,
+                               driver._scale_vnf, self.context, vnf_info,
+                               vnf_instance, scale_vnf_request,
+                               vim_connection_info, scale_name_list, grp_id,
+                               op_occ)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})

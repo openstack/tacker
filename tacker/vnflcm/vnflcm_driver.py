@@ -879,7 +879,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 + scale_vnf_request.type)
         vnf_info['current_error_point'] = EP.VNF_CONFIG_START
 
-        scale_id_list = []
         scale_name_list = []
         grp_id = None
         vnf_info['policy_name'] = scale_vnf_request.aspect_id
@@ -922,7 +921,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                         scale_vnf_request=scale_vnf_request,
                         grant=vnf_info.get('grant'), grant_request=None,
                         **kwargs)
-        else:
+        elif scale_vnf_request.type == 'SCALE_OUT':
             vnf_info['action'] = 'out'
             scale_id_list = self._vnf_manager.invoke(
                 vim_connection_info.vim_type,
@@ -933,6 +932,10 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 auth_attr=vim_connection_info.access_info,
                 region_name=vim_connection_info.access_info.get('region_name')
             )
+        else:
+            msg = 'Unknown vim type: %s' % vim_connection_info.vim_type
+            raise exceptions.VnfScaleFailed(id=vnf_info['instance_id'],
+                                            error=msg)
 
         vnf_info['current_error_point'] = EP.PRE_VIM_CONTROL
         return scale_id_list, scale_name_list, grp_id
@@ -950,7 +953,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                        scale_vnf_request, vim_connection_info,
                        scale_id_list,
                        resource_changes):
-        vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
         vnf_info['current_error_point'] = EP.VNF_CONFIG_END
         if scale_vnf_request.type == 'SCALE_OUT':
             vnfd_dict = vnflcm_utils._get_vnfd_dict(
@@ -966,7 +968,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 auth_attr=vim_connection_info.access_info,
                 region_name=vim_connection_info.access_info.get('region_name')
             )
-            id_list = []
             id_list = list(set(scale_id_after) - set(scale_id_list))
             vnf_info['res_num'] = len(scale_id_after)
 
@@ -1185,15 +1186,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vnf_info['resource_changes'] = resource_changes
         return resource_changes
 
-    def _scale_vnf(self, context, vnf_info, vnf_instance,
-                   scale_vnf_request, vim_connection_info,
-                   scale_name_list, grp_id):
-        # action_driver
-        LOG.debug("vnf_info['vnfd']['attributes'] %s",
-        vnf_info['vnfd']['attributes'])
-        self.scale(context, vnf_info, scale_vnf_request,
-                   vim_connection_info, scale_name_list, grp_id)
-
     @log.log
     @revert_to_error_scale
     def scale_vnf(self, context, vnf_info, vnf_instance, scale_vnf_request):
@@ -1225,11 +1217,9 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vim_connection_info)
 
         if vnf_info['before_error_point'] <= EP.POST_VIM_CONTROL:
-            self._scale_vnf(context, vnf_info,
-                            vnf_instance,
-                            scale_vnf_request,
-                            vim_connection_info,
-                            scale_name_list, grp_id)
+            self._scale_vnf(context, vnf_info, vnf_instance, scale_vnf_request,
+                           vim_connection_info, scale_name_list, grp_id,
+                           vnf_lcm_op_occ)
 
             resource_changes = self._scale_resource_update(context, vnf_info,
                                     vnf_instance,
@@ -1248,14 +1238,13 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         LOG.info("Request received for scale vnf '%s' is completed "
                  "successfully", vnf_instance.id)
 
-    def scale(
-            self,
-            context,
-            vnf_info,
-            scale_vnf_request,
-            vim_connection_info,
-            scale_name_list,
-            grp_id):
+    def _scale_vnf(self, context, vnf_info, vnf_instance, scale_vnf_request,
+            vim_connection_info, scale_name_list, grp_id,
+            vnf_lcm_op_occ):
+        # action_driver
+        LOG.debug("vnf_info['vnfd']['attributes'] %s", (vnf_info
+                                                        .get('vnfd', {})
+                                                        .get('attributes')))
         self._vnf_manager = driver_manager.DriverManager(
             'tacker.tacker.vnfm.drivers',
             cfg.CONF.tacker.infra_driver)
@@ -1266,10 +1255,11 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             action = 'out'
         else:
             msg = 'Unknown scale type: %s' % scale_vnf_request.type
-            raise exceptions.VnfScaleFailed(id=vnf_info['instance_id'],
-                                            error=msg)
+            raise exceptions.VnfScaleFailed(id=vnf_instance.id, error=msg)
 
-        policy = {'instance_id': vnf_info['instance_id'],
+        stack_id = vnf_instance.instantiated_vnf_info.instance_id
+        # TODO(h-asahina): change the key name `instance_id` attr to `stack_id`
+        policy = {'instance_id': stack_id,
                   'name': scale_vnf_request.aspect_id,
                   'vnf': vnf_info,
                   'action': action}
@@ -1279,8 +1269,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             scale_vnf_request.additional_params.get('is_reverse'))
         default = None
         if vim_connection_info.vim_type == 'kubernetes':
-            policy['vnf_instance_id'] = \
-                vnf_info['vnf_lcm_op_occ'].get('vnf_instance_id')
+            policy['vnf_instance_id'] = vnf_lcm_op_occ.get('vnf_instance_id')
             vnf_instance = objects.VnfInstance.get_by_id(context,
                 policy['vnf_instance_id'])
             vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
@@ -1306,8 +1295,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             default = scale_group_dict['scaleGroupDict'][key_aspect]['default']
         else:
             msg = 'Unknown vim type: %s' % vim_connection_info.vim_type
-            raise exceptions.VnfScaleFailed(id=vnf_info['instance_id'],
-                                            error=msg)
+            raise exceptions.VnfScaleFailed(id=vnf_instance.id, error=msg)
 
         if (scale_vnf_request.type == 'SCALE_IN' and
                 scale_vnf_request.additional_params['is_reverse'] == 'True'):
