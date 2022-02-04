@@ -300,9 +300,7 @@ class VnfLcmController(wsgi.Controller):
 
     def _notification_process(
             self, context, vnf_instance, lcm_operation, request, body,
-            vnf_lcm_op_occs=None,
-            operation_state=fields.LcmOccsOperationState.STARTING,
-            notification_status=fields.LcmOccsNotificationStatus.START,
+            operation_state, notification_status, vnf_lcm_op_occs=None,
             affected_resources=None, is_auto=False):
         LOG.debug('START NOTIFICATION PROCESS')
         vnf_url = self._get_vnf_instance_href(vnf_instance)
@@ -643,10 +641,12 @@ class VnfLcmController(wsgi.Controller):
 
         # lcm op process
         if vnf['before_error_point'] == fields.ErrorPoint.INITIAL:
-            vnf_lcm_op_occs_id = \
-                self._notification_process(context, vnf_instance,
-                            fields.LcmOccsOperationType.INSTANTIATE,
-                            instantiate_vnf_request, request_body)
+            vnf_lcm_op_occs_id = self._notification_process(
+                context, vnf_instance,
+                fields.LcmOccsOperationType.INSTANTIATE,
+                instantiate_vnf_request, request_body,
+                operation_state=fields.LcmOccsOperationState.STARTING,
+                notification_status=fields.LcmOccsNotificationStatus.START)
 
         if vnf_lcm_op_occs_id:
             self.rpc_api.instantiate(context, vnf_instance, vnf,
@@ -693,10 +693,12 @@ class VnfLcmController(wsgi.Controller):
 
         # lcm op process
         if vnf['before_error_point'] == fields.ErrorPoint.INITIAL:
-            vnf_lcm_op_occs_id = \
-                self._notification_process(context, vnf_instance,
-                                        fields.LcmOccsOperationType.TERMINATE,
-                                        terminate_vnf_req, request_body)
+            vnf_lcm_op_occs_id = self._notification_process(
+                context, vnf_instance,
+                fields.LcmOccsOperationType.TERMINATE, terminate_vnf_req,
+                request_body,
+                operation_state=fields.LcmOccsOperationState.STARTING,
+                notification_status=fields.LcmOccsNotificationStatus.START)
 
         if vnf_lcm_op_occs_id:
             self.rpc_api.terminate(context, vnf_instance, vnf,
@@ -747,10 +749,11 @@ class VnfLcmController(wsgi.Controller):
 
         # call notification process
         if vnf_dict['before_error_point'] == fields.ErrorPoint.INITIAL:
-            vnf_lcm_op_occs_id = \
-                self._notification_process(context, vnf_instance,
-                                        fields.LcmOccsOperationType.HEAL,
-                                        heal_vnf_request, request_body)
+            vnf_lcm_op_occs_id = self._notification_process(
+                context, vnf_instance, fields.LcmOccsOperationType.HEAL,
+                heal_vnf_request, request_body,
+                operation_state=fields.LcmOccsOperationState.STARTING,
+                notification_status=fields.LcmOccsNotificationStatus.START)
 
         if vnf_lcm_op_occs_id:
             self.rpc_api.heal(context, vnf_instance, vnf_dict,
@@ -1650,11 +1653,11 @@ class VnfLcmController(wsgi.Controller):
         # call notification process
         if vnf['before_error_point'] == EP.INITIAL:
             vnf_lcm_op_occs_id = self._notification_process(
-                context,
-                vnf_instance,
+                context, vnf_instance,
                 fields.LcmOccsOperationType.CHANGE_EXT_CONN,
-                change_ext_conn_req,
-                request_body)
+                change_ext_conn_req, request_body,
+                operation_state=fields.LcmOccsOperationState.STARTING,
+                notification_status=fields.LcmOccsNotificationStatus.START)
         else:
             vnf_lcm_op_occs_id = vnf['vnf_lcm_op_occs_id']
 
