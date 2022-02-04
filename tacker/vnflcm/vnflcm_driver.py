@@ -546,8 +546,14 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
         vnf_dict['current_error_point'] = EP.PRE_VIM_CONTROL
         if vnf_dict['before_error_point'] <= EP.POST_VIM_CONTROL:
-            self._instantiate_vnf(context, vnf_instance, vnf_dict,
-                                vim_connection_info, instantiate_vnf_req)
+            try:
+                self._instantiate_vnf(context, vnf_instance, vnf_dict,
+                                      vim_connection_info, instantiate_vnf_req)
+            except Exception as exc:
+                if (hasattr(vnf_instance.instantiated_vnf_info, 'instance_id')
+                        and vnf_instance.instantiated_vnf_info.instance_id):
+                    vnf_dict['current_error_point'] = EP.POST_VIM_CONTROL
+                raise exc
 
         vnf_dict['current_error_point'] = EP.INTERNAL_PROCESSING
         vnf_dict['current_error_point'] = EP.VNF_CONFIG_END
