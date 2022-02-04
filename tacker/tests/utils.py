@@ -73,6 +73,8 @@ def create_csar_with_unique_vnfd_id(csar_dir):
         - csar_file_name
         - vnfd_id
     """
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    csar_dir = os.path.join(current_dir, "../../", csar_dir)
     unique_id = uuidutils.generate_uuid()
     tempfd, tempname = tempfile.mkstemp(suffix=".zip",
         dir=os.path.dirname(csar_dir))
@@ -217,11 +219,12 @@ def copy_csar_files(fake_csar_path, csar_dir_name,
     :param read_vnfd_only: when set to 'True', it won't copy the image file
                            from source directory.
     """
-    sample_vnf_package = os.path.join(
-        "./tacker/tests/etc/samples/etsi/nfv", csar_dir_name)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    sample_vnf_package = os.path.join(current_dir, "etc/samples/etsi/nfv",
+                                      csar_dir_name)
     shutil.copytree(sample_vnf_package, fake_csar_path)
-    common_files_path = os.path.join(
-        "./tacker/tests/etc/samples/etsi/nfv/common/")
+    common_files_path = os.path.join(current_dir,
+                                     "etc/samples/etsi/nfv/common/")
 
     if not read_vnfd_only:
         # Copying image file.
@@ -245,11 +248,13 @@ def copy_csar_files(fake_csar_path, csar_dir_name,
 
 def copy_artifact_files(fake_csar_path, csar_dir_name,
                     csar_without_tosca_meta=False, read_vnfd_only=False):
-    sample_vnf_package = os.path.join(
-        "./tacker/tests/etc/samples/etsi/nfv", csar_dir_name)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    sample_vnf_package = os.path.join(current_dir,
+                                      "etc/samples/etsi/nfv",
+                                      csar_dir_name)
     shutil.copytree(sample_vnf_package, fake_csar_path)
-    common_files_path = os.path.join(
-        "./tacker/tests/etc/samples/etsi/nfv/")
+    common_files_path = os.path.join(current_dir,
+                                     "etc/samples/etsi/nfv/")
 
     if not read_vnfd_only:
         # Copying image file.
