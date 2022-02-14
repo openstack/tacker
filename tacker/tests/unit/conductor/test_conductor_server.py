@@ -131,6 +131,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                         auth_params).encode()
 
                 self.id = uuidsentinel.lcm_subscription_id
+                self.tenant_id = uuidsentinel.tenant_id
                 self.callback_uri = 'https://localhost/callback'.encode()
 
             def __getattr__(self, name):
@@ -158,7 +159,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             'state_entered_time': datetime.datetime(
                 1900, 1, 1, 1, 1, 1,
                 tzinfo=iso8601.UTC),
-            'operationParams': 'operationParams'
+            'operationParams': 'operationParams',
+            'tenant_id': uuidsentinel.tenant_id
         }
         return vnf_lcm_opoccs
 
@@ -2477,6 +2479,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             is_cancel_pending=False,
             error_point=0,
             id='00e1314d-2a82-40bd-b318-cc881243842d',
+            tenant_id='01db9967-ba45-4f1d-962d-7cbb825448f1',
             created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
                                          tzinfo=iso8601.UTC))
         vnf_lcm_op_occ.create()
@@ -2625,6 +2628,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             operation_params='{"type": "SCALE_OUT", "aspect_id": "SP1"}',
             is_cancel_pending=False,
             error_point=0,
+            tenant_id='7cd42301-a3a5-47ad-a7bd-87b02540503b',
             id='00e1314d-2a82-40bd-b318-cc881243843d',
             created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
                                          tzinfo=iso8601.UTC))
@@ -2728,6 +2732,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             operation_params='{"type": "SCALE_OUT", "aspect_id": "SP1"}',
             error_point=0,
             id='00e1314d-2a82-40bd-b318-cc881243843d',
+            tenant_id='00e1314d-2a82-40bd-b318-cc881243843r',
             created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
                                          tzinfo=iso8601.UTC))
         vnf_lcm_op_occ.create()
@@ -2790,7 +2795,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                                    mock_subscriptions_get):
         mock_subscriptions_get.return_value = None
         notification = {
-            'vnfInstanceId': 'Test',
+            'vnfInstanceId': uuidsentinel.vnf_instance_id,
             'notificationType': 'VnfLcmOperationOccurrenceNotification'}
 
         result = self.conductor.send_notification(self.context, notification)
@@ -2798,19 +2803,23 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(result, -1)
         mock_subscriptions_get.assert_called()
 
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
     def test_send_notification_vnf_lcm_operation_occurrence(self,
-                                                    mock_subscriptions_get):
+                                                    mock_subscriptions_get,
+                                                    mock_vnf_by_id):
         self.requests_mock.register_uri('POST',
             "https://localhost/callback",
             headers={
                 'Content-Type': 'application/json'},
             status_code=204)
 
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
         mock_subscriptions_get.return_value = self._create_subscriptions()
         notification = {
-            'vnfInstanceId': 'Test',
+            'vnfInstanceId': uuidsentinel.vnf_instance_id,
             'notificationType': 'VnfLcmOperationOccurrenceNotification',
             'operationTypes': 'SCALE',
             'operationStates': 'RESULT',
@@ -2826,10 +2835,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             history, "https://localhost")
         self.assertEqual(1, req_count)
 
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
     def test_send_notification_vnf_identifier_creation(self,
-                                                    mock_subscriptions_get):
+                                                    mock_subscriptions_get,
+                                                    mock_vnf_by_id):
         self.requests_mock.register_uri(
             'POST',
             "https://localhost/callback",
@@ -2837,9 +2848,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                 'Content-Type': 'application/json'},
             status_code=204)
 
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
         mock_subscriptions_get.return_value = self._create_subscriptions()
         notification = {
-            'vnfInstanceId': 'Test',
+            'vnfInstanceId': uuidsentinel.vnf_instance_id,
             'notificationType': 'VnfIdentifierCreationNotification',
             'links': {}}
 
@@ -2853,9 +2866,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             history, "https://localhost")
         self.assertEqual(1, req_count)
 
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
-    def test_send_notification_with_auth_basic(self, mock_subscriptions_get):
+    def test_send_notification_with_auth_basic(self, mock_subscriptions_get,
+            mock_vnf_by_id):
         self.requests_mock.register_uri('POST',
             "https://localhost/callback",
             headers={
@@ -2868,9 +2883,10 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             {'authType': 'BASIC',
             'paramsBasic': {'userName': auth_user_name,
                             'password': auth_password}})
-
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
         notification = {
-            'vnfInstanceId': 'Test',
+            'vnfInstanceId': uuidsentinel.vnf_instance_id,
             'notificationType': 'VnfIdentifierCreationNotification',
             'links': {}}
 
@@ -2888,10 +2904,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             auth_user_name,
             auth_password)
 
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
     def test_send_notification_with_auth_client_credentials(
-            self, mock_subscriptions_get):
+            self, mock_subscriptions_get, mock_vnf_by_id):
         auth.auth_manager = auth._AuthManager()
         self.requests_mock.register_uri(
             'POST',
@@ -2916,8 +2933,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                 'clientPassword': auth_password,
                 'tokenEndpoint': token_endpoint}})
 
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
         notification = {
-            'vnfInstanceId': 'Test',
+            'vnfInstanceId': uuidsentinel.vnf_instance_id,
             'notificationType': 'VnfIdentifierCreationNotification',
             'links': {}}
 
@@ -2933,19 +2953,23 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assert_auth_basic(history[0], auth_user_name, auth_password)
         self.assert_auth_client_credentials(history[1], "test_token")
 
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
     def test_send_notification_retry_notification(self,
-                                              mock_subscriptions_get):
+                                              mock_subscriptions_get,
+                                              mock_vnf_by_id):
         self.requests_mock.register_uri('POST',
             "https://localhost/callback",
             headers={
                 'Content-Type': 'application/json'},
             status_code=400)
 
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
         mock_subscriptions_get.return_value = self._create_subscriptions()
         notification = {
-            'vnfInstanceId': 'Test',
+            'vnfInstanceId': uuidsentinel.vnf_instance_id,
             'notificationType': 'VnfIdentifierCreationNotification',
             'links': {}}
 
@@ -2959,10 +2983,12 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             history, "https://localhost")
         self.assertEqual(3, req_count)
 
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
     def test_send_notification_send_error(self,
-                                        mock_subscriptions_get):
+                                        mock_subscriptions_get,
+                                        mock_vnf_by_id):
         self.requests_mock.register_uri(
             'POST',
             "https://localhost/callback",
@@ -2970,10 +2996,11 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
         mock_subscriptions_get.return_value = self._create_subscriptions()
         notification = {
-            'vnfInstanceId': 'Test',
+            'vnfInstanceId': uuidsentinel.vnf_instance_id,
             'notificationType': 'VnfIdentifierCreationNotification',
             'links': {}}
-
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
         result = self.conductor.send_notification(self.context, notification)
 
         self.assertEqual(result, 0)
@@ -2984,32 +3011,40 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             history, "https://localhost")
         self.assertEqual(1, req_count)
 
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
     def test_send_notification_internal_server_error(
-            self, mock_subscriptions_get):
+            self, mock_subscriptions_get,
+            mock_vnf_by_id):
         mock_subscriptions_get.side_effect = Exception("MockException")
         notification = {
-            'vnfInstanceId': 'Test',
+            'vnfInstanceId': uuidsentinel.vnf_instance_id,
             'notificationTypes': 'VnfIdentifierCreationNotification',
             'links': {}}
-
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
         result = self.conductor.send_notification(self.context, notification)
 
         self.assertEqual(result, -2)
         mock_subscriptions_get.assert_called()
 
+    @mock.patch.object(objects.VnfInstance, 'get_by_id')
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
-    def test_send_notification_timeout(self, mock_subscriptions_get):
+    def test_send_notification_timeout(self, mock_subscriptions_get,
+            mock_vnf_by_id):
         self.requests_mock.register_uri(
             'POST',
             "https://localhost/callback",
             exc=requests.Timeout)
 
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
         mock_subscriptions_get.return_value = self._create_subscriptions()
         notification = {
-            'vnfInstanceId': 'Test',
+            'vnfInstanceId': uuidsentinel.vnf_instance_id,
             'notificationType': 'VnfIdentifierCreationNotification',
             'links': {}}
 

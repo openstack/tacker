@@ -1790,6 +1790,11 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                         context,
                         notification_type=notification.get('notificationType')
                     )
+
+            vnf_lcm_subscriptions = \
+                self._extract_subscriptions(context, vnf_lcm_subscriptions,
+                                            notification.get('vnfInstanceId'))
+
             if not vnf_lcm_subscriptions:
                 LOG.warning(
                     "vnf_lcm_subscription not found id[%s]" %
@@ -1860,6 +1865,24 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             LOG.warning(traceback.format_exc())
             return -2
         return 0
+
+    def _extract_subscriptions(self, context, vnf_lcm_subscriptions,
+                               vnf_instance_id):
+
+        extract_vnf_lcm_subscriptions = []
+
+        try:
+            vnf_instance = objects.VnfInstance.get_by_id(
+                context, vnf_instance_id, read_deleted='yes')
+        except exceptions.VnfInstanceNotFound:
+            LOG.warning("Can not find vnf instance for notification: %s" % id)
+            return []
+
+        for subscription in vnf_lcm_subscriptions:
+            if subscription.tenant_id == vnf_instance.get("tenant_id"):
+                extract_vnf_lcm_subscriptions.append(subscription)
+
+        return extract_vnf_lcm_subscriptions
 
     def _retry_check(self, retry_count):
         time.sleep(CONF.vnf_lcm.retry_wait)
@@ -2272,6 +2295,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         lcm_op_obj.is_automatic_invocation = 0
         lcm_op_obj.is_cancel_pending = 0
         lcm_op_obj.operation_params = vnf_lcm_opoccs.get('operationParams')
+        lcm_op_obj.tenant_id = vnf_lcm_opoccs.get('tenant_id')
 
         try:
             lcm_op_obj.create()

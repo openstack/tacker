@@ -59,7 +59,8 @@ class TestVnfLcm(SqlTestCase):
 
     def test_vnf_instance_get_by_id(self):
         result = vnf_instance._vnf_instance_get_by_id(
-            self.context, self.vnf_instance.id, columns_to_join=None)
+            self.context, self.vnf_instance.id,
+            columns_to_join=None, read_deleted="no")
         self.assertEqual(self.vnf_instance.id, result.id)
 
     def test_vnf_instance_create(self):

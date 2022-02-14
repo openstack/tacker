@@ -76,6 +76,7 @@ class TestVnfLcmOpOcc(SqlTestCase):
             context=self.context, **vnf_lcm_op_occs_data)
         vnf_lcm_op_occs.create()
         self.assertTrue(vnf_lcm_op_occs.vnf_instance_id)
+        self.assertTrue(vnf_lcm_op_occs.tenant_id)
 
     def test_save(self):
         id = uuidutils.generate_uuid()

@@ -311,6 +311,7 @@ class VnfLcmSubscriptions(model_base.BASE, models.SoftDeleteMixin,
     id = sa.Column(sa.String(36), nullable=False, primary_key=True)
     callback_uri = sa.Column(sa.String(255), nullable=False)
     subscription_authentication = sa.Column(sa.JSON, nullable=True)
+    tenant_id = sa.Column('tenant_id', sa.String(length=64), nullable=False)
 
     subscription_filter = orm.relationship(
         VnfLcmFilters,
@@ -340,6 +341,7 @@ class VnfLcmOpOccs(model_base.BASE, models.SoftDeleteMixin,
     changed_info = sa.Column(sa.JSON(), nullable=True)
     changed_ext_connectivity = sa.Column(sa.JSON(), nullable=True)
     error_point = sa.Column(sa.Integer, nullable=False)
+    tenant_id = sa.Column('tenant_id', sa.String(length=64), nullable=False)
 
 
 class PlacementConstraint(model_base.BASE, models.SoftDeleteMixin,

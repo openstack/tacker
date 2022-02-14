@@ -109,7 +109,8 @@ def _vnf_lcm_subscriptions_get(context,
     if notification_type == 'VnfLcmOperationOccurrenceNotification':
         sql = (
             "select"
-            " t1.id,t1.callback_uri,t1.subscription_authentication,t2.filter "
+            " t1.id,t1.callback_uri,t1.subscription_authentication,"
+            " t1.tenant_id, t2.filter "
             " from "
             " vnf_lcm_subscriptions t1, "
             " (select distinct subscription_uuid,filter from vnf_lcm_filters "
@@ -132,7 +133,8 @@ def _vnf_lcm_subscriptions_get(context,
     else:
         sql = (
             "select"
-            " t1.id,t1.callback_uri,t1.subscription_authentication,t2.filter "
+            " t1.id,t1.callback_uri,t1.subscription_authentication,"
+            " t1.tenant_id, t2.filter "
             " from "
             " vnf_lcm_subscriptions t1, "
             " (select distinct subscription_uuid,filter from vnf_lcm_filters "
@@ -375,10 +377,12 @@ def _vnf_lcm_subscriptions_create(context, values, filter):
             new_entries.append({"id": values.id,
                                 "callback_uri": values.callback_uri,
                                 "subscription_authentication":
-                                    values.subscription_authentication})
+                                    values.subscription_authentication,
+                                "tenant_id": values.tenant_id})
         else:
             new_entries.append({"id": values.id,
-                                "callback_uri": values.callback_uri})
+                                "callback_uri": values.callback_uri,
+                                "tenant_id": values.tenant_id})
 
         context.session.execute(
             models.VnfLcmSubscriptions.__table__.insert(None),
@@ -480,7 +484,8 @@ class LccnSubscriptionRequest(base.TackerObject, base.TackerPersistentObject):
         'callback_uri': fields.StringField(nullable=False),
         'subscription_authentication':
             fields.DictOfStringsField(nullable=True),
-        'filter': fields.StringField(nullable=True)
+        'filter': fields.StringField(nullable=True),
+        'tenant_id': fields.StringField(nullable=False)
     }
 
     @base.remotable
@@ -578,6 +583,7 @@ class ChangeNotificationsFilter(
         'operation_states': fields.StringField(nullable=True),
         'operation_states_len': fields.IntegerField(
             nullable=True, default=0),
+        'tenant_id': fields.StringField(nullable=False),
     }
 
 
@@ -630,6 +636,8 @@ class LccnSubscription(base.TackerObject, base.TackerPersistentObject):
         'operationStates': ('operation_states', 'string',
             'VnfLcmFilters'),
         'callbackUri': ('callback_uri', 'string',
+            'VnfLcmSubscriptions'),
+        'tenantId': ('tenant_id', 'string',
             'VnfLcmSubscriptions'),
     }
 

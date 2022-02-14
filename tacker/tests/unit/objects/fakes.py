@@ -94,13 +94,15 @@ filter = {
         }
     ],
     "notificationTypes": ["VnfLcmOperationOccurrenceNotification"],
-    "operationalState": ["ENABLED"]
+    "operationalState": ["ENABLED"],
+    "tenant_id": uuidsentinel.tenant_id
 }
 
 subscription_data = {
     'id': "c3e5ea85-8e3d-42df-a636-3b7857cbd7f9",
     'callback_uri': "fake_url",
-    'created_at': "2020-06-11 09:39:58"
+    'created_at': "2020-06-11 09:39:58",
+    'tenant_id': uuidsentinel.tenant_id
 }
 
 vnfd_data = {

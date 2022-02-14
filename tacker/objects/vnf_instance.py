@@ -41,10 +41,12 @@ LOG = logging.getLogger(__name__)
 
 
 @db_api.context_manager.reader
-def _vnf_instance_get_by_id(context, vnf_instance_id, columns_to_join=None):
+def _vnf_instance_get_by_id(context, vnf_instance_id, columns_to_join=None,
+                            read_deleted="no"):
 
     query = api.model_query(context, models.VnfInstance,
-                            read_deleted="no", project_only=True). \
+                            read_deleted=read_deleted,
+                            project_only=True). \
         filter_by(id=vnf_instance_id)
 
     if columns_to_join:
@@ -517,10 +519,11 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
             vnfd_id)
 
     @base.remotable_classmethod
-    def get_by_id(cls, context, id):
+    def get_by_id(cls, context, id, read_deleted="no"):
         expected_attrs = ["instantiated_vnf_info"]
         db_vnf_instance = _vnf_instance_get_by_id(
-            context, id, columns_to_join=expected_attrs)
+            context, id, columns_to_join=expected_attrs,
+            read_deleted=read_deleted)
         return cls._from_db_object(context, cls(), db_vnf_instance,
                                    expected_attrs=expected_attrs)
 
