@@ -421,8 +421,8 @@ topology_template:
                 leaf: 1048576
         targets: [ internalVL3 ]
 
-    - policy_antiaffinity_group:
-        type: tosca.policies.nfv.AntiAffinityRule
+    - policy_affinity_group:
+        type: tosca.policies.nfv.AffinityRule
         targets: [ affinityOrAntiAffinityGroup1 ]
         properties:
           scope: zone

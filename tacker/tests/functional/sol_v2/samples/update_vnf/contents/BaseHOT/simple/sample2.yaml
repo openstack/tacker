@@ -1,0 +1,61 @@
+heat_template_version: 2013-05-23
+description: 'Simple Base HOT for Sample VNF'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  VDU1_scale_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 3
+      desired_capacity: { get_param: [ nfv, VDU, VDU1, desired_capacity ] }
+      resource:
+        type: VDU1.yaml
+        properties:
+          flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
+          image: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
+          net5: { get_resource: internalVL3 }
+          affinity: { get_resource: nfvi_node_affinity }
+
+# NOTE: Resource definition of OS::Heat::ScalingPolicy is omitted.
+# It is not used by v2 scale implementation unlike v1.
+
+  VDU2:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU2, computeFlavourId ] }
+      name: VDU2
+      image: { get_param: [ nfv, VDU, VDU2, vcImageId] }
+      networks:
+      - port:
+          get_resource: VDU2_CP1
+      scheduler_hints:
+        group: {get_resource: nfvi_node_affinity }
+
+  VDU2_CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_resource: internalVL3 }
+
+  internalVL3:
+    type: OS::Neutron::Net
+
+
+  internalVL3_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL3
+      cidr: 192.168.5.0/24
+
+  nfvi_node_affinity:
+    type: OS::Nova::ServerGroup
+    properties:
+      name: nfvi_node_affinity
+      policies: [ 'affinity' ]
+
+outputs: {}

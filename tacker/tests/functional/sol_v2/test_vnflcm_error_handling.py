@@ -48,15 +48,23 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
         cls.vnf_pkg_2, cls.vnfd_id_2 = cls.create_vnf_package(
             error_network_path)
 
+        # update VNF or change external VNF connectivity will fail
+        update_change_ng_path = os.path.join(cur_dir,
+                                             "samples/basic_lcms_min")
+        # no image contained
+        cls.vnf_pkg_3, cls.vnfd_id_3 = cls.create_vnf_package(
+            update_change_ng_path)
+
     @classmethod
     def tearDownClass(cls):
         super(VnfLcmErrorHandlingTest, cls).tearDownClass()
 
         cls.delete_vnf_package(cls.vnf_pkg_1)
         cls.delete_vnf_package(cls.vnf_pkg_2)
+        cls.delete_vnf_package(cls.vnf_pkg_3)
 
     def setUp(self):
-        super(VnfLcmErrorHandlingTest, self).setUp()
+        super().setUp()
 
     def test_retry_rollback_scale_out(self):
         """Test retry and rollback scale out operations
@@ -141,6 +149,7 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
         self.assertEqual('NOT_IN_USE', usage_state)
 
         # 3. Create VNF instance
+        # ETSI NFV SOL003 v3.3.1 5.5.2.2 VnfInstance
         expected_inst_attrs = [
             'id',
             'vnfInstanceName',
@@ -206,7 +215,7 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
 
         # check vnfState of VNF
         self.assertEqual(fields.VnfOperationalStateType.STARTED,
-                         body['instantiatedVnfInfo'].get('vnfState'))
+                         body['instantiatedVnfInfo']['vnfState'])
 
         # 6. Scale out operation(will fail)
         scaleout_req = paramgen.scaleout_vnf_max()
@@ -221,7 +230,6 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
         self.assertEqual('IN_USE', usage_state)
 
         # 7. Show VNF instance
-        expected_inst_attrs.extend(additional_inst_attrs)
         resp, body = self.show_vnf_instance(inst_id)
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_get(resp)
@@ -240,6 +248,7 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_rolled_back(lcmocc_id)
 
         # 10. Show VNF LCM operation occurrence
+        # ETSI NFV SOL003 v3.3.1 5.5.2.13 VnfLcmOpOcc
         # NOTE: omitted values are not supported at that time
         expected_attrs = [
             'id',
@@ -362,7 +371,7 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
         # 1. Create subscription
         callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
                                     self._testMethodName)
-        callback_uri = (f'http://localhost:'
+        callback_uri = ('http://localhost:'
                         f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
                         f'{callback_url}')
 
@@ -379,6 +388,7 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
         self.assertEqual('NOT_IN_USE', usage_state)
 
         # 3. Create VNF instance
+        # ETSI NFV SOL003 v3.3.1 5.5.2.2 VnfInstance
         expected_inst_attrs = [
             'id',
             # 'vnfInstanceName', # omitted
@@ -441,6 +451,7 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_rolled_back(lcmocc_id)
 
         # 7. Show VNF LCM operation occurrence
+        # ETSI NFV SOL003 v3.3.1 5.5.2.13 VnfLcmOpOcc
         # NOTE: omitted values are not supported at that time
         expected_attrs = [
             'id',
@@ -535,7 +546,7 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
         # 1. Create subscription
         callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
                                     self._testMethodName)
-        callback_uri = (f'http://localhost:'
+        callback_uri = ('http://localhost:'
                         f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
                         f'{callback_url}')
 
@@ -552,6 +563,7 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
         self.assertEqual('NOT_IN_USE', usage_state)
 
         # 3. Create VNF instance
+        # ETSI NFV SOL003 v3.3.1 5.5.2.2 VnfInstance
         expected_inst_attrs = [
             'id',
             # 'vnfInstanceName', # omitted
@@ -635,6 +647,7 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
         self.assertEqual('FAILED', body['operationState'])
 
         # 7. Show VNF LCM operation occurrence
+        # ETSI NFV SOL003 v3.3.1 5.5.2.13 VnfLcmOpOcc
         resp, body = self.show_lcmocc(lcmocc_id)
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_get(resp)
@@ -681,6 +694,208 @@ class VnfLcmErrorHandlingTest(base_v2.BaseSolV2Test):
         self.assertEqual('NOT_IN_USE', usage_state)
 
         # 10. Delete subscription
+        resp, body = self.delete_subscription(sub_id)
+        self.assertEqual(204, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+
+    def test_rollback_update(self):
+        """Test rollback update VNF operation
+
+        * About attributes:
+          Omit except for required attributes.
+          Only the following cardinality attributes are set.
+          - 1
+          - 1..N (1)
+
+        * About LCM operations:
+          This test includes the following operations.
+          - 1. Create subscription
+          - 2. Test notification
+          - 3. Create VNF instance
+          - 4. Instantiate VNF
+          - 5. Show VNF instance
+          - 6. Update VNF(will fail)
+          - 7. Rollback update operation
+          - 8. Show VNF LCM operation occurrence
+          - 9. List VNF LCM operation occurrence
+          - 10. Terminate VNF
+          - 11. Delete VNF instance
+          - 12. Delete subscription
+        """
+
+        # 1. Create subscription
+        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+                                    self._testMethodName)
+        callback_uri = ('http://localhost:'
+                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{callback_url}')
+
+        sub_req = paramgen.sub_create_min(callback_uri)
+        resp, body = self.create_subscription(sub_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        sub_id = body['id']
+
+        # 2. Test notification
+        self.assert_notification_get(callback_url)
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
+        self.assertEqual('NOT_IN_USE', usage_state)
+
+        # 3. Create VNF instance
+        # ETSI NFV SOL003 v3.3.1 5.5.2.2 VnfInstance
+        expected_inst_attrs = [
+            'id',
+            # 'vnfInstanceName', # omitted
+            # 'vnfInstanceDescription', # omitted
+            'vnfdId',
+            'vnfProvider',
+            'vnfProductName',
+            'vnfSoftwareVersion',
+            'vnfdVersion',
+            # 'vnfConfigurableProperties', # omitted
+            # 'vimConnectionInfo', # omitted
+            'instantiationState',
+            # 'instantiatedVnfInfo', # omitted
+            # 'metadata', # omitted
+            # 'extensions', # omitted
+            '_links'
+        ]
+        create_req = paramgen.create_vnf_min(self.vnfd_id_3)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check instantiationState of VNF
+        self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
+                         body['instantiationState'])
+
+        # 4. Instantiate VNF
+        instantiate_req = paramgen.instantiate_vnf_min()
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # 5. Show VNF instance
+        additional_inst_attrs = [
+            'vimConnectionInfo',
+            'instantiatedVnfInfo'
+        ]
+        expected_inst_attrs.extend(additional_inst_attrs)
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+
+        # check instantiationState of VNF
+        self.assertEqual(fields.VnfInstanceState.INSTANTIATED,
+                         body['instantiationState'])
+
+        # check vnfState of VNF
+        self.assertEqual(fields.VnfOperationalStateType.STARTED,
+                         body['instantiatedVnfInfo']['vnfState'])
+
+        # 6. Update VNF(will fail)
+        # NOTE: Create a file so that an error occurs in mgmtDriver
+        path = '/tmp/modify_information_start'
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write('')
+        self.addCleanup(os.remove, path)
+        update_req = paramgen.update_vnf_min()
+        resp, body = self.update_vnf_instance(inst_id, update_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+
+        # 7. Rollback update operation
+        resp, body = self.rollback_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+        self.wait_lcmocc_rolled_back(lcmocc_id)
+
+        # 8. Show VNF LCM operation occurrence
+        # ETSI NFV SOL003 v3.3.1 5.5.2.13 VnfLcmOpOcc
+        # NOTE: omitted values are not supported at that time
+        expected_attrs = [
+            'id',
+            'operationState',
+            'stateEnteredTime',
+            'startTime',
+            'vnfInstanceId',
+            # 'grantId', # omitted
+            'operation',
+            'isAutomaticInvocation',
+            # 'operationParams', # omitted
+            'isCancelPending',
+            # 'cancelMode', # omitted
+            # 'error', # omitted
+            # 'resourceChanges', # omitted
+            # 'changedInfo', # omitted
+            # 'changedExtConnectivity', # omitted
+            # 'modificationsTriggeredByVnfPkgChange', # omitted
+            # 'vnfSnapshotInfoId', # omitted
+            '_links'
+        ]
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.check_resp_body(body, expected_attrs)
+
+        # 9. List VNF LCM operation occurrence
+        resp, body = self.list_lcmocc()
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        for lcmocc in body:
+            self.check_resp_body(lcmocc, expected_attrs)
+
+        # 10. Terminate a VNF instance
+        terminate_req = paramgen.terminate_vnf_min()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # wait a bit because there is a bit time lag between lcmocc DB
+        # update and terminate completion.
+        time.sleep(10)
+
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check instantiationState of VNF
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
+                         body['instantiationState'])
+
+        # 11. Delete VNF instance
+        resp, body = self.delete_vnf_instance(inst_id)
+        self.assertEqual(204, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
+        self.assertEqual('NOT_IN_USE', usage_state)
+
+        # 12. Delete subscription
         resp, body = self.delete_subscription(sub_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)

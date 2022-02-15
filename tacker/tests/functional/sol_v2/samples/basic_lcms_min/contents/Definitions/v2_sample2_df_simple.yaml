@@ -48,6 +48,10 @@ topology_template:
             implementation: sample-script
           terminate_end:
             implementation: sample-script
+          change_external_connectivity_start:
+            implementation: sample-script
+          modify_information_start:
+            implementation: sample-script
       artifacts:
         sample-script:
           description: Sample script
@@ -251,8 +255,8 @@ topology_template:
                 leaf: 1048576
         targets: [ internalVL3 ]
 
-    - policy_antiaffinity_group:
-        type: tosca.policies.nfv.AntiAffinityRule
+    - policy_affinity_group:
+        type: tosca.policies.nfv.AffinityRule
         targets: [ affinityOrAntiAffinityGroup1 ]
         properties:
           scope: nfvi_node
