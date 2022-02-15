@@ -40,6 +40,8 @@ def schema(request_body_schema, min_version, max_version=None):
             min_ver = api_version.APIVersion(min_version)
             max_ver = api_version.APIVersion(max_version)
             if ver.matches(min_ver, max_ver):
+                if 'body' not in kwargs:
+                    raise sol_ex.SolValidationError(detail="body is missing")
                 schema_validator = SolSchemaValidator(request_body_schema)
                 schema_validator.validate(kwargs['body'])
 
