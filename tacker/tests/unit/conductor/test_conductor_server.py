@@ -1670,14 +1670,6 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnfd_key = 'vnfd_' + vnf_instance.instantiated_vnf_info.flavour_id
         vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
         mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'openstack',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost/identity',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
         vimAssets = {'computeResourceFlavours': [
             {'vimConnectionId': uuidsentinel.vim_id,
              'vnfdVirtualComputeDescId': 'CDU1',
@@ -1697,7 +1689,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         json_data = grant_dict
         mock_grants.return_value = MockResponse(json_data=json_data)
 
-        mock_vim.return_value = vim_obj
+        mock_vim.return_value = vnflcm_fakes.get_dummy_openstack_vim_obj()
         mock_d1.return_value = []
         mock_placement.return_value = []
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
@@ -1854,14 +1846,6 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'openstack',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost/identity',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
         vimAssets = {'computeResourceFlavours': [
             {'vimConnectionId': uuidsentinel.vim_id,
              'vnfdVirtualComputeDescId': 'CDU1',
@@ -1906,7 +1890,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         json_data = grant_dict
         mock_grants.return_value = MockResponse(json_data=json_data)
 
-        mock_vim.return_value = vim_obj
+        mock_vim.return_value = vnflcm_fakes.get_dummy_openstack_vim_obj()
         mock_d1.return_value = ['ST1']
         res_str = '[{"id_type": "RES_MGMT", "resource_id": ' + \
             '"2c6e5cc7-240d-4458-a683-1fe648351200", ' + \
@@ -1990,14 +1974,6 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'openstack',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost/identity',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
         vimAssets = {'computeResourceFlavours': [
             {'vimConnectionId': uuidsentinel.vim_id,
              'vnfdVirtualComputeDescId': 'CDU1',
@@ -2022,7 +1998,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         json_data = grant_dict
         mock_grants.return_value = MockResponse(json_data=json_data)
 
-        mock_vim.return_value = vim_obj
+        mock_vim.return_value = vnflcm_fakes.get_dummy_openstack_vim_obj()
         mock_d1.return_value = []
         mock_placement.return_value = []
         self.assertRaises(exceptions.ValidationError,
@@ -2092,18 +2068,10 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_lcm_op_occs_id = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
         mock_exec.return_value = True
         mock_act.return_value = None
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'openstack',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost/identity',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
         mock_grants.side_effect = \
             requests.exceptions.HTTPError("MockException")
 
-        mock_vim.return_value = vim_obj
+        mock_vim.return_value = vnflcm_fakes.get_dummy_openstack_vim_obj()
         mock_d1.return_value = []
         mock_placement.return_value = []
         self.assertRaises(requests.exceptions.HTTPError,
@@ -2284,16 +2252,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             fields.VnfInstanceState.INSTANTIATED,
             scale_status="scale_status")
         scale_vnf_request = fakes.scale_request("SCALE_IN", 1)
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'openstack',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost/identity',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
 
-        mock_vim.return_value = vim_obj
+        mock_vim.return_value = vnflcm_fakes.get_dummy_openstack_vim_obj()
         mock_d1.return_value = ([], [], "", "")
         vnf_info['addResources'] = []
         vnf_info['removeResources'] = []
@@ -2357,16 +2317,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             fields.VnfInstanceState.INSTANTIATED,
             scale_status="scale_status")
         scale_vnf_request = fakes.scale_request("SCALE_IN", 1)
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'openstack',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost/identity',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
 
-        mock_vim.return_value = vim_obj
+        mock_vim.return_value = vnflcm_fakes.get_dummy_openstack_vim_obj()
         removeResources = []
         resRemoveResource = []
         resource = objects.ResourceDefinition(
@@ -2488,16 +2440,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             fields.VnfInstanceState.INSTANTIATED,
             scale_status="scale_status")
         scale_vnf_request = fakes.scale_request("SCALE_OUT", 1)
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'openstack',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost/identity',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
 
-        mock_vim.return_value = vim_obj
+        mock_vim.return_value = vnflcm_fakes.get_dummy_openstack_vim_obj()
         addResources = []
         resAddResource = []
         resource = objects.ResourceDefinition(
@@ -2638,16 +2582,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             fields.VnfInstanceState.INSTANTIATED,
             scale_status="scale_status")
         scale_vnf_request = fakes.scale_request("SCALE_OUT", 1)
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'openstack',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost/identity',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
 
-        mock_vim.return_value = vim_obj
+        mock_vim.return_value = vnflcm_fakes.get_dummy_openstack_vim_obj()
         addResources = []
         resource = objects.ResourceDefinition(
             id='2c6e5cc7-240d-4458-a683-1fe648351280',
@@ -2741,16 +2677,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             fields.VnfInstanceState.INSTANTIATED,
             scale_status="scale_status")
         scale_vnf_request = fakes.scale_request("SCALE_OUT", 1)
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'openstack',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost/identity',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
 
-        mock_vim.return_value = vim_obj
+        mock_vim.return_value = vnflcm_fakes.get_dummy_openstack_vim_obj()
         addResources = []
         resource = objects.ResourceDefinition(
             id='2c6e5cc7-240d-4458-a683-1fe648351280',

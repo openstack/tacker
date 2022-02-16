@@ -184,10 +184,12 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
     def _stub_get_vim(self):
         vim_obj = {'vim_id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
-                   'vim_name': 'fake_vim', 'vim_auth':
-                       {'auth_url': 'http://localhost/identity', 'password':
-                           'test_pw', 'username': 'test_user', 'project_name':
-                           'test_project'}, 'vim_type': 'openstack'}
+                   'vim_name': 'fake_vim',
+                   'vim_auth': {'auth_url': 'http://localhost/identity',
+                                'password': 'test_pw', 'username': 'test_user',
+                                'project_name': 'test_project'},
+                   'vim_type': 'openstack',
+                   'tenant': uuidsentinel.tenant_id}
         self.vim_client.get_vim.return_value = vim_obj
 
     @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
@@ -236,6 +238,57 @@ class TestVnflcmDriver(db_base.SqlTestCase):
 
         self.assertEqual(1, mock_vnf_instance_save.call_count)
         self.assertEqual(6, self._vnf_manager.invoke.call_count)
+        shutil.rmtree(fake_csar)
+
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
+    @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfResource, 'create')
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_instantiate_vnf_when_vim_and_vnf_belong_to_different_tenant(
+            self, mock_vnf_interfaces, mock_vnfd_dict,
+            mock_vnf_instance_save, mock_vnf_package_vnfd, mock_create,
+            mock_get_service_plugins, mock_init_hash, mock_final_vnf_dict,
+            mock_default_status):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_package_vnfd = fakes.return_vnf_package_vnfd()
+        vnf_package_id = vnf_package_vnfd.package_uuid
+        mock_vnf_package_vnfd.return_value = vnf_package_vnfd
+        instantiate_vnf_req_dict = fakes.get_dummy_instantiate_vnf_request()
+        instantiate_vnf_req_obj = \
+            objects.InstantiateVnfRequest.obj_from_primitive(
+                instantiate_vnf_req_dict, self.context)
+        vnf_instance_obj = fakes.return_vnf_instance()
+        vnf_instance_obj.tenant_id = uuidsentinel.uuid
+        mock_default_status.return_value = None
+
+        fake_csar = os.path.join(self.temp_dir, vnf_package_id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
+                              group='vnf_package')
+        test_utils.copy_csar_files(fake_csar, "vnflcm4")
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": EP.INITIAL}
+        error = self.assertRaises(exceptions.TenantMatchFailure,
+            driver.instantiate_vnf, self.context, vnf_instance_obj,
+            vnf_dict, instantiate_vnf_req_obj)
+        expected_error = ("The target VNF %s cannot be instantiate "
+                          "from a VIM of a different tenant.")
+
+        self.assertEqual(expected_error % vnf_instance_obj.id, str(error))
         shutil.rmtree(fake_csar)
 
     @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
@@ -1228,16 +1281,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         # Heal as per SOL003 i.e. without vnfcInstanceId
         heal_vnf_req = objects.HealVnfRequest()
 
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'openstack',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost/identity',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
-
-        mock_vim.return_value = vim_obj
+        mock_vim.return_value = fakes.get_dummy_openstack_vim_obj()
 
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
@@ -1915,15 +1959,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             None]
         mock_vnf_package_vnfd.return_value = fakes.return_vnf_package_vnfd()
         driver = vnflcm_driver.VnfLcmDriver()
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'kubernetes',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost:8443',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
-        self.vim_client.get_vim.return_value = vim_obj
+        self.vim_client.get_vim.return_value = fakes.get_dummy_k8s_vim_obj()
         driver.scale_vnf(self.context, vnf_info, vnf_instance,
             scale_vnf_request)
 
@@ -1959,15 +1995,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
         mock_yaml_safe_load.return_value = fakes.vnfd_dict_cnf()
         driver = vnflcm_driver.VnfLcmDriver()
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'kubernetes',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost:8443',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
-        self.vim_client.get_vim.return_value = vim_obj
+        self.vim_client.get_vim.return_value = fakes.get_dummy_k8s_vim_obj()
         driver.scale_vnf(self.context, vnf_info, vnf_instance,
             scale_vnf_request)
 
@@ -3013,15 +3041,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
         operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
         mock_yaml_safe_load.return_value = fakes.vnfd_dict_cnf()
-        vim_obj = {'vim_id': uuidsentinel.vim_id,
-                   'vim_name': 'fake_vim',
-                   'vim_type': 'kubernetes',
-                   'vim_auth': {
-                       'auth_url': 'http://localhost:8443',
-                       'password': 'test_pw',
-                       'username': 'test_user',
-                       'project_name': 'test_project'}}
-        self.vim_client.get_vim.return_value = vim_obj
+        self.vim_client.get_vim.return_value = fakes.get_dummy_k8s_vim_obj()
 
         self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()

@@ -431,3 +431,8 @@ class VnfConflictStateWithErrorPoint(Conflict):
 
 class InvalidIpAddr(TackerException):
     message = _('Invalid ip address value in resource %(id)s.')
+
+
+class TenantMatchFailure(TackerException):
+    message = _('The target %(resource)s %(id)s cannot be %(action)s '
+                'from a VIM of a different tenant.')

@@ -514,6 +514,14 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vim_info = vnflcm_utils._get_vim(context,
                 instantiate_vnf_req.vim_connection_info)
 
+        if vim_info['tenant_id'] != vnf_instance.tenant_id:
+            LOG.error('The target VNF %(id)s cannot be instantiate '
+                      'from a VIM of a different tenant.',
+                      {"id": vnf_instance.id})
+            raise exceptions.TenantMatchFailure(resource='VNF',
+                id=vnf_instance.id,
+                action='instantiate')
+
         vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
             vim_info, context)
 
