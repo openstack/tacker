@@ -166,6 +166,17 @@ rules = [
         ]
     ),
     policy.DocumentedRuleDefault(
+        name=VNFLCM % 'cancel',
+        check_str=base.RULE_ADMIN_OR_OWNER,
+        description="Cancel a VNF instance.",
+        operations=[
+            {
+                'method': 'POST',
+                'path': '/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/cancel'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
         name=VNFLCM % 'fail',
         check_str=base.RULE_ADMIN_OR_OWNER,
         description="Fail a VNF instance.",

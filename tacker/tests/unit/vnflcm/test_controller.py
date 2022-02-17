@@ -3194,24 +3194,223 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': mock.MagicMock()})
+    @mock.patch('oslo_utils.timeutils.is_newer_than')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @ddt.data({'cancelMode': 'FORCEFUL'},
+              {'cancelMode': 'GRACEFUL'})
+    def test_cancel_lcm_op_occs(self, body, mock_lcm_get_by_id, mock_lcm_save,
+            mock_vnf_get_by_id, mock_vnf_save, mock_is_newer_than,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/cancel' % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        req.body = jsonutils.dump_as_bytes(body)
+
+        mock_is_newer_than.return_value = False
+        mock_lcm_get_by_id.return_value = fakes.vnflcm_cancel_insta()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.INSTANTIATING)
+        mock_vnf_get_by_id.return_value = vnf_instance
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': mock.MagicMock()})
+    @mock.patch('oslo_utils.timeutils.is_newer_than')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @ddt.data({'cancelMode': 'INVALID'},
+              {'cancelMode': 0},
+              {'cancelMode': True},
+              {'cancelMode': ''},
+              {'INVALID': 'GRACEFUL'},
+              )
+    def test_cancel_lcm_op_occs_invalid_body(self, body, mock_lcm_get_by_id,
+            mock_lcm_save, mock_vnf_get_by_id, mock_vnf_save,
+            mock_is_newer_than, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/cancel' % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        req.body = jsonutils.dump_as_bytes(body)
+
+        mock_is_newer_than.return_value = False
+        mock_lcm_get_by_id.return_value = fakes.vnflcm_cancel_insta()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.INSTANTIATING)
+        mock_vnf_get_by_id.return_value = vnf_instance
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': mock.MagicMock()})
+    @mock.patch('oslo_utils.timeutils.is_newer_than')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_cancel_lcm_op_occs_before_timeout(self, mock_lcm_get_by_id,
+            mock_lcm_save, mock_vnf_get_by_id, mock_vnf_save,
+            mock_is_newer_than, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/cancel' % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        req.body = jsonutils.dump_as_bytes({'cancelMode': 'FORCEFUL'})
+
+        mock_is_newer_than.return_value = True
+        mock_lcm_get_by_id.return_value = fakes.vnflcm_cancel_insta()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.INSTANTIATING)
+        mock_vnf_get_by_id.return_value = vnf_instance
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': mock.MagicMock()})
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_cancel_lcm_op_occs_not_processing(self, mock_lcm_get_by_id,
+            mock_lcm_save, mock_vnf_get_by_id, mock_vnf_save,
+            mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/cancel' % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        req.body = jsonutils.dump_as_bytes({'cancelMode': 'FORCEFUL'})
+
+        fake_cancel_opocc = fakes.vnflcm_cancel_insta()
+        fake_cancel_opocc.operation_state = 'NOTPROCESSING'
+        mock_lcm_get_by_id.return_value = fake_cancel_opocc
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.INSTANTIATING)
+        mock_vnf_get_by_id.return_value = vnf_instance
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.CONFLICT, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': mock.MagicMock()})
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_cancel_lcm_op_occs_not_found_vnf_instance(self,
+            mock_lcm_get_by_id, mock_lcm_save, mock_vnf_get_by_id,
+            mock_vnf_save, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/cancel' % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        req.body = jsonutils.dump_as_bytes({'cancelMode': 'FORCEFUL'})
+
+        mock_lcm_get_by_id.return_value = fakes.vnflcm_cancel_insta()
+        mock_vnf_get_by_id.side_effect = exceptions.NotFound()
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': mock.MagicMock()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_cancel_lcm_op_occs_not_found_op_occ(self, mock_lcm_get_by_id,
+            mock_lcm_save, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/cancel' % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        req.body = jsonutils.dump_as_bytes({'cancelMode': 'FORCEFUL'})
+
+        mock_lcm_get_by_id.side_effect = webob.exc.HTTPNotFound
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.NOT_FOUND, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': mock.MagicMock()})
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_cancel_lcm_op_occs_server_error1(self, mock_lcm_get_by_id,
+            mock_lcm_save, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/cancel' % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        req.body = jsonutils.dump_as_bytes({'cancelMode': 'FORCEFUL'})
+
+        mock_lcm_get_by_id.side_effect = Exception()
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': mock.MagicMock()})
+    @mock.patch('oslo_utils.timeutils.is_newer_than')
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_cancel_lcm_op_occs_server_error2(self, mock_lcm_get_by_id,
+            mock_lcm_save, mock_vnf_get_by_id, mock_vnf_save,
+            mock_is_newer_than, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/cancel' % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        req.body = jsonutils.dump_as_bytes({'cancelMode': 'FORCEFUL'})
+
+        mock_is_newer_than.return_value = False
+        mock_lcm_get_by_id.return_value = fakes.vnflcm_cancel_insta()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.INSTANTIATING)
+        mock_vnf_get_by_id.return_value = vnf_instance
+        mock_lcm_save.side_effect = Exception()
+
+        resp = req.get_response(self.app)
+
+        self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
+
     @mock.patch.object(controller.VnfLcmController,
                        "_update_vnf_fail_status")
-    @mock.patch('tacker.api.views.vnf_lcm.ViewBuilder'
-                '._get_vnf_lcm_op_occs')
     @mock.patch.object(objects.VnfInstance, "save")
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
     def test_fail_lcm_op_occs(self, mock_lcm_get_by_id,
-                              mock_lcm_save, mock_vnf_get_by_id,
-                              mock_vnf_save, mock_view,
-                              mock_update):
+            mock_lcm_save, mock_vnf_get_by_id,
+            mock_vnf_save,
+            mock_update):
         req = fake_request.HTTPRequest.blank(
             '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
         mock_lcm_get_by_id.return_value = fakes.vnflcm_fail_insta()
-        mock_view.return_value = fakes.VNFLCMOPOCC_RESPONSE
         res_dict = self.controller.fail(req, constants.UUID)
-        self.assertEqual(fakes.VNFLCMOPOCC_RESPONSE, res_dict)
+        self.assertEqual('FAILED', res_dict['operationState'])
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")

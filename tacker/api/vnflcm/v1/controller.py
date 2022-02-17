@@ -318,7 +318,10 @@ class VnfLcmController(wsgi.Controller):
                     'href': vnf_url},
                 'vnfLcmOpOcc': {}}}
 
-        if operation_state is fields.LcmOccsOperationState.FAILED:
+        # TODO(h-asahina): notification and VnfLcmOpOcc should be created
+        #  independently
+        if operation_state in (fields.LcmOccsOperationState.FAILED,
+                               fields.LcmOccsOperationState.FAILED_TEMP):
             vnf_lcm_op_occs_id = vnf_lcm_op_occs.id
 
             notification['affectedVnfcs'] = affected_resources.get(
@@ -1412,6 +1415,103 @@ class VnfLcmController(wsgi.Controller):
         self._vnfm_plugin.update_vnf_fail_status(
             context, vnf_instance_id, new_status)
 
+    @wsgi.response(http_client.ACCEPTED)
+    @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
+                           http_client.NOT_FOUND, http_client.CONFLICT))
+    @validation.schema(vnf_lcm.cancel)
+    def cancel(self, request, id, body):
+        """SOL003 v3.5.1 5.4.17 Resource: Cancel operation task
+
+        @param request: A request object
+        @param id: Identifier of a VNF lifecycle management operation
+        occurrence to be cancelled.
+        @param body: the content of the request body
+        @return: A response object
+
+        NOTE(h-asahina):
+        This API is a hotfix for a bug:
+        https://bugs.launchpad.net/tacker/+bug/1924917
+        Thus, the API doesn't support the following features.
+        - The transitions from the STARTING state and ROLLING_BACK state
+        - 5.5.4.6 CancelModeType (the parameter is available, but it doesn't
+        affect an actual operation)
+        """
+
+        context = request.environ['tacker.context']
+        context.can(vnf_lcm_policies.VNFLCM % 'cancel')
+        req_body = utils.convert_camelcase_to_snakecase(body)
+        _ = objects.CancelMode(context=context, **req_body)
+
+        try:
+            vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
+            vnf_instance = self._get_vnf_instance(
+                context, vnf_lcm_op_occs.vnf_instance_id)
+        except (webob.exc.HTTPNotFound, exceptions.NotFound) as e:
+            return self._make_problem_detail(
+                str(e), 404, title='VNF NOT FOUND')
+        except Exception as e:
+            LOG.error(traceback.format_exc())
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
+
+        if (vnf_lcm_op_occs.operation_state
+                != fields.LcmOccsOperationState.PROCESSING):
+            error_msg = ('Cancel operation in state %s is not allowed' %
+                         vnf_lcm_op_occs.operation_state)
+            return self._make_problem_detail(error_msg, 409, title='Conflict')
+
+        timeout = (vnf_lcm_op_occs.state_entered_time +
+                   datetime.timedelta(seconds=CONF.vnf_lcm.operation_timeout))
+        if timeutils.is_newer_than(timeout, seconds=0):
+            error_msg = 'Cancel operation is not allowed until %s' % timeout
+            return self._make_problem_detail(error_msg, 409, title='Conflict')
+
+        try:
+            vnf_lcm_op_occs.operation_state = (
+                fields.LcmOccsOperationState.FAILED_TEMP)
+            vnf_lcm_op_occs.state_entered_time = timeutils.utcnow().isoformat()
+            vnf_lcm_op_occs.updated_at = vnf_lcm_op_occs.state_entered_time
+            vnf_lcm_op_occs.error = objects.ProblemDetails(
+                context=context,
+                status=500,
+                detail=str(vnf_lcm_op_occs.error))
+
+            old_vnf_instance = copy.deepcopy(vnf_instance)
+            self._vnfm_plugin.update_vnf_cancel_status(
+                context=context,
+                vnf_id=vnf_lcm_op_occs.vnf_instance_id,
+                status=constants.ERROR)
+            vnf_instance.task_state = None
+            vnf_instance.save()
+
+            affected_resources = vnflcm_utils._get_affected_resources(
+                old_vnf_instance=old_vnf_instance,
+                new_vnf_instance=vnf_instance)
+            resource_change_obj = jsonutils.dumps(
+                utils.convert_camelcase_to_snakecase(affected_resources))
+            changed_resource = objects.ResourceChanges.obj_from_primitive(
+                resource_change_obj, context)
+            vnf_lcm_op_occs.resource_changes = changed_resource
+            vnf_lcm_op_occs.save()
+        except Exception as e:
+            error_msg = (
+                'Error in VNF Cancel for vnf %s because %s' %
+                (vnf_instance.id, encodeutils.exception_to_unicode(e)))
+            LOG.error(error_msg)
+            raise exceptions.TackerException(message=error_msg)
+
+        self._notification_process(
+            context, vnf_instance, vnf_lcm_op_occs.operation, {}, {},
+            vnf_lcm_op_occs=vnf_lcm_op_occs,
+            operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
+            notification_status=fields.LcmOccsNotificationStatus.RESULT,
+            affected_resources=affected_resources)
+
+        vnflcm_url = '%s/vnflcm/v1/vnf_lcm_op_occs/%s' % (
+            CONF.vnf_lcm.endpoint_url.rstrip('/'), vnf_lcm_op_occs.id)
+        return webob.Response(status=202,
+                              headerlist=[('Location', vnflcm_url)])
+
     @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN,
                            http_client.NOT_FOUND))
@@ -1423,9 +1523,11 @@ class VnfLcmController(wsgi.Controller):
             vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
             operation = vnf_lcm_op_occs.operation
 
-            if vnf_lcm_op_occs.operation_state != 'FAILED_TEMP':
+            if (vnf_lcm_op_occs.operation_state
+                    != fields.LcmOccsOperationState.FAILED_TEMP):
                 return self._make_problem_detail(
-                    'State is not FAILED_TEMP', 409, title='Conflict')
+                    'Transitions to FAIL from state %s is not allowed' %
+                    vnf_lcm_op_occs.operation_state, 409, title='Conflict')
 
             vnf_instance_id = vnf_lcm_op_occs.vnf_instance_id
             vnf_instance = self._get_vnf_instance(context, vnf_instance_id)

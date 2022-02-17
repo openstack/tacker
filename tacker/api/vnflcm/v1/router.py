@@ -123,6 +123,12 @@ class VnflcmAPIRouter(wsgi.Router):
                 "/vnf_lcm_op_occs/{id}/rollback",
                 methods, controller, default_resource)
 
+        # {apiRoot}/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/cancel resource
+        methods = {"POST": "cancel"}
+        self._setup_route(mapper,
+                          "/vnf_lcm_op_occs/{id}/cancel",
+                          methods, controller, default_resource)
+
         # {apiRoot}/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/fail resource
         methods = {"POST": "fail"}
         self._setup_route(mapper,
