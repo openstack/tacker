@@ -103,14 +103,16 @@ class BaseTackerTest(base.BaseTestCase):
         cls.cinder_client = cls.cinderclient()
 
     @classmethod
-    def get_credentials(cls):
-        vim_params = yaml.safe_load(read_file('local-vim.yaml'))
+    def get_credentials(cls, vim_conf_file=None):
+        if vim_conf_file is None:
+            vim_conf_file = 'local-vim.yaml'
+        vim_params = yaml.safe_load(read_file(vim_conf_file))
         vim_params['auth_url'] += '/v3'
         return vim_params
 
     @classmethod
-    def get_auth_session(cls):
-        vim_params = cls.get_credentials()
+    def get_auth_session(cls, vim_conf_file=None):
+        vim_params = cls.get_credentials(vim_conf_file)
         auth = v3.Password(
             auth_url=vim_params['auth_url'],
             username=vim_params['username'],
@@ -123,20 +125,20 @@ class BaseTackerTest(base.BaseTestCase):
         return auth_ses
 
     @classmethod
-    def tacker_http_client(cls):
-        auth_session = cls.get_auth_session()
+    def tacker_http_client(cls, vim_conf_file=None):
+        auth_session = cls.get_auth_session(vim_conf_file)
         return SessionClient(session=auth_session,
                              service_type='nfv-orchestration',
                              region_name='RegionOne')
 
     @classmethod
-    def tackerclient(cls):
-        auth_session = cls.get_auth_session()
+    def tackerclient(cls, vim_conf_file=None):
+        auth_session = cls.get_auth_session(vim_conf_file)
         return tacker_client.Client(session=auth_session, retries=5)
 
     @classmethod
-    def novaclient(cls):
-        vim_params = cls.get_credentials()
+    def novaclient(cls, vim_conf_file=None):
+        vim_params = cls.get_credentials(vim_conf_file)
         auth = v3.Password(auth_url=vim_params['auth_url'],
             username=vim_params['username'],
             password=vim_params['password'],
@@ -149,8 +151,8 @@ class BaseTackerTest(base.BaseTestCase):
                                   session=auth_ses)
 
     @classmethod
-    def neutronclient(cls):
-        vim_params = cls.get_credentials()
+    def neutronclient(cls, vim_conf_file=None):
+        vim_params = cls.get_credentials(vim_conf_file)
         auth = v3.Password(auth_url=vim_params['auth_url'],
             username=vim_params['username'],
             password=vim_params['password'],
@@ -162,16 +164,18 @@ class BaseTackerTest(base.BaseTestCase):
         return neutron_client.Client(session=auth_ses)
 
     @classmethod
-    def heatclient(cls):
-        data = yaml.safe_load(read_file('local-vim.yaml'))
+    def heatclient(cls, vim_conf_file=None):
+        if vim_conf_file is None:
+            vim_conf_file = 'local-vim.yaml'
+        data = yaml.safe_load(read_file(vim_conf_file))
         data['auth_url'] = data['auth_url'] + '/v3'
         domain_name = data.pop('domain_name')
         data['user_domain_name'] = domain_name
         data['project_domain_name'] = domain_name
         return clients.OpenstackClients(auth_attr=data).heat
 
-    def blazarclient(cls):
-        data = cls.get_credentials()
+    def blazarclient(cls, vim_conf_file=None):
+        data = cls.get_credentials(vim_conf_file)
         domain_name = data.pop('domain_name')
         data['user_domain_name'] = domain_name
         data['project_domain_name'] = domain_name
@@ -186,8 +190,8 @@ class BaseTackerTest(base.BaseTestCase):
         return client
 
     @classmethod
-    def glanceclient(cls):
-        vim_params = cls.get_credentials()
+    def glanceclient(cls, vim_conf_file=None):
+        vim_params = cls.get_credentials(vim_conf_file)
         auth = v3.Password(auth_url=vim_params['auth_url'],
             username=vim_params['username'],
             password=vim_params['password'],
@@ -199,15 +203,15 @@ class BaseTackerTest(base.BaseTestCase):
         return glance_client.Client(session=auth_ses)
 
     @classmethod
-    def aodh_http_client(cls):
-        auth_session = cls.get_auth_session()
+    def aodh_http_client(cls, vim_conf_file=None):
+        auth_session = cls.get_auth_session(vim_conf_file)
         return SessionClient(session=auth_session,
                              service_type='alarming',
                              region_name='RegionOne')
 
     @classmethod
-    def cinderclient(cls):
-        vim_params = cls.get_credentials()
+    def cinderclient(cls, vim_conf_file=None):
+        vim_params = cls.get_credentials(vim_conf_file)
         auth = v3.Password(auth_url=vim_params['auth_url'],
             username=vim_params['username'],
             password=vim_params['password'],
