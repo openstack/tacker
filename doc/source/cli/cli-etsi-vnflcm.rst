@@ -297,6 +297,11 @@ Help:
 
   $ openstack vnflcm heal VNF_INSTANCE_ID
 
+.. note::
+    <vnf-instance> should either be given before --vnfc-instance
+    parameter or it should be separated with '--' separator in
+    order to come after --vnfc-instance parameter.
+
 
 Result:
 
@@ -310,8 +315,8 @@ Help:
 
   $ openstack vnflcm heal --help
   usage: openstack vnflcm heal [-h] [--cause CAUSE]
-                              [--vnfc-instance <vnfc-instance-id> [<vnfc-instance-id> ...]]
-                              <vnf-instance>
+                               [--vnfc-instance <vnfc-instance-id> [<vnfc-instance-id> ...]]
+                               -- <vnf-instance>
 
   Heal VNF Instance
 
