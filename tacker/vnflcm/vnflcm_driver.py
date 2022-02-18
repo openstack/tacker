@@ -27,6 +27,7 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import encodeutils
 from oslo_utils import excutils
+from oslo_utils import timeutils
 from toscaparser import tosca_template
 
 from tacker.common import driver_manager
@@ -387,6 +388,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
         if vnf_instance.instantiated_vnf_info and\
                 vnf_instance.instantiated_vnf_info.instance_id != instance_id:
+            # TODO(h-asahina): rename instance_id to stack_id
             vnf_instance.instantiated_vnf_info.instance_id = instance_id
 
         if vnf_dict['attributes'].get('scaling_group_names'):
@@ -1001,14 +1003,15 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 jsonutils.dump_as_bytes(scaleGroupDict)
 
         if vnf_info['before_error_point'] < EP.NOTIFY_COMPLETED:
+            self._vnfm_plugin._update_vnf_scaling(context, vnf_info,
+                    'PENDING_' + scale_vnf_request.type, 'ACTIVE')
             vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
             vnf_lcm_op_occ.operation_state = 'COMPLETED'
             vnf_lcm_op_occ.resource_changes = resource_changes
+            vnf_lcm_op_occ.state_entered_time = timeutils.utcnow()
+            vnf_lcm_op_occ.save()
             vnf_instance.task_state = None
-            self._vnfm_plugin._update_vnf_scaling(context, vnf_info,
-                                    'PENDING_' + scale_vnf_request.type,
-                                    'ACTIVE', vnf_instance=vnf_instance,
-                                    vnf_lcm_op_occ=vnf_lcm_op_occ)
+            vnf_instance.save()
 
         vnf_info['current_error_point'] = EP.NOTIFY_COMPLETED
 
@@ -1620,11 +1623,11 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         else:
             status = 'INACTIVE'
         vnf_instance.task_state = None
-        self._vnfm_plugin._update_vnf_rollback(context, vnf_info,
-                                              'ERROR',
-                                              status,
-                                              vnf_instance=vnf_instance,
-                                              vnf_lcm_op_occ=vnf_lcm_op_occs)
+        self._vnfm_plugin._update_vnf_rollback(context, vnf_info, 'ERROR',
+                                               status)
+        vnf_lcm_op_occs.state_entered_time = timeutils.utcnow()
+        vnf_lcm_op_occs.save()
+        vnf_instance.save()
 
     def _update_vnf_rollback_status_err(self, context, vnf_info):
         self._vnfm_plugin.update_vnf_rollback_status_err(context, vnf_info)

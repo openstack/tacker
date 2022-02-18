@@ -579,9 +579,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                             context,
                             vnf_info,
                             previous_statuses,
-                            status,
-                            vnf_instance=None,
-                            vnf_lcm_op_occ=None):
+                            status):
         with context.session.begin(subtransactions=True):
             timestamp = timeutils.utcnow()
             (self._model_query(context, VNF).
@@ -606,11 +604,6 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 res_state=status,
                 evt_type=constants.RES_EVT_SCALE,
                 tstamp=timestamp)
-            if vnf_lcm_op_occ:
-                vnf_lcm_op_occ.state_entered_time = timestamp
-                vnf_lcm_op_occ.save()
-            if vnf_instance:
-                vnf_instance.save()
 
     def _update_vnf_pre(self, context, vnf_id, new_status):
         with context.session.begin(subtransactions=True):
@@ -883,47 +876,31 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                                        context,
                                        vnf_info):
         vnf_lcm_op_occs = vnf_info['vnf_lcm_op_occ']
+        evt_type = constants.RES_EVT_CREATE
         if vnf_lcm_op_occs.operation == 'SCALE':
-            self._cos_db_plg.create_event(
-                context, res_id=vnf_info['id'],
-                res_type=constants.RES_TYPE_VNF,
-                res_state='ERROR',
-                evt_type=constants.RES_EVT_SCALE,
-                tstamp=timeutils.utcnow())
-        else:
-            self._cos_db_plg.create_event(
-                context, res_id=vnf_info['id'],
-                res_type=constants.RES_TYPE_VNF,
-                res_state='ERROR',
-                evt_type=constants.RES_EVT_CREATE,
-                tstamp=timeutils.utcnow())
+            evt_type = constants.RES_EVT_SCALE,
+        self._cos_db_plg.create_event(context, res_id=vnf_info['id'],
+                                      res_type=constants.RES_TYPE_VNF,
+                                      res_state='ERROR', evt_type=evt_type,
+                                      tstamp=timeutils.utcnow())
 
     def _update_vnf_rollback_pre(self,
                                  context,
                                  vnf_info):
         vnf_lcm_op_occs = vnf_info['vnf_lcm_op_occ']
+        evt_type = constants.RES_EVT_CREATE
         if vnf_lcm_op_occs.operation == 'SCALE':
-            self._cos_db_plg.create_event(
-                context, res_id=vnf_info['id'],
-                res_type=constants.RES_TYPE_VNF,
-                res_state='ROLL_BACK',
-                evt_type=constants.RES_EVT_SCALE,
-                tstamp=timeutils.utcnow())
-        else:
-            self._cos_db_plg.create_event(
-                context, res_id=vnf_info['id'],
-                res_type=constants.RES_TYPE_VNF,
-                res_state='ROLL_BACK',
-                evt_type=constants.RES_EVT_CREATE,
-                tstamp=timeutils.utcnow())
+            evt_type = constants.RES_EVT_CREATE
+        self._cos_db_plg.create_event(context, res_id=vnf_info['id'],
+                                      res_type=constants.RES_TYPE_VNF,
+                                      res_state='ROLL_BACK', evt_type=evt_type,
+                                      tstamp=timeutils.utcnow())
 
     def _update_vnf_rollback(self,
                             context,
                             vnf_info,
                             previous_statuses,
-                            status,
-                            vnf_instance=None,
-                            vnf_lcm_op_occ=None):
+                            status):
         with context.session.begin(subtransactions=True):
             timestamp = timeutils.utcnow()
             (self._model_query(context, VNF).
@@ -939,26 +916,14 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
              delete(synchronize_session='fetch'))
 
             vnf_lcm_op_occs = vnf_info['vnf_lcm_op_occ']
+            evt_type = constants.RES_EVT_CREATE
             if vnf_lcm_op_occs.operation == 'SCALE':
                 for (key, value) in dev_attrs.items():
                     if 'vim_auth' not in key:
                         self._vnf_attribute_update_or_create(
                             context, vnf_info['id'], key, value)
-                self._cos_db_plg.create_event(
-                    context, res_id=vnf_info['id'],
-                    res_type=constants.RES_TYPE_VNF,
-                    res_state=status,
-                    evt_type=constants.RES_EVT_SCALE,
-                    tstamp=timestamp)
-            else:
-                self._cos_db_plg.create_event(
-                    context, res_id=vnf_info['id'],
-                    res_type=constants.RES_TYPE_VNF,
-                    res_state=status,
-                    evt_type=constants.RES_EVT_CREATE,
-                    tstamp=timestamp)
-            if vnf_lcm_op_occ:
-                vnf_lcm_op_occ.state_entered_time = timestamp
-                vnf_lcm_op_occ.save()
-            if vnf_instance:
-                vnf_instance.save()
+                evt_type = constants.RES_EVT_SCALE
+            self._cos_db_plg.create_event(context, res_id=vnf_info['id'],
+                                          res_type=constants.RES_TYPE_VNF,
+                                          res_state=status, evt_type=evt_type,
+                                          tstamp=timestamp)
