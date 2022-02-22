@@ -339,3 +339,62 @@ class TestConductorV2(db_base.SqlTestCase):
         # check grant_req and grant remain
         # it's OK if no exception raised
         lcmocc_utils.get_grant_req_and_grant(self.context, lcmocc)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'process')
+    def test_modify_vnfinfo_lcm_op_completed(self, mocked_process,
+            mocked_get_vnfd, mocked_send_lcmocc_notification):
+        # prepare
+        lcmocc = self._create_inst_and_lcmocc(
+            op_state=fields.LcmOperationStateType.PROCESSING)
+        mocked_get_vnfd.return_value = mock.Mock()
+
+        op_state = []
+
+        def _store_state(context, lcmocc, inst, endpoint):
+            op_state.append(lcmocc.operationState)
+
+        mocked_send_lcmocc_notification.side_effect = _store_state
+
+        # run modify_vnfinfo
+        self.conductor.modify_vnfinfo(self.context, lcmocc.id)
+
+        # check operationState transition
+        self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
+        self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[0])
+        self.assertEqual(fields.LcmOperationStateType.COMPLETED, op_state[1])
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'process')
+    def test_modify_vnfinfo_lcm_op_failed_temp(self, mocked_process,
+            mocked_get_vnfd, mocked_send_lcmocc_notification):
+        # prepare
+        lcmocc = self._create_inst_and_lcmocc(
+            op_state=fields.LcmOperationStateType.PROCESSING)
+        mocked_get_vnfd.return_value = mock.Mock()
+        ex = sol_ex.StackOperationFailed(sol_detail="unit test",
+                                         sol_title="stack failed")
+        mocked_process.side_effect = ex
+
+        op_state = []
+
+        def _store_state(context, lcmocc, inst, endpoint):
+            op_state.append(lcmocc.operationState)
+
+        mocked_send_lcmocc_notification.side_effect = _store_state
+
+        # run modify_vnfinfo
+        self.conductor.modify_vnfinfo(self.context, lcmocc.id)
+
+        # check operationState transition
+        self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
+        self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[0])
+        self.assertEqual(fields.LcmOperationStateType.FAILED_TEMP, op_state[1])
+
+        # check lcmocc.error
+        # get lcmocc from DB to be sure lcmocc saved to DB
+        lcmocc = lcmocc_utils.get_lcmocc(self.context, lcmocc.id)
+        expected = ex.make_problem_details()
+        self.assertEqual(expected, lcmocc.error.to_dict())

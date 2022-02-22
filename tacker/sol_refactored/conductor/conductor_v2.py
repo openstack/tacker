@@ -168,15 +168,16 @@ class ConductorV2(object):
                 inst.update(context)
                 lcmocc.update(context)
                 # grant_req and grant are not necessary any more.
-                grant_req.delete(context)
-                grant.delete(context)
+                if grant_req is not None:
+                    grant_req.delete(context)
+                    grant.delete(context)
         except Exception as ex:
             LOG.exception("PROCESSING %s failed", lcmocc.operation)
             lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
             self._set_lcmocc_error(lcmocc, ex)
             lcmocc.update(context)
             # grant_req and grant are already saved. they are not deleted
-            # while oprationState is FAILED_TEMP.
+            # while operationState is FAILED_TEMP.
 
         # send notification COMPLETED or FAILED_TEMP
         self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
@@ -220,16 +221,53 @@ class ConductorV2(object):
                 # method temporary but must not save it.
                 lcmocc.update(context)
                 # grant_req and grant are not necessary any more.
-                grant_req.delete(context)
-                grant.delete(context)
+                if grant_req is not None:
+                    grant_req.delete(context)
+                    grant.delete(context)
         except Exception as ex:
             LOG.exception("ROLLING_BACK %s failed", lcmocc.operation)
             lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
             self._set_lcmocc_error(lcmocc, ex)
             lcmocc.update(context)
             # grant_req and grant are already saved. they are not deleted
-            # while oprationState is FAILED_TEMP.
+            # while operationState is FAILED_TEMP.
 
         # send notification ROLLED_BACK or FAILED_TEMP
+        self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
+                                                  self.endpoint)
+
+    @log.log
+    def modify_vnfinfo(self, context, lcmocc_id):
+        lcmocc = lcmocc_utils.get_lcmocc(context, lcmocc_id)
+
+        self._modify_vnfinfo(context, lcmocc)
+
+    @coordinate.lock_vnf_instance('{lcmocc.vnfInstanceId}', delay=True)
+    def _modify_vnfinfo(self, context, lcmocc):
+        # just consistency check
+        if lcmocc.operationState != fields.LcmOperationStateType.PROCESSING:
+            LOG.error("VnfLcmOpOcc unexpected operationState.")
+            return
+
+        inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
+        # send notification PROCESSING
+        self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
+                                                  self.endpoint)
+
+        try:
+            vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId)
+            self.vnflcm_driver.process(context, lcmocc, inst, None, None, vnfd)
+            lcmocc.operationState = fields.LcmOperationStateType.COMPLETED
+            # update inst and lcmocc at the same time
+            with context.session.begin(subtransactions=True):
+                inst.update(context)
+                lcmocc.update(context)
+        except Exception as ex:
+            LOG.exception("PROCESSING %s failed", lcmocc.operation)
+            lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
+            self._set_lcmocc_error(lcmocc, ex)
+            lcmocc.update(context)
+
+        # send notification COMPLETED or FAILED_TEMP
         self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
                                                   self.endpoint)

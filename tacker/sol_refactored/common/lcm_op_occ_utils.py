@@ -90,7 +90,9 @@ def make_lcmocc_notif_data(subsc, lcmocc, endpoint):
         )
     )
 
-    if lcmocc.operationState == fields.LcmOperationStateType.STARTING:
+    if ((lcmocc.operation == fields.LcmOperationType.MODIFY_INFO and
+         lcmocc.operationState == fields.LcmOperationStateType.PROCESSING) or
+            lcmocc.operationState == fields.LcmOperationStateType.STARTING):
         notif_data.notificationStatus = 'START'
     else:
         notif_data.notificationStatus = 'RESULT'
@@ -250,11 +252,91 @@ def _make_affected_ext_link_ports(inst_info_saved, inst_info):
     return affected_ext_link_ports
 
 
+def _check_modification(inst_saved, inst, attr):
+    if not inst.obj_attr_is_set(attr):
+        return False
+    if (not inst_saved.obj_attr_is_set(attr) or
+            getattr(inst_saved, attr) != getattr(inst, attr)):
+        return True
+    return False
+
+
+def _change_vnf_info(lcmocc, inst_saved, inst):
+    vnf_info_modify = objects.VnfInfoModificationsV2()
+
+    # vnfdid is required, don't check the existence of the value.
+    if inst_saved.vnfdId != inst.vnfdId:
+        vnf_info_modify.vnfdId = inst.vnfdId
+
+        if inst_saved.vnfProvider != inst.vnfProvider:
+            vnf_info_modify.vnfProvider = inst.vnfProvider
+        if inst_saved.vnfProductName != inst.vnfProductName:
+            vnf_info_modify.vnfProductName = inst.vnfProductName
+        if inst_saved.vnfSoftwareVersion != inst.vnfSoftwareVersion:
+            vnf_info_modify.vnfSoftwareVersion = inst.vnfSoftwareVersion
+        if inst_saved.vnfdVersion != inst.vnfdVersion:
+            vnf_info_modify.vnfdVersion = inst.vnfdVersion
+
+    attrs = ['vnfInstanceName', 'vnfInstanceDescription',
+             'vnfConfigurableProperties', 'metadata', 'extensions']
+    for attr in attrs:
+        if _check_modification(inst_saved, inst, attr):
+            setattr(vnf_info_modify, attr, getattr(inst, attr))
+
+    if (inst.obj_attr_is_set('vimConnectionInfo') and
+            inst_saved.obj_attr_is_set('vimConnectionInfo')):
+        inst_viminfo = inst.to_dict()["vimConnectionInfo"]
+        inst_saved_viminfo = inst_saved.to_dict()["vimConnectionInfo"]
+        if inst_viminfo != inst_saved_viminfo:
+            vnf_info_modify.vimConnectionInfo = inst.vimConnectionInfo
+    elif (inst.obj_attr_is_set('vimConnectionInfo') and
+            not inst_saved.obj_attr_is_set('vimConnectionInfo')):
+        vnf_info_modify.vimConnectionInfo = inst.vimConnectionInfo
+
+    vnfc_info_mod = []
+    vnfc_info = []
+    if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+            inst.instantiatedVnfInfo.obj_attr_is_set('vnfcInfo')):
+        vnfc_info = inst.instantiatedVnfInfo.vnfcInfo
+    vnfc_info_saved = []
+    if (inst_saved.obj_attr_is_set('instantiatedVnfInfo') and
+            inst_saved.instantiatedVnfInfo.obj_attr_is_set('vnfcInfo')):
+        vnfc_info_saved = inst_saved.instantiatedVnfInfo.vnfcInfo
+
+    for vnfc in vnfc_info:
+        prop_saved = {}
+        for vnfc_saved in vnfc_info_saved:
+            if vnfc.id == vnfc_saved.id:
+                if vnfc_saved.obj_attr_is_set('vnfcConfigurableProperties'):
+                    prop_saved = vnfc_saved.vnfcConfigurableProperties
+                break
+        prop = {}
+        if vnfc.obj_attr_is_set('vnfcConfigurableProperties'):
+            prop = vnfc.vnfcConfigurableProperties
+        if prop != prop_saved:
+            vnfc_info_mod.append(
+                objects.VnfcInfoModificationsV2(
+                    id=vnfc.id,
+                    vnfcConfigurableProperties=prop
+                )
+            )
+    if vnfc_info_mod:
+        vnf_info_modify.vnfcInfoModifications = vnfc_info_mod
+
+    lcmocc.changedInfo = vnf_info_modify
+
+
 def update_lcmocc(lcmocc, inst_saved, inst):
-    # make ResourceChanges of lcmocc from instantiatedVnfInfo.
+    # if operation is MODIFY_INFO, make changedInfo of lcmocc.
+    # for other operations, make ResourceChanges of lcmocc
+    # from instantiatedVnfInfo.
     # NOTE: grant related info such as resourceDefinitionId, zoneId
     # and so on are not included in lcmocc since such info are not
     # included in instantiatedVnfInfo.
+
+    if lcmocc.operation == fields.LcmOperationType.MODIFY_INFO:
+        _change_vnf_info(lcmocc, inst_saved, inst)
+        return
 
     if inst_saved.obj_attr_is_set('instantiatedVnfInfo'):
         inst_info_saved = inst_saved.instantiatedVnfInfo
@@ -351,6 +433,9 @@ def update_lcmocc(lcmocc, inst_saved, inst):
 
 
 def get_grant_req_and_grant(context, lcmocc):
+    if lcmocc.operation == fields.LcmOperationType.MODIFY_INFO:
+        return None, None
+
     grant_reqs = objects.GrantRequestV1.get_by_filter(context,
                                                       vnfLcmOpOccId=lcmocc.id)
     grant = objects.GrantV1.get_by_id(context, lcmocc.grantId)
@@ -364,7 +449,7 @@ def get_grant_req_and_grant(context, lcmocc):
 def check_lcmocc_in_progress(context, inst_id):
     # if the controller or conductor executes an operation for the vnf
     # instance (i.e. operationState is ...ING), other operation for
-    # the same vnf instance is exculded by the coordinator.
+    # the same vnf instance is excluded by the coordinator.
     # check here is existence of lcmocc for the vnf instance with
     # FAILED_TEMP operationState.
     lcmoccs = objects.VnfLcmOpOccV2.get_by_filter(

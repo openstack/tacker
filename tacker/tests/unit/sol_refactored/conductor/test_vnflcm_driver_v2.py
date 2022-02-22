@@ -519,6 +519,55 @@ _inst_info_example = {
     # "vnfcInfo": omitted
 }
 
+# modify_info_process example
+_modify_inst_example = {
+    "vnfInstanceName": "instance_name",
+    "vnfInstanceDescription": "description",
+    "vnfdId": SAMPLE_VNFD_ID,
+    "vnfProvider": "provider",
+    "vnfProductName": "product name",
+    "vnfSoftwareVersion": "software version",
+    "vnfdVersion": "vnfd version",
+    "vnfConfigurableProperties": {
+        "vnfproperties": "example"
+    },
+    "metadata": {
+        "metadata": "example",
+    },
+    "vimConnectionInfo": {
+        "vim1": {
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+            "vimId": "464bc3b0-5af3-40ef-bfb6-e84eee444313",
+            "interfaceInfo": {"endpoint": "http://localhost/identity/v3"},
+            "accessInfo": {
+                "username": "nfv_user",
+                "region": "RegionOne",
+                "password": "devstack",
+                "project": "nfv",
+                "projectDomain": "Default",
+                "userDomain": "Default"
+            },
+            "extra": {
+                "key": "value"
+            }
+        }
+    }
+}
+
+
+_modify_vnfc_info_example = {
+    "vnfcInfo": [
+        {
+            "id": "VDU1-vnfc_res_info_id_VDU1",
+            "vnfcConfigurableProperties": {"key": "value"}
+        },
+        {
+            "id": "VDU2-vnfc_res_info_id_VDU2",
+            "vnfcConfigurableProperties": {"key": "value"}
+        }
+    ]
+}
+
 
 class TestVnfLcmDriverV2(base.BaseTestCase):
 
@@ -920,3 +969,261 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
                          inst['instantiatedVnfInfo']['scaleStatus'])
         self.assertEqual(expected_max_scale_levels,
                          inst['instantiatedVnfInfo']['maxScaleLevels'])
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnf_package_info_vnfd')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(vnfd_utils.Vnfd, 'get_vnfd_properties')
+    def test_modify_info_process(self, mocked_get_vnfd_properties,
+            mocked_get_vnfd, mocked_get_vnf_package_info_vnfd):
+        new_vnfd_id = uuidutils.generate_uuid()
+        pkg_info = objects.VnfPkgInfoV2(
+            id=uuidutils.generate_uuid(),
+            vnfdId=new_vnfd_id,
+            vnfProvider="provider_1",
+            vnfProductName="product_1",
+            vnfSoftwareVersion="software version",
+            vnfdVersion="vnfd version",
+            operationalState="ENABLED"
+        )
+        new_vnfd_prop = {
+            "vnfConfigurableProperties": {
+                "vnfproperties": "example"
+            },
+            "metadata": {
+                "metadata": "example",
+                "metadata_2": "example"
+            },
+            "extensions": {
+                "extensions": "example"
+            },
+        }
+        mocked_get_vnf_package_info_vnfd.return_value = pkg_info
+        mocked_get_vnfd.return_value = vnfd_utils.Vnfd(new_vnfd_id)
+        mocked_get_vnfd_properties.return_value = new_vnfd_prop
+        req = objects.VnfInfoModificationRequest.from_dict(
+            {
+                "vnfInstanceName": "instance_name",
+                "vnfInstanceDescription": "description_1",
+                "vnfdId": new_vnfd_id,
+                "vnfConfigurableProperties": {
+                    "vnfproperties": "example"
+                },
+                "metadata": {
+                    "metadata_1": "example_1",
+                    "metadata_2": None
+                },
+                "extensions": {
+                    "extensions": "example_1"
+                },
+                "vimConnectionInfo": {
+                    "vim1": {
+                        "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                        "vimId": "464bc3b0-5af3-40ef-bfb6-e84eee444313",
+                        "interfaceInfo": {
+                            "endpoint": "http://localhost/identity/v3"
+                        },
+                        "accessInfo": {
+                            "username": "nfv_user",
+                            "region": "RegionOne",
+                            "password": "devstack",
+                            "project": "nfv",
+                            "projectDomain": "Default",
+                            "userDomain": "Default"
+                        },
+                        "extra": {
+                            "key_add": "value"
+                        }
+                    }
+                },
+                "vnfcInfoModifications": [
+                    {
+                        "id": "VDU1-vnfc_res_info_id_VDU1",
+                        "vnfcConfigurableProperties": {
+                            "key": "value_mod",
+                            "key_add": "value"
+                        }
+                    },
+                    {
+                        "id": "VDU2-vnfc_res_info_id_VDU2",
+                        "vnfcConfigurableProperties": {
+                            "key": None
+                        }
+                    }
+                ]
+            }
+        )
+        inst = objects.VnfInstanceV2.from_dict(_modify_inst_example)
+        vnfc_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _modify_vnfc_info_example)
+        inst.instantiatedVnfInfo = vnfc_info
+
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.PROCESSING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            operation=fields.LcmOperationType.MODIFY_INFO,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        # run modify_info_process
+        self.driver.modify_info_process(
+            self.context, lcmocc, inst, None, None, self.vnfd_1)
+
+        inst = inst.to_dict()
+        expected_modify_result = {
+            "vnfInstanceName": "instance_name",
+            "vnfInstanceDescription": "description_1",
+            "vnfdId": new_vnfd_id,
+            "vnfProvider": "provider_1",
+            "vnfProductName": "product_1",
+            "vnfSoftwareVersion": "software version",
+            "vnfdVersion": "vnfd version",
+            "vnfConfigurableProperties": {
+                "vnfproperties": "example"
+            },
+            "metadata": {
+                "metadata": "example",
+                "metadata_1": "example_1"
+            },
+            "extensions": {
+                "extensions": "example_1"
+            },
+            "vimConnectionInfo": {
+                "vim1": {
+                    "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                    "vimId": "464bc3b0-5af3-40ef-bfb6-e84eee444313",
+                    "interfaceInfo": {
+                        "endpoint": "http://localhost/identity/v3"
+                    },
+                    "accessInfo": {
+                        "username": "nfv_user",
+                        "region": "RegionOne",
+                        "password": "devstack",
+                        "project": "nfv",
+                        "projectDomain": "Default",
+                        "userDomain": "Default"
+                    },
+                    "extra": {
+                        "key": "value",
+                        "key_add": "value"
+                    }
+                }
+            },
+            "instantiatedVnfInfo": {
+                "vnfcInfo": [
+                    {
+                        "id": "VDU1-vnfc_res_info_id_VDU1",
+                        "vnfcConfigurableProperties": {
+                            "key": "value_mod",
+                            "key_add": "value"
+                        }
+                    },
+                    {
+                        "id": "VDU2-vnfc_res_info_id_VDU2",
+                        "vnfcConfigurableProperties": {
+                        }
+                    }
+                ]
+            }
+        }
+
+        self.assertEqual(expected_modify_result, inst)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnf_package_info_vnfd')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(vnfd_utils.Vnfd, 'get_vnfd_properties')
+    def test_modify_info_process_from_vnfd_prop(self,
+            mocked_get_vnfd_properties, mocked_get_vnfd,
+            mocked_get_vnf_package_info_vnfd):
+        new_vnfd_id = uuidutils.generate_uuid()
+        pkg_info = objects.VnfPkgInfoV2(
+            id=uuidutils.generate_uuid(),
+            vnfdId=new_vnfd_id,
+            vnfProvider="provider_1",
+            vnfProductName="product_1",
+            vnfSoftwareVersion="software version",
+            vnfdVersion="vnfd version",
+            operationalState="ENABLED"
+        )
+        new_vnfd_prop = {}
+
+        mocked_get_vnf_package_info_vnfd.return_value = pkg_info
+        mocked_get_vnfd.return_value = vnfd_utils.Vnfd(new_vnfd_id)
+        mocked_get_vnfd_properties.return_value = new_vnfd_prop
+        req = objects.VnfInfoModificationRequest.from_dict(
+            {
+                "vnfInstanceName": "instance_name",
+                "vnfInstanceDescription": "description_1",
+                "vnfdId": new_vnfd_id,
+                "vimConnectionInfo": {
+                    "vim1": {
+                        "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                        "vimId": "464bc3b0-5af3-40ef-bfb6-e84eee444313",
+                        "interfaceInfo": {
+                            "endpoint": "http://localhost/identity/v3"
+                        },
+                        "accessInfo": {
+                            "username": "nfv_user",
+                            "region": "RegionOne",
+                            "password": "devstack",
+                            "project": "nfv",
+                            "projectDomain": "Default",
+                            "userDomain": "Default"
+                        }
+                    }
+                }
+            }
+        )
+        inst = objects.VnfInstanceV2.from_dict(_modify_inst_example)
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.PROCESSING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            operation=fields.LcmOperationType.MODIFY_INFO,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        # run modify_info_process
+        self.driver.modify_info_process(
+            self.context, lcmocc, inst, None, None, self.vnfd_1)
+
+        inst = inst.to_dict()
+        expected_modify_result = {
+            "vnfInstanceName": "instance_name",
+            "vnfInstanceDescription": "description_1",
+            "vnfdId": new_vnfd_id,
+            "vnfProvider": "provider_1",
+            "vnfProductName": "product_1",
+            "vnfSoftwareVersion": "software version",
+            "vnfdVersion": "vnfd version",
+            "vnfConfigurableProperties": {},
+            "metadata": {},
+            "vimConnectionInfo": {
+                "vim1": {
+                    "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                    "vimId": "464bc3b0-5af3-40ef-bfb6-e84eee444313",
+                    "interfaceInfo": {
+                        "endpoint": "http://localhost/identity/v3"
+                    },
+                    "accessInfo": {
+                        "username": "nfv_user",
+                        "region": "RegionOne",
+                        "password": "devstack",
+                        "project": "nfv",
+                        "projectDomain": "Default",
+                        "userDomain": "Default"
+                    },
+                    "extra": {
+                        "key": "value"
+                    }
+                }
+            }
+        }
+
+        self.assertEqual(expected_modify_result, inst)

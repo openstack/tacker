@@ -349,3 +349,113 @@ class TestVnflcmV2(db_base.SqlTestCase):
         self.assertRaises(sol_ex.InvalidScaleNumberOfSteps,
             self.controller.scale, request=self.request, id=inst_id,
             body=body)
+
+    def test_update_lcmocc_in_progress(self):
+        inst_id, _ = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.FAILED_TEMP)
+
+        body = {"vnfInstanceDescription": "example1"}
+
+        self.assertRaises(sol_ex.OtherOperationInProgress,
+            self.controller.update, request=self.request, id=inst_id,
+            body=body)
+
+    def test_update_vim_connection_info_not_instantiated(self):
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=uuidutils.generate_uuid(),
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED'
+        )
+        inst.create(self.context)
+
+        body = {
+            "vimConnectionInfo": {
+                "vim1": {
+                    "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                    "vimId": "c36428ef-3071-4b74-8d9a-f39c4dd30065",
+                    "interfaceInfo": {
+                        "endpoint": "http://localhost/identity/v3"
+                    }
+                }
+            }
+        }
+        self.assertRaises(sol_ex.SolValidationError,
+            self.controller.update, request=self.request, id=inst.id,
+            body=body)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnf_package_info_vnfd')
+    def test_update_vnf_package_disabled(self,
+            mocked_get_vnf_package_info_vnfd):
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=uuidutils.generate_uuid(),
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst.create(self.context)
+
+        req_vnfd_id = uuidutils.generate_uuid()
+        pkg_info = objects.VnfPkgInfoV2(
+            id=uuidutils.generate_uuid(),
+            vnfdId=req_vnfd_id,
+            vnfProvider="provider_1",
+            vnfProductName="product_1",
+            vnfSoftwareVersion="software version",
+            vnfdVersion="vnfd version",
+            operationalState="DISABLED"
+        )
+
+        mocked_get_vnf_package_info_vnfd.return_value = pkg_info
+
+        body = {"vnfdId": req_vnfd_id}
+
+        self.assertRaises(sol_ex.VnfdIdNotEnabled,
+            self.controller.update, request=self.request, id=inst.id,
+            body=body)
+
+    def test_update_not_exist_vnfc_info_id(self):
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=uuidutils.generate_uuid(),
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
+            flavourId='small',
+            vnfState='STARTED',
+            vnfcInfo=[
+                objects.VnfcInfoV2(
+                    id="VDU1-vnfc_res_info_id_VDU1",
+                    vduId="VDU1",
+                    vnfcResourceInfoId="vnfc_res_info_id_VDU1",
+                    vnfcState="STARTED"
+                )
+            ]
+        )
+        inst.create(self.context)
+
+        body = {
+            "vnfcInfoModifications": [
+                {
+                    "id": "VDU2-vnfc_res_info_id_VDU2",
+                    "vnfcConfigurableProperties": {"key": "value"}
+                }
+            ]
+        }
+
+        self.assertRaises(sol_ex.SolValidationError,
+            self.controller.update, request=self.request, id=inst.id,
+            body=body)

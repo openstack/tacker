@@ -95,6 +95,7 @@ def register_all():
     __import__(objects_root + '.v2.upload_vnf_package_from_uri_request')
     __import__(objects_root + '.v2.virtual_storage_resource_info')
     __import__(objects_root + '.v2.vnfc_info')
+    __import__(objects_root + '.v2.vnfc_info_modifications')
     __import__(objects_root + '.v2.vnfc_resource_info')
     __import__(objects_root + '.v2.vnfc_snapshot_info')
     __import__(objects_root + '.v2.vnf_ext_cp_info')

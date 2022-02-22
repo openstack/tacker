@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import os
 
 from tacker import context
@@ -1204,6 +1205,29 @@ _expected_inst_info = {
     ]
 }
 
+_expected_inst_info_vnfc_updated = copy.copy(_expected_inst_info)
+_expected_inst_info_vnfc_updated["vnfcInfo"] = [
+    {
+        "id": "VDU1-res_id_VDU1_2",
+        "vduId": "VDU1",
+        "vnfcResourceInfoId": "res_id_VDU1_2",
+        "vnfcState": "STARTED"
+    },
+    {
+        "id": "VDU1-res_id_VDU1_1",
+        "vduId": "VDU1",
+        "vnfcResourceInfoId": "res_id_VDU1_1",
+        "vnfcState": "STARTED",
+        "vnfcConfigurableProperties": {"prop1": "value1"}
+    },
+    {
+        "id": "VDU2-res_id_VDU2",
+        "vduId": "VDU2",
+        "vnfcResourceInfoId": "res_id_VDU2",
+        "vnfcState": "STARTED"
+    }
+]
+
 
 class TestOpenstack(base.BaseTestCase):
 
@@ -1305,7 +1329,7 @@ class TestOpenstack(base.BaseTestCase):
         # prepare
         req = None  # not used
         inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
-            _expected_inst_info)
+            _expected_inst_info_vnfc_updated)
         vim_info = {
             "vim1": objects.VimConnectionInfo.from_dict(
                 _vim_connection_info_example)
@@ -1325,4 +1349,4 @@ class TestOpenstack(base.BaseTestCase):
 
         # check
         result = inst.to_dict()["instantiatedVnfInfo"]
-        self._check_inst_info(_expected_inst_info, result)
+        self._check_inst_info(_expected_inst_info_vnfc_updated, result)
