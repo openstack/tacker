@@ -5,7 +5,8 @@
     - modify-heat-policy
     - setup-default-vim
     - setup-helm
-    - setup-multi-tenant-vim
+    - role: setup-multi-tenant-vim
+      when: setup_multi_tenant is defined and setup_multi_tenant | bool
     - role: bindep
       bindep_profile: test
       bindep_dir: "{{ zuul_work_dir }}"
