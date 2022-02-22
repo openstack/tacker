@@ -2116,7 +2116,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.conductor.heal(self.context, vnf_instance, vnf_dict,
                             heal_vnf_req, vnf_lcm_op_occs_id)
         mock_change_vnf_status.assert_called_with(self.context,
-            vnf_instance.id, mock.ANY, constants.ERROR, "")
+            vnf_instance.id, mock.ANY, constants.ERROR)
         mock_update_insta_vnf_info.assert_called_with(self.context,
             vnf_instance, heal_vnf_req)
         mock_update_vnf_attributes_stack_param.assert_called_once_with(
@@ -3283,12 +3283,10 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             vnf_dict,
             change_ext_conn_req,
             vnf_lcm_op_occs_id)
-        mock_change_vnf_status.assert_called_with(
-            self.context, mock.ANY, (constants.ACTIVE,),
-            constants.PENDING_CHANGE_EXT_CONN)
-        mock_update_vnf_attributes.assert_called_with(
-            self.context, mock.ANY, mock.ANY, mock.ANY,
-            (constants.ACTIVE,))
+        mock_change_vnf_status.assert_called_with(self.context, mock.ANY,
+            constants.ACTIVE, constants.PENDING_CHANGE_EXT_CONN)
+        mock_update_vnf_attributes.assert_called_with(self.context, mock.ANY,
+            mock.ANY, mock.ANY, constants.ACTIVE)
 
         self.assertEqual(2, mock_send_notification.call_count)
         self.assertEqual('PROCESSING', op_states[0])
@@ -3380,10 +3378,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             change_ext_conn_req,
             vnf_lcm_op_occs_id)
         mock_change_vnf_status.assert_called_with(self.context,
-            mock.ANY, (constants.ACTIVE,),
-            constants.PENDING_CHANGE_EXT_CONN)
-        mock_update_vnf_attributes.assert_called_with(self.context,
-            mock.ANY, mock.ANY, mock.ANY, (constants.ACTIVE,))
+            mock.ANY, constants.ACTIVE, constants.PENDING_CHANGE_EXT_CONN)
+        mock_update_vnf_attributes.assert_called_with(self.context, mock.ANY,
+            mock.ANY, mock.ANY, constants.ACTIVE)
 
         self.assertEqual(2, mock_send_notification.call_count)
         self.assertEqual('PROCESSING', op_states[0])
@@ -3564,7 +3561,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             change_ext_conn_req,
             vnf_lcm_op_occs_id)
         mock_change_vnf_status.assert_called_with(self.context,
-            mock.ANY, mock.ANY, constants.ERROR, mock.ANY)
+            mock.ANY, mock.ANY, constants.ERROR)
         self.vnflcm_driver.change_ext_conn_vnf.assert_called_once_with(
             self.context, vnf_instance, vnf_dict, change_ext_conn_req)
         mock_update_vnf_info_change_ext_conn.assert_called_once()
@@ -3618,9 +3615,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             vnf_lcm_op_occs_id)
         self.vnflcm_driver.change_ext_conn_vnf.assert_called_once_with(
             self.context, vnf_instance, vnf_dict, change_ext_conn_req)
-        mock_change_vnf_status.assert_called_with(self.context,
-            mock.ANY, (constants.ACTIVE,),
-            constants.PENDING_CHANGE_EXT_CONN)
+        mock_change_vnf_status.assert_called_with(self.context, mock.ANY,
+            constants.ACTIVE, constants.PENDING_CHANGE_EXT_CONN)
         self.assertEqual(mock_change_ext_conn_grant.call_count, 0)
         mock_update_vnf_attributes.assert_called_once()
 

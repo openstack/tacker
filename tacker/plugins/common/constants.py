@@ -63,12 +63,6 @@ ALL_STATUSES = (
     *PENDING_STATUSES,
 )
 
-ACTIVE_PENDING_STATUSES = (
-    ACTIVE,
-    PENDING_CREATE,
-    PENDING_UPDATE
-)
-
 POLICY_SCALING = 'tosca.policies.tacker.Scaling'
 POLICY_SCALING_ACTIONS = (ACTION_SCALE_OUT,
                           ACTION_SCALE_IN) = ('out', 'in')

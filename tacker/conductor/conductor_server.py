@@ -107,17 +107,6 @@ cfg.CONF.register_opts(OPTS, 'keystone_authtoken')
 
 LOG = logging.getLogger(__name__)
 
-_INACTIVE_STATUS = ('INACTIVE',)
-_ACTIVE_STATUS = ('ACTIVE',)
-_PENDING_STATUS = ('PENDING_CREATE',
-                   'PENDING_TERMINATE',
-                   'PENDING_DELETE',
-                   'PENDING_HEAL',
-                   'PENDING_CHANGE_EXT_CONN')
-_ERROR_STATUS = ('ERROR',)
-_ALL_STATUSES = _ACTIVE_STATUS + _INACTIVE_STATUS + _PENDING_STATUS + \
-    _ERROR_STATUS
-
 
 def _delete_csar(context, vnf_package):
     # Delete from glance store
@@ -630,25 +619,27 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         vnf_package.save()
 
     @log.log
-    def _change_vnf_status(self, context, vnf_id,
-                        current_statuses, new_status, error_reason=None):
-        '''Change vnf status and add error reason if error'''
-        LOG.debug("Change status of vnf %s from %s to %s", vnf_id,
-            current_statuses, new_status)
+    def _change_vnf_status(self, context, vnf_id, state_conditions,
+            new_status):
+        if isinstance(state_conditions, str):
+            state_conditions = {state_conditions}
 
+        '''Change vnf status'''
         with context.session.begin(subtransactions=True):
-            updated_values = {
-                'status': new_status, 'updated_at': timeutils.utcnow()}
-            vnf_model = (context.session.query(
-                vnfm_db.VNF).filter_by(id=vnf_id).first())
+            updated_values = {'status': new_status,
+                              'updated_at': timeutils.utcnow()}
+            vnf_model = (context.session
+                         .query(vnfm_db.VNF).
+                         filter_by(id=vnf_id).first())
+            LOG.debug("Change status of vnf %s from %s to %s", vnf_id,
+                      vnf_model.status, new_status)
             if not vnf_model:
                 raise exceptions.VnfInstanceNotFound(
                     message="VNF {} not found".format(vnf_id))
-            if vnf_model.status not in current_statuses:
+            if vnf_model.status not in state_conditions:
                 raise exceptions.VnfConflictState(
-                    message='Cannot change status to {} \
-                        while in {}'.format(
-                        updated_values['status'], vnf_model.status))
+                    message=('Cannot change status to %s while in %s'
+                             % (updated_values['status'], vnf_model.status)))
             vnf_model.update(updated_values)
 
     def _update_vnf_attributes(self, context, vnf_instance, vnf_dict,
@@ -1977,7 +1968,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 if vnf_dict['status'] == 'INACTIVE':
                     vnf_dict['status'] = 'PENDING_CREATE'
                 self._change_vnf_status(context, vnf_instance.id,
-                                _INACTIVE_STATUS, 'PENDING_CREATE')
+                        constants.INACTIVE, 'PENDING_CREATE')
 
             if vnf_dict['before_error_point'] <= \
                fields.ErrorPoint.VNF_CONFIG_END:
@@ -1989,7 +1980,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                             instantiate_vnf_req=instantiate_vnf)
 
                 self._update_vnf_attributes(context, vnf_instance, vnf_dict,
-                                            _PENDING_STATUS, _ACTIVE_STATUS)
+                                            constants.PENDING_STATUSES,
+                                            constants.ACTIVE)
 
             vnf_dict['current_error_point'] = \
                 fields.ErrorPoint.NOTIFY_COMPLETED
@@ -2018,7 +2010,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                         vnf_dict['current_error_point'] = \
                             fields.ErrorPoint.POST_VIM_CONTROL
             self._change_vnf_status(context, vnf_instance.id,
-                            _ALL_STATUSES, 'ERROR')
+                                    constants.ALL_STATUSES, 'ERROR')
 
             self._build_instantiated_vnf_info(context, vnf_instance,
                 instantiate_vnf)
@@ -2065,7 +2057,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             if vnf_dict['before_error_point'] <= \
                fields.ErrorPoint.NOTIFY_PROCESSING:
                 self._change_vnf_status(context, vnf_instance.id,
-                                _ACTIVE_STATUS, 'PENDING_TERMINATE')
+                                        constants.ACTIVE, 'PENDING_TERMINATE')
 
             if vnf_dict['before_error_point'] <= \
                fields.ErrorPoint.VNF_CONFIG_END:
@@ -2075,7 +2067,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 self._delete_placement(context, vnf_instance.id)
 
                 self._change_vnf_status(context, vnf_instance.id,
-                                _PENDING_STATUS, 'INACTIVE')
+                                        constants.PENDING_STATUSES, 'INACTIVE')
 
             vnf_dict['current_error_point'] = \
                 fields.ErrorPoint.NOTIFY_COMPLETED
@@ -2099,7 +2091,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         except Exception as exc:
             # set vnf_status to error
             self._change_vnf_status(context, vnf_instance.id,
-                            _ALL_STATUSES, 'ERROR')
+                                    constants.ALL_STATUSES, 'ERROR')
 
             # Update vnf_lcm_op_occs table and send notification "FAILED_TEMP"
             self._send_lcm_op_occ_notification(
@@ -2164,7 +2156,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                fields.ErrorPoint.NOTIFY_PROCESSING:
                 # update vnf status to PENDING_HEAL
                 self._change_vnf_status(context, vnf_instance.id,
-                                _ACTIVE_STATUS, constants.PENDING_HEAL)
+                                        constants.ACTIVE,
+                                        constants.PENDING_HEAL)
 
             if vnf_dict['before_error_point'] <= \
                fields.ErrorPoint.VNF_CONFIG_END:
@@ -2184,7 +2177,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
 
                 # update vnf status to ACTIVE
                 self._change_vnf_status(context, vnf_instance.id,
-                                _PENDING_STATUS, constants.ACTIVE)
+                                        constants.PENDING_STATUSES,
+                                        constants.ACTIVE)
 
             vnf_dict['current_error_point'] = \
                 fields.ErrorPoint.NOTIFY_COMPLETED
@@ -2208,7 +2202,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         except Exception as ex:
             # update vnf_status to 'ERROR' and create event with 'ERROR' status
             self._change_vnf_status(context, vnf_instance.id,
-                        _ALL_STATUSES, constants.ERROR, str(ex))
+                                    constants.ALL_STATUSES, constants.ERROR)
 
             # call _update_instantiated_vnf_info for notification
             self._update_instantiated_vnf_info(context, vnf_instance,
@@ -2432,7 +2426,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             if vnf_dict['before_error_point'] <= EP.NOTIFY_PROCESSING:
                 # update vnf status to PENDING_CHANGE_EXT_CONN
                 self._change_vnf_status(context, vnf_instance.id,
-                    _ACTIVE_STATUS, 'PENDING_CHANGE_EXT_CONN')
+                                        constants.ACTIVE,
+                                        'PENDING_CHANGE_EXT_CONN')
 
             self.vnflcm_driver.change_ext_conn_vnf(
                 context,
@@ -2445,7 +2440,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 context, vnf_instance, change_ext_conn_req)
             # update vnf status to ACTIVE
             self._update_vnf_attributes(context, vnf_instance, vnf_dict,
-                                        _PENDING_STATUS, _ACTIVE_STATUS)
+                                        constants.PENDING_STATUSES,
+                                        constants.ACTIVE)
             # Update vnf_lcm_op_occs table and send notification "COMPLETED"
             self._send_lcm_op_occ_notification(
                 context=context,
@@ -2459,7 +2455,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         except Exception as e:
             # update vnf_status to 'ERROR' and create event with 'ERROR' status
             self._change_vnf_status(context, vnf_instance.id,
-                        _ALL_STATUSES, constants.ERROR, str(e))
+                                    constants.ALL_STATUSES, constants.ERROR)
 
             LOG.error('Failed to execute operation. error={}'.format(e))
             if vnf_dict['current_error_point'] in [EP.INTERNAL_PROCESSING,
