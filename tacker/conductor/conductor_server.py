@@ -643,7 +643,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             vnf_model.update(updated_values)
 
     def _update_vnf_attributes(self, context, vnf_instance, vnf_dict,
-            current_statuses, new_status):
+            current_statuses, new_status, vim_id=None):
         with context.session.begin(subtransactions=True):
             try:
                 modified_attributes = {}
@@ -652,6 +652,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                     'mgmt_ip_address': vnf_dict['mgmt_ip_address'],
                     'status': new_status,
                     'updated_at': timeutils.utcnow()}
+                if vim_id:
+                    updated_values['vim_id'] = vim_id
                 vnf_model = (context.session.query(vnfm_db.VNF).filter_by(
                     id=vnf_dict['id']).first())
                 if not vnf_model:
@@ -1978,10 +1980,10 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 self._build_instantiated_vnf_info(context,
                             vnf_instance,
                             instantiate_vnf_req=instantiate_vnf)
-
+                vim_id = instantiate_vnf.vim_connection_info[0].vim_id
                 self._update_vnf_attributes(context, vnf_instance, vnf_dict,
                                             constants.PENDING_STATUSES,
-                                            constants.ACTIVE)
+                                            constants.ACTIVE, vim_id=vim_id)
 
             vnf_dict['current_error_point'] = \
                 fields.ErrorPoint.NOTIFY_COMPLETED
