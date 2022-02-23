@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Support multi-tenant policy in VNF Lifecycle Management. The feature
+    separates resources such as Virtualized Infrastructure Managers(VIMs),
+    Virtualized Network Function Packages (VNF packages), and Virtualized
+    Network Function Lifecycle Management Interface (VNF LCM) related to
+    ETSI NFV-SOL based VNF management concerning tenants. Only allows VNF
+    instantiation by VIM of the same tenant.
