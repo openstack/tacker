@@ -22,6 +22,8 @@ from sqlalchemy.types import TypeDecorator
 class Uuid(TypeDecorator):
     impl = String(36)
 
+    cache_ok = True
+
     def process_bind_param(self, value, dialect):
         if value is not None:
             # If value is typed as List, only use first element.
@@ -41,6 +43,8 @@ class Uuid(TypeDecorator):
 
 class Json(TypeDecorator):
     impl = Text
+
+    cache_ok = False
 
     def process_bind_param(self, value, dialect):
         return jsonutils.dump_as_bytes(value)
