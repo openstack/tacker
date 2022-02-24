@@ -1,0 +1,11 @@
+---
+- name: remove useless python3-launchpadlib
+  become: yes
+  apt:
+    name: python3-launchpadlib
+    state: absent
+
+- name: cleanup with autoremove
+  become: yes
+  apt:
+    autoremove: yes

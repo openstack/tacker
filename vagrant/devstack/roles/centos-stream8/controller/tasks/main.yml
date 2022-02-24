@@ -1,0 +1,21 @@
+---
+- include: basic_pkgs.yml
+- include: set_path_env.yml
+- include: git_config.yml
+
+- include: python3_specific_vers.yml
+
+- include: vim_extra_plugins.yml
+  when: use_vim_extra_plugins == true
+
+- include: kubernetes.yml
+
+- include: ovn.yml
+
+- include: devstack.yml
+
+- include: setup_tacker.yml
+  when: use_tacker == true
+
+- include: extra_tools.yml
+  when: use_extra_tools == true

@@ -1,0 +1,22 @@
+[[local|localrc]]
+HOST_IP={{ ansible_host }}
+FIXED_RANGE={{ fixed_range }}
+FLOATING_RANGE={{ floating_range }}
+LOGFILE=/opt/stack/logs/stack.sh.log
+
+ADMIN_PASSWORD={{ admin_password }}
+DATABASE_PASSWORD={{ database_password }}
+RABBIT_PASSWORD={{ rabbit_password }}
+SERVICE_PASSWORD={{ service_password }}
+
+DATABASE_TYPE=mysql
+SERVICE_HOST={{ service_host }}
+MYSQL_HOST=$SERVICE_HOST
+RABBIT_HOST=$SERVICE_HOST
+GLANCE_HOSTPORT=$SERVICE_HOST:9292
+
+ENABLED_SERVICES=n-cpu,q-agt,c-vol,placement-client
+NOVA_VNC_ENABLED=True
+NOVNCPROXY_URL="http://$SERVICE_HOST:6080/vnc_lite.html"
+VNCSERVER_LISTEN=$HOST_IP
+VNCSERVER_PROXYCLIENT_ADDRESS=$VNCSERVER_LISTEN

@@ -1,0 +1,6 @@
+---
+- name: install basic packages
+  become: yes
+  apt: name={{ item }} update_cache=yes
+  with_items:
+      - git

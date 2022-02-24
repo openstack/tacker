@@ -1,0 +1,35 @@
+global:
+  # (optional) Path of your SSH public key. Default is "~/.ssh/id_rsa.pub".
+  #ssh_pub_key: "~/.ssh/id_rsa.pub"
+
+machines:
+
+  - hostname: controller
+    provider: virtualbox
+    box: ubuntu/focal64
+    nof_cpus: 2
+    mem_size: 4
+    disk_size: 20
+    private_ips:
+      - 192.168.33.11
+    public_ips:
+    fwd_port_list:
+      - guest: 80
+        host: 10080
+      - guest: 6081
+        host: 6081
+
+  - hostname: compute
+    provider: virtualbox
+    box: ubuntu/focal64
+    nof_cpus: 4
+    mem_size: 8
+    disk_size: 50
+    private_ips:
+      - 192.168.34.11
+    public_ips:
+    fwd_port_list:
+      - guest: 80
+        host: 10081
+      - guest: 6081
+        host: 6081

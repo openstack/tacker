@@ -1,0 +1,22 @@
+---
+- name: update git config
+  git_config:
+      scope: global
+      name: 'url.https://.insteadOf'
+      value: 'git://'
+
+- name: git clone devstack
+  git:
+      repo=https://opendev.org/openstack/devstack.git
+      dest={{ ansible_env.HOME }}/devstack
+
+- name: install os-testr
+  become: yes
+  pip:
+      name: os-testr
+      state: latest
+
+- name: install tox
+  become: yes
+  pip:
+      name: tox

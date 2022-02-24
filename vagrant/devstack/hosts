@@ -1,0 +1,9 @@
+[ubuntu-focal.controller]
+192.168.33.11
+
+[ubuntu-focal.compute]
+#192.168.33.12
+#192.168.33.13
+
+[centos-stream8.controller]
+#192.168.33.11
