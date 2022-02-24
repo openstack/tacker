@@ -127,7 +127,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         class DummyLcmSubscription:
             def __init__(self, auth_params=None):
                 if auth_params:
-                    self.subscription_authentication = json.dumps(
+                    self.authentication = json.dumps(
                         auth_params).encode()
 
                 self.id = uuidsentinel.lcm_subscription_id
@@ -2849,7 +2849,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         auth_password = 'test_password'
         token_endpoint = 'https://oauth2/tokens'
         self.requests_mock.register_uri(
-            'GET', token_endpoint, json={
+            'POST', token_endpoint, json={
                 'access_token': 'test_token', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
             status_code=200)
@@ -3037,6 +3037,26 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         req_count = nfvo_client._count_mock_history(
             history, "https://localhost")
         self.assertEqual(0, req_count)
+
+    def test_get_notification_unknown_auth_type(self):
+        cfg.CONF.set_override('test_callback_uri', True,
+                              group='vnf_lcm')
+        callback_uri = 'https://localhost/callback'
+
+        vnf_lcm_subscription = objects.LccnSubscriptionRequest(
+            context=self.context)
+        vnf_lcm_subscription.id = uuidsentinel.lcm_subscription_id
+        vnf_lcm_subscription.callback_uri = callback_uri
+        vnf_lcm_subscription.authentication = jsonutils.dumps(
+            {'authType': 'OTHER_AUTH',
+             'otherParams': {'userName': "test_user",
+                             'password': "test_password"}}
+        )
+        error = self.assertRaises(
+            exceptions.NotificationProcessingError,
+            self.conductor.test_notification,
+            self.context, vnf_lcm_subscription)
+        self.assertEqual("Unknown auth_type OTHER_AUTH", str(error))
 
     def test_get_notification_retry(self):
         cfg.CONF.set_override('test_callback_uri', True,

@@ -4223,6 +4223,41 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(http_client.CREATED, resp.status_code)
 
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._test_notification')
+    @mock.patch.object(subscription_obj.LccnSubscriptionRequest, 'create')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': FakeVNFMPlugin()})
+    def test_register_subscription_authentication(
+            self, mock_create, mock_get_service_plugins,
+            mock_test_notification):
+        cfg.CONF.set_override('test_callback_uri', True,
+                              group='vnf_lcm')
+        mock_test_notification.return_value = 1
+        auth_user_name = 'test_user'
+        auth_password = 'test_password'
+        token_endpoint = 'https://oauth2/tokens'
+        body = {
+            'callbackUri': 'http://sample_callback_uri',
+            "authentication": {
+                "authType": ["OAUTH2_CLIENT_CREDENTIALS"],
+                "paramsOauth2ClientCredentials": {
+                    "clientId": auth_user_name,
+                    "clientPassword": auth_password,
+                    "tokenEndpoint": token_endpoint
+                }
+            }
+        }
+
+        req = fake_request.HTTPRequest.blank(
+            '/subscriptions')
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+
+        resp = req.get_response(self.app)
+        self.assertEqual(http_client.CREATED, resp.status_code)
+
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
                        test_nfvo_plugin.FakeVNFMPlugin()})

@@ -109,7 +109,7 @@ def _vnf_lcm_subscriptions_get(context,
     if notification_type == 'VnfLcmOperationOccurrenceNotification':
         sql = (
             "select"
-            " t1.id,t1.callback_uri,t1.subscription_authentication,"
+            " t1.id,t1.callback_uri,t1.authentication,"
             " t1.tenant_id, t2.filter "
             " from "
             " vnf_lcm_subscriptions t1, "
@@ -133,7 +133,7 @@ def _vnf_lcm_subscriptions_get(context,
     else:
         sql = (
             "select"
-            " t1.id,t1.callback_uri,t1.subscription_authentication,"
+            " t1.id,t1.callback_uri,t1.authentication,"
             " t1.tenant_id, t2.filter "
             " from "
             " vnf_lcm_subscriptions t1, "
@@ -373,11 +373,11 @@ def _vnf_lcm_subscriptions_create(context, values, filter):
     with db_api.context_manager.writer.using(context):
 
         new_entries = []
-        if 'subscription_authentication' in values:
+        if 'authentication' in values:
             new_entries.append({"id": values.id,
                                 "callback_uri": values.callback_uri,
-                                "subscription_authentication":
-                                    values.subscription_authentication,
+                                "authentication":
+                                    values.authentication,
                                 "tenant_id": values.tenant_id})
         else:
             new_entries.append({"id": values.id,
@@ -482,8 +482,9 @@ class LccnSubscriptionRequest(base.TackerObject, base.TackerPersistentObject):
     fields = {
         'id': fields.UUIDField(nullable=False),
         'callback_uri': fields.StringField(nullable=False),
-        'subscription_authentication':
-            fields.DictOfStringsField(nullable=True),
+        # TODO(YiFeng) define SubscriptionAuthentication object
+        'authentication':
+            fields.StringField(nullable=True),
         'filter': fields.StringField(nullable=True),
         'tenant_id': fields.StringField(nullable=False)
     }

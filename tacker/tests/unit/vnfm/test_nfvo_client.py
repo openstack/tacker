@@ -308,7 +308,7 @@ class TestVnfPackageRequest(base.BaseTestCase):
                               group='authentication')
 
         expected_connect_cnt = 1
-        self.requests_mock.register_uri('GET',
+        self.requests_mock.register_uri('POST',
             self.token_endpoint,
             json={'access_token': 'test_token', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
@@ -587,7 +587,7 @@ class TestVnfPackageRequest(base.BaseTestCase):
         cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
                               group='authentication')
 
-        self.requests_mock.register_uri('GET',
+        self.requests_mock.register_uri('POST',
             self.token_endpoint,
             json={'access_token': 'test_token', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
@@ -685,7 +685,7 @@ class TestVnfPackageRequest(base.BaseTestCase):
         cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
                               group='authentication')
 
-        self.requests_mock.register_uri('GET',
+        self.requests_mock.register_uri('POST',
             self.token_endpoint,
             json={'access_token': 'test_token', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
@@ -915,7 +915,7 @@ class TestGrantRequest(base.BaseTestCase):
         cfg.CONF.set_override('auth_type', 'OAUTH2_CLIENT_CREDENTIALS',
                               group='authentication')
 
-        self.requests_mock.register_uri('GET',
+        self.requests_mock.register_uri('POST',
             self.token_endpoint,
             json={'access_token': 'test_token', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},

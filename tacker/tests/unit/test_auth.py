@@ -173,7 +173,7 @@ class TestAuthManager(test_base.BaseTestCase):
         cfg.CONF.set_override('client_password', self.password,
                               group='authentication')
 
-        self.requests_mock.register_uri('GET',
+        self.requests_mock.register_uri('POST',
             self.url,
             json={'access_token': 'test_token3', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
@@ -225,7 +225,7 @@ class TestAuthManager(test_base.BaseTestCase):
         self.assertEqual(0, len(history))
 
     def test_get_auth_client_oauth2_client_credentials_with_subscription(self):
-        self.requests_mock.register_uri('GET',
+        self.requests_mock.register_uri('POST',
             self.url,
             json={'access_token': 'test_token', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
@@ -305,7 +305,7 @@ class TestAuthManager(test_base.BaseTestCase):
 
     def test_set_auth_client_oauth2_client_credentials(self):
         self.requests_mock.register_uri(
-            'GET', self.url,
+            'POST', self.url,
             json={
                 'access_token': 'test_token', 'token_type': 'bearer'},
             headers={
@@ -463,7 +463,7 @@ class TestOAuth2Session(test_base.BaseTestCase):
             'status_code': 200}
 
         self.requests_mock.register_uri(
-            'GET',
+            'POST',
             self.url, [res_mock, res_mock2])
 
         grant = auth._ClientCredentialsGrant(
@@ -486,7 +486,7 @@ class TestOAuth2Session(test_base.BaseTestCase):
         Please try again or contact your administrator.
         """
         self.requests_mock.register_uri(
-            'GET',
+            'POST',
             self.url,
             headers={
                 'Content-Type': 'application/json;charset=UTF-8',
@@ -516,7 +516,7 @@ class TestOAuth2Session(test_base.BaseTestCase):
 
     def test_apply_access_token_info_fail_timeout(self):
         self.requests_mock.register_uri(
-            'GET',
+            'POST',
             self.url,
             exc=requests.exceptions.ConnectTimeout)
 
@@ -601,7 +601,7 @@ class TestOAuth2Session(test_base.BaseTestCase):
 
     @ddt.data('GET', 'PUT', 'POST', 'DELETE', 'PATCH')
     def test_request_client_credentials(self, http_method):
-        self.requests_mock.register_uri('GET',
+        self.requests_mock.register_uri('POST',
             self.url,
             json={'access_token': 'test_token3', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},
@@ -650,7 +650,7 @@ class TestOAuth2Session(test_base.BaseTestCase):
         self.assertEqual(2, len(history))
 
     def test_request_client_credentials_auth_error(self):
-        self.requests_mock.register_uri('GET',
+        self.requests_mock.register_uri('POST',
             self.url,
             json={'access_token': 'test_token3', 'token_type': 'bearer'},
             headers={'Content-Type': 'application/json'},

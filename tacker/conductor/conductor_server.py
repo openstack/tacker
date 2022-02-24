@@ -60,6 +60,7 @@ from tacker import manager
 from tacker import objects
 from tacker.objects import fields
 from tacker.objects.fields import ErrorPoint as EP
+from tacker.objects.vnf_lcm_subscriptions import LccnSubscriptionRequest
 from tacker.objects.vnf_package import VnfPackagesList
 from tacker.objects import vnfd as vnfd_db
 from tacker.objects import vnfd_attribute as vnfd_attribute_db
@@ -1822,7 +1823,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                             response = auth_client.post(
                                 line.callback_uri,
                                 data=json.dumps(notification),
-                                timeout=CONF.vnf_lcm.retry_timeout)
+                                timeout=CONF.vnf_lcm.retry_timeout,
+                                verify=CONF.vnf_lcm.verify_notification_ssl)
                             if response.status_code == 204:
                                 LOG.info(
                                     "send success notify[%s]",
@@ -1897,6 +1899,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             LOG.warning("Callback URI is %s", CONF.vnf_lcm.test_callback_uri)
             return 0
 
+        self.__set_auth_subscription(vnf_lcm_subscription)
         # Notification shipping
         for num in range(CONF.vnf_lcm.retry_num):
             try:
@@ -1907,7 +1910,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 response = auth_client.get(
                     vnf_lcm_subscription.callback_uri,
                     data=json.dumps(notification),
-                    timeout=CONF.vnf_lcm.retry_timeout)
+                    timeout=CONF.vnf_lcm.retry_timeout,
+                    verify=CONF.vnf_lcm.verify_notification_ssl)
 
                 if response.status_code == 204:
                     return 0
@@ -2241,11 +2245,24 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         def decode(val):
             return val if isinstance(val, str) else val.decode()
 
-        if not vnf_lcm_subscription.subscription_authentication:
+        if not vnf_lcm_subscription:
             return
 
+        # TODO(YiFeng) The type of vnf_lcm_subscription should be
+        #  LegacyRow or LccnSubscriptionRequest,
+        #  else should raise an exception
+
+        if isinstance(vnf_lcm_subscription, LccnSubscriptionRequest):
+            if ('authentication' not in vnf_lcm_subscription or
+                    not vnf_lcm_subscription.authentication):
+                return
+        else:
+            if (not hasattr(vnf_lcm_subscription, 'authentication') or
+                    not vnf_lcm_subscription.authentication):
+                return
+
         subscription_authentication = decode(
-            vnf_lcm_subscription.subscription_authentication)
+            vnf_lcm_subscription.authentication)
 
         authentication = utils.convert_camelcase_to_snakecase(
             json.loads(subscription_authentication))
@@ -2262,6 +2279,10 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             auth_params = authentication.get(
                 'params_oauth2_client_credentials')
             auth_type = 'OAUTH2_CLIENT_CREDENTIALS'
+        else:
+            # TODO(YiFeng) Other callers should handle the exception
+            error = _('Unknown auth_type %s') % authentication['auth_type']
+            raise exceptions.NotificationProcessingError(error)
 
         auth.auth_manager.set_auth_client(
             id=decode(vnf_lcm_subscription.id),

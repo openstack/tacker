@@ -953,8 +953,9 @@ class VnfLcmController(wsgi.Controller):
         vnf_lcm_subscription.id = subscription_id
         vnf_lcm_subscription.callback_uri = subscription_request_data.get(
             'callbackUri')
-        vnf_lcm_subscription.subscription_authentication = \
-            subscription_request_data.get('subscriptionAuthentication')
+        if 'authentication' in subscription_request_data:
+            vnf_lcm_subscription.authentication = jsonutils.dumps(
+                subscription_request_data.get('authentication'))
         vnf_lcm_subscription.tenant_id = request.context.tenant_id
         LOG.debug("filter %s " % subscription_request_data.get('filter'))
         LOG.debug(
