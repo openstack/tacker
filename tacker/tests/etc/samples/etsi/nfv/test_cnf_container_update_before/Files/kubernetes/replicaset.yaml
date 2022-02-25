@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: vdu2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webserver
+  template:
+    metadata:
+      labels:
+        app: webserver
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - name: cm-volume
+          mountPath: /config
+        - name: sec-volume
+          mountPath: /etc/secrets
+      volumes:
+      - name: cm-volume
+        configMap:
+          name: cm-data
+          defaultMode: 0666
+          items:
+          - key: cmKey1.txt
+            path: cm/config.txt
+      - name: sec-volume
+        secret:
+          secretName: secret-data
+          defaultMode: 0600
+          items:
+          - key: secKey1.txt
+            path: creds/secret.txt

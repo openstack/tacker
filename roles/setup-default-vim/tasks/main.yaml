@@ -188,3 +188,49 @@
   when:
     - inventory_hostname == 'controller-tacker'
     - kuryr_k8s_api_url is defined
+
+- block:
+  - name: Copy tools/test-setup-mgmt.sh
+    copy:
+       remote_src=True
+       src={{ devstack_base_dir }}/tacker/tools/test-setup-mgmt.sh
+       dest={{ zuul_work_dir }}/tools/test-setup-mgmt.sh
+       mode=0755
+
+  - name: Check if project's tools/test-setup-mgmt.sh exists
+    stat:
+      path: "{{ zuul_work_dir }}/tools/test-setup-mgmt.sh"
+    register: p
+  - fail:
+      msg: >
+            {{ zuul_work_dir }}/tools/test-setup-mgmt.sh doesn't exists
+            or it doesn't have execute permission.
+    when:  p.stat.exists != True or p.stat.executable != True
+
+  - name: Get stackenv from devstack environment
+    slurp:
+      src: "{{ devstack_base_dir }}/devstack/.stackenv"
+    register: stackenv
+
+  - name: Set a keystone authentication uri
+    set_fact:
+      auth_uri: "{{
+                stackenv.content
+                | b64decode
+                | regex_replace('\n', ' ')
+                | regex_replace('^.*KEYSTONE_SERVICE_URI=([^ ]+).*$', '\\1')
+                }}"
+    when:
+      - p.stat.exists
+
+  - name: Run tools/test-setup-mgmt.sh
+    command: tools/test-setup-mgmt.sh
+    args:
+      chdir: "{{ zuul_work_dir }}"
+    when:
+      - p.stat.exists
+      - p.stat.executable
+
+  when:
+    - inventory_hostname == 'controller-tacker'
+    - kuryr_k8s_api_url is defined

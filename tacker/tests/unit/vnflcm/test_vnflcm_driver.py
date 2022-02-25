@@ -192,6 +192,86 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                    'tenant': uuidsentinel.tenant_id}
         self.vim_client.get_vim.return_value = vim_obj
 
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver, '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "update")
+    @mock.patch('tacker.vnflcm.utils._get_vnf_package_path')
+    @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_modify_vnf(self, mock_get_by_id, mock_load, mock_vnfd_dict,
+                        mock_vim, mock_get_vnf_package_path, mock_update,
+                        mock_init_hash, mock_get_service_plugins):
+        vim_connection_info = vim_connection.VimConnectionInfo(
+            vim_type="kubernetes")
+        mock_vim.return_value = vim_connection_info
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_get_by_id.return_value = vnf_instance
+        mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        vnf_lcm_opoccs = {
+            'vnf_instance_id': 'c5d64d28-c868-4348-8a96-1a6976ce465f',
+            'operationParams': '{"metadata": {"configmap_secret_paths":'
+                               '["Files/kubernetes/configmap_2.yaml",'
+                               '"Files/kubernetes/secret_2.yaml"]}}'}
+        body_data = {}
+        vnfd_pkg_data = {}
+        vnfd_id = '122cbedf-0b50-4706-aad1-7106d590c0a7'
+        mock_load.return_value = fakes.return_vnf_interfaces()
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.modify_vnf(self.context, vnf_lcm_opoccs,
+                          body_data, vnfd_pkg_data, vnfd_id)
+
+        self.assertEqual(2, self._vnf_manager.invoke.call_count)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver, '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfInstance, "update")
+    @mock.patch('tacker.vnflcm.utils._get_vnf_package_path')
+    @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_modify_vnf_params_error(
+            self, mock_get_by_id, mock_load, mock_vnfd_dict, mock_vim,
+            mock_get_vnf_package_path, mock_update, mock_init_hash,
+            mock_get_service_plugins):
+        vim_connection_info = vim_connection.VimConnectionInfo(
+            vim_type="kubernetes")
+        mock_vim.return_value = vim_connection_info
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_get_by_id.return_value = vnf_instance
+        mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        vnf_lcm_opoccs = {
+            'vnf_instance_id': 'c5d64d28-c868-4348-8a96-1a6976ce465f',
+            'operationParams': 'error_params'
+        }
+        body_data = {}
+        vnfd_pkg_data = {}
+        vnfd_id = '122cbedf-0b50-4706-aad1-7106d590c0a7'
+        mock_load.return_value = fakes.return_vnf_interfaces()
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(
+            exceptions.InvalidInput, driver.modify_vnf, self.context,
+            vnf_lcm_opoccs, body_data, vnfd_pkg_data, vnfd_id)
+        self.assertEqual(1, self._vnf_manager.invoke.call_count)
+
     @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,

@@ -35,6 +35,12 @@ LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
 
+# TODO(fengyi): change _get_vim to a public method
+# and then delete this method.
+def get_vim(context, vim_connection_info):
+    return _get_vim(context, vim_connection_info)
+
+
 def _get_vim(context, vim_connection_info):
     vim_client_obj = vim_client.VimClient()
 
@@ -1161,6 +1167,12 @@ def _convert_desired_capacity(inst_level_id, vnfd_dict, vdu):
             desired_capacity = initial_delta + delta_num * level_num
 
     return desired_capacity
+
+
+# TODO(fengyi): change _get_vnf_package_path to a public method
+# and then delete this method.
+def get_vnf_package_path(context, vnfd_id):
+    return _get_vnf_package_path(context, vnfd_id)
 
 
 def _get_vnf_package_path(context, vnfd_id):

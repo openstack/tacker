@@ -2311,17 +2311,9 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
 
         self.send_notification(context, notification_data)
 
-        # update vnf_instances
-        try:
-            ins_obj = objects.vnf_instance.VnfInstance(context=context)
-            result = ins_obj.update(
-                context,
-                vnf_lcm_opoccs,
-                body_data,
-                vnfd_pkg_data,
-                vnfd_id)
-        except Exception as msg:
-            raise Exception(str(msg))
+        # update vnf_instance
+        state_entered_time = self.vnflcm_driver.modify_vnf(
+            context, vnf_lcm_opoccs, body_data, vnfd_pkg_data, vnfd_id)
 
         # update lcm_op_occs
         if vnfd_pkg_data and len(vnfd_pkg_data) > 0:
@@ -2340,7 +2332,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         now = timeutils.utcnow()
         lcm_op_obj.id = vnf_lcm_opoccs.get('id')
         lcm_op_obj.operation_state = fields.LcmOccsOperationState.COMPLETED
-        lcm_op_obj.state_entered_time = result
+        lcm_op_obj.state_entered_time = state_entered_time
         lcm_op_obj.updated_at = now
         lcm_op_obj.changed_info = changed_info
 

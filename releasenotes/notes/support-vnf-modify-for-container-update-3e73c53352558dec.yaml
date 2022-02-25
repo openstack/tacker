@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Support configuration changes to VNF instances by adding
+    ``modify_start`` and ``modify_end`` to MgmtDriver for the Modify VNF
+    operation.
+    We provide the sample of MgmtDriver which changes the configuration
+    of ConfigMap and Secret in Kubernetes and changes the image parameters
+    in the Pod and Deployment manifests.

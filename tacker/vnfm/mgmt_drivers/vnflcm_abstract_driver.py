@@ -97,3 +97,13 @@ class VnflcmMgmtAbstractDriver(metaclass=abc.ABCMeta):
             change_ext_conn_request, grant,
             grant_request, **kwargs):
         pass
+
+    @abc.abstractmethod
+    def modify_information_start(self, context, vnf_instance,
+                                 modify_vnf_request, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def modify_information_end(self, context, vnf_instance,
+                               modify_vnf_request, **kwargs):
+        pass
