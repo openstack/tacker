@@ -304,7 +304,7 @@ The command is shown below:
 
 .. code-block:: console
 
-    $ wget -P /opt/stack/tacker/samples/mgmt_driver https://cloud-images.ubuntu.com/releases/focal/release/ubuntu-20.04-server-cloudimg-amd64.img
+    $ wget -P /opt/stack/tacker/samples/mgmt_driver/kubernetes https://cloud-images.ubuntu.com/releases/focal/release/ubuntu-20.04-server-cloudimg-amd64.img
 
 2. Install the libguestfs-tools
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -331,7 +331,7 @@ The command is shown below:
 
 .. code-block:: console
 
-    $ cd /opt/stack/tacker/samples/mgmt_driver
+    $ cd /opt/stack/tacker/samples/mgmt_driver/kubernetes
     $ sudo guestfish -a ubuntu-20.04-server-cloudimg-amd64.img -i sh "sed -i 's/lock\_passwd\: True/lock\_passwd\: false/g' /etc/cloud/cloud.cfg"
     $ sudo guestfish -a ubuntu-20.04-server-cloudimg-amd64.img -i sh "sed -i '/[ ][ ][ ][ ][ ]lock\_passwd\: false/a\     plain\_text\_passwd\: ubuntu' /etc/cloud/cloud.cfg"
     $ sudo guestfish -a ubuntu-20.04-server-cloudimg-amd64.img -i sh "sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config"
@@ -349,12 +349,12 @@ The command is shown below:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 First, copy the sample script that was stored in
-``tacker/samples/mgmt_driver/kubernetes_mgmt.py`` into the directory of
-``tacker/tacker/vnfm/mgmt_drivers``.
+``tacker/samples/mgmt_driver/kubernetes/kubernetes_mgmt.py`` into the directory
+of ``tacker/tacker/vnfm/mgmt_drivers``.
 
 .. code-block:: console
 
-    $ cp /opt/stack/tacker/samples/mgmt_driver/kubernetes_mgmt.py /opt/stack/tacker/tacker/vnfm/mgmt_drivers/
+    $ cp /opt/stack/tacker/samples/mgmt_driver/kubernetes/kubernetes_mgmt.py /opt/stack/tacker/tacker/vnfm/mgmt_drivers/
 
 1. Set the setup.cfg
 ~~~~~~~~~~~~~~~~~~~~
@@ -450,7 +450,7 @@ is shown below.
 
 .. note::
 
-    You can also find them in the ``samples/mgmt_driver/kubernetes_vnf_package/`` directory of the tacker.
+    You can also find them in the ``samples/mgmt_driver/kubernetes/kubernetes_vnf_package/`` directory of the tacker.
 
 The directory structure:
 
@@ -2868,21 +2868,21 @@ Reference
 .. _cli-legacy-vim : https://docs.openstack.org/tacker/latest/cli/cli-legacy-vim.html#register-vim
 .. _HAProxy: https://www.haproxy.org/
 .. _Heat CLI reference : https://docs.openstack.org/python-openstackclient/latest/cli/plugin-commands/heat.html
-.. _TOSCA.meta: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/TOSCA-Metadata/TOSCA.meta
-.. _sample_kubernetes_top.vnfd.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/Definitions/sample_kubernetes_top.vnfd.yaml
-.. _sample_kubernetes_types.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/Definitions/sample_kubernetes_types.yaml
-.. _sample_kubernetes_df_simple.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/Definitions/sample_kubernetes_df_simple.yaml
-.. _sample_kubernetes_df_complex.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/Definitions/sample_kubernetes_df_complex.yaml
-.. _sample_kubernetes_df_podaffinity.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/Definitions/sample_kubernetes_df_podaffinity.yaml
-.. _install_k8s_cluster.sh: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/install_k8s_cluster.sh
-.. _kubernetes_mgmt.py: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_mgmt.py
-.. _nested/simple_nested_master.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/simple/nested/simple_nested_master.yaml
-.. _nested/simple_nested_worker.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/simple/nested/simple_nested_worker.yaml
-.. _simple_hot_top.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/simple/simple_hot_top.yaml
-.. _nested/complex_nested_master.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/complex/nested/complex_nested_master.yaml
-.. _nested/complex_nested_worker.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/complex/nested/complex_nested_worker.yaml
-.. _complex_hot_top.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/complex/complex_hot_top.yaml
-.. _nested/podaffinity_nested_master.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/podaffinity/nested/podaffinity_nested_master.yaml
-.. _nested/podaffinity_nested_worker.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/podaffinity/nested/podaffinity_nested_worker.yaml
-.. _podaffinity_hot_top.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/BaseHOT/podaffinity/podaffinity_hot_top.yaml
-.. _k8s_cluster_user_data.py: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/UserData/k8s_cluster_user_data.py
+.. _TOSCA.meta: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/TOSCA-Metadata/TOSCA.meta
+.. _sample_kubernetes_top.vnfd.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/Definitions/sample_kubernetes_top.vnfd.yaml
+.. _sample_kubernetes_types.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/Definitions/sample_kubernetes_types.yaml
+.. _sample_kubernetes_df_simple.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/Definitions/sample_kubernetes_df_simple.yaml
+.. _sample_kubernetes_df_complex.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/Definitions/sample_kubernetes_df_complex.yaml
+.. _sample_kubernetes_df_podaffinity.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/Definitions/sample_kubernetes_df_podaffinity.yaml
+.. _install_k8s_cluster.sh: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/install_k8s_cluster.sh
+.. _kubernetes_mgmt.py: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_mgmt.py
+.. _nested/simple_nested_master.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/BaseHOT/simple/nested/simple_nested_master.yaml
+.. _nested/simple_nested_worker.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/BaseHOT/simple/nested/simple_nested_worker.yaml
+.. _simple_hot_top.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/BaseHOT/simple/simple_hot_top.yaml
+.. _nested/complex_nested_master.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/BaseHOT/complex/nested/complex_nested_master.yaml
+.. _nested/complex_nested_worker.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/BaseHOT/complex/nested/complex_nested_worker.yaml
+.. _complex_hot_top.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/BaseHOT/complex/complex_hot_top.yaml
+.. _nested/podaffinity_nested_master.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/BaseHOT/podaffinity/nested/podaffinity_nested_master.yaml
+.. _nested/podaffinity_nested_worker.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/BaseHOT/podaffinity/nested/podaffinity_nested_worker.yaml
+.. _podaffinity_hot_top.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/BaseHOT/podaffinity/podaffinity_hot_top.yaml
+.. _k8s_cluster_user_data.py: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/UserData/k8s_cluster_user_data.py

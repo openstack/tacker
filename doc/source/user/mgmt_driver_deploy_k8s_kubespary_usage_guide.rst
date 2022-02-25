@@ -158,7 +158,7 @@ The sample structure of VNF Package is shown below.
 .. note::
 
     You can also find them in the
-    `samples/mgmt_driver/kubespray/kubespray_vnf_package/`_
+    `samples/mgmt_driver/kubernetes/kubespray/kubespray_vnf_package/`_
     directory of the tacker.
 
 The directory structure:
@@ -1391,7 +1391,7 @@ The sample structure of this Package is shown below.
 .. note::
 
     You can also find them in the
-    `samples/mgmt_driver/kubespray/cnf_nodeport_setting/cnf_nodeport_setting_vnf_package`_
+    `samples/mgmt_driver/kubernetes/kubespray/cnf_nodeport_setting/cnf_nodeport_setting_vnf_package`_
     directory of the tacker.
 
 The directory structure:
@@ -1668,7 +1668,7 @@ Limitations
 .. _Create and Upload VNF Package: https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#create-and-upload-vnf-package
 .. _Preparations: https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#preparations
 .. _Kubespray's official documentation: https://github.com/kubernetes-sigs/kubespray/#quick-start
-.. _samples/mgmt_driver/kubespray/kubespray_vnf_package/: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubespray/kubespray_vnf_package/
+.. _samples/mgmt_driver/kubernetes/kubespray/kubespray_vnf_package/: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubespray/kubespray_vnf_package/
 .. _Create the Parameter File: https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#create-the-parameter-file
 .. _Scale Kubernetes Worker Nodes: https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#scale-kubernetes-worker-nodes
 .. _Heal Kubernetes Master/Worker Nodes: https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#heal-kubernetes-master-worker-nodes
@@ -1677,4 +1677,4 @@ Limitations
 .. _NFV-SOL003 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/003/02.06.01_60/gs_NFV-SOL003v020601p.pdf
 .. _Heat CLI reference : https://docs.openstack.org/python-openstackclient/latest/cli/plugin-commands/heat.html
 .. _Set the value to the request parameter file: https://docs.openstack.org/tacker/latest/user/etsi_containerized_vnf_usage_guide.html#set-the-value-to-the-request-parameter-file
-.. _samples/mgmt_driver/kubespray/cnf_nodeport_setting/cnf_nodeport_setting_vnf_package: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubespray/cnf_nodeport_setting/cnf_nodeport_setting_vnf_package
+.. _samples/mgmt_driver/kubernetes/kubespray/cnf_nodeport_setting/cnf_nodeport_setting_vnf_package: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubespray/cnf_nodeport_setting/cnf_nodeport_setting_vnf_package

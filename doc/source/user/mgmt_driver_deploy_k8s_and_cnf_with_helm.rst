@@ -539,8 +539,8 @@ Reference
 
 .. _How to use Mgmt Driver for deploying Kubernetes Cluster : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html
 .. _Create and Upload VNF Package : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#create-and-upload-vnf-package
-.. _TOSCA.meta : https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes_vnf_package/TOSCA-Metadata/TOSCA.meta
-.. _install_helm.sh : https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/install_helm.sh
+.. _TOSCA.meta : https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/kubernetes_vnf_package/TOSCA-Metadata/TOSCA.meta
+.. _install_helm.sh : https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/install_helm.sh
 .. _Deploy Kubernetes Cluster : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#deploy-kubernetes-cluster
 .. _Explanation of the parameters for deploying a Kubernetes cluster : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#single-master-node
 .. _ETSI NFV-SOL CNF (Containerized VNF) Deployment : https://docs.openstack.org/tacker/latest/user/etsi_containerized_vnf_usage_guide.html
