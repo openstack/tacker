@@ -1,0 +1,39 @@
+configurable_properties:
+  _VAR_user: 'some_user'
+  _VAR_password: 'password'
+  _VAR_vdu_password: 'password'
+
+vdus:
+  VDU1:
+    config:
+      order: 1
+      vm_app_config:
+        type: ansible
+        instantiation:
+          - path: _VAR_vnf_package_path/Scripts/Media/sample_start.yaml
+            params:
+              ansible_password: _VAR_password
+            order: 0
+        termination:
+          - path: _VAR_vnf_package_path/Scripts/Media/sample_start.yaml
+            params:
+              ansible_password: _VAR_password
+            order: 0
+        healing:
+          - path: _VAR_vnf_package_path/Scripts/Media/sample_start.yaml
+            params:
+              ansible_password: _VAR_password
+            order: 0
+        scale-in:
+          - path: _VAR_vnf_package_path/Scripts/Media/sample_start.yaml
+            params:
+              ansible_password: _VAR_password
+            order: 0
+        scale-out:
+          - path: _VAR_vnf_package_path/Scripts/Media/sample_start.yaml
+            params:
+              ansible_password: _VAR_password
+            order: 0
+        username: _VAR_user
+        password: _VAR_vdu_password
+

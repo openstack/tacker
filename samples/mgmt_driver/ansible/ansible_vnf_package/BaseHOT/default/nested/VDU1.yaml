@@ -1,0 +1,45 @@
+heat_template_version: 2013-05-23
+description: 'Child HOT for mmp scale'
+
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  name:
+    type: string
+  net1:
+    type: string
+
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: flavor }
+      name: { get_param: name }
+      image: { get_param: image }
+      networks:
+      - port:
+          get_resource: CP1
+      - port:
+          get_resource: CP2
+
+  CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net1 }
+
+  CP2:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net1 }
+
+outputs:
+  mgmt_ip-VDU1:
+    value:
+      get_attr:
+      - CP1
+      - fixed_ips
+      - 0
+      - ip_address
+
