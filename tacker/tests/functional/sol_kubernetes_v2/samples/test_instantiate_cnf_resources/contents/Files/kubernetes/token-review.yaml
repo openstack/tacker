@@ -1,0 +1,9 @@
+apiVersion: authentication.k8s.io/v1
+kind: TokenReview
+metadata:
+  name: curry-tokenreview-test
+spec:
+  # SA_TOKEN=$(kubectl describe secret $(kubectl get secrets |
+  # grep curry-sa | cut -f1 -d ' ') | grep -E '^token' |
+  # cut -f2 -d':' | tr -d '\t'); echo $SA_TOKEN
+  token: "<SA_TOKEN>"

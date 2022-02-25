@@ -188,8 +188,12 @@ class ConductorV2(object):
                                                   self.endpoint)
 
         try:
-            vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId,
-                                             all_contents=True)
+            if lcmocc.operation == fields.LcmOperationType.CHANGE_VNFPKG:
+                vnfd = self.nfvo_client.get_vnfd(
+                    context, lcmocc.operationParams.vnfdId, all_contents=True)
+            else:
+                vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId,
+                                                 all_contents=True)
             grant_req, grant = lcmocc_utils.get_grant_req_and_grant(context,
                                                                     lcmocc)
             self.vnflcm_driver.post_grant(context, lcmocc, inst, grant_req,

@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Node
+metadata:
+  name: curry-node-test
+  labels:
+    name: curry-node-test
+spec:
+  configSource:
+    configMap:
+      name: CONFIG_MAP_NAME
+      namespace: kube-system
+      kubeletConfigKey: kubelet
+  taints:
+    - effect: 'test'
+      key: 'test'
+status:
+  addresses:
+    - address: '1.1.1.1'
+      type: 'test'
+  conditions:
+    - status: True
+      type: Node
+  daemonEndpoints:
+    kubeletEndpoint:
+      port: 8080
+  images:
+    - names: 'test'
+  nodeInfo:
+    architecture: 'test'
+    bootId: 'test'
+    containerRuntimeVersion: 'test'
+    kernelVersion: 'test'
+    kubeProxyVersion: 'test'
+    kubeletVersion: 'test'
+    machineId: 'test'
+    operatingSystem: 'test'
+    osImage: 'test'
+    systemUuid: 'test'
+  volumesAttached:
+    - device_path: 'test'
+      name: 'test'

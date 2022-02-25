@@ -556,6 +556,23 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         if lcmocc.operationState != v2fields.LcmOperationStateType.FAILED_TEMP:
             raise sol_ex.LcmOpOccNotFailedTemp(lcmocc_id=lcmocc.id)
 
+        # TODO(YiFeng) support retry operation for CNF instantiate
+        # At present, the retry operation will fail for instantiate with
+        # kubernetes vim.
+        if lcmocc.operation == v2fields.LcmOperationType.INSTANTIATE:
+            if lcmocc.operationParams.obj_attr_is_set('vimConnectionInfo'):
+                vim_infos = lcmocc.operationParams.vimConnectionInfo
+            else:
+                vim_info = vim_utils.get_default_vim(context)
+                vim_infos = {"default": vim_info}
+        else:
+            inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
+            vim_infos = inst.vimConnectionInfo
+        vim_info = inst_utils.select_vim_info(vim_infos)
+        if lcmocc.operation != 'CHANGE_VNFPKG' and (
+                vim_info.vimType == 'kubernetes'):
+            raise sol_ex.NotSupportOperationType
+
         self.conductor_rpc.retry_lcm_op(context, lcmocc.id)
 
         return sol_wsgi.SolResponse(202, None)
@@ -570,6 +587,23 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def _lcm_op_occ_rollback(self, context, lcmocc):
         if lcmocc.operationState != v2fields.LcmOperationStateType.FAILED_TEMP:
             raise sol_ex.LcmOpOccNotFailedTemp(lcmocc_id=lcmocc.id)
+
+        # TODO(YiFeng) support rollback operation for CNF instantiate
+        # At present, the rollback operation will fail for instantiate with
+        # kubernetes vim.
+        if lcmocc.operation == v2fields.LcmOperationType.INSTANTIATE:
+            if lcmocc.operationParams.obj_attr_is_set('vimConnectionInfo'):
+                vim_infos = lcmocc.operationParams.vimConnectionInfo
+            else:
+                vim_info = vim_utils.get_default_vim(context)
+                vim_infos = {"default": vim_info}
+        else:
+            inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
+            vim_infos = inst.vimConnectionInfo
+        vim_info = inst_utils.select_vim_info(vim_infos)
+        if lcmocc.operation != 'CHANGE_VNFPKG' and (
+                vim_info.vimType == 'kubernetes'):
+            raise sol_ex.NotSupportOperationType
 
         self.conductor_rpc.rollback_lcm_op(context, lcmocc.id)
 
