@@ -21,7 +21,7 @@ import tempfile
 from oslo_utils import uuidutils
 
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
-from tacker.tests.functional.sol_v2 import utils
+from tacker.tests.functional.sol_v2_common import utils
 
 
 zip_file_name = os.path.basename(os.path.abspath(".")) + '.zip'

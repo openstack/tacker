@@ -70,7 +70,14 @@ def PrepareRequestHandler(manager):
                 response_body_str = open(mock_info.get('content'), 'rb').read()
             elif len(mock_body) > 0:
                 response_body_str = json.dumps(mock_body).encode('utf-8')
-                mock_headers['Content-Length'] = str(len(response_body_str))
+                if '/token' in self.path or 'v2' in self.path or (
+                        isinstance(mock_body, dict) and
+                        'v2' in mock_body.get('_links', {}).get(
+                        'vnfLcmOpOcc', {}).get('href')):
+                    pass
+                else:
+                    mock_headers['Content-Length'] = str(len(
+                        response_body_str))
 
             # Send custom header if exist
             for key, val in mock_headers.items():
@@ -87,10 +94,13 @@ def PrepareRequestHandler(manager):
                 response_headers=copy.deepcopy(mock_headers),
                 response_body=copy.deepcopy(mock_body)))
 
-            if mock_info.get('content') is None:
+            if mock_info.get('content') is None and 'v2/grants' not in path:
                 self.end_headers()
 
         def _parse_request_body(self):
+            if '/token' in self.path:
+                return {}
+
             if 'content-length' not in self.headers:
                 return {}
 

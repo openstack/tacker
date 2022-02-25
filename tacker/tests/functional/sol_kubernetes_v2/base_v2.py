@@ -24,7 +24,7 @@ import yaml
 
 from tacker.sol_refactored.common import http_client
 from tacker.sol_refactored import objects
-from tacker.tests.functional.sol_v2 import utils
+from tacker.tests.functional.sol_v2_common import utils
 from tacker.tests import utils as base_utils
 from tacker import version
 

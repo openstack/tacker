@@ -20,8 +20,8 @@ import tempfile
 
 from oslo_utils import uuidutils
 
-from tacker.tests.functional.sol_v2 import paramgen
-from tacker.tests.functional.sol_v2 import utils
+from tacker.tests.functional.sol_v2_common import paramgen
+from tacker.tests.functional.sol_v2_common import utils
 
 
 zip_file_name = os.path.basename(os.path.abspath(".")) + '.zip'
@@ -37,10 +37,18 @@ utils.make_zip(".", tmp_dir, vnfd_id, image_path)
 shutil.move(os.path.join(tmp_dir, zip_file_name), ".")
 shutil.rmtree(tmp_dir)
 
-# if your sample is change VM from image to image update failed
-change_vnfpkg_req_update_failed = paramgen.change_vnfpkg(vnfd_id)
-del change_vnfpkg_req_update_failed['additionalParams']['vdu_params'][1]
+# if your sample is change VM from image to volume
+change_vnfpkg_req_from_image_to_volume = paramgen.change_vnfpkg(vnfd_id)
+del change_vnfpkg_req_from_image_to_volume['additionalParams']['vdu_params'][0]
 
-with open("change_vnfpkg_req_update_failed", "w",
+with open("change_vnfpkg_req_from_image_to_volume", "w",
           encoding='utf-8') as f:
-    f.write(json.dumps(change_vnfpkg_req_update_failed, indent=2))
+    f.write(json.dumps(change_vnfpkg_req_from_image_to_volume, indent=2))
+
+# if your sample is change VM from volume to volume
+change_vnfpkg_req_from_volume_to_volume = paramgen.change_vnfpkg(vnfd_id)
+del change_vnfpkg_req_from_volume_to_volume[
+    'additionalParams']['vdu_params'][0]
+
+with open("change_vnfpkg_req_from_volume", "w", encoding='utf-8') as f:
+    f.write(json.dumps(change_vnfpkg_req_from_volume_to_volume, indent=2))

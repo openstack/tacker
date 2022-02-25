@@ -270,12 +270,12 @@ The following is sample Base HOT corresponding to above sample userdata script.
 
 **top Base HOT**
 
-.. literalinclude:: ../../../tacker/tests/functional/sol_v2/samples/basic_lcms_max/contents/BaseHOT/simple/sample1.yaml
+.. literalinclude:: ../../../tacker/tests/functional/sol_v2_common/samples/basic_lcms_max/contents/BaseHOT/simple/sample1.yaml
     :language: yaml
 
 **nested Base HOT**
 
-.. literalinclude:: ../../../tacker/tests/functional/sol_v2/samples/basic_lcms_max/contents/BaseHOT/simple/nested/VDU1.yaml
+.. literalinclude:: ../../../tacker/tests/functional/sol_v2_common/samples/basic_lcms_max/contents/BaseHOT/simple/nested/VDU1.yaml
     :language: yaml
 
 

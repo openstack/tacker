@@ -1,4 +1,4 @@
-# Copyright (C) 2021 Nippon Telegraph and Telephone Corporation
+# Copyright (C) 2022 Fujitsu
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -12,13 +12,23 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-from tacker.tests.functional.sol_v2 import utils
 
-utils.create_network('ft-net0')
-utils.create_subnet('ft-ipv4-subnet0', 'ft-net0', '100.100.100.0/24', '4')
-utils.create_subnet('ft-ipv6-subnet0', 'ft-net0', '1111:2222:3333::/64', '6')
-utils.create_network('ft-net1')
-utils.create_subnet('ft-ipv4-subnet1', 'ft-net1', '22.22.22.0/24', '4')
-utils.create_subnet('ft-ipv6-subnet1', 'ft-net1', '1111:2222:4444::/64', '6')
-utils.create_port('VDU2_CP1-1', 'net0')
-utils.create_port('VDU2_CP1-2', 'net0')
+from oslo_utils import uuidutils
+
+
+class VnfPackage:
+
+    @staticmethod
+    def make_get_vnf_pkg_info_resp(vnfdid):
+        data = {
+            "id": uuidutils.generate_uuid(),
+            "vnfdId": vnfdid,
+            "vnfProvider": "Company",
+            "vnfProductName": "Sample VNF",
+            "vnfSoftwareVersion": "1.0",
+            "vnfdVersion": "1.0",
+            "onboardingState": "ONBOARDED",
+            "operationalState": "ENABLED",
+            "usageState": "NOT_IN_USE"
+        }
+        return data
