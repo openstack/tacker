@@ -38,6 +38,20 @@ instantiate_req = paramgen.instantiate_vnf_min()
 scaleout_req = paramgen.scaleout_vnf_min()
 scalein_req = paramgen.scalein_vnf_min()
 update_seq = paramgen.update_vnf_min()
+# fake vnfc id, should be get from show vnf
+VNFC_ID = "VDU1-9300a3cb-bd3b-45e4-9967-095040caf827"
+heal_req = paramgen.heal_vnf_vnfc_min(VNFC_ID)
+heal_without_parameter_req = paramgen.heal_vnf_all_min()
+net_ids = {}
+net_ids['ft-net1'] = '51e62f5f-3711-4182-b844-0f23e0408e51'
+subnet_ids = {}
+subnet_ids['ft-ipv4-subnet1'] = '8bf9b119-68bd-4e01-b518-dd4cde71687c'
+subnet_ids['ft-ipv6-subnet1'] = '2bbaeb35-4d75-4aae-ab59-10c22a04d06b'
+change_ext_conn_req = paramgen.change_ext_conn_min(net_ids, subnet_ids)
+
+print('#####################################################################\n'
+      '# vnfc id should be changed in heal req file by show vnf manually.  #\n'
+      '#####################################################################')
 
 with open("create_req", "w", encoding='utf-8') as f:
     f.write(json.dumps(create_req, indent=2))
@@ -56,3 +70,12 @@ with open("scalein_req", "w", encoding='utf-8') as f:
 
 with open("update_seq", "w", encoding='utf-8') as f:
     f.write(json.dumps(update_seq, indent=2))
+
+with open("heal_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(heal_req, indent=2))
+
+with open("heal_without_parameter_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(heal_without_parameter_req, indent=2))
+
+with open("change_ext_conn_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(change_ext_conn_req, indent=2))

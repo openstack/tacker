@@ -531,7 +531,7 @@ def scalein_vnf_min():
     }
 
 
-def update_vnf_max(vnfd_id, vnfc_id_1, vnfc_id_2):
+def update_vnf_max(vnfd_id, vnfc_ids):
     # All attributes are set.
     # NOTE: All of the following cardinality attributes are set.
     # In addition, 0..N or 1..N attributes are set to 2 or more.
@@ -568,14 +568,10 @@ def update_vnf_max(vnfd_id, vnfc_id_1, vnfc_id_2):
         },
         "vnfcInfoModifications": [
             {
-                "id": vnfc_id_1,
-                "vnfcConfigurableProperties": {"dummy-key": "dummy-value"}
-            },
-            {
-                "id": vnfc_id_2,
-                "vnfcConfigurableProperties": {"dummy-key": "dummy-value"}
-            }
-        ]
+                "id": id,
+                "vnfcConfigurableProperties": {
+                    "dummy-key": "dummy-value"
+                }} for id in vnfc_ids]
     }
 
 
@@ -596,4 +592,240 @@ def update_vnf_min_with_parameter(vnfd_id):
     #  - 1..N (1)
     return {
         "vnfdId": vnfd_id
+    }
+
+
+def heal_vnf_vnfc_max(vnfc_id):
+    # All attributes are set.
+    # NOTE: All of the following cardinality attributes are set.
+    # In addition, 0..N or 1..N attributes are set to 2 or more.
+    #  - 0..1 (1)
+    #  - 0..N (2 or more)
+    #  - 1
+    #  - 1..N (2 or more)
+    return {
+        "cause": "ManualHealing",
+        "vnfcInstanceId": [vnfc_id],
+        "additionalParams": {"dummy-key": "dummy-val"}
+    }
+
+
+# The input parameter is_all is bool type, which accepts only True or False.
+def heal_vnf_vnfc_max_with_parameter(vnfc_ids, is_all=None):
+    # All attributes are set.
+    # NOTE: All of the following cardinality attributes are set.
+    # In addition, 0..N or 1..N attributes are set to 2 or more.
+    #  - 0..1 (1)
+    #  - 0..N (2 or more)
+    #  - 1
+    #  - 1..N (2 or more)
+    if is_all is not None:
+        key = "all"
+        value = is_all
+    else:
+        key = "dummy-key"
+        value = "dummy-val"
+
+    return {
+        "cause": "ManualHealing",
+        "vnfcInstanceId": [vnfc_id for vnfc_id in vnfc_ids],
+        "additionalParams": {key: value}
+    }
+
+
+# The input parameter is_all is bool type, which accepts only True or False.
+def heal_vnf_all_max_with_parameter(is_all=None):
+    # All attributes are set.
+    # NOTE: All of the following cardinality attributes are set.
+    # In addition, 0..N or 1..N attributes are set to 2 or more.
+    #  - 0..1 (1)
+    #  - 0..N (2 or more)
+    #  - 1
+    #  - 1..N (2 or more)
+    if is_all is not None:
+        key = "all"
+        value = is_all
+    else:
+        key = "dummy-key"
+        value = "dummy-val"
+
+    return {
+        "cause": "ManualHealing",
+        "additionalParams": {key: value}
+    }
+
+
+def heal_vnf_vnfc_min(vnfd_id):
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return {
+        "vnfcInstanceId": [vnfd_id]
+    }
+
+
+def heal_vnf_all_min():
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return {}
+
+
+def change_ext_conn_max(net_ids, subnets, auth_url):
+    # All attributes are set.
+    # NOTE: All of the following cardinality attributes are set.
+    # In addition, 0..N or 1..N attributes are set to 2 or more.
+    #  - 0..1 (1)
+    #  - 0..N (2 or more)
+    #  - 1
+    #  - 1..N (2 or more)
+
+    vim_id_1 = uuidutils.generate_uuid()
+    vim_id_2 = uuidutils.generate_uuid()
+
+    ext_vl_1 = {
+        "id": uuidutils.generate_uuid(),
+        "vimConnectionId": vim_id_1,
+        "resourceProviderId": uuidutils.generate_uuid(),
+        "resourceId": net_ids['ft-net1'],
+        "extCps": [
+            {
+                "cpdId": "VDU1_CP1",
+                "cpConfig": {
+                    "VDU1_CP1": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                # "macAddress": omitted,
+                                # "segmentationId": omitted,
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    # "fixedAddresses": omitted,
+                                    "numDynamicAddresses": 1,
+                                    # "addressRange": omitted,
+                                    "subnetId": subnets['ft-ipv4-subnet1']}]
+                            }
+                        }]}
+                }
+            },
+            {
+                "cpdId": "VDU2_CP2",
+                "cpConfig": {
+                    "VDU2_CP2": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                # "macAddress": omitted,
+                                # "segmentationId": omitted,
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    "fixedAddresses": [
+                                        "22.22.22.101"
+                                    ],
+                                    # "numDynamicAddresses": omitted
+                                    # "addressRange": omitted,
+                                    "subnetId": subnets['ft-ipv4-subnet1']
+                                }, {
+                                    "type": "IPV6",
+                                    # "fixedAddresses": omitted,
+                                    # "numDynamicAddresses": omitted,
+                                    "numDynamicAddresses": 1,
+                                    # "addressRange": omitted,
+                                    "subnetId": subnets['ft-ipv6-subnet1']
+                                }]
+                            }
+                        }]
+                    }}
+            }
+        ]
+    }
+    vim_1 = {
+        "vimId": vim_id_1,
+        "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+        "interfaceInfo": {"endpoint": auth_url},
+        "accessInfo": {
+            "username": "nfv_user",
+            "region": "RegionOne",
+            "password": "devstack",
+            "project": "nfv",
+            "projectDomain": "Default",
+            "userDomain": "Default"
+        },
+        "extra": {"dummy-key": "dummy-val"}
+    }
+    vim_2 = {
+        "vimId": vim_id_2,
+        "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+        "interfaceInfo": {"endpoint": auth_url},
+        "accessInfo": {
+            "username": "dummy_user",
+            "region": "RegionOne",
+            "password": "dummy_password",
+            "project": "dummy_project",
+            "projectDomain": "Default",
+            "userDomain": "Default"
+        },
+        "extra": {"dummy-key": "dummy-val"}
+    }
+
+    return {
+        "extVirtualLinks": [
+            ext_vl_1
+        ],
+        "vimConnectionInfo": {
+            "vim1": vim_1,
+            "vim2": vim_2
+        },
+        "additionalParams": {"dummy-key": "dummy-val"}
+    }
+
+
+def change_ext_conn_min(net_ids, subnets):
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+
+    ext_vl_1 = {
+        "id": uuidutils.generate_uuid(),
+        "resourceId": net_ids['ft-net1'],
+        "extCps": [
+            {
+                "cpdId": "VDU2_CP2",
+                "cpConfig": {
+                    "VDU2_CP2": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                # "macAddress": omitted,
+                                # "segmentationId": omitted,
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    "fixedAddresses": [
+                                        "22.22.22.100"
+                                    ],
+                                    # "numDynamicAddresses": omitted
+                                    # "addressRange": omitted,
+                                    "subnetId": subnets['ft-ipv4-subnet1']
+                                }, {
+                                    "type": "IPV6",
+                                    # "fixedAddresses": omitted,
+                                    # "numDynamicAddresses": omitted,
+                                    "numDynamicAddresses": 1,
+                                    # "addressRange": omitted,
+                                    "subnetId": subnets['ft-ipv6-subnet1']
+                                }]
+                            }
+                        }]}
+                }
+            }
+        ]
+    }
+
+    return {
+        "extVirtualLinks": [
+            ext_vl_1
+        ]
     }
