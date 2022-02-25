@@ -563,13 +563,14 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             # passed from conductor to vnflcm_driver, thus we put Null
             # value to grant_reqeust temporary.
             # This part will be updated in next release.
+            kwargs = {'vnf': copy.deepcopy(vnf_dict)}
             self._mgmt_manager.invoke(
                 self._load_vnf_interface(
                     context, 'instantiate_end', vnf_instance, vnfd_dict),
                 'instantiate_end', context=context,
                 vnf_instance=vnf_instance,
                 instantiate_vnf_request=instantiate_vnf_req,
-                grant=vnf_dict.get('grant'), grant_request=None)
+                grant=vnf_dict.get('grant'), grant_request=None, **kwargs)
 
     @log.log
     @revert_to_error_task_state
@@ -593,13 +594,14 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             # passed from conductor to vnflcm_driver, thus we put Null
             # value to grant and grant_reqeust temporary.
             # This part will be updated in next release.
+            kwargs = {'vnf': copy.deepcopy(vnf_dict)}
             self._mgmt_manager.invoke(
                 self._load_vnf_interface(
                     context, 'terminate_start', vnf_instance, vnfd_dict),
                 'terminate_start', context=context,
                 vnf_instance=vnf_instance,
                 terminate_vnf_request=terminate_vnf_req,
-                grant=None, grant_request=None)
+                grant=None, grant_request=None, **kwargs)
 
         vnf_dict['current_error_point'] = EP.PRE_VIM_CONTROL
 
@@ -869,13 +871,14 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             # passed from conductor to vnflcm_driver, thus we put Null
             # value to grant and grant_reqeust temporary.
             # This part will be updated in next release.
+            kwargs = {'vnf': copy.deepcopy(vnf_dict)}
             self._mgmt_manager.invoke(
                 self._load_vnf_interface(
                     context, 'heal_end', vnf_instance, vnfd_dict),
                 'heal_end', context=context,
                 vnf_instance=vnf_instance,
                 heal_vnf_request=heal_vnf_request,
-                grant=vnf_dict.get('grant'), grant_request=None)
+                grant=vnf_dict.get('grant'), grant_request=None, **kwargs)
 
     def _scale_vnf_pre(self, context, vnf_info, vnf_instance,
                       scale_vnf_request, vim_connection_info):
@@ -918,7 +921,9 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 # This part will be updated in next release.
                 if len(scale_id_list) != 0 or \
                         vim_connection_info.vim_type == 'kubernetes':
-                    kwargs = {'scale_name_list': scale_name_list}
+                    kwargs = {'scale_name_list': scale_name_list,
+                              'scale_stack_id': scale_id_list,
+                              'vnf': copy.deepcopy(vnf_info)}
                     self._mgmt_manager.invoke(
                         self._load_vnf_interface(
                             context, 'scale_start', vnf_instance, vnfd_dict),
@@ -985,7 +990,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 # This part will be updated in next release.
                 if len(id_list) != 0 or \
                         vim_connection_info.vim_type == 'kubernetes':
-                    kwargs = {'scale_out_id_list': id_list}
+                    kwargs = {'scale_stack_id': id_list,
+                              'vnf': copy.deepcopy(vnf_info)}
                     self._mgmt_manager.invoke(
                         self._load_vnf_interface(
                             context, 'scale_end', vnf_instance, vnfd_dict),
