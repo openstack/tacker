@@ -16,6 +16,7 @@
 from oslo_log import log as logging
 
 from tacker.common import log
+from tacker import context as tacker_context
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import coordinate
 from tacker.sol_refactored.common import exceptions as sol_ex
@@ -38,6 +39,33 @@ class ConductorV2(object):
         self.vnflcm_driver = vnflcm_driver_v2.VnfLcmDriverV2()
         self.endpoint = CONF.v2_vnfm.endpoint
         self.nfvo_client = nfvo_client.NfvoClient()
+
+        self._change_lcm_op_state()
+
+    def _change_lcm_op_state(self):
+        # NOTE: If the conductor down during processing and
+        # the LcmOperationState STARTING/PROCESSING/ROLLING_BACK remain,
+        # change it at the next startup.
+        context = tacker_context.get_admin_context()
+        ex = sol_ex.ConductorProcessingError()
+
+        state_list = [(fields.LcmOperationStateType.STARTING,
+                       fields.LcmOperationStateType.ROLLED_BACK),
+                      (fields.LcmOperationStateType.PROCESSING,
+                       fields.LcmOperationStateType.FAILED_TEMP),
+                      (fields.LcmOperationStateType.ROLLING_BACK,
+                       fields.LcmOperationStateType.FAILED_TEMP)]
+        for before_state, after_state in state_list:
+            lcmoccs = objects.VnfLcmOpOccV2.get_by_filter(context,
+                operationState=before_state)
+            for lcmocc in lcmoccs:
+                lcmocc.operationState = after_state
+                self._set_lcmocc_error(lcmocc, ex)
+                inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
+                lcmocc.update(context)
+                # send notification
+                self.nfvo_client.send_lcmocc_notification(context, lcmocc,
+                                                          inst, self.endpoint)
 
     def _set_lcmocc_error(self, lcmocc, ex):
         if isinstance(ex, sol_ex.SolException):
@@ -87,7 +115,17 @@ class ConductorV2(object):
 
             lcmocc.operationState = fields.LcmOperationStateType.PROCESSING
             lcmocc.grantId = grant.id
-            lcmocc.update(context)
+            with context.session.begin(subtransactions=True):
+                # save grant_req and grant to be used when retry
+                # NOTE: grant_req is saved because it is necessary to interpret
+                # the contents of grant. Though grant can be gotten from NFVO,
+                # it is saved here with grant_req so that it is not necessary
+                # to communicate with NFVO when retry. They are saved temporary
+                # and will be deleted when operationState becomes an end state
+                # (COMPLETED/FAILED/ROLLED_BACK).
+                grant_req.create(context)
+                grant.create(context)
+                lcmocc.update(context)
         except Exception as ex:
             LOG.exception("STARTING %s failed", lcmocc.operation)
             lcmocc.operationState = fields.LcmOperationStateType.ROLLED_BACK
@@ -110,21 +148,14 @@ class ConductorV2(object):
             with context.session.begin(subtransactions=True):
                 inst.update(context)
                 lcmocc.update(context)
+                # grant_req and grant are not necessary any more.
+                grant_req.delete(context)
+                grant.delete(context)
         except Exception as ex:
             LOG.exception("PROCESSING %s failed", lcmocc.operation)
             lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
             self._set_lcmocc_error(lcmocc, ex)
-            with context.session.begin(subtransactions=True):
-                # save grant_req and grant to be used when retry
-                # NOTE: grant_req is saved because it is necessary to interpret
-                # the contents of grant. Though grant can be gotten from NFVO,
-                # it is saved here with grant_req so that it is not necessary
-                # to communicate with NFVO when retry. They are saved temporary
-                # and will be deleted when operationState becomes an end state
-                # (COMPLETED/FAILED/ROLLED_BACK).
-                grant_req.create(context)
-                grant.create(context)
-                lcmocc.update(context)
+            lcmocc.update(context)
 
         # send notification COMPLETED or FAILED_TEMP
         self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
