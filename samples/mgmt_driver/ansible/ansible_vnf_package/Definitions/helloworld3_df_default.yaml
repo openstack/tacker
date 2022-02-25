@@ -1,0 +1,225 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: Simple deployment flavour for Sample VNF
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - helloworld3_types.yaml
+
+topology_template:
+  inputs:
+    descriptor_id:
+      type: string
+    descriptor_version:
+      type: string
+    provider:
+      type: string
+    product_name:
+      type: string
+    software_version:
+      type: string
+    vnfm_info:
+      type: list
+      entry_schema:
+        type: string
+    flavour_id:
+      type: string
+    flavour_description:
+      type: string
+
+  substitution_mappings:
+    node_type: SAMPLE.VNF
+    properties:
+      flavour_id: default
+    requirements:
+      virtual_link_external: []
+
+  node_templates:
+    VNF:
+      type: SAMPLE.VNF
+      properties:
+        flavour_description: 'n-vnf'
+        vnfm_info:
+          - Tacker
+      interfaces:
+        Vnflcm:
+          instantiate: []
+          instantiate_start: []
+          instantiate_end:
+            implementation: ansible_driver
+          scale: []
+          scale_start:
+            implementation: ansible_driver
+          scale_end:
+            implementation: ansible_driver
+          heal: []
+          heal_start: []
+          heal_end:
+            implementation: ansible_driver
+          terminate: []
+          terminate_start:
+            implementation: ansible_driver
+          terminate_end: []
+          modify_information: []
+          modify_information_start: []
+          modify_information_end: []
+      artifacts:
+        ansible_driver:
+          description: Management driver plugin
+          type: tosca.artifacts.Implementation.Python
+          file: /opt/stack/tacker/tacker/vnfm/mgmt_drivers/ansible/ansible.py
+
+    VDU1:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VDU1
+        description: VDU1 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 3
+      capabilities:
+        virtual_compute:
+          properties:
+            requested_additional_capabilities:
+              properties:
+                requested_additional_capability_name: m1.tiny
+                support_mandatory: true
+                target_performance_parameters:
+                  entry_schema: test
+            virtual_memory:
+              virtual_mem_size: 512 MB
+            virtual_cpu:
+              num_virtual_cpu: 1
+            virtual_local_storage:
+              - size_of_storage: 3 GB
+      requirements:
+        - virtual_storage: VirtualStorage
+
+    VirtualStorage:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 1 GB
+          rdma_enabled: true
+        sw_image_data:
+          name: cirros-0.5.2-x86_64-disk
+          version: '0.5.2'
+          checksum:
+            algorithm: sha-256
+            hash: 932fcae93574e242dc3d772d5235061747dfe537668443a1f0567d893614b464
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 0 GB
+          min_ram: 256 MB
+          size: 12 GB
+
+    CP1:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        protocol:
+          - associated_layer_protocol: ipv4
+            address_data:
+              - address_type: ip_address
+                l3_address_data:
+                  ip_address_assignment: true
+                  floating_ip_activated: false
+      requirements:
+        - virtual_binding: VDU1
+        - virtual_link: internalNW_1
+
+    CP2:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        protocol:
+          - associated_layer_protocol: ipv4
+            address_data:
+              - address_type: ip_address
+                l3_address_data:
+                  ip_address_assignment: true
+                  floating_ip_activated: false
+      requirements:
+        - virtual_binding: VDU1
+        - virtual_link: internalNW_1
+
+    internalNW_1:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        vl_profile:
+          max_bitrate_requirements:
+            root: 2000000
+          min_bitrate_requirements:
+            root: 1000000
+          virtual_link_protocol_data:
+            - associated_layer_protocol: ipv4
+              l2_protocol_data:
+                network_type: vlan
+              l3_protocol_data:
+                ip_version: ipv4
+                cidr: '192.168.0.0/24'
+                dhcp_enabled: true
+
+  policies:
+    - vnf:
+        type: tosca.policies.nfv.ScalingAspects
+        properties:
+          aspects:
+            VDU1:
+              name: vdu1
+              description: vdu1
+              max_scale_level: 49
+              step_deltas:
+                - delta_1
+
+    - vdu1_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ VDU1 ]
+
+    - vdu1_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: VDU1
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ VDU1 ]
+
+    - instantiation_levels:
+        type: tosca.policies.nfv.InstantiationLevels
+        properties:
+          levels:
+            n-vnf-min:
+              description: n-msc-min structure
+              scale_info:
+                VDU1:
+                  scale_level: 0
+            n-vnf-two:
+              description: n-msc-max structure
+              scale_info:
+                VDU1:
+                  scale_level: 1
+            n-vnf-max:
+              description: n-msc-max structure
+              scale_info:
+                VDU1:
+                  scale_level: 2
+          default_level: n-vnf-min
+
+    - vdu1_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            n-vnf-min:
+              number_of_instances: 1
+            n-vnf-two:
+              number_of_instances: 2
+            n-vnf-max:
+              number_of_instances: 3
+        targets: [ VDU1 ]

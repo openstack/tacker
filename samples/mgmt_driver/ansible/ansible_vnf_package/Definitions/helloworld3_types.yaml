@@ -1,0 +1,47 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: Sample template definition
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+
+node_types:
+  SAMPLE.VNF:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id:
+        type: string
+        default: 72700000-0000-0000-0000-202101690304
+      descriptor_version:
+        type: string
+        constraints: [ valid_values: [ 'VNF_1.0' ] ]
+        default: 'VNF_1.0'
+      provider:
+        type: string
+        constraints: [ valid_values: [ SAMPLE ] ]
+        default: SAMPLE
+      product_name:
+        type: string
+        constraints: [ valid_values: [ VNF ] ]
+        default: VNF
+      software_version:
+        type: string
+        constraints: [ valid_values: [ '1.0' ] ]
+        default: '1.0'
+      vnfm_info:
+        type: list
+        entry_schema:
+          type: string
+          constraints: [ valid_values: [ 'Tacker' ] ]
+        default: [ 'Tacker' ]
+      flavour_id:
+        type: string
+        constraints: [ valid_values: [ default ] ]
+        default: default
+      flavour_description:
+        type: string
+        default: 'n-vnf'
+    interfaces:
+      Vnflcm:
+        type: tosca.interfaces.nfv.Vnflcm

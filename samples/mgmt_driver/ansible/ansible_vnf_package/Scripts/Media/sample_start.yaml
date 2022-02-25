@@ -1,0 +1,13 @@
+# This playbook prints a simple debug message
+- name: Echo
+  hosts: 127.0.0.1
+  connection: local
+
+  tasks:
+  - name: Creates a file
+    remote_user: stack
+    become: yes
+    become_method: sudo
+    file:
+      path:  "/tmp/sample.txt"
+      state: touch
