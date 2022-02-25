@@ -543,7 +543,7 @@ class TestController(base.TestCase):
     'meta': {"key": "value"}},
         {'name': 'Fake-VNF',
     'description': "VNF Description",
-     'meta': {"key": "v" * 256}})
+     'meta': {"key": "v" * 1025}})
     def test_create_max_length_exceeded_for_vnf_name_and_description(
             self, values, mock_get_service_plugins):
         name = values['name']

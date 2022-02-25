@@ -1,0 +1,304 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: Simple deployment flavour for Sample VNF
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - sample_cnf_types.yaml
+
+topology_template:
+  inputs:
+    descriptor_id:
+      type: string
+    descriptor_version:
+      type: string
+    provider:
+      type: string
+    product_name:
+      type: string
+    software_version:
+      type: string
+    vnfm_info:
+      type: list
+      entry_schema:
+        type: string
+    flavour_id:
+      type: string
+    flavour_description:
+      type: string
+
+  substitution_mappings:
+    node_type: company.provider.VNF
+    properties:
+      flavour_id: simple
+    requirements:
+      virtual_link_external: []
+
+  node_templates:
+    VNF:
+      type: company.provider.VNF
+      properties:
+        flavour_description: A simple flavour
+
+    VDU1:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: vdu1
+        description: VDU1 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+
+    VDU2:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: vdu2
+        description: VDU2 compute node
+        vdu_profile:
+          min_number_of_instances: 2
+          max_number_of_instances: 3
+
+    VDU3:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: vdu3
+        description: VDU3 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 3
+
+    VDU4:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: vdu4
+        description: VDU4 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 3
+
+    VDU5:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: vdu5
+        description: VDU5 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 3
+
+    VDU6:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: vdu6
+        description: VDU6 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 3
+
+  policies:
+    - scaling_aspects:
+        type: tosca.policies.nfv.ScalingAspects
+        properties:
+          aspects:
+            vdu2_aspect:
+              name: vdu2_aspect
+              description: vdu2 scaling aspect
+              max_scale_level: 2
+              step_deltas:
+                - delta_1
+            vdu3_aspect:
+              name: vdu3_aspect
+              description: vdu3 scaling aspect
+              max_scale_level: 2
+              step_deltas:
+                - delta_1
+            vdu4_aspect:
+              name: vdu4_aspect
+              description: vdu4 scaling aspect
+              max_scale_level: 2
+              step_deltas:
+                - delta_1
+            vdu5_aspect:
+              name: vdu5_aspect
+              description: vdu5 scaling aspect
+              max_scale_level: 2
+              step_deltas:
+                - delta_1
+            vdu6_aspect:
+              name: vdu6_aspect
+              description: vdu6 scaling aspect
+              max_scale_level: 2
+              step_deltas:
+                - delta_1
+
+    - VDU2_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 2
+        targets: [ VDU2 ]
+
+    - VDU2_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: vdu2_aspect
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ VDU2 ]
+
+    - VDU3_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ VDU3 ]
+
+    - VDU3_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: vdu3_aspect
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ VDU3 ]
+
+    - VDU4_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ VDU4 ]
+
+    - VDU4_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: vdu4_aspect
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ VDU4 ]
+
+    - VDU5_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ VDU5 ]
+
+    - VDU5_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: vdu5_aspect
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ VDU5 ]
+
+    - VDU6_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ VDU6 ]
+
+    - VDU6_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: vdu6_aspect
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ VDU6 ]
+
+    - instantiation_levels:
+        type: tosca.policies.nfv.InstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              description: Smallest size
+              scale_info:
+                vdu2_aspect:
+                  scale_level: 0
+                vdu3_aspect:
+                  scale_level: 0
+                vdu4_aspect:
+                  scale_level: 2
+                vdu5_aspect:
+                  scale_level: 2
+                vdu6_aspect:
+                  scale_level: 2
+            instantiation_level_2:
+              description: Largest size
+              scale_info:
+                vdu2_aspect:
+                  scale_level: 2
+                vdu3_aspect:
+                  scale_level: 2
+                vdu4_aspect:
+                  scale_level: 2
+                vdu5_aspect:
+                  scale_level: 2
+                vdu6_aspect:
+                  scale_level: 2
+          default_level: instantiation_level_1
+
+    - VDU1_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1
+            instantiation_level_2:
+              number_of_instances: 1
+        targets: [ VDU1 ]
+
+    - VDU2_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 2
+            instantiation_level_2:
+              number_of_instances: 3
+        targets: [ VDU2 ]
+
+    - VDU3_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1
+            instantiation_level_2:
+              number_of_instances: 3
+        targets: [ VDU3 ]
+
+    - VDU4_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1
+            instantiation_level_2:
+              number_of_instances: 3
+        targets: [ VDU4 ]
+
+    - VDU5_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1
+            instantiation_level_2:
+              number_of_instances: 3
+        targets: [ VDU5 ]
+
+    - VDU6_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1
+            instantiation_level_2:
+              number_of_instances: 3
+        targets: [ VDU6 ]

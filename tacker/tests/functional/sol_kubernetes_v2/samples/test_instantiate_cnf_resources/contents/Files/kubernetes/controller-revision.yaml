@@ -1,0 +1,8 @@
+apiVersion: apps/v1
+kind: ControllerRevision
+data:
+  raw: test
+metadata:
+  name: curry-test001
+  namespace: default
+revision: 1

@@ -31,6 +31,9 @@ VNFM_OPTS = [
     cfg.IntOpt('openstack_vim_stack_create_timeout',
                default=20,
                help='Timeout (in minuts) of heat stack creation.'),
+    cfg.IntOpt('kubernetes_vim_rsc_wait_timeout',
+               default=500,
+               help='Timeout (second) of k8s res creation.'),
     # NOTE: This is for test use since it is convenient to be able to delete
     # under development.
     cfg.BoolOpt('test_enable_lcm_op_occ_delete',

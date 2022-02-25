@@ -274,3 +274,57 @@ class CoordinateVNFExecutionFailed(SolHttpError422):
 
 class VmRunningFailed(SolHttpError422):
     message = _("VM is running incorrectly. Reason: '%(error_info)s'")
+
+
+class CnfDefinitionNotFound(SolHttpError400):
+    message = _("'%(diff_files)s' do not exist in vnf artifact files")
+
+
+class NamespaceNotUniform(SolHttpError400):
+    message = _("There are multiple namespaces in the manifest file. Only one"
+                "namespace can be used in one VNF.")
+
+
+class ExecuteK8SResourceCreateApiFailed(SolHttpError400):
+    message = _("An error occurred when creating k8s resource.")
+
+
+class CreateK8SResourceFailed(SolHttpError400):
+    message = _("An error occurred when creating k8s resource.")
+
+
+class ReadEndpointsFalse(SolHttpError400):
+    message = _("read endpoints failed. kind:'%(kind)s'.")
+
+
+class DeleteK8SResourceFailed(SolHttpError400):
+    message = _("An error occurred when deleting k8s resource.")
+
+
+class UnmatchedFileException(SolHttpError400):
+    message = _("The updated file '%(new_file_path)s' does not match the"
+                " original file. Some resources may be missing.")
+
+
+class UnSupportedKindException(SolHttpError400):
+    message = _("The update file '%(new_file_path)s' does not contain"
+                " 'Deployment' resource and other types of updates are not"
+                " currently supported.")
+
+
+class NotFoundUpdateFileException(SolHttpError400):
+    message = _("No original file matching the update file"
+                " '%(new_file_path)s' was found.")
+
+
+class MissingParameterException(SolHttpError400):
+    message = _("If you set vdu_params parameter in request body,"
+                " the 'vdu_id' is necessary.")
+
+
+class UpdateK8SResourceFailed(SolHttpError400):
+    message = _("An error occurred when updating k8s resource.")
+
+
+class NotSupportOperationType(SolHttpError404):
+    message = _("This operation is not currently supported.")

@@ -22,12 +22,14 @@ from oslo_utils import uuidutils
 from tacker import context
 from tacker.sol_refactored.common import vnfd_utils
 from tacker.sol_refactored.conductor import vnflcm_driver_v2
+from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes
 from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests import base
 
 
+CNF_SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d70a1177"
 SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
 SAMPLE_FLAVOUR_ID = "simple"
 
@@ -121,6 +123,28 @@ _inst_req_example = {
                 "project": "nfv",
                 "projectDomain": "Default",
                 "userDomain": "Default"
+            }
+        }
+    }
+}
+_inst_cnf_req_example = {
+    "flavourId": "simple",
+    "additionalParams": {
+        "lcm-kubernetes-def-files": [
+            "Files/kubernetes/deployment.yaml",
+            "Files/kubernetes/namespace.yaml",
+            "Files/kubernetes/pod.yaml",
+        ],
+        "namespace": "curry"
+    },
+    "vimConnectionInfo": {
+        "vim1": {
+            "vimType": "kubernetes",
+            "vimId": uuidutils.generate_uuid(),
+            "interfaceInfo": {"endpoint": "https://127.0.0.1:6443"},
+            "accessInfo": {
+                "bearer_token": "secret_token",
+                "region": "RegionOne"
             }
         }
     }
@@ -577,7 +601,63 @@ _inst_info_example = {
         }
     ]
 }
-
+# instantiatedVnfInfo example for CNF terminate
+_inst_info_cnf_example = {
+    "flavourId": "simple",
+    "vnfState": "STARTED",
+    "vnfcResourceInfo": [
+        {
+            "id": "c8cb522d-ddf8-4136-9c85-92bab8f2993d",
+            "vduId": "VDU1",
+            "computeResource": {
+                "resourceId": "vdu1-5588797866-fs6vb",
+                "vimLevelResourceType": "OS::Nova::Server"
+            },
+            "metadata": {
+                "Pod": {
+                    "name": "vdu1-5588797866-fs6vb",
+                    "namespace": "curry"
+                },
+                "Deployment": {
+                    "name": "vdu1",
+                    "namespace": "curry"
+                }
+            }
+        },
+        {
+            "id": "124e74c2-cc0d-f187-add2-2000326c195b",
+            "vduId": "VDU1",
+            "computeResource": {
+                "resourceId": "vdu1-5588797866-v8sl2",
+                "vimLevelResourceType": "Deployment",
+            },
+            "metadata": {
+                "Pod": {
+                    "name": "vdu1-5588797866-v8sl2",
+                    "namespace": "curry"
+                },
+                "Deployment": {
+                    "name": "vdu1",
+                    "namespace": "curry"
+                }
+            }
+        },
+        {
+            "id": "55008a17-956b-66a4-77e3-340723695bac",
+            "vduId": "VDU2",
+            "computeResource": {
+                "resourceId": "vdu2",
+                "vimLevelResourceType": "Pod",
+            },
+            "metadata": {
+                "Pod": {
+                    "name": "vdu2",
+                    "namespace": "curry"
+                }
+            }
+        }
+    ]
+}
 # modify_info_process example
 _modify_inst_example = {
     "vnfInstanceName": "instance_name",
@@ -649,6 +729,32 @@ _change_vnfpkg_example = {
         }]
     }
 }
+_change_cnf_vnfpkg_example = {
+    "vnfdId": 'ff60b74a-df4d-5c78-f5bf-19e129da8fff',
+    "additionalParams": {
+        "upgrade_type": "RollingUpdate",
+        "lcm-operation-coordinate-old-vnf": "Scripts/coordinate_old_vnf.py",
+        "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
+        "lcm-operation-coordinate-new-vnf": "Scripts/coordinate_new_vnf.py",
+        "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
+        "lcm-kubernetes-def-files": [
+            "Files/new_kubernetes/new_deployment.yaml"
+        ],
+        "vdu_params": [{
+            "vduId": "VDU1"
+        }]
+    }
+}
+_update_resources = {
+    "affectedVnfcs": [{
+        "metadata": {
+            "Deployment": {
+                "name": "vdu1"
+            }
+        },
+        "changeType": "ADDED"
+    }]
+}
 
 
 class TestVnfLcmDriverV2(base.BaseTestCase):
@@ -664,6 +770,13 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
 
         self.vnfd_1 = vnfd_utils.Vnfd(SAMPLE_VNFD_ID)
         self.vnfd_1.init_from_csar_dir(os.path.join(sample_dir, "sample1"))
+
+        self.vnfd_2 = vnfd_utils.Vnfd(CNF_SAMPLE_VNFD_ID)
+        self.vnfd_2.init_from_csar_dir(os.path.join(sample_dir, "sample2"))
+
+        self.vnfd_3 = vnfd_utils.Vnfd(CNF_SAMPLE_VNFD_ID)
+        self.vnfd_3.init_from_csar_dir(os.path.join(sample_dir,
+                                                    "change_vnfpkg_sample"))
 
     def _grant_req_links(self, lcmocc_id, inst_id):
         return {
@@ -1901,3 +2014,175 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
                     self.assertEqual(
                         check_reses[j]['vimLevelResourceType'],
                         remove_reses[j]['resource']['vimLevelResourceType'])
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_cnf_instantiate_grant(self, mocked_grant):
+        # prepare
+        req = objects.InstantiateVnfRequest.from_dict(_inst_cnf_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=CNF_SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED'
+        )
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run instantiate_grant
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_2)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': CNF_SAMPLE_VNFD_ID,
+            'flavourId': SAMPLE_FLAVOUR_ID,
+            'operation': 'INSTANTIATE',
+            'isAutomaticInvocation': False,
+            '_links': self._grant_req_links(lcmocc.id, inst.id)
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        add_reses = grant_req['addResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': [], 'VDU2': []}
+        }
+        expected_num = {
+            'COMPUTE': {'VDU1': 2, 'VDU2': 1}
+        }
+        for res in add_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['id'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(expected_num[key][name], len(ids))
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_cnf_terminate_grant(self, mocked_grant):
+        # prepare
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=CNF_SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_cnf_example)
+        inst.instantiatedVnfInfo = inst_info
+        req = objects.TerminateVnfRequest.from_dict(
+            {"terminationType": "FORCEFUL"})
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.TERMINATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run terminate_grant
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_2)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': CNF_SAMPLE_VNFD_ID,
+            'operation': 'TERMINATE',
+            'isAutomaticInvocation': False,
+            '_links': self._grant_req_links(lcmocc.id, inst.id)
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        rm_reses = grant_req['removeResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': [], 'VDU2': []}
+        }
+        expected_res_ids = {
+            'COMPUTE': {
+                'VDU1': ['vdu1-5588797866-fs6vb', 'vdu1-5588797866-v8sl2'],
+                'VDU2': ['vdu2']
+            }
+        }
+        for res in rm_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['resource']['resourceId'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(expected_res_ids[key][name], ids)
+
+    @mock.patch.object(kubernetes.Kubernetes, 'change_vnfpkg')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    def test_cnf_change_vnfpkg(self, mock_vnfd, mock_change_vnfpkg):
+        # prepare
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_cnf_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=CNF_SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            metadata={'lcm-kubernetes-def-files': [
+                'Files/kubernetes/deployment.yaml']}
+        )
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_cnf_example)
+        inst.instantiatedVnfInfo = inst_info
+
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_cnf_vnfpkg_example)
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_VNFPKG
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_VNFPKG,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        mock_vnfd.return_value = self.vnfd_2
+        self.driver.change_vnfpkg_process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_3)
