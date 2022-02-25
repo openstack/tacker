@@ -465,7 +465,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                              "/tmp/install_k8s_cluster.sh")
                     sftp.put(os.path.join(
                         os.path.dirname(os.path.abspath(__file__)),
-                        "../../../samples/mgmt_driver/"
+                        "../../../samples/mgmt_driver/kubernetes/"
                         "create_admin_token.yaml"),
                         "/tmp/create_admin_token.yaml")
                     if helm_inst_script_path:
