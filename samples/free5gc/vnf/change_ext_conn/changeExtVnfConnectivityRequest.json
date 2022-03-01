@@ -1,0 +1,41 @@
+{
+    "extVirtualLinks": [{
+            "id": "free5gc_upf",
+            "resourceId": "9a558796-b635-4fa4-8fd2-21d1d16911a8",
+            "extCps": [{
+                    "cpdId": "free5gc_UPF_CP",
+                    "cpConfig": [{
+                            "cpProtocolData": [{
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [{
+                                                "type": "IPV4",
+                                                "fixedAddresses": ["172.168.151.75"],
+                                                "subnetId": "0e8d7136-c37f-4c18-b6c1-bed9cd411ab1"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "vimConnectionInfo": [{
+            "id": "3cc2c4ff-525c-48b4-94c9-29247223322f",
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+            "vimConnectionId": "c3369b54-e376-4423-bb61-afd255900fea",
+            "interfaceInfo": {
+                "endpoint": "http://127.0.0.1/identity"
+            },
+            "accessInfo": {
+                "username": "nfv_user",
+                "region": "RegionOne",
+                "password": "devstack",
+                "tenant": "ff61312f72f94c7da3d0c3c4578ad121"
+            }
+        }
+    ]
+}

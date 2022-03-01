@@ -1,0 +1,14 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/sample_free5gc_top.vnfd.yaml
+
+Name: Scripts/modify_config.sh
+Content-Type: application/x-shellscript
+Algorithm: SHA-256
+Hash: 5ef6108fe0134d45748e0b057f138cd5249ac16e7b5072736ee2179c01c33380
+
+Name: Scripts/free5gc_mgmt.py
+Content-Type: text/x-python
+Algorithm: SHA-256
+Hash: 9f24ff23324d934bacb1b463a3c9cb0e96ef85608393fbde5b39d0ac2536bb34

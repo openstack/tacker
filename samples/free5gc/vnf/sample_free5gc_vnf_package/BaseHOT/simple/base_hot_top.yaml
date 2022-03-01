@@ -1,0 +1,39 @@
+heat_template_version: 2013-05-23
+description: 'Simple Base HOT for Sample VNF'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  free5gc_instance_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 2
+      desired_capacity: 1
+      resource:
+        type: base_hot_nested_free5gc.yaml
+        properties:
+          flavor: { get_param: [ nfv, VDU, free5gc, flavor ] }
+          image: { get_param: [ nfv, VDU, free5gc, image ] }
+          net1: { get_param: [ nfv, CP, free5gc_CP, network ] }
+          net2: { get_param: [ nfv, CP, free5gc_UPF_CP, network ] }
+
+  free5gc_instance_scale_out:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: 1
+      auto_scaling_group_id:
+        get_resource: free5gc_instance_group
+      adjustment_type: change_in_capacity
+
+  free5gc_instance_scale_in:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: -1
+      auto_scaling_group_id:
+        get_resource: free5gc_instance_group
+      adjustment_type: change_in_capacity
+
+outputs: {}
