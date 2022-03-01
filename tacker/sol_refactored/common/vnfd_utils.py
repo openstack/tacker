@@ -242,9 +242,16 @@ class Vnfd(object):
         # If this fails, 500 which is not caused by programming error
         # but true 'Internal server error' raises.
         tmp_dir = tempfile.mkdtemp()
+        # remove tmp_dir because copytree fails if destination exists.
+        # NOTE:
+        # so mkdtemp is used for getting a unique name at the moment.
+        # if py38 or later, copytree supports dirs_exits_ok parameter.
+        # It is not necessary to remove tmp_dir, specify
+        # 'dirs_exists_ok=True' to copytree instead when tacker support
+        # only py38 or later.
+        os.rmdir(tmp_dir)
         shutil.copytree(self.csar_dir, tmp_dir,
-                ignore=shutil.ignore_patterns('Files'),
-                dirs_exist_ok=True)
+            ignore=shutil.ignore_patterns('Files'))
         return tmp_dir
 
     def remove_tmp_csar_dir(self, tmp_dir):
