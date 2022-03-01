@@ -183,7 +183,8 @@ Result:
   |                          | '3091f046-de63-44c8-ad23-f86128409b27', 'cpdId': 'CP1', 'vnfExtCpId': None, 'vnfLinkPortId': '3b667826-336c-4919-889e-e6c63d959ee6'}]}]'                    |
   | Instantiation State      | INSTANTIATED                                                                                                                                                |
   | Links                    | heal=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45/heal, self=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45,      |
-  |                          | terminate=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45/terminate                                                                      |
+  |                          | terminate=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45/terminate,                                                                     |
+  |                          | changeExtConn=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45/change_ext_conn                                                            |
   | VIM Connection Info      | []                                                                                                                                                          |
   | VNF Instance Description | None                                                                                                                                                        |
   | VNF Instance Name        | None                                                                                                                                                        |
@@ -331,7 +332,43 @@ Help:
                           List of VNFC instances requiring a healing action.
 
 
-8. Scale VNF
+8. Update VNF
+^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm update VNF_INSTANCE_ID --I sample_param_file.json
+
+
+Result:
+
+.. code-block:: console
+
+  Update vnf:725f625e-f6b7-4bcd-b1b7-7184039fde45
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm update --help
+  usage: openstack vnflcm update [-h] [--I <param-file>] <vnf-instance>
+
+  Update VNF Instance
+
+  positional arguments:
+    <vnf-instance>
+                          VNF instance ID to update.
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    --I <param-file>
+                          Specify update request parameters in a json file.
+
+  This command is provided by the python-tackerclient plugin.
+
+
+9. Scale VNF
 ^^^^^^^^^^^^
 
 The `worker_instance` is the ID for the target scaling group.
@@ -378,8 +415,8 @@ Help:
                           Identifier of the scaling aspect.
 
 
-9. Change External VNF Connectivity
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+10. Change External VNF Connectivity
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
@@ -411,7 +448,7 @@ Help:
     -h, --help      show this help message and exit
 
 
-10. Rollback VNF Lifecycle Management Operation
+11. Rollback VNF Lifecycle Management Operation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
@@ -442,7 +479,7 @@ Help:
     -h, --help           show this help message and exit
 
 
-11. Retry
+12. Retry
 ^^^^^^^^^
 
 The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
@@ -475,7 +512,7 @@ Help:
     -h, --help           show this help message and exit
 
 
-12. Fail
+13. Fail
 ^^^^^^^^
 
 The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
@@ -603,7 +640,7 @@ Help:
     -h, --help           show this help message and exit
 
 
-13. List LCM Operation Occurrences
+14. List LCM Operation Occurrences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
@@ -650,7 +687,7 @@ Help:
                           tacker server will throw bad request error
 
 
-14. Show LCM Operation Occurrence
+15. Show LCM Operation Occurrence
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
@@ -714,7 +751,7 @@ Help:
     -h, --help           show this help message and exit
 
 
-15. Show VNF LCM API versions
+16. Show VNF LCM API versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console

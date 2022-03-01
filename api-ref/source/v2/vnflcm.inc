@@ -220,6 +220,48 @@ Request Example
 .. literalinclude:: samples/vnflcm/terminate-vnf-instance-request.json
    :language: javascript
 
+Heal a VNF instance (v2)
+========================
+
+.. rest_method::  POST /vnflcm/v2/vnf_instances/{vnfInstanceId}/heal
+
+This task resource represents the "Heal VNF" operation. The client can use
+this resource to request healing a VNF instance.
+
+The POST method heals a VNF instance.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 202
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 401
+  - 404
+  - 406
+  - 409
+  - 422
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfInstanceId: vnf_instance_id
+  - cause: cause
+  - additionalParams: heal_additional_params
+  - all: all
+  - vnfcInstanceId: vnfc_resource_info_ids
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnflcm/heal-vnf-instance-request.json
+   :language: javascript
 
 Delete a VNF instance (v2)
 ==========================
@@ -554,6 +596,191 @@ Response Example
 .. literalinclude:: samples/vnflcm/list-vnf-instance-response.json
    :language: javascript
 
+Scale a VNF instance (v2)
+=========================
+
+.. rest_method::  POST /vnflcm/v2/vnf_instances/{vnfInstanceId}/scale
+
+This task resource represents the "Scale VNF" operation. The client can use
+this resource to request scaling a VNF instance.
+
+The POST method scales a VNF instance.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 202
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 401
+  - 404
+  - 406
+  - 409
+  - 422
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfInstanceId: vnf_instance_id
+  - type: scale_type
+  - aspectId: aspect_id
+  - numberOfSteps: number_of_steps
+  - additionalParams: scale_additional_params
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnflcm/scale-vnf-instance-request.json
+   :language: javascript
+
+Update a VNF instance (v2)
+==========================
+
+.. rest_method::  PATCH vnflcm/v2/vnf_instances/{vnfInstanceId}
+
+Changes to the VNF configurable properties are applied to the configuration
+in the VNF instance, and are reflected in the representation of this resource.
+Other changes are applied to the VNF instance information managed by the VNFM,
+and are reflected in the representation of this resource.
+
+According to the ETSI NFV SOL document, there is no API request/response
+specification for Etag yet, and transactions using Etag are not defined
+by standardization. Therefore, the Yoga release does not support
+`Error Code: 412 Precondition Failed`. Once a standard specification
+for this is established, it will be installed on the tacker.
+
+This method modifies an "Individual VNF instance".
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 202
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 401
+  - 404
+  - 406
+  - 409
+  - 422
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfInstanceId: vnf_instance_id
+  - vnfInstanceName: vnf_instance_update_request_name
+  - vnfInstanceDescription: vnf_instance_update_request_description
+  - vnfdId: vnf_instance_update_request_vnfd_id
+  - vnfConfigurableProperties: vnf_instance_update_configurable_properties
+  - metadata: vnf_instance_update_request_metadata
+  - extensions: vnf_instance_update_extensions
+  - vimConnectionInfo: vnf_instance_vim_connection_info
+  - vimId: vim_connection_info_vim_id
+  - vimType: vim_connection_info_vim_type
+  - interfaceInfo: vim_connection_info_interface_info
+  - accessInfo: vim_connection_info_access_info
+  - extra: vim_connection_info_extra
+  - vnfcInfoModifications: vnfc_info_modifications
+  - id: vnfc_info_modifications_id
+  - vnfcConfigurableProperties: vnfc_configurable_properties
+
+.. note::
+    All attribute does not support "null" in JSON Merge Patch.
+    For attribute whose Type is "key value pairs", the key is deleted by
+    specifying null. (The attribute itself cannot be deleted.)
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnflcm/update-vnf-instance-request.json
+   :language: javascript
+
+Change External VNF Connectivity (v2)
+=====================================
+
+.. rest_method::  POST /vnflcm/v2/vnf_instances/{vnfInstanceId}/change_ext_conn
+
+This task resource represents the "Change external VNF connectivity" operation.
+The client can use this resource to change the external connectivity of a VNF instance.
+
+The POST method changes the external connectivity of a VNF instance.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 202
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 401
+  - 404
+  - 406
+  - 409
+  - 422
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfInstanceId: vnf_instance_id
+  - extVirtualLinks: change_ext_vnf_connectivity_ext_virtual_links
+  - id: ext_virtual_links_id
+  - vimConnectionId: vim_connection_id
+  - resourceProviderId: resource_provider_id
+  - resourceId: ext_virtual_links_resource_id
+  - extCps: ext_cps
+  - cpdId: cpd_id
+  - cpConfig: cp_config
+  - parentCpConfigId: parent_cp_config_id
+  - linkPortId: link_port_id
+  - cpProtocolData: cp_protocol_data
+  - layerProtocol: layer_protocol
+  - ipOverEthernet: ip_over_ethernet
+  - macAddress: mac_address
+  - segmentationId: segmentation_id
+  - ipAddresses: ip_addresses
+  - type: ip_address_type
+  - fixedAddresses: fixed_addresses
+  - numDynamicAddresses: num_dynamic_addresses
+  - addressRange: address_range
+  - minAddress: min_address
+  - maxAddress: max_address
+  - subnetId: subnet_id
+  - extLinkPorts: ext_link_ports
+  - id: ext_link_port_id
+  - resourceHandle: ext_link_port_resource_handle
+  - vimConnectionId: vim_connection_id
+  - resourceProviderId: resource_provider_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - vimConnectionInfo: vnf_instance_vim_connection_info
+  - vimId: vim_connection_info_vim_id
+  - vimType: vim_connection_info_vim_type
+  - interfaceInfo: vim_connection_info_interface_info
+  - accessInfo: vim_connection_info_access_info
+  - extra: vim_connection_info_extra
+  - additionalParams: change_ext_vnf_connectivity_additional_params
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnflcm/change-ext-conn-request.json
+   :language: javascript
 
 Show VNF LCM operation occurrence (v2)
 ======================================
@@ -631,6 +858,59 @@ Response Parameters
   - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - changedInfo: changed_info
+  - vnfInstanceName: changed_info_vnf_instance_name
+  - vnfInstanceDescription: changed_info_vnf_instance_description
+  - vnfConfigurableProperties: changed_info_vnf_configurable_properties
+  - metadata: changed_info_metadata
+  - extensions: changed_info_extensions
+  - vimConnectionInfo: changed_info_vim_connection_info
+  - vimId: vim_connection_info_vim_id
+  - vimType: vim_connection_info_vim_type
+  - interfaceInfo: vim_connection_info_interface_info
+  - accessInfo: vim_connection_info_access_info
+  - extra: vim_connection_info_extra
+  - vnfdId: changed_info_vnfd_id
+  - vnfProvider: changed_info_vnf_provider
+  - vnfProductName: changed_info_vnf_product_name
+  - vnfSoftwareVersion: changed_info_vnf_software_version
+  - vnfdVersion: changed_info_vnfd_version
+  - vnfcInfoModifications: vnfc_info_modifications
+  - id: vnfc_info_modifications_id
+  - vnfcConfigurableProperties: vnfc_configurable_properties
+  - changedExtConnectivity: changed_ext_connectivity
+  - id: changed_ext_connectivity_id
+  - resourceHandle: resource_handle
+  - vimConnectionId: vim_connection_id
+  - resourceProviderId: resource_provider_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - extLinkPorts: ext_link_ports
+  - id: ext_link_port_id
+  - resourceHandle: resource_handle
+  - vimConnectionId: vim_connection_id
+  - resourceProviderId: resource_provider_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - cpInstanceId: cp_instance_id
+  - currentVnfExtCpData: current_vnf_ext_cp_data
+  - cpdId: cpd_id
+  - cpConfig: cp_config
+  - parentCpConfigId: parent_cp_config_id
+  - linkPortId: link_port_id
+  - cpProtocolData: cp_protocol_data
+  - layerProtocol: layer_protocol
+  - ipOverEthernet: ip_over_ethernet
+  - macAddress: mac_address
+  - segmentationId: segmentation_id
+  - ipAddresses: ip_addresses
+  - type: ip_address_type
+  - fixedAddresses: fixed_addresses
+  - numDynamicAddresses: num_dynamic_addresses
+  - addressRange: address_range
+  - minAddress: min_address
+  - maxAddress: max_address
+  - subnetId: subnet_id
   - _links: vnf_instance_links
 
 Response Example
@@ -727,6 +1007,59 @@ Response Parameters
   - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - changedInfo: changed_info
+  - vnfInstanceName: changed_info_vnf_instance_name
+  - vnfInstanceDescription: changed_info_vnf_instance_description
+  - vnfConfigurableProperties: changed_info_vnf_configurable_properties
+  - metadata: changed_info_metadata
+  - extensions: changed_info_extensions
+  - vimConnectionInfo: changed_info_vim_connection_info
+  - vimId: vim_connection_info_vim_id
+  - vimType: vim_connection_info_vim_type
+  - interfaceInfo: vim_connection_info_interface_info
+  - accessInfo: vim_connection_info_access_info
+  - extra: vim_connection_info_extra
+  - vnfdId: changed_info_vnfd_id
+  - vnfProvider: changed_info_vnf_provider
+  - vnfProductName: changed_info_vnf_product_name
+  - vnfSoftwareVersion: changed_info_vnf_software_version
+  - vnfdVersion: changed_info_vnfd_version
+  - vnfcInfoModifications: vnfc_info_modifications
+  - id: vnfc_info_modifications_id
+  - vnfcConfigurableProperties: vnfc_configurable_properties
+  - changedExtConnectivity: changed_ext_connectivity
+  - id: changed_ext_connectivity_id
+  - resourceHandle: resource_handle
+  - vimConnectionId: vim_connection_id
+  - resourceProviderId: resource_provider_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - extLinkPorts: ext_link_ports
+  - id: ext_link_port_id
+  - resourceHandle: resource_handle
+  - vimConnectionId: vim_connection_id
+  - resourceProviderId: resource_provider_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - cpInstanceId: cp_instance_id
+  - currentVnfExtCpData: current_vnf_ext_cp_data
+  - cpdId: cpd_id
+  - cpConfig: cp_config
+  - parentCpConfigId: parent_cp_config_id
+  - linkPortId: link_port_id
+  - cpProtocolData: cp_protocol_data
+  - layerProtocol: layer_protocol
+  - ipOverEthernet: ip_over_ethernet
+  - macAddress: mac_address
+  - segmentationId: segmentation_id
+  - ipAddresses: ip_addresses
+  - type: ip_address_type
+  - fixedAddresses: fixed_addresses
+  - numDynamicAddresses: num_dynamic_addresses
+  - addressRange: address_range
+  - minAddress: min_address
+  - maxAddress: max_address
+  - subnetId: subnet_id
   - _links: vnf_instance_links
 
 Response Example
@@ -786,6 +1119,7 @@ Response Codes
   - 404
   - 406
   - 409
+  - 422
 
 Request Parameters
 ------------------
@@ -841,6 +1175,59 @@ Response Parameters
   - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - changedInfo: changed_info
+  - vnfInstanceName: changed_info_vnf_instance_name
+  - vnfInstanceDescription: changed_info_vnf_instance_description
+  - vnfConfigurableProperties: changed_info_vnf_configurable_properties
+  - metadata: changed_info_metadata
+  - extensions: changed_info_extensions
+  - vimConnectionInfo: changed_info_vim_connection_info
+  - vimId: vim_connection_info_vim_id
+  - vimType: vim_connection_info_vim_type
+  - interfaceInfo: vim_connection_info_interface_info
+  - accessInfo: vim_connection_info_access_info
+  - extra: vim_connection_info_extra
+  - vnfdId: changed_info_vnfd_id
+  - vnfProvider: changed_info_vnf_provider
+  - vnfProductName: changed_info_vnf_product_name
+  - vnfSoftwareVersion: changed_info_vnf_software_version
+  - vnfdVersion: changed_info_vnfd_version
+  - vnfcInfoModifications: vnfc_info_modifications
+  - id: vnfc_info_modifications_id
+  - vnfcConfigurableProperties: vnfc_configurable_properties
+  - changedExtConnectivity: changed_ext_connectivity
+  - id: changed_ext_connectivity_id
+  - resourceHandle: resource_handle
+  - vimConnectionId: vim_connection_id
+  - resourceProviderId: resource_provider_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - extLinkPorts: ext_link_ports
+  - id: ext_link_port_id
+  - resourceHandle: resource_handle
+  - vimConnectionId: vim_connection_id
+  - resourceProviderId: resource_provider_id
+  - resourceId: resource_handle_resource_id
+  - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - cpInstanceId: cp_instance_id
+  - currentVnfExtCpData: current_vnf_ext_cp_data
+  - cpdId: cpd_id
+  - cpConfig: cp_config
+  - parentCpConfigId: parent_cp_config_id
+  - linkPortId: link_port_id
+  - cpProtocolData: cp_protocol_data
+  - layerProtocol: layer_protocol
+  - ipOverEthernet: ip_over_ethernet
+  - macAddress: mac_address
+  - segmentationId: segmentation_id
+  - ipAddresses: ip_addresses
+  - type: ip_address_type
+  - fixedAddresses: fixed_addresses
+  - numDynamicAddresses: num_dynamic_addresses
+  - addressRange: address_range
+  - minAddress: min_address
+  - maxAddress: max_address
+  - subnetId: subnet_id
   - _links: vnf_instance_links
 
 Response Example

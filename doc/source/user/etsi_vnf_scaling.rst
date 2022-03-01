@@ -29,6 +29,11 @@ The diagram below shows an overview of the VNF scaling.
 .. figure:: ../_images/etsi_vnf_scaling.png
     :align: left
 
+.. note:: Scale API version 1 supports is_reverse option.
+          Scale-in operation with this option deletes VNF from the last
+          registered VM. Scale API version 2 does not support this option
+          because it deletes VM in this order by default.
+
 
 Prerequisites
 -------------

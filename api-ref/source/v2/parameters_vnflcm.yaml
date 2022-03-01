@@ -170,6 +170,19 @@ affected_vnfcs_vdu_id:
   in: body
   required: true
   type: string
+all:
+  description: |
+    Defines whether network resources and storage resources are included
+    in the heal target.
+  in: body
+  required: false
+  type: boolean
+aspect_id:
+  description: |
+    Identifier of the scaling aspect.
+  in: body
+  required: true
+  type: string
 authentication:
   description: |
     Authentication parameters to configure the use of
@@ -268,6 +281,125 @@ callback_uri:
   in: body
   required: true
   type: string
+cause:
+  description: |
+    Indicates the reason why a healing procedure is required.
+  in: body
+  required: false
+  type: string
+change_ext_vnf_connectivity_additional_params:
+  description: |
+    Additional parameters passed by the NFVO as input to the process,
+    specific to the VNF of which the external connectivity is changed,
+    as declared in the VNFD as part of "ChangeExtVnfConnectivityOpConfig".
+  in: body
+  required: false
+  type: key value pairs
+change_ext_vnf_connectivity_ext_virtual_links:
+  description: |
+    Information about external VLs to change.
+  in: body
+  required: true
+  type: array
+changed_ext_connectivity:
+  description: |
+    Information about changed external connectivity,
+    if applicable.
+  in: body
+  required: false
+  type: object
+changed_ext_connectivity_id:
+  description: |
+    Identifier of the external VL and the related external VL
+    information instance. The identifier is assigned by the
+    NFV-MANO entity that manages this VL instance.
+  in: body
+  required: false
+  type: string
+changed_info:
+  description: |
+    Information about the changed VNF instance information,
+    including VNF configurable properties, if applicable.
+  in: body
+  required: false
+  type: object
+changed_info_extensions:
+  description: |
+    If present, this attribute signals modifications of the
+    "extensions" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: key value pairs
+changed_info_metadata:
+  description: |
+    If present, this attribute signals modifications of the
+    "metadata" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: key value pairs
+changed_info_vim_connection_info:
+  description: |
+    If present, this attribute signals modifications of certain
+    entries in the "vimConnectionInfo" attribute array in "VnfInstance".
+  in: body
+  required: false
+  type: array
+changed_info_vnf_configurable_properties:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfConfigurableProperties" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: key value pairs
+changed_info_vnf_instance_description:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfInstanceDescription" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnf_instance_name:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfInstanceName" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnf_product_name:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfProductName" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnf_provider:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfProvider" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnf_software_version:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfSoftwareVersion" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnfd_id:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfdId" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+changed_info_vnfd_version:
+  description: |
+    If present, this attribute signals modifications of the
+    "vnfdVersion" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
 cp_config:
   description: |
     List of instance data that need to be configured on the CP instances
@@ -275,6 +407,15 @@ cp_config:
   in: body
   required: true
   type: map
+cp_instance_id:
+  description: |
+    Identifier of the external Connection Point instance to which this set of
+    configuration parameters is requested to be applied.
+
+    Shall be present if this instance has already been created.
+  in: body
+  required: false
+  type: string
 cp_protocol_data:
   description: |
     Parameters for configuring the network protocols on the link port that
@@ -629,6 +770,14 @@ grant_id:
   in: body
   required: false
   type: string
+heal_additional_params:
+  description: |
+    Additional parameters passed by the NFVO as input to the healing process,
+    specific to the VNF being healed, as declared in the VNFD as part of
+    "HealVnfOpConfig".
+  in: body
+  required: false
+  type: key value pairs
 instantiated_vnf_info:
   description: |
     Information specific to an instantiated VNF instance. This attribute shall
@@ -760,6 +909,14 @@ num_dynamic_addresses:
   in: body
   required: false
   type: int
+number_of_steps:
+  description: |
+    Number of scaling steps to be executed as part of this
+    Scale VNF operation. It shall be a positive number and the
+    default value shall be 1.
+  in: body
+  required: false
+  type: int
 operation:
   description: |
     Type of the actual LCM operation represented by this
@@ -858,6 +1015,25 @@ resource_provider_id:
     applicable.
   in: body
   required: false
+  type: string
+scale_additional_params:
+  description: |
+    Additional parameters passed by the NFVO as input to the
+    scaling process, specific to the VNF being scaled, as
+    declared in the VNFD as part of "ScaleVnfOpConfig".
+  in: body
+  required: false
+  type: key value pairs
+scale_type:
+  description: |
+    Indicates the type of the scale operation requested.
+    Permitted values:
+
+    SCALE_OUT: adding additional VNFC instances to the VNF to increase capacity.
+
+    SCALE_IN: removing VNFC instances from the VNF in order to release unused capacity.
+  in: body
+  required: true
   type: string
 segmentation_id:
   description: |
@@ -982,7 +1158,7 @@ vim_connection_info_vim_type:
     The set of permitted values is expected to change over time as new
     types or versions of VIMs become available.
   in: body
-  required: false
+  required: true
   type: string
 virtual_storage_resource_info:
   description: |
@@ -1124,6 +1300,51 @@ vnf_instance_terminate_request_additional_params:
   in: body
   required: false
   type: key value pairs
+vnf_instance_update_configurable_properties:
+  description: |
+    Modifications of the "vnfConfigurableProperties" attribute in
+    "VnfInstance". If present, these modifications shall be applied
+    according to the rules of JSON Merge Patch.
+  in: body
+  required: false
+  type: key value pairs
+vnf_instance_update_extensions:
+  description: |
+    Modifications of the "extensions" attribute in "VnfInstance".
+    If present, these modifications shall be applied according to the
+    rules of JSON Merge Patch.
+  in: body
+  required: false
+  type: key value pairs
+vnf_instance_update_request_description:
+  description: |
+    New value of the "vnfInstanceDescription" attribute in
+    "VnfInstance".
+  in: body
+  required: false
+  type: string
+vnf_instance_update_request_metadata:
+  description: |
+    Modifications of the "metadata" attribute in
+    "VnfInstance". If present, these modifications shall be
+    applied according to the rules of JSON Merge Patch.
+  in: body
+  required: false
+  type: key value pairs
+vnf_instance_update_request_name:
+  description: |
+    New value of the "vnfInstanceName" attribute in
+    "VnfInstance".
+  in: body
+  required: false
+  type: string
+vnf_instance_update_request_vnfd_id:
+  description: |
+    New value of the "vnfdId" attribute in "VnfInstance".
+    The value "null" is not permitted.
+  in: body
+  required: false
+  type: string
 vnf_instance_vim_connection_info:
   description: |
     Information about VIM connections to be used for managing the resources
@@ -1347,6 +1568,12 @@ vnf_virtual_link_resource_info_vnf_virtual_link_desc_id:
   in: body
   required: true
   type: string
+vnfc_configurable_properties:
+  description: |
+    Changes of the configurable properties of the VNFC instance.
+  in: body
+  required: true
+  type: key value pairs
 vnfc_cp_info_cpd_id:
   description: |
     Identifier of the VDU CPD, cpdId, in the VNFD.
@@ -1375,6 +1602,21 @@ vnfc_info:
 vnfc_info_id:
   description: |
     Identifier of the VNFC instance.
+  in: body
+  required: true
+  type: string
+vnfc_info_modifications:
+  description: |
+    This attribute signals modifications of certain entries in the
+    "vnfcInfo" attribute array in the "instantiatedVnfInfo" attribute of
+    "VnfInstance".
+  in: body
+  required: false
+  type: array
+vnfc_info_modifications_id:
+  description: |
+    Identifier of the VNFC instance of which the information is to be
+    modified.
   in: body
   required: true
   type: string
@@ -1414,6 +1656,12 @@ vnfc_resource_info_id:
   in: body
   required: true
   type: string
+vnfc_resource_info_ids:
+  description: |
+    List of VNFC instances requiring a healing action.
+  in: body
+  required: false
+  type: array
 vnfc_resource_info_vdu_id:
   description: |
     Reference to the applicable VDU in the VNFD.
