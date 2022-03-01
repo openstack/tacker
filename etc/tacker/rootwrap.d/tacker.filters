@@ -7,4 +7,8 @@
 # cmd-name: filter-name, raw-command, user, args
 
 [Filters]
+privsep-rootwrap-sys_admin: RegExpFilter, privsep-helper, root, privsep-helper, --config-file, /etc/(?!\.\.).*, --privsep_context, tacker.privileged.default, --privsep_sock_path, /tmp/.*
 
+# This definition is for test purpose. It's used in
+# 'tacker.tests.unit.test_rootwrap_exec.RootwrapTestExec.test_rootwrap'
+pwd: CommandFilter, pwd, root
