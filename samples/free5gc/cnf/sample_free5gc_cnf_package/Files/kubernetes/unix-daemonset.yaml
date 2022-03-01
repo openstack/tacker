@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: network-controller-server-unix
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: network-controller-server-unix
+  template:
+    metadata:
+      labels:
+        name: network-controller-server-unix
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: network-controller-server-unix
+        image: sdnvortex/network-controller:v0.4.9
+        securityContext:
+          privileged: true
+        command: ["/go/bin/server"]
+        args: ["-unix=/tmp/vortex.sock", "-netlink-gc"]
+        volumeMounts:
+        - mountPath: /var/run/docker/netns:shared
+          name: docker-ns
+          #mountPropagation: Bidirectional
+        - mountPath: /var/run/docker.sock
+          name: docker-sock
+        - mountPath: /var/run/openvswitch/db.sock
+          name: ovs-sock
+        - mountPath: /tmp/
+          name: grpc-sock
+      volumes:
+      - name: docker-ns
+        hostPath:
+          path: /run/docker/netns
+      - name: docker-sock
+        hostPath:
+          path: /run/docker.sock
+      - name: ovs-sock
+        hostPath:
+          path: /run/openvswitch/db.sock
+      - name: grpc-sock
+        hostPath:
+          path: /tmp/vortex
+      hostNetwork: true
