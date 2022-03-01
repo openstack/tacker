@@ -64,6 +64,17 @@ Container
 
    etsi_cnf_healing
 
+Update
+^^^^^^
+
+VM
+~~
+
+.. toctree::
+   :maxdepth: 1
+
+   etsi_vnf_update
+
 Change External VNF Connectivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

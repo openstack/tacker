@@ -64,185 +64,188 @@ Result:
 
 .. code-block:: console
 
-  +--------------------------+-------------------------------------------------------------------------------------------+
-  | Field                    | Value                                                                                     |
-  +--------------------------+-------------------------------------------------------------------------------------------+
-  | ID                       | 9e086f34-b3c9-4986-b5e5-609a5ac4c1f9                                                      |
-  | Instantiated Vnf Info    | {                                                                                         |
-  |                          |     "flavourId": "simple",                                                                |
-  |                          |     "vnfState": "STARTED",                                                                |
-  |                          |     "extCpInfo": [                                                                        |
-  |                          |         {                                                                                 |
-  |                          |             "id": "241e6022-c9be-4ad6-b7a7-ecb32de20475",                                 |
-  |                          |             "cpdId": "CP1",                                                               |
-  |                          |             "extLinkPortId": null,                                                        |
-  |                          |             "associatedVnfcCpId": "b07ba349-1366-4d14-91e9-07842cdfa7ab",                 |
-  |                          |             "cpProtocolInfo": [                                                           |
-  |                          |                 {                                                                         |
-  |                          |                     "layerProtocol": "IP_OVER_ETHERNET"                                   |
-  |                          |                 }                                                                         |
-  |                          |             ]                                                                             |
-  |                          |         }                                                                                 |
-  |                          |     ],                                                                                    |
-  |                          |     "extVirtualLinkInfo": [                                                               |
-  |                          |         {                                                                                 |
-  |                          |             "id": "net0",                                                                 |
-  |                          |             "resourceHandle": {                                                           |
-  |                          |                 "vimConnectionId": null,                                                  |
-  |                          |                 "resourceId": "1948231e-bbf0-4ff9-a692-40f8d6d5c90d",                     |
-  |                          |                 "vimLevelResourceType": null                                              |
-  |                          |             }                                                                             |
-  |                          |         }                                                                                 |
-  |                          |     ],                                                                                    |
-  |                          |     "vnfcResourceInfo": [                                                                 |
-  |                          |         {                                                                                 |
-  |                          |             "id": "b07ba349-1366-4d14-91e9-07842cdfa7ab",                                 |
-  |                          |             "vduId": "VDU1",                                                              |
-  |                          |             "computeResource": {                                                          |
-  |                          |                 "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",                |
-  |                          |                 "resourceId": "794b9460-d799-4398-98a4-413fb04d2051",                     |
-  |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                |
-  |                          |             },                                                                            |
-  |                          |             "storageResourceIds": [],                                                     |
-  |                          |             "vnfcCpInfo": [                                                               |
-  |                          |                 {                                                                         |
-  |                          |                     "id": "f7297196-a024-4a90-9393-aadeb7de1fb3",                         |
-  |                          |                     "cpdId": "CP1",                                                       |
-  |                          |                     "vnfExtCpId": null,                                                   |
-  |                          |                     "vnfLinkPortId": "cf733c70-8dc2-46b8-8d76-2ebd0bb5bd07",              |
-  |                          |                     "cpProtocolInfo": [                                                   |
-  |                          |                         {                                                                 |
-  |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                           |
-  |                          |                         }                                                                 |
-  |                          |                     ]                                                                     |
-  |                          |                 },                                                                        |
-  |                          |                 {                                                                         |
-  |                          |                     "id": "f3851831-ed25-4e73-b913-6725085c7484",                         |
-  |                          |                     "cpdId": "CP2",                                                       |
-  |                          |                     "vnfExtCpId": null,                                                   |
-  |                          |                     "vnfLinkPortId": "8cc28f47-ee72-420e-b4e8-26913d60bf55"               |
-  |                          |                 }                                                                         |
-  |                          |             ]                                                                             |
-  |                          |         },                                                                                |
-  |                          |         {                                                                                 |
-  |                          |             "id": "aae43bc1-a54e-46e8-9371-59c1ef5fc84d",                                 |
-  |                          |             "vduId": "VDU2",                                                              |
-  |                          |             "computeResource": {                                                          |
-  |                          |                 "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",                |
-  |                          |                 "resourceId": "20e10aed-16e9-4f7c-ad0c-1e885cc1200e",                     |
-  |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                |
-  |                          |             },                                                                            |
-  |                          |             "storageResourceIds": [                                                       |
-  |                          |                 "21703823-33b3-4f06-a52c-28b455146a4a"                                    |
-  |                          |             ],                                                                            |
-  |                          |             "vnfcCpInfo": [                                                               |
-  |                          |                 {                                                                         |
-  |                          |                     "id": "d0088ed3-1639-4f3b-a369-3baae7e86540",                         |
-  |                          |                     "cpdId": "CP3",                                                       |
-  |                          |                     "vnfExtCpId": null,                                                   |
-  |                          |                     "vnfLinkPortId": "d5fe9f7b-f50d-49dc-a3c8-ded2843005e4"               |
-  |                          |                 }                                                                         |
-  |                          |             ]                                                                             |
-  |                          |         }                                                                                 |
-  |                          |     ],                                                                                    |
-  |                          |     "vnfVirtualLinkResourceInfo": [                                                       |
-  |                          |         {                                                                                 |
-  |                          |             "id": "45588051-a413-41a0-a55c-b31fb50fb351",                                 |
-  |                          |             "vnfVirtualLinkDescId": "internalVL2",                                        |
-  |                          |             "networkResource": {                                                          |
-  |                          |                 "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",                |
-  |                          |                 "resourceId": "f45802ae-7fff-4c6e-b62f-3d55baec4c6b",                     |
-  |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                |
-  |                          |             },                                                                            |
-  |                          |             "vnfLinkPorts": [                                                             |
-  |                          |                 {                                                                         |
-  |                          |                     "id": "8cc28f47-ee72-420e-b4e8-26913d60bf55",                         |
-  |                          |                     "resourceHandle": {                                                   |
-  |                          |                         "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",        |
-  |                          |                         "resourceId": "e020ad8f-3f85-4d13-98c1-3ea476bf2d1a",             |
-  |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                       |
-  |                          |                     },                                                                    |
-  |                          |                     "cpInstanceId": "f3851831-ed25-4e73-b913-6725085c7484"                |
-  |                          |                 },                                                                        |
-  |                          |                 {                                                                         |
-  |                          |                     "id": "d5fe9f7b-f50d-49dc-a3c8-ded2843005e4",                         |
-  |                          |                     "resourceHandle": {                                                   |
-  |                          |                         "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",        |
-  |                          |                         "resourceId": "8f1588e5-4410-40eb-84ee-28336a6a0212",             |
-  |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                       |
-  |                          |                     },                                                                    |
-  |                          |                     "cpInstanceId": "d0088ed3-1639-4f3b-a369-3baae7e86540"                |
-  |                          |                 }                                                                         |
-  |                          |             ]                                                                             |
-  |                          |         },                                                                                |
-  |                          |         {                                                                                 |
-  |                          |             "id": "66f3fa97-4046-4fa4-b1ff-19295501021f",                                 |
-  |                          |             "vnfVirtualLinkDescId": "net0",                                               |
-  |                          |             "networkResource": {                                                          |
-  |                          |                 "vimConnectionId": null,                                                  |
-  |                          |                 "resourceId": "1948231e-bbf0-4ff9-a692-40f8d6d5c90d",                     |
-  |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                |
-  |                          |             },                                                                            |
-  |                          |             "vnfLinkPorts": [                                                             |
-  |                          |                 {                                                                         |
-  |                          |                     "id": "cf733c70-8dc2-46b8-8d76-2ebd0bb5bd07",                         |
-  |                          |                     "resourceHandle": {                                                   |
-  |                          |                         "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",        |
-  |                          |                         "resourceId": "1db39a17-bbae-4074-8623-8a8026b51647",             |
-  |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                       |
-  |                          |                     },                                                                    |
-  |                          |                     "cpInstanceId": "f7297196-a024-4a90-9393-aadeb7de1fb3"                |
-  |                          |                 }                                                                         |
-  |                          |             ]                                                                             |
-  |                          |         }                                                                                 |
-  |                          |     ],                                                                                    |
-  |                          |     "virtualStorageResourceInfo": [                                                       |
-  |                          |         {                                                                                 |
-  |                          |             "id": "21703823-33b3-4f06-a52c-28b455146a4a",                                 |
-  |                          |             "virtualStorageDescId": "VirtualStorage",                                     |
-  |                          |             "storageResource": {                                                          |
-  |                          |                 "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",                |
-  |                          |                 "resourceId": "c6231ea2-6a90-4ba4-b38b-778a5d7110ee",                     |
-  |                          |                 "vimLevelResourceType": "OS::Cinder::Volume"                              |
-  |                          |             }                                                                             |
-  |                          |         }                                                                                 |
-  |                          |     ],                                                                                    |
-  |                          |     "vnfcInfo": [                                                                         |
-  |                          |         {                                                                                 |
-  |                          |             "id": "4c999b33-3004-4b44-a826-49d07f5becb9",                                 |
-  |                          |             "vduId": "VDU1",                                                              |
-  |                          |             "vnfcState": "STARTED"                                                        |
-  |                          |         },                                                                                |
-  |                          |         {                                                                                 |
-  |                          |             "id": "d8f83af0-1b4d-4f57-b53c-fd028849be8f",                                 |
-  |                          |             "vduId": "VDU2",                                                              |
-  |                          |             "vnfcState": "STARTED"                                                        |
-  |                          |         }                                                                                 |
-  |                          |     ],                                                                                    |
-  |                          |     "additionalParams": {}                                                                |
-  |                          | }                                                                                         |
-  | Instantiation State      | INSTANTIATED                                                                              |
-  | Links                    | {                                                                                         |
-  |                          |     "self": {                                                                             |
-  |                          |         "href": "/vnflcm/v1/vnf_instances/9e086f34-b3c9-4986-b5e5-609a5ac4c1f9"           |
-  |                          |     },                                                                                    |
-  |                          |     "terminate": {                                                                        |
-  |                          |         "href": "/vnflcm/v1/vnf_instances/9e086f34-b3c9-4986-b5e5-609a5ac4c1f9/terminate" |
-  |                          |     },                                                                                    |
-  |                          |     "heal": {                                                                             |
-  |                          |         "href": "/vnflcm/v1/vnf_instances/9e086f34-b3c9-4986-b5e5-609a5ac4c1f9/heal"      |
-  |                          |     }                                                                                     |
-  |                          | }                                                                                         |
-  | VIM Connection Info      | []                                                                                        |
-  | VNF Instance Description | None                                                                                      |
-  | VNF Instance Name        | vnf-9e086f34-b3c9-4986-b5e5-609a5ac4c1f9                                                  |
-  | VNF Product Name         | Sample VNF                                                                                |
-  | VNF Provider             | Company                                                                                   |
-  | VNF Software Version     | 1.0                                                                                       |
-  | VNFD ID                  | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                      |
-  | VNFD Version             | 1.0                                                                                       |
-  | vnfPkgId                 |                                                                                           |
-  +--------------------------+-------------------------------------------------------------------------------------------+
+  +--------------------------+-------------------------------------------------------------------------------------------------+
+  | Field                    | Value                                                                                           |
+  +--------------------------+-------------------------------------------------------------------------------------------------+
+  | ID                       | 9e086f34-b3c9-4986-b5e5-609a5ac4c1f9                                                            |
+  | Instantiated Vnf Info    | {                                                                                               |
+  |                          |     "flavourId": "simple",                                                                      |
+  |                          |     "vnfState": "STARTED",                                                                      |
+  |                          |     "extCpInfo": [                                                                              |
+  |                          |         {                                                                                       |
+  |                          |             "id": "241e6022-c9be-4ad6-b7a7-ecb32de20475",                                       |
+  |                          |             "cpdId": "CP1",                                                                     |
+  |                          |             "extLinkPortId": null,                                                              |
+  |                          |             "associatedVnfcCpId": "b07ba349-1366-4d14-91e9-07842cdfa7ab",                       |
+  |                          |             "cpProtocolInfo": [                                                                 |
+  |                          |                 {                                                                               |
+  |                          |                     "layerProtocol": "IP_OVER_ETHERNET"                                         |
+  |                          |                 }                                                                               |
+  |                          |             ]                                                                                   |
+  |                          |         }                                                                                       |
+  |                          |     ],                                                                                          |
+  |                          |     "extVirtualLinkInfo": [                                                                     |
+  |                          |         {                                                                                       |
+  |                          |             "id": "net0",                                                                       |
+  |                          |             "resourceHandle": {                                                                 |
+  |                          |                 "vimConnectionId": null,                                                        |
+  |                          |                 "resourceId": "1948231e-bbf0-4ff9-a692-40f8d6d5c90d",                           |
+  |                          |                 "vimLevelResourceType": null                                                    |
+  |                          |             }                                                                                   |
+  |                          |         }                                                                                       |
+  |                          |     ],                                                                                          |
+  |                          |     "vnfcResourceInfo": [                                                                       |
+  |                          |         {                                                                                       |
+  |                          |             "id": "b07ba349-1366-4d14-91e9-07842cdfa7ab",                                       |
+  |                          |             "vduId": "VDU1",                                                                    |
+  |                          |             "computeResource": {                                                                |
+  |                          |                 "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",                      |
+  |                          |                 "resourceId": "794b9460-d799-4398-98a4-413fb04d2051",                           |
+  |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                      |
+  |                          |             },                                                                                  |
+  |                          |             "storageResourceIds": [],                                                           |
+  |                          |             "vnfcCpInfo": [                                                                     |
+  |                          |                 {                                                                               |
+  |                          |                     "id": "f7297196-a024-4a90-9393-aadeb7de1fb3",                               |
+  |                          |                     "cpdId": "CP1",                                                             |
+  |                          |                     "vnfExtCpId": null,                                                         |
+  |                          |                     "vnfLinkPortId": "cf733c70-8dc2-46b8-8d76-2ebd0bb5bd07",                    |
+  |                          |                     "cpProtocolInfo": [                                                         |
+  |                          |                         {                                                                       |
+  |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                                 |
+  |                          |                         }                                                                       |
+  |                          |                     ]                                                                           |
+  |                          |                 },                                                                              |
+  |                          |                 {                                                                               |
+  |                          |                     "id": "f3851831-ed25-4e73-b913-6725085c7484",                               |
+  |                          |                     "cpdId": "CP2",                                                             |
+  |                          |                     "vnfExtCpId": null,                                                         |
+  |                          |                     "vnfLinkPortId": "8cc28f47-ee72-420e-b4e8-26913d60bf55"                     |
+  |                          |                 }                                                                               |
+  |                          |             ]                                                                                   |
+  |                          |         },                                                                                      |
+  |                          |         {                                                                                       |
+  |                          |             "id": "aae43bc1-a54e-46e8-9371-59c1ef5fc84d",                                       |
+  |                          |             "vduId": "VDU2",                                                                    |
+  |                          |             "computeResource": {                                                                |
+  |                          |                 "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",                      |
+  |                          |                 "resourceId": "20e10aed-16e9-4f7c-ad0c-1e885cc1200e",                           |
+  |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                      |
+  |                          |             },                                                                                  |
+  |                          |             "storageResourceIds": [                                                             |
+  |                          |                 "21703823-33b3-4f06-a52c-28b455146a4a"                                          |
+  |                          |             ],                                                                                  |
+  |                          |             "vnfcCpInfo": [                                                                     |
+  |                          |                 {                                                                               |
+  |                          |                     "id": "d0088ed3-1639-4f3b-a369-3baae7e86540",                               |
+  |                          |                     "cpdId": "CP3",                                                             |
+  |                          |                     "vnfExtCpId": null,                                                         |
+  |                          |                     "vnfLinkPortId": "d5fe9f7b-f50d-49dc-a3c8-ded2843005e4"                     |
+  |                          |                 }                                                                               |
+  |                          |             ]                                                                                   |
+  |                          |         }                                                                                       |
+  |                          |     ],                                                                                          |
+  |                          |     "vnfVirtualLinkResourceInfo": [                                                             |
+  |                          |         {                                                                                       |
+  |                          |             "id": "45588051-a413-41a0-a55c-b31fb50fb351",                                       |
+  |                          |             "vnfVirtualLinkDescId": "internalVL2",                                              |
+  |                          |             "networkResource": {                                                                |
+  |                          |                 "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",                      |
+  |                          |                 "resourceId": "f45802ae-7fff-4c6e-b62f-3d55baec4c6b",                           |
+  |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                      |
+  |                          |             },                                                                                  |
+  |                          |             "vnfLinkPorts": [                                                                   |
+  |                          |                 {                                                                               |
+  |                          |                     "id": "8cc28f47-ee72-420e-b4e8-26913d60bf55",                               |
+  |                          |                     "resourceHandle": {                                                         |
+  |                          |                         "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",              |
+  |                          |                         "resourceId": "e020ad8f-3f85-4d13-98c1-3ea476bf2d1a",                   |
+  |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                             |
+  |                          |                     },                                                                          |
+  |                          |                     "cpInstanceId": "f3851831-ed25-4e73-b913-6725085c7484"                      |
+  |                          |                 },                                                                              |
+  |                          |                 {                                                                               |
+  |                          |                     "id": "d5fe9f7b-f50d-49dc-a3c8-ded2843005e4",                               |
+  |                          |                     "resourceHandle": {                                                         |
+  |                          |                         "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",              |
+  |                          |                         "resourceId": "8f1588e5-4410-40eb-84ee-28336a6a0212",                   |
+  |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                             |
+  |                          |                     },                                                                          |
+  |                          |                     "cpInstanceId": "d0088ed3-1639-4f3b-a369-3baae7e86540"                      |
+  |                          |                 }                                                                               |
+  |                          |             ]                                                                                   |
+  |                          |         },                                                                                      |
+  |                          |         {                                                                                       |
+  |                          |             "id": "66f3fa97-4046-4fa4-b1ff-19295501021f",                                       |
+  |                          |             "vnfVirtualLinkDescId": "net0",                                                     |
+  |                          |             "networkResource": {                                                                |
+  |                          |                 "vimConnectionId": null,                                                        |
+  |                          |                 "resourceId": "1948231e-bbf0-4ff9-a692-40f8d6d5c90d",                           |
+  |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                      |
+  |                          |             },                                                                                  |
+  |                          |             "vnfLinkPorts": [                                                                   |
+  |                          |                 {                                                                               |
+  |                          |                     "id": "cf733c70-8dc2-46b8-8d76-2ebd0bb5bd07",                               |
+  |                          |                     "resourceHandle": {                                                         |
+  |                          |                         "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",              |
+  |                          |                         "resourceId": "1db39a17-bbae-4074-8623-8a8026b51647",                   |
+  |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                             |
+  |                          |                     },                                                                          |
+  |                          |                     "cpInstanceId": "f7297196-a024-4a90-9393-aadeb7de1fb3"                      |
+  |                          |                 }                                                                               |
+  |                          |             ]                                                                                   |
+  |                          |         }                                                                                       |
+  |                          |     ],                                                                                          |
+  |                          |     "virtualStorageResourceInfo": [                                                             |
+  |                          |         {                                                                                       |
+  |                          |             "id": "21703823-33b3-4f06-a52c-28b455146a4a",                                       |
+  |                          |             "virtualStorageDescId": "VirtualStorage",                                           |
+  |                          |             "storageResource": {                                                                |
+  |                          |                 "vimConnectionId": "13bef9df-7c54-4b37-9da0-1256953e7f60",                      |
+  |                          |                 "resourceId": "c6231ea2-6a90-4ba4-b38b-778a5d7110ee",                           |
+  |                          |                 "vimLevelResourceType": "OS::Cinder::Volume"                                    |
+  |                          |             }                                                                                   |
+  |                          |         }                                                                                       |
+  |                          |     ],                                                                                          |
+  |                          |     "vnfcInfo": [                                                                               |
+  |                          |         {                                                                                       |
+  |                          |             "id": "4c999b33-3004-4b44-a826-49d07f5becb9",                                       |
+  |                          |             "vduId": "VDU1",                                                                    |
+  |                          |             "vnfcState": "STARTED"                                                              |
+  |                          |         },                                                                                      |
+  |                          |         {                                                                                       |
+  |                          |             "id": "d8f83af0-1b4d-4f57-b53c-fd028849be8f",                                       |
+  |                          |             "vduId": "VDU2",                                                                    |
+  |                          |             "vnfcState": "STARTED"                                                              |
+  |                          |         }                                                                                       |
+  |                          |     ],                                                                                          |
+  |                          |     "additionalParams": {}                                                                      |
+  |                          | }                                                                                               |
+  | Instantiation State      | INSTANTIATED                                                                                    |
+  | Links                    | {                                                                                               |
+  |                          |     "self": {                                                                                   |
+  |                          |         "href": "/vnflcm/v1/vnf_instances/9e086f34-b3c9-4986-b5e5-609a5ac4c1f9"                 |
+  |                          |     },                                                                                          |
+  |                          |     "terminate": {                                                                              |
+  |                          |         "href": "/vnflcm/v1/vnf_instances/9e086f34-b3c9-4986-b5e5-609a5ac4c1f9/terminate"       |
+  |                          |     },                                                                                          |
+  |                          |     "heal": {                                                                                   |
+  |                          |         "href": "/vnflcm/v1/vnf_instances/9e086f34-b3c9-4986-b5e5-609a5ac4c1f9/heal"            |
+  |                          |     },                                                                                          |
+  |                          |     "changeExtConn": {                                                                          |
+  |                          |         "href": "/vnflcm/v1/vnf_instances/9e086f34-b3c9-4986-b5e5-609a5ac4c1f9/change_ext_conn" |
+  |                          |     }                                                                                           |
+  |                          | }                                                                                               |
+  | VIM Connection Info      | []                                                                                              |
+  | VNF Instance Description | None                                                                                            |
+  | VNF Instance Name        | vnf-9e086f34-b3c9-4986-b5e5-609a5ac4c1f9                                                        |
+  | VNF Product Name         | Sample VNF                                                                                      |
+  | VNF Provider             | Company                                                                                         |
+  | VNF Software Version     | 1.0                                                                                             |
+  | VNFD ID                  | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                            |
+  | VNFD Version             | 1.0                                                                                             |
+  | vnfPkgId                 |                                                                                                 |
+  +--------------------------+-------------------------------------------------------------------------------------------------+
 
 .. note::
        The value set for 'VNF Instance Name' corresponds to 'Stack Name'
@@ -269,6 +272,43 @@ There are two main methods for VNF healing.
        corresponds to one VDU in the VNF.
        For more information on VNFC, see `NFV-SOL002 v2.6.1`_.
 
+
+The client can specify the target resources for healing
+with two parameters in the API request.
+
+- *vnfcInstanceId* is a list which indicates VNFC instances
+  for which a healing action is requested.
+
+- *all* indicates whether network resources and storage resources
+  are included in the heal target. This is set in the attribute
+  of *additionalParams*.
+
+With the combination of these parameters,
+Tacker supports the following patterns of healing.
+
+- Pattern A. *vnfcInstanceId* is included in the request.
+
+  - Pattern A-1. *all = False* is included in the request or *all* is not
+    included in the request.
+
+    - Only specified VNFC instances are healed.
+  - Pattern A-2. *all = True* are included in the request.
+
+    - Specified VNFC instances and storage resources are healed.
+- Pattern B. *vnfcInstanceId* is not included in the request.
+
+  - Pattern B-1. *all = False* is included in the request or *all* is not
+    included in the request.
+
+    - All VNFC instances included in the VNF instance are healed.
+  - Pattern B-2. *all = True* are included in the request.
+
+    - All resources included in the VNF instance are healed.
+      It includes VNFC instances, network resources, and storage resources
+      but not external virtual networks.
+
+.. note::
+       *all* option is not supported by the version 1 API.
 
 How to Heal of the Entire VNF
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
