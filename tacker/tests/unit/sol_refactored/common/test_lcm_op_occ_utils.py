@@ -81,6 +81,109 @@ _inst_info_example_1 = {
                 }
             ],
             # "currentVnfExtCpData": omitted
+        },
+        # following two data are for test_update_lcmocc_change_ext_conn
+        {
+            "id": "cba2e572-2cc5-4d11-af60-728615883206",
+            "resourceHandle": {
+                "resourceId": "4529d333-dbcc-4d93-9b64-210647712569"
+            },
+            "extLinkPorts": [],
+            "currentVnfExtCpData": [
+                {
+                    "cpdId": "VDU1_CP1",
+                    "cpConfig": {
+                        "VDU1_CP1_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "numDynamicAddresses": 1
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "cpdId": "VDU2_CP1",
+                    "cpConfig": {
+                        "VDU2_CP1_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "fixedAddresses": [
+                                                    "10.10.0.102"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "fc131806-8a4f-43a3-82c0-a38e87fe87bd",
+            "resourceHandle": {
+                "resourceId": "5529d333-dbcc-4d93-9b64-210647712569"
+            },
+            "extLinkPorts": [],
+            "currentVnfExtCpData": [
+                {
+                    "cpdId": "VDU1_CP2",
+                    "cpConfig": {
+                        "VDU1_CP2_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "numDynamicAddresses": 1,
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "cpdId": "VDU2_CP2",
+                    "cpConfig": {
+                        "VDU2_CP2_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "fixedAddresses": [
+                                                    "10.10.1.102"
+                                                ],
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
         }
     ],
     "extManagedVirtualLinkInfo": [
@@ -613,6 +716,190 @@ _inst_info_example_2 = {
             }
         }
     ],
+    # "vnfcInfo": omitted
+}
+
+# example_3 is changed external virtual link ports from example_1.
+_inst_info_example_3 = {
+    # "flavourId", "vnfState", "scaleStatus", "maxScaleLevels" are omitted
+    # "extCpInfo": omitted
+    "extVirtualLinkInfo": [
+        {
+            "id": "bbf0932a-6142-4ea8-93cd-8059dba594a1",
+            "resourceHandle": {
+                "resourceId": "3529d333-dbcc-4d93-9b64-210647712569"
+            },
+            "extLinkPorts": [
+                {
+                    "id": "res_id_VDU1_CP1_1",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU1_CP1_1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU1_CP1_1"
+                }
+            ],
+            # "currentVnfExtCpData": omitted
+        },
+        {
+            "id": "2ff742fc-da6d-423a-8fba-6aa6af8da6f2",
+            "resourceHandle": {
+                "resourceId": "9113aff7-9ba2-43f4-8b1e-fff80ae001c5"
+            },
+            "extLinkPorts": [
+                {
+                    "id": "res_id_VDU2_CP1_modified",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU2_CP1_modified",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU2_CP1"
+                },
+            ],
+            # "currentVnfExtCpData": omitted
+        },
+        {
+            "id": "790949df-c7b3-4926-a559-3895412f1dfe",
+            "resourceHandle": {
+                "resourceId": "367e5b3b-34dc-47f2-85b8-c39e3272893a"
+            },
+            "extLinkPorts": [
+                {
+                    "id": "res_id_VDU2_CP2",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU2_CP2",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU2_CP2"
+                },
+                {
+                    "id": "res_id_VDU1_CP2_1",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU1_CP2_1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU1_CP2_1"
+                }
+            ],
+            # "currentVnfExtCpData": omitted
+        },
+        {  # same as _inst_info_example_1
+            "id": "cba2e572-2cc5-4d11-af60-728615883206",
+            "resourceHandle": {
+                "resourceId": "4529d333-dbcc-4d93-9b64-210647712569"
+            },
+            "extLinkPorts": [],
+            "currentVnfExtCpData": [
+                {
+                    "cpdId": "VDU1_CP1",
+                    "cpConfig": {
+                        "VDU1_CP1_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "numDynamicAddresses": 1
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "cpdId": "VDU2_CP1",
+                    "cpConfig": {
+                        "VDU2_CP1_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "fixedAddresses": [
+                                                    "10.10.0.102"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {  # ip address of VDU2_CP2 is changed
+            "id": "fc131806-8a4f-43a3-82c0-a38e87fe87bd",
+            "resourceHandle": {
+                "resourceId": "5529d333-dbcc-4d93-9b64-210647712569"
+            },
+            "extLinkPorts": [],
+            "currentVnfExtCpData": [
+                {
+                    "cpdId": "VDU1_CP2",
+                    "cpConfig": {
+                        "VDU1_CP2_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "numDynamicAddresses": 1,
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "cpdId": "VDU2_CP2",
+                    "cpConfig": {
+                        "VDU2_CP2_1": {
+                            "cpProtocolData": [
+                                {
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "type": "IPV4",
+                                                "fixedAddresses": [
+                                                    "10.10.1.103"
+                                                ],
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    # NOTE: vnfcCpInfo of VnfcResourceInfo is changed exactly, but it is
+    # not looked at lcmocc_update.
+    "vnfcResourceInfo": _inst_info_example_1["vnfcResourceInfo"],
+    # other members are same as example_1
+    "extManagedVirtualLinkInfo":
+        _inst_info_example_1["extManagedVirtualLinkInfo"],
+    "vnfVirtualLinkResourceInfo":
+        _inst_info_example_1["vnfVirtualLinkResourceInfo"],
+    "virtualStorageResourceInfo":
+        _inst_info_example_1["virtualStorageResourceInfo"],
     # "vnfcInfo": omitted
 }
 
@@ -1233,6 +1520,38 @@ _expected_changedInfo = {
     ]
 }
 
+_expected_resource_changes_change_ext_conn = {
+    "affectedExtLinkPorts": [
+        {
+            "id": "res_id_VDU2_CP1",
+            "changeType": "REMOVED",
+            "extCpInstanceId": "cp-res_id_VDU2_CP1",
+            "resourceHandle": {
+                "resourceId": "res_id_VDU2_CP1",
+                "vimConnectionId": "vim_connection_id",
+                "vimLevelResourceType": "OS::Neutron::Port"
+            }
+        },
+        {
+            "id": "res_id_VDU2_CP1_modified",
+            "changeType": "ADDED",
+            "extCpInstanceId": "cp-res_id_VDU2_CP1",
+            "resourceHandle": {
+                "resourceId": "res_id_VDU2_CP1_modified",
+                "vimConnectionId": "vim_connection_id",
+                "vimLevelResourceType": "OS::Neutron::Port"
+            }
+        }
+    ]
+}
+
+_expected_changed_ext_connectivity = [
+    # sort by id
+    _inst_info_example_3['extVirtualLinkInfo'][1],
+    _inst_info_example_3['extVirtualLinkInfo'][0],
+    _inst_info_example_3['extVirtualLinkInfo'][4]
+]
+
 
 class TestLcmOpOccUtils(base.BaseTestCase):
 
@@ -1366,3 +1685,28 @@ class TestLcmOpOccUtils(base.BaseTestCase):
         # check changedInfo
         lcmocc = lcmocc.to_dict()
         self.assertEqual(_expected_changedInfo, lcmocc['changedInfo'])
+
+    def test_update_lcmocc_change_ext_conn(self):
+        # prepare
+        inst_saved = objects.VnfInstanceV2()
+        inst_saved.instantiatedVnfInfo = (
+            objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                _inst_info_example_1))
+        inst = objects.VnfInstanceV2()
+        inst.instantiatedVnfInfo = (
+            objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                _inst_info_example_3))
+        lcmocc = objects.VnfLcmOpOccV2(
+            operation=fields.LcmOperationType.CHANGE_EXT_CONN)
+
+        # execute update_lcmocc
+        lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
+
+        # check resourceChanges
+        lcmocc = lcmocc.to_dict()
+        self.assertEqual(
+            _expected_resource_changes_change_ext_conn,
+            self._sort_resource_changes(lcmocc['resourceChanges']))
+        self.assertEqual(
+            _expected_changed_ext_connectivity,
+            sorted(lcmocc['changedExtConnectivity'], key=lambda x: x['id']))

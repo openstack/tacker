@@ -45,6 +45,11 @@ class AbstractUserData(metaclass=abc.ABCMeta):
     def scale(req, inst, grant_req, grant, tmp_csar_dir):
         raise sol_ex.UserDataClassNotImplemented()
 
+    @staticmethod
+    @abc.abstractmethod
+    def change_ext_conn(req, inst, grant_req, grant, tmp_csar_dir):
+        raise sol_ex.UserDataClassNotImplemented()
+
 
 def get_vnfd(vnfd_id, csar_dir):
     vnfd = vnfd_utils.Vnfd(vnfd_id)
@@ -206,6 +211,20 @@ def get_param_fixed_ips(cp_name, grant, req):
     vls = grant.get('extVirtualLinks', []) + req.get('extVirtualLinks', [])
     for vl in vls:
         for extcp in vl['extCps']:
+            if extcp['cpdId'] == cp_name:
+                return _get_fixed_ips_from_extcp(extcp)
+
+
+def get_param_network_from_inst(cp_name, inst):
+    for vl in inst['instantiatedVnfInfo'].get('extVirtualLinkInfo', []):
+        for extcp in vl.get('currentVnfExtCpData', []):
+            if extcp['cpdId'] == cp_name:
+                return vl['resourceHandle']['resourceId']
+
+
+def get_param_fixed_ips_from_inst(cp_name, inst):
+    for vl in inst['instantiatedVnfInfo'].get('extVirtualLinkInfo', []):
+        for extcp in vl.get('currentVnfExtCpData', []):
             if extcp['cpdId'] == cp_name:
                 return _get_fixed_ips_from_extcp(extcp)
 

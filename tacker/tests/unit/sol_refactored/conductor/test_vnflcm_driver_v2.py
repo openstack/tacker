@@ -126,6 +126,46 @@ _inst_req_example = {
     }
 }
 
+#  ChangeExtVnfConnectivityRequest example for change_ext_conn grant test
+_ext_vl_3 = {
+    "id": uuidutils.generate_uuid(),
+    "resourceId": 'net2_id',
+    "extCps": [
+        {
+            "cpdId": "VDU1_CP2",
+            "cpConfig": {
+                "VDU1_CP2_1": {
+                    "cpProtocolData": [{
+                        "layerProtocol": "IP_OVER_ETHERNET",
+                        "ipOverEthernet": {
+                            "ipAddresses": [{
+                                "type": "IPV4",
+                                "numDynamicAddresses": 1,
+                                "subnetId": 'subnet2_id'}]}}]}
+            }
+        },
+        {
+            "cpdId": "VDU2_CP1",
+            "cpConfig": {
+                "VDU2_CP1_1": {
+                    "linkPortId": "link_port_id"
+                }
+            }
+        }
+    ],
+    "extLinkPorts": [
+        {
+            "id": "link_port_id",
+            "resourceHandle": {
+                "resourceId": "res_id_VDU2_CP1"
+            }
+        }
+    ]
+}
+_change_ext_conn_req_example = {
+    "extVirtualLinks": [_ext_vl_3]
+}
+
 # instantiatedVnfInfo example for terminate/scale grant test
 # NOTE:
 # - some identifiers are modified to make check easy.
@@ -1227,3 +1267,107 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         }
 
         self.assertEqual(expected_modify_result, inst)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_change_ext_conn_grant(self, mocked_grant):
+        # prepare
+        req = objects.ChangeExtVnfConnectivityRequest.from_dict(
+            _change_ext_conn_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_example)
+        inst.instantiatedVnfInfo = inst_info
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_EXT_CONN,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req
+        )
+
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run change_ext_conn_grant
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_1)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': SAMPLE_VNFD_ID,
+            'operation': 'CHANGE_EXT_CONN',
+            'isAutomaticInvocation': False,
+            '_links': self._grant_req_links(lcmocc.id, inst.id)
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        # check updateResources
+        update_reses = grant_req['updateResources']
+        check_reses = {
+            'COMPUTE': {'VDU1': [], 'VDU2': []}
+        }
+        expected_res_ids = {
+            'COMPUTE': {
+                'VDU1': ['res_id_VDU1_1', 'res_id_VDU1_2'],
+                'VDU2': ['res_id_VDU2']
+            }
+        }
+        for res in update_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['resource']['resourceId'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(expected_res_ids[key][name], ids)
+
+        # check removeResources
+        rm_reses = grant_req['removeResources']
+        check_reses = {
+            'LINKPORT': {'VDU1_CP2': [], 'VDU2_CP1': []}
+        }
+        expected_res_ids = {
+            'LINKPORT': {
+                'VDU1_CP2': ['res_id_VDU1_1_CP2', 'res_id_VDU1_2_CP2'],
+                'VDU2_CP1': ['res_id_VDU2_CP1']
+            }
+        }
+        for res in rm_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['resource']['resourceId'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(expected_res_ids[key][name], ids)
+
+        # check addResources
+        add_reses = grant_req['addResources']
+        check_reses = {
+            'LINKPORT': {'VDU1_CP2': []}
+        }
+        expected_num = {
+            'LINKPORT': {'VDU1_CP2': 2}
+        }
+        for res in add_reses:
+            check_reses[res['type']][res['resourceTemplateId']].append(
+                res['id'])
+
+        for key, value in check_reses.items():
+            for name, ids in value.items():
+                self.assertEqual(expected_num[key][name], len(ids))

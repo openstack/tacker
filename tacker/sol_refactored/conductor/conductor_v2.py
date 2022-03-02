@@ -215,11 +215,12 @@ class ConductorV2(object):
 
             lcmocc.operationState = fields.LcmOperationStateType.ROLLED_BACK
             with context.session.begin(subtransactions=True):
-                # it is not necessary to update inst DB because it was not
-                # changed when the operationState became FAILED_TEMP.
-                # NOTE: inst object may be changed in driver's rollback
-                # method temporary but must not save it.
                 lcmocc.update(context)
+                # NOTE: Basically inst is not changed. But there is a case
+                # that VIM resources may be changed while rollback. Only
+                # change_ext_conn_rollback at the moment.
+                if lcmocc.operation == fields.LcmOperationType.CHANGE_EXT_CONN:
+                    inst.update(context)
                 # grant_req and grant are not necessary any more.
                 if grant_req is not None:
                     grant_req.delete(context)

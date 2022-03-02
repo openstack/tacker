@@ -73,16 +73,15 @@ class Openstack(object):
     def instantiate(self, req, inst, grant_req, grant, vnfd):
         # make HOT
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
-
         LOG.debug("stack fields: %s", fields)
-
-        stack_name = fields['stack_name']
 
         # create or update stack
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
+        stack_name = heat_utils.get_stack_name(inst)
         status, _ = heat_client.get_status(stack_name)
         if status is None:
+            fields['stack_name'] = stack_name
             heat_client.create_stack(fields)
         else:
             heat_client.update_stack(stack_name, fields)
@@ -127,15 +126,12 @@ class Openstack(object):
         return fields
 
     def scale(self, req, inst, grant_req, grant, vnfd):
-        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
-        heat_client = heat_utils.HeatClient(vim_info)
-
         # make HOT
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
-
         LOG.debug("stack fields: %s", fields)
 
-        stack_name = fields.pop('stack_name')
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        heat_client = heat_utils.HeatClient(vim_info)
 
         # mark unhealthy to servers to be removed if scale in
         if req.type == 'SCALE_IN':
@@ -153,6 +149,7 @@ class Openstack(object):
                         vnfc.metadata['parent_resource_name'])
 
         # update stack
+        stack_name = heat_utils.get_stack_name(inst)
         fields = self._update_nfv_dict(heat_client, stack_name, fields)
         heat_client.update_stack(stack_name, fields)
 
@@ -193,6 +190,40 @@ class Openstack(object):
 
         # NOTE: instantiatedVnfInfo is not necessary to update since it
         # should be same as before scale API started.
+
+    def change_ext_conn(self, req, inst, grant_req, grant, vnfd):
+        # make HOT
+        fields = self._make_hot(req, inst, grant_req, grant, vnfd)
+        LOG.debug("stack fields: %s", fields)
+
+        # update stack
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        heat_client = heat_utils.HeatClient(vim_info)
+        stack_name = heat_utils.get_stack_name(inst)
+        fields = self._update_nfv_dict(heat_client, stack_name, fields)
+        heat_client.update_stack(stack_name, fields)
+
+        # get stack resource
+        heat_reses = heat_client.get_resources(stack_name)
+
+        # make instantiated_vnf_info
+        self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
+            heat_reses)
+
+    def change_ext_conn_rollback(self, req, inst, grant_req, grant, vnfd):
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        heat_client = heat_utils.HeatClient(vim_info)
+        stack_name = heat_utils.get_stack_name(inst)
+        fields = self._update_nfv_dict(heat_client, stack_name,
+            userdata_default.DefaultUserData.change_ext_conn_rollback(
+                req, inst, grant_req, grant, vnfd.csar_dir))
+        heat_client.update_stack(stack_name, fields)
+
+        # NOTE: it is necessary to re-create instantiatedVnfInfo because
+        # ports may be changed.
+        heat_reses = heat_client.get_resources(stack_name)
+        self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
+            heat_reses)
 
     def _make_hot(self, req, inst, grant_req, grant, vnfd):
         if grant_req.operation == v2fields.LcmOperationType.INSTANTIATE:
@@ -248,8 +279,6 @@ class Openstack(object):
 
             fields = pickle.loads(out.stdout)
 
-        stack_name = heat_utils.get_stack_name(inst)
-        fields['stack_name'] = stack_name
         fields['timeout_mins'] = (
             CONF.v2_vnfm.openstack_vim_stack_create_timeout)
 
@@ -308,66 +337,80 @@ class Openstack(object):
 
         return proto_info
 
+    def _make_link_ports(self, req_ext_vl, ext_cp_infos):
+        link_ports = []
+        if not req_ext_vl.obj_attr_is_set('extLinkPorts'):
+            return link_ports
+
+        for req_link_port in req_ext_vl.extLinkPorts:
+            link_port = objects.ExtLinkPortInfoV2(
+                id=_make_link_port_id(req_link_port.id),
+                resourceHandle=req_link_port.resourceHandle,
+            )
+            ext_cp_info = objects.VnfExtCpInfoV2(
+                id=_make_cp_info_id(link_port.id),
+                extLinkPortId=link_port.id
+                # associatedVnfcCpId may set later
+            )
+            link_port.cpInstanceId = ext_cp_info.id
+
+            for ext_cp in req_ext_vl.extCps:
+                found = False
+                for key, cp_conf in ext_cp.cpConfig.items():
+                    if (cp_conf.obj_attr_is_set('linkPortId') and
+                            cp_conf.linkPortId == req_link_port.id):
+                        ext_cp_info.cpdId = ext_cp.cpdId
+                        ext_cp_info.cpConfigId = key
+                        # NOTE: cpProtocolInfo can't be filled
+                        found = True
+                        break
+                if found:
+                    break
+
+            link_ports.append(link_port)
+            ext_cp_infos.append(ext_cp_info)
+
+        return link_ports
+
+    def _make_ext_vl_from_req(self, req_ext_vl, ext_cp_infos):
+        ext_vl = objects.ExtVirtualLinkInfoV2(
+            id=req_ext_vl.id,
+            resourceHandle=objects.ResourceHandle(
+                resourceId=req_ext_vl.resourceId
+            ),
+            currentVnfExtCpData=req_ext_vl.extCps
+        )
+        if req_ext_vl.obj_attr_is_set('vimConnectionId'):
+            ext_vl.resourceHandle.vimConnectionId = (
+                req_ext_vl.vimConnectionId)
+        if req_ext_vl.obj_attr_is_set('resourceProviderId'):
+            ext_vl.resourceHandle.resourceProviderId = (
+                req_ext_vl.resourceProviderId)
+
+        link_ports = self._make_link_ports(req_ext_vl, ext_cp_infos)
+        if link_ports:
+            ext_vl.extLinkPorts = link_ports
+
+        ext_vl.extLinkPorts = link_ports
+
+        return ext_vl
+
     def _make_ext_vl_info_from_req(self, req, grant, ext_cp_infos):
         # make extVirtualLinkInfo
-        ext_vls = []
         req_ext_vls = []
         if grant.obj_attr_is_set('extVirtualLinks'):
             req_ext_vls = grant.extVirtualLinks
         elif req.obj_attr_is_set('extVirtualLinks'):
             req_ext_vls = req.extVirtualLinks
 
-        for req_ext_vl in req_ext_vls:
-            ext_vl = objects.ExtVirtualLinkInfoV2(
-                id=req_ext_vl.id,
-                resourceHandle=objects.ResourceHandle(
-                    resourceId=req_ext_vl.resourceId
-                ),
-                currentVnfExtCpData=req_ext_vl.extCps
-            )
-            if req_ext_vl.obj_attr_is_set('vimConnectionId'):
-                ext_vl.resourceHandle.vimConnectionId = (
-                    req_ext_vl.vimConnectionId)
-            if req_ext_vl.obj_attr_is_set('resourceProviderId'):
-                ext_vl.resourceHandle.resourceProviderId = (
-                    req_ext_vl.resourceProviderId)
+        return [self._make_ext_vl_from_req(req_ext_vl, ext_cp_infos)
+                for req_ext_vl in req_ext_vls]
 
-            ext_vls.append(ext_vl)
-
-            if not req_ext_vl.obj_attr_is_set('extLinkPorts'):
-                continue
-            link_ports = []
-            for req_link_port in req_ext_vl.extLinkPorts:
-                link_port = objects.ExtLinkPortInfoV2(
-                    id=_make_link_port_id(req_link_port.id),
-                    resourceHandle=req_link_port.resourceHandle,
-                )
-                ext_cp_info = objects.VnfExtCpInfoV2(
-                    id=_make_cp_info_id(link_port.id),
-                    extLinkPortId=link_port.id
-                    # associatedVnfcCpId may set later
-                )
-                link_port.cpInstanceId = ext_cp_info.id
-
-                for ext_cp in req_ext_vl.extCps:
-                    found = False
-                    for key, cp_conf in ext_cp.cpConfig.items():
-                        if (cp_conf.obj_attr_is_set('linkPortId') and
-                                cp_conf.linkPortId == req_link_port.id):
-                            ext_cp_info.cpdId = ext_cp.cpdId
-                            ext_cp_info.cpConfigId = key
-                            # NOTE: cpProtocolInfo can't be filled
-                            found = True
-                            break
-                    if found:
-                        break
-
-                link_ports.append(link_port)
-                ext_cp_infos.append(ext_cp_info)
-
-            ext_vl.extLinkPorts = link_ports
-
-        return ext_vls
+    def _find_ext_cp_info(self, link_port, ext_cp_infos):
+        for ext_cp in ext_cp_infos:
+            if ext_cp.id == link_port.cpInstanceId:
+                return ext_cp
+        # never reach here
 
     def _make_ext_vl_info_from_inst(self, old_inst_vnf_info, ext_cp_infos):
         # make extVirtualLinkInfo from old inst.extVirtualLinkInfo
@@ -384,17 +427,80 @@ class Openstack(object):
                 continue
             new_link_ports = []
             for link_port in ext_vl.extLinkPorts:
-                if not _is_link_port(link_port.id):
-                    # port created by heat. re-create later
-                    continue
-
-                new_link_ports.append(link_port)
-                for ext_cp in old_cp_infos:
-                    if ext_cp.id == link_port.cpInstanceId:
-                        ext_cp_infos.append(ext_cp)
-                        break
-
+                if _is_link_port(link_port.id):
+                    new_link_ports.append(link_port)
+                    ext_cp_infos.append(self._find_ext_cp_info(link_port,
+                                                               old_cp_infos))
             ext_vl.extLinkPorts = new_link_ports
+
+        return ext_vls
+
+    def _make_ext_vl_info_from_req_and_inst(self, req, grant, old_inst_info,
+            ext_cp_infos):
+        req_ext_vls = []
+        if grant.obj_attr_is_set('extVirtualLinks'):
+            req_ext_vls = grant.extVirtualLinks
+        elif req.obj_attr_is_set('extVirtualLinks'):
+            req_ext_vls = req.extVirtualLinks
+
+        req_ext_vl_ids = {ext_vl.id for ext_vl in req_ext_vls}
+        inst_ext_vl_ids = set()
+        if old_inst_info.obj_attr_is_set('extVirtualLinkInfo'):
+            inst_ext_vl_ids = {ext_vl.id
+                               for ext_vl in old_inst_info.extVirtualLinkInfo}
+
+        added_ext_vl_ids = req_ext_vl_ids - inst_ext_vl_ids
+        req_all_cp_names = {ext_cp.cpdId
+                            for req_ext_vl in req_ext_vls
+                            for ext_cp in req_ext_vl.extCps}
+
+        ext_vls = [self._make_ext_vl_from_req(req_ext_vl, ext_cp_infos)
+                   for req_ext_vl in req_ext_vls
+                   # added ext_vls
+                   if req_ext_vl.id in added_ext_vl_ids]
+
+        old_ext_vls = []
+        old_cp_infos = []
+        if old_inst_info.obj_attr_is_set('extVirtualLinkInfo'):
+            old_ext_vls = old_inst_info.extVirtualLinkInfo
+        if old_inst_info.obj_attr_is_set('extCpInfo'):
+            old_cp_infos = old_inst_info.extCpInfo
+
+        for ext_vl in old_ext_vls:
+            old_ext_cp_data = ext_vl.currentVnfExtCpData
+            old_link_ports = (ext_vl.extLinkPorts
+                if ext_vl.obj_attr_is_set('extLinkPorts') else [])
+            new_ext_cp_data = []
+            new_link_ports = []
+
+            for ext_cp_data in old_ext_cp_data:
+                if ext_cp_data.cpdId not in req_all_cp_names:
+                    new_ext_cp_data.append(ext_cp_data)
+
+            for link_port in old_link_ports:
+                ext_cp = self._find_ext_cp_info(link_port, old_cp_infos)
+                if (ext_cp.cpdId not in req_all_cp_names and
+                        _is_link_port(link_port.id)):
+                    new_link_ports.append(link_port)
+                    ext_cp_infos.append(ext_cp)
+
+            def _find_req_ext_vl(ext_vl):
+                for req_ext_vl in req_ext_vls:
+                    if req_ext_vl.id == ext_vl.id:
+                        return req_ext_vl
+
+            req_ext_vl = _find_req_ext_vl(ext_vl)
+            if req_ext_vl is not None:
+                new_ext_cp_data += req_ext_vl.extCps
+                new_link_ports += self._make_link_ports(req_ext_vl,
+                                                        ext_cp_infos)
+
+            if new_ext_cp_data:
+                # if it is empty, it means all cps of this ext_vl are replaced
+                # by another ext_vl.
+                ext_vl.currentVnfExtCpData = new_ext_cp_data
+                ext_vl.extLinkPorts = new_link_ports
+                ext_vls.append(ext_vl)
 
         return ext_vls
 
@@ -557,9 +663,8 @@ class Openstack(object):
 
     def _make_instantiated_vnf_info(self, req, inst, grant_req, grant, vnfd,
             heat_reses):
-        init = False
-        if grant_req.operation == v2fields.LcmOperationType.INSTANTIATE:
-            init = True
+        op = grant_req.operation
+        if op == v2fields.LcmOperationType.INSTANTIATE:
             flavour_id = req.flavourId
         else:
             flavour_id = inst.instantiatedVnfInfo.flavourId
@@ -636,15 +741,19 @@ class Openstack(object):
         ]
 
         ext_cp_infos = []
-        if init:
+        if op == v2fields.LcmOperationType.INSTANTIATE:
             ext_vl_infos = self._make_ext_vl_info_from_req(
                 req, grant, ext_cp_infos)
             ext_mgd_vl_infos = self._make_ext_mgd_vl_info_from_req(vnfd,
                 flavour_id, req, grant)
         else:
             old_inst_vnf_info = inst.instantiatedVnfInfo
-            ext_vl_infos = self._make_ext_vl_info_from_inst(
-                old_inst_vnf_info, ext_cp_infos)
+            if op == v2fields.LcmOperationType.CHANGE_EXT_CONN:
+                ext_vl_infos = self._make_ext_vl_info_from_req_and_inst(
+                    req, grant, old_inst_vnf_info, ext_cp_infos)
+            else:
+                ext_vl_infos = self._make_ext_vl_info_from_inst(
+                    old_inst_vnf_info, ext_cp_infos)
             ext_mgd_vl_infos = self._make_ext_mgd_vl_info_from_inst(
                 old_inst_vnf_info)
 
@@ -701,7 +810,7 @@ class Openstack(object):
         #   because the association of compute resource and port resource
         #   is not identified.
 
-        # make new instatiatedVnfInfo and replace
+        # make new instantiatedVnfInfo and replace
         inst_vnf_info = objects.VnfInstanceV2_InstantiatedVnfInfo(
             flavourId=flavour_id,
             vnfState='STARTED',

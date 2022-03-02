@@ -321,6 +321,27 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         return sol_wsgi.SolResponse(202, None, location=location)
 
+    @validator.schema(schema.ChangeExtVnfConnectivityRequest_V200, '2.0.0')
+    @coordinate.lock_vnf_instance('{id}')
+    def change_ext_conn(self, request, id, body):
+        context = request.context
+        inst = inst_utils.get_inst(context, id)
+
+        if inst.instantiationState != 'INSTANTIATED':
+            raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
+
+        lcmocc_utils.check_lcmocc_in_progress(context, id)
+
+        lcmocc = self._new_lcmocc(
+            id, v2fields.LcmOperationType.CHANGE_EXT_CONN, body)
+        lcmocc.create(context)
+
+        self.conductor_rpc.start_lcm_op(context, lcmocc.id)
+
+        location = lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)
+
+        return sol_wsgi.SolResponse(202, None, location=location)
+
     @validator.schema(schema.LccnSubscriptionRequest_V200, '2.0.0')
     def subscription_create(self, request, body):
         context = request.context
