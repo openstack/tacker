@@ -1023,7 +1023,8 @@ def fake_pod_list():
     )
 
 
-def get_scale_policy(type, aspect_id='vdu1', delta_num=1, is_legacy=False):
+def get_scale_policy(type, aspect_id='vdu1', delta_num=1, is_legacy=False,
+                     vdu_name='fake_name'):
     policy = dict()
     policy['action'] = type
     policy['name'] = aspect_id
@@ -1036,7 +1037,7 @@ def get_scale_policy(type, aspect_id='vdu1', delta_num=1, is_legacy=False):
             'VDU1': {
                 'type': 'tosca.nodes.nfv.Vdu.Compute',
                 'properties': {
-                    'name': 'fake_name',
+                    'name': vdu_name,
                     'description': 'test description',
                     'vdu_profile': {
                         'min_number_of_instances': 1,
@@ -1169,10 +1170,12 @@ def fake_inst_vnf_req_for_helmchart(external=True, local=True, namespace=None):
             }
         )
     additional_params['using_helm_install_param'] = using_helm_install_param
+    additional_params['helm_replica_values'] = {"vdu1_aspect": "replicaCount"}
     if namespace:
         additional_params['namespace'] = namespace
 
-    return objects.InstantiateVnfRequest(additional_params=additional_params)
+    return objects.InstantiateVnfRequest(
+        flavour_id="simple", additional_params=additional_params)
 
 
 def execute_cmd_helm_client(*args, **kwargs):
@@ -1198,6 +1201,8 @@ def execute_cmd_helm_client(*args, **kwargs):
             '      containers:\n',
             '        - name: nginx\n'
         ]
+    elif 'helm get values' in ssh_command:
+        result = ['{"replicaCount":2}']
     else:
         result = ""
     return result

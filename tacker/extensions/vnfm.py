@@ -137,6 +137,10 @@ class HelmClientRemoteCommandError(exceptions.TackerException):
     message = _('Failed to execute remote command.')
 
 
+class HelmClientMissingParamsError(exceptions.TackerException):
+    message = _('The specified value %(value)s was not found.')
+
+
 class HelmClientOtherError(exceptions.TackerException):
     message = _('An error occurred in HelmClient: %(error_message)s.')
 

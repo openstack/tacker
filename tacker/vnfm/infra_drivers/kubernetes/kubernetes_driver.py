@@ -31,7 +31,6 @@ from tacker.common.container import kubernetes_utils
 from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import utils
-from tacker.extensions import common_services as cs
 from tacker.extensions import vnfm
 from tacker import objects
 from tacker.objects.fields import ErrorPoint as EP
@@ -810,10 +809,13 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
 
     def _get_helm_info(self, vim_connection_info):
         # replace single quote to double quote
-        helm_info = vim_connection_info.extra.get('helm_info')
-        helm_info_dq = helm_info.replace("'", '"')
-        helm_info_dict = jsonutils.loads(helm_info_dq)
-        return helm_info_dict
+        helm_info = jsonutils.loads(
+            vim_connection_info.extra.get('helm_info')
+            .replace("'", '"'))
+        ips = helm_info.get('masternode_ip', [])
+        username = helm_info.get('masternode_username', '')
+        password = helm_info.get('masternode_password', '')
+        return ips, username, password
 
     def _helm_uninstall(self, context, vnf_instance):
         inst_vnf_info = vnf_instance.instantiated_vnf_info
@@ -825,13 +827,10 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             vnf_instance.vim_connection_info)
         vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
             vim_info, context)
-        helm_info = self._get_helm_info(vim_connection_info)
-        ip_list = helm_info.get('masternode_ip')
-        username = helm_info.get('masternode_username')
-        password = helm_info.get('masternode_password')
+        ips, username, password = self._get_helm_info(vim_connection_info)
         k8s_objs = []
         # initialize HelmClient
-        helmclient = helm_client.HelmClient(ip_list[0], username, password)
+        helmclient = helm_client.HelmClient(ips[0], username, password)
         for helm_inst_params in helm_inst_param_list:
             release_name = helm_inst_params.get('helmreleasename')
             # execute `helm uninstall` command
@@ -1011,12 +1010,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             vnf_instance.vim_connection_info)
         vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
             vim_info, context)
-        helm_info = self._get_helm_info(vim_connection_info)
-        ip_list = helm_info.get('masternode_ip')
-        username = helm_info.get('masternode_username')
-        password = helm_info.get('masternode_password')
+        ips, username, password = self._get_helm_info(vim_connection_info)
         del_dir = os.path.join(HELM_CHART_DIR_BASE, vnf_instance.id)
-        for ip in ip_list:
+        for ip in ips:
             local_helm_del_flag = False
             # initialize HelmClient
             helmclient = helm_client.HelmClient(ip, username, password)
@@ -1191,6 +1187,76 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
 
         return response
 
+    def _helm_scale(self, context, vnf_instance, policy):
+        aspect_id = policy['name']
+        vdu_defs = policy['vdu_defs']
+        inst_additional_params = (vnf_instance.instantiated_vnf_info
+                                  .additional_params)
+        namespace = inst_additional_params.get('namespace', '')
+        helm_install_params = inst_additional_params.get(
+            'using_helm_install_param', [])
+        # Get releasename and chartname from Helm install params in Instantiate
+        # request parameter by using VDU properties name.
+        found_flag = False
+        for vdu_def in vdu_defs.values():
+            vdu_properties = vdu_def.get('properties')
+            for helm_install_param in helm_install_params:
+                if self._is_exthelmchart(helm_install_param):
+                    chart_name = helm_install_param.get('helmchartname')
+                    upgrade_chart_name = "/".join(
+                        [helm_install_param.get('helmrepositoryname'),
+                         chart_name])
+                else:
+                    chartfile_path = helm_install_param.get(
+                        'helmchartfile_path')
+                    chartfile_name = chartfile_path[
+                        chartfile_path.rfind(os.sep) + 1:]
+                    chart_name = "-".join(chartfile_name.split("-")[:-1])
+                    upgrade_chart_name = ("/var/tacker/helm/"
+                                          f"{vnf_instance.id}/{chart_name}")
+                release_name = helm_install_param.get('helmreleasename')
+                resource_name = "-".join([release_name, chart_name])
+                if resource_name == vdu_properties.get('name'):
+                    found_flag = True
+                    break
+            if found_flag:
+                break
+
+        # Prepare for scale operation
+        helm_replica_values = inst_additional_params.get('helm_replica_values')
+        replica_param = helm_replica_values.get(aspect_id)
+        vim_info = vnflcm_utils._get_vim(context,
+            vnf_instance.vim_connection_info)
+        vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
+            vim_info, context)
+        ips, username, password = self._get_helm_info(vim_connection_info)
+        # initialize HelmClient
+        helmclient = helm_client.HelmClient(ips[0], username, password)
+        # execute `helm get values` command to get current replicas
+        current_replicas = helmclient.get_value(
+            release_name, namespace, value=replica_param)
+        vdu_profile = vdu_properties.get('vdu_profile')
+        if policy['action'] == 'out':
+            scale_replicas = current_replicas + policy['delta_num']
+        elif policy['action'] == 'in':
+            scale_replicas = current_replicas - policy['delta_num']
+        # check if replica count is in min and man range defined in VNFD
+        max_replicas = vdu_profile.get('max_number_of_instances')
+        min_replicas = vdu_profile.get('min_number_of_instances')
+        if (scale_replicas < min_replicas) or (scale_replicas > max_replicas):
+            error_reason = ("The number of target replicas after"
+                            f" scaling [{scale_replicas}] is out of range")
+            LOG.error(error_reason)
+            raise vnfm.CNFScaleFailed(reason=error_reason)
+
+        # execute scale processing (`helm upgrade` command)
+        upgrade_values = {replica_param: scale_replicas}
+        helmclient.upgrade_values(release_name, upgrade_chart_name,
+                                  namespace, parameters=upgrade_values)
+        helmclient.close_session()
+
+        return
+
     @log.log
     def scale(self, context, plugin, auth_attr, policy, region_name):
         """Scale function
@@ -1206,6 +1272,13 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 # execute legacy scale method
                 self._scale_legacy(policy, auth_cred)
             else:
+                vnf_instance = objects.VnfInstance.get_by_id(
+                    context, policy['vnf_instance_id'])
+                # check use_helm flag
+                inst_vnf_info = vnf_instance.instantiated_vnf_info
+                if self._is_use_helm_flag(inst_vnf_info.additional_params):
+                    self._helm_scale(context, vnf_instance, policy)
+                    return
                 vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
                     context, policy['vnf_instance_id'])
                 app_v1_api_client = self.kubernetes.get_app_v1_api_client(
@@ -1498,24 +1571,24 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             return exthelmchart.lower() == 'true'
         return bool(exthelmchart)
 
-    def _pre_helm_install(self, vim_connection_info,
+    def _pre_helm_install(self, context, vnf_instance, vim_connection_info,
                           instantiate_vnf_req, vnf_package_path):
         def _check_param_exists(params_dict, check_param):
             if check_param not in params_dict.keys():
                 LOG.error("{check_param} is not found".format(
                     check_param=check_param))
-                raise cs.InputValuesMissing(key=check_param)
+                raise exceptions.InvalidInput(missing_key_err_msg %
+                                              {"key": check_param})
 
+        missing_key_err_msg = ("Parameter input values missing for"
+                               " the key '%(key)s'")
         # check helm info in vim_connection_info
         if 'helm_info' not in vim_connection_info.extra.keys():
             reason = "helm_info is missing in vim_connection_info.extra."
             LOG.error(reason)
             raise vnfm.InvalidVimConnectionInfo(reason=reason)
-        helm_info = self._get_helm_info(vim_connection_info)
-        ip_list = helm_info.get('masternode_ip', [])
-        username = helm_info.get('masternode_username', '')
-        password = helm_info.get('masternode_username', '')
-        if not (ip_list and username and password):
+        ips, username, password = self._get_helm_info(vim_connection_info)
+        if not (ips and username and password):
             reason = "content of helm_info is invalid."
             LOG.error(reason)
             raise vnfm.InvalidVimConnectionInfo(reason=reason)
@@ -1527,7 +1600,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             'using_helm_install_param', [])
         if not helm_install_param_list:
             LOG.error("using_helm_install_param is empty.")
-            raise cs.InputValuesMissing(key='using_helm_install_param')
+            raise exceptions.InvalidInput(missing_key_err_msg %
+                                          {"key": "using_helm_install_param"})
         for helm_install_params in helm_install_param_list:
             # common parameter check
             _check_param_exists(helm_install_params, 'exthelmchart')
@@ -1547,6 +1621,18 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     LOG.error('Helm chart file {path} is not found.'.format(
                         path=chartfile_path))
                     raise vnfm.CnfDefinitionNotFound(path=chartfile_path)
+
+        # check parameters for scale operation
+        vnfd = vnflcm_utils.get_vnfd_dict(context, vnf_instance.vnfd_id,
+                                          instantiate_vnf_req.flavour_id)
+        tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
+                                             yaml_dict_tpl=vnfd)
+        extract_policy_infos = vnflcm_utils.get_extract_policy_infos(tosca)
+        helm_replica_values = additional_params.get('helm_replica_values', {})
+        for aspect_id in extract_policy_infos['aspect_id_dict'].keys():
+            if aspect_id not in helm_replica_values.keys():
+                raise exceptions.InvalidInput(
+                    f"Replica value for aspectId '{aspect_id}' is missing")
 
     def _get_target_k8s_files(self, instantiate_vnf_req):
         if instantiate_vnf_req.additional_params and\
@@ -1585,8 +1671,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         # check use_helm flag
         if self._is_use_helm_flag(instantiate_vnf_req.additional_params):
             # parameter check
-            self._pre_helm_install(
-                vim_connection_info, instantiate_vnf_req, vnf_package_path)
+            self._pre_helm_install(context, vnf_instance, vim_connection_info,
+                                   instantiate_vnf_req, vnf_package_path)
             # NOTE: In case of using helm, vnf_resources is created
             #       after `helm install` command is executed.
             return {}
@@ -1657,13 +1743,10 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         namespace = additional_params.get('namespace', '')
         helm_inst_param_list = additional_params.get(
             'using_helm_install_param')
-        helm_info = self._get_helm_info(vim_connection_info)
-        ip_list = helm_info.get('masternode_ip')
-        username = helm_info.get('masternode_username')
-        password = helm_info.get('masternode_password')
+        ips, username, password = self._get_helm_info(vim_connection_info)
         vnf_resources = []
         k8s_objs = []
-        for ip_idx, ip in enumerate(ip_list):
+        for ip_idx, ip in enumerate(ips):
             # initialize HelmClient
             helmclient = helm_client.HelmClient(ip, username, password)
             for inst_params in helm_inst_param_list:
@@ -1770,13 +1853,10 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         namespace = additional_params.get('namespace', '')
         helm_inst_param_list = additional_params.get(
             'using_helm_install_param')
-        helm_info = self._get_helm_info(vim_connection_info)
-        ip_list = helm_info.get('masternode_ip')
-        username = helm_info.get('masternode_username')
-        password = helm_info.get('masternode_password')
+        ips, username, password = self._get_helm_info(vim_connection_info)
         k8s_objs = []
         # initialize HelmClient
-        helmclient = helm_client.HelmClient(ip_list[0], username, password)
+        helmclient = helm_client.HelmClient(ips[0], username, password)
         for helm_inst_params in helm_inst_param_list:
             release_name = helm_inst_params.get('helmreleasename')
             # get manifest by using `helm get manifest` command

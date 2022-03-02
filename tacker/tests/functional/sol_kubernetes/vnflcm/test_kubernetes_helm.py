@@ -126,13 +126,18 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
                     "helmchartname": "apache",
                     "exthelmrepo_url": "https://charts.bitnami.com/bitnami"
                 }
-            ]
+            ],
+            "helm_replica_values": {
+                "vdu1_aspect": "replicaCount",
+                "vdu2_aspect": "replicaCount"
+            }
         }
         vnf_instance = self._create_and_instantiate_vnf_instance(
             self.vnfd_id, "helmchart", vnf_instance_name,
             vnf_instance_description, inst_additional_param)
 
         self._test_scale_cnf(vnf_instance, aspect_id="vdu1_aspect")
+        self._test_scale_cnf(vnf_instance, aspect_id="vdu2_aspect")
         self._test_heal_cnf_with_sol002(vnf_instance)
         self._test_heal_cnf_with_sol003(vnf_instance)
 

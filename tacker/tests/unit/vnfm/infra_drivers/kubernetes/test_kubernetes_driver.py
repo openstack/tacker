@@ -2210,13 +2210,21 @@ class TestKubernetes(base.TestCase):
 
     @mock.patch.object(client.AppsV1Api, 'patch_namespaced_deployment_scale')
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_in_deployment(self, mock_vnf_resource_list,
+                        mock_vnf_instance_get_by_id,
                         mock_read_namespaced_deployment_scale,
                         mock_patch_namespaced_deployment_scale):
         policy = fakes.get_scale_policy(type='in')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Deployment')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        mock_vnf_instance_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_instance(
+                fields.VnfInstanceState.INSTANTIATED,
+                scale_status=scale_status))
         mock_read_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=2),
                            status=client.V1ScaleStatus(replicas=2))
@@ -2232,13 +2240,21 @@ class TestKubernetes(base.TestCase):
 
     @mock.patch.object(client.AppsV1Api, 'patch_namespaced_stateful_set_scale')
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_stateful_set_scale')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_in_stateful_set(self, mock_vnf_resource_list,
+                        mock_vnf_instance_get_by_id,
                         mock_read_namespaced_stateful_set_scale,
                         mock_patch_namespaced_stateful_set_scale):
         policy = fakes.get_scale_policy(type='in')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='StatefulSet')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        mock_vnf_instance_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_instance(
+                fields.VnfInstanceState.INSTANTIATED,
+                scale_status=scale_status))
         mock_read_namespaced_stateful_set_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=2),
                            status=client.V1ScaleStatus(replicas=2))
@@ -2254,13 +2270,21 @@ class TestKubernetes(base.TestCase):
 
     @mock.patch.object(client.AppsV1Api, 'patch_namespaced_replica_set_scale')
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set_scale')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_in_replica_set(self, mock_vnf_resource_list,
+                        mock_vnf_instance_get_by_id,
                         mock_read_namespaced_replica_set_scale,
                         mock_patch_namespaced_replica_set_scale):
         policy = fakes.get_scale_policy(type='in')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='ReplicaSet')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        mock_vnf_instance_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_instance(
+                fields.VnfInstanceState.INSTANTIATED,
+                scale_status=scale_status))
         mock_read_namespaced_replica_set_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=2),
                            status=client.V1ScaleStatus(replicas=2))
@@ -2276,13 +2300,21 @@ class TestKubernetes(base.TestCase):
 
     @mock.patch.object(client.AppsV1Api, 'patch_namespaced_deployment_scale')
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_out(self, mock_vnf_resource_list,
+                    mock_vnf_instance_get_by_id,
                     mock_read_namespaced_deployment_scale,
                     mock_patch_namespaced_deployment_scale):
         policy = fakes.get_scale_policy(type='out')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Deployment')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        mock_vnf_instance_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_instance(
+                fields.VnfInstanceState.INSTANTIATED,
+                scale_status=scale_status))
         mock_read_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
                            status=client.V1ScaleStatus(replicas=1))
@@ -2296,33 +2328,51 @@ class TestKubernetes(base.TestCase):
         mock_read_namespaced_deployment_scale.assert_called_once()
         mock_patch_namespaced_deployment_scale.assert_called_once()
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_scale_target_not_found(self, mock_vnf_resource_list):
+    def test_scale_target_not_found(self, mock_vnf_resource_list,
+                                    mock_vnf_instance_get_by_id):
         policy = fakes.get_scale_policy(type='in')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Depoyment', name='other_name')
+        mock_vnf_instance_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_instance(
+                fields.VnfInstanceState.INSTANTIATED))
         self.assertRaises(vnfm.CNFScaleFailed,
                           self.kubernetes.scale,
                           self.context, None,
                           utils.get_vim_auth_obj(), policy, None)
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_scale_out_of_target_kind(self, mock_vnf_resource_list):
+    def test_scale_out_of_target_kind(self, mock_vnf_resource_list,
+                                      mock_vnf_instance_get_by_id):
         policy = fakes.get_scale_policy(type='in')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Pod')
+        mock_vnf_instance_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_instance(
+                fields.VnfInstanceState.INSTANTIATED))
         self.assertRaises(vnfm.CNFScaleFailed,
                           self.kubernetes.scale,
                           self.context, None,
                           utils.get_vim_auth_obj(), policy, None)
 
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_in_less_than_min_replicas(self, mock_vnf_resource_list,
+                    mock_vnf_instance_get_by_id,
                     mock_read_namespaced_deployment_scale):
         policy = fakes.get_scale_policy(type='in')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Deployment')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        mock_vnf_instance_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_instance(
+                fields.VnfInstanceState.INSTANTIATED,
+                scale_status=scale_status))
         mock_read_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
                            status=client.V1ScaleStatus(replicas=1))
@@ -2332,12 +2382,20 @@ class TestKubernetes(base.TestCase):
                           utils.get_vim_auth_obj(), policy, None)
 
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_out_over_max_replicas(self, mock_vnf_resource_list,
+                    mock_vnf_instance_get_by_id,
                     mock_read_namespaced_deployment_scale):
         policy = fakes.get_scale_policy(type='out')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Deployment')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        mock_vnf_instance_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_instance(
+                fields.VnfInstanceState.INSTANTIATED,
+                scale_status=scale_status))
         mock_read_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=3),
                            status=client.V1ScaleStatus(replicas=3))
