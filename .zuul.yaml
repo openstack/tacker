@@ -388,7 +388,11 @@
           tls-proxy: false
         tox_install_siblings: false
       controller-tacker:
-        devstack_local_conf: {}
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              kubernetes_vim:
+                stack_retries: 120
         devstack_services:
           ovn-controller: true
           ovn-northd: true

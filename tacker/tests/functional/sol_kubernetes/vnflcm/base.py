@@ -28,13 +28,9 @@ from tacker.objects import fields
 from tacker.objects import vnf_lcm_op_occs
 from tacker.tests.functional import base
 from tacker.tests import utils
+from tacker.vnfm.infra_drivers.kubernetes.kubernetes_driver import CONF
 
 VNF_PACKAGE_UPLOAD_TIMEOUT = 300
-VNF_INSTANTIATE_TIMEOUT = 600
-VNF_TERMINATE_TIMEOUT = 600
-VNF_HEAL_SOL002_TIMEOUT = 600
-VNF_HEAL_SOL003_TIMEOUT = 1200
-VNF_SCALE_TIMEOUT = 600
 RETRY_WAIT_TIME = 5
 
 WAIT_TIMEOUT_ERR_MSG = ("Failed to %(action)s, process could not be completed"
@@ -50,6 +46,18 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         cls.base_vnf_package_url = "/vnfpkgm/v1/vnf_packages"
         cls.base_vnf_instances_url = "/vnflcm/v1/vnf_instances"
         cls.base_vnf_lcm_op_occs_url = "/vnflcm/v1/vnf_lcm_op_occs"
+        # [NOTE] culculate timeout from configuration. In addition to the sleep
+        # time for each retry, add 1 second to timeout value for waiting
+        # specified state as another processing time for each retry.
+        timeout = (CONF.kubernetes_vim.stack_retries *
+                   (CONF.kubernetes_vim.stack_retry_wait + 1))
+        cls.lcm_timeout = {
+            "instantiate": timeout,
+            "terminate": timeout,
+            "heal_sol002": timeout,
+            "heal_sol003": timeout * 2,
+            "scale": timeout
+        }
         cls.vnf_package_ids = []
 
     @classmethod
@@ -170,10 +178,10 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
             if 204 == resp.status_code:
                 break
 
-            if (int(time.time()) - start_time) > VNF_TERMINATE_TIMEOUT:
+            if (int(time.time()) - start_time) > self.lcm_timeout['terminate']:
                 raise Exception(WAIT_TIMEOUT_ERR_MSG %
                     {"action": "delete vnf instance",
-                     "timeout": VNF_TERMINATE_TIMEOUT})
+                     "timeout": self.lcm_timeout['terminate']})
             time.sleep(RETRY_WAIT_TIME)
 
     def _show_vnf_instance(self, id):
@@ -185,9 +193,11 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
     def _vnf_instance_wait(
             self, id,
             instantiation_state=fields.VnfInstanceState.INSTANTIATED,
-            timeout=VNF_INSTANTIATE_TIMEOUT):
+            timeout=None):
         show_url = os.path.join(self.base_vnf_instances_url, id)
         start_time = int(time.time())
+        if timeout is None:
+            timeout = self.lcm_timeout['instantiate']
         while True:
             _, body = self.tacker_client.do_request(show_url, "GET")
             if body['instantiationState'] == instantiation_state:
@@ -208,8 +218,8 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         if wait_state == "COMPLETED":
             self._vnf_instance_wait(id)
         # wait vnflcm_op_occs.operation_state become wait_state
-        self._wait_vnflcm_op_occs(self.context, id, VNF_INSTANTIATE_TIMEOUT,
-                                  wait_state)
+        self._wait_vnflcm_op_occs(self.context, id,
+                                  self.lcm_timeout['instantiate'], wait_state)
 
     def _create_and_instantiate_vnf_instance(self, vnfd_id, flavour_id,
                                              inst_name, inst_desc,
@@ -245,7 +255,7 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
 
         self._vnf_instance_wait(
             id, instantiation_state=fields.VnfInstanceState.NOT_INSTANTIATED,
-            timeout=VNF_TERMINATE_TIMEOUT)
+            timeout=self.lcm_timeout['terminate'])
 
         # If gracefulTerminationTimeout is set, check whether vnf
         # instantiation_state is set to NOT_INSTANTIATED after
@@ -356,7 +366,7 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
             expected_level = previous_level - number_of_steps
         # wait vnflcm_op_occs.operation_state become COMPLETE/FAILED_TEMP
         self._wait_vnflcm_op_occs(
-            self.context, id, VNF_SCALE_TIMEOUT, wait_state)
+            self.context, id, self.lcm_timeout['scale'], wait_state)
         # check scaleStatus after scale operation
         vnf_instance = self._show_vnf_instance(id)
         scale_level = self._get_scale_level_by_aspect_id(
@@ -370,9 +380,9 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         self._heal_vnf_instance(vnf_instance['id'], vnfc_instance_id)
         # wait vnflcm_op_occs.operation_state become COMPLETE
         if vnfc_instance_id:
-            timeout = VNF_HEAL_SOL002_TIMEOUT
+            timeout = self.lcm_timeout['heal_sol002']
         else:
-            timeout = VNF_HEAL_SOL003_TIMEOUT
+            timeout = self.lcm_timeout['heal_sol003']
         self._wait_vnflcm_op_occs(self.context, vnf_instance['id'], timeout)
         # check vnfcResourceInfo after heal operation
         vnf_instance = self._show_vnf_instance(vnf_instance['id'])
@@ -397,7 +407,7 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         self._rollback_vnf_instance(vnf_lcm_op_occ_id)
         # wait vnflcm_op_occs.operation_state become ROLLED_BACK
         self._wait_vnflcm_op_occs(self.context, id,
-            VNF_TERMINATE_TIMEOUT, "ROLLED_BACK")
+            self.lcm_timeout['terminate'], "ROLLED_BACK")
 
     def _test_rollback_cnf_scale(self, id, aspect_id, previous_level):
         # get vnflcm_op_occ id for rollback
@@ -407,7 +417,7 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         # rollback operation
         self._rollback_vnf_instance(vnf_lcm_op_occ_id)
         # wait vnflcm_op_occs.operation_state become ROLLED_BACK
-        self._wait_vnflcm_op_occs(self.context, id, VNF_SCALE_TIMEOUT,
+        self._wait_vnflcm_op_occs(self.context, id, self.lcm_timeout['scale'],
                                   "ROLLED_BACK")
         # check scaleStatus after scale operation
         vnf_instance = self._show_vnf_instance(id)
