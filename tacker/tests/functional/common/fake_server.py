@@ -26,228 +26,162 @@ from oslo_log import log as logging
 LOG = logging.getLogger(__name__)
 
 
-class SingletonMixin:
-    """Mixin class to make your class a Singleton class."""
+def PrepareRequestHandler(manager):
+    class DummyRequestHandler(http.server.CGIHTTPRequestHandler):
+        """HTTP request handler for dummy server."""
 
-    _instance = None
-    _rlock = threading.RLock()
-    _inside_instance = False
+        def __init__(self, request, client_address, server):
+            super().__init__(request, client_address, server)
+            return
 
-    @classmethod
-    def get_instance(cls, *args, **kwargs):
-        """Get *the* instance of the class, constructed when needed using(kw)args.
+        def _is_match_with_list(self):
+            """Return given path is listed in dictionary or not.
 
-        Return the instance of the class. If it did not yet exist, create
-        it by calling the "constructor" with whatever arguments and keyword
-        arguments provided.
+            Return:
+                True/False
+            """
+            func_uri_list = manager._methods[self.command]
+            for objChkUrl in func_uri_list:
+                # Check which requested path is in our list.
+                LOG.debug('path for check:%s' % objChkUrl)
+                if(self.path.startswith(objChkUrl)):
+                    return True
+            return False
 
-        This routine is thread-safe. It uses the *double-checked locking*
-        design pattern ``https://en.wikipedia.org/wiki/Double-checked_locking``
-        for this.
+        def _returned_callback(self, path, mock_info):
+            """Send responses to client. Called in do_* methods.
 
-        :param args: Used for constructing the instance, when not performed
-        yet.
-        :param kwargs: Used for constructing the instance, when not
-        perfored yet.
-        :return: An instance of the class.
-        """
-        if cls._instance is not None:
-            return cls._instance
-        with cls._rlock:
-            # re-check, perhaps it was created in the mean time...
-            if cls._instance is None:
-                cls._inside_instance = True
-                try:
-                    cls._instance = cls(*args, **kwargs)
-                finally:
-                    cls._inside_instance = False
-        return cls._instance
+            This method do not handle message when error is occured.
 
-    def __new__(cls, *args, **kwargs):
-        """Raise Exception when not called from the :func:``instance``
+            Args:
+                path (str): URI path
+                mock_info (tuple): callback informations from caller.
+            """
+            request_headers = dict(self.headers._headers)
+            request_body = self._parse_request_body()
+            response_body_str = b''
 
-        Class method.
-        This method raises RuntimeError when not called from the
-        instance class method.
+            (status_code, mock_headers, mock_body) = self._get_mock_info(
+                mock_info, request_headers, request_body)
+            self.send_response(status_code)
 
-        :param args: Arguments eventually passed to
-        :func:``__init__``_.
-        :param kwargs: Keyword arguments eventually passed to
-        :func:``__init__``_
-        :return: the created instance.
-        """
-        if cls is SingletonMixin:
-            raise TypeError(
-                "Attempt to instantiate\
-                    mixin class {}".format(cls.__qualname__)
-            )
+            # Check what I should return to client ?
+            if mock_info.get('content') is not None:
+                response_body_str = open(mock_info.get('content'), 'rb').read()
+            elif len(mock_body) > 0:
+                response_body_str = json.dumps(mock_body).encode('utf-8')
+                mock_headers['Content-Length'] = str(len(response_body_str))
 
-        if cls._instance is None:
-            with cls._rlock:
-                if cls._instance is None and cls._inside_instance:
-                    return super().__new__(cls, *args, **kwargs)
+            # Send custom header if exist
+            for key, val in mock_headers.items():
+                self.send_header(key, val)
+                self.end_headers()
 
-        raise RuntimeError(
-            "Attempt to create a {}\
-                instance outside of instance()".format(cls.__qualname__)
-        )
+            if len(response_body_str) > 0:
+                self.wfile.write(response_body_str)
 
+            manager.add_history(path, RequestHistory(
+                status_code=status_code,
+                request_headers=request_headers,
+                request_body=request_body,
+                response_headers=copy.deepcopy(mock_headers),
+                response_body=copy.deepcopy(mock_body)))
 
-class DummyRequestHander(http.server.CGIHTTPRequestHandler):
-    """HTTP request handler for dummy server."""
+            if mock_info.get('content') is None:
+                self.end_headers()
 
-    def __init__(self, request, client_address, server):
-        super().__init__(request, client_address, server)
-        return
+        def _parse_request_body(self):
+            if 'content-length' not in self.headers:
+                return {}
 
-    def _is_match_with_list(self):
-        """Return given path is listed in dictionary or not.
+            request_content_len = int(self.headers.get('content-length'))
+            if request_content_len == 0:
+                return {}
 
-        Return:
-            True/False
-        """
-        manager = FakeServerManager.get_instance()
-        func_uri_list = manager._methods[self.command]
-        for objChkUrl in func_uri_list:
-            # Check which requested path is in our list.
-            LOG.debug('path for check:%s' % objChkUrl)
-            if(self.path.startswith(objChkUrl)):
-                return True
+            decode_request_body = self.rfile.read(
+                request_content_len).decode('utf-8')
 
-        return False
+            return json.loads(decode_request_body)
 
-    def _returned_callback(self, path, mock_info):
-        """Send responses to client. Called in do_* methods.
+        def _get_mock_info(self, mock_info, request_headers, request_body):
+            """Call mock(callback) and get responses
 
-        This method do not handle message when error is occured.
+            This method is called from _returned_callback().
 
-        Args:
-            path (str): URI path
-            mock_info (tuple): callback informations from caller.
-        """
-        request_headers = dict(self.headers._headers)
-        request_body = self._parse_request_body()
-        response_body_str = b''
+            Args:
+                mock_info (tuple): callback informations from caller.
+                request_headers (dict): Request headers
+                request_body (dict):  Request Bodies
 
-        (status_code, mock_headers, mock_body) = self._get_mock_info(
-            mock_info, request_headers, request_body)
-        self.send_response(status_code)
+            Returns:
+                (tuple): status_code, response headers, response bodies.
+                         response body will be converted into JSON string
+                         with json.dumps().
+            """
+            # Prepare response contents
+            func = mock_info.get('callback')
+            status_code = mock_info.get('status_code')
+            mock_headers = mock_info.get('response_headers')
+            mock_body = mock_info.get('response_body')
 
-        # Check what I should return to client ?
-        if mock_info.get('content') is not None:
-            response_body_str = open(mock_info.get('content'), 'rb').read()
-        elif len(mock_body) > 0:
-            response_body_str = json.dumps(mock_body).encode('utf-8')
-            mock_headers['Content-Length'] = str(len(response_body_str))
+            # Call function if callable.
+            if callable(func):
+                mock_body = func(request_headers, request_body)
 
-        # Send custom header if exist
-        for key, val in mock_headers.items():
-            self.send_header(key, val)
-        self.end_headers()
+            return (status_code, mock_headers, mock_body)
 
-        if len(response_body_str) > 0:
-            self.wfile.write(response_body_str)
+        def do_DELETE(self):
+            raise NotImplementedError
 
-        FakeServerManager.get_instance().add_history(path, RequestHistory(
-            status_code=status_code,
-            request_headers=request_headers,
-            request_body=request_body,
-            response_headers=copy.deepcopy(mock_headers),
-            response_body=copy.deepcopy(mock_body))
-        )
+        def do_GET(self):
+            """Process GET request"""
+            LOG.debug('[Start] %s.%s()' % (self.__class__.__name__,
+                inspect.currentframe().f_code.co_name))
 
-    def _parse_request_body(self):
-        if 'content-length' not in self.headers:
-            return {}
+            # Check URI in request.
+            if self._is_match_with_list():
+                # Request is registered in our list.
+                tplUri = urlparse(self.path)
+                self._returned_callback(tplUri.path,
+                    manager._funcs_gets[tplUri.path])
+            else:
+                # Unregistered URI is requested
+                LOG.debug('GET Recv. Unknown URL: "%s"' % self.path)
+                self.send_response(http.HTTPStatus.BAD_REQUEST)
+                self.end_headers()
 
-        request_content_len = int(self.headers.get('content-length'))
-        if request_content_len == 0:
-            return {}
+            LOG.debug('[ End ] %s.%s()' %
+                      (self.__class__.__name__,
+                          inspect.currentframe().f_code.co_name))
 
-        decode_request_body = self.rfile.read(
-            request_content_len).decode('utf-8')
+        def do_POST(self):
+            """Process POST request"""
+            LOG.debug(
+                '[Start] %s.%s()' %
+                (self.__class__.__name__,
+                 inspect.currentframe().f_code.co_name))
 
-        return json.loads(decode_request_body)
+            # URI might have trailing uuid or not.
+            if self._is_match_with_list():
+                # Request is registered in our list.
+                tplUri = urlparse(self.path)
+                self._returned_callback(tplUri.path,
+                    manager._funcs_posts[tplUri.path])
+            else:
+                # Unregistered URI is requested
+                LOG.debug('POST Recv. Unknown URL: "%s"' % self.path)
+                self.send_response(http.HTTPStatus.BAD_REQUEST)
+                self.end_headers()
 
-    def _get_mock_info(self, mock_info, request_headers, request_body):
-        """Call mock(callback) and get responses
+            LOG.debug(
+                '[ End ] %s.%s()' %
+                (self.__class__.__name__,
+                 inspect.currentframe().f_code.co_name))
 
-        This method is called from _returned_callback().
+        def do_PUT(self):
+            raise NotImplementedError
 
-        Args:
-            mock_info (tuple): callback informations from caller.
-            request_headers (dict): Request headers
-            request_body (dict):  Request Bodies
-
-        Returns:
-            (tuple): status_code, response headers, response bodies.
-                     response body will be converted into JSON string
-                     with json.dumps().
-        """
-        # Prepare response contents
-        func = mock_info.get('callback')
-        status_code = mock_info.get('status_code')
-        mock_headers = mock_info.get('response_headers')
-        mock_body = mock_info.get('response_body')
-
-        # Call function if callable.
-        if callable(func):
-            mock_body = func(request_headers, request_body)
-
-        return (status_code, mock_headers, mock_body)
-
-    def do_DELETE(self):
-        raise NotImplementedError
-
-    def do_GET(self):
-        """Process GET request"""
-        LOG.debug(
-            '[Start] %s.%s()' %
-            (self.__class__.__name__,
-             inspect.currentframe().f_code.co_name))
-
-        # Check URI in request.
-        if self._is_match_with_list():
-            # Request is registered in our list.
-            tplUri = urlparse(self.path)
-            self._returned_callback(tplUri.path,
-                FakeServerManager.get_instance()._funcs_gets[tplUri.path])
-        else:
-            # Unregistered URI is requested
-            LOG.debug('GET Recv. Unknown URL: "%s"' % self.path)
-            self.send_response(http.HTTPStatus.BAD_REQUEST)
-            self.end_headers()
-
-        LOG.debug('[ End ] %s.%s()' %
-                  (self.__class__.__name__,
-                      inspect.currentframe().f_code.co_name))
-
-    def do_POST(self):
-        """Process POST request"""
-        LOG.debug(
-            '[Start] %s.%s()' %
-            (self.__class__.__name__,
-             inspect.currentframe().f_code.co_name))
-
-        # URI might have trailing uuid or not.
-        if self._is_match_with_list():
-            # Request is registered in our list.
-            tplUri = urlparse(self.path)
-            self._returned_callback(tplUri.path,
-                FakeServerManager.get_instance()._funcs_posts[tplUri.path])
-        else:
-            # Unregistered URI is requested
-            LOG.debug('POST Recv. Unknown URL: "%s"' % self.path)
-            self.send_response(http.HTTPStatus.BAD_REQUEST)
-            self.end_headers()
-
-        LOG.debug(
-            '[ End ] %s.%s()' %
-            (self.__class__.__name__,
-             inspect.currentframe().f_code.co_name))
-
-    def do_PUT(self):
-        raise NotImplementedError
+    return DummyRequestHandler
 
 
 class RequestHistory:
@@ -268,7 +202,7 @@ class RequestHistory:
         self.response_body = response_body
 
 
-class FakeServerManager(SingletonMixin):
+class FakeServerManager(object):
     """Manager class to manage dummy server setting and control"""
 
     SERVER_PORT = 9990
@@ -347,11 +281,10 @@ class FakeServerManager(SingletonMixin):
             path (str): URI path
             history (RequestHistory): Storage container for each request.
         """
-        with self._rlock:
-            if path in self._history:
-                self._history[path].append(history)
-            else:
-                self._history[path] = [history]
+        if path in self._history:
+            self._history[path].append(history)
+        else:
+            self._history[path] = [history]
 
     def clear_history(self, path=None):
         """Clear Request/Response header/body of history.
@@ -359,13 +292,12 @@ class FakeServerManager(SingletonMixin):
         Args:
             path (str): URI path
         """
-        with self._rlock:
-            if not path:
-                self._history = {}
-                return
+        if not path:
+            self._history = {}
+            return
 
-            if path in self._history:
-                self._history.pop(path)
+        if path in self._history:
+            self._history.pop(path)
 
     def get_history(self, path=None):
         """Get Request/Response header/body from history.
@@ -399,8 +331,9 @@ class FakeServerManager(SingletonMixin):
              inspect.currentframe().f_code.co_name))
         while True:
             try:
+                RequestHandler = PrepareRequestHandler(self)
                 self.objHttpd = http.server.HTTPServer(
-                    (address, port), DummyRequestHander)
+                    (address, port), RequestHandler)
             except OSError:
                 time.sleep(self.SERVER_INVOKE_CHECK_INTERVAL)
                 continue

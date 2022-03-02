@@ -33,7 +33,7 @@ from tacker.tests.functional.sol_v2 import utils
 from tacker.tests import utils as base_utils
 from tacker import version
 
-FAKE_SERVER_MANAGER = FakeServerManager.get_instance()
+FAKE_SERVER_MANAGER = FakeServerManager()
 MOCK_NOTIFY_CALLBACK_URL = '/notification/callback'
 
 LOG = logging.getLogger(__name__)
