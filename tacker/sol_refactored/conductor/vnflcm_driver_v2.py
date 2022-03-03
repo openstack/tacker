@@ -36,6 +36,15 @@ LOG = logging.getLogger(__name__)
 CONF = config.CONF
 
 
+# common sub method
+def _get_obj_by_id(obj_id, obj_array):
+    # This method assumes that an object that id is obj_id exists.
+    for obj in obj_array:
+        if obj.id == obj_id:
+            return obj
+    # not reach here
+
+
 # sub method for making id
 def _make_combination_id(a, b):
     return '{}-{}'.format(a, b)
@@ -408,20 +417,32 @@ class VnfLcmDriverV2(object):
             # only support openstack at the moment
             raise sol_ex.SolException(sol_detail='not support vim type')
 
-    def _make_res_def_for_remove_vnfcs(self, inst_info, inst_vnfcs):
-        # common part of terminate and scale in
+    def _make_res_def_for_remove_vnfcs(self, inst_info, inst_vnfcs,
+            re_create=False):
+        # common part of terminate, scale-in and heal.
+        # only heal calls with re_create=True.
         rm_reses = []
+        add_reses = []
         vnfc_cps = {}
         for inst_vnfc in inst_vnfcs:
-            vdu_res_id = uuidutils.generate_uuid()
+            rm_vdu_res_id = uuidutils.generate_uuid()
             rm_reses.append(
                 objects.ResourceDefinitionV1(
-                    id=vdu_res_id,
+                    id=rm_vdu_res_id,
                     type='COMPUTE',
                     resourceTemplateId=inst_vnfc.vduId,
                     resource=inst_vnfc.computeResource
                 )
             )
+            if re_create:
+                add_vdu_res_id = uuidutils.generate_uuid()
+                add_reses.append(
+                    objects.ResourceDefinitionV1(
+                        id=add_vdu_res_id,
+                        type='COMPUTE',
+                        resourceTemplateId=inst_vnfc.vduId,
+                    )
+                )
 
             if inst_vnfc.obj_attr_is_set('vnfcCpInfo'):
                 for cp_info in inst_vnfc.vnfcCpInfo:
@@ -432,7 +453,7 @@ class VnfLcmDriverV2(object):
                         # deleted.
                         continue
                     res_def = objects.ResourceDefinitionV1(
-                        id=_make_combination_id(cp_info.cpdId, vdu_res_id),
+                        id=_make_combination_id(cp_info.cpdId, rm_vdu_res_id),
                         resourceTemplateId=cp_info.cpdId,
                         type='LINKPORT')
                     rm_reses.append(res_def)
@@ -441,21 +462,38 @@ class VnfLcmDriverV2(object):
                     else:  # vnfLinkPortId
                         vnfc_cps[cp_info.vnfLinkPortId] = res_def
 
+                    if re_create:
+                        add_reses.append(
+                            objects.ResourceDefinitionV1(
+                                id=_make_combination_id(cp_info.cpdId,
+                                                        add_vdu_res_id),
+                                resourceTemplateId=cp_info.cpdId,
+                                type='LINKPORT'
+                            )
+                        )
+
             if inst_vnfc.obj_attr_is_set('storageResourceIds'):
                 for storage_id in inst_vnfc.storageResourceIds:
-                    for inst_str in inst_info.virtualStorageResourceInfo:
-                        if inst_str.id == storage_id:
-                            str_name = inst_str.virtualStorageDescId
-                            rm_reses.append(
-                                objects.ResourceDefinitionV1(
-                                    id=_make_combination_id(str_name,
-                                                            vdu_res_id),
-                                    type='STORAGE',
-                                    resourceTemplateId=str_name,
-                                    resource=inst_str.storageResource
-                                )
+                    inst_str = _get_obj_by_id(storage_id,
+                        inst_info.virtualStorageResourceInfo)
+                    str_name = inst_str.virtualStorageDescId
+                    rm_reses.append(
+                        objects.ResourceDefinitionV1(
+                            id=_make_combination_id(str_name, rm_vdu_res_id),
+                            type='STORAGE',
+                            resourceTemplateId=str_name,
+                            resource=inst_str.storageResource
+                        )
+                    )
+                    if re_create:
+                        add_reses.append(
+                            objects.ResourceDefinitionV1(
+                                id=_make_combination_id(str_name,
+                                                        add_vdu_res_id),
+                                type='STORAGE',
+                                resourceTemplateId=str_name
                             )
-                            break
+                        )
 
         # fill resourceHandle of ports
         if inst_info.obj_attr_is_set('vnfVirtualLinkResourceInfo'):
@@ -484,25 +522,25 @@ class VnfLcmDriverV2(object):
                             res_def = vnfc_cps[port.id]
                             res_def.resource = port.resourceHandle
 
-        return rm_reses
+        return rm_reses, add_reses
 
     def terminate_grant(self, grant_req, req, inst, vnfd):
         inst_info = inst.instantiatedVnfInfo
         rm_reses = []
         if inst_info.obj_attr_is_set('vnfcResourceInfo'):
-            rm_reses += self._make_res_def_for_remove_vnfcs(
+            rm_reses, _ = self._make_res_def_for_remove_vnfcs(
                 inst_info, inst_info.vnfcResourceInfo)
 
         if inst_info.obj_attr_is_set('vnfVirtualLinkResourceInfo'):
-            for inst_vl in inst_info.vnfVirtualLinkResourceInfo:
-                rm_reses.append(
-                    objects.ResourceDefinitionV1(
-                        id=uuidutils.generate_uuid(),
-                        type='VL',
-                        resourceTemplateId=inst_vl.vnfVirtualLinkDescId,
-                        resource=inst_vl.networkResource
-                    )
+            rm_reses += [
+                objects.ResourceDefinitionV1(
+                    id=uuidutils.generate_uuid(),
+                    type='VL',
+                    resourceTemplateId=inst_vl.vnfVirtualLinkDescId,
+                    resource=inst_vl.networkResource
                 )
+                for inst_vl in inst_info.vnfVirtualLinkResourceInfo
+            ]
 
         if rm_reses:
             grant_req.removeResources = rm_reses
@@ -580,11 +618,10 @@ class VnfLcmDriverV2(object):
             vdu_storage_names = []
             if inst_vnfc.obj_attr_is_set('storageResourceIds'):
                 for storage_id in inst_vnfc.storageResourceIds:
-                    for storage_res in inst_info.virtualStorageResourceInfo:
-                        if storage_res.id == storage_id:
-                            vdu_storage_names.append(
-                                storage_res.virtualStorageDescId)
-                            break
+                    storage_res = _get_obj_by_id(storage_id,
+                        inst_info.virtualStorageResourceInfo)
+                    vdu_storage_names.append(
+                        storage_res.virtualStorageDescId)
 
             add_reses += self._make_res_def_for_new_vdu(vdu_name,
                     num_inst, vdu_cp_names, vdu_storage_names)
@@ -613,7 +650,7 @@ class VnfLcmDriverV2(object):
                     if count == num_inst:
                         break
 
-        rm_reses = self._make_res_def_for_remove_vnfcs(inst_info, rm_vnfcs)
+        rm_reses, _ = self._make_res_def_for_remove_vnfcs(inst_info, rm_vnfcs)
 
         if rm_reses:
             grant_req.removeResources = rm_reses
@@ -722,6 +759,105 @@ class VnfLcmDriverV2(object):
             grant, vnfd):
         # DB is not updated, rollback does nothing and makes it successful.
         pass
+
+    def _set_rm_add_reses(self, rm_reses, add_reses, res_type, res_name,
+            res_obj, rm_id, add_id):
+        rm_reses.append(
+            objects.ResourceDefinitionV1(
+                id=rm_id,
+                type=res_type,
+                resourceTemplateId=res_name,
+                resource=res_obj
+            )
+        )
+        add_reses.append(
+            objects.ResourceDefinitionV1(
+                id=add_id,
+                type=res_type,
+                resourceTemplateId=res_name
+            )
+        )
+
+    def _make_SOL002_heal_grant_request(self, grant_req, req, inst_info,
+            is_all):
+        rm_reses = []
+        add_reses = []
+
+        for vnfc in inst_info.vnfcInfo:
+            if vnfc.id not in req.vnfcInstanceId:
+                continue
+            inst_vnfc = _get_obj_by_id(vnfc.vnfcResourceInfoId,
+                                       inst_info.vnfcResourceInfo)
+            rm_vdu_res_id = uuidutils.generate_uuid()
+            add_vdu_res_id = uuidutils.generate_uuid()
+            self._set_rm_add_reses(rm_reses, add_reses, 'COMPUTE',
+                inst_vnfc.vduId, inst_vnfc.computeResource,
+                rm_vdu_res_id, add_vdu_res_id)
+
+            if is_all and inst_vnfc.obj_attr_is_set('storageResourceIds'):
+                for storage_id in inst_vnfc.storageResourceIds:
+                    inst_str = _get_obj_by_id(storage_id,
+                        inst_info.virtualStorageResourceInfo)
+                    str_name = inst_str.virtualStorageDescId
+                    self._set_rm_add_reses(rm_reses, add_reses, 'STORAGE',
+                        str_name, inst_str.storageResource,
+                        _make_combination_id(str_name, rm_vdu_res_id),
+                        _make_combination_id(str_name, add_vdu_res_id))
+
+        if rm_reses:
+            grant_req.removeResources = rm_reses
+            grant_req.addResources = add_reses
+
+    def _make_SOL003_heal_grant_request(self, grant_req, req, inst_info,
+            is_all):
+        rm_reses = []
+        add_reses = []
+
+        if is_all:
+            if inst_info.obj_attr_is_set('vnfcResourceInfo'):
+                rm_reses, add_reses = self._make_res_def_for_remove_vnfcs(
+                    inst_info, inst_info.vnfcResourceInfo, re_create=True)
+
+            if inst_info.obj_attr_is_set('vnfVirtualLinkResourceInfo'):
+                for inst_vl in inst_info.vnfVirtualLinkResourceInfo:
+                    self._set_rm_add_reses(rm_reses, add_reses, 'VL',
+                        inst_vl.vnfVirtualLinkDescId, inst_vl.networkResource,
+                        uuidutils.generate_uuid(), uuidutils.generate_uuid())
+        else:
+            if inst_info.obj_attr_is_set('vnfcResourceInfo'):
+                for inst_vnfc in inst_info.vnfcResourceInfo:
+                    self._set_rm_add_reses(rm_reses, add_reses, 'COMPUTE',
+                        inst_vnfc.vduId, inst_vnfc.computeResource,
+                        uuidutils.generate_uuid(), uuidutils.generate_uuid())
+
+        if rm_reses:
+            grant_req.removeResources = rm_reses
+            grant_req.addResources = add_reses
+
+    def heal_grant(self, grant_req, req, inst, vnfd):
+        inst_info = inst.instantiatedVnfInfo
+
+        is_all = False  # default is False
+        if req.obj_attr_is_set('additionalParams'):
+            is_all = req.additionalParams.get('all', False)
+            grant_req.additionalParams = req.additionalParams
+
+        if req.obj_attr_is_set('vnfcInstanceId'):
+            self._make_SOL002_heal_grant_request(grant_req, req, inst_info,
+                                                 is_all)
+        else:
+            self._make_SOL003_heal_grant_request(grant_req, req, inst_info,
+                                                 is_all)
+
+    def heal_process(self, context, lcmocc, inst, grant_req, grant, vnfd):
+        req = lcmocc.operationParams
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
+            driver = openstack.Openstack()
+            driver.heal(req, inst, grant_req, grant, vnfd)
+        else:
+            # only support openstack at the moment
+            raise sol_ex.SolException(sol_detail='not support vim type')
 
     def change_ext_conn_grant(self, grant_req, req, inst, vnfd):
         inst_info = inst.instantiatedVnfInfo

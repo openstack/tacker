@@ -93,6 +93,23 @@ ScaleVnfRequest_V200 = {
     'additionalProperties': True,
 }
 
+# SOL002 5.5.2.9
+# SOL003 5.5.2.9
+HealVnfRequest_V200 = {
+    'type': 'object',
+    'properties': {
+        'cause': {'type': 'string', 'maxLength': 255},
+        'additionalParams': parameter_types.keyvalue_pairs,
+        # NOTE: following fields support only NFV-SOL 002
+        'vnfcInstanceId': {
+            'type': 'array',
+            'items': common_types.Identifier
+        },
+        'healScript': {'type': 'string', 'maxLength': 255},
+    },
+    'additionalProperties': True,
+}
+
 # SOL003 5.5.2.11
 ChangeExtVnfConnectivityRequest_V200 = {
     'type': 'object',

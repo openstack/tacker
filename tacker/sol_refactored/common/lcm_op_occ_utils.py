@@ -119,7 +119,7 @@ def make_lcmocc_notif_data(subsc, lcmocc, endpoint):
     return notif_data
 
 
-def _make_affected_vnfc(vnfc, change_type):
+def _make_affected_vnfc(vnfc, change_type, strgs):
     affected_vnfc = objects.AffectedVnfcV2(
         id=vnfc.id,
         vduId=vnfc.vduId,
@@ -130,11 +130,17 @@ def _make_affected_vnfc(vnfc, change_type):
         cp_ids = [cp.id for cp in vnfc.vnfcCpInfo]
         affected_vnfc.affectedVnfcCpIds = cp_ids
     if vnfc.obj_attr_is_set('storageResourceIds'):
-        str_ids = vnfc.storageResourceIds
+        # NOTE: in case of heal, volume may not be deleted/re-created.
         if change_type == 'ADDED':
-            affected_vnfc.addedStorageResourceIds = str_ids
+            str_ids = [str_id for str_id in vnfc.storageResourceIds
+                       if str_id in strgs]
+            if str_ids:
+                affected_vnfc.addedStorageResourceIds = str_ids
         else:  # 'REMOVED'
-            affected_vnfc.removedStorageResourceIds = str_ids
+            str_ids = [str_id for str_id in vnfc.storageResourceIds
+                       if str_id in strgs]
+            if str_ids:
+                affected_vnfc.removedStorageResourceIds = str_ids
 
     return affected_vnfc
 
@@ -170,7 +176,8 @@ def _make_affected_vls_link_port_change(vls_saved, vls, common_vls):
                     new_ports = {port.id for port in vl.vnfLinkPorts}
         add_ports = new_ports - old_ports
         rm_ports = old_ports - new_ports
-        # assume there are not add_ports and rm_ports at the same time.
+        # NOTE: Only for extManagedVirtualLink in case of heal
+        # (SOL003 all=true) there may be both of add_ports and rm_ports.
         if add_ports:
             affected_vl = objects.AffectedVirtualLinkV2(
                 id=new_vl.id,
@@ -180,7 +187,7 @@ def _make_affected_vls_link_port_change(vls_saved, vls, common_vls):
                 vnfLinkPortIds=list(add_ports)
             )
             affected_vls.append(affected_vl)
-        elif rm_ports:
+        if rm_ports:
             affected_vl = objects.AffectedVirtualLinkV2(
                 id=old_vl.id,
                 vnfVirtualLinkDescId=old_vl.vnfVirtualLinkDescId,
@@ -361,16 +368,33 @@ def update_lcmocc(lcmocc, inst_saved, inst):
         # return removed_objs, added_objs, common_objs
         return objs_saved - objs, objs - objs_saved, objs_saved & objs
 
+    removed_strgs, added_strgs, _ = _calc_diff('virtualStorageResourceInfo')
+    affected_strgs = []
+    if removed_strgs:
+        affected_strgs += [
+            _make_affected_strg(strg, 'REMOVED')
+            for strg in inst_info_saved.virtualStorageResourceInfo
+            if strg.id in removed_strgs
+        ]
+    if added_strgs:
+        affected_strgs += [_make_affected_strg(strg, 'ADDED')
+                           for strg in inst_info.virtualStorageResourceInfo
+                           if strg.id in added_strgs]
+
     removed_vnfcs, added_vnfcs, _ = _calc_diff('vnfcResourceInfo')
     affected_vnfcs = []
     if removed_vnfcs:
-        affected_vnfcs += [_make_affected_vnfc(vnfc, 'REMOVED')
-                           for vnfc in inst_info_saved.vnfcResourceInfo
-                           if vnfc.id in removed_vnfcs]
+        affected_vnfcs += [
+            _make_affected_vnfc(vnfc, 'REMOVED', removed_strgs)
+            for vnfc in inst_info_saved.vnfcResourceInfo
+            if vnfc.id in removed_vnfcs
+        ]
     if added_vnfcs:
-        affected_vnfcs += [_make_affected_vnfc(vnfc, 'ADDED')
-                           for vnfc in inst_info.vnfcResourceInfo
-                           if vnfc.id in added_vnfcs]
+        affected_vnfcs += [
+            _make_affected_vnfc(vnfc, 'ADDED', added_strgs)
+            for vnfc in inst_info.vnfcResourceInfo
+            if vnfc.id in added_vnfcs
+        ]
 
     removed_vls, added_vls, common_vls = _calc_diff(
         'vnfVirtualLinkResourceInfo')
@@ -402,19 +426,6 @@ def update_lcmocc(lcmocc, inst_saved, inst):
         affected_vls += _make_affected_vls_link_port_change(
             inst_info_saved.extManagedVirtualLinkInfo,
             inst_info.extManagedVirtualLinkInfo, common_mgd_vls)
-
-    removed_strgs, added_strgs, _ = _calc_diff('virtualStorageResourceInfo')
-    affected_strgs = []
-    if removed_strgs:
-        affected_strgs += [
-            _make_affected_strg(strg, 'REMOVED')
-            for strg in inst_info_saved.virtualStorageResourceInfo
-            if strg.id in removed_strgs
-        ]
-    if added_strgs:
-        affected_strgs += [_make_affected_strg(strg, 'ADDED')
-                           for strg in inst_info.virtualStorageResourceInfo
-                           if strg.id in added_strgs]
 
     affected_ext_link_ports = _make_affected_ext_link_ports(
         inst_info_saved, inst_info)

@@ -225,6 +225,73 @@ class Openstack(object):
         self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
             heat_reses)
 
+    def heal(self, req, inst, grant_req, grant, vnfd):
+        # make HOT
+        # NOTE: _make_hot() is called as other operations, but it returns
+        # empty 'nfv' dict by default. Therefore _update_nfv_dict() returns
+        # current heat parameters as is.
+        fields = self._make_hot(req, inst, grant_req, grant, vnfd)
+        LOG.debug("stack fields: %s", fields)
+
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        heat_client = heat_utils.HeatClient(vim_info)
+        stack_name = heat_utils.get_stack_name(inst)
+        fields = self._update_nfv_dict(heat_client, stack_name, fields)
+
+        # "re_create" is set to True only when SOL003 heal(without
+        # vnfcInstanceId) and "all=True" in additionalParams.
+        re_create = False
+        if (req.obj_attr_is_set('additionalParams') and
+                req.additionalParams.get('all', False) and
+                not req.obj_attr_is_set('vnfcInstanceId')):
+            re_create = True
+
+        if re_create:
+            # NOTE: DefaultUserData::heal() don't care about "template" and
+            # "files". Get and set current "template" and "files".
+            if "template" not in fields:
+                fields["template"] = heat_client.get_template(stack_name)
+            if "files" not in fields:
+                fields["files"] = heat_client.get_files(stack_name)
+            fields["stack_name"] = stack_name
+
+            # stack delete and create
+            heat_client.delete_stack(stack_name)
+            heat_client.create_stack(fields)
+        else:
+            # mark unhealthy to target resources.
+            # As the target resources has been already selected in
+            # constructing grant_req, use it here.
+            inst_info = inst.instantiatedVnfInfo
+
+            vnfc_res_ids = [res_def.resource.resourceId
+                            for res_def in grant_req.removeResources
+                            if res_def.type == 'COMPUTE']
+            for vnfc in inst_info.vnfcResourceInfo:
+                if vnfc.computeResource.resourceId in vnfc_res_ids:
+                    heat_client.mark_unhealthy(
+                        vnfc.metadata['stack_id'], vnfc.vduId)
+
+            storage_ids = [res_def.resource.resourceId
+                           for res_def in grant_req.removeResources
+                           if res_def.type == 'STORAGE']
+            if storage_ids:
+                for storage_info in inst_info.virtualStorageResourceInfo:
+                    if storage_info.storageResource.resourceId in storage_ids:
+                        heat_client.mark_unhealthy(
+                            storage_info.metadata['stack_id'],
+                            storage_info.virtualStorageDescId)
+
+            # update stack
+            heat_client.update_stack(stack_name, fields)
+
+        # get stack resource
+        heat_reses = heat_client.get_resources(stack_name)
+
+        # make instantiated_vnf_info
+        self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
+            heat_reses)
+
     def _make_hot(self, req, inst, grant_req, grant, vnfd):
         if grant_req.operation == v2fields.LcmOperationType.INSTANTIATE:
             flavour_id = req.flavourId
@@ -652,6 +719,7 @@ class Openstack(object):
     def _make_vnfc_metadata(self, server_res, heat_reses):
         metadata = {
             'creation_time': server_res['creation_time'],
+            'stack_id': heat_utils.get_resource_stack_id(server_res)
         }
         parent_res = heat_utils.get_parent_resource(server_res, heat_reses)
         if parent_res:
@@ -692,7 +760,10 @@ class Openstack(object):
             objects.VirtualStorageResourceInfoV2(
                 id=res_id,
                 virtualStorageDescId=res['resource_name'],
-                storageResource=_res_to_handle(res)
+                storageResource=_res_to_handle(res),
+                metadata={
+                    'stack_id': heat_utils.get_resource_stack_id(res)
+                }
             )
             for res_id, res in storage_reses.items()
         ]

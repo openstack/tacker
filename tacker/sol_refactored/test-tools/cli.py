@@ -100,6 +100,12 @@ class Client(object):
             path, "POST", body=req_body, version="2.0.0")
         self.print(resp, body)
 
+    def heal(self, id, req_body):
+        path = self.path + '/' + id + '/heal'
+        resp, body = self.client.do_request(
+            path, "POST", body=req_body, version="2.0.0")
+        self.print(resp, body)
+
     def chg_ext_conn(self, id, req_body):
         path = self.path + '/' + id + '/change_ext_conn'
         resp, body = self.client.do_request(
@@ -132,6 +138,7 @@ def usage():
     print("  inst inst {id} body(path of content)")
     print("  inst term {id} body(path of content)")
     print("  inst scale {id} body(path of content)")
+    print("  inst heal {id} body(path of content)")
     print("  inst chg_ext_conn {id} body(path of content)")
     print("  subsc create body(path of content)")
     print("  subsc list [body(path of content)]")
@@ -159,7 +166,7 @@ if __name__ == '__main__':
 
     if resource == "inst":
         if action not in ["create", "list", "show", "delete", "update",
-                          "inst", "term", "scale", "chg_ext_conn"]:
+                          "inst", "term", "scale", "heal", "chg_ext_conn"]:
             usage()
         client = Client("/vnflcm/v2/vnf_instances")
     elif resource == "subsc":
@@ -209,6 +216,10 @@ if __name__ == '__main__':
         if len(sys.argv) != 5:
             usage()
         client.scale(sys.argv[3], get_body(sys.argv[4]))
+    elif action == "heal":
+        if len(sys.argv) != 5:
+            usage()
+        client.heal(sys.argv[3], get_body(sys.argv[4]))
     elif action == "chg_ext_conn":
         if len(sys.argv) != 5:
             usage()
