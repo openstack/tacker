@@ -433,6 +433,11 @@ class InvalidIpAddr(TackerException):
     message = _('Invalid ip address value in resource %(id)s.')
 
 
+class NamespaceIsNotUnique(TackerException):
+    message = _('There are multiple namespaces in the manifest file '
+                'for Kubernetes. Only one namespace can be used in one VNF.')
+
+
 class TenantMatchFailure(TackerException):
     message = _('The target %(resource)s %(id)s cannot be %(action)s '
                 'from a VIM of a different tenant.')

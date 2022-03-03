@@ -594,7 +594,7 @@ class TestKubernetes(base.TestCase):
         mock_vnf_by_id.return_value = fake_vnf_get_by_id
         vnf_resource = vnf_resource_obj.VnfResource(context=self.context)
         vnf_resource.vnf_instance_id = vnf_instance.id
-        vnf_resource.resource_name = "curry-ns,curry-endpoint-test001"
+        vnf_resource.resource_name = "curry-endpoint-test001"
         vnf_resource.resource_type = "v1,Pod"
         vnf_resource.resource_identifier = ''
         vnf_resource.resource_status = ''
@@ -647,9 +647,11 @@ class TestKubernetes(base.TestCase):
                           vnf_software_images,
                           instantiate_vnf_req, vnf_package_path)
 
+    @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     @mock.patch.object(vnf_package_vnfd.VnfPackageVnfd, "get_by_id")
-    def test_pre_instantiation_vnf(self, mock_vnfd_by_id, mock_vnf_by_id):
+    def test_pre_instantiation_vnf(
+            self, mock_vnfd_by_id, mock_vnf_by_id, mock_save):
         vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = None
         vnf_software_images = None
@@ -686,8 +688,7 @@ class TestKubernetes(base.TestCase):
             vnf_software_images,
             instantiate_vnf_req, vnf_package_path)
         for item in new_k8s_objs.values():
-            self.assertEqual(item[0].resource_name, 'curry-ns,'
-                                                    'curry-endpoint-test001')
+            self.assertEqual(item[0].resource_name, 'curry-endpoint-test001')
             self.assertEqual(item[0].resource_type, 'v1,Pod')
 
     def _delete_single_vnf_resource(self, mock_vnf_resource_list,
@@ -696,6 +697,7 @@ class TestKubernetes(base.TestCase):
         vnf_id = 'fake_vnf_id'
         vnf_instance = fd_utils.get_vnf_instance_object()
         vnf_instance_id = vnf_instance.id
+        vnf_instance.vnf_metadata['namespace'] = "default"
         vnf_resource = models.VnfResource()
         vnf_resource.vnf_instance_id = vnf_instance_id
         vnf_resource.resource_name = resource_name
@@ -714,7 +716,7 @@ class TestKubernetes(base.TestCase):
         terminate_vnf_req = objects.TerminateVnfRequest(
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
             graceful_termination_timeout=5)
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Pod"
         mock_delete_namespaced_pod.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -730,7 +732,7 @@ class TestKubernetes(base.TestCase):
                                                   mock_delete_namespaced_pod):
         terminate_vnf_req = objects.TerminateVnfRequest(
             termination_type=fields.VnfInstanceTerminationType.FORCEFUL)
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Pod"
         mock_delete_namespaced_pod.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -744,7 +746,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_pod_terminate_vnfreq_none(self, mock_vnf_resource_list,
                                               mock_delete_namespaced_pod):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Pod"
         mock_delete_namespaced_pod.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -758,7 +760,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_service(self, mock_vnf_resource_list,
                             mock_delete_namespaced_service):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Service"
         mock_delete_namespaced_service.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -772,7 +774,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_secret(self, mock_vnf_resource_list,
                            mock_delete_namespaced_secret):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Secret"
         mock_delete_namespaced_secret.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -786,7 +788,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_config_map(self, mock_vnf_resource_list,
                                mock_delete_namespaced_config_map):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,ConfigMap"
         mock_delete_namespaced_config_map.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -801,7 +803,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_persistent_volume_claim(self, mock_vnf_resource_list,
                             mock_delete_namespaced_persistent_volume_claim):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,PersistentVolumeClaim"
         mock_delete_namespaced_persistent_volume_claim.return_value = \
             client.V1Status()
@@ -816,7 +818,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_limit_range(self, mock_vnf_resource_list,
                                 mock_delete_namespaced_limit_range):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,LimitRange"
         mock_delete_namespaced_limit_range.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -830,7 +832,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_pod_template(self, mock_vnf_resource_list,
                                  mock_delete_namespaced_pod_template):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,PodTemplate"
         mock_delete_namespaced_pod_template.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -844,7 +846,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_namespace(self, mock_vnf_resource_list,
                               mock_delete_namespace):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Namespace"
         mock_delete_namespace.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -858,7 +860,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_persistent_volume(self, mock_vnf_resource_list,
                                       mock_delete_persistent_volume):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,PersistentVolume"
         mock_delete_persistent_volume.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -872,7 +874,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_resource_quota(self, mock_vnf_resource_list,
                                    mock_delete_namespaced_resource_quota):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,ResourceQuota"
         mock_delete_namespaced_resource_quota.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -886,7 +888,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_service_account(self, mock_vnf_resource_list,
                                     mock_delete_namespaced_service_account):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,ServiceAccount"
         mock_delete_namespaced_service_account.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -900,7 +902,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_api_service(self, mock_vnf_resource_list,
                                 mock_delete_api_service):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "apiregistration.k8s.io/v1,APIService"
         mock_delete_api_service.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -914,7 +916,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_daemon_set(self, mock_vnf_resource_list,
                                mock_delete_namespaced_daemon_set):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "apps/v1,DaemonSet"
         mock_delete_namespaced_daemon_set.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -928,7 +930,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_deployment(self, mock_vnf_resource_list,
                                mock_delete_namespaced_deployment):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "apps/v1,Deployment"
         mock_delete_namespaced_deployment.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -942,7 +944,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_replica_set(self, mock_vnf_resource_list,
                                 mock_delete_namespaced_replica_set):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "apps/v1,ReplicaSet"
         mock_delete_namespaced_replica_set.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -964,7 +966,7 @@ class TestKubernetes(base.TestCase):
                             mock_read_namespaced_stateful_set,
                             mock_list_namespaced_persistent_volume_claim,
                             mock_delete_namespaced_persistent_volume_claim):
-        resource_name = "curryns,curry-test001"
+        resource_name = "curry-test001"
         resource_type = "apps/v1,StatefulSet"
         mock_delete_namespaced_stateful_set.return_value = client.V1Status()
         mock_delete_namespaced_persistent_volume_claim.return_value = \
@@ -997,7 +999,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_controller_revision(self, mock_vnf_resource_list,
                                 mock_delete_namespaced_controller_revision):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "apps/v1,ControllerRevision"
         mock_delete_namespaced_controller_revision.return_value = \
             client.V1Status()
@@ -1013,7 +1015,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_horizontal_pod_autoscaler(self, mock_vnf_resource_list,
                             mock_delete_namespaced_horizontal_pod_autoscaler):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "autoscaling/v1,HorizontalPodAutoscaler"
         mock_delete_namespaced_horizontal_pod_autoscaler.return_value = \
             client.V1Status()
@@ -1028,7 +1030,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_job(self, mock_vnf_resource_list,
                         mock_delete_namespaced_job):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "batch/v1,Job"
         mock_delete_namespaced_job.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -1042,7 +1044,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_lease(self, mock_vnf_resource_list,
                           mock_delete_namespaced_lease):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "coordination.k8s.io/v1,Lease"
         mock_delete_namespaced_lease.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -1057,7 +1059,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_network_policy(self, mock_vnf_resource_list,
                                    mock_delete_namespaced_network_policy):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "networking.k8s.io/v1,NetworkPolicy"
         mock_delete_namespaced_network_policy.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -1072,7 +1074,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_cluster_role(self, mock_vnf_resource_list,
                                  mock_delete_cluster_role):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "rbac.authorization.k8s.io/v1,ClusterRole"
         mock_delete_cluster_role.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -1087,7 +1089,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_cluster_role_binding(self, mock_vnf_resource_list,
                                          mock_delete_cluster_role_binding):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "rbac.authorization.k8s.io/v1,ClusterRoleBinding"
         mock_delete_cluster_role_binding.return_value = \
             client.V1Status()
@@ -1103,7 +1105,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_role(self, mock_vnf_resource_list,
                          mock_delete_namespaced_role):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "rbac.authorization.k8s.io/v1,Role"
         mock_delete_namespaced_role.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -1118,7 +1120,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_role_binding(self, mock_vnf_resource_list,
                                  mock_delete_namespaced_role_binding):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "rbac.authorization.k8s.io/v1,RoleBinding"
         mock_delete_namespaced_role_binding.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -1132,7 +1134,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_priority_class(self, mock_vnf_resource_list,
                                    mock_delete_priority_class):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "scheduling.k8s.io/v1,PriorityClass"
         mock_delete_priority_class.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -1146,7 +1148,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_storage_class(self, mock_vnf_resource_list,
                                   mock_delete_storage_class):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "storage.k8s.io/v1,StorageClass"
         mock_delete_storage_class.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -1160,7 +1162,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_volume_attachment(self, mock_vnf_resource_list,
                                       mock_delete_volume_attachment):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "storage.k8s.io/v1,VolumeAttachment"
         mock_delete_volume_attachment.return_value = client.V1Status()
         self._delete_single_vnf_resource(
@@ -1182,20 +1184,21 @@ class TestKubernetes(base.TestCase):
         vnf_id = 'fake_vnf_id'
         vnf_instance = fd_utils.get_vnf_instance_object()
         vnf_instance_id = vnf_instance.id
+        vnf_instance.vnf_metadata['namespace'] = "default"
         terminate_vnf_req = objects.TerminateVnfRequest(
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
             graceful_termination_timeout=5)
         vnf_resource1 = models.VnfResource()
         vnf_resource1.vnf_instance_id = vnf_instance_id
-        vnf_resource1.resource_name = ",fake_name1"
+        vnf_resource1.resource_name = "fake_name1"
         vnf_resource1.resource_type = "storage.k8s.io/v1,StorageClass"
         vnf_resource2 = models.VnfResource()
         vnf_resource2.vnf_instance_id = vnf_instance_id
-        vnf_resource2.resource_name = ",fake_name2"
+        vnf_resource2.resource_name = "fake_name2"
         vnf_resource2.resource_type = "v1,PersistentVolume"
         vnf_resource3 = models.VnfResource()
         vnf_resource3.vnf_instance_id = vnf_instance_id
-        vnf_resource3.resource_name = "fake_namespace,fake_name3"
+        vnf_resource3.resource_name = "fake_name3"
         vnf_resource3.resource_type = "v1,PersistentVolumeClaim"
         mock_vnf_resource_list.return_value = \
             [vnf_resource1, vnf_resource2, vnf_resource3]
@@ -1217,7 +1220,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_pod_api_fail(self, mock_vnf_resource_list,
                                  mock_delete_namespaced_pod):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Pod"
         mock_delete_namespaced_pod.side_effect = Exception()
         self._delete_single_vnf_resource(
@@ -1236,7 +1239,7 @@ class TestKubernetes(base.TestCase):
                             mock_delete_namespaced_stateful_set,
                             mock_read_namespaced_stateful_set,
                             mock_list_namespaced_persistent_volume_claim):
-        resource_name = "curryns,curry-test001"
+        resource_name = "curry-test001"
         resource_type = "apps/v1,StatefulSet"
         mock_delete_namespaced_stateful_set.return_value = client.V1Status()
         stateful_set_obj = fakes.fake_v1_stateful_set()
@@ -1257,7 +1260,7 @@ class TestKubernetes(base.TestCase):
     def test_delete_stateful_set_read_sfs_fail(self, mock_vnf_resource_list,
                                         mock_delete_namespaced_stateful_set,
                                         mock_read_namespaced_stateful_set):
-        resource_name = "curryns,curry-test001"
+        resource_name = "curry-test001"
         resource_type = "apps/v1,StatefulSet"
         mock_delete_namespaced_stateful_set.return_value = client.V1Status()
         mock_read_namespaced_stateful_set.side_effect = Exception()
@@ -1275,6 +1278,7 @@ class TestKubernetes(base.TestCase):
         vnf_instance_id = '4a4c2d44-8a52-4895-9a75-9d1c76c3e738'
         vnf_instance = fd_utils.get_vnf_instance_object()
         vnf_instance.id = vnf_instance_id
+        vnf_instance.vnf_metadata['namespace'] = "default"
         vnf_resource = models.VnfResource()
         vnf_resource.vnf_instance_id = vnf_instance_id
         vnf_resource.resource_name = resource_name
@@ -1290,7 +1294,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_pod(self, mock_vnf_resource_list,
                              mock_read_namespaced_pod):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Pod"
         mock_read_namespaced_pod.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1303,7 +1307,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_service(self, mock_vnf_resource_list,
                                  mock_read_namespaced_service):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Service"
         mock_read_namespaced_service.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1316,7 +1320,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_secret(self, mock_vnf_resource_list,
                                 mock_read_namespaced_secret):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Secret"
         mock_read_namespaced_secret.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1329,7 +1333,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_config_map(self, mock_vnf_resource_list,
                                     mock_read_namespaced_config_map):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,ConfigMap"
         mock_read_namespaced_config_map.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1343,7 +1347,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_persistent_volume_claim(self, mock_vnf_resource_list,
                                 mock_read_namespaced_persistent_volume_claim):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,PersistentVolumeClaim"
         mock_read_namespaced_persistent_volume_claim.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1356,7 +1360,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_limit_range(self, mock_vnf_resource_list,
                                      mock_read_namespaced_limit_range):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,LimitRange"
         mock_read_namespaced_limit_range.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1369,7 +1373,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_pod_template(self, mock_vnf_resource_list,
                                       mock_read_namespaced_pod_template):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,PodTemplate"
         mock_read_namespaced_pod_template.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1382,7 +1386,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_namespace(self, mock_vnf_resource_list,
                                    mock_read_namespace):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Namespace"
         mock_read_namespace.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1395,7 +1399,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_persistent_volume(self, mock_vnf_resource_list,
                                            mock_read_persistent_volume):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,PersistentVolume"
         mock_read_persistent_volume.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1408,7 +1412,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_resource_quota(self, mock_vnf_resource_list,
                                         mock_read_namespaced_resource_quota):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,ResourceQuota"
         mock_read_namespaced_resource_quota.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1421,7 +1425,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_service_account(self, mock_vnf_resource_list,
                                          mock_read_namespaced_service_account):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,ServiceAccount"
         mock_read_namespaced_service_account.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1434,7 +1438,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_api_service(self, mock_vnf_resource_list,
                                      mock_read_api_service):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "apiregistration.k8s.io/v1,APIService"
         mock_read_api_service.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1447,7 +1451,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_daemon_set(self, mock_vnf_resource_list,
                                     mock_read_namespaced_daemon_set):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "apps/v1,DaemonSet"
         mock_read_namespaced_daemon_set.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1460,7 +1464,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_deployment(self, mock_vnf_resource_list,
                                     mock_read_namespaced_deployment):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "apps/v1,Deployment"
         mock_read_namespaced_deployment.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1473,7 +1477,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_replica_set(self, mock_vnf_resource_list,
                                      mock_read_namespaced_replica_set):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "apps/v1,ReplicaSet"
         mock_read_namespaced_replica_set.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1486,7 +1490,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_stateful_set(self, mock_vnf_resource_list,
                                       mock_read_namespaced_stateful_set):
-        resource_name = "curryns,curry-test001"
+        resource_name = "curry-test001"
         resource_type = "apps/v1,StatefulSet"
         mock_read_namespaced_stateful_set.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1500,7 +1504,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_controller_revision(self, mock_vnf_resource_list,
                                 mock_read_namespaced_controller_revision):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "apps/v1,ControllerRevision"
         mock_read_namespaced_controller_revision.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1515,7 +1519,7 @@ class TestKubernetes(base.TestCase):
     def test_delete_wait_horizontal_pod_autoscaler(self,
                             mock_vnf_resource_list,
                             mock_read_namespaced_horizontal_pod_autoscaler):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "autoscaling/v1,HorizontalPodAutoscaler"
         mock_read_namespaced_horizontal_pod_autoscaler.side_effect = \
             Exception()
@@ -1529,7 +1533,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_job(self, mock_vnf_resource_list,
                              mock_read_namespaced_job):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "batch/v1,Job"
         mock_read_namespaced_job.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1542,7 +1546,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_lease(self, mock_vnf_resource_list,
                                mock_read_namespaced_lease):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "coordination.k8s.io/v1,Lease"
         mock_read_namespaced_lease.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1556,7 +1560,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_network_policy(self, mock_vnf_resource_list,
                                         mock_read_namespaced_network_policy):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "networking.k8s.io/v1,NetworkPolicy"
         mock_read_namespaced_network_policy.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1570,7 +1574,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_cluster_role(self, mock_vnf_resource_list,
                                       mock_read_cluster_role):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "rbac.authorization.k8s.io/v1,ClusterRole"
         mock_read_cluster_role.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1584,7 +1588,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_cluster_role_binding(self, mock_vnf_resource_list,
                                               mock_read_cluster_role_binding):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "rbac.authorization.k8s.io/v1,ClusterRoleBinding"
         mock_read_cluster_role_binding.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1598,7 +1602,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_role(self, mock_vnf_resource_list,
                               mock_read_namespaced_role):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "rbac.authorization.k8s.io/v1,Role"
         mock_read_namespaced_role.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1612,7 +1616,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_role_binding(self, mock_vnf_resource_list,
                                       mock_read_namespaced_role_binding):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "rbac.authorization.k8s.io/v1,RoleBinding"
         mock_read_namespaced_role_binding.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1625,7 +1629,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_priority_class(self, mock_vnf_resource_list,
                                         mock_read_priority_class):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "scheduling.k8s.io/v1,PriorityClass"
         mock_read_priority_class.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1638,7 +1642,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_storage_class(self, mock_vnf_resource_list,
                                        mock_read_storage_class):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "storage.k8s.io/v1,StorageClass"
         mock_read_storage_class.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1651,7 +1655,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_volume_attachment(self, mock_vnf_resource_list,
                                            mock_read_volume_attachment):
-        resource_name = ",fake_name"
+        resource_name = "fake_name"
         resource_type = "storage.k8s.io/v1,VolumeAttachment"
         mock_read_volume_attachment.side_effect = Exception()
         self._delete_wait_single_vnf_resource(
@@ -1664,7 +1668,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_delete_wait_retry(self, mock_vnf_resource_list,
                              mock_read_namespaced_pod):
-        resource_name = "fake_namespace,fake_name"
+        resource_name = "fake_name"
         resource_type = "v1,Pod"
         mock_read_namespaced_pod.return_value = client.V1Status()
         self._delete_wait_single_vnf_resource(
@@ -1789,12 +1793,7 @@ class TestKubernetes(base.TestCase):
                        'deploy_kubernetes_objects')
     def test_instantiate_vnf_without_target_k8s_files(
             self, mock_deploy_kubernetes_objects):
-        vnf = {
-            'vnfd': {
-                'attributes': {
-                    'vnfd': {
-                        'tosca_definitions_version': 'tosca_simple_yaml_1_0'}
-                }}}
+        vnf = objects.VnfInstance(vnf_metadata={'namespace': 'default'})
         vim_connection_info = objects.VimConnectionInfo(
             access_info={'auth_url': 'http://fake-url/identity/v3'})
         vnfd_dict = fakes.fake_vnf_dict()
@@ -1829,12 +1828,7 @@ class TestKubernetes(base.TestCase):
             mock_read_namespaced_deployment,
             mock_deploy_k8s,
             mock_get_k8s_objs_from_yaml):
-        vnf = {
-            'vnfd': {
-                'attributes': {
-                    'vnfd': {
-                        'tosca_definitions_version': 'tosca_simple_yaml_1_0'}
-                }}}
+        vnf = objects.VnfInstance(vnf_metadata={'namespace': 'default'})
         vim_connection_info = objects.VimConnectionInfo(
             access_info={'auth_url': 'http://fake-url/identity/v3'})
         deployment_obj = fakes.fake_v1_deployment()
@@ -2093,6 +2087,7 @@ class TestKubernetes(base.TestCase):
                 fakes.get_fake_pod_info(kind='Pod', name='vdu2')])
         instantiate_vnf_req = objects.InstantiateVnfRequest(
             additional_params={'lcm-kubernetes-def-files': ["dummy.yaml"]})
+        self.vnf_instance.vnf_metadata['namespace'] = 'default'
         self.kubernetes.post_vnf_instantiation(
             context=self.context,
             vnf_instance=self.vnf_instance,
@@ -2221,10 +2216,11 @@ class TestKubernetes(base.TestCase):
             fakes.get_vnf_resource_list(kind='Deployment')
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
-        mock_vnf_instance_get_by_id.return_value = (
-            vnflcm_fakes.return_vnf_instance(
-                fields.VnfInstanceState.INSTANTIATED,
-                scale_status=scale_status))
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
         mock_read_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=2),
                            status=client.V1ScaleStatus(replicas=2))
@@ -2251,10 +2247,11 @@ class TestKubernetes(base.TestCase):
             fakes.get_vnf_resource_list(kind='StatefulSet')
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
-        mock_vnf_instance_get_by_id.return_value = (
-            vnflcm_fakes.return_vnf_instance(
-                fields.VnfInstanceState.INSTANTIATED,
-                scale_status=scale_status))
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
         mock_read_namespaced_stateful_set_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=2),
                            status=client.V1ScaleStatus(replicas=2))
@@ -2281,10 +2278,11 @@ class TestKubernetes(base.TestCase):
             fakes.get_vnf_resource_list(kind='ReplicaSet')
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
-        mock_vnf_instance_get_by_id.return_value = (
-            vnflcm_fakes.return_vnf_instance(
-                fields.VnfInstanceState.INSTANTIATED,
-                scale_status=scale_status))
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
         mock_read_namespaced_replica_set_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=2),
                            status=client.V1ScaleStatus(replicas=2))
@@ -2311,10 +2309,11 @@ class TestKubernetes(base.TestCase):
             fakes.get_vnf_resource_list(kind='Deployment')
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
-        mock_vnf_instance_get_by_id.return_value = (
-            vnflcm_fakes.return_vnf_instance(
-                fields.VnfInstanceState.INSTANTIATED,
-                scale_status=scale_status))
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
         mock_read_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
                            status=client.V1ScaleStatus(replicas=1))
@@ -2335,9 +2334,10 @@ class TestKubernetes(base.TestCase):
         policy = fakes.get_scale_policy(type='in')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Depoyment', name='other_name')
-        mock_vnf_instance_get_by_id.return_value = (
-            vnflcm_fakes.return_vnf_instance(
-                fields.VnfInstanceState.INSTANTIATED))
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
         self.assertRaises(vnfm.CNFScaleFailed,
                           self.kubernetes.scale,
                           self.context, None,
@@ -2350,9 +2350,10 @@ class TestKubernetes(base.TestCase):
         policy = fakes.get_scale_policy(type='in')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Pod')
-        mock_vnf_instance_get_by_id.return_value = (
-            vnflcm_fakes.return_vnf_instance(
-                fields.VnfInstanceState.INSTANTIATED))
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
         self.assertRaises(vnfm.CNFScaleFailed,
                           self.kubernetes.scale,
                           self.context, None,
@@ -2369,10 +2370,11 @@ class TestKubernetes(base.TestCase):
             fakes.get_vnf_resource_list(kind='Deployment')
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
-        mock_vnf_instance_get_by_id.return_value = (
-            vnflcm_fakes.return_vnf_instance(
-                fields.VnfInstanceState.INSTANTIATED,
-                scale_status=scale_status))
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
         mock_read_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
                            status=client.V1ScaleStatus(replicas=1))
@@ -2392,10 +2394,11 @@ class TestKubernetes(base.TestCase):
             fakes.get_vnf_resource_list(kind='Deployment')
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
-        mock_vnf_instance_get_by_id.return_value = (
-            vnflcm_fakes.return_vnf_instance(
-                fields.VnfInstanceState.INSTANTIATED,
-                scale_status=scale_status))
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
         mock_read_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=3),
                            status=client.V1ScaleStatus(replicas=3))
@@ -2506,12 +2509,14 @@ class TestKubernetes(base.TestCase):
         mock_read_namespaced_horizontal_pod_autoscaler.assert_called_once()
         mock_patch_namespaced_deployment_scale.assert_called_once()
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_wait_deployment(self, mock_vnf_resource_list,
                         mock_list_namespaced_pod,
-                        mock_read_namespaced_deployment_scale):
+                        mock_read_namespaced_deployment_scale,
+                        mock_vnf_instance):
         policy = fakes.get_scale_policy(type='out')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Deployment')
@@ -2528,12 +2533,14 @@ class TestKubernetes(base.TestCase):
                                    last_event_id=None)
         mock_list_namespaced_pod.assert_called_once()
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_stateful_set_scale')
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_wait_stateful_set(self, mock_vnf_resource_list,
                         mock_list_namespaced_pod,
-                        mock_read_namespaced_stateful_set_scale):
+                        mock_read_namespaced_stateful_set_scale,
+                        mock_vnf_instance):
         policy = fakes.get_scale_policy(type='out')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='StatefulSet')
@@ -2550,12 +2557,14 @@ class TestKubernetes(base.TestCase):
                                    last_event_id=None)
         mock_list_namespaced_pod.assert_called_once()
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set_scale')
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_wait_replica_set(self, mock_vnf_resource_list,
                         mock_list_namespaced_pod,
-                        mock_read_namespaced_replica_set_scale):
+                        mock_read_namespaced_replica_set_scale,
+                        mock_vnf_instance):
         policy = fakes.get_scale_policy(type='out')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='ReplicaSet')
@@ -2572,8 +2581,10 @@ class TestKubernetes(base.TestCase):
                                    last_event_id=None)
         mock_list_namespaced_pod.assert_called_once()
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_scale_wait_target_not_found(self, mock_vnf_resource_list):
+    def test_scale_wait_target_not_found(
+            self, mock_vnf_resource_list, mock_vnf_instance):
         policy = fakes.get_scale_policy(type='out')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Depoyment', name='other_name')
@@ -2582,12 +2593,14 @@ class TestKubernetes(base.TestCase):
                           self.context, None,
                           utils.get_vim_auth_obj(), policy, None, None)
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_wait_retry_over(self, mock_vnf_resource_list,
                         mock_list_namespaced_pod,
-                        mock_read_namespaced_deployment_scale):
+                        mock_read_namespaced_deployment_scale,
+                        mock_vnf_instance):
         policy = fakes.get_scale_policy(type='out')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Deployment')
@@ -2603,12 +2616,14 @@ class TestKubernetes(base.TestCase):
                           self.context, None,
                           utils.get_vim_auth_obj(), policy, None, None)
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_wait_status_unknown(self, mock_vnf_resource_list,
                         mock_list_namespaced_pod,
-                        mock_read_namespaced_deployment_scale):
+                        mock_read_namespaced_deployment_scale,
+                        mock_vnf_instance):
         policy = fakes.get_scale_policy(type='out')
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Deployment')
@@ -2692,10 +2707,11 @@ class TestKubernetes(base.TestCase):
             "SCALE_OUT", "vdu1_aspect", 1, "False")
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
-        mock_vnf_instance_get_by_id.return_value = \
-            vnflcm_fakes.return_vnf_instance(
-                fields.VnfInstanceState.INSTANTIATED,
-                scale_status=scale_status)
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Deployment', name='vdu1')
         mock_vnf_package_vnfd_get_by_id.return_value = \
@@ -2733,10 +2749,11 @@ class TestKubernetes(base.TestCase):
         vnf_info['vnf_lcm_op_occ'] = vnflcm_fakes.vnflcm_scale_out_cnf()
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
-        mock_vnf_instance_get_by_id.return_value = \
-            vnflcm_fakes.return_vnf_instance(
-                fields.VnfInstanceState.INSTANTIATED,
-                scale_status=scale_status)
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
         mock_vnf_resource_list.return_value = \
             fakes.get_vnf_resource_list(kind='Deployment', name='vdu1')
         mock_vnf_package_vnfd_get_by_id.return_value = \
@@ -2768,10 +2785,10 @@ class TestKubernetes(base.TestCase):
         vnf_resource_list = []
         vnf_resource_list.append(models.VnfResource())
         vnf_resource_list[0].vnf_instance_id = self.vnf_instance.id
-        vnf_resource_list[0].resource_name = "default,vdu0"
+        vnf_resource_list[0].resource_name = "vdu0"
         vnf_resource_list[0].resource_type = "apps/v1,Deployment"
         vnf_resource_list.append(copy.deepcopy(vnf_resource_list[0]))
-        vnf_resource_list[1].resource_name = "default,vdu1"
+        vnf_resource_list[1].resource_name = "vdu1"
         mock_vnf_resource_list.return_value = vnf_resource_list
         vnfc_resource_info = []
         vnfc_resource_info.append(
@@ -2834,7 +2851,7 @@ class TestKubernetes(base.TestCase):
             vnflcm_fakes.return_vnf_package_vnfd()
         vnf_resource = models.VnfResource()
         vnf_resource.vnf_instance_id = self.vnf_instance.id
-        vnf_resource.resource_name = "default,vdu1"
+        vnf_resource.resource_name = "vdu1"
         vnf_resource.resource_type = "apps/v1,Deployment"
         mock_vnf_resource_list.return_value = [vnf_resource]
         vnfc_resource_info = []
@@ -2888,7 +2905,7 @@ class TestKubernetes(base.TestCase):
             vnflcm_fakes.return_vnf_package_vnfd()
         vnf_resource = models.VnfResource()
         vnf_resource.vnf_instance_id = self.vnf_instance.id
-        vnf_resource.resource_name = "default,vdu1"
+        vnf_resource.resource_name = "vdu1"
         vnf_resource.resource_type = "apps/v1,Deployment"
         mock_vnf_resource_list.return_value = [vnf_resource]
         vnfc_resource_info = []
@@ -2914,6 +2931,7 @@ class TestKubernetes(base.TestCase):
             client.rest.ApiException(status=500)
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
             [vnfc_resource_info_obj]
@@ -2941,6 +2959,7 @@ class TestKubernetes(base.TestCase):
         mock_delete_namespaced_pod.return_value = client.V1Status()
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
             [vnfc_resource_info_obj]
@@ -2973,6 +2992,7 @@ class TestKubernetes(base.TestCase):
         mock_create_namespaced_pod.return_value = client.V1Status()
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
             [vnfc_resource_info_obj]
@@ -3004,6 +3024,7 @@ class TestKubernetes(base.TestCase):
         mock_create_namespaced_pod.return_value = client.V1Status()
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
             [vnfc_resource_info_obj]
@@ -3029,6 +3050,7 @@ class TestKubernetes(base.TestCase):
         mock_delete_namespaced_pod.return_value = client.V1Status()
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='Deployment')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3056,6 +3078,7 @@ class TestKubernetes(base.TestCase):
             client.rest.ApiException(status=404)
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='Deployment')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3085,6 +3108,7 @@ class TestKubernetes(base.TestCase):
             client.rest.ApiException(status=500)
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='Deployment')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3107,6 +3131,7 @@ class TestKubernetes(base.TestCase):
                 fakes.get_fake_pod_info(kind='ReplicaSet')])
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='ReplicaSet')
         # change Kubernetes resource kind to Job (for illegal route)
@@ -3144,6 +3169,7 @@ class TestKubernetes(base.TestCase):
             fields.VnfInstanceState.INSTANTIATED)
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info = []
         vnfc_resource_info.append(fakes.fake_vnfc_resource_info(
             vdu_id='VDU1', rsc_kind='Deployment', rsc_name='fake_name',
@@ -3181,6 +3207,7 @@ class TestKubernetes(base.TestCase):
             client.rest.ApiException(status=500)
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
             [vnfc_resource_info_obj]
@@ -3201,6 +3228,7 @@ class TestKubernetes(base.TestCase):
                 fakes.get_fake_pod_info(kind='Pod')])
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(rsc_kind='Pod')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
             [vnfc_resource_info_obj]
@@ -3225,6 +3253,7 @@ class TestKubernetes(base.TestCase):
                            status=client.V1ScaleStatus(replicas=1))
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='Deployment')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3245,6 +3274,7 @@ class TestKubernetes(base.TestCase):
                 fakes.get_fake_pod_info(kind='DaemonSet')])
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='DaemonSet')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3270,6 +3300,7 @@ class TestKubernetes(base.TestCase):
                            status=client.V1ScaleStatus(replicas=1))
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='StatefulSet')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3295,6 +3326,7 @@ class TestKubernetes(base.TestCase):
                            status=client.V1ScaleStatus(replicas=1))
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='ReplicaSet')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3321,6 +3353,7 @@ class TestKubernetes(base.TestCase):
                            status=client.V1ScaleStatus(replicas=1))
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_list = [
             fakes.fake_vnfc_resource_info(rsc_kind='Deployment'),
             fakes.fake_vnfc_resource_info(
@@ -3343,6 +3376,7 @@ class TestKubernetes(base.TestCase):
             mock_list_namespaced_pod):
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='Deployment', pod_name="POD_NOT_FOUND")
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3368,6 +3402,7 @@ class TestKubernetes(base.TestCase):
                            status=client.V1ScaleStatus(replicas=1))
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = \
             fakes.fake_vnfc_resource_info(rsc_kind='Deployment')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3394,6 +3429,7 @@ class TestKubernetes(base.TestCase):
                            status=client.V1ScaleStatus(replicas=1))
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = \
             fakes.fake_vnfc_resource_info(rsc_kind='Deployment')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3421,6 +3457,7 @@ class TestKubernetes(base.TestCase):
                            status=client.V1ScaleStatus(replicas=1))
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = \
             fakes.fake_vnfc_resource_info(rsc_kind='Deployment')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3442,6 +3479,7 @@ class TestKubernetes(base.TestCase):
             client.rest.ApiException(status=500)
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='Deployment')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3469,6 +3507,7 @@ class TestKubernetes(base.TestCase):
                     name='fake_name', pod_name="fake_name-1234567890-actp3")])
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_list = [
             fakes.fake_vnfc_resource_info(rsc_kind='Deployment',
                 rsc_name='fake_name', pod_name="fake_name-1234567890-strp1"),
@@ -3509,6 +3548,7 @@ class TestKubernetes(base.TestCase):
                     name='fake_name', pod_name="fake_name-1234567890-abcdf")])
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_list = [
             fakes.fake_vnfc_resource_info(rsc_kind='Deployment',
                 rsc_name='fake_name', pod_name="POD_NOT_FOUND")]
@@ -3535,6 +3575,7 @@ class TestKubernetes(base.TestCase):
                 name='fake_name', pod_name="fake_name-12346")])
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='DaemonSet',
             rsc_name='fake_name')
@@ -3564,6 +3605,7 @@ class TestKubernetes(base.TestCase):
                 name='fake_name')])
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='Deployment',
             rsc_name='fake_name')
@@ -3594,6 +3636,7 @@ class TestKubernetes(base.TestCase):
                 fakes.get_fake_pod_info(kind='DaemonSet')])
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='DaemonSet')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = \
@@ -3614,6 +3657,7 @@ class TestKubernetes(base.TestCase):
                 fakes.get_fake_pod_info(kind='Pod')])
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='Pod')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info =\
@@ -3634,6 +3678,7 @@ class TestKubernetes(base.TestCase):
                 fakes.get_fake_pod_info(kind='StatefulSet')])
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
         vnfc_resource_info_obj = fakes.fake_vnfc_resource_info(
             rsc_kind='StatefulSet')
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info =\

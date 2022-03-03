@@ -341,20 +341,15 @@ class Transformer(object):
                     kind=file_content_dict.get('kind', ''), reason=e)
             LOG.error(msg)
             raise exceptions.InitApiFalse(error=msg)
-        if not file_content_dict.get('metadata', '') and not namespace:
-            k8s_obj['namespace'] = ''
-        elif file_content_dict.get('metadata', '').\
-                get('namespace', ''):
-            k8s_obj['namespace'] = \
-                file_content_dict.get('metadata', '').get(
-                    'namespace', '')
-        elif namespace:
-            k8s_obj['namespace'] = namespace
-        else:
-            k8s_obj['namespace'] = ''
+
+        k8s_obj['namespace'] = namespace
+        if k8s_obj['object'].metadata:
+            k8s_obj['object'].metadata.namespace = namespace
+
         return k8s_obj
 
-    def get_k8s_objs_from_yaml(self, artifact_files, vnf_package_path):
+    def get_k8s_objs_from_yaml(self, artifact_files, vnf_package_path,
+                               namespace=None):
         k8s_objs = []
         for artifact_file in artifact_files:
             if ((urlparse(artifact_file).scheme == 'file') or
@@ -369,11 +364,11 @@ class Transformer(object):
             file_content_dicts = list(yaml.safe_load_all(file_content))
             for file_content_dict in file_content_dicts:
                 k8s_obj = self._get_k8s_obj_from_file_content_dict(
-                    file_content_dict)
+                    file_content_dict, namespace)
                 k8s_objs.append(k8s_obj)
         return k8s_objs
 
-    def get_k8s_objs_from_manifest(self, mf_content, namespace=None):
+    def get_k8s_objs_from_manifest(self, mf_content, namespace):
         mkobj_kind_list = [
             "Pod",
             "Service",

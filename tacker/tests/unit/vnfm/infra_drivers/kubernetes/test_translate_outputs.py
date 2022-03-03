@@ -62,7 +62,7 @@ class TestTransformer(base.TestCase):
 
     def test_deployment(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['deployment.yaml'], self.yaml_path)
+            ['deployment.yaml'], self.yaml_path, '')
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
         self.assertEqual(k8s_objs[0].get('namespace'), '')
@@ -83,7 +83,7 @@ class TestTransformer(base.TestCase):
 
     def test_api_service(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['api-service.yaml'], self.yaml_path
+            ['api-service.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -97,7 +97,7 @@ class TestTransformer(base.TestCase):
 
     def test_cluster_role(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['cluster-role.yaml'], self.yaml_path
+            ['cluster-role.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -109,7 +109,7 @@ class TestTransformer(base.TestCase):
 
     def test_cluster_role_binding(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['cluster-role-binding.yaml'], self.yaml_path
+            ['cluster-role-binding.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -129,7 +129,7 @@ class TestTransformer(base.TestCase):
 
     def test_config_map(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['config-map.yaml'], self.yaml_path
+            ['config-map.yaml'], self.yaml_path, 'curryns'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -139,7 +139,7 @@ class TestTransformer(base.TestCase):
 
     def test_daemon_set(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['daemon-set.yaml'], self.yaml_path
+            ['daemon-set.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -160,7 +160,7 @@ class TestTransformer(base.TestCase):
 
     def test_horizontal_pod_autoscaler(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['horizontal-pod-autoscaler.yaml'], self.yaml_path
+            ['horizontal-pod-autoscaler.yaml'], self.yaml_path, 'default'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -180,7 +180,7 @@ class TestTransformer(base.TestCase):
 
     def test_job(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['job.yaml'], self.yaml_path
+            ['job.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -195,7 +195,7 @@ class TestTransformer(base.TestCase):
 
     def test_lease(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['lease.yaml'], self.yaml_path
+            ['lease.yaml'], self.yaml_path, 'default'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -205,7 +205,7 @@ class TestTransformer(base.TestCase):
 
     def test_local_subject_access_review(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['local-subject-access-review.yaml'], self.yaml_path
+            ['local-subject-access-review.yaml'], self.yaml_path, 'curry-ns'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -216,7 +216,7 @@ class TestTransformer(base.TestCase):
 
     def test_namespace(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['namespace.yaml'], self.yaml_path
+            ['namespace.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -230,7 +230,7 @@ class TestTransformer(base.TestCase):
 
     def test_network_policy(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['network-policy.yaml'], self.yaml_path
+            ['network-policy.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -246,7 +246,7 @@ class TestTransformer(base.TestCase):
 
     def test_node(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['node.yaml'], self.yaml_path
+            ['node.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -293,7 +293,7 @@ class TestTransformer(base.TestCase):
 
     def test_persistent_volume(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['persistent-volume.yaml'], self.yaml_path
+            ['persistent-volume.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -345,7 +345,7 @@ class TestTransformer(base.TestCase):
 
     def test_persistent_volume_claim(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['persistent-volume-claim.yaml'], self.yaml_path
+            ['persistent-volume-claim.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -364,7 +364,7 @@ class TestTransformer(base.TestCase):
 
     def test_pod(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['pod.yaml'], self.yaml_path
+            ['pod.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -479,7 +479,7 @@ class TestTransformer(base.TestCase):
 
     def test_priority_class(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['priority-class.yaml'], self.yaml_path
+            ['priority-class.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -491,7 +491,7 @@ class TestTransformer(base.TestCase):
 
     def test_replica_set(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['replica-set.yaml'], self.yaml_path
+            ['replica-set.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -510,7 +510,7 @@ class TestTransformer(base.TestCase):
 
     def test_resource_quota(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['resource-quota.yaml'], self.yaml_path
+            ['resource-quota.yaml'], self.yaml_path, 'curryns'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -525,7 +525,7 @@ class TestTransformer(base.TestCase):
 
     def test_role(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['role.yaml'], self.yaml_path
+            ['role.yaml'], self.yaml_path, 'curry-ns'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -535,7 +535,7 @@ class TestTransformer(base.TestCase):
 
     def test_role_binding(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['role-bindings.yaml'], self.yaml_path
+            ['role-bindings.yaml'], self.yaml_path, 'curry-ns'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -547,7 +547,7 @@ class TestTransformer(base.TestCase):
 
     def test_secret(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['secret.yaml'], self.yaml_path
+            ['secret.yaml'], self.yaml_path, 'default'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -557,7 +557,7 @@ class TestTransformer(base.TestCase):
 
     def test_self_subject_access_review(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['self-subject-access-review.yaml'], self.yaml_path
+            ['self-subject-access-review.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -569,7 +569,7 @@ class TestTransformer(base.TestCase):
 
     def test_self_subject_rules_review(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['self-subject-rule-review.yaml'], self.yaml_path
+            ['self-subject-rule-review.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -589,7 +589,7 @@ class TestTransformer(base.TestCase):
 
     def test_service(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['service.yaml'], self.yaml_path
+            ['service.yaml'], self.yaml_path, 'default'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -601,7 +601,7 @@ class TestTransformer(base.TestCase):
 
     def test_service_account(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['service-account.yaml'], self.yaml_path
+            ['service-account.yaml'], self.yaml_path, 'default'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -611,7 +611,7 @@ class TestTransformer(base.TestCase):
 
     def test_stateful_set(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['stateful-set.yaml'], self.yaml_path
+            ['stateful-set.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -630,7 +630,7 @@ class TestTransformer(base.TestCase):
 
     def test_storage_class(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['storage-class.yaml'], self.yaml_path
+            ['storage-class.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -649,7 +649,7 @@ class TestTransformer(base.TestCase):
 
     def test_subject_access_review(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['subject-access-review.yaml'], self.yaml_path
+            ['subject-access-review.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -663,7 +663,7 @@ class TestTransformer(base.TestCase):
 
     def test_token_review(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['token-review.yaml'], self.yaml_path
+            ['token-review.yaml'], self.yaml_path, ''
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -675,7 +675,7 @@ class TestTransformer(base.TestCase):
 
     def test_limit_range(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['limit-range.yaml'], self.yaml_path
+            ['limit-range.yaml'], self.yaml_path, 'curryns'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -688,7 +688,7 @@ class TestTransformer(base.TestCase):
 
     def test_pod_template(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['pod-template.yaml'], self.yaml_path
+            ['pod-template.yaml'], self.yaml_path, 'curryns'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -812,7 +812,7 @@ class TestTransformer(base.TestCase):
 
     def test_volume_attachment(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['volume-attachment.yaml'], self.yaml_path
+            ['volume-attachment.yaml'], self.yaml_path, 'curryns'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -830,7 +830,7 @@ class TestTransformer(base.TestCase):
 
     def test_bindings(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['bindings.yaml'], self.yaml_path
+            ['bindings.yaml'], self.yaml_path, 'curryns'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -842,7 +842,7 @@ class TestTransformer(base.TestCase):
 
     def test_controller_revision(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['controller-revision.yaml'], self.yaml_path
+            ['controller-revision.yaml'], self.yaml_path, 'curryns'
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
