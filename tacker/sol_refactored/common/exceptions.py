@@ -240,3 +240,8 @@ class InvalidScaleNumberOfSteps(SolHttpError400):
 class DeltaMissingInVnfd(SolHttpError400):
     message = _("Delta '%(delta)s' is not defined in "
                 "VduScalingAspectDeltas.")
+
+
+class ConductorProcessingError(SolException):
+    title = 'Internal Server Error'
+    message = _("Failure due to conductor processing error.")

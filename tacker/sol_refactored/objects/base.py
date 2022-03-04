@@ -346,6 +346,8 @@ class TackerPersistentObject(TackerObject):
                 context.session.add(inst)
             context.session.flush()
         # 'flush' must have succeeded because we are here.
+        if self._db_obj is None:
+            self._db_obj = inst
         self.obj_reset_changes()
 
     @db_api.context_manager.writer

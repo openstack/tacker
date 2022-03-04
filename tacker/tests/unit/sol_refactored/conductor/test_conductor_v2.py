@@ -16,6 +16,7 @@
 from datetime import datetime
 from unittest import mock
 
+import ddt
 from oslo_utils import uuidutils
 
 from tacker import context
@@ -29,6 +30,7 @@ from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests.unit.db import base as db_base
 
 
+@ddt.ddt
 class TestConductorV2(db_base.SqlTestCase):
 
     def setUp(self):
@@ -103,7 +105,9 @@ class TestConductorV2(db_base.SqlTestCase):
         # prepare
         lcmocc = self._create_inst_and_lcmocc()
         mocked_get_vnfd.return_value = mock.Mock()
-        mocked_grant.return_value = self._make_grant_req_and_grant(lcmocc)
+        grant_req, grant = self._make_grant_req_and_grant(lcmocc)
+        lcmocc.grantId = grant.id
+        mocked_grant.return_value = grant_req, grant
 
         op_state = []
 
@@ -120,6 +124,10 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(fields.LcmOperationStateType.STARTING, op_state[0])
         self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[1])
         self.assertEqual(fields.LcmOperationStateType.COMPLETED, op_state[2])
+
+        # check grant_req and grant are deleted
+        self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
+            lcmocc_utils.get_grant_req_and_grant, self.context, lcmocc)
 
     @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
     @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
@@ -392,6 +400,72 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
         self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[0])
         self.assertEqual(fields.LcmOperationStateType.FAILED_TEMP, op_state[1])
+
+        # check lcmocc.error
+        # get lcmocc from DB to be sure lcmocc saved to DB
+        lcmocc = lcmocc_utils.get_lcmocc(self.context, lcmocc.id)
+        expected = ex.make_problem_details()
+        self.assertEqual(expected, lcmocc.error.to_dict())
+
+    def _prepare_change_lcm_op_state(self, op_state):
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=uuidutils.generate_uuid(),
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+
+        req = {"flavourId": "simple"}  # instantiate request
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=op_state,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.SCALE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        inst.create(self.context)
+        lcmocc.create(self.context)
+
+        return lcmocc
+
+    @ddt.data({'before_state': fields.LcmOperationStateType.STARTING,
+               'after_state': fields.LcmOperationStateType.ROLLED_BACK},
+              {'before_state': fields.LcmOperationStateType.PROCESSING,
+               'after_state': fields.LcmOperationStateType.FAILED_TEMP},
+              {'before_state': fields.LcmOperationStateType.ROLLING_BACK,
+               'after_state': fields.LcmOperationStateType.FAILED_TEMP})
+    @ddt.unpack
+    @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    def test_change_lcm_op_state(self, mocked_get_vnfd,
+            mocked_send_lcmocc_notification, before_state, after_state):
+        # prepare
+        lcmocc = self._prepare_change_lcm_op_state(before_state)
+        mocked_get_vnfd.return_value = mock.Mock()
+        ex = sol_ex.ConductorProcessingError()
+
+        op_state = []
+
+        def _store_state(context, lcmocc, inst, endpoint):
+            op_state.append(lcmocc.operationState)
+
+        mocked_send_lcmocc_notification.side_effect = _store_state
+
+        # run _change_lcm_op_state
+        self.conductor._change_lcm_op_state()
+
+        # check operationState transition
+        self.assertEqual(1, mocked_send_lcmocc_notification.call_count)
+        self.assertEqual(after_state, op_state[0])
 
         # check lcmocc.error
         # get lcmocc from DB to be sure lcmocc saved to DB
