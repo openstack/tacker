@@ -1,0 +1,54 @@
+heat_template_version: 2013-05-23
+description: 'Simple Base HOT for Sample VNF'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  master_instance_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 1
+      desired_capacity: 1
+      resource:
+        type: base_hot_nested_master.yaml
+        properties:
+          flavor: { get_param: [ nfv, VDU, masterNode, flavor ] }
+          image: { get_param: [ nfv, VDU, masterNode, image ] }
+          net1: { get_param: [ nfv, CP, masterNode_CP1, network ] }
+
+  worker_instance_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 2
+      desired_capacity: 1
+      resource:
+        type: base_hot_nested_worker.yaml
+        properties:
+          flavor: { get_param: [ nfv, VDU, workerNode, flavor ] }
+          image: { get_param: [ nfv, VDU, workerNode, image ] }
+          net1: { get_param: [ nfv, CP, workerNode_CP1, network ] }
+          net2: { get_param: [ nfv, CP, workerNode_CP2, network ] }
+          net3: { get_param: [ nfv, CP, workerNode_CP3, network ] }
+          net4: { get_param: [ nfv, CP, workerNode_CP4, network ] }
+
+  worker_instance_scale_out:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: 1
+      auto_scaling_group_id:
+        get_resource: worker_instance_group
+      adjustment_type: change_in_capacity
+
+  worker_instance_scale_in:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      scaling_adjustment: -1
+      auto_scaling_group_id:
+        get_resource: worker_instance_group
+      adjustment_type: change_in_capacity
+
+outputs: {}

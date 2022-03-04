@@ -1,0 +1,14 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: Dummy User
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/sample_free5gc_cnf_on_vm_top.vnfd.yaml
+
+Name: Scripts/install_k8s_cluster.sh
+Content-Type: application/sh
+Algorithm: SHA-256
+Hash: <caculate here>
+
+Name: Scripts/kubernetes_mgmt_free5gc.py
+Content-Type: text/x-python
+Algorithm: SHA-256
+Hash: <caculate here>
