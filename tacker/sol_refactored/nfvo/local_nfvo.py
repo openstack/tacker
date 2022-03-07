@@ -251,6 +251,15 @@ class LocalNfvo(object):
             LOG.error("VnfPackage %s not found.", pkg_vnfd.package_uuid)
             return
 
+        # Multiple vnf instances can be created with same vnfd_id,
+        # so the state must be changed to `NOT_IN_USE` only when
+        # there is no vnf instance.
+        if state == fields.PackageUsageStateType.NOT_IN_USE:
+            insts = objects.VnfInstanceV2.get_by_filter(context,
+                                                        vnfdId=vnfd_id)
+            if insts:
+                return
+
         # prevent raising exception since this method is not a part of VNFM.
         try:
             vnf_pkg.usage_state = state
