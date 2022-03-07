@@ -1,0 +1,139 @@
+heat_template_version: newton
+
+description: "Sample VNF HOT"
+
+parameters:
+  nfv:
+    type: json
+  security_group:
+    type: string
+
+resources:
+
+  int_net:
+    type: OS::Neutron::Net
+    properties:
+      name: vdu_int_net
+      admin_state_up: true
+      value_specs:
+        mtu: 1450
+
+  int_subnet:
+    type: OS::Neutron::Subnet
+    depends_on: [ int_net ]
+    properties:
+      name: vdu_int_subnet
+      network: { get_resource: int_net }
+      cidr: 192.168.0.0/24
+      enable_dhcp: true
+      gateway_ip: 192.168.0.254
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      name: vdu_router
+      admin_state_up: true
+      external_gateway_info:
+        network: { get_param: [ nfv, CP, VDU0_extCP0, network_id ] }
+        external_fixed_ips:
+          - ip_address:
+              get_param:
+                [ nfv, CP, RT_extCP, subnets, 0, fixed_ip_addresses, 0 ]
+
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    depends_on:
+      - router
+      - int_subnet
+    properties:
+      router: { get_resource: router }
+      subnet: { get_resource: int_subnet }
+
+  VDU_vCP:
+    type: OS::Neutron::Port
+    depends_on:
+      - int_subnet
+    properties:
+      network: { get_resource: int_net }
+      fixed_ips:
+        - ip_address: 192.168.0.10
+      security_groups: [ { get_param: security_group } ]
+
+  VDU_extvCP:
+    type: OS::Neutron::FloatingIP
+    depends_on:
+      - VDU_vCP
+      - router_interface
+    properties:
+      fixed_ip_address: 192.168.0.10
+      floating_ip_address:
+        get_param: [ nfv, CP, VDU_extvCP, subnets, 0, fixed_ip_addresses, 0 ]
+      floating_network:
+        get_param: [ nfv, CP, VDU_extvCP, network_id ]
+      port_id: { get_resource: VDU_vCP }
+
+  VDU_0:
+    type: OS::Nova::Server
+    depends_on: [ VDU0_CP0 ]
+    properties:
+      name: VDU_0
+      flavor: { get_param: [ nfv, VDU, VDU_0, flavor ] }
+      image: { get_param: [ nfv, VDU, VDU_0, image ] }
+      networks:
+        - port: { get_resource: VDU0_CP0 }
+
+  VDU0_CP0:
+    type: OS::Neutron::Port
+    depends_on: [ router_interface ]
+    properties:
+      network: { get_resource: int_net }
+      fixed_ips: [ { ip_address: 192.168.0.11 } ]
+      allowed_address_pairs: [ { ip_address: 192.168.0.10 } ]
+      security_groups: [ { get_param: security_group } ]
+
+  VDU0_floating_ip:
+    type: OS::Neutron::FloatingIP
+    depends_on: [ VDU0_CP0 ]
+    properties:
+      fixed_ip_address: 192.168.0.11
+      floating_ip_address:
+        get_param: [ nfv, CP, VDU0_extCP0, subnets, 0, fixed_ip_addresses, 0 ]
+      floating_network: { get_param: [ nfv, CP, VDU0_extCP0, network_id ] }
+      port_id: { get_resource: VDU0_CP0 }
+
+  VDU_1:
+    type: OS::Nova::Server
+    depends_on: [ VDU1_CP0 ]
+    properties:
+      name: VDU_1
+      flavor: { get_param: [ nfv, VDU, VDU_1, flavor ] }
+      image: { get_param: [ nfv, VDU, VDU_1, image ] }
+      networks:
+        - port: { get_resource: VDU1_CP0 }
+
+  VDU1_CP0:
+    type: OS::Neutron::Port
+    depends_on: [ router_interface ]
+    properties:
+      network: { get_resource: int_net }
+      fixed_ips: [ { ip_address: 192.168.0.12 } ]
+      allowed_address_pairs: [ { ip_address: 192.168.0.10 } ]
+      security_groups: [ { get_param: security_group } ]
+
+  VDU1_floating_ip:
+    type: OS::Neutron::FloatingIP
+    depends_on: [ VDU1_CP0 ]
+    properties:
+      fixed_ip_address: 192.168.0.12
+      floating_ip_address:
+        get_param: [nfv, CP, VDU1_extCP0, subnets, 0, fixed_ip_addresses, 0 ]
+      floating_network: { get_param: [ nfv, CP, VDU1_extCP0, network_id ] }
+      port_id: { get_resource: VDU1_CP0 }
+
+outputs:
+  int_net_id:
+    value: { get_resource: int_net }
+  mgmt_ip-VDU_0:
+    value: { get_attr: [ VDU0_floating_ip, floating_ip_address ] }
+  mgmt_ip-VDU_1:
+    value: { get_attr: [ VDU1_floating_ip, floating_ip_address ] }

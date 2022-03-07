@@ -1,0 +1,129 @@
+heat_template_version: newton
+
+description: "Sample VNF HOT"
+
+parameters:
+  nfv:
+    type: json
+
+  security_group:
+    type: string
+
+  vdu0_availabilityzone:
+    type: string
+    default: "nova"
+
+  vdu1_availabilityzone:
+    type: string
+    default: "nova"
+
+  vdu2_availabilityzone:
+    type: string
+    default: "nova"
+
+resources:
+
+  int_net:
+    type: OS::Neutron::Net
+    properties:
+      name: int_net
+      admin_state_up: true
+      value_specs:
+        mtu: 1450
+
+  int_subnet:
+    type: OS::Neutron::Subnet
+    depends_on: [ int_net ]
+    properties:
+      name: int_subnet
+      network: { get_resource: int_net }
+      cidr: 192.168.1.0/24
+      enable_dhcp: true
+      gateway_ip: 192.168.1.254
+
+  VDU_0:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      cooldown: 120
+      desired_capacity: 1
+      max_size: 1
+      min_size: 1
+      resource:
+        type: VDU_0.yaml
+        properties:
+          Image: { get_param: [ nfv, VDU, VDU_0, image ] }
+          Flavor: { get_param: [ nfv, VDU, VDU_0, flavor ] }
+          IntNetwork: { get_resource: int_net }
+          IntFixedIP: 192.168.1.10
+          ExtNetwork: { get_param: [ nfv, CP, VDU0_CP1, network_id ] }
+          ExtFixedIP:
+            get_param: [ nfv, CP, VDU0_CP1, subnets, 0, fixed_ip_addresses, 0 ]
+          AvailabilityZone: { get_param: vdu0_availabilityzone }
+          Server_Group: { get_resource: vdu_placement_policy }
+
+  VDU_1:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      cooldown: 120
+      desired_capacity: 1
+      max_size: 1
+      min_size: 1
+      resource:
+        type: VDU_1.yaml
+        properties:
+          Image: { get_param: [ nfv, VDU, VDU_1, image ] }
+          Flavor: { get_param: [ nfv, VDU, VDU_1, flavor ] }
+          IntNetwork: { get_resource: int_net }
+          IntFixedIP: 192.168.1.11
+          ExtNetwork: { get_param: [ nfv, CP, VDU1_CP1, network_id ] }
+          ExtFixedIP:
+            get_param: [ nfv, CP, VDU1_CP1, subnets, 0, fixed_ip_addresses, 0 ]
+          AvailabilityZone: { get_param: vdu1_availabilityzone }
+          Server_Group: { get_resource: vdu_placement_policy }
+
+  VDU_2:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      cooldown: 120
+      desired_capacity: { get_param: [nfv, VDU, VDU_2, number_of_instance ] }
+      max_size: 1
+      min_size: 0
+      resource:
+        type: VDU_2.yaml
+        properties:
+          Image: { get_param: [ nfv, VDU, VDU_2, image ] }
+          Flavor: { get_param: [ nfv, VDU, VDU_2, flavor ] }
+          IntNetwork: { get_resource: int_net }
+          IntFixedIP: 192.168.1.13
+          ExtNetwork: { get_param: [ nfv, CP, VDU2_CP1, network_id ] }
+          ExtFixedIP:
+            get_param: [ nfv, CP, VDU2_CP1, subnets, 0, fixed_ip_addresses, 0 ]
+          AvailabilityZone: { get_param: vdu2_availabilityzone }
+          Server_Group: { get_resource: vdu_placement_policy }
+
+  VDU_2_scale_in:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id:
+        get_resource: VDU_2
+      cooldown: 120
+      scaling_adjustment: -1
+
+  VDU_2_scale_out:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id:
+        get_resource: VDU_2
+      cooldown: 120
+      scaling_adjustment: 1
+
+  vdu_placement_policy:
+    type: OS::Nova::ServerGroup
+    properties:
+      name: vdu_placement_policy
+      policies:
+        - soft-anti-affinity
+
+outputs:

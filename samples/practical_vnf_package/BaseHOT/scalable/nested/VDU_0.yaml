@@ -1,0 +1,77 @@
+heat_template_version: rocky
+description: 'Sample VDU_0 HOT'
+
+parameters:
+
+  Image:
+    type: string
+    constraints:
+      - custom_constraint: 'glance.image'
+
+  Flavor:
+    type: string
+    default: "m1.tiny"
+
+  ExtNetwork:
+    type: string
+    constraints:
+      - custom_constraint: 'neutron.network'
+
+  IntNetwork:
+    type: string
+    constraints:
+      - custom_constraint: 'neutron.network'
+
+  ExtFixedIP:
+    type: string
+
+  IntFixedIP:
+    type: string
+
+  AvailabilityZone:
+    type: string
+    default: "nova"
+
+  Server_Group:
+    type: string
+
+resources:
+
+  VDU_0:
+    type: OS::Nova::Server
+    depends_on: [ VDU0_CP0, VDU0_CP1 ]
+    properties:
+      name: VDU_000
+      flavor: { get_param: Flavor }
+      image: { get_param: Image }
+      networks:
+        - port:
+            get_resource: VDU0_CP0
+        - port:
+            get_resource: VDU0_CP1
+      availability_zone: { get_param: AvailabilityZone }
+      scheduler_hints:
+        group:
+          get_param: Server_Group
+
+  VDU0_CP0:
+    type: OS::Neutron::Port
+    properties:
+      network:
+        get_param: IntNetwork
+      fixed_ips:
+        - ip_address: { get_param: IntFixedIP }
+
+  VDU0_CP1:
+    type: OS::Neutron::Port
+    properties:
+      network:
+        get_param: ExtNetwork
+      fixed_ips:
+        - ip_address: { get_param: ExtFixedIP }
+
+outputs:
+
+  mgmt_ip-VDU_0:
+    value:
+      get_attr: [ VDU0_CP0, fixed_ips, 0, ip_address ]

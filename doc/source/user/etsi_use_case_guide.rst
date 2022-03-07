@@ -106,3 +106,14 @@ Kubernetes Cluster VNF
    mgmt_driver_deploy_k8s_cir_usage_guide
    mgmt_driver_deploy_k8s_pv_usage_guide
    mgmt_driver_deploy_k8s_kubespary_usage_guide
+
+Sample Usage
+^^^^^^^^^^^^
+
+VM
+~~
+
+.. toctree::
+   :maxdepth: 1
+
+   practical_sample_package_usage_guide
