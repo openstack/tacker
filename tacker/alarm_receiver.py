@@ -34,9 +34,9 @@ OPTS = [
         help=_('Password for alarm monitoring')),
     cfg.StrOpt('project_name', default='admin',
         help=_('Project name for alarm monitoring')),
-    cfg.StrOpt('user_domain_name', default='default',
+    cfg.StrOpt('user_domain_name', default='Default',
         help=_('User domain name for alarm monitoring')),
-    cfg.StrOpt('project_domain_name', default='default',
+    cfg.StrOpt('project_domain_name', default='Default',
         help=_('Project domain name for alarm monitoring')),
 ]
 
