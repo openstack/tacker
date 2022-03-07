@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import time
+import unittest
 
 from oslo_serialization import jsonutils
 
@@ -111,11 +112,13 @@ class VnfTestAlarmMonitor(base.BaseTackerTest):
         self.addCleanup(self.wait_until_vnf_delete, vnf_id,
                         constants.VNF_CIRROS_DELETE_TIMEOUT)
 
+    @unittest.skip("heat-translator use old metric cpu_util & aggregation API")
     def test_vnf_alarm_respawn(self):
         self._test_vnf_tosca_alarm(
             'sample-tosca-alarm-respawn.yaml',
             'alarm and respawn-vnf')
 
+    @unittest.skip("heat-translator use old metric cpu_util & aggregation API")
     def test_vnf_alarm_scale(self):
         self._test_vnf_tosca_alarm(
             'sample-tosca-alarm-scale.yaml',
