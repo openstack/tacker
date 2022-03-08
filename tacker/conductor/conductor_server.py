@@ -524,6 +524,11 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
 
             _delete_csar(context, vnf_package)
 
+        # TODO(h-asahina): stop using these Legacy DB
+        if vnf_package.vnfd is not None:
+            objects.VnfdAttribute(context).delete(vnf_package.vnfd.vnfd_id)
+            objects.Vnfd(context).delete(vnf_package.vnfd.vnfd_id)
+
         vnf_package.destroy(context)
 
     def get_vnf_package_vnfd(self, context, vnf_package):
