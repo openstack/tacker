@@ -2001,32 +2001,33 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     param, additional_param, request_type="scale")
 
         paramDict = stack_param
-        grant = vnf_info['grant']
-        for addrsc in grant.add_resources:
-            for zone in grant.zones:
-                if zone.id == addrsc.zone_id:
-                    for rsc in vnf_info['addResources']:
-                        if addrsc.resource_definition_id == rsc.id:
-                            vdu_name = rsc.vdu_id
-                            break
-                    if not (stack_param['nfv']['VDU']
-                            [vdu_name]).get('zone') and\
-                            zone.zone_id:
-                        stack_param['nfv']['VDU'][vdu_name]['zone'] = \
-                            zone.zone_id
-                    if (stack_param['nfv']['VDU']
-                            [vdu_name]).get('zone') and\
-                            not zone.zone_id:
-                        del stack_param['nfv']['VDU'][vdu_name]['zone']
-        if 'vim_assets' in grant and grant.vim_assets:
-            for flavour in grant.vim_assets.compute_resource_flavours:
-                vdu_name = flavour.vnfd_virtual_compute_desc_id
-                stack_param['nfv']['VDU'][vdu_name]['flavor'] = \
-                    flavour.vim_flavour_id
-            for image in grant.vim_assets.software_images:
-                vdu_name = image.vnfd_software_image_id
-                stack_param['nfv']['VDU'][vdu_name]['image'] = \
-                    image.vim_software_image_id
+        if 'grant' in vnf_info.keys():
+            grant = vnf_info['grant']
+            for addrsc in grant.add_resources:
+                for zone in grant.zones:
+                    if zone.id == addrsc.zone_id:
+                        for rsc in vnf_info['addResources']:
+                            if addrsc.resource_definition_id == rsc.id:
+                                vdu_name = rsc.vdu_id
+                                break
+                        if not (stack_param['nfv']['VDU']
+                                [vdu_name]).get('zone') and\
+                                zone.zone_id:
+                            stack_param['nfv']['VDU'][vdu_name]['zone'] = \
+                                zone.zone_id
+                        if (stack_param['nfv']['VDU']
+                                [vdu_name]).get('zone') and\
+                                not zone.zone_id:
+                            del stack_param['nfv']['VDU'][vdu_name]['zone']
+            if 'vim_assets' in grant and grant.vim_assets:
+                for flavour in grant.vim_assets.compute_resource_flavours:
+                    vdu_name = flavour.vnfd_virtual_compute_desc_id
+                    stack_param['nfv']['VDU'][vdu_name]['flavor'] = \
+                        flavour.vim_flavour_id
+                for image in grant.vim_assets.software_images:
+                    vdu_name = image.vnfd_software_image_id
+                    stack_param['nfv']['VDU'][vdu_name]['image'] = \
+                        image.vim_software_image_id
 
         paramDict['nfv'] = stack_param['nfv']
         stack_update_param = {
