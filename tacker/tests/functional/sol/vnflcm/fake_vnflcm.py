@@ -351,6 +351,26 @@ class VnfInstances:
         }
 
     @staticmethod
+    def make_reverse_scale_request_body(scale_type):
+        """Parameter selection policy.
+
+        numberOfSteps specifies 1
+
+        Args:
+            scale_type (str): SCALE_OUT or SCALE_IN
+        """
+
+        return {
+            "type": scale_type,
+            "aspectId": "VDU1_scale",
+            "numberOfSteps": 1,
+            "additionalParams": {
+                "samplekey": "samplevalue",
+                "is_reverse": "True"
+            }
+        }
+
+    @staticmethod
     def make_update_request_body(vnfd_id=None, vnf_package_id=None):
         """Parameter selection policy.
 

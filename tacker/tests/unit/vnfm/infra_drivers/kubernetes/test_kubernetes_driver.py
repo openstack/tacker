@@ -2723,13 +2723,17 @@ class TestKubernetes(base.TestCase):
         mock_patch_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
                            status=client.V1ScaleStatus(replicas=1))
+        vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
         self.kubernetes.scale_in_reverse(context=self.context, plugin=None,
                             auth_attr=utils.get_vim_auth_obj(),
                             vnf_info=vnf_info,
                             scale_vnf_request=scale_vnf_request,
                             region_name=None,
                             scale_name_list=None,
-                            grp_id=None)
+                            grp_id=None,
+                            vnf_instance=vnf_instance)
         mock_read_namespaced_deployment_scale.assert_called_once()
         mock_patch_namespaced_deployment_scale.assert_called_once()
 

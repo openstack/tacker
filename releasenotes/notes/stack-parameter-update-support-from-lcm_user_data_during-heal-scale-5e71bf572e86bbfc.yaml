@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    This feature is to enable customization of stack parameters
+    during scale and heal operation through lcm_user_data script.
+    User can provide stack parameters through lcm_user_data script.

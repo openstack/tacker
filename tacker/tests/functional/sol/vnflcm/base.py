@@ -1500,7 +1500,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             h for h in notify_histories
             if h.request_body.get('vnfInstanceId') == vnf_instance_id]
 
-    def _get_heat_stack_show(self, vnf_instance_id, resource_name,
+    def _get_heat_stack_show(self, vnf_instance_id, resource_name=None,
             h_client=None):
         """Retrieve image name of the resource from stack"""
         if h_client is None:
@@ -1512,4 +1512,8 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             resource_dict = json.loads(stack_dict['parameters']['nfv'])
         except Exception:
             return None
+
+        if resource_name is None:
+            return resource_dict
+
         return resource_dict['VDU'][resource_name]['image']

@@ -14,8 +14,9 @@
 import copy
 
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from tacker.common.utils import MemoryUnit
-
+from tacker.tosca import utils as tosca_utils
 
 """Define util functions that can be used in UserData.
 
@@ -412,3 +413,85 @@ def _create_fixed_ips_list(ext_cp):
                     fixed_ips_lst.append(fixed_ips)
 
     return fixed_ips_lst
+
+
+def _create_scale_group_dict(base_hot_dict, vnfd_dict, inst_req_info):
+
+    base_hot = base_hot_dict['heat_template']
+    LOG.debug("base_hot: %s", base_hot)
+
+    scaling_group_dict = {}
+    for name, rsc in base_hot.get('resources').items():
+        if rsc['type'] == 'OS::Heat::AutoScalingGroup':
+            key_name = name.replace('_group', '')
+            scaling_group_dict[key_name] = name
+    LOG.debug("scaling_group_dict: %s", scaling_group_dict)
+
+    if scaling_group_dict:
+        vnf = {'attributes': {'scaling_group_names':
+            jsonutils.dump_as_bytes(scaling_group_dict)}}
+        scale_group_dict = tosca_utils.get_scale_group(
+            vnf, vnfd_dict, inst_req_info)
+        LOG.debug("scale_group_dict: %s", scale_group_dict)
+        return scale_group_dict
+    else:
+        LOG.debug("no scale_group_dict")
+        return {}
+
+
+def create_desired_capacity_dict(base_hot_dict, vnfd_dict, inst_req_info):
+    """Create a dict containing information about desired capacity.
+
+    :param base_hot_dict: dict(Base HOT dict format)
+    :param vnfd_dict: dict(VNFD dict format)
+    :param inst_req_info: dict(Instantiation request information format)
+    :return: dict(Scaling aspect name, Desired capacity value)
+    """
+    scale_group_dict = _create_scale_group_dict(
+        base_hot_dict, vnfd_dict, inst_req_info)
+
+    param_dict = {}
+    if scale_group_dict.get('scaleGroupDict'):
+        for name, value in scale_group_dict['scaleGroupDict'].items():
+            param_dict[name] = value['default']
+
+    LOG.info("desired_capacity dict: %s", param_dict)
+    return param_dict
+
+
+def _calc_desired_capacity(inst_vnf_info, name, value):
+
+    for scale_status in inst_vnf_info.scale_status:
+        if scale_status.aspect_id == name:
+            LOG.debug("scale_level of %s: %d",
+                 name, scale_status.scale_level)
+            increase = value['num'] * scale_status.scale_level
+            desired_capacity = value['initialNum'] + increase
+            LOG.debug("desired_capacity: %d", desired_capacity)
+            return desired_capacity
+
+    LOG.debug("scale_level of %s: None", name)
+    return None
+
+
+def get_desired_capacity_dict(base_hot_dict, vnfd_dict, inst_vnf_info):
+    """Get a dict containing information about desired capacity.
+
+    :param base_hot_dict: dict(Base HOT dict format)
+    :param vnfd_dict: dict(VNFD dict format)
+    :param inst_vnf_info: dict(Instantiated VNF Info dict format)
+    :return: dict(Scaling aspect name, Desired capacity value)
+    """
+    scale_group_dict = _create_scale_group_dict(
+        base_hot_dict, vnfd_dict, {})
+
+    param_dict = {}
+    if scale_group_dict.get('scaleGroupDict'):
+        for name, value in scale_group_dict['scaleGroupDict'].items():
+            desired_capacity = _calc_desired_capacity(
+                inst_vnf_info, name, value)
+            if desired_capacity is not None:
+                param_dict[name] = desired_capacity
+
+    LOG.info("desired_capacity dict: %s", param_dict)
+    return param_dict

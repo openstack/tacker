@@ -15,8 +15,10 @@ import os
 import testtools
 import yaml
 
+from tacker import objects
 from tacker.objects import instantiate_vnf_req
 from tacker.tests import constants
+from tacker.tests import uuidsentinel
 from tacker.vnfm.lcm_user_data import utils
 
 default_initial_param_dict = {
@@ -198,3 +200,24 @@ class TestUtils(testtools.TestCase):
         inst_req_info.ext_virtual_links = None
         cpd_vl_dict = utils.create_cpd_vl_dict(base_hot_dict, inst_req_info)
         self.assertEqual({}, cpd_vl_dict)
+
+    def test_create_desired_capacity_dict(self):
+        base_hot_dict = {}
+        vnfd_dict = {}
+        base_hot_dict['heat_template'] = self._read_file(
+            "hot_lcm_user_data_with_scale.yaml")
+        expected_desired_capaity = {'VDU1_scale': 1}
+        vnfd_dict = self._read_file('vnf_vnfd_dict_scale.yaml')
+        s_status = {"aspect_id": "VDU1_scale", "scale_level": 0}
+        scale_status = objects.ScaleInfo(**s_status)
+        instantiated_vnf_info = {
+            'flavour_id': uuidsentinel.flavour_id,
+            'vnf_state': 'STARTED',
+            'instance_id': '',
+            "scale_status": [scale_status]
+        }
+        inst_req_info = objects.InstantiatedVnfInfo(**instantiated_vnf_info)
+
+        actual_desired_capacity = utils.get_desired_capacity_dict(
+            base_hot_dict, vnfd_dict, inst_req_info)
+        self.assertEqual(actual_desired_capacity, expected_desired_capaity)

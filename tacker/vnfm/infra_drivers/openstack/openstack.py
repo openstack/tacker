@@ -1350,6 +1350,85 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 vnfc_resources.append(vnfc_resource)
         return vnfc_resources
 
+    def _stack_param_update(self, context, inst_vnf_info, vnf,
+                           vnf_instance, vnf_request,
+                           param, additional_param, request_type):
+        stack_param = {}
+        updated_stack_param = {}
+        lcm_user_data_path = None
+        lcm_user_data_class = None
+        lcm_user_data_path = additional_param.get(
+            'lcm-operation-user-data')
+        lcm_user_data_class = additional_param.get(
+            'lcm-operation-user-data-class')
+        LOG.debug('UserData path: %s', lcm_user_data_path)
+        LOG.debug('UserData class: %s', lcm_user_data_class)
+        if lcm_user_data_path is not None and \
+                lcm_user_data_class is not None:
+            vnf_pack_path = vnflcm_utils._get_vnf_package_path(
+                context, vnf['vnfd_id'])
+            LOG.debug('VNF package path: %s', vnf_pack_path)
+            lcm_user_data_module = os.path.splitext(
+                os.path.basename(lcm_user_data_path))[0]
+            LOG.debug('UserData module name: %s', lcm_user_data_module)
+            try:
+                spec = importlib.util.spec_from_file_location(
+                    lcm_user_data_module,
+                    vnf_pack_path + '/' + lcm_user_data_path)
+                lcm_user_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(lcm_user_module)
+                LOG.debug('lcm_user_module: %s', lcm_user_module)
+            except Exception:
+                error_reason = _(
+                    "failed to get UserData path based on "
+                    "lcm-operation-user-data from additionalParams.")
+                raise vnfm.LCMUserDataFailed(reason=error_reason)
+            try:
+                lcm_user_class = getattr(lcm_user_module,
+                                        lcm_user_data_class)
+                user_method_call = getattr(lcm_user_class,
+                                          request_type, None)
+            except Exception:
+                error_reason = _(
+                    "failed to get UserData class based on "
+                    "lcm-operation-user-data-class "
+                    "from additionalParams.")
+                raise vnfm.LCMUserDataFailed(reason=error_reason)
+
+            if callable(user_method_call):
+                base_hot_dict, nested_hot_dict = \
+                    vnflcm_utils.get_base_nest_hot_dict(
+                        context, inst_vnf_info.flavour_id,
+                        vnf_instance.vnfd_id)
+                if base_hot_dict is None:
+                    error_reason = _("failed to get Base HOT.")
+                    raise vnfm.LCMUserDataFailed(reason=error_reason)
+                if base_hot_dict is None:
+                    nested_hot_dict = {}
+                param_base_hot_dict = copy.deepcopy(
+                    nested_hot_dict)
+                param_base_hot_dict['heat_template'] = \
+                    base_hot_dict
+                vnfd_dict = yaml.safe_load(
+                    vnf['vnfd']['attributes']['vnfd_' +
+                    inst_vnf_info.flavour_id])
+                if request_type == "heal":
+                    vnfc_resource_info = \
+                        self._get_vnfc_resources_from_heal_request(
+                            inst_vnf_info, vnf_request)
+                    updated_stack_param = user_method_call(
+                        param_base_hot_dict, vnfd_dict, vnf_request,
+                        vnf_instance, inst_vnf_info, param, vnfc_resource_info)
+                else:
+                    updated_stack_param = user_method_call(
+                        param_base_hot_dict, vnfd_dict, vnf_request,
+                        vnf_instance, inst_vnf_info, param, vnf['res_num'])
+                stack_param = {**updated_stack_param}
+
+        if not updated_stack_param:
+            stack_param = {**param}
+        return stack_param
+
     @log.log
     def heal_vnf(self, context, vnf_instance, vim_connection_info,
                  heal_vnf_request):
@@ -1472,6 +1551,12 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             for name, value in nested_hot_dict.items():
                 files_dict[name] = self._format_base_hot(value)
             stack_update_param['files'] = files_dict
+        additional_param = inst_vnf_info.additional_params
+        if additional_param is not None:
+            param = stack_param
+            stack_param = self._stack_param_update(context, inst_vnf_info,
+                vnf_dict, vnf_instance, heal_vnf_request,
+                param, additional_param, request_type="heal")
 
         if stack_param:
             stack_update_param['parameters'] = stack_param
@@ -1863,7 +1948,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
     @log.log
     def scale_in_reverse(self, context, plugin, auth_attr, vnf_info,
                          scale_vnf_request, region_name,
-                         scale_name_list, grp_id):
+                         scale_name_list, grp_id, vnf_instance):
         heatclient = hc.HeatClient(auth_attr, region_name)
         if grp_id:
             for name in scale_name_list:
@@ -1872,13 +1957,18 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     resource_name=name,
                     mark_unhealthy=True,
                     resource_status_reason='Scale')
-        paramDict = {}
-        scale_json = vnf_info['attributes']['scale_group']
-        scaleGroupDict = jsonutils.loads(scale_json)
-        for name, value in scaleGroupDict['scaleGroupDict'].items():
-            paramDict[name + '_desired_capacity'] = value['default']
-        paramDict[scale_vnf_request.aspect_id + '_desired_capacity'] = \
-            vnf_info['res_num']
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        vnf = vnf_info
+        stack_param = {}
+        if 'stack_param' in vnf['attributes'].keys():
+            param = yaml.safe_load(vnf['attributes']['stack_param'])
+            additional_param = inst_vnf_info.additional_params
+            if additional_param is not None:
+                stack_param = self._stack_param_update(context, inst_vnf_info,
+                    vnf, vnf_instance, scale_vnf_request,
+                    param, additional_param, request_type="scale")
+
+        paramDict = stack_param
         stack_update_param = {
             'parameters': paramDict,
             'existing': True}
@@ -1889,19 +1979,26 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
     @log.log
     def scale_out_initial(self, context, plugin, auth_attr, vnf_info,
-                         scale_vnf_request, region_name):
+                         scale_vnf_request, region_name, vnf_instance):
         scale_json = vnf_info['attributes']['scale_group']
         scaleGroupDict = jsonutils.loads(scale_json)
         key_aspect = scale_vnf_request.aspect_id
         num = scaleGroupDict['scaleGroupDict'][key_aspect]['num']
         vnf_info['res_num'] = num * scale_vnf_request.number_of_steps
         heatclient = hc.HeatClient(auth_attr, region_name)
-        paramDict = {}
-        for name, value in scaleGroupDict['scaleGroupDict'].items():
-            paramDict[name + '_desired_capacity'] = value['default']
-        paramDict[scale_vnf_request.aspect_id +
-     '_desired_capacity'] = vnf_info['res_num']
-        stack_param = yaml.safe_load(vnf_info['attributes']['stack_param'])
+
+        inst_vnf_info = vnf_instance.instantiated_vnf_info
+        vnf = vnf_info
+        stack_param = {}
+        if 'stack_param' in vnf['attributes'].keys():
+            param = yaml.safe_load(vnf['attributes']['stack_param'])
+            additional_param = inst_vnf_info.additional_params
+            if additional_param is not None:
+                stack_param = self._stack_param_update(context, inst_vnf_info,
+                    vnf, vnf_instance, scale_vnf_request,
+                    param, additional_param, request_type="scale")
+
+        paramDict = stack_param
         grant = vnf_info['grant']
         for addrsc in grant.add_resources:
             for zone in grant.zones:
