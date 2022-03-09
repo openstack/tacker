@@ -113,7 +113,8 @@ class TestEtsiTranslateTemplate(base.TestCase):
             'VDU1': [objects.VnfResource(id=uuidsentinel.id,
                     vnf_instance_id=uuidsentinel.vnf_instance_id,
                     resource_type='image',
-                    resource_identifier='glance-image-uuid_VDU1')]}
+                    resource_identifier='glance-image-uuid_VDU1',
+                    tenant_id=uuidsentinel.tenant_id)]}
 
         self.tth._generate_hot_from_tosca(vnfd_dict, dev_attrs,
                                      inst_req_info, grant_info)
@@ -179,7 +180,8 @@ class TestEtsiTranslateTemplate(base.TestCase):
             'VDU1': [objects.VnfResource(id=uuidsentinel.id,
                     vnf_instance_id=uuidsentinel.vnf_instance_id,
                     resource_type='image',
-                    resource_identifier='glance-image-uuid_VDU1')]}
+                    resource_identifier='glance-image-uuid_VDU1',
+                    tenant_id=uuidsentinel.tenant_id)]}
 
         self.tth._generate_hot_from_tosca(vnfd_dict, dev_attrs,
                                      inst_req_info, grant_info)

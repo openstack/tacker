@@ -59,6 +59,7 @@ class TestVnfResource(SqlTestCase):
             **fakes.fake_vnf_resource_data(self.vnf_instance.id))
         vnf_resource.create()
         self.assertTrue(vnf_resource.id)
+        self.assertTrue(vnf_resource.tenant_id)
 
     def test_create_with_id(self):
 

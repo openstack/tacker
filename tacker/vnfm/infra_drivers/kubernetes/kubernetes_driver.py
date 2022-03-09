@@ -1648,6 +1648,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             file_content_dict.get('kind', '')])
         vnf_resource.resource_identifier = ''
         vnf_resource.resource_status = ''
+        vnf_resource.tenant_id = vnf_instance.tenant_id
         return vnf_resource
 
     def pre_instantiation_vnf(self, context, vnf_instance,

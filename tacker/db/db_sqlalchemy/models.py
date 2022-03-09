@@ -265,6 +265,7 @@ class VnfResource(model_base.BASE, models.SoftDeleteMixin,
     resource_type = sa.Column(sa.String(255), nullable=False)
     resource_identifier = sa.Column(sa.String(255), nullable=False)
     resource_status = sa.Column(sa.String(255), nullable=False)
+    tenant_id = sa.Column('tenant_id', sa.String(length=64), nullable=False)
 
 
 class VnfLcmFilters(model_base.BASE):
