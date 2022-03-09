@@ -64,7 +64,7 @@ class GrantV1_VimAssets(base.TackerObject,
 
     fields = {
         'computeResourceFlavours': fields.ListOfObjectsField(
-            'VimComputeResourceFlavour', nullable=True),
+            'VimComputeResourceFlavourV1', nullable=True),
         'softwareImages': fields.ListOfObjectsField(
             'VimSoftwareImageV1', nullable=True),
         'snapshotResources': fields.ListOfObjectsField(
