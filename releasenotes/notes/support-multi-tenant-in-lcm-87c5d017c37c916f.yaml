@@ -6,4 +6,8 @@ features:
     Virtualized Network Function Packages (VNF packages), and Virtualized
     Network Function Lifecycle Management Interface (VNF LCM) related to
     ETSI NFV-SOL based VNF management concerning tenants. Only allows VNF
-    instantiation by VIM of the same tenant.
+    instantiation by VIM of the same tenant. This feature does not address
+    the known issue of allowing non admin users to instantiate VNFs, it may
+    be addressed in a future release.
+issues:
+  - A non admin user can not instantiate VNFs.
