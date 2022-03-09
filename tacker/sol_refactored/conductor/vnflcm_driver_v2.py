@@ -111,7 +111,7 @@ class VnfLcmDriverV2(object):
 
         out = subprocess.run(["python3", script_path],
             input=pickle.dumps(script_dict),
-            capture_output=True)
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         vnfd.remove_tmp_csar_dir(tmp_csar_dir)
 
