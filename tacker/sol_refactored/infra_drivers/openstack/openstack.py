@@ -335,14 +335,15 @@ class Openstack(object):
 
             out = subprocess.run(["python3", script_path],
                 input=pickle.dumps(script_dict),
-                capture_output=True)
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             vnfd.remove_tmp_csar_dir(tmp_csar_dir)
 
             if out.returncode != 0:
                 LOG.debug("execute userdata class instantiate failed: %s",
                     out.stderr)
-                raise sol_ex.UserdataExecutionFailed(sol_detail=out.stderr)
+                raise sol_ex.UserdataExecutionFailed(
+                    sol_detail=str(out.stderr))
 
             fields = pickle.loads(out.stdout)
 
