@@ -645,11 +645,11 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
     def _grant_req_links(self, lcmocc_id, inst_id):
         return {
             'vnfLcmOpOcc': {
-                'href': '{}/v2/vnflcm/vnf_lcm_op_occs/{}'.format(
+                'href': '{}/vnflcm/v2/vnf_lcm_op_occs/{}'.format(
                     self.driver.endpoint, lcmocc_id)
             },
             'vnfInstance': {
-                'href': '{}/v2/vnflcm/vnf_instances/{}'.format(
+                'href': '{}/vnflcm/v2/vnf_instances/{}'.format(
                     self.driver.endpoint, inst_id)
             }
         }
