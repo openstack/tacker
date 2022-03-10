@@ -28,10 +28,13 @@ from tempest.lib import base
 from tacker.sol_refactored.common import http_client
 from tacker.sol_refactored.infra_drivers.openstack import heat_utils
 from tacker.sol_refactored import objects
+from tacker.tests.functional.common.fake_server import FakeServerManager
 from tacker.tests.functional.sol_v2 import utils
 from tacker.tests import utils as base_utils
 from tacker import version
 
+FAKE_SERVER_MANAGER = FakeServerManager.get_instance()
+MOCK_NOTIFY_CALLBACK_URL = '/notification/callback'
 
 LOG = logging.getLogger(__name__)
 
@@ -44,6 +47,9 @@ class BaseSolV2Test(base.BaseTestCase):
     @classmethod
     def setUpClass(cls):
         super(BaseSolV2Test, cls).setUpClass()
+
+        FAKE_SERVER_MANAGER.prepare_http_server()
+        FAKE_SERVER_MANAGER.start_server()
 
         cfg.CONF(args=['--config-file', '/etc/tacker/tacker.conf'],
                  project='tacker',
@@ -69,6 +75,11 @@ class BaseSolV2Test(base.BaseTestCase):
         cls.nova_client = http_client.HttpClient(auth,
                                                  service_type='compute')
         cls.heat_client = heat_utils.HeatClient(vim_info)
+
+    @classmethod
+    def tearDownClass(cls):
+        super(BaseSolV2Test, cls).tearDownClass()
+        FAKE_SERVER_MANAGER.stop_server()
 
     @classmethod
     def get_vim_info(cls):
@@ -142,6 +153,16 @@ class BaseSolV2Test(base.BaseTestCase):
             return
 
         cls.tacker_client.do_request(path, "DELETE")
+
+    def setUp(self):
+        super().setUp()
+
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        FAKE_SERVER_MANAGER.clear_history(callback_url)
+        FAKE_SERVER_MANAGER.set_callback('POST', callback_url, status_code=204)
+        FAKE_SERVER_MANAGER.set_callback('GET', callback_url, status_code=204)
 
     def get_vnf_package(self, pkg_id):
         path = "/vnfpkgm/v1/vnf_packages/{}".format(pkg_id)
@@ -287,6 +308,11 @@ class BaseSolV2Test(base.BaseTestCase):
         return self.tacker_client.do_request(
             path, "POST", body=req_body, version="2.0.0")
 
+    def scale_vnf_instance(self, inst_id, req_body):
+        path = f"/vnflcm/v2/vnf_instances/{inst_id}/scale"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="2.0.0")
+
     def terminate_vnf_instance(self, inst_id, req_body):
         path = "/vnflcm/v2/vnf_instances/{}/terminate".format(inst_id)
         return self.tacker_client.do_request(
@@ -326,6 +352,22 @@ class BaseSolV2Test(base.BaseTestCase):
             else:  # ROLLED_BACK
                 raise Exception("Operation failed. state: %s" % state)
 
+    def wait_lcmocc_rolled_back(self, lcmocc_id):
+        # NOTE: It is not necessary to set timeout because the operation
+        # itself set timeout and the state will become 'FAILED_TEMP'.
+        path = f"/vnflcm/v2/vnf_lcm_op_occs/{lcmocc_id}"
+        while True:
+            time.sleep(5)
+            _, body = self.tacker_client.do_request(
+                path, "GET", expected_status=[200], version="2.0.0")
+            state = body['operationState']
+            if state == 'ROLLED_BACK':
+                return
+            if state in ['ROLLING_BACK']:
+                continue
+
+            raise Exception(f"Operation failed. state: {state}")
+
     def show_lcmocc(self, lcmocc_id):
         path = "/vnflcm/v2/vnf_lcm_op_occs/{}".format(lcmocc_id)
         return self.tacker_client.do_request(
@@ -337,6 +379,21 @@ class BaseSolV2Test(base.BaseTestCase):
             path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
         return self.tacker_client.do_request(
             path, "GET", version="2.0.0")
+
+    def rollback_lcmocc(self, lcmocc_id):
+        path = f"/vnflcm/v2/vnf_lcm_op_occs/{lcmocc_id}/rollback"
+        return self.tacker_client.do_request(
+            path, "POST", version="2.0.0")
+
+    def retry_lcmocc(self, lcmocc_id):
+        path = f"/vnflcm/v2/vnf_lcm_op_occs/{lcmocc_id}/retry"
+        return self.tacker_client.do_request(
+            path, "POST", version="2.0.0")
+
+    def fail_lcmocc(self, lcmocc_id):
+        path = f"/vnflcm/v2/vnf_lcm_op_occs/{lcmocc_id}/fail"
+        return self.tacker_client.do_request(
+            path, "POST", version="2.0.0")
 
     def create_subscription(self, req_body):
         path = "/vnflcm/v2/subscriptions"
@@ -396,3 +453,11 @@ class BaseSolV2Test(base.BaseTestCase):
         for attr in expected_attrs:
             if attr not in body:
                 raise Exception("Expected attribute doesn't exist: %s" % attr)
+
+    def assert_notification_get(self, callback_url):
+        notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        FAKE_SERVER_MANAGER.clear_history(
+            callback_url)
+        self.assertEqual(1, len(notify_mock_responses))
+        self.assertEqual(204, notify_mock_responses[0].status_code)

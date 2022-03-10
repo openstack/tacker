@@ -31,6 +31,12 @@ def make_zip(sample_dir, tmp_dir, vnfd_id, image_path=None):
     tmp_contents = os.path.join(tmp_dir, "contents")
     shutil.copytree(os.path.join(sample_dir, "contents"), tmp_contents)
 
+    # add common vnfd files
+    common_dir = os.path.join(sample_dir, "../common/Definitions/")
+    for entry in os.listdir(common_dir):
+        shutil.copy(os.path.join(common_dir, entry),
+                    os.path.join(tmp_contents, "Definitions"))
+
     # replace vnfd_id
     def_path = os.path.join(tmp_contents, "Definitions")
     for entry in os.listdir(def_path):
