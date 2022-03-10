@@ -39,8 +39,10 @@ utils.make_zip(".", tmp_dir, vnfd_id, image_path)
 shutil.move(os.path.join(tmp_dir, zip_file_name), ".")
 shutil.rmtree(tmp_dir)
 
-create_req = paramgen.sample1_create(vnfd_id)
-terminate_req = paramgen.sample1_terminate()
+create_req = paramgen.create_vnf_max(vnfd_id)
+scaleout_req = paramgen.scaleout_vnf_max()
+scalein_req = paramgen.scalein_vnf_max()
+terminate_req = paramgen.terminate_vnf_max()
 
 print('#####################################################################\n'
       '# Run pre.py if an error occurs                                     #\n'
@@ -56,14 +58,20 @@ subnet_ids = utils.get_subnet_ids(
     ['subnet0', 'subnet1', 'ft-ipv4-subnet0', 'ft-ipv6-subnet0'])
 port_ids = utils.get_port_ids(['VDU2_CP1-1', 'VDU2_CP1-2'])
 
-instantiate_req = paramgen.sample1_instantiate(
+instantiate_req = paramgen.instantiate_vnf_max(
     net_ids, subnet_ids, port_ids, "http://localhost/identity/v3")
 
-with open("create_req", "w") as f:
+with open("create_req", "w", encoding='utf-8') as f:
     f.write(json.dumps(create_req, indent=2))
 
-with open("terminate_req", "w") as f:
+with open("terminate_req", "w", encoding='utf-8') as f:
     f.write(json.dumps(terminate_req, indent=2))
 
-with open("instantiate_req", "w") as f:
+with open("scaleout_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(scaleout_req, indent=2))
+
+with open("scalein_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(scalein_req, indent=2))
+
+with open("instantiate_req", "w", encoding='utf-8') as f:
     f.write(json.dumps(instantiate_req, indent=2))

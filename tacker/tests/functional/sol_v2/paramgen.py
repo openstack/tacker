@@ -157,40 +157,6 @@ def sub_create_max(callback_uri):
     }
 
 
-def sample1_create(vnfd_id):
-    # All attributes are set.
-    # NOTE: All of the following cardinality attributes are set.
-    # In addition, 0..N or 1..N attributes are set to 2 or more.
-    #  - 0..1 (1)
-    #  - 0..N (2 or more)
-    #  - 1
-    #  - 1..N (2 or more)
-    return create_vnf_max(vnfd_id)
-
-
-def sample1_terminate():
-    # All attributes are set.
-    # NOTE: All of the following cardinality attributes are set.
-    # In addition, 0..N or 1..N attributes are set to 2 or more.
-    #  - 0..1 (1)
-    #  - 0..N (2 or more)
-    #  - 1
-    #  - 1..N (2 or more)
-    return terminate_vnf_max()
-
-
-def sample1_instantiate(net_ids, subnets, ports, auth_url):
-    # All attributes are set.
-    # NOTE: All of the following cardinality attributes are set.
-    # In addition, 0..N or 1..N attributes are set to 2 or more.
-    #  - 0..1 (1)
-    #  - 0..N (2 or more)
-    #  - 1
-    #  - 1..N (2 or more)
-
-    return instantiate_vnf_max(net_ids, subnets, ports, auth_url)
-
-
 def create_vnf_max(vnfd_id):
     # All attributes are set.
     # NOTE: All of the following cardinality attributes are set.
@@ -481,30 +447,6 @@ def instantiate_vnf_max(net_ids, subnets, ports, auth_url):
     }
 
 
-def sample2_create(vnfd_id):
-    # Omit except for required attributes
-    # NOTE: Only the following cardinality attributes are set.
-    #  - 1
-    #  - 1..N (1)
-    return create_vnf_min(vnfd_id)
-
-
-def sample2_terminate():
-    # Omit except for required attributes
-    # NOTE: Only the following cardinality attributes are set.
-    #  - 1
-    #  - 1..N (1)
-    return terminate_vnf_min()
-
-
-def sample2_instantiate():
-    # Omit except for required attributes
-    # NOTE: Only the following cardinality attributes are set.
-    #  - 1
-    #  - 1..N (1)
-    return instantiate_vnf_min()
-
-
 def create_vnf_min(vnfd_id):
     # Omit except for required attributes
     # NOTE: Only the following cardinality attributes are set.
@@ -548,4 +490,110 @@ def scaleout_vnf_max():
         "aspectId": "VDU1_scale",
         "numberOfSteps": 1,
         "additionalParams": {"dummy-key": "dummy-value"}
+    }
+
+
+def scaleout_vnf_min():
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return {
+        "type": "SCALE_OUT",
+        "aspectId": "VDU1_scale"
+    }
+
+
+def scalein_vnf_max():
+    # All attributes are set.
+    # NOTE: All of the following cardinality attributes are set.
+    # In addition, 0..N or 1..N attributes are set to 2 or more.
+    #  - 0..1 (1)
+    #  - 0..N (2 or more)
+    #  - 1
+    #  - 1..N (2 or more)
+    return {
+        "type": "SCALE_IN",
+        "aspectId": "VDU1_scale",
+        "numberOfSteps": 1,
+        "additionalParams": {"dummy-key": "dummy-value"}
+    }
+
+
+def scalein_vnf_min():
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return {
+        "type": "SCALE_IN",
+        "aspectId": "VDU1_scale"
+    }
+
+
+def update_vnf_max(vnfd_id, vnfc_id_1, vnfc_id_2):
+    # All attributes are set.
+    # NOTE: All of the following cardinality attributes are set.
+    # In addition, 0..N or 1..N attributes are set to 2 or more.
+    #  - 0..1 (1)
+    #  - 0..N (2 or more)
+    #  - 1
+    #  - 1..N (2 or more)
+    return {
+        "vnfInstanceName": "new name",
+        "vnfInstanceDescription": "new description",
+        "vnfdId": vnfd_id,
+        "vnfConfigurableProperties": {"dummy-key": "dummy-value"},
+        "metadata": {"dummy-key": "dummy-value"},
+        "extensions": {"dummy-key": "dummy-value"},
+        "vimConnectionInfo": {
+            "vim2": {
+                "vimId": "ac2d2ece-5e49-4b15-b92d-b681e9c096d8",
+                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                "interfaceInfo": {
+                    "endpoint": "http://127.0.0.1/identity/v3"
+                },
+                "accessInfo": {
+                    "username": "dummy_user",
+                    "region": "RegionOne",
+                    "password": "dummy_password",
+                    "project": "dummy_project",
+                    "projectDomain": "Default",
+                    "userDomain": "Default"
+                },
+                "extra": {
+                    "dummy-key": "dummy-val"
+                }
+            }
+        },
+        "vnfcInfoModifications": [
+            {
+                "id": vnfc_id_1,
+                "vnfcConfigurableProperties": {"dummy-key": "dummy-value"}
+            },
+            {
+                "id": vnfc_id_2,
+                "vnfcConfigurableProperties": {"dummy-key": "dummy-value"}
+            }
+        ]
+    }
+
+
+def update_vnf_min():
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return {
+        "vnfInstanceName": "new name"
+    }
+
+
+def update_vnf_min_with_parameter(vnfd_id):
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return {
+        "vnfdId": vnfd_id
     }

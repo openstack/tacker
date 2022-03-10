@@ -102,8 +102,10 @@ class VnfLcmDriverV2(object):
             'operation': operation,
             'request': req.to_dict(),
             'vnf_instance': inst.to_dict(),
-            'grant_request': grant_req.to_dict(),
-            'grant_response': grant.to_dict(),
+            'grant_request': (grant_req.to_dict()
+                              if grant_req is not None else None),
+            'grant_response': (grant.to_dict()
+                               if grant is not None else None),
             'tmp_csar_dir': tmp_csar_dir
         }
         # script is relative path to Definitions/xxx.yaml

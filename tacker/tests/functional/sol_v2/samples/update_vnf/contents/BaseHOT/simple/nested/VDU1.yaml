@@ -1,0 +1,30 @@
+heat_template_version: 2013-05-23
+description: 'VDU1 HOT for Sample VNF'
+
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  net5:
+    type: string
+  affinity:
+    type: string
+
+resources:
+  VDU1:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: flavor }
+      image: { get_param: image }
+      name: VDU1
+      networks:
+      - port:
+          get_resource: VDU1_CP1
+      scheduler_hints:
+        group: {get_param: affinity }
+
+  VDU1_CP1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net5 }
