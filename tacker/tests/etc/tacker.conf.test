@@ -21,4 +21,3 @@ lock_path = $state_path/lock
 
 [database]
 connection = 'sqlite://'
-
