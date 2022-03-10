@@ -1051,6 +1051,7 @@ def get_vnf_resource_list(kind, name='fake_name'):
     vnf_resource.vnf_instance_id = uuidsentinel.vnf_instance_id
     vnf_resource.resource_name = name
     vnf_resource.resource_type = f"v1,{kind}"
+    vnf_resource.tenant_id = uuidsentinel.tenant_id
     return [vnf_resource]
 
 

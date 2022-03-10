@@ -598,6 +598,7 @@ class TestKubernetes(base.TestCase):
         vnf_resource.resource_type = "v1,Pod"
         vnf_resource.resource_identifier = ''
         vnf_resource.resource_status = ''
+        vnf_resource.tenant_id = vnf_instance.tenant_id
 
         self.assertRaises(exceptions.VnfArtifactNotFound,
                           self.kubernetes.pre_instantiation_vnf,
@@ -702,6 +703,7 @@ class TestKubernetes(base.TestCase):
         vnf_resource.vnf_instance_id = vnf_instance_id
         vnf_resource.resource_name = resource_name
         vnf_resource.resource_type = resource_type
+        vnf_resource.tenant_id = vnf_instance.tenant_id
         mock_vnf_resource_list.return_value = [vnf_resource]
         self.kubernetes.delete(plugin=None, context=self.context,
                                vnf_id=vnf_id,
@@ -1192,14 +1194,17 @@ class TestKubernetes(base.TestCase):
         vnf_resource1.vnf_instance_id = vnf_instance_id
         vnf_resource1.resource_name = "fake_name1"
         vnf_resource1.resource_type = "storage.k8s.io/v1,StorageClass"
+        vnf_resource1.tenant_id = vnf_instance.tenant_id
         vnf_resource2 = models.VnfResource()
         vnf_resource2.vnf_instance_id = vnf_instance_id
         vnf_resource2.resource_name = "fake_name2"
         vnf_resource2.resource_type = "v1,PersistentVolume"
+        vnf_resource2.tenant_id = vnf_instance.tenant_id
         vnf_resource3 = models.VnfResource()
         vnf_resource3.vnf_instance_id = vnf_instance_id
         vnf_resource3.resource_name = "fake_name3"
         vnf_resource3.resource_type = "v1,PersistentVolumeClaim"
+        vnf_resource3.tenant_id = vnf_instance.tenant_id
         mock_vnf_resource_list.return_value = \
             [vnf_resource1, vnf_resource2, vnf_resource3]
         mock_delete_storage_class.return_value = client.V1Status()
@@ -1283,6 +1288,7 @@ class TestKubernetes(base.TestCase):
         vnf_resource.vnf_instance_id = vnf_instance_id
         vnf_resource.resource_name = resource_name
         vnf_resource.resource_type = resource_type
+        vnf_resource.tenant_id = vnf_instance.tenant_id
         mock_vnf_resource_list.return_value = [vnf_resource]
         self.kubernetes.delete_wait(plugin=None, context=self.context,
                                     vnf_id=vnf_id,
@@ -2857,6 +2863,7 @@ class TestKubernetes(base.TestCase):
         vnf_resource.vnf_instance_id = self.vnf_instance.id
         vnf_resource.resource_name = "vdu1"
         vnf_resource.resource_type = "apps/v1,Deployment"
+        vnf_resource.tenant_id = self.vnf_instance.tenant_id
         mock_vnf_resource_list.return_value = [vnf_resource]
         vnfc_resource_info = []
         vnfc_resource_info.append(
@@ -2911,6 +2918,7 @@ class TestKubernetes(base.TestCase):
         vnf_resource.vnf_instance_id = self.vnf_instance.id
         vnf_resource.resource_name = "vdu1"
         vnf_resource.resource_type = "apps/v1,Deployment"
+        vnf_resource.tenant_id = self.vnf_instance.tenant_id
         mock_vnf_resource_list.return_value = [vnf_resource]
         vnfc_resource_info = []
         vnfc_resource_info.append(

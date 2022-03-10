@@ -299,7 +299,8 @@ def fake_vnf_resource_data(instance_id):
         'resource_name': "test",
         'resource_type': "image",
         'resource_identifier': uuidsentinel.image_id,
-        'resource_status': "status"
+        'resource_status': "status",
+        'tenant_id': uuidsentinel.tenant_id
     }
 
 

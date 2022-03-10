@@ -37,3 +37,7 @@ def upgrade(active_plugins=None, options=None):
     op.add_column('vnf_lcm_op_occs',
                   sa.Column('tenant_id', sa.String(length=64),
                   nullable=False))
+
+    op.add_column('vnf_resources',
+                  sa.Column('tenant_id', sa.String(length=64),
+                  nullable=False))

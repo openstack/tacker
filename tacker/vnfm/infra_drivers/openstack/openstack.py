@@ -1038,7 +1038,9 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 vnf_resource = objects.VnfResource(context=context,
                     vnf_instance_id=vnf_instance.id,
                     resource_name=name, resource_type="image",
-                    resource_status="CREATED", resource_identifier=image.id)
+                    resource_status="CREATED",
+                    resource_identifier=image.id,
+                    tenant_id=vnf_instance.tenant_id)
                 vnf_resources[node_name] = [vnf_resource]
             except Exception as exp:
                 with excutils.save_and_reraise_exception():

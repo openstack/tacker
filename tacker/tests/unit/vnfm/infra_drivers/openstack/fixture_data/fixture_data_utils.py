@@ -91,7 +91,8 @@ def get_vnf_instance_object(instantiated_vnf_info=None,
         vnf_provider="sample provider", vnf_product_name="vnf product name",
         vnf_software_version='1.0', vnfd_version="2",
         instantiated_vnf_info=inst_vnf_info,
-        vnf_metadata={'namespace': 'default'})
+        vnf_metadata={'namespace': 'default'},
+        tenant_id=uuidsentinel.tenant_id)
 
     return vnf_instance
 

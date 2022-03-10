@@ -106,7 +106,8 @@ class VnfResource(base.TackerObject, base.TackerPersistentObject):
         'resource_name': fields.StringField(nullable=True),
         'resource_type': fields.StringField(nullable=False),
         'resource_identifier': fields.StringField(nullable=False),
-        'resource_status': fields.StringField(nullable=True, default='status')
+        'resource_status': fields.StringField(nullable=True, default='status'),
+        'tenant_id': fields.StringField(nullable=False)
     }
 
     def __init__(self, context=None, **kwargs):
