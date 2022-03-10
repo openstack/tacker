@@ -163,7 +163,7 @@ def _vnf_lcm_subscriptions_show(context, subscriptionId):
 
     sql = text(
         "select "
-        "t1.id,t1.callback_uri,t2.filter "
+        "t1.id,t1.callback_uri,t1.tenant_id,t2.filter "
         "from vnf_lcm_subscriptions t1, "
         "(select distinct subscription_uuid,filter from vnf_lcm_filters) t2 "
         "where t1.id = t2.subscription_uuid "
