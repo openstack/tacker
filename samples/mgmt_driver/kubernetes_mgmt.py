@@ -2776,6 +2776,14 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             grant_request, **kwargs):
         pass
 
+    def modify_information_start(self, context, vnf_instance,
+                                 modify_vnf_request, **kwargs):
+        pass
+
+    def modify_information_end(self, context, vnf_instance,
+                               modify_vnf_request, **kwargs):
+        pass
+
     def _check_envi(self, commander):
         ssh_command = 'cat /etc/os-release | grep "PRETTY_NAME=" | ' \
                       'grep -c "Ubuntu 20.04"; arch | grep -c x86_64'

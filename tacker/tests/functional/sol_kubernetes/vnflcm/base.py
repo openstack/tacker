@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import os
+import shutil
 import time
 
 from oslo_serialization import jsonutils
@@ -56,7 +57,8 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
             "terminate": timeout,
             "heal_sol002": timeout,
             "heal_sol003": timeout * 2,
-            "scale": timeout
+            "scale": timeout,
+            "modify": timeout
         }
         cls.vnf_package_ids = []
 
@@ -80,6 +82,63 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         if not vim:
             self.skipTest(f"Kubernetes VIM '{vim_name}' is missing")
         self.vim_id = vim['id']
+
+    def _create_and_upload_vnf_package_add_mgmt(
+            self, tacker_client, csar_package_name,
+            user_defined_data, mgmt_rela_path):
+        # create vnf package
+        body = jsonutils.dumps({"userDefinedData": user_defined_data})
+        _, vnf_package = tacker_client.do_request(
+            self.base_vnf_package_url, "POST", body=body)
+        vnf_pkg_id = vnf_package['id']
+
+        # cp MgmtDriver to package
+        mgmt_abs_path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), mgmt_rela_path))
+        mgmt_package_abs_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         f"../../../etc/samples/etsi/nfv/"
+                         f"{csar_package_name}/Scripts/"))
+        os.mkdir(mgmt_package_abs_path)
+        shutil.copy(mgmt_abs_path, mgmt_package_abs_path)
+
+        # upload vnf package
+        csar_package_path = ("../../../etc/samples/etsi/nfv/"
+                             f"{csar_package_name}")
+        file_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), csar_package_path))
+
+        # Generating unique vnfd id. This is required when multiple workers
+        # are running concurrently. The call below creates a new temporary
+        # CSAR with unique vnfd id.
+        file_path, _ = utils.create_csar_with_unique_vnfd_id(file_path)
+
+        with open(file_path, 'rb') as file_object:
+            tacker_client.do_request(
+                f"{self.base_vnf_package_url}/{vnf_pkg_id}/package_content",
+                "PUT", body=file_object, content_type='application/zip')
+
+        # wait for onboard
+        start_time = int(time.time())
+        show_url = os.path.join(self.base_vnf_package_url, vnf_pkg_id)
+        vnfd_id = None
+        while True:
+            _, body = tacker_client.do_request(show_url, "GET")
+            if body['onboardingState'] == "ONBOARDED":
+                vnfd_id = body['vnfdId']
+                break
+
+            if (int(time.time()) - start_time) > VNF_PACKAGE_UPLOAD_TIMEOUT:
+                raise Exception(WAIT_TIMEOUT_ERR_MSG %
+                    {"action": "onboard vnf package",
+                     "timeout": VNF_PACKAGE_UPLOAD_TIMEOUT})
+
+            time.sleep(RETRY_WAIT_TIME)
+
+        # remove temporarily created CSAR file
+        os.remove(file_path)
+        shutil.rmtree(mgmt_package_abs_path)
+        return vnf_package['id'], vnfd_id
 
     def _create_and_upload_vnf_package(self, tacker_client, csar_package_name,
                                        user_defined_data):
@@ -168,6 +227,7 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         resp, response_body = self.http_client.do_request(
             self.base_vnf_instances_url, "POST",
             body=jsonutils.dumps(request_body))
+        self.assertEqual(201, resp.status_code)
         return resp, response_body
 
     def _delete_wait_vnf_instance(self, id):
@@ -228,6 +288,8 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         _, vnf_instance = self._create_vnf_instance(
             vnfd_id, vnf_instance_name=inst_name,
             vnf_instance_description=inst_desc)
+        self.assertEqual(
+            'NOT_INSTANTIATED', vnf_instance['instantiationState'])
 
         # instantiate vnf instance
         additional_param = additional_params
@@ -237,7 +299,30 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         self._instantiate_vnf_instance(vnf_instance['id'], request_body)
         vnf_instance = self._show_vnf_instance(vnf_instance['id'])
 
+        self.assertEqual(
+            'INSTANTIATED', vnf_instance['instantiationState'])
+        vnflcm_op_occ = self._get_vnflcm_op_occs_by_id(
+            self.context, vnf_instance['id'])
+        self.assertEqual('COMPLETED', vnflcm_op_occ.operation_state)
+        self.assertEqual('INSTANTIATE', vnflcm_op_occ.operation)
+
         return vnf_instance
+
+    def _modify_vnf_instance(self, vnf_instance_id, request_body):
+        # modify vnf instance
+        url = os.path.join(self.base_vnf_instances_url, vnf_instance_id)
+        resp, _ = self.http_client.do_request(
+            url, "PATCH", body=jsonutils.dumps(request_body))
+        self.assertEqual(202, resp.status_code)
+        time.sleep(5)
+        self._wait_vnflcm_op_occs(
+            self.context, vnf_instance_id, self.lcm_timeout['modify'])
+        vnflcm_op_occ = self._get_vnflcm_op_occs_by_id(
+            self.context, vnf_instance_id)
+        self.assertEqual('MODIFY_INFO', vnflcm_op_occ.operation)
+        vnf_instance = self._show_vnf_instance(vnf_instance_id)
+        vnfc_rscs = self._get_vnfc_resource_info(vnf_instance)
+        return vnf_instance, vnfc_rscs
 
     def _terminate_vnf_instance(self, id, request_body=None):
         if request_body is None:

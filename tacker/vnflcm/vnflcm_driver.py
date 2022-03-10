@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import ast
 import copy
 from datetime import datetime
 import functools
@@ -500,6 +501,67 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     artifact_mgmt_driver, artifacts_value, vnf_package_path)
 
         return tacker_mgmt_driver
+
+    @log.log
+    def modify_vnf(self, context, vnf_lcm_opoccs,
+                   body_data, vnfd_pkg_data, vnfd_id):
+        # Get vnf_instance from DB by vnf_instance_id
+        vnf_instance_id = vnf_lcm_opoccs.get('vnf_instance_id')
+        vnf_instance = objects.VnfInstance.get_by_id(context, vnf_instance_id)
+        vnfd_dict = vnflcm_utils.get_vnfd_dict(
+            context, vnf_instance.vnfd_id,
+            vnf_instance.instantiated_vnf_info.flavour_id)
+
+        # modify_information_start(context, vnf_instance)
+        self._mgmt_manager.invoke(
+            self._load_vnf_interface(
+                context, 'modify_information_start', vnf_instance, vnfd_dict),
+            'modify_information_start', context=context,
+            modify_vnf_request=None, vnf_instance=vnf_instance)
+
+        # Get the old vnf package path according to vnfd_id
+        old_vnf_package_path = vnflcm_utils.get_vnf_package_path(
+            context, vnf_instance.vnfd_id)
+
+        # Update vnf_instance
+        try:
+            _vnf_instance = objects.VnfInstance(context=context)
+            updated_time = _vnf_instance.update(
+                context, vnf_lcm_opoccs, body_data, vnfd_pkg_data, vnfd_id)
+        except Exception as msg:
+            raise Exception(str(msg))
+        vnf_instance = objects.VnfInstance.get_by_id(context, vnf_instance_id)
+
+        vim_info = vnflcm_utils.get_vim(
+            context, vnf_instance.vim_connection_info)
+
+        vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
+            vim_info, context)
+
+        kwargs = {}
+        if vim_connection_info.vim_type == 'kubernetes':
+            # If the file path of ConfigMap/Secret is changed
+            cm_secret_paths = []
+            # Get the metadata from vnf_lcm_opoccs
+            operation_params = vnf_lcm_opoccs.get('operationParams')
+            if operation_params:
+                try:
+                    cm_secret_paths = (ast.literal_eval(operation_params)
+                                       .get('metadata', {})
+                                       .get('configmap_secret_paths', []))
+                except Exception as e:
+                    LOG.error('Invalid format operationParams')
+                    raise exceptions.InvalidInput(str(e))
+            kwargs = {"old_vnf_package_path": old_vnf_package_path,
+                      "configmap_secret_paths": cm_secret_paths}
+
+        self._mgmt_manager.invoke(
+            self._load_vnf_interface(
+                context, 'modify_information_end', vnf_instance, vnfd_dict),
+            'modify_information_end', context=context,
+            modify_vnf_request=None,
+            vnf_instance=vnf_instance, **kwargs)
+        return updated_time
 
     @log.log
     def instantiate_vnf(self, context, vnf_instance, vnf_dict,

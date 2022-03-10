@@ -69,7 +69,10 @@ CONF = tacker.conf.CONF
 
 
 class FakeVnfLcmDriver(mock.Mock):
-    pass
+    def modify_vnf(self, context, vnf_lcm_opoccs, body_data,
+                   vnfd_pkg_data, vnfd_id):
+        return datetime.datetime(
+            1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
 
 
 class FakeVNFMPlugin(mock.Mock):
@@ -3235,13 +3238,10 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @mock.patch.object(conductor_server, 'revert_update_lcm')
     @mock.patch.object(t_context.get_admin_context().session, "add")
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "save")
-    @mock.patch.object(objects.VnfInstance, "update")
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "create")
-    def test_update(self, mock_create, mock_update, mock_save, mock_add,
+    def test_update(self, mock_create, mock_save, mock_add,
                     mock_revert):
         mock_create.return_value = "OK"
-        mock_update.return_value = datetime.datetime(
-            1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
         mock_add.return_value = "OK"
         mock_save.return_value = "OK"
         vnfd_id = "2c69a161-0000-4b0f-bcf8-391f8fc76600"

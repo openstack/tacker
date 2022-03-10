@@ -1,0 +1,39 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/sample_top.vnfd.yaml
+
+Name: Files/kubernetes/configmap_2.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 6f34907da12cb5ad82b25d8e7dd6a7dd4219bd0cbad65e678b58b8466be220e0
+
+Name: Files/kubernetes/deployment.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 290debe315bb5b098f73d63049ba850cc5df3723447637bddc1cabe3d0e151d7
+
+Name: Files/kubernetes/pod_env.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: b8674c55cd387fd2ab3d550bc622b314bed151d0afffe4f6bc44a553280d400c
+
+Name: Files/kubernetes/pod_volume.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: e74cd59b3e91ca1a8fb103b13ef15965581639883cc6d8a531f959b4ae89e688
+
+Name: Files/kubernetes/replicaset.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 2d9e48ab5e1794bd9b220fcac75ec7f595d72e04ca287bab30a78748aa852c30
+
+Name: Files/kubernetes/secret_2.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: f57cbb1822c57e523e5c6d48feea37ee1b1bbd976d720baf8491d47331249e11
+
+Name: Scripts/container_update_mgmt.py
+Content-Type: text/x-python
+Algorithm: SHA-256
+Hash: 9e272402dd0f6f6b39ffc750590eedef028ce22506eb7436a1a1fcfa76c66423

@@ -124,7 +124,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         """
         LOG.debug('vnf %s', vnf)
         # initialize Kubernetes APIs
-        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         try:
             core_v1_api_client = self.kubernetes.get_core_v1_api_client(
                 auth=auth_cred)
@@ -153,7 +153,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         """
         # initialize Kubernetes APIs
         if '{' not in vnf_id and '}' not in vnf_id:
-            auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+            auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
             try:
                 core_v1_api_client = \
                     self.kubernetes.get_core_v1_api_client(auth=auth_cred)
@@ -162,7 +162,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 pods_information = self._get_pods_information(
                     core_v1_api_client=core_v1_api_client,
                     deployment_info=deployment_info)
-                status = self._get_pod_status(pods_information)
+                status = self.get_pod_status(pods_information)
                 stack_retries = self.STACK_RETRIES
                 error_reason = None
                 while status == 'Pending' and stack_retries > 0:
@@ -171,7 +171,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                         self._get_pods_information(
                             core_v1_api_client=core_v1_api_client,
                             deployment_info=deployment_info)
-                    status = self._get_pod_status(pods_information)
+                    status = self.get_pod_status(pods_information)
                     LOG.debug('status: %s', status)
                     stack_retries = stack_retries - 1
 
@@ -553,7 +553,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     pods_information.append(item)
         return pods_information
 
-    def _get_pod_status(self, pods_information):
+    def get_pod_status(self, pods_information):
         pending_flag = False
         unknown_flag = False
         for pod_info in pods_information:
@@ -578,7 +578,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         ConfigMap data
         """
         # initialize Kubernetes APIs
-        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         try:
             core_v1_api_client = \
                 self.kubernetes.get_core_v1_api_client(auth=auth_cred)
@@ -841,7 +841,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
     def delete(self, plugin, context, vnf_id, auth_attr, region_name=None,
                vnf_instance=None, terminate_vnf_req=None):
         """Delete function"""
-        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         try:
             if not vnf_instance:
                 # execute legacy delete method
@@ -977,8 +977,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             LOG.error('Deleting wait VNF got an error due to %s', e)
             raise
 
-    def _select_k8s_obj_read_api(self, k8s_client_dict, namespace, name,
-                                 kind, api_version):
+    def select_k8s_obj_read_api(self, k8s_client_dict, namespace, name,
+                                kind, api_version):
         """select kubernetes read api and call"""
         def convert(name):
             name_with_underscores = re.sub(
@@ -1039,7 +1039,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         marked as deleted.
         """
         # initialize Kubernetes APIs
-        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
 
         try:
             if not vnf_instance:
@@ -1068,7 +1068,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                         if not k8s_client_dict.get(api_version):
                             continue
                         try:
-                            self._select_k8s_obj_read_api(
+                            self.select_k8s_obj_read_api(
                                 k8s_client_dict=k8s_client_dict,
                                 namespace=namespace,
                                 name=name,
@@ -1265,7 +1265,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         of policy scaling when user define VNF descriptor.
         """
         # initialize Kubernetes APIs
-        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         try:
             if not policy.get('vnf_instance_id'):
                 # execute legacy scale method
@@ -1358,7 +1358,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         pods_information = self._get_pods_information(
             core_v1_api_client=core_v1_api_client,
             deployment_info=deployment_info)
-        status = self._get_pod_status(pods_information)
+        status = self.get_pod_status(pods_information)
 
         stack_retries = self.STACK_RETRIES
         error_reason = None
@@ -1368,7 +1368,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             pods_information = self._get_pods_information(
                 core_v1_api_client=core_v1_api_client,
                 deployment_info=deployment_info)
-            status = self._get_pod_status(pods_information)
+            status = self.get_pod_status(pods_information)
 
             # LOG.debug('status: %s', status)
             stack_retries = stack_retries - 1
@@ -1390,7 +1390,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         elif stack_retries != 0 and status != 'Running':
             raise vnfm.VNFCreateWaitFailed(reason=error_reason)
 
-    def _is_match_pod_naming_rule(self, rsc_kind, rsc_name, pod_name):
+    def is_match_pod_naming_rule(self, rsc_kind, rsc_name, pod_name):
         match_result = None
         if rsc_kind == 'Pod':
             # Expected example: name
@@ -1429,7 +1429,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         from Pod objects is RUNNING.
         """
         # initialize Kubernetes APIs
-        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         try:
             if not policy.get('vnf_instance_id'):
                 # execute legacy scale_wait method
@@ -1481,12 +1481,12 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     respone = core_v1_api_client.list_namespaced_pod(
                         namespace=namespace)
                     for pod in respone.items:
-                        match_result = self._is_match_pod_naming_rule(
+                        match_result = self.is_match_pod_naming_rule(
                             kind, name, pod.metadata.name)
                         if match_result:
                             pods_information.append(pod)
 
-                    status = self._get_pod_status(pods_information)
+                    status = self.get_pod_status(pods_information)
                     if status == 'Running' and \
                        scale_info.spec.replicas != len(pods_information):
                         status = 'Pending'
@@ -1523,7 +1523,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         # TODO(phuoc): will update it for other components
         pass
 
-    def _get_auth_creds(self, auth_cred):
+    def get_auth_creds(self, auth_cred):
         file_descriptor = self._create_ssl_ca_file(auth_cred)
         if ('username' not in auth_cred) and ('password' not in auth_cred):
             auth_cred['username'] = 'None'
@@ -1821,7 +1821,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 None, context, vnf_instance, auth_attr)
             return instance_id
         else:
-            auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+            auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
             k8s_client_dict = self.kubernetes.get_k8s_client_dict(auth_cred)
             transformer = translate_outputs.Transformer(
                 None, None, None, k8s_client_dict)
@@ -1887,7 +1887,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         and metadata, and vdu id.
         """
         auth_attr = vim_connection_info.access_info
-        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         namespace = vnf_instance.vnf_metadata['namespace']
         try:
             # get Kubernetes object files
@@ -1943,7 +1943,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 # get initially store VnfcResourceInfo after instantiation
                 for pod in pod_list.items:
                     pod_name = pod.metadata.name
-                    match_result = self._is_match_pod_naming_rule(
+                    match_result = self.is_match_pod_naming_rule(
                         rsc_kind, rsc_name, pod_name)
                     if match_result:
                         # get metadata
@@ -2005,7 +2005,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         # Get the associated pod name that runs with the actual kubernetes
         actual_pod_names = list()
         for pod in sorted_pod_list:
-            match_result = self._is_match_pod_naming_rule(
+            match_result = self.is_match_pod_naming_rule(
                 rsc_kind, rsc_name, pod.metadata.name)
             if match_result:
                 actual_pod_names.append(pod.metadata.name)
@@ -2033,7 +2033,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         """
         # initialize Kubernetes APIs
         auth_attr = vim_connection_info.access_info
-        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         inst_vnf_info = vnf_instance.instantiated_vnf_info
         namespace = vnf_instance.vnf_metadata['namespace']
         try:
@@ -2189,7 +2189,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         """
         # initialize Kubernetes APIs
         auth_attr = vim_connection_info.access_info
-        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         namespace = vnf_instance.vnf_metadata['namespace']
         try:
             core_v1_api_client = self.kubernetes.get_core_v1_api_client(
@@ -2251,7 +2251,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                         pod_list_dict[namespace] = pod_list
                     tmp_pods_info = list()
                     for pod in pod_list.items:
-                        match_result = self._is_match_pod_naming_rule(
+                        match_result = self.is_match_pod_naming_rule(
                             k8s_resource.get('kind'),
                             k8s_resource.get('name'),
                             pod.metadata.name)
@@ -2274,7 +2274,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                                 'actual_pod_num': str(len(tmp_pods_info))})
                         is_unmatch_pods_num = True
                     pods_information.extend(tmp_pods_info)
-                status = self._get_pod_status(pods_information)
+                status = self.get_pod_status(pods_information)
 
                 if status == 'Unknown':
                     error_reason = _("Pod status is found Unknown")
@@ -2305,7 +2305,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         """Update VnfcResourceInfo after healing"""
         # initialize Kubernetes APIs
         auth_attr = vim_connection_info.access_info
-        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         inst_vnf_info = vnf_instance.instantiated_vnf_info
         namespace = vnf_instance.vnf_metadata['namespace']
         try:
@@ -2417,7 +2417,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                               vim_connection_info):
         """Update VnfcResourceInfo after scaling"""
         auth_attr = vim_connection_info.access_info
-        auth_cred, file_descriptor = self._get_auth_creds(auth_attr)
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         inst_vnf_info = vnf_instance.instantiated_vnf_info
         try:
             # initialize Kubernetes APIs
@@ -2471,7 +2471,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 namespace=namespace)
             actual_pod_list = []
             for pod in pod_list.items:
-                match_result = self._is_match_pod_naming_rule(
+                match_result = self.is_match_pod_naming_rule(
                     rsc_kind, rsc_name, pod.metadata.name)
                 if match_result:
                     actual_pod_list.append(pod.metadata.name)
