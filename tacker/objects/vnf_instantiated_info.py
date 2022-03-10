@@ -472,7 +472,7 @@ class VnfExtCpInfo(base.TackerObject, base.TackerObjectDictCompat,
         'cp_protocol_info': fields.ListOfObjectsField(
             'CpProtocolInfo', nullable=False, default=[]),
         'ext_link_port_id': fields.StringField(nullable=True, default=None),
-        'associated_vnfc_cp_id': fields.StringField(nullable=False)
+        'associated_vnfc_cp_id': fields.StringField(nullable=True)
     }
 
     @classmethod
