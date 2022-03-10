@@ -47,7 +47,7 @@ def get_subsc_all(context):
 
 
 def subsc_href(subsc_id, endpoint):
-    return "{}/v2/vnflcm/subscriptions/{}".format(endpoint, subsc_id)
+    return "{}/vnflcm/v2/subscriptions/{}".format(endpoint, subsc_id)
 
 
 def _get_notification_auth_handle(subsc):

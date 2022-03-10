@@ -35,7 +35,7 @@ def get_inst_all(context):
 
 
 def inst_href(inst_id, endpoint):
-    return "{}/v2/vnflcm/vnf_instances/{}".format(endpoint, inst_id)
+    return "{}/vnflcm/v2/vnf_instances/{}".format(endpoint, inst_id)
 
 
 def make_inst_links(inst, endpoint):

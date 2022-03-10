@@ -41,11 +41,11 @@ def get_lcmocc_all(context):
 
 
 def lcmocc_href(lcmocc_id, endpoint):
-    return "{}/v2/vnflcm/vnf_lcm_op_occs/{}".format(endpoint, lcmocc_id)
+    return "{}/vnflcm/v2/vnf_lcm_op_occs/{}".format(endpoint, lcmocc_id)
 
 
 def lcmocc_task_href(lcmocc_id, task, endpoint):
-    return "{}/v2/vnflcm/vnf_lcm_op_occs/{}/{}".format(endpoint, lcmocc_id,
+    return "{}/vnflcm/v2/vnf_lcm_op_occs/{}/{}".format(endpoint, lcmocc_id,
                                                        task)
 
 
