@@ -311,7 +311,7 @@ class VnfLcmSubscriptions(model_base.BASE, models.SoftDeleteMixin,
     __tablename__ = 'vnf_lcm_subscriptions'
     id = sa.Column(sa.String(36), nullable=False, primary_key=True)
     callback_uri = sa.Column(sa.String(255), nullable=False)
-    subscription_authentication = sa.Column(sa.JSON, nullable=True)
+    authentication = sa.Column(sa.JSON, nullable=True)
     tenant_id = sa.Column('tenant_id', sa.String(length=64), nullable=False)
 
     subscription_filter = orm.relationship(

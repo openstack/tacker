@@ -43,7 +43,11 @@ OPTS = [
     cfg.IntOpt(
         'operation_timeout',
         default=60,
-        help="LCM operation timeout (sec)")]
+        help="LCM operation timeout (sec)"),
+    cfg.BoolOpt(
+        'verify_notification_ssl',
+        default=True,
+        help="Verify the certificate to send notification by ssl")]
 
 vnf_lcm_group = cfg.OptGroup('vnf_lcm',
     title='vnf_lcm options',

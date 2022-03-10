@@ -102,7 +102,10 @@ class _ClientCredentialsGrant(_OAuth2GrantBase):
         LOG.info("Request Headers={}".format(kwargs.get('headers')))
         LOG.info("Request Body={}".format(kwargs.get('data')))
 
-        response = basic_auth_request.get(self.token_endpoint, **kwargs)
+        response = basic_auth_request.post(
+            self.token_endpoint,
+            verify=cfg.CONF.authentication.verify_oauth2_ssl,
+            **kwargs)
         response.raise_for_status()
 
         response_body = response.json()
@@ -209,7 +212,11 @@ class _AuthManager:
                 help="user_name used in basic authentication"),
         cfg.StrOpt('password',
                 default=None,
-                help="password used in basic authentication")
+                help="password used in basic authentication"),
+        cfg.BoolOpt('verify_oauth2_ssl',
+                default=True,
+                help="verify the certification to get the oauth2 access token "
+                     "by ssl")
     ]
     cfg.CONF.register_opts(OPTS, group='authentication')
 
