@@ -19,6 +19,7 @@ import ddt
 from http import client as http_client
 import json
 import os
+import re
 from unittest import mock
 import urllib
 import webob
@@ -1697,14 +1698,14 @@ class TestController(base.TestCase):
         expected_result = [fakes.fake_vnf_instance_response(),
             fakes.fake_vnf_instance_response(
             fields.VnfInstanceState.INSTANTIATED)]
-        self.assertEqual(expected_result, resp)
+        self.assertEqual(expected_result, resp.json)
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
     def test_index_empty_response(self, mock_vnf_list):
         req = fake_request.HTTPRequest.blank('/vnf_instances')
         mock_vnf_list.return_value = []
         resp = self.controller.index(req)
-        self.assertEqual([], resp)
+        self.assertEqual([], resp.json)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -1859,7 +1860,7 @@ class TestController(base.TestCase):
         expected_result = [fakes.fake_vnf_instance_response(),
             fakes.fake_vnf_instance_response(
             fields.VnfInstanceState.INSTANTIATED)]
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(expected_result, res_dict.json)
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
     def test_index_filter_combination(self, mock_vnf_list):
@@ -1882,7 +1883,7 @@ class TestController(base.TestCase):
         expected_result = [fakes.fake_vnf_instance_response(),
             fakes.fake_vnf_instance_response(
             fields.VnfInstanceState.INSTANTIATED)]
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(expected_result, res_dict.json)
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
     @ddt.data(
@@ -1935,7 +1936,7 @@ class TestController(base.TestCase):
         expected_result = [fakes.fake_vnf_instance_response(),
             fakes.fake_vnf_instance_response(
             fields.VnfInstanceState.INSTANTIATED)]
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(expected_result, res_dict.json)
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
     @ddt.data(
@@ -2019,12 +2020,51 @@ class TestController(base.TestCase):
 
     @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
     @ddt.data(
+        {'params': {'all_records': 'yes'},
+            'result_names': ['sample1', 'sample2', 'sample3', 'sample4']},
+        {'params': {'all_records': 'yes', 'nextpage_opaque_marker': 'abc'},
+            'result_names': ['sample1', 'sample2', 'sample3', 'sample4']},
+        {'params': {'nextpage_opaque_marker': 'abc'},
+            'result_names': []},
+        {'params': {},
+            'result_names': ['sample2']}
+    )
+    def test_index_paging(self, values, mock_vnf_list):
+        cfg.CONF.set_override('vnf_instance_num', 1, group='vnf_lcm')
+        query = urllib.parse.urlencode(values['params'])
+        req = fake_request.HTTPRequest.blank(
+            '/vnflcm/v1/vnf_instances?' + query)
+
+        mock_vnf_list.return_value = [
+            fakes.return_vnf_instance(**{'vnf_instance_name': 'sample1'}),
+            fakes.return_vnf_instance(**{'vnf_instance_name': 'sample2'}),
+            fakes.return_vnf_instance(**{'vnf_instance_name': 'sample3'}),
+            fakes.return_vnf_instance(**{'vnf_instance_name': 'sample4'})
+        ]
+
+        expected_result = []
+        for name in values['result_names']:
+            expected_result.append(fakes.fake_vnf_instance_response(
+                **{'vnfInstanceName': name}))
+
+        res_dict = self.controller.index(req)
+
+        if 'Link' in res_dict.headers:
+            next_url = re.findall('<(.*)>', res_dict.headers['Link'])[0]
+            query = urllib.parse.urlparse(next_url).query
+            req = fake_request.HTTPRequest.blank(
+                '/vnflcm/v1/vnf_instances?' + query)
+            res_dict = self.controller.index(req)
+
+        self.assertEqual(expected_result, res_dict.json)
+
+    @mock.patch.object(objects.VnfInstanceList, "get_by_filters")
+    @ddt.data(
         {'attribute_not_exist': 'some_value'},
         {'all_fields': {}},
         {'fields': {}},
         {'exclude_fields': {}},
         {'exclude_default': {}},
-        {'nextpage_opaque_marker': 1},
         {'attribute_not_exist': 'some_value', 'filter': {}},
         {'attribute_not_exist': 'some_value', 'fields': {}}
     )
@@ -2044,7 +2084,6 @@ class TestController(base.TestCase):
         {'fields': {}},
         {'exclude_fields': {}},
         {'exclude_default': {}},
-        {'nextpage_opaque_marker': 1},
         {'attribute_not_exist': 'some_value', 'filter': {}},
         {'attribute_not_exist': 'some_value', 'fields': {}}
     )
@@ -3760,9 +3799,61 @@ class TestController(base.TestCase):
         expected_result = fakes.index_response(
             remove_attrs=complex_attributes)
         mock_op_occ_list.return_value = vnf_lcm_op_occ
-        res_dict = self.controller.list_lcm_op_occs(req)
+        resp = self.controller.list_lcm_op_occs(req)
 
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result)),
+            resp.json)
+
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
+    @ddt.data(
+        {'params': {'all_records': 'yes'},
+            'result_names': ['INSTANTIATE', 'SCALE', 'HEAL', 'TERMINATE']},
+        {'params': {'all_records': 'yes', 'nextpage_opaque_marker': 'abc'},
+            'result_names': ['INSTANTIATE', 'SCALE', 'HEAL', 'TERMINATE']},
+        {'params': {'nextpage_opaque_marker': 'abc'},
+            'result_names': []},
+        {'params': {},
+            'result_names': ['SCALE']}
+    )
+    def test_op_occ_list_paging(self, values, mock_op_occ_list):
+        cfg.CONF.set_override('lcm_op_occ_num', 1, group='vnf_lcm')
+        query = urllib.parse.urlencode(values['params'])
+        req = fake_request.HTTPRequest.blank(
+            '/vnflcm/v1/vnf_lcm_op_occs?' + query)
+
+        complex_attributes = [
+            'error',
+            'resourceChanges',
+            'operationParams',
+            'changedInfo']
+
+        vnf_lcm_op_occ = [
+            fakes.return_vnf_lcm_opoccs_obj(**{'operation': 'INSTANTIATE'}),
+            fakes.return_vnf_lcm_opoccs_obj(**{'operation': 'SCALE'}),
+            fakes.return_vnf_lcm_opoccs_obj(**{'operation': 'HEAL'}),
+            fakes.return_vnf_lcm_opoccs_obj(**{'operation': 'TERMINATE'})
+        ]
+
+        expected_result = []
+        for name in values['result_names']:
+            expected_result += fakes.index_response(
+                remove_attrs=complex_attributes,
+                vnf_lcm_op_occs_updates={'operation': name})
+
+        mock_op_occ_list.return_value = vnf_lcm_op_occ
+        resp = self.controller.list_lcm_op_occs(req)
+
+        if 'Link' in resp.headers:
+            next_url = re.findall('<(.*)>', resp.headers['Link'])[0]
+            query = urllib.parse.urlparse(next_url).query
+            req = fake_request.HTTPRequest.blank(
+                '/vnflcm/v1/vnf_lcm_op_occs?' + query)
+            resp = self.controller.list_lcm_op_occs(req)
+
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result)),
+            resp.json)
 
     @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
     @ddt.data(
@@ -3797,7 +3888,9 @@ class TestController(base.TestCase):
         mock_op_occ_list.return_value = vnf_lcm_op_occ
         res_dict = self.controller.list_lcm_op_occs(req)
 
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result)),
+            res_dict.json)
 
     @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
     def test_op_occ_filter_attributes_invalid_filter(self, mock_op_occ_list):
@@ -3822,7 +3915,9 @@ class TestController(base.TestCase):
         mock_op_occ_list.return_value = vnf_lcm_op_occ
         res_dict = self.controller.list_lcm_op_occs(req)
 
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result)),
+            res_dict.json)
 
     @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
     @ddt.data(
@@ -3850,7 +3945,9 @@ class TestController(base.TestCase):
         expected_result = fakes.index_response(remove_attrs=remove_attributes)
         mock_op_occ_list.return_value = vnf_lcm_op_occ
         res_dict = self.controller.list_lcm_op_occs(req)
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result)),
+            res_dict.json)
 
     @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
     @ddt.data(
@@ -3871,7 +3968,9 @@ class TestController(base.TestCase):
         expected_result = fakes.index_response(remove_attrs=remove_attributes)
         mock_op_occ_list.return_value = vnf_lcm_op_occ
         res_dict = self.controller.list_lcm_op_occs(req)
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result)),
+            res_dict.json)
 
     @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
     def test_op_occ_attribute_selector_fields_error(self, mock_op_occ_list):
@@ -4325,6 +4424,67 @@ class TestController(base.TestCase):
 
         resp = req.get_response(self.app)
         self.assertEqual(500, resp.status_code)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch.object(vnf_subscription_view.ViewBuilder,
+                       "subscription_list")
+    @mock.patch.object(vnf_subscription_view.ViewBuilder,
+                       "validate_filter")
+    @mock.patch.object(objects.LccnSubscriptionList,
+                       "get_by_filters")
+    @ddt.data(
+        {'params': {'all_records': 'yes'},
+            'result_names': ['subscription_id_1', 'subscription_id_2',
+                'subscription_id_3', 'subscription_id_4']},
+        {'params': {'all_records': 'yes', 'nextpage_opaque_marker': 'abc'},
+            'result_names': ['subscription_id_1', 'subscription_id_2',
+                'subscription_id_3', 'subscription_id_4']},
+        {'params': {'nextpage_opaque_marker': 'abc'},
+            'result_names': []},
+        {'params': {},
+            'result_names': ['subscription_id_2']}
+    )
+    def test_subscription_list_paging(self,
+            values,
+            mock_subscription_list,
+            mock_subscription_filter,
+            mock_subscription_view,
+            mock_get_service_plugins):
+        mock_subscription_filter.return_value = None
+        last = True
+        cfg.CONF.set_override('subscription_num', 1, group='vnf_lcm')
+        query = urllib.parse.urlencode(values['params'])
+        req = fake_request.HTTPRequest.blank('/subscriptions?' + query)
+        req.method = 'GET'
+        subscription_list = [
+            fakes.return_subscription_object(
+                **{'id': uuidsentinel.subscription_id_1}),
+            fakes.return_subscription_object(
+                **{'id': uuidsentinel.subscription_id_2}),
+            fakes.return_subscription_object(
+                **{'id': uuidsentinel.subscription_id_3}),
+            fakes.return_subscription_object(
+                **{'id': uuidsentinel.subscription_id_4})
+        ]
+        mock_subscription_list.return_value = [subscription_list, last]
+        mock_subscription_view.return_value = subscription_list
+        resp = self.controller.subscription_list(req)
+
+        if 'Link' in resp.headers:
+            next_url = re.findall('<(.*)>', resp.headers['Link'])[0]
+            query = urllib.parse.urlparse(next_url).query
+            req = fake_request.HTTPRequest.blank('/subscriptions?' + query)
+            resp = self.controller.subscription_list(req)
+
+        expected_result = []
+        for name in values['result_names']:
+            expected_result.append(fakes.return_subscription_object(
+                **{'id': eval('uuidsentinel.' + name)}))
+
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(expected_result, resp.json)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':

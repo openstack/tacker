@@ -1682,8 +1682,12 @@ def fake_vnf_lcm_op_occs():
     return vnf_lcm_op_occs
 
 
-def return_vnf_lcm_opoccs_obj():
+def return_vnf_lcm_opoccs_obj(**updates):
     vnf_lcm_op_occs = fake_vnf_lcm_op_occs()
+
+    if updates:
+        vnf_lcm_op_occs.update(**updates)
+
     obj = objects.VnfLcmOpOcc(**vnf_lcm_op_occs)
 
     return obj

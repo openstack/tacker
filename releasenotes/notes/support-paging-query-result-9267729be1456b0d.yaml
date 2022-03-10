@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Support handling large query results according to ETSI NFV SOL013.
+    This feature provides paged response regarding a query request of
+    target APIs. In addition to that, fetching entire records at once
+    becomes available.
+issues:
+  - Regarding handling large query results according to ETSI NFV SOL013,
+    "vnfpkgm/v1/vnf_packages" API does not have the paging feature yet
+    because of longer time to be implemented than the other APIs. Since
+    there is less possibility to be paged in actual use case, the
+    implementation will be done in the next release.

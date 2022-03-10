@@ -457,20 +457,14 @@ def _make_subscription_list(context, subscription_list, db_subscription_list,
     subscription_cls = LccnSubscription
 
     subscription_list.objects = []
-    cnt = 0
-    last_flg = True
     for db_subscription in db_subscription_list:
-        cnt = cnt + 1
-        if cnt == CONF.vnf_lcm.subscription_num + 1:
-            last_flg = False
-            break
         subscription_obj = subscription_cls._from_db_object(
             context, subscription_cls(context), db_subscription,
             expected_attrs=expected_attrs)
         subscription_list.objects.append(subscription_obj)
 
     subscription_list.obj_reset_changes()
-    return subscription_list, last_flg
+    return subscription_list
 
 
 @base.TackerObjectRegistry.register

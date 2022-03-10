@@ -192,6 +192,9 @@ class VnfLcmController(wsgi.Controller):
         self._vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
         self._view_builder_op_occ = vnf_op_occs_view.ViewBuilder()
         self._view_builder_subscription = vnf_subscription_view.ViewBuilder()
+        self._nextpages_vnf_instances = {}
+        self._nextpages_lcm_op_occs = {}
+        self._nextpages_subscriptions = {}
 
     def _get_vnf_instance_href(self, vnf_instance):
         return '{}vnflcm/v1/vnf_instances/{}'.format(
@@ -555,6 +558,13 @@ class VnfLcmController(wsgi.Controller):
 
         return vnf_package_info[0]
 
+    def _delete_expired_nextpages(self, nextpages):
+        for k, v in list(nextpages.items()):
+            if timeutils.is_older_than(v['created_time'],
+                    CONF.vnf_lcm.nextpage_expiration_time):
+                LOG.debug('Old nextpages are deleted. id: %s' % k)
+                nextpages.pop(k)
+
     @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def show(self, request, id):
@@ -571,18 +581,54 @@ class VnfLcmController(wsgi.Controller):
 
     @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.BAD_REQUEST))
-    @api_common.validate_supported_params({'filter'})
+    @api_common.validate_supported_params({'filter', 'nextpage_opaque_marker',
+                                           'all_records'})
     def index(self, request):
-        context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'index')
+        if 'tacker.context' in request.environ:
+            context = request.environ['tacker.context']
+            context.can(vnf_lcm_policies.VNFLCM % 'index')
 
         filters = request.GET.get('filter')
         filters = self._view_builder.validate_filter(filters)
 
-        vnf_instances = objects.VnfInstanceList.get_by_filters(
-            request.context, filters=filters)
+        nextpage = request.GET.get('nextpage_opaque_marker')
+        allrecords = request.GET.get('all_records')
 
-        return self._view_builder.index(vnf_instances)
+        result = []
+
+        if allrecords != 'yes' and nextpage:
+            self._delete_expired_nextpages(self._nextpages_vnf_instances)
+
+            if nextpage in self._nextpages_vnf_instances:
+                result = self._nextpages_vnf_instances.pop(
+                    nextpage)['nextpage']
+        else:
+            vnf_instances = objects.VnfInstanceList.get_by_filters(
+                request.context, filters=filters)
+
+            result = self._view_builder.index(vnf_instances)
+
+        res = webob.Response(content_type='application/json')
+        res.status_int = 200
+
+        if (allrecords != 'yes' and
+                len(result) > CONF.vnf_lcm.vnf_instance_num):
+            nextpageid = uuidutils.generate_uuid()
+            links = ('Link', '<%s?nextpage_opaque_marker=%s>; rel="next"' % (
+                request.path_url, nextpageid))
+            res.headerlist.append(links)
+            res.body = jsonutils.dump_as_bytes(
+                result[: CONF.vnf_lcm.vnf_instance_num])
+
+            self._delete_expired_nextpages(self._nextpages_vnf_instances)
+
+            remain = result[CONF.vnf_lcm.vnf_instance_num:]
+            self._nextpages_vnf_instances.update({nextpageid:
+                {'created_time': timeutils.utcnow(), 'nextpage': remain}})
+        else:
+            res.body = jsonutils.dump_as_bytes(result)
+
+        return res
 
     @check_vnf_state(action="delete",
         instantiation_state=[fields.VnfInstanceState.NOT_INSTANTIATED],
@@ -1012,12 +1058,15 @@ class VnfLcmController(wsgi.Controller):
 
     @wsgi.response(http_client.OK)
     def subscription_list(self, request):
-        nextpage_opaque_marker = ""
+        nextpage_opaque_marker = None
         paging = 1
         filter_string = ""
+        ignore_nextpages = False
+        subscription_data = []
 
-        re_url = request.path_url
         query_params = request.query_string
+
+        allrecords = request.GET.get('all_records')
 
         if query_params:
             query_params = parse.unquote(query_params)
@@ -1034,6 +1083,7 @@ class VnfLcmController(wsgi.Controller):
                     nextpage_opaque_marker = query_param_key_value[1]
                 if query_param_key_value[0] == 'page':
                     paging = int(query_param_key_value[1])
+                    ignore_nextpages = True
 
             if filter_string:
                 # check enumerations columns
@@ -1061,51 +1111,58 @@ class VnfLcmController(wsgi.Controller):
                             return self._make_problem_detail(msg, 400,
                                 title='Bad Request')
 
-        try:
-            filter_string_parsed = self._view_builder_subscription. \
-                validate_filter(filter_string)
-            if nextpage_opaque_marker:
-                start_index = paging - 1
-            else:
-                start_index = None
+        nextpage = nextpage_opaque_marker
+        if allrecords != 'yes' and not ignore_nextpages and nextpage:
+            self._delete_expired_nextpages(self._nextpages_subscriptions)
 
-            vnf_lcm_subscriptions, last = (
-                subscription_obj.LccnSubscriptionList.
-                get_by_filters(request.context,
-                               read_deleted='no',
-                               filters=filter_string_parsed,
-                               nextpage_opaque_marker=start_index))
+            if nextpage in self._nextpages_subscriptions:
+                subscription_data = self._nextpages_subscriptions.pop(
+                    nextpage)['nextpage']
+        else:
+            try:
+                filter_string_parsed = self._view_builder_subscription. \
+                    validate_filter(filter_string)
+                if nextpage_opaque_marker:
+                    start_index = paging - 1
+                else:
+                    start_index = None
 
-            LOG.debug("vnf_lcm_subscriptions %s" % vnf_lcm_subscriptions)
-            subscription_data = self._view_builder_subscription. \
-                subscription_list(vnf_lcm_subscriptions)
-            LOG.debug("last %s" % last)
-        except Exception as e:
-            LOG.error(traceback.format_exc())
-            return self._make_problem_detail(
-                str(e), 500, title='Internal Server Error')
+                vnf_lcm_subscriptions = (
+                    subscription_obj.LccnSubscriptionList.
+                    get_by_filters(request.context,
+                                read_deleted='no',
+                                filters=filter_string_parsed,
+                                nextpage_opaque_marker=start_index))
 
-        if subscription_data == 400:
-            msg = _("Number of records exceeds nextpage_opaque_marker")
-            return self._make_problem_detail(msg, 400, title='Bad Request')
+                LOG.debug("vnf_lcm_subscriptions %s" % vnf_lcm_subscriptions)
+                subscription_data = self._view_builder_subscription. \
+                    subscription_list(vnf_lcm_subscriptions)
+            except Exception as e:
+                LOG.error(traceback.format_exc())
+                return self._make_problem_detail(
+                    str(e), 500, title='Internal Server Error')
 
         # make response
         res = webob.Response(content_type='application/json')
-        res.body = jsonutils.dump_as_bytes(subscription_data)
         res.status_int = 200
-        if nextpage_opaque_marker:
-            if not last:
-                ln = '<%s?page=%s>;rel="next"; title*="next chapter"' % (
-                    re_url, paging + 1)
-                # Regarding the setting in http header related to
-                # nextpage control, RFC8288 and NFV-SOL013
-                # specifications have not been confirmed.
-                # Therefore, it is implemented by setting "page",
-                # which is a general control method of WebAPI,
-                # as "URI-Reference" of Link header.
 
-                links = ('Link', ln)
-                res.headerlist.append(links)
+        if (allrecords != 'yes' and not ignore_nextpages and
+                len(subscription_data) > CONF.vnf_lcm.subscription_num):
+            nextpageid = uuidutils.generate_uuid()
+            links = ('Link', '<%s?nextpage_opaque_marker=%s>; rel="next"' % (
+                request.path_url, nextpageid))
+            res.headerlist.append(links)
+
+            remain = subscription_data[CONF.vnf_lcm.subscription_num:]
+            subscription_data = (
+                subscription_data[: CONF.vnf_lcm.subscription_num])
+
+            self._delete_expired_nextpages(self._nextpages_subscriptions)
+            self._nextpages_subscriptions.update({nextpageid:
+                {'created_time': timeutils.utcnow(), 'nextpage': remain}})
+
+        res.body = jsonutils.dump_as_bytes(subscription_data)
+
         LOG.debug("subscription_list res %s" % res)
 
         return res
@@ -1674,8 +1731,9 @@ class VnfLcmController(wsgi.Controller):
     @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.BAD_REQUEST))
     def list_lcm_op_occs(self, request):
-        context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'list_lcm_op_occs')
+        if 'tacker.context' in request.environ:
+            context = request.environ['tacker.context']
+            context.can(vnf_lcm_policies.VNFLCM % 'list_lcm_op_occs')
 
         all_fields = request.GET.get('all_fields')
         exclude_default = request.GET.get('exclude_default')
@@ -1685,25 +1743,57 @@ class VnfLcmController(wsgi.Controller):
         if not (all_fields or fields or exclude_fields):
             exclude_default = True
 
-        self._view_builder_op_occ.validate_attribute_fields(
-            all_fields=all_fields, fields=fields,
-            exclude_fields=exclude_fields,
-            exclude_default=exclude_default)
+        nextpage = request.GET.get('nextpage_opaque_marker')
+        allrecords = request.GET.get('all_records')
 
-        filters = self._view_builder_op_occ.validate_filter(filters)
+        result = []
 
-        try:
-            vnf_lcm_op_occs = \
-                vnf_lcm_op_occs_obj.VnfLcmOpOccList.get_by_filters(
-                    request.context, read_deleted='no', filters=filters)
-        except Exception as e:
-            LOG.exception(traceback.format_exc())
-            return self._make_problem_detail(
-                str(e), 500, title='Internal Server Error')
+        if allrecords != 'yes' and nextpage:
+            self._delete_expired_nextpages(self._nextpages_lcm_op_occs)
 
-        return self._view_builder_op_occ.index(request, vnf_lcm_op_occs,
-                all_fields=all_fields, exclude_fields=exclude_fields,
-                fields=fields, exclude_default=exclude_default)
+            if nextpage in self._nextpages_lcm_op_occs:
+                result = self._nextpages_lcm_op_occs.pop(nextpage)['nextpage']
+        else:
+            self._view_builder_op_occ.validate_attribute_fields(
+                all_fields=all_fields, fields=fields,
+                exclude_fields=exclude_fields,
+                exclude_default=exclude_default)
+
+            filters = self._view_builder_op_occ.validate_filter(filters)
+
+            try:
+                vnf_lcm_op_occs = (
+                    vnf_lcm_op_occs_obj.VnfLcmOpOccList.get_by_filters(
+                        request.context, read_deleted='no', filters=filters))
+            except Exception as e:
+                LOG.exception(traceback.format_exc())
+                return self._make_problem_detail(
+                    str(e), 500, title='Internal Server Error')
+
+            result = self._view_builder_op_occ.index(request, vnf_lcm_op_occs,
+                    all_fields=all_fields, exclude_fields=exclude_fields,
+                    fields=fields, exclude_default=exclude_default)
+
+        res = webob.Response(content_type='application/json')
+        res.status_int = 200
+
+        if allrecords != 'yes' and len(result) > CONF.vnf_lcm.lcm_op_occ_num:
+            nextpageid = uuidutils.generate_uuid()
+            links = ('Link', '<%s?nextpage_opaque_marker=%s>; rel="next"' % (
+                request.path_url, nextpageid))
+            res.headerlist.append(links)
+            res.body = jsonutils.dump_as_bytes(
+                result[: CONF.vnf_lcm.lcm_op_occ_num])
+
+            self._delete_expired_nextpages(self._nextpages_lcm_op_occs)
+
+            remain = result[CONF.vnf_lcm.lcm_op_occ_num:]
+            self._nextpages_lcm_op_occs.update({nextpageid:
+                {'created_time': timeutils.utcnow(), 'nextpage': remain}})
+        else:
+            res.body = jsonutils.dump_as_bytes(result)
+
+        return res
 
     def _make_problem_detail(
             self,
