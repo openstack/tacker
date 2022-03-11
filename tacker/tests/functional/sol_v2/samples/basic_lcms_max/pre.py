@@ -17,5 +17,8 @@ from tacker.tests.functional.sol_v2 import utils
 utils.create_network('ft-net0')
 utils.create_subnet('ft-ipv4-subnet0', 'ft-net0', '100.100.100.0/24', '4')
 utils.create_subnet('ft-ipv6-subnet0', 'ft-net0', '1111:2222:3333::/64', '6')
+utils.create_network('ft-net1')
+utils.create_subnet('ft-ipv4-subnet1', 'ft-net1', '22.22.22.0/24', '4')
+utils.create_subnet('ft-ipv6-subnet1', 'ft-net1', '1111:2222:4444::/64', '6')
 utils.create_port('VDU2_CP1-1', 'net0')
 utils.create_port('VDU2_CP1-2', 'net0')

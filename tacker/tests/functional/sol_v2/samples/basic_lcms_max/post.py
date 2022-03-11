@@ -15,6 +15,7 @@
 from tacker.tests.functional.sol_v2 import utils
 
 utils.delete_network('ft-net0')
+utils.delete_network('ft-net1')
 # NOTE: subnet is automatically deleted by network deletion
 utils.delete_port('VDU2_CP1-1')
 utils.delete_port('VDU2_CP1-2')

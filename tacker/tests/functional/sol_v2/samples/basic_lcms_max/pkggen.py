@@ -51,15 +51,36 @@ print('#####################################################################\n'
       '# Run post.py when you finish tests                                 #\n'
       '#  - When you no longer need these openstack resources              #\n'
       '#    after testing, run post.py and delete them.                    #\n'
+      '# vnfc ids should be changed in heal req files by show vnf manually.#\n'
       '#####################################################################')
 
-net_ids = utils.get_network_ids(['net0', 'net1', 'net_mgmt', 'ft-net0'])
-subnet_ids = utils.get_subnet_ids(
-    ['subnet0', 'subnet1', 'ft-ipv4-subnet0', 'ft-ipv6-subnet0'])
+net_ids = utils.get_network_ids(['net0', 'net1', 'net_mgmt', 'ft-net0',
+    'ft-net1'])
+subnet_ids = utils.get_subnet_ids(['subnet0', 'subnet1', 'ft-ipv4-subnet0',
+    'ft-ipv6-subnet0', 'ft-ipv4-subnet1', 'ft-ipv6-subnet1'])
 port_ids = utils.get_port_ids(['VDU2_CP1-1', 'VDU2_CP1-2'])
 
 instantiate_req = paramgen.instantiate_vnf_max(
     net_ids, subnet_ids, port_ids, "http://localhost/identity/v3")
+
+# fake vnfc id, should be get from show vnf
+vnfc_ids = ['VDU1-9300a3cb-bd3b-45e4-9967-095040caf827',
+    'VDU2-39681281-e6e6-4179-8898-d9ec70f1642a']
+heal_vnfc_req = paramgen.heal_vnf_vnfc_max(vnfc_ids[0])
+heal_vnfc_with_omit_all_req = paramgen.heal_vnf_vnfc_max_with_parameter(
+    vnfc_ids)
+heal_vnfc_with_all_false_req = paramgen.heal_vnf_vnfc_max_with_parameter(
+    vnfc_ids, False)
+heal_vnfc_with_all_true_req = paramgen.heal_vnf_vnfc_max_with_parameter(
+    vnfc_ids, True)
+heal_all_with_omit_all_req = paramgen.heal_vnf_all_max_with_parameter()
+heal_all_with_all_true_req = paramgen.heal_vnf_all_max_with_parameter(True)
+heal_all_with_all_false_req = paramgen.heal_vnf_all_max_with_parameter(False)
+change_ext_conn_max_req = paramgen.change_ext_conn_max(net_ids, subnet_ids,
+    "http://localhost/identity/v3")
+# Only this package have external connectivity.
+# So min pattern also use this package.
+change_ext_conn_min_req = paramgen.change_ext_conn_min(net_ids, subnet_ids)
 
 with open("create_req", "w", encoding='utf-8') as f:
     f.write(json.dumps(create_req, indent=2))
@@ -75,3 +96,30 @@ with open("scalein_req", "w", encoding='utf-8') as f:
 
 with open("instantiate_req", "w", encoding='utf-8') as f:
     f.write(json.dumps(instantiate_req, indent=2))
+
+with open("heal_vnfc_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(heal_vnfc_req, indent=2))
+
+with open("heal_vnfc_with_omit_all_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(heal_vnfc_with_omit_all_req, indent=2))
+
+with open("heal_vnfc_with_all_false_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(heal_vnfc_with_all_false_req, indent=2))
+
+with open("heal_vnfc_with_all_true_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(heal_vnfc_with_all_true_req, indent=2))
+
+with open("heal_all_with_omit_all_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(heal_all_with_omit_all_req, indent=2))
+
+with open("heal_all_with_all_true_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(heal_all_with_all_true_req, indent=2))
+
+with open("heal_all_with_all_false_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(heal_all_with_all_false_req, indent=2))
+
+with open("change_ext_conn_max_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(change_ext_conn_max_req, indent=2))
+
+with open("change_ext_conn_min_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(change_ext_conn_min_req, indent=2))

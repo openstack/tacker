@@ -194,17 +194,25 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
           - 9. Show VNF LCM operation occurrence
           - 10. List VNF LCM operation occurrence with attribute-based
                 filtering
-          - 11. Scale out operation
-          - 12. Show VNF instance
-          - 13. Scale in operation
+          - 11. Heal VNF(all with omit all parameter)
+          - 12. Heal VNF(all with all=True parameter)
+          - 13. Scale out operation
           - 14. Show VNF instance
-          - 15. Update VNF
+          - 15. Scale in operation
           - 16. Show VNF instance
-          - 17. Terminate VNF
-          - 18. Delete VNF instance
-          - 19. Show VNF instance
-          - 20. Delete subscription
-          - 21. Show subscription
+          - 17. Heal VNF(vnfc)
+          - 18. Change external connectivity
+          - 19. Show VNF LCM operation occurrence
+          - 20. Heal VNF(vnfc with omit all parameter)
+          - 21. Heal VNF(vnfc with all=False parameter)
+          - 22. Heal VNF(vnfc with all=True parameter)
+          - 23. Update VNF
+          - 24. Show VNF instance
+          - 25. Terminate VNF
+          - 26. Delete VNF instance
+          - 27. Show VNF instance
+          - 28. Delete subscription
+          - 29. Show subscription
         """
         # 0. Pre-setting
         # Create a new network and subnet to check the IP allocation of
@@ -227,10 +235,30 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
             self.create_subnet(
                 ft_net0_id, sub_name, val['range'], val['ip_version'])
 
+        # Create a new network for change external connectivity
+        ft_net1_name = 'ft-net1'
+        ft_net1_subs = {
+            'ft-ipv4-subnet1': {
+                'range': '22.22.22.0/24',
+                'ip_version': 4
+            },
+            'ft-ipv6-subnet1': {
+                'range': '1111:2222:4444::/64',
+                'ip_version': 6
+            }
+        }
+        ft_net1_id = self.create_network(ft_net1_name)
+        self.addCleanup(self.delete_network, ft_net1_id)
+        for sub_name, val in ft_net1_subs.items():
+            # subnet is automatically deleted with network deletion
+            self.create_subnet(
+                ft_net1_id, sub_name, val['range'], val['ip_version'])
+
         net_ids = self.get_network_ids(
-            ['net0', 'net1', 'net_mgmt', 'ft-net0'])
+            ['net0', 'net1', 'net_mgmt', 'ft-net0', 'ft-net1'])
         subnet_ids = self.get_subnet_ids(
-            ['subnet0', 'subnet1', 'ft-ipv4-subnet0', 'ft-ipv6-subnet0'])
+            ['subnet0', 'subnet1', 'ft-ipv4-subnet0', 'ft-ipv6-subnet0',
+             'ft-ipv4-subnet1', 'ft-ipv6-subnet1'])
 
         port_names = ['VDU2_CP1-1', 'VDU2_CP1-2']
         port_ids = {}
@@ -492,7 +520,112 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
             self.assertNotIn('operationParams', lcmocc)
             self.assertNotIn('resourceChanges', lcmocc)
 
-        # 11. Scale out operation
+        # 11. Heal VNF(all with omit all parameter)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2'])]
+        vdu1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+
+        heal_req = paramgen.heal_vnf_all_max_with_parameter()
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check stack info
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2'])]
+        vdu1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+
+        # 12. Heal VNF(all with all=True parameter)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2', 'VDU1-VirtualStorage',
+            'VDU2-VirtualStorage', 'internalVL3'])]
+        vdu1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        storage1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1-VirtualStorage')][0]
+        storage2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2-VirtualStorage')][0]
+        network_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'internalVL3')][0]
+
+        stack_id_before_heal = self.heat_client.get_stack_resource(stack_name)[
+            'stack']['id']
+        heal_req = paramgen.heal_vnf_all_max_with_parameter(True)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check stack info
+        stack_id_after_heal = self.heat_client.get_stack_resource(stack_name)[
+            'stack']['id']
+        self.assertNotEqual(stack_id_before_heal, stack_id_after_heal)
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("CREATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2', 'VDU1-VirtualStorage',
+            'VDU2-VirtualStorage', 'internalVL3'])]
+        vdu1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        storage1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1-VirtualStorage')][0]
+        storage2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2-VirtualStorage')][0]
+        network_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'internalVL3')][0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            storage1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            storage2_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            network_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(storage1_stack_before_heal['physical_resource_id'],
+            storage1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(storage2_stack_before_heal['physical_resource_id'],
+            storage2_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(network_stack_before_heal['physical_resource_id'],
+            network_stack_after_heal['physical_resource_id'])
+
+        # 13. Scale out operation
         # get nested stack count before scale out
         nested_stacks = self.heat_client.get_resources(stack_name)
         count_before_scaleout = len(nested_stacks)
@@ -503,7 +636,7 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # 12. Show VNF instance
+        # 14. Show VNF instance
         additional_inst_attrs = [
             'vimConnectionInfo',
             'instantiatedVnfInfo'
@@ -536,7 +669,7 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         # 1 stack(VDU1.yaml)
         self.assertEqual(9, count_after_scaleout - count_before_scaleout)
 
-        # 13. Scale in operation
+        # 15. Scale in operation
         scalein_req = paramgen.scalein_vnf_max()
         resp, body = self.scale_vnf_instance(inst_id, scalein_req)
         self.assertEqual(202, resp.status_code)
@@ -544,7 +677,7 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # 14. Show VNF instance
+        # 16. Show VNF instance
         additional_inst_attrs = [
             'vimConnectionInfo',
             'instantiatedVnfInfo'
@@ -577,7 +710,278 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         # 1 stack(VDU1.yaml)
         self.assertEqual(9, count_after_scaleout - count_after_scalein)
 
-        # 15. Update VNF
+        # 17. Heal VNF(vnfc)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] == 'VDU2')]
+        vdu2_stack_before_heal = temp_stacks[0]
+
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        vnfc_info = body['instantiatedVnfInfo']['vnfcInfo']
+        self.assertGreater(len(vnfc_info), 1)
+        vnfc_id = [vnfc['id'] for vnfc in vnfc_info if (
+            "VDU2" == vnfc['vduId'])][0]
+        self.assertIsNotNone(vnfc_id)
+
+        heal_req = paramgen.heal_vnf_vnfc_max(vnfc_id)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check stack info
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] == 'VDU2')]
+        vdu2_stack_after_heal = temp_stacks[0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+
+        # 18. Change external connectivity
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        for stack in nested_stacks:
+            if stack['resource_type'] == 'VDU1.yaml':
+                stack_id_1 = stack['physical_resource_id']
+            if stack['resource_name'] == 'VDU1_CP1':
+                links = stack['links']
+                for link in links:
+                    if link['rel'] == 'self':
+                        href = link['href']
+                        stack_name_1 = href.split("/")[7]
+                        break
+
+        _, port_info = self.heat_client.get_resource_info(
+            stack_name_1, stack_id_1, 'VDU1_CP1')
+        before_physical_resource_id_1 = port_info['physical_resource_id']
+        before_fixed_ips_1 = port_info['attributes']['fixed_ips']
+
+        stack_id_2 = self.heat_client.get_stack_resource(stack_name)['stack'][
+            'id']
+        _, port_info = self.heat_client.get_resource_info(
+            stack_name, stack_id_2, 'VDU2_CP2')
+        before_physical_resource_id_2 = port_info['physical_resource_id']
+        before_fixed_ips_2 = port_info['attributes']['fixed_ips']
+
+        change_ext_conn_req = paramgen.change_ext_conn_max(net_ids, subnet_ids,
+            self.auth_url)
+        resp, body = self.change_ext_conn(inst_id, change_ext_conn_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        _, port_info = self.heat_client.get_resource_info(
+            stack_name_1, stack_id_1, 'VDU1_CP1')
+        after_physical_resource_id_1 = port_info['physical_resource_id']
+        after_fixed_ips_1 = port_info['attributes']['fixed_ips']
+
+        stack_id_2 = self.heat_client.get_stack_resource(stack_name)['stack'][
+            'id']
+        _, port_info = self.heat_client.get_resource_info(
+            stack_name, stack_id_2, 'VDU2_CP2')
+        after_physical_resource_id_2 = port_info['physical_resource_id']
+        after_fixed_ips_2 = port_info['attributes']['fixed_ips']
+
+        self.assertNotEqual(before_physical_resource_id_1,
+            after_physical_resource_id_1)
+        self.assertNotEqual(before_fixed_ips_1, after_fixed_ips_1)
+        self.assertNotEqual(before_physical_resource_id_2,
+            after_physical_resource_id_2)
+        self.assertNotEqual(before_fixed_ips_2, after_fixed_ips_2)
+
+        # 19. Show VNF LCM operation occurrence
+        # ETSI NFV SOL003 v3.3.1 5.5.2.13 VnfLcmOpOcc
+        # NOTE: omitted values are not supported at that time
+        expected_attrs = [
+            'id',
+            'operationState',
+            'stateEnteredTime',
+            'startTime',
+            'vnfInstanceId',
+            # 'grantId', # omitted
+            'operation',
+            'isAutomaticInvocation',
+            'operationParams',
+            'isCancelPending',
+            # 'cancelMode', # omitted
+            # 'error', # omitted
+            'resourceChanges',
+            # 'changedInfo', # omitted
+            # 'changedExtConnectivity', # omitted
+            # 'modificationsTriggeredByVnfPkgChange', # omitted
+            # 'vnfSnapshotInfoId', # omitted
+            '_links'
+        ]
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.check_resp_body(body, expected_attrs)
+
+        # 20. Heal VNF(vnfc with omit all parameter)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2'])]
+        vdu1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        vnfc_info = body['instantiatedVnfInfo']['vnfcInfo']
+        self.assertGreater(len(vnfc_info), 1)
+        vnfc_ids = [vnfc['id'] for vnfc in vnfc_info]
+
+        heal_req = paramgen.heal_vnf_vnfc_max_with_parameter(vnfc_ids)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check stack info
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2'])]
+        vdu1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+
+        # 21. Heal VNF(vnfc with all=False parameter)
+        vdu1_stack_before_heal = vdu1_stack_after_heal
+        vdu2_stack_before_heal = vdu2_stack_after_heal
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        vnfc_info = body['instantiatedVnfInfo']['vnfcInfo']
+        self.assertGreater(len(vnfc_info), 1)
+        vnfc_ids = [vnfc['id'] for vnfc in vnfc_info]
+
+        heal_req = paramgen.heal_vnf_vnfc_max_with_parameter(vnfc_ids, False)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check stack info
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2'])]
+        vdu1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+
+        # 22. Heal VNF(vnfc with all=True parameter)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2', 'VDU1-VirtualStorage',
+            'VDU2-VirtualStorage'])]
+        vdu1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        storage1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1-VirtualStorage')][0]
+        storage2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2-VirtualStorage')][0]
+
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        vnfc_info = body['instantiatedVnfInfo']['vnfcInfo']
+        self.assertGreater(len(vnfc_info), 1)
+        vnfc_ids = [vnfc['id'] for vnfc in vnfc_info]
+
+        heal_req = paramgen.heal_vnf_vnfc_max_with_parameter(vnfc_ids, True)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check stack info
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2', 'VDU1-VirtualStorage',
+            'VDU2-VirtualStorage'])]
+        vdu1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        storage1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1-VirtualStorage')][0]
+        storage2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2-VirtualStorage')][0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            storage1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            storage2_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(storage1_stack_before_heal['physical_resource_id'],
+            storage1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(storage2_stack_before_heal['physical_resource_id'],
+            storage2_stack_after_heal['physical_resource_id'])
+
+        # 23. Update VNF
         # check attribute value before update VNF
         # check usageState of VNF Package 1
         usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
@@ -588,21 +992,21 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual('NOT_IN_USE', usage_state)
 
         # check vnfd id
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
         self.assertEqual(self.vnfd_id_1, body['vnfdId'])
 
         # check vnfc info
         vnfc_info = body['instantiatedVnfInfo']['vnfcInfo']
         self.assertGreater(len(vnfc_info), 1)
-        vnfc_ids = []
+        vnfc_ids = [vnfc['id'] for vnfc in vnfc_info]
         for vnfc in vnfc_info:
-            self.assertIsNotNone(vnfc.get('id'))
-            self.assertIsNotNone(vnfc.get('vduId'))
+            self.assertIn('id', vnfc)
+            self.assertIn('vduId', vnfc)
             self.assertIsNotNone(vnfc.get('vnfcState'))
             self.assertIsNone(vnfc.get('vnfcConfigurableProperties'))
-            vnfc_ids.append(vnfc.get('id'))
 
-        update_req = paramgen.update_vnf_max(self.vnfd_id_3, vnfc_ids[0],
-                                             vnfc_ids[1])
+        update_req = paramgen.update_vnf_max(self.vnfd_id_3, vnfc_ids)
         resp, body = self.update_vnf_instance(inst_id, update_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -610,7 +1014,7 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # 16. Show VNF instance
+        # 24. Show VNF instance
         additional_inst_attrs = [
             'vimConnectionInfo',
             'instantiatedVnfInfo'
@@ -672,7 +1076,7 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(dummy_key_value,
             vnfc_info[1]['vnfcConfigurableProperties'])
 
-        # 17. Terminate VNF
+        # 25. Terminate VNF
         terminate_req = paramgen.terminate_vnf_max()
         resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
         self.assertEqual(202, resp.status_code)
@@ -704,12 +1108,12 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
                          body['instantiationState'])
 
-        # 18. Delete VNF instance
+        # 26. Delete VNF instance
         resp, body = self.delete_vnf_instance(inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
-        # 19. Show VNF instance
+        # 27. Show VNF instance
         # check deletion of VNF instance
         resp, body = self.show_vnf_instance(inst_id)
         self.assertEqual(404, resp.status_code)
@@ -718,17 +1122,20 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
         self.assertEqual('NOT_IN_USE', usage_state)
 
-        # 20. Delete subscription
+        # 28. Delete subscription
         resp, body = self.delete_subscription(sub_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
-        # 21. Show subscription
+        # 29. Show subscription
         resp, body = self.show_subscription(sub_id)
         self.assertEqual(404, resp.status_code)
 
     def test_basic_lcms_min(self):
         """Test LCM operations with omitting except for required attributes
+
+        The change_ext_conn can't be tested here because VNF package 2 don't
+        have external connectivity. So moved it to the test_scale_other_lcm().
 
         * About attributes:
           Omit except for required attributes.
@@ -743,15 +1150,18 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
           - 3. Create VNF instance
           - 4. Instantiate VNF
           - 5. Show VNF instance
-          - 6. Update VNF
+          - 6. Heal VNF(all with omit all parameter)
           - 7. Show VNF instance
-          - 8. Scale out operation
-          - 9. Show VNF instance
-          - 10. Scale in operation
-          - 11. Terminate VNF
-          - 12. Delete VNF instance
-          - 13. Delete subscription
-          - 14. Show subscription
+          - 8. Update VNF
+          - 9. Heal VNF(vnfc)
+          - 10. Show VNF instance
+          - 11. Scale out operation
+          - 12. Show VNF instance
+          - 13. Scale in operation
+          - 14. Terminate VNF
+          - 15. Delete VNF instance
+          - 16. Delete subscription
+          - 17. Show subscription
         """
         # 1. Create subscription
         callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
@@ -846,25 +1256,46 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(fields.VnfInstanceState.INSTANTIATED,
                          body['instantiationState'])
 
-        # check usageState of VNF Package 2
-        usage_state = self.get_vnf_package(self.vnf_pkg_2)['usageState']
-        self.assertEqual('IN_USE', usage_state)
+        # check vnfState of VNF
+        self.assertEqual(fields.VnfOperationalStateType.STARTED,
+                         body['instantiatedVnfInfo']['vnfState'])
 
-        # check usageState of VNF Package 3
-        usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
-        self.assertEqual('NOT_IN_USE', usage_state)
+        # 6. Heal VNF(all with omit all parameter)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2'])]
+        vdu1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
 
-        # check vnfd id
-        self.assertEqual(self.vnfd_id_2, body['vnfdId'])
-
-        # 6. Update VNF
-        update_req = paramgen.update_vnf_min_with_parameter(self.vnfd_id_3)
-        resp, body = self.update_vnf_instance(inst_id, update_req)
+        heal_req = paramgen.heal_vnf_all_min()
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
-
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
+
+        # check stack info
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2'])]
+        vdu1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
 
         # 7. Show VNF instance
         additional_inst_attrs = [
@@ -877,6 +1308,34 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, expected_inst_attrs)
 
+        # check instantiationState of VNF
+        self.assertEqual(fields.VnfInstanceState.INSTANTIATED,
+                         body['instantiationState'])
+
+        # check vnfState of VNF
+        self.assertEqual(fields.VnfOperationalStateType.STARTED,
+                         body['instantiatedVnfInfo']['vnfState'])
+
+        # check usageState of VNF Package 2
+        usage_state = self.get_vnf_package(self.vnf_pkg_2)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check usageState of VNF Package 3
+        usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
+        self.assertEqual('NOT_IN_USE', usage_state)
+
+        # check vnfd id
+        self.assertEqual(self.vnfd_id_2, body['vnfdId'])
+
+        # 8. Update VNF
+        update_req = paramgen.update_vnf_min_with_parameter(self.vnfd_id_3)
+        resp, body = self.update_vnf_instance(inst_id, update_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
         # check usageState of VNF Package 2
         usage_state = self.get_vnf_package(self.vnf_pkg_2)['usageState']
         self.assertEqual('NOT_IN_USE', usage_state)
@@ -886,20 +1345,46 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual('IN_USE', usage_state)
 
         # check vnfd id
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
         self.assertEqual(self.vnfd_id_3, body['vnfdId'])
 
-        # 8. Scale out operation
-        # get nested stack count before scaleout
+        # 9. Heal VNF(vnfc)
         nested_stacks = self.heat_client.get_resources(stack_name)
-        count_before_scaleout = len(nested_stacks)
-        scaleout_req = paramgen.scaleout_vnf_min()
-        resp, body = self.scale_vnf_instance(inst_id, scaleout_req)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] == 'VDU2')]
+        vdu2_stack_before_heal = temp_stacks[0]
+
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        vnfc_info = body['instantiatedVnfInfo']['vnfcInfo']
+        self.assertGreater(len(vnfc_info), 1)
+        vnfc_id = [vnfc['id'] for vnfc in vnfc_info if (
+            "VDU2" == vnfc['vduId'])][0]
+        self.assertIsNotNone(vnfc_id)
+
+        heal_req = paramgen.heal_vnf_vnfc_min(vnfc_id)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # 9. Show VNF instance
+        # check stack info
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] == 'VDU2')]
+        vdu2_stack_after_heal = temp_stacks[0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+
+        # 10. Show VNF instance
         additional_inst_attrs = [
             'vimConnectionInfo',
             'instantiatedVnfInfo'
@@ -910,6 +1395,40 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, expected_inst_attrs)
 
+        # check vnfState of VNF
+        self.assertEqual(fields.VnfOperationalStateType.STARTED,
+                         body['instantiatedVnfInfo']['vnfState'])
+
+        # check usageState of VNF Package 3
+        usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # 11. Scale out operation
+        # get nested stack count before scaleout
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        count_before_scaleout = len(nested_stacks)
+        scaleout_req = paramgen.scaleout_vnf_min()
+        resp, body = self.scale_vnf_instance(inst_id, scaleout_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 12. Show VNF instance
+        additional_inst_attrs = [
+            'vimConnectionInfo',
+            'instantiatedVnfInfo'
+        ]
+        expected_inst_attrs.extend(additional_inst_attrs)
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+
+        # check vnfState of VNF
+        self.assertEqual(fields.VnfOperationalStateType.STARTED,
+                         body['instantiatedVnfInfo']['vnfState'])
+
         # get nested stack count after scale out
         nested_stacks = self.heat_client.get_resources(stack_name)
         count_after_scaleout = len(nested_stacks)
@@ -917,7 +1436,7 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         # 3 was the sum of 1 VM, 1 CP, 1 stack(VDU1.yaml)
         self.assertEqual(3, count_after_scaleout - count_before_scaleout)
 
-        # 10. Scale in operation
+        # 13. Scale in operation
         scalein_req = paramgen.scalein_vnf_min()
         resp, body = self.scale_vnf_instance(inst_id, scalein_req)
         self.assertEqual(202, resp.status_code)
@@ -932,7 +1451,7 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         # 3 was the sum of 1 VM, 1 CP, 1 stack(VDU1.yaml)
         self.assertEqual(3, count_after_scaleout - count_after_scalein)
 
-        # 11. Terminate a VNF instance
+        # 14. Terminate a VNF instance
         terminate_req = paramgen.terminate_vnf_min()
         resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
         self.assertEqual(202, resp.status_code)
@@ -959,7 +1478,7 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
                          body['instantiationState'])
 
-        # 12. Delete a VNF instance
+        # 15. Delete a VNF instance
         resp, body = self.delete_vnf_instance(inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
@@ -972,12 +1491,12 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
         self.assertEqual('NOT_IN_USE', usage_state)
 
-        # 13. Delete subscription
+        # 16. Delete subscription
         resp, body = self.delete_subscription(sub_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
-        # 14. Show subscription
+        # 17. Show subscription
         resp, body = self.show_subscription(sub_id)
         self.assertEqual(404, resp.status_code)
 
@@ -1131,16 +1650,14 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         # check vnfc info
         vnfc_info = body['instantiatedVnfInfo']['vnfcInfo']
         self.assertGreater(len(vnfc_info), 1)
-        vnfc_ids = []
+        vnfc_ids = [vnfc['id'] for vnfc in vnfc_info]
         for vnfc in vnfc_info:
-            self.assertIsNotNone(vnfc.get('id'))
-            self.assertIsNotNone(vnfc.get('vduId'))
+            self.assertIn('id', vnfc)
+            self.assertIn('vduId', vnfc)
             self.assertIsNotNone(vnfc.get('vnfcState'))
             self.assertIsNone(vnfc.get('vnfcConfigurableProperties'))
-            vnfc_ids.append(vnfc.get('id'))
 
-        update_req = paramgen.update_vnf_max(self.vnfd_id_3, vnfc_ids[0],
-                                             vnfc_ids[1])
+        update_req = paramgen.update_vnf_max(self.vnfd_id_3, vnfc_ids)
         resp, body = self.update_vnf_instance(inst_id, update_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -1243,6 +1760,1183 @@ class VnfLcmTest(base_v2.BaseSolV2Test):
         self.check_resp_headers_in_delete(resp)
 
         # 10. Delete subscription
+        resp, body = self.delete_subscription(sub_id)
+        self.assertEqual(204, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+
+    def test_update_heal_lcm(self):
+        """Test the sequence of update VNF and heal VNF
+
+        * About attributes:
+          All of the following cardinality attributes are set.
+          In addition, 0..N or 1..N attributes are set to 2 or more.
+          0..1 is set to 1.
+          - 0..1 (1)
+          - 0..N (2 or more)
+          - 1..N (2 or more)
+
+        * About LCM operations:
+          This test includes the following operations.
+          - 0. Pre-setting
+          - 1. Create subscription
+          - 2. Create VNF instance
+          - 3. Instantiate VNF
+          - 4. Show VNF instance
+          - 5. Update VNF
+          - 6. Show VNF instance
+          - 7. Heal VNF(all with omit all parameter)
+          - 8. Heal VNF(all with all=False parameter)
+          - 9. Heal VNF(all with all=True parameter)
+          - 10. Terminate VNF
+          - 11. Delete VNF instance
+          - 12. Delete subscription
+        """
+        # 0. Pre-setting
+        # Create a new network and subnet to check the IP allocation of
+        # IPv4 and IPv6
+        ft_net0_name = 'ft-net0'
+        ft_net0_subs = {
+            'ft-ipv4-subnet0': {
+                'range': '100.100.100.0/24',
+                'ip_version': 4
+            },
+            'ft-ipv6-subnet0': {
+                'range': '1111:2222:3333::/64',
+                'ip_version': 6
+            }
+        }
+        ft_net0_id = self.create_network(ft_net0_name)
+        self.addCleanup(self.delete_network, ft_net0_id)
+        for sub_name, val in ft_net0_subs.items():
+            # subnet is automatically deleted with network deletion
+            self.create_subnet(
+                ft_net0_id, sub_name, val['range'], val['ip_version'])
+
+        net_ids = self.get_network_ids(
+            ['net0', 'net1', 'net_mgmt', 'ft-net0'])
+        subnet_ids = self.get_subnet_ids(
+            ['subnet0', 'subnet1', 'ft-ipv4-subnet0', 'ft-ipv6-subnet0'])
+
+        port_names = ['VDU2_CP1-1', 'VDU2_CP1-2']
+        port_ids = {}
+        for port_name in port_names:
+            port_id = self.create_port(net_ids['net0'], port_name)
+            port_ids[port_name] = port_id
+            self.addCleanup(self.delete_port, port_id)
+
+        # 1. Create subscription
+        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+                                    self._testMethodName)
+        callback_uri = ('http://localhost:'
+                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{callback_url}')
+
+        sub_req = paramgen.sub_create_max(callback_uri)
+        resp, body = self.create_subscription(sub_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        sub_id = body['id']
+
+        # 2. Create VNF instance
+        # ETSI NFV SOL003 v3.3.1 5.5.2.2 VnfInstance
+        # NOTE: extensions and vnfConfigurableProperties are omitted
+        # because they are commented out in etsi_nfv_sol001.
+        expected_inst_attrs = [
+            'id',
+            'vnfInstanceName',
+            'vnfInstanceDescription',
+            'vnfdId',
+            'vnfProvider',
+            'vnfProductName',
+            'vnfSoftwareVersion',
+            'vnfdVersion',
+            # 'vnfConfigurableProperties', # omitted
+            # 'vimConnectionInfo', # omitted
+            'instantiationState',
+            # 'instantiatedVnfInfo', # omitted
+            'metadata',
+            # 'extensions', # omitted
+            '_links'
+        ]
+        create_req = paramgen.create_vnf_max(self.vnfd_id_1)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check instantiationState of VNF
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
+                         body['instantiationState'])
+
+        # 3. Instantiate VNF instance
+        instantiate_req = paramgen.instantiate_vnf_max(
+            net_ids, subnet_ids, port_ids, self.auth_url)
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 4. Show VNF instance
+        # check creation of Heat-stack
+        stack_name = f'vnf-{inst_id}'
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("CREATE_COMPLETE", stack_status)
+
+        additional_inst_attrs = [
+            'vimConnectionInfo',
+            'instantiatedVnfInfo'
+        ]
+        expected_inst_attrs.extend(additional_inst_attrs)
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+
+        # check instantiationState of VNF
+        self.assertEqual(fields.VnfInstanceState.INSTANTIATED,
+                         body['instantiationState'])
+
+        # check vnfState of VNF
+        self.assertEqual(fields.VnfOperationalStateType.STARTED,
+                         body['instantiatedVnfInfo']['vnfState'])
+
+        # 5. Update VNF
+        # check attribute value before update VNF
+        # check usageState of VNF Package 1
+        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check usageState of VNF Package 3
+        usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
+        self.assertEqual('NOT_IN_USE', usage_state)
+
+        # check vnfd id
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(self.vnfd_id_1, body['vnfdId'])
+
+        # check vnfc info
+        vnfc_info = body['instantiatedVnfInfo']['vnfcInfo']
+        self.assertGreater(len(vnfc_info), 1)
+        vnfc_ids = [vnfc['id'] for vnfc in vnfc_info]
+        for vnfc in vnfc_info:
+            self.assertIn('id', vnfc)
+            self.assertIn('vduId', vnfc)
+            self.assertIsNotNone(vnfc.get('vnfcState'))
+            self.assertIsNone(vnfc.get('vnfcConfigurableProperties'))
+
+        update_req = paramgen.update_vnf_max(self.vnfd_id_3, vnfc_ids)
+        resp, body = self.update_vnf_instance(inst_id, update_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 6. Show VNF instance
+        additional_inst_attrs = [
+            'vimConnectionInfo',
+            'instantiatedVnfInfo'
+        ]
+        expected_inst_attrs.extend(additional_inst_attrs)
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+
+        # check vnfState of VNF
+        self.assertEqual(fields.VnfOperationalStateType.STARTED,
+                         body['instantiatedVnfInfo']['vnfState'])
+
+        # check usageState of VNF Package 1
+        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
+        self.assertEqual('NOT_IN_USE', usage_state)
+
+        # check usageState of VNF Package 3
+        usage_state = self.get_vnf_package(self.vnf_pkg_3)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check the specified attribute after update VNF
+        self.assertEqual(self.vnfd_id_3, body['vnfdId'])
+        self.assertEqual('new name', body['vnfInstanceName'])
+        self.assertEqual('new description', body['vnfInstanceDescription'])
+        dummy_key_value = {'dummy-key': 'dummy-value'}
+        self.assertEqual(dummy_key_value, body['metadata'])
+        self.assertEqual(dummy_key_value, body['extensions'])
+        self.assertEqual(dummy_key_value, body['vnfConfigurableProperties'])
+        vim_connection_info = {
+            "vim2": {
+                "vimId": "ac2d2ece-5e49-4b15-b92d-b681e9c096d8",
+                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                "interfaceInfo": {
+                    "endpoint": "http://127.0.0.1/identity/v3"
+                },
+                "accessInfo": {
+                    "username": "dummy_user",
+                    "region": "RegionOne",
+                    "project": "dummy_project",
+                    "projectDomain": "Default",
+                    "userDomain": "Default"
+                },
+                "extra": {
+                    "dummy-key": "dummy-val"
+                }
+            }
+        }
+        self.assertEqual(vim_connection_info['vim2'],
+            body['vimConnectionInfo']['vim2'])
+
+        # check vnfc info
+        vnfc_info = body['instantiatedVnfInfo']['vnfcInfo']
+        self.assertEqual(vnfc_ids[0], vnfc_info[0]['id'])
+        self.assertEqual(vnfc_ids[1], vnfc_info[1]['id'])
+        self.assertEqual(dummy_key_value,
+            vnfc_info[0]['vnfcConfigurableProperties'])
+        self.assertEqual(dummy_key_value,
+            vnfc_info[1]['vnfcConfigurableProperties'])
+
+        # 7. Heal VNF(all with omit all parameter)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2'])]
+        vdu1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        heal_req = paramgen.heal_vnf_all_max_with_parameter()
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check stack info
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2'])]
+        vdu1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+
+        # 8. Heal VNF(all with all=False parameter)
+        vdu1_stack_before_heal = vdu1_stack_after_heal
+        vdu2_stack_before_heal = vdu2_stack_after_heal
+        heal_req = paramgen.heal_vnf_all_max_with_parameter(False)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check stack info
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2'])]
+        vdu1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+
+        # 9. Heal VNF(all with all=True parameter)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2', 'VDU1-VirtualStorage',
+            'VDU2-VirtualStorage', 'internalVL3'])]
+        vdu1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        storage1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1-VirtualStorage')][0]
+        storage2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2-VirtualStorage')][0]
+        network_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'internalVL3')][0]
+
+        stack_id_before_heal = self.heat_client.get_stack_resource(stack_name)[
+            'stack']['id']
+        heal_req = paramgen.heal_vnf_all_max_with_parameter(True)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check stack info
+        stack_id_after_heal = self.heat_client.get_stack_resource(stack_name)[
+            'stack']['id']
+        self.assertNotEqual(stack_id_before_heal, stack_id_after_heal)
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("CREATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2', 'VDU1-VirtualStorage',
+            'VDU2-VirtualStorage', 'internalVL3'])]
+        vdu1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        storage1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1-VirtualStorage')][0]
+        storage2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2-VirtualStorage')][0]
+        network_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'internalVL3')][0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            storage1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            storage2_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            network_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(storage1_stack_before_heal['physical_resource_id'],
+            storage1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(storage2_stack_before_heal['physical_resource_id'],
+            storage2_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(network_stack_before_heal['physical_resource_id'],
+            network_stack_after_heal['physical_resource_id'])
+
+        # 10. Terminate VNF
+        terminate_req = paramgen.terminate_vnf_max()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # wait a bit because there is a bit time lag between lcmocc DB
+        # update and terminate completion.
+        time.sleep(10)
+
+        # check instantiationState of VNF
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
+                         body['instantiationState'])
+
+        # 11. Delete VNF instance
+        resp, body = self.delete_vnf_instance(inst_id)
+        self.assertEqual(204, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+
+        # 12. Delete subscription
+        resp, body = self.delete_subscription(sub_id)
+        self.assertEqual(204, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+
+    def test_scale_heal_lcm(self):
+        """Test the sequence of scale out/in and heal VNF
+
+        * About attributes:
+          All of the following cardinality attributes are set.
+          In addition, 0..N or 1..N attributes are set to 2 or more.
+          0..1 is set to 1.
+          - 0..1 (1)
+          - 0..N (2 or more)
+          - 1..N (2 or more)
+
+        * About LCM operations:
+          This test includes the following operations.
+          - 0. Pre-setting
+          - 1. Create subscription
+          - 2. Create VNF instance
+          - 3. Instantiate VNF
+          - 4. Show VNF instance
+          - 5. Scale out operation
+          - 6. Heal VNF(vnfc)
+          - 7. Scale out operation
+          - 8. Scale in operation
+          - 9. Scale in operation
+          - 10. Heal VNF(vnfc)
+          - 11. Terminate VNF
+          - 12. Delete VNF instance
+          - 13. Delete subscription
+        """
+        # 0. Pre-setting
+        # Create a new network and subnet to check the IP allocation of
+        # IPv4 and IPv6
+        ft_net0_name = 'ft-net0'
+        ft_net0_subs = {
+            'ft-ipv4-subnet0': {
+                'range': '100.100.100.0/24',
+                'ip_version': 4
+            },
+            'ft-ipv6-subnet0': {
+                'range': '1111:2222:3333::/64',
+                'ip_version': 6
+            }
+        }
+        ft_net0_id = self.create_network(ft_net0_name)
+        self.addCleanup(self.delete_network, ft_net0_id)
+        for sub_name, val in ft_net0_subs.items():
+            # subnet is automatically deleted with network deletion
+            self.create_subnet(
+                ft_net0_id, sub_name, val['range'], val['ip_version'])
+
+        net_ids = self.get_network_ids(
+            ['net0', 'net1', 'net_mgmt', 'ft-net0'])
+        subnet_ids = self.get_subnet_ids(
+            ['subnet0', 'subnet1', 'ft-ipv4-subnet0', 'ft-ipv6-subnet0'])
+
+        port_names = ['VDU2_CP1-1', 'VDU2_CP1-2']
+        port_ids = {}
+        for port_name in port_names:
+            port_id = self.create_port(net_ids['net0'], port_name)
+            port_ids[port_name] = port_id
+            self.addCleanup(self.delete_port, port_id)
+
+        # 1. Create subscription
+        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+                                    self._testMethodName)
+        callback_uri = ('http://localhost:'
+                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{callback_url}')
+
+        sub_req = paramgen.sub_create_max(callback_uri)
+        resp, body = self.create_subscription(sub_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        sub_id = body['id']
+
+        # 2. Create VNF instance
+        # ETSI NFV SOL003 v3.3.1 5.5.2.2 VnfInstance
+        # NOTE: extensions and vnfConfigurableProperties are omitted
+        # because they are commented out in etsi_nfv_sol001.
+        expected_inst_attrs = [
+            'id',
+            'vnfInstanceName',
+            'vnfInstanceDescription',
+            'vnfdId',
+            'vnfProvider',
+            'vnfProductName',
+            'vnfSoftwareVersion',
+            'vnfdVersion',
+            # 'vnfConfigurableProperties', # omitted
+            # 'vimConnectionInfo', # omitted
+            'instantiationState',
+            # 'instantiatedVnfInfo', # omitted
+            'metadata',
+            # 'extensions', # omitted
+            '_links'
+        ]
+        create_req = paramgen.create_vnf_max(self.vnfd_id_1)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check instantiationState of VNF
+        self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
+                         body['instantiationState'])
+
+        # 3. Instantiate VNF instance
+        instantiate_req = paramgen.instantiate_vnf_max(
+            net_ids, subnet_ids, port_ids, self.auth_url)
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 4. Show VNF instance
+        # check creation of Heat-stack
+        stack_name = f'vnf-{inst_id}'
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("CREATE_COMPLETE", stack_status)
+
+        additional_inst_attrs = [
+            'vimConnectionInfo',
+            'instantiatedVnfInfo',
+            'extensions',
+            'vnfConfigurableProperties'
+        ]
+        expected_inst_attrs.extend(additional_inst_attrs)
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+
+        # check instantiationState of VNF
+        self.assertEqual(fields.VnfInstanceState.INSTANTIATED,
+                         body['instantiationState'])
+
+        # check vnfState of VNF
+        self.assertEqual(fields.VnfOperationalStateType.STARTED,
+                         body['instantiatedVnfInfo']['vnfState'])
+
+        # 5. Scale out operation
+        scaleout_req = paramgen.scaleout_vnf_max()
+        resp, body = self.scale_vnf_instance(inst_id, scaleout_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 6. Heal VNF(vnfc)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] == 'VDU1')]
+        vdu1_stack_before_heal = temp_stacks[0]
+
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        # There was 2 VDU1 because scale out
+        vnfc_id = f'VDU1-{vdu1_stack_before_heal["physical_resource_id"]}'
+
+        heal_req = paramgen.heal_vnf_vnfc_max(vnfc_id)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check stack info
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] == 'VDU1')]
+        vdu1_stack_after_heal = temp_stacks[0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+
+        # 7. Scale out operation
+        scaleout_req = paramgen.scaleout_vnf_max()
+        resp, body = self.scale_vnf_instance(inst_id, scaleout_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 8. Scale in operation
+        scalein_req = paramgen.scalein_vnf_max()
+        resp, body = self.scale_vnf_instance(inst_id, scalein_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 9. Scale in operation
+        scalein_req = paramgen.scalein_vnf_max()
+        resp, body = self.scale_vnf_instance(inst_id, scalein_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 10. Heal VNF(vnfc)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] == 'VDU1')]
+        vdu1_stack_before_heal = temp_stacks[0]
+
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        vnfc_info = body['instantiatedVnfInfo']['vnfcInfo']
+        self.assertGreater(len(vnfc_info), 1)
+        vnfc_id = [vnfc['id'] for vnfc in vnfc_info if (
+            "VDU1" == vnfc['vduId'])][0]
+        self.assertIsNotNone(vnfc_id)
+
+        heal_req = paramgen.heal_vnf_vnfc_max(vnfc_id)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check stack info
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] == 'VDU1')]
+        vdu1_stack_after_heal = temp_stacks[0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+
+        # 11. Terminate VNF
+        terminate_req = paramgen.terminate_vnf_max()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # wait a bit because there is a bit time lag between lcmocc DB
+        # update and terminate completion.
+        time.sleep(10)
+
+        # check deletion of Heat-stack
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertIsNone(stack_status)
+
+        # check instantiationState of VNF
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
+                         body['instantiationState'])
+
+        # 12. Delete VNF instance
+        resp, body = self.delete_vnf_instance(inst_id)
+        self.assertEqual(204, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+
+        # 13. Delete subscription
+        resp, body = self.delete_subscription(sub_id)
+        self.assertEqual(204, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+
+    def test_scale_other_lcm(self):
+        """Test the sequence of scale out/in and the other LCM operations
+
+        The change_ext_conn can't be tested in test_basic_lcms_min method
+        because VNF package 2 don't have external connectivity.
+        So moved it here to test min pattern change_ext_conn.
+
+        * About attributes:
+          All of the following cardinality attributes are set.
+          In addition, 0..N or 1..N attributes are set to 2 or more.
+          0..1 is set to 1.
+          - 0..1 (1)
+          - 0..N (2 or more)
+          - 1..N (2 or more)
+
+        * About LCM operations:
+          This test includes the following operations.
+          - 0. Pre-setting
+          - 1. Create subscription
+          - 2. Create VNF instance
+          - 3. Instantiate VNF
+          - 4. Show VNF instance
+          - 5. Scale out operation
+          - 6. Scale out operation
+          - 7. Show VNF instance
+          - 8. Scale in operation
+          - 9. Show VNF instance
+          - 10. Heal VNF(all with all=True parameter)
+          - 11. Scale in operation
+          - 12. Scale out operation
+          - 13. Heal VNF(all with all=True parameter)
+          - 14. Change external connectivity
+          - 15. Show VNF LCM operation occurrence
+          - 16. Terminate VNF
+          - 17. Delete VNF instance
+          - 18. Delete subscription
+        """
+        # 0. Pre-setting
+        # Create a new network and subnet to check the IP allocation of
+        # IPv4 and IPv6
+        ft_net0_name = 'ft-net0'
+        ft_net0_subs = {
+            'ft-ipv4-subnet0': {
+                'range': '100.100.100.0/24',
+                'ip_version': 4
+            },
+            'ft-ipv6-subnet0': {
+                'range': '1111:2222:3333::/64',
+                'ip_version': 6
+            }
+        }
+        ft_net0_id = self.create_network(ft_net0_name)
+        self.addCleanup(self.delete_network, ft_net0_id)
+        for sub_name, val in ft_net0_subs.items():
+            # subnet is automatically deleted with network deletion
+            self.create_subnet(
+                ft_net0_id, sub_name, val['range'], val['ip_version'])
+
+        # Create a new network for change external connectivity
+        ft_net1_name = 'ft-net1'
+        ft_net1_subs = {
+            'ft-ipv4-subnet1': {
+                'range': '22.22.22.0/24',
+                'ip_version': 4
+            },
+            'ft-ipv6-subnet1': {
+                'range': '1111:2222:4444::/64',
+                'ip_version': 6
+            }
+        }
+        ft_net1_id = self.create_network(ft_net1_name)
+        self.addCleanup(self.delete_network, ft_net1_id)
+        for sub_name, val in ft_net1_subs.items():
+            # subnet is automatically deleted with network deletion
+            self.create_subnet(
+                ft_net1_id, sub_name, val['range'], val['ip_version'])
+
+        net_ids = self.get_network_ids(
+            ['net0', 'net1', 'net_mgmt', 'ft-net0', 'ft-net1'])
+        subnet_ids = self.get_subnet_ids(
+            ['subnet0', 'subnet1', 'ft-ipv4-subnet0', 'ft-ipv6-subnet0',
+             'ft-ipv4-subnet1', 'ft-ipv6-subnet1'])
+
+        port_names = ['VDU2_CP1-1', 'VDU2_CP1-2']
+        port_ids = {}
+        for port_name in port_names:
+            port_id = self.create_port(net_ids['net0'], port_name)
+            port_ids[port_name] = port_id
+            self.addCleanup(self.delete_port, port_id)
+
+        # 1. Create subscription
+        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+                                    self._testMethodName)
+        callback_uri = ('http://localhost:'
+                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{callback_url}')
+
+        sub_req = paramgen.sub_create_max(callback_uri)
+        resp, body = self.create_subscription(sub_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        sub_id = body['id']
+
+        # 2. Create VNF instance
+        # ETSI NFV SOL003 v3.3.1 5.5.2.2 VnfInstance
+        # NOTE: extensions and vnfConfigurableProperties are omitted
+        # because they are commented out in etsi_nfv_sol001.
+        expected_inst_attrs = [
+            'id',
+            'vnfInstanceName',
+            'vnfInstanceDescription',
+            'vnfdId',
+            'vnfProvider',
+            'vnfProductName',
+            'vnfSoftwareVersion',
+            'vnfdVersion',
+            # 'vnfConfigurableProperties', # omitted
+            # 'vimConnectionInfo', # omitted
+            'instantiationState',
+            # 'instantiatedVnfInfo', # omitted
+            'metadata',
+            # 'extensions', # omitted
+            '_links'
+        ]
+        create_req = paramgen.create_vnf_max(self.vnfd_id_1)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
+        self.assertEqual('IN_USE', usage_state)
+
+        # check instantiationState of VNF
+        self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
+                         body['instantiationState'])
+
+        # 3. Instantiate VNF instance
+        instantiate_req = paramgen.instantiate_vnf_max(
+            net_ids, subnet_ids, port_ids, self.auth_url)
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 4. Show VNF instance
+        # check creation of Heat-stack
+        stack_name = f'vnf-{inst_id}'
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("CREATE_COMPLETE", stack_status)
+
+        additional_inst_attrs = [
+            'vimConnectionInfo',
+            'instantiatedVnfInfo',
+            'extensions',
+            'vnfConfigurableProperties'
+        ]
+        expected_inst_attrs.extend(additional_inst_attrs)
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+
+        # check instantiationState of VNF
+        self.assertEqual(fields.VnfInstanceState.INSTANTIATED,
+                         body['instantiationState'])
+
+        # check vnfState of VNF
+        self.assertEqual(fields.VnfOperationalStateType.STARTED,
+                         body['instantiatedVnfInfo']['vnfState'])
+
+        # 5. Scale out operation
+        scaleout_req = paramgen.scaleout_vnf_max()
+        resp, body = self.scale_vnf_instance(inst_id, scaleout_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 6. Scale out operation
+        # get nested stack count before scale out
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        count_before_scaleout = len(nested_stacks)
+        scaleout_req = paramgen.scaleout_vnf_max()
+        resp, body = self.scale_vnf_instance(inst_id, scaleout_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 7. Show VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+
+        # check scaleStatus
+        scale_status = body['instantiatedVnfInfo']['scaleStatus']
+        self.assertGreater(len(scale_status), 0)
+        for status in scale_status:
+            self.assertIn('aspectId', status)
+            self.assertIn('scaleLevel', status)
+
+        # check creation of Heat-stack
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        # get nested stack count after scale out
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        count_after_scaleout = len(nested_stacks)
+        # check nested stack was created
+        # 9 was the sum of 1 VM, 1 Volume, 1 VolumeType, 5 CPs,
+        # 1 stack(VDU1.yaml)
+        self.assertEqual(9, count_after_scaleout - count_before_scaleout)
+
+        # check vnfState of VNF
+        self.assertEqual(fields.VnfOperationalStateType.STARTED,
+                         body['instantiatedVnfInfo']['vnfState'])
+
+        # 8. Scale in operation
+        scalein_req = paramgen.scalein_vnf_max()
+        resp, body = self.scale_vnf_instance(inst_id, scalein_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 9. Show VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+
+        # check vnfState of VNF
+        self.assertEqual(fields.VnfOperationalStateType.STARTED,
+                         body['instantiatedVnfInfo']['vnfState'])
+
+        # check scaleStatus
+        scale_status = body['instantiatedVnfInfo']['scaleStatus']
+        self.assertGreater(len(scale_status), 0)
+        for status in scale_status:
+            self.assertIn('aspectId', status)
+            self.assertIn('scaleLevel', status)
+
+        # check creation of Heat-stack
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("UPDATE_COMPLETE", stack_status)
+        # get nested stack count after scale in
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        count_after_scalein = len(nested_stacks)
+        # check nested stack was deleted
+        # 9 was the sum of 1 VM, 1 Volume, 1 VolumeType, 5 CPs,
+        # 1 stack(VDU1.yaml)
+        self.assertEqual(9, count_after_scaleout - count_after_scalein)
+
+        # 10. Heal VNF(all with all=True parameter))
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2', 'VDU1-VirtualStorage',
+            'VDU2-VirtualStorage', 'internalVL3'])]
+        vdu1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        storage1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1-VirtualStorage')][0]
+        storage2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2-VirtualStorage')][0]
+        network_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'internalVL3')][0]
+
+        stack_id_before_heal = self.heat_client.get_stack_resource(stack_name)[
+            'stack']['id']
+        heal_req = paramgen.heal_vnf_all_max_with_parameter(True)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check stack info
+        stack_id_after_heal = self.heat_client.get_stack_resource(stack_name)[
+            'stack']['id']
+        self.assertNotEqual(stack_id_before_heal, stack_id_after_heal)
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("CREATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2', 'VDU1-VirtualStorage',
+            'VDU2-VirtualStorage', 'internalVL3'])]
+        vdu1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        storage1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1-VirtualStorage')][0]
+        storage2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2-VirtualStorage')][0]
+        network_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'internalVL3')][0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            storage1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            storage2_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            network_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(storage1_stack_before_heal['physical_resource_id'],
+            storage1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(storage2_stack_before_heal['physical_resource_id'],
+            storage2_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(network_stack_before_heal['physical_resource_id'],
+            network_stack_after_heal['physical_resource_id'])
+
+        # 11. Scale in operation
+        scalein_req = paramgen.scalein_vnf_max()
+        resp, body = self.scale_vnf_instance(inst_id, scalein_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 12. Scale out operation
+        scaleout_req = paramgen.scaleout_vnf_max()
+        resp, body = self.scale_vnf_instance(inst_id, scaleout_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 13. Heal VNF(all with all=True parameter)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2', 'VDU1-VirtualStorage',
+            'VDU2-VirtualStorage', 'internalVL3'])]
+        vdu1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        storage1_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1-VirtualStorage')][0]
+        storage2_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2-VirtualStorage')][0]
+        network_stack_before_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'internalVL3')][0]
+
+        stack_id_before_heal = self.heat_client.get_stack_resource(stack_name)[
+            'stack']['id']
+        heal_req = paramgen.heal_vnf_all_max_with_parameter(True)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # check stack info
+        stack_id_after_heal = self.heat_client.get_stack_resource(stack_name)[
+            'stack']['id']
+        self.assertNotEqual(stack_id_before_heal, stack_id_after_heal)
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertEqual("CREATE_COMPLETE", stack_status)
+        nested_stacks = self.heat_client.get_resources(stack_name)
+        temp_stacks = [stack for stack in nested_stacks if
+            (stack['resource_name'] in ['VDU1', 'VDU2', 'VDU1-VirtualStorage',
+            'VDU2-VirtualStorage', 'internalVL3'])]
+        vdu1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1')][0]
+        vdu2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2')][0]
+        storage1_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU1-VirtualStorage')][0]
+        storage2_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'VDU2-VirtualStorage')][0]
+        network_stack_after_heal = [stack for stack in temp_stacks if
+            (stack['resource_name'] == 'internalVL3')][0]
+
+        self.assertEqual("CREATE_COMPLETE",
+            vdu1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            vdu2_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            storage1_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            storage2_stack_after_heal['resource_status'])
+        self.assertEqual("CREATE_COMPLETE",
+            network_stack_after_heal['resource_status'])
+
+        self.assertNotEqual(vdu1_stack_before_heal['physical_resource_id'],
+            vdu1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(vdu2_stack_before_heal['physical_resource_id'],
+            vdu2_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(storage1_stack_before_heal['physical_resource_id'],
+            storage1_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(storage2_stack_before_heal['physical_resource_id'],
+            storage2_stack_after_heal['physical_resource_id'])
+        self.assertNotEqual(network_stack_before_heal['physical_resource_id'],
+            network_stack_after_heal['physical_resource_id'])
+
+        # 14. Change external connectivity
+        stack_id = self.heat_client.get_stack_resource(stack_name)['stack'][
+            'id']
+        _, port_info = self.heat_client.get_resource_info(
+            stack_name, stack_id, 'VDU2_CP2')
+        before_physical_resource_id = port_info['physical_resource_id']
+        before_fixed_ips = port_info['attributes']['fixed_ips']
+
+        change_ext_conn_req = paramgen.change_ext_conn_min(net_ids, subnet_ids)
+        resp, body = self.change_ext_conn(inst_id, change_ext_conn_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        _, port_info = self.heat_client.get_resource_info(
+            stack_name, stack_id, 'VDU2_CP2')
+        after_physical_resource_id = port_info['physical_resource_id']
+        after_fixed_ips = port_info['attributes']['fixed_ips']
+
+        self.assertNotEqual(before_physical_resource_id,
+            after_physical_resource_id)
+        self.assertNotEqual(before_fixed_ips, after_fixed_ips)
+
+        # 15. Show VNF LCM operation occurrence
+        # ETSI NFV SOL003 v3.3.1 5.5.2.13 VnfLcmOpOcc
+        # NOTE: omitted values are not supported at that time
+        expected_attrs = [
+            'id',
+            'operationState',
+            'stateEnteredTime',
+            'startTime',
+            'vnfInstanceId',
+            # 'grantId', # omitted
+            'operation',
+            'isAutomaticInvocation',
+            'operationParams',
+            'isCancelPending',
+            # 'cancelMode', # omitted
+            # 'error', # omitted
+            'resourceChanges',
+            # 'changedInfo', # omitted
+            # 'changedExtConnectivity', # omitted
+            # 'modificationsTriggeredByVnfPkgChange', # omitted
+            # 'vnfSnapshotInfoId', # omitted
+            '_links'
+        ]
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.check_resp_body(body, expected_attrs)
+
+        # 16. Terminate VNF
+        terminate_req = paramgen.terminate_vnf_max()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # wait a bit because there is a bit time lag between lcmocc DB
+        # update and terminate completion.
+        time.sleep(10)
+
+        # check deletion of Heat-stack
+        stack_status, _ = self.heat_client.get_status(stack_name)
+        self.assertIsNone(stack_status)
+
+        # check instantiationState of VNF
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
+                         body['instantiationState'])
+
+        # 17. Delete VNF instance
+        resp, body = self.delete_vnf_instance(inst_id)
+        self.assertEqual(204, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+
+        # 18. Delete subscription
         resp, body = self.delete_subscription(sub_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)

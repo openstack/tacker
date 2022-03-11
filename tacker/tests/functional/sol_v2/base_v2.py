@@ -318,6 +318,16 @@ class BaseSolV2Test(base.BaseTestCase):
         return self.tacker_client.do_request(
             path, "PATCH", body=req_body, version="2.0.0")
 
+    def heal_vnf_instance(self, inst_id, req_body):
+        path = f"/vnflcm/v2/vnf_instances/{inst_id}/heal"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="2.0.0")
+
+    def change_ext_conn(self, inst_id, req_body):
+        path = f"/vnflcm/v2/vnf_instances/{inst_id}/change_ext_conn"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="2.0.0")
+
     def terminate_vnf_instance(self, inst_id, req_body):
         path = "/vnflcm/v2/vnf_instances/{}/terminate".format(inst_id)
         return self.tacker_client.do_request(

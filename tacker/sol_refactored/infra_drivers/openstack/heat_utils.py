@@ -126,6 +126,22 @@ class HeatClient(object):
             [None], ["DELETE_IN_PROGRESS", "DELETE_COMPLETE"],
             ["DELETE_FAILED"])
 
+    def get_stack_resource(self, stack_name):
+        path = f"stacks/{stack_name}"
+        resp, body = self.client.do_request(path, "GET",
+                                            expected_status=[200, 404])
+        if resp.status_code == 404:
+            raise sol_ex.StackOperationFailed
+        return body
+
+    def get_resource_info(self, stack_name, stack_id, resource_name):
+        path = f"stacks/{stack_name}/{stack_id}/resources/{resource_name}"
+        resp, body = self.client.do_request(path, "GET",
+                                            expected_status=[200, 404])
+        if resp.status_code == 404:
+            return resp, None
+        return resp, body['resource']
+
     def get_parameters(self, stack_name):
         path = "stacks/{}".format(stack_name)
         resp, body = self.client.do_request(path, "GET",
