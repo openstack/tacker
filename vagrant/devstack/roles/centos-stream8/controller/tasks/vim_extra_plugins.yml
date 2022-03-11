@@ -1,0 +1,35 @@
+---
+- name: create dir for plug.vim
+  file: path={{ ansible_env.HOME }}/.vim/autoload state=directory
+
+- name: download plug.vim
+  get_url: url=https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+           dest={{ ansible_env.HOME }}/.vim/autoload/plug.vim
+
+- name: vimrc
+  template: src=templates/vimrc.j2 dest={{ ansible_env.HOME }}/.vimrc
+            mode=664
+
+- name: install exuberant-ctags
+  become: yes
+  yum: name=ctags
+
+- name: install npm
+  become: yes
+  yum: name=npm
+
+- name: install bash-language-server
+  become: yes
+  npm:
+      name: bash-language-server
+      global: yes
+
+# required for python-language-server
+- name: install gcc-c++
+  become: yes
+  yum: name=gcc-c++
+
+- name: install python-language-server
+  become: yes
+  pip:
+      name: python-language-server[all]

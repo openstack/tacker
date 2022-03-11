@@ -1,0 +1,9 @@
+/machines.yml
+/helper/git_setup.sh
+
+/.vagrant/*
+*.log
+
+# except auto-generated file.
+roles/**/controller/templates/gitconfig.j2
+ssh_config

@@ -1,0 +1,10 @@
+---
+- name: put yum repo for k8s
+  become: yes
+  template: src=templates/kubernetes.repo.j2
+            dest=/etc/yum.repos.d/kubernetes.repo
+            mode=755
+
+- name: install k8s
+  become: yes
+  dnf: name=kubeadm update_cache=yes

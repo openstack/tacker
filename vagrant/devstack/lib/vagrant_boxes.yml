@@ -1,0 +1,13 @@
+boxes:
+  ubuntu:
+    "20.04":
+      virtualbox: ubuntu/focal64
+    "18.04":
+      virtualbox: ubuntu/bionic64
+      libvirt: generic/ubuntu1804
+    "16.04":
+      virtualbox: ubuntu/xenial64
+      libvirt: yk0/ubuntu-xenial
+  centos:
+    stream8:
+      virtualbox: centos/stream8

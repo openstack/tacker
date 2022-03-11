@@ -1,0 +1,9 @@
+---
+- name: install python3 other than default version
+  become: yes
+  yum: name={{ item }}
+  with_items:
+      - python38
+      - python38-devel
+      - python39
+      - python39-devel

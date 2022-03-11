@@ -1,0 +1,159 @@
+" Specify a directory for plugins
+" - For Neovim: stdpath('data') . '/plugged'
+" - Avoid using standard Vim directory names like 'plugin'
+call plug#begin('~/.vim/plugged')
+
+" Make sure you use single quotes
+
+" Shorthand notation; fetches https://github.com/junegunn/vim-easy-align
+Plug 'junegunn/vim-easy-align'
+
+" Any valid git URL is allowed
+Plug 'https://github.com/junegunn/vim-github-dashboard.git'
+
+" Multiple Plug commands can be written in a single line using | separators
+Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
+
+" On-demand loading
+Plug 'preservim/nerdtree', { 'on': 'NERDTreeToggle' }
+Plug 'tpope/vim-fireplace', { 'for': 'clojure' }
+
+" Using a non-master branch
+Plug 'rdnetto/YCM-Generator', { 'branch': 'stable' }
+
+" Using a tagged release; wildcard allowed (requires git 1.9.2 or above)
+"Plug 'fatih/vim-go', { 'tag': '*' }
+
+" Plugin options
+"Plug 'nsf/gocode', { 'tag': 'v.20150303', 'rtp': 'vim' }
+Plug 'nsf/gocode'
+
+" Plugin outside ~/.vim/plugged with post-update hook
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+let g:fzf_command_prefix = 'Fzf'
+
+" Unmanaged plugin (manually installed and updated)
+"Plug '~/my-prototype-plugin'
+
+Plug 'tpope/vim-sensible'
+Plug 'tpope/vim-surround'
+Plug 'tpope/vim-fugitive'
+Plug 'thinca/vim-quickrun'
+Plug 'ctrlpvim/ctrlp.vim'
+Plug 'flazz/vim-colorschemes'
+Plug 'thinca/vim-quickrun'
+
+Plug 'jpo/vim-railscasts-theme'
+Plug 'godlygeek/tabular'
+Plug 'plasticboy/vim-markdown'
+let g:vim_markdown_folding_disabled = 1
+
+Plug 'dense-analysis/ale'
+
+Plug 'vim-scripts/taglist.vim'
+let Tlist_Use_Right_Window = 1
+
+Plug 'prabirshrestha/async.vim'
+Plug 'prabirshrestha/vim-lsp'
+Plug 'prabirshrestha/asyncomplete.vim'
+Plug 'prabirshrestha/asyncomplete-lsp.vim'
+Plug 'natebosch/vim-lsc'
+Plug 'thomasfaingnaert/vim-lsp-snippets'
+Plug 'thomasfaingnaert/vim-lsp-ultisnips'
+let g:lsp_async_completion = 1
+
+Plug 'tyru/current-func-info.vim'
+Plug 'yasufum/vim-os-unittestr'
+
+" Initialize plugin system
+call plug#end()
+
+syntax on
+set number
+set relativenumber
+set shiftwidth=4
+set tabstop=4
+set expandtab
+set showcmd
+set showmatch
+set hlsearch
+set laststatus=2
+set encoding=utf-8
+set fileencoding=utf-8
+set termencoding=utf-8
+set autoindent
+set scrolloff=4
+set smartcase
+set textwidth=80
+set colorcolumn=+1
+
+set visualbell t_vb=
+set noerrorbells
+
+set path+=**
+set wildmenu
+
+colorscheme delek
+"colorscheme railscasts
+
+autocmd FileType python set textwidth=79
+autocmd FileType gitcommit set textwidth=72
+
+nnoremap ; <CR>
+nnoremap <C-n> :NERDTreeToggle<CR>
+" enable line numbers
+let NERDTreeShowLineNumbers=1
+" make sure relative line number is used
+autocmd FileType nerdtree setlocal relativenumber
+
+""" Open vimrc from ':Conf' command.
+function! s:open_vimrc() abort
+    new ~/.vimrc
+endfunction
+command! Conf call s:open_vimrc()
+
+function! s:configure_lsp() abort
+  setlocal omnifunc=lsp#complete
+  nnoremap <buffer> <C-]> :<C-u>LspDefinition<CR>
+  nnoremap <buffer> <C-h> :<C-u>LspHover<CR>
+  "nnoremap <buffer> <C-@> <C-t>
+  nnoremap <buffer> <C-l>d :<C-u>LspDefinition<CR>
+  nnoremap <buffer> <C-l>r :<C-u>LspReferences<CR>
+  nnoremap <buffer> <C-l>t :<C-u>LspTypeDefinition<CR>
+  nnoremap <buffer> <C-l>s :<C-u>LspDocumentSymbol<CR>
+  nnoremap <buffer> <C-l>S :<C-u>LspWorkspaceSymbol<CR>
+  nnoremap <buffer> <C-l>f :<C-u>LspDocumentFormat<CR>
+  vnoremap <buffer> <C-l>f :<C-u>LspDocumentRangeFormat<CR>
+  nnoremap <buffer> <C-l>h :<C-u>LspHover<CR>
+  nnoremap <buffer> <C-l>i :<C-u>LspImplementation<CR>
+  nnoremap <buffer> <C-l>e :<C-u>LspNextError<CR>
+  nnoremap <buffer> <C-l>E :<C-u>LspPreviousError<CR>
+  nnoremap <buffer> <C-l>N :<C-u>LspRename<CR>
+endfunction
+
+" Do ALE diagnostic
+let g:lsp_diagnostics_enabled = 0
+
+if executable('pyls')
+   autocmd User lsp_setup call lsp#register_server({
+                \ 'name': 'pyls',
+                \ 'cmd': { server_info -> ['pyls'] },
+                \ 'whitelist': ['python'],
+                \ 'workspace_config': {'pyls': {'plugins': {
+                \   'pycodestyle': {'enabled': v:false},
+                \   'jedi_definition': {'follow_imports': v:true, 'follow_builtin_imports': v:true},}}}
+                \})
+    "autocmd BufWritePre *.py LspDocumentFormatSync
+    autocmd FileType python call s:configure_lsp()
+endif
+
+if executable('bash-language-server')
+    au User lsp_setup call lsp#register_server({
+        \ 'name': 'bash-language-server',
+        \ 'cmd': {server_info->[&shell, &shellcmdflag, 'bash-language-server start']},
+        \ 'whitelist': ['sh'],
+        \ })
+    "autocmd BufWritePre *.sh LspDocumentFormatSync
+    autocmd FileType sh call s:configure_lsp()
+endif

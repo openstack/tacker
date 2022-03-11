@@ -30,6 +30,7 @@ Developer Info
    api_extensions.rst
    tacker_functional_test.rst
    dashboards.rst
+   vagrant_devstack.rst
 
 Code Documentation
 ------------------

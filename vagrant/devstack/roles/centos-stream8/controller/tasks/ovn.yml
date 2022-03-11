@@ -1,0 +1,24 @@
+---
+- name: install ovn via centos-openstack
+  become: yes
+  yum: name={{ item }} update_cache=yes
+  with_items:
+      - centos-release-openstack-victoria
+
+- name: install ovn
+  become: yes
+  yum: name={{ item }} update_cache=yes
+  with_items:
+      - openvswitch
+      - openvswitch-ovn-common
+      - openvswitch-ovn-central
+      - openvswitch-ovn-host
+
+- name: activate ovs and ovn
+  become: yes
+  systemd: enabled=yes state=started name={{ item }}
+  with_items:
+      - ovn-northd.service
+      - ovn-controller.service
+      - ovs-vswitchd.service
+      - ovsdb-server.service
