@@ -36,7 +36,7 @@ The sample structure of VNF Package is shown below.
 .. note::
 
     You can also find them in the
-    `samples/mgmt_driver/private_registry_vnf_package/`_
+    `samples/mgmt_driver/kubernetes/private_registry_vnf_package/`_
     directory of the tacker.
 
 The directory structure:
@@ -722,4 +722,4 @@ Limitations
 .. _NFV-SOL001 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/02.06.01_60/gs_NFV-SOL001v020601p.pdf
 .. _NFV-SOL002 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/02.06.01_60/gs_NFV-SOL002v020601p.pdf
 .. _NFV-SOL003 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/003/02.06.01_60/gs_NFV-SOL003v020601p.pdf
-.. _samples/mgmt_driver/private_registry_vnf_package/: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/private_registry_vnf_package/
+.. _samples/mgmt_driver/kubernetes/private_registry_vnf_package/: https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/private_registry_vnf_package/

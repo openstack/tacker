@@ -274,7 +274,8 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                         fname = 'create_admin_token.yaml'
                         sftp.put(os.path.join(
                             os.path.dirname(os.path.abspath(__file__)),
-                            "../../../samples/mgmt_driver/{}".format(fname)),
+                            ("../../../samples/"
+                            "mgmt_driver/kubernetes/{}".format(fname))),
                             "/tmp/{}".format(fname))
                     connect.close()
                 commander = cmd_executer.RemoteCommandExecutor(
