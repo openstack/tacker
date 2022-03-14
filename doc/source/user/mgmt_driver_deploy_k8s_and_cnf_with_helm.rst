@@ -8,9 +8,8 @@ Tacker supports Helm chart as MCIOP (Managed Container Infrastructure Object
 Package).
 
 By following this procedures below, users can install and configure Helm
-environment in the Master Nodes of Kubernetes Cluster deployed by using Mgmt
-Driver, and users can deploy CNF by using Helm chart to the deployed Kubernetes
-Cluster.
+environment in the Master Nodes of Kubernetes Cluster deployed by Mgmt Driver,
+and users can deploy CNF by Helm chart to the deployed Kubernetes Cluster.
 
 .. note:: This page focuses on changes from the original documentation. If
           there are no changes, follow the original procedures.
@@ -91,7 +90,7 @@ The following change is required:
 ~~~~~~~~~~~~~~~~~~~~~
 1. Create the Parameter File
 ::::::::::::::::::::::::::::
-Add "helm_installation_script_path" as a KeyValuePairs to the definition of
+Add ``helm_installation_script_path`` as a KeyValuePairs to the definition of
 `Explanation of the parameters for deploying a Kubernetes cluster`_ to install
 Helm.
 Along with this change, the json file should also include the above
@@ -167,7 +166,7 @@ complex_kubernetes_param_file.json
         }]
     }
 
-2. Check the Instantiation Operations result
+2. Check Results of Instantiation Operations
 ::::::::::::::::::::::::::::::::::::::::::::
 Make sure that VIM with extra field is added to vimConnectionInfo.
 
@@ -205,12 +204,12 @@ Make sure that VIM with extra field is added to vimConnectionInfo.
 ~~~~~~~~~~~~~~~~~~~~~
 1. Create the Parameter File
 ::::::::::::::::::::::::::::
-As in the case of "Multi Master Node", add "helm_installation_script_path" as a
-KeyValuePairs to the definition of
+As in the case of "Multi Master Node", add ``helm_installation_script_path`` as
+a KeyValuePairs to the definition of
 `Explanation of the parameters for deploying a Kubernetes cluster`_.
 In addition, you should include KeyValuePairs in the json file.
 
-2. Check the Instantiation Operations result
+2. Check Results of Instantiation Operations
 ::::::::::::::::::::::::::::::::::::::::::::
 Verify that Helm has been successfully installed.
 As in the case of "Multi Master Node", make sure that VIM with extra field is
@@ -231,8 +230,8 @@ VIM`_:
 
 1. Create a Config File
 ~~~~~~~~~~~~~~~~~~~~~~~
-This step does not need to be performed because it is performed in conjunction
-with the VIM registration during the Helm installation procedure.
+This step is not required because it is performed in conjunction with the VIM
+registration during the Helm installation procedure.
 After completing the procedures in this chapter, execute the following
 :ref:`Register Kubernetes VIM by helm charts` instead of conventional procedure
 (`2. Register Kubernetes VIM`_).
@@ -268,14 +267,14 @@ Package`_:
 
 1. Create a Kubernetes Object File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you use Helm, you do not need to perform this step because the deployment
+If you use Helm, this step is not required because the deployment
 uses Helm chart instead of the deployment.yaml file.
 
 2. Deploy a local Helm chart file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 When using a local Helm chart file, place the chart file you want to use
 in "Files/Kubernetes".
-If you use an external repository, you do not need to store chart files.
+If you use external repositories, you do not need to store chart files.
 Please refer to [#Helm-Create]_ and [#Helm-Package]_ for how to create and
 package a Helm chart file and points to be aware of when creating it.
 
@@ -309,7 +308,7 @@ chart file instead of "deployment.yaml".
 ~~~~~~~~~~~~~~
 For the original documentation, see `5. Create VNFD`_.
 To deploy CNF using Helm chart, modify the
-"topology_template.node_templates.VDUxx.properties.name" value in
+``topology_template.node_templates.VDUxx.properties.name`` value in
 "helloworld3_df_simple.yaml".
 The following is an example of setting when using an external repository and a
 local Helm chart file.
@@ -317,11 +316,16 @@ Refer to :ref:`Set the Value to the Request Parameter File for Helm chart` for
 the correspondence between the set value and the parameter.
 
 If you are using a chart file stored in external repository, the
-"topology_template.node_templates.VDUxx.properties.name" value is
+``topology_template.node_templates.VDUxx.properties.name`` value should be
 "<helmreleasename> - <helmchartname>".
-The following shows the relationship between the value of
-"topology_template.node_templates.VDUxx.properties.name" when using an external
-repository and the resource definition file created in the step
+
+.. note:: If this value is not set as above, scale operation will not work.
+          This limitation will be removed in the future by modifying
+          additionalParams.
+
+The following shows the relationship between
+``topology_template.node_templates.VDUxx.properties.name`` when using an
+external repository and the resource definition file created in the step
 `Instantiate VNF`_.
 
 .. code-block:: console
@@ -340,16 +344,20 @@ repository and the resource definition file created in the step
             name: vdu1-externalhelm
 
 If you are using local Helm chart file,
-"topology_template.node_templates.VDUxx.properties.name" value is
+``topology_template.node_templates.VDUxx.properties.name`` value should be
 "<helmreleasename> - <part of helmchartfile_path>".
 
 .. note:: "part of helmchart_path" is the part of file name without
           "-<version>.tgz" at the end. In the following example, it is
           "localhelm".
 
-The following shows the relationship between the value of
-"topology_template.node_templates.VDUxx.properties.name" when using an external
-repository and the resource definition file created in the step
+.. note:: If this value is not set as above, scale operation will not work.
+          This limitation will be removed in the future by modifying
+          additionalParams.
+
+The following shows the relationship between
+``topology_template.node_templates.VDUxx.properties.name`` when using an
+external repository and the resource definition file created in the step
 `Instantiate VNF`_.
 
 .. code-block:: console
@@ -372,7 +380,7 @@ Instantiate VNF
 For the original documentation, see `Instantiate VNF`_.
 The following changes are required:
 
-* Add the parameters for deploying CNF to the json definition file
+* Add parameters for deploying CNF to the json definition file
 * Verify CNF deployment results
 
 .. _Set the Value to the Request Parameter File for Helm chart:
@@ -430,11 +438,21 @@ following parameter to the json definition file to deploy CNF by Helm chart.
     |                            |           | Note: Don't specify a different exthelmrepo_url for an    |
     |                            |           | already registered helmrepositoryname in VIM.             |
     +----------------------------+-----------+-----------------------------------------------------------+
+    |helm_replica_values         | Dict      | Parameters for the number of replicas for each aspectId   |
+    |                            |           | used during scale operation.                              |
+    |                            |           | Shall be present if "use_helm" is "true".                 |
+    |                            |           |                                                           |
+    |                            |           | key: "aspectId" defined in VNFD and specified during      |
+    |                            |           |      scale operation.                                     |
+    |                            |           | value: Parameter for the number of replicas defined in    |
+    |                            |           |        Helm values.                                       |
+    +----------------------------+-----------+-----------------------------------------------------------+
 
-If you are deploying using a chart file stored in external repository, set the
-value of exthelmchart in "additionalParams" to "true" and set other parameters.
-The following is a json definition file for deployment using a chart file stored
-in an external repository.
+If you are deploying using a chart file stored in external repository, set
+``additionalParams.using_helm_install_param.exthelmchart`` to ``true``
+and set other parameters.
+The following is a sample of json definition file for deployment using
+a chart file stored in an external repository.
 
 .. code-block:: console
 
@@ -455,6 +473,11 @@ in an external repository.
             "helmrepositoryname": "mychart",
             "helmchartname": "externalhelm",
             "exthelmrepo_url": "http://helmrepo.example.com/sample-charts"
+          }
+        ],
+        "helm_replica_values": {
+          "vdu1_aspect": "replicaCount"
+        }
       },
       "vimConnectionInfo": [
         {
@@ -466,13 +489,14 @@ in an external repository.
     }
 
 .. note:: The "helmreleasename" and "helmchartname" in the json file must
-          match the "topology_template.node_templates.VDUxx.properties.name"
+          match the ``topology_template.node_templates.VDUxx.properties.name``
           value set in the VNFD.
 
-If you are deploying using a local Helm chart file, set the value of
-exthelmchart in "additionalParams" to "false" and set other parameters.
-The following is the json definition file for deployment using a local Helm
-chart file.
+If you are deploying using a local Helm chart file, set
+``additionalParams.using_helm_install_param.exthelmchart`` to "false"
+and set other parameters.
+The following is a sample of json definition file for deployment using
+a local Helm chart file.
 
 .. code-block:: console
 
@@ -492,7 +516,10 @@ chart file.
               ],
             "helmchartfile_path": "Files/kubernetes/localhelm-0.1.0.tgz"
           }
-        ]
+        ],
+        "helm_replica_values": {
+          "vdu1_aspect": "replicaCount"
+        }
       },
       "vimConnectionInfo": [
         {
@@ -504,15 +531,15 @@ chart file.
     }
 
 .. note:: The "helmreleasename" and "helmchartfile_path" in the json file must
-          match the "topology_template.node_templates.VDUxx.properties.name"
+          match the ``topology_template.node_templates.VDUxx.properties.name``
           value set in the VNFD.
 
 2. Check the Deployment in Kubernetes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 For the original documentation, see `4. Check the Deployment in Kubernetes`_ .
 In addition to checkpoints before modifying the procedure, ensure that the NAME
-of the deployed CNF matches the value set for the VNFD
-(topology_template.node_templates.VDUxx.properties.name).
+of the deployed CNF matches the value of
+``topology_template.node_templates.VDUxx.properties.name`` in the VNFD.
 
 .. code-block:: console
 
@@ -525,7 +552,7 @@ of the deployed CNF matches the value set for the VNFD
 3. Check the Deployment in Helm
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Run the following command to verify that it is deployed by the Helm chart.
-If NAME matches "helmreleasename" then deployment succeeded.
+If NAME matches "helmreleasename" then deployment is succeeded.
 
 .. code-block:: console
 
