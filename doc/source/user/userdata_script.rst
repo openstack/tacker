@@ -31,10 +31,7 @@ Any file name and class name are acceptable.
 userdata class must inherit "userdata_utils.AbstractUserData",
 then functions have to be implemented.
 
-Since latest Tacker supports userdata script for only instantiating vnf,
-**def instantiate(req, inst, grant_req, grant, tmp_csar_dir)**
-only can be implemented.
-Followings are the requirement of **def instantiate()**
+Followings are requirements for methods supported by latest Tacker.
 
 Input of instantiate()
 ----------------------
@@ -77,6 +74,181 @@ Following shows sample output.
              fields['files'][key] = yaml.safe_dump(value)
 
          return fields
+
+
+Input of scale()
+----------------
+
+The function can use the following input data.
+The details of data types are defined in ETSI NFV SOL documents.
+
+- req: InstantiateVnfRequest
+- inst: VnfInstance
+- grant_req: GrantRequest
+- grant: Grants
+- tmp_csar_dir: the temporary path of csar expanded by Tacker.
+
+
+Output of scale()
+-----------------
+
+The function must return the following structure.
+Data are for update stack API in HEAT.
+The requirements of HEAT API are described in
+`reference of Orchestration Service API v1
+"PATCH /v1/{tenant_id}/stacks/{stack_name}/{stack_id}"`_
+
+fields = {'parameters': {'nfv': {'VDU': new_vdus}}}
+
+- parameters: Input parameters for Heat API.
+
+Following shows sample output.
+
+.. code-block:: python
+
+        fields = {'parameters': {'nfv': {'VDU': new_vdus}}}
+
+        return fields
+
+
+Input of scale_rollback()
+-------------------------
+
+The function can use the following input data.
+The details of data types are defined in ETSI NFV SOL documents.
+
+- req: InstantiateVnfRequest
+- inst: VnfInstance
+- grant_req: GrantRequest
+- grant: Grants
+- tmp_csar_dir: the temporary path of csar expanded by Tacker.
+
+
+Output of scale_rollback()
+--------------------------
+
+The function must return the following structure.
+Data are for update stack API in HEAT.
+The requirements of HEAT API are described in
+`reference of Orchestration Service API v1
+"PATCH /v1/{tenant_id}/stacks/{stack_name}/{stack_id}"`_
+
+fields = {'parameters': {'nfv': {'VDU': new_vdus}}}
+
+- parameters: Input parameters for Heat API.
+
+Following shows sample output.
+
+.. code-block:: python
+
+        fields = {'parameters': {'nfv': {'VDU': new_vdus}}}
+
+        return fields
+
+
+Input of change_ext_conn_rollback()
+-----------------------------------
+
+The function can use the following input data.
+The details of data types are defined in ETSI NFV SOL documents.
+
+- req: InstantiateVnfRequest
+- inst: VnfInstance
+- grant_req: GrantRequest
+- grant: Grants
+- tmp_csar_dir: the temporary path of csar expanded by Tacker.
+
+
+Output of change_ext_conn_rollback()
+------------------------------------
+
+The function must return the following structure.
+Data are for update stack API in HEAT.
+The requirements of HEAT API are described in
+`reference of Orchestration Service API v1
+"PATCH /v1/{tenant_id}/stacks/{stack_name}/{stack_id}"`_
+
+fields = {'parameters': {'nfv': {'CP': new_cps}}}
+
+- parameters: Input parameters for Heat API.
+
+Following shows sample output.
+
+.. code-block:: python
+
+        fields = {'parameters': {'nfv': {'CP': new_cps}}}
+
+        return fields
+
+
+Input of change_ext_conn()
+--------------------------
+
+The function can use the following input data.
+The details of data types are defined in ETSI NFV SOL documents.
+
+- req: InstantiateVnfRequest
+- inst: VnfInstance
+- grant_req: GrantRequest
+- grant: Grants
+- tmp_csar_dir: the temporary path of csar expanded by Tacker.
+
+
+Output of change_ext_conn()
+---------------------------
+
+The function must return the following structure.
+Data are for update stack API in HEAT.
+The requirements of HEAT API are described in
+`reference of Orchestration Service API v1
+"PATCH /v1/{tenant_id}/stacks/{stack_name}/{stack_id}"`_
+
+fields = {'parameters': {'nfv': {'CP': new_cps}}}
+
+- parameters: Input parameters for Heat API.
+
+Following shows sample output.
+
+.. code-block:: python
+
+        fields = {'parameters': {'nfv': {'CP': new_cps}}}
+
+        return fields
+
+
+Input of heal()
+---------------
+
+The function can use the following input data.
+The details of data types are defined in ETSI NFV SOL documents.
+
+- req: InstantiateVnfRequest
+- inst: VnfInstance
+- grant_req: GrantRequest
+- grant: Grants
+- tmp_csar_dir: the temporary path of csar expanded by Tacker.
+
+
+Output of heal()
+----------------
+
+The function must return the following structure.
+Data are for update stack API in HEAT.
+The requirements of HEAT API are described in
+`reference of Orchestration Service API v1
+"PATCH /v1/{tenant_id}/stacks/{stack_name}/{stack_id}"`_
+
+fields = {'parameters': {'nfv': {}}}
+
+- parameters: Input parameters for Heat API.
+
+Following shows sample output.
+
+.. code-block:: python
+
+        fields = {'parameters': {'nfv': {}}}
+
+        return fields
 
 
 Sample userdata script
@@ -179,6 +351,30 @@ Get zone id of VDU.
 It returns **zone id**.
 
 
+def get_current_capacity(vdu_name, inst)
+----------------------------------------
+
+Get desired capacity.
+
+**vdu_name**: the name of VDU
+, **inst**: VnfInstance
+
+It returns **desired capacity**.
+
+
+def get_param_capacity(vdu_name, inst, grant_req)
+-------------------------------------------------
+
+Refer to addResources and removeResources in the grant request
+and get desired capacity.
+
+**vdu_name**: the name of VDU
+, **inst**: VnfInstance
+, **grant_req**: GrantRequest
+
+It returns **desired capacity**.
+
+
 def _get_fixed_ips_from_extcp(extcp)
 ------------------------------------
 
@@ -211,6 +407,28 @@ Get fixed IP addresses of CP.
 , **req**: InstantiateVnfRequest
 
 It returns fixed IP address of CP.
+
+
+def get_param_network_from_inst(cp_name, inst)
+----------------------------------------------
+
+Get network resourceId from VnfInstance.
+
+**cp_name**: the name of CP
+, **inst**: VnfInstance
+
+It returns network resourceId from VnfInstance.
+
+
+def get_param_fixed_ips_from_inst(cp_name, inst)
+------------------------------------------------
+
+Get fixed IP address of CP from VnfInstance.
+
+**cp_name**: the name of CP
+, **inst**: VnfInstance
+
+It returns fixed IP address of CP from VnfInstance.
 
 
 def apply_ext_managed_vls(hot_dict, req, grant)
@@ -305,5 +523,6 @@ It returns the result of json_merge_patch (IETF RFC 7396).
 .. _ETSI NFV-SOL VNF Deployment as VM with LCM Operation User Data: https://docs.openstack.org/tacker/latest/user/etsi_vnf_deployment_as_vm_with_user_data.html
 .. _VNF Package manual: https://docs.openstack.org/tacker/latest/user/vnf-package.html
 .. _reference of Orchestration Service API v1 "POST /v1/{tenant_id}/stacks": https://docs.openstack.org/api-ref/orchestration/v1/?expanded=create-stack-detail#create-stack
+.. _reference of Orchestration Service API v1 "PATCH /v1/{tenant_id}/stacks/{stack_name}/{stack_id}": https://docs.openstack.org/api-ref/orchestration/v1/?expanded=update-stack-patch-detail#update-stack-patch
 .. _**Vnfd** class: ../../../tacker/sol_refactored/common/vnfd_utils.py
 .. _ETSI NFV SOL003: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/003/03.03.01_60/gs_NFV-SOL003v030301p.pdf

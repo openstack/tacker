@@ -3,19 +3,19 @@
     {
         "_links": {
             "fail": {
-                "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/fail"
+                "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/fail"
             },
             "retry": {
-                "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/retry"
+                "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/retry"
             },
             "rollback": {
-                "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/rollback"
+                "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/rollback"
             },
             "self": {
-                "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5"
+                "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5"
             },
             "vnfInstance": {
-                "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_instances/e00f0d64-d7a3-459b-8a51-b402d5344296"
+                "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/e00f0d64-d7a3-459b-8a51-b402d5344296"
             }
         },
         "grantId": "30bdaa69-ef80-4545-9298-428b70ce8e4a",
@@ -163,19 +163,19 @@
     {
         "_links": {
             "fail": {
-                "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/fdd8bdf4-8f7b-4237-99d3-c87c0910571d/fail"
+                "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/fdd8bdf4-8f7b-4237-99d3-c87c0910571d/fail"
             },
             "retry": {
-                "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/fdd8bdf4-8f7b-4237-99d3-c87c0910571d/retry"
+                "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/fdd8bdf4-8f7b-4237-99d3-c87c0910571d/retry"
             },
             "rollback": {
-                "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/fdd8bdf4-8f7b-4237-99d3-c87c0910571d/rollback"
+                "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/fdd8bdf4-8f7b-4237-99d3-c87c0910571d/rollback"
             },
             "self": {
-                "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/fdd8bdf4-8f7b-4237-99d3-c87c0910571d"
+                "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/fdd8bdf4-8f7b-4237-99d3-c87c0910571d"
             },
             "vnfInstance": {
-                "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_instances/c256d5c2-f29e-474c-bced-cbc6d9e2b00b"
+                "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/c256d5c2-f29e-474c-bced-cbc6d9e2b00b"
             }
         },
         "grantId": "3aa7d8cd-6f85-4d7f-859a-eb26481157e6",

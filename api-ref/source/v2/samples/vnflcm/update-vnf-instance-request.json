@@ -1,0 +1,48 @@
+{
+    "extensions": {
+        "dummy-key": "dummy-value"
+    },
+    "metadata": {
+        "dummy-key": "dummy-value"
+    },
+    "vimConnectionInfo": {
+        "vim2": {
+            "accessInfo": {
+                "password": "dummy_password",
+                "project": "dummy_project",
+                "projectDomain": "Default",
+                "region": "RegionOne",
+                "userDomain": "Default",
+                "username": "dummy_user"
+            },
+            "extra": {
+                "dummy-key": "dummy-val"
+            },
+            "interfaceInfo": {
+                "endpoint": "http://127.0.0.1/identity/v3"
+            },
+            "vimId": "ac2d2ece-5e49-4b15-b92d-b681e9c096d8",
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
+        }
+    },
+    "vnfConfigurableProperties": {
+        "dummy-key": "dummy-value"
+    },
+    "vnfInstanceDescription": "new description",
+    "vnfInstanceName": "new name",
+    "vnfcInfoModifications": [
+        {
+            "id": "VDU1-07dfd58c-b147-4d4f-8cd6-d55f41280bb9",
+            "vnfcConfigurableProperties": {
+                "dummy-key": "dummy-value"
+            }
+        },
+        {
+            "id": "VDU1-20637c67-9fbe-4c31-b975-6bc4bcd8c35a",
+            "vnfcConfigurableProperties": {
+                "dummy-key": "dummy-value"
+            }
+        }
+    ],
+    "vnfdId": "5f846f98-849c-4df0-b57e-fabe9db2beff"
+}

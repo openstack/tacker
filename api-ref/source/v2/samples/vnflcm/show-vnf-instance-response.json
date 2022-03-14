@@ -1,10 +1,19 @@
 {
     "_links": {
+        "changeExtConn": {
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/99e2bae9-45d3-4ca1-83f4-34d44ca25bee/change_ext_conn"
+        },
+        "heal": {
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/99e2bae9-45d3-4ca1-83f4-34d44ca25bee/heal"
+        },
+        "scale": {
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/99e2bae9-45d3-4ca1-83f4-34d44ca25bee/scale"
+        },
         "self": {
-            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_instances/99e2bae9-45d3-4ca1-83f4-34d44ca25bee"
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/99e2bae9-45d3-4ca1-83f4-34d44ca25bee"
         },
         "terminate": {
-            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_instances/99e2bae9-45d3-4ca1-83f4-34d44ca25bee/terminate"
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/99e2bae9-45d3-4ca1-83f4-34d44ca25bee/terminate"
         }
     },
     "extensions": {},

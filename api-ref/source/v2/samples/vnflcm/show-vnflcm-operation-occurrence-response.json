@@ -1,19 +1,19 @@
 {
     "_links": {
         "fail": {
-            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/fail"
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/fail"
         },
         "retry": {
-            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/retry"
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/retry"
         },
         "rollback": {
-            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/rollback"
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5/rollback"
         },
         "self": {
-            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5"
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_lcm_op_occs/a790879c-05f9-4475-9c90-1677452d3eb5"
         },
         "vnfInstance": {
-            "href": "http://127.0.0.1:9890/v2/vnflcm/vnf_instances/e00f0d64-d7a3-459b-8a51-b402d5344296"
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/e00f0d64-d7a3-459b-8a51-b402d5344296"
         }
     },
     "grantId": "f848dd6c-6393-4104-8bfe-df764a042563",

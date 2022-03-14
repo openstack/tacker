@@ -281,6 +281,14 @@ Rollback VNF LCM Operation
      -
      - X
 
+.. note::
+    | In some cases, Rollback of Change external connectivity cannot recover
+      the IP address and Port Id of virtual resources.
+    | If the operation fails before performing VIM processing: updating stack,
+      the IP address and Port Id will be recovered by its rollback operation.
+    | Otherwise, dynamic IP address and Port Id are not recovered
+      by rollback operation.
+
 This manual describes the following operations as use cases for
 rollback operations.
 

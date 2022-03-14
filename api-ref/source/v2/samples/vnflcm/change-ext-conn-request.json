@@ -1,0 +1,195 @@
+{
+    "additionalParams": {
+        "dummy-key": "dummy-value"
+    },
+    "extVirtualLinks": [
+        {
+            "extCps": [
+                {
+                    "cpConfig": {
+                        "VDU1_CP1": {
+                            "cpProtocolData": [
+                                {
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "numDynamicAddresses": 1,
+                                                "subnetId": "9df49e05-4288-48d3-bbb5-9ae902d98506",
+                                                "type": "IPV4"
+                                            }
+                                        ]
+                                    },
+                                    "layerProtocol": "IP_OVER_ETHERNET"
+                                }
+                            ],
+                            "parentCpConfigId": "6274c3fa-1cec-41cc-add2-fc8808793cf7"
+                        }
+                    },
+                    "cpdId": "VDU1_CP1"
+                },
+                {
+                    "cpConfig": {
+                        "VDU2_CP1-1": {
+                            "cpProtocolData": [
+                                {
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "numDynamicAddresses": 1,
+                                                "subnetId": "9df49e05-4288-48d3-bbb5-9ae902d98506",
+                                                "type": "IPV4"
+                                            }
+                                        ]
+                                    },
+                                    "layerProtocol": "IP_OVER_ETHERNET"
+                                }
+                            ],
+                            "linkPortId": "315a2b77-8076-49df-84fe-45579faf4085",
+                            "parentCpConfigId": "99f8ba42-3619-4fbd-81a5-999c3767237b"
+                        }
+                    },
+                    "cpdId": "VDU2_CP1-1"
+                },
+                {
+                    "cpConfig": {
+                        "VDU2_CP1-2": {
+                            "cpProtocolData": [
+                                {
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "numDynamicAddresses": 1,
+                                                "subnetId": "9df49e05-4288-48d3-bbb5-9ae902d98506",
+                                                "type": "IPV4"
+                                            }
+                                        ]
+                                    },
+                                    "layerProtocol": "IP_OVER_ETHERNET"
+                                }
+                            ],
+                            "linkPortId": "63e41d9c-2b34-45e9-be79-13bdf9f8b3a3",
+                            "parentCpConfigId": "3b55b051-c5cb-41cf-bc0e-ea71e95d2636"
+                        }
+                    },
+                    "cpdId": "VDU2_CP1-2"
+                }
+            ],
+            "extLinkPorts": [
+                {
+                    "id": "315a2b77-8076-49df-84fe-45579faf4085",
+                    "resourceHandle": {
+                        "resourceId": "1cb1fb17-1a8f-4052-8599-ec6858da3659"
+                    }
+                },
+                {
+                    "id": "63e41d9c-2b34-45e9-be79-13bdf9f8b3a3",
+                    "resourceHandle": {
+                        "resourceId": "dummy-id"
+                    }
+                }
+            ],
+            "id": "38a38351-fbed-4637-8dcd-01ca1f69d4bb",
+            "resourceId": "bbe38e96-8395-4b7f-a7da-67058922df1c",
+            "resourceProviderId": "Company",
+            "vimConnectionId": "defb2f96-5670-4bef-8036-27bf61267fc1"
+        },
+        {
+            "extCps": [
+                {
+                    "cpConfig": {
+                        "VDU1_CP2": {
+                            "cpProtocolData": [
+                                {
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "numDynamicAddresses": 1,
+                                                "subnetId": "775cdf14-a942-4358-a3f2-60ad423f6ad2",
+                                                "type": "IPV4"
+                                            }
+                                        ]
+                                    },
+                                    "layerProtocol": "IP_OVER_ETHERNET"
+                                }
+                            ],
+                            "parentCpConfigId": "c09646b2-8a91-4af3-8260-71cfa865a5b1"
+                        }
+                    },
+                    "cpdId": "VDU1_CP2"
+                },
+                {
+                    "cpConfig": {
+                        "VDU2_CP2": {
+                            "cpProtocolData": [
+                                {
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [
+                                            {
+                                                "fixedAddresses": [
+                                                    "100.100.100.12"
+                                                ],
+                                                "subnetId": "775cdf14-a942-4358-a3f2-60ad423f6ad2",
+                                                "type": "IPV4"
+                                            },
+                                            {
+                                                "numDynamicAddresses": 1,
+                                                "subnetId": "15cd2e7e-add5-42cd-b790-2fe734fcc7dc",
+                                                "type": "IPV6"
+                                            }
+                                        ],
+                                        "macAddress": "fa:16:3e:fa:22:75"
+                                    },
+                                    "layerProtocol": "IP_OVER_ETHERNET"
+                                }
+                            ],
+                            "parentCpConfigId": "40820a06-be32-4ea1-ae38-5f164c8de178"
+                        }
+                    },
+                    "cpdId": "VDU2_CP2"
+                }
+            ],
+            "id": "97a82200-328a-44f6-98cb-bfdf27c359c1",
+            "resourceId": "b47d25bd-f1d8-4136-b7e7-ac8754977661",
+            "resourceProviderId": "Company",
+            "vimConnectionId": "defb2f96-5670-4bef-8036-27bf61267fc1"
+        }
+    ],
+    "vimConnectionInfo": {
+        "vim1": {
+            "accessInfo": {
+                "password": "devstack",
+                "project": "nfv",
+                "projectDomain": "Default",
+                "region": "RegionOne",
+                "userDomain": "Default",
+                "username": "nfv_user"
+            },
+            "extra": {
+                "new-key": "new-val"
+            },
+            "interfaceInfo": {
+                "endpoint": "http://localhost/identity/v3"
+            },
+            "vimId": "defb2f96-5670-4bef-8036-27bf61267fc1",
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
+        },
+        "vim2": {
+            "accessInfo": {
+                "password": "dummy_password",
+                "project": "dummy_project",
+                "projectDomain": "Default",
+                "region": "RegionOne",
+                "userDomain": "Default",
+                "username": "dummy_user"
+            },
+            "extra": {
+                "dummy-key": "dummy-val"
+            },
+            "interfaceInfo": {
+                "endpoint": "http://localhost/identity/v3"
+            },
+            "vimId": "c8dbc7c0-a4f4-4bff-8075-4cb555e63b7b",
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
+        }
+    }
+}

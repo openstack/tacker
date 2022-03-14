@@ -1,0 +1,8 @@
+{
+    "additionalParams": {
+        "dummy-key": "dummy-value"
+    },
+    "aspectId": "VDU1_scale",
+    "numberOfSteps": 1,
+    "type": "SCALE_OUT"
+}
