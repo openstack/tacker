@@ -507,6 +507,15 @@
       - ^contrib/.*$
 
 - job:
+    name: tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
+    parent: tacker-functional-devstack-multinode-sol-kubernetes
+    description: |
+      Multinodes job for SOL Kubernetes Multi tenant devstack-based functional tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-sol-kubernetes-multi-tenant
+
+- job:
     name: tacker-functional-devstack-multinode-libs-master
     parent: tacker-functional-devstack-multinode-legacy
     description: |
@@ -532,3 +541,4 @@
         - tacker-functional-devstack-multinode-libs-master
         - tacker-functional-devstack-multinode-sol-v2
         - tacker-functional-devstack-multinode-sol-multi-tenant
+        - tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
