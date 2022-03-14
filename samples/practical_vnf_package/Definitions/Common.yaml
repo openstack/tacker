@@ -1,0 +1,72 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: VNF template definition
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+
+node_types:
+  Sample.VNF.Node:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id:
+        type: string
+        default: '3b3c61e4-26b6-4686-80fc-e9ff83010c08'
+      descriptor_version:
+        type: string
+        constraints: [ valid_values: [ '1.0' ] ]
+        default: '1.0'
+      provider:
+        type: string
+        constraints: [ valid_values: [ Sample ] ]
+        default: Sample
+      product_name:
+        type: string
+        constraints: [ valid_values: [ Node ] ]
+        default: Node
+      software_version:
+        type: string
+        constraints: [ valid_values: [ '10.1' ] ]
+        default: '10.1'
+      vnfm_info:
+        type: list
+        entry_schema:
+          type: string
+          constraints: [ valid_values: [ Tacker ] ]
+        default: [ Tacker ]
+      flavour_id:
+        type: string
+        constraints: [ valid_values: [ ha, scalable ] ]
+        default: ha
+      flavour_description:
+        type: string
+        default: 'vnf'
+    requirements:
+      - VNF0_extnet0:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [ 0, 1 ]
+      - VNF1_extnet0:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [ 0, 1 ]
+    interfaces:
+      Vnflcm:
+        type: tosca.interfaces.nfv.Vnflcm
+        instantiate: []
+        instantiate_start: []
+        instantiate_end: []
+        scale: []
+        scale_start: []
+        scale_end: []
+        heal: []
+        heal_start: []
+        heal_end: []
+        terminate: []
+        terminate_start: []
+        terminate_end: []
+        modify_information: []
+        modify_information_start: []
+        modify_information_end: []
+

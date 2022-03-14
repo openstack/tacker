@@ -1,0 +1,391 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: Sample VNF default DF
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - Common.yaml
+
+topology_template:
+  inputs:
+    descriptor_id:
+      type: string
+    descriptor_version:
+      type: string
+    provider:
+      type: string
+    product_name:
+      type: string
+    software_version:
+      type: string
+    vnfm_info:
+      type: list
+      entry_schema:
+        type: string
+    flavour_id:
+      type: string
+    flavour_description:
+      type: string
+    configurable_properties:
+      type: map
+
+  substitution_mappings:
+    node_type: Sample.VNF.Node
+    properties:
+      flavour_id: scalable
+    requirements:
+      VDU0_extnet: [ VDU0_CP1, external_virtual_link ]
+      VDU1_extnet: [ VDU1_CP1, external_virtual_link ]
+      VDU2_extnet: [ VDU2_CP1, external_virtual_link ]
+
+  node_templates:
+    VNF:
+      type: Sample.VNF.Node
+      properties:
+        flavour_description: 'scalable'
+        configurable_properties:
+          is_autoscale_enabled: false
+          is_autoheal_enabled: false
+        vnfm_info:
+          - Tacker
+      interfaces:
+        Vnflcm:
+          instantiate: []
+          instantiate_start: []
+          instantiate_end: []
+          scale: []
+          scale_start: []
+          scale_end: []
+          heal: []
+          heal_start: []
+          heal_end: []
+          terminate: []
+          terminate_start: []
+          terminate_end: []
+          modify_information: []
+          modify_information_start: []
+          modify_information_end: []
+
+    VDU_0:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VDU_0
+        description: VDU_0
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+        sw_image_data:
+          name: sample_image
+          version: '1.0'
+          checksum:
+            algorithm: sha-512
+            hash: 6513f21e44aa3da349f248188a44bc304a3653a04122d8fb4535423c8e1d14cd6a153f735bb0982e2161b5b5186106570c17a9e58b64dd39390617cd5a350f78
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 0 GB
+          size: 1869 MB
+      capabilities:
+        virtual_compute:
+          properties:
+            requested_additional_capabilities:
+              properties:
+                requested_additional_capability_name: sample_flavor
+                support_mandatory: true
+                target_performance_parameters:
+                  entry_schema: test
+            virtual_memory:
+              virtual_mem_size: 512 MB
+            virtual_cpu:
+              num_virtual_cpu: 1
+            virtual_local_storage:
+              - size_of_storage: 1 GB
+
+    VDU_1:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VDU_1
+        description: VDU_1
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+        sw_image_data:
+          name: sample_image
+          version: '1.0'
+          checksum:
+            algorithm: sha-512
+            hash: 6513f21e44aa3da349f248188a44bc304a3653a04122d8fb4535423c8e1d14cd6a153f735bb0982e2161b5b5186106570c17a9e58b64dd39390617cd5a350f78
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 0 GB
+          size: 1869 MB
+      capabilities:
+        virtual_compute:
+          properties:
+            requested_additional_capabilities:
+              properties:
+                requested_additional_capability_name: sample_flavor
+                support_mandatory: true
+                target_performance_parameters:
+                  entry_schema: test
+            virtual_memory:
+              virtual_mem_size: 512 MB
+            virtual_cpu:
+              num_virtual_cpu: 1
+            virtual_local_storage:
+              - size_of_storage: 1 GB
+
+    VDU_2:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VDU_2
+        description: VDU_2
+        vdu_profile:
+          min_number_of_instances: 0
+          max_number_of_instances: 1
+        sw_image_data:
+          name: sample_image
+          version: '1.0'
+          checksum:
+            algorithm: sha-512
+            hash: 6513f21e44aa3da349f248188a44bc304a3653a04122d8fb4535423c8e1d14cd6a153f735bb0982e2161b5b5186106570c17a9e58b64dd39390617cd5a350f78
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 0 GB
+          size: 1869 MB
+      capabilities:
+        virtual_compute:
+          properties:
+            requested_additional_capabilities:
+              properties:
+                requested_additional_capability_name: sample_flavor
+                support_mandatory: true
+                target_performance_parameters:
+                  entry_schema: test
+            virtual_memory:
+              virtual_mem_size: 512 MB
+            virtual_cpu:
+              num_virtual_cpu: 1
+            virtual_local_storage:
+              - size_of_storage: 1 GB
+
+    VDU0_CP0:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        order: 0
+        bitrate_requirement: 1
+        vnic_type: normal
+        layer_protocols: [ ipv4 ]
+        protocol:
+          - associated_layer_protocol: ipv4
+            address_data:
+              - address_type: ip_address
+                l3_address_data:
+                  ip_address_assignment: true
+                  floating_ip_activated: false
+      requirements:
+        - virtual_binding: VDU_0
+        - virtual_link: int_net
+
+    VDU0_CP1:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        order: 0
+        bitrate_requirement: 1
+        vnic_type: normal
+        layer_protocols: [ ipv4 ]
+        protocol:
+          - associated_layer_protocol: ipv4
+            address_data:
+              - address_type: ip_address
+                l3_address_data:
+                  ip_address_assignment: true
+                  floating_ip_activated: false
+      requirements:
+        - virtual_binding: VDU_0
+
+    VDU1_CP0:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        order: 0
+        bitrate_requirement: 1
+        vnic_type: normal
+        layer_protocols: [ ipv4 ]
+        protocol:
+          - associated_layer_protocol: ipv4
+            address_data:
+              - address_type: ip_address
+                l3_address_data:
+                  ip_address_assignment: true
+                  floating_ip_activated: false
+      requirements:
+        - virtual_binding: VDU_1
+        - virtual_link: int_net
+
+    VDU1_CP1:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        order: 0
+        bitrate_requirement: 1
+        vnic_type: normal
+        layer_protocols: [ ipv4 ]
+        protocol:
+          - associated_layer_protocol: ipv4
+            address_data:
+              - address_type: ip_address
+                l3_address_data:
+                  ip_address_assignment: true
+                  floating_ip_activated: false
+      requirements:
+        - virtual_binding: VDU_1
+
+    VDU2_CP0:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        order: 0
+        bitrate_requirement: 1
+        vnic_type: normal
+        layer_protocols: [ ipv4 ]
+        protocol:
+          - associated_layer_protocol: ipv4
+            address_data:
+              - address_type: ip_address
+                l3_address_data:
+                  ip_address_assignment: true
+                  floating_ip_activated: false
+      requirements:
+        - virtual_binding: VDU_2
+        - virtual_link: int_net
+
+    VDU2_CP1:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        order: 0
+        bitrate_requirement: 1
+        vnic_type: normal
+        layer_protocols: [ ipv4 ]
+        protocol:
+          - associated_layer_protocol: ipv4
+            address_data:
+              - address_type: ip_address
+                l3_address_data:
+                  ip_address_assignment: true
+                  floating_ip_activated: false
+      requirements:
+        - virtual_binding: VDU_2
+
+    int_net:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        vl_profile:
+          max_bitrate_requirements:
+            root: 1000000
+          min_bitrate_requirements:
+            root: 100000
+          virtual_link_protocol_data:
+            - associated_layer_protocol: ipv4
+              l2_protocol_data:
+                network_type: vxlan
+              l3_protocol_data:
+                ip_version: ipv4
+                cidr: '192.168.1.0/24'
+
+  groups:
+    VDU_AntiAffinityGroup:
+      type: tosca.groups.nfv.PlacementGroup
+      members: [ VDU_0, VDU_1, VDU_2 ]
+
+  policies:
+    - VDU_placement_policy:
+        type: tosca.policies.nfv.AntiAffinityRule
+        targets: [ VDU_AntiAffinityGroup ]
+        properties:
+          scope: nfvi_node
+
+    - vdu_scale:
+        type: tosca.policies.nfv.ScalingAspects
+        properties:
+          aspects:
+            VDU_2:
+              name: VDU_2
+              description: VDU_2
+              max_scale_level: 1
+              step_deltas:
+                - delta_1
+
+    - vdu_0_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ VDU_0 ]
+
+    - vdu_1_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ VDU_1 ]
+
+    - vdu_2_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 0
+        targets: [ VDU_2 ]
+
+    - vdu_2_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: VDU_2
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ VDU_2 ]
+
+    - instantiation_levels:
+        type: tosca.policies.nfv.InstantiationLevels
+        properties:
+          levels:
+            r-node-min:
+              description: vdu-min structure
+              scale_info:
+                VDU_2:
+                  scale_level: 0
+            r-node-max:
+              description: vdu-max structure
+              scale_info:
+                VDU_2:
+                  scale_level: 1
+
+    - vdu_0_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            r-node-min:
+              number_of_instances: 1
+            r-node-max:
+              number_of_instances: 1
+        targets: [ VDU_0 ]
+
+    - vdu_1_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            r-node-min:
+              number_of_instances: 1
+            r-node-max:
+              number_of_instances: 1
+        targets: [ VDU_1 ]
+
+    - vdu_2_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            r-node-min:
+              number_of_instances: 0
+            r-node-max:
+              number_of_instances: 1
+        targets: [ VDU_2 ]
