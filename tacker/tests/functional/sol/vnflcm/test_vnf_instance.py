@@ -598,8 +598,9 @@ class VnfLcmTest(base.BaseTackerTest):
 
         self.addCleanup(self._delete_vnf_instance, vnf_instance_0['id'])
 
-        # Create vnf instance 02 and instantiate this one.
-        vnf_instance_name = "List-VNF-Instance-1"
+        # Create vnf instance 02 with 'VNF' as name and instantiate this one.
+        # We can verify if vnf instance can be created with 'VNF' name itself.
+        vnf_instance_name = "VNF"
         resp, vnf_instance_1 = self._create_vnf_instance(self.vnfd_id_1,
                 vnf_instance_name=vnf_instance_name)
 
