@@ -283,6 +283,8 @@
     host-vars:
       controller-tacker:
         tox_envlist: dsvm-functional-sol-multi-tenant
+    vars:
+      setup_multi_tenant: true
 
 - job:
     name: tacker-functional-devstack-multinode-sol-separated-nfvo
@@ -514,6 +516,8 @@
     host-vars:
       controller-tacker:
         tox_envlist: dsvm-functional-sol-kubernetes-multi-tenant
+    vars:
+      setup_multi_tenant: true
 
 - job:
     name: tacker-functional-devstack-multinode-libs-master
