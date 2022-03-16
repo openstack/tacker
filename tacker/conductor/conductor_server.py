@@ -108,6 +108,10 @@ cfg.CONF.register_opts(OPTS, 'keystone_authtoken')
 LOG = logging.getLogger(__name__)
 
 
+def config_opts():
+    return [('keystone_authtoken', OPTS)]
+
+
 def _delete_csar(context, vnf_package):
     # Delete from glance store
     glance_store.delete_csar(context, vnf_package.id,

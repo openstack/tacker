@@ -23,6 +23,11 @@ from oslo_log import log as logging
 LOG = logging.getLogger(__name__)
 
 
+def config_opts():
+    return [('connect_vnf_packages', VnfPackageRequest.OPTS),
+            ('connect_grant', GrantRequest.OPTS)]
+
+
 class UndefinedExternalSettingException(Exception):
     pass
 

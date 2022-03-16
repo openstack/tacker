@@ -30,6 +30,11 @@ from tacker import context
 LOG = logging.getLogger(__name__)
 
 
+def config_opts():
+    return [('authentication', _AuthManager.OPTS),
+            ('authentication', _AuthValidateManager.auth_opts)]
+
+
 class TackerKeystoneContext(base.ConfigurableMiddleware):
     """Make a request context from keystone headers."""
 
@@ -439,7 +444,7 @@ class _AuthValidateBasic(_AuthBase):
 
 class _AuthValidateManager:
 
-    atuh_opts = [
+    auth_opts = [
         cfg.StrOpt('token_type',
                 default=None,
                 choices=['Bearer', 'Basic'],
@@ -454,7 +459,7 @@ class _AuthValidateManager:
                 default=None,
                 help="URL of the authorization server")
     ]
-    cfg.CONF.register_opts(atuh_opts, group='authentication')
+    cfg.CONF.register_opts(auth_opts, group='authentication')
 
     def __init__(self):
         self.__manages = {}

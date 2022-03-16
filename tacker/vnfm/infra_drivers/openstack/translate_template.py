@@ -50,6 +50,10 @@ ALARMING_POLICY = 'tosca.policies.tacker.Alarming'
 SCALING_POLICY = 'tosca.policies.tacker.Scaling'
 
 
+def config_opts():
+    return [('openstack_vim', OPTS)]
+
+
 class TOSCAToHOT(object):
     """Convert TOSCA template to HOT template."""
 
