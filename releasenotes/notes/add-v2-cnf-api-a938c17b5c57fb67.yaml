@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Support Container based VNF operation with the following new version of
+    RESTful APIs based on ETSI NFV specifications.
+    Version "2.0.0" API of Instantiate VNF, Terminate VNF, and Change Current
+    VNF Package support Kubernetes vim. Other APIs besides Scale
+    VNF and Heal VNF, such as Create VNF, Delete VNF, List VNF, Show VNF,
+    and so on have already supported Kubernetes vim because they use
+    common processing that does not depend on vim type: OpenStack, Kubernetes.
+    Version "2.0.0" API of Scale VNF and Heal VNF with Kubernetes vim will
+    be supported in future.

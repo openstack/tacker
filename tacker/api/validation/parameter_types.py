@@ -117,10 +117,10 @@ valid_description_regex = valid_description_regex_base % (
 keyvalue_pairs = {
     'type': 'object',
     'patternProperties': {
-        '^[a-zA-Z0-9-_:. /]{1,255}$': {
+        '^[a-zA-Z0-9-_:. /]{1,1024}$': {
             'anyOf': [
                 {'type': 'array'},
-                {'type': 'string', 'maxLength': 255},
+                {'type': 'string', 'maxLength': 1024},
                 {'type': 'object'},
                 {'type': 'null'},
                 {'type': 'boolean'}

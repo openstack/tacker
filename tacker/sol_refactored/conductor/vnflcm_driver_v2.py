@@ -16,15 +16,19 @@
 import os
 import pickle
 import subprocess
+from urllib.parse import urlparse
+import urllib.request as urllib2
 
 from oslo_log import log as logging
 from oslo_utils import uuidutils
+import yaml
 
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored.common import vim_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
+from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes
 from tacker.sol_refactored.infra_drivers.openstack import openstack
 from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
@@ -405,8 +409,11 @@ class VnfLcmDriverV2(object):
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
             driver.instantiate(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'kubernetes':  # k8s
+            driver = kubernetes.Kubernetes()
+            driver.instantiate(req, inst, grant_req, grant, vnfd)
         else:
-            # only support openstack at the moment
+            # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
 
         inst.instantiationState = 'INSTANTIATED'
@@ -557,8 +564,11 @@ class VnfLcmDriverV2(object):
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
             driver.terminate(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'kubernetes':  # k8s
+            driver = kubernetes.Kubernetes()
+            driver.terminate(req, inst, grant_req, grant, vnfd)
         else:
-            # only support openstack at the moment
+            # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
 
         inst.instantiationState = 'NOT_INSTANTIATED'
@@ -959,10 +969,15 @@ class VnfLcmDriverV2(object):
     def change_vnfpkg_grant(self, grant_req, req, inst, vnfd):
         inst_info = inst.instantiatedVnfInfo
         grant_req.flavourId = inst_info.flavourId
-        target_vdu_ids = [
-            vdu_param.get('vdu_id')
-            for vdu_param in req.additionalParams.get('vdu_params', [])
-        ]
+        if req.additionalParams.get('vdu_params'):
+            target_vdu_ids = [
+                vdu_param.get(
+                    'vdu_id') for vdu_param in req.additionalParams.get(
+                    'vdu_params')]
+        else:
+            if inst_info.obj_attr_is_set('vnfcResourceInfo'):
+                target_vdu_ids = [inst_vnc.vduId for inst_vnc in
+                                  inst_info.vnfcResourceInfo]
 
         if req.additionalParams.get('upgrade_type') == 'RollingUpdate':
             update_reses = []
@@ -1012,6 +1027,70 @@ class VnfLcmDriverV2(object):
             # not reach here at the moment
             pass
 
+    def _pre_check_for_change_vnfpkg(self, context, req, inst, vnfd):
+        def _get_file_content(file_path):
+            if ((urlparse(file_path).scheme == 'file') or
+                    (bool(urlparse(file_path).scheme) and
+                     bool(urlparse(file_path).netloc))):
+                with urllib2.urlopen(file_path) as file_object:
+                    file_content = file_object.read()
+            else:
+                with open(file_path, 'rb') as file_object:
+                    file_content = file_object.read()
+            return file_content
+
+        vnf_artifact_files = vnfd.get_vnf_artifact_files()
+        if req.additionalParams.get('lcm-kubernetes-def-files') is None:
+            target_k8s_files = inst.metadata.get('lcm-kubernetes-def-files')
+        else:
+            target_k8s_files = []
+            new_file_paths = req.additionalParams.get(
+                'lcm-kubernetes-def-files')
+            old_vnfd = self.nfvo_client.get_vnfd(
+                context=context, vnfd_id=inst.vnfdId, all_contents=False)
+            old_file_paths = inst.metadata.get('lcm-kubernetes-def-files')
+
+            for new_file_path in new_file_paths:
+                new_file_infos = [
+                    {"kind": content.get('kind'),
+                     "name": content.get('metadata', {}).get('name', '')}
+                    for content in list(yaml.safe_load_all(
+                        _get_file_content(os.path.join(
+                            vnfd.csar_dir, new_file_path))))]
+                for old_file_path in old_file_paths:
+                    find_flag = False
+                    old_file_infos = [
+                        {"kind": content.get('kind'),
+                         "name": content.get('metadata', {}).get('name', '')}
+                        for content in list(yaml.safe_load_all(
+                            _get_file_content(os.path.join(
+                                old_vnfd.csar_dir, old_file_path))))]
+                    resources = [info for info in old_file_infos
+                                 if info in new_file_infos]
+                    if len(resources) != 0:
+                        if len(resources) != len(old_file_infos):
+                            raise sol_ex.UnmatchedFileException(
+                                new_file_path=new_file_path)
+                        if 'Deployment' not in [res.get(
+                                'kind') for res in resources]:
+                            raise sol_ex.UnSupportedKindException(
+                                new_file_path=new_file_path)
+                        old_file_paths.remove(old_file_path)
+                        target_k8s_files.append(new_file_path)
+                        find_flag = True
+                        break
+                    continue
+                if not find_flag:
+                    raise sol_ex.NotFoundUpdateFileException(
+                        new_file_path=new_file_path)
+
+            target_k8s_files.extend(old_file_paths)
+        if set(target_k8s_files).difference(set(vnf_artifact_files)):
+            diff_files = ','.join(list(set(
+                target_k8s_files).difference(set(vnf_artifact_files))))
+            raise sol_ex.CnfDefinitionNotFound(diff_files=diff_files)
+        return target_k8s_files
+
     def change_vnfpkg_process(
             self, context, lcmocc, inst, grant_req, grant, vnfd):
         inst_saved = inst.obj_clone()
@@ -1024,8 +1103,20 @@ class VnfLcmDriverV2(object):
             except Exception as ex:
                 lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
                 raise Exception from ex
+        elif vim_info.vimType == 'kubernetes':  # k8s
+            target_k8s_files = self._pre_check_for_change_vnfpkg(
+                context, req, inst, vnfd)
+            update_req = req.obj_clone()
+            update_req.additionalParams[
+                'lcm-kubernetes-def-files'] = target_k8s_files
+            driver = kubernetes.Kubernetes()
+            try:
+                driver.change_vnfpkg(update_req, inst, grant_req, grant, vnfd)
+            except Exception as ex:
+                lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
+                raise Exception from ex
         else:
-            # only support openstack at the moment
+            # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
 
     def change_ext_conn_rollback(self, context, lcmocc, inst, grant_req,
@@ -1047,6 +1138,10 @@ class VnfLcmDriverV2(object):
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver.change_vnfpkg_rollback(
                 req, inst, grant_req, grant, vnfd, lcmocc)
+        elif vim_info.vimType == 'kubernetes':  # k8s
+            driver = kubernetes.Kubernetes()
+            driver.change_vnfpkg_rollback(
+                req, inst, grant_req, grant, vnfd, lcmocc)
         else:
-            # only support openstack at the moment
+            # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
