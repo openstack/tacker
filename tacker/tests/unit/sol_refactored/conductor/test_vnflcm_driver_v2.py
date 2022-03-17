@@ -627,6 +627,29 @@ _modify_vnfc_info_example = {
     ]
 }
 
+# change_vnfpkg example
+_change_vnfpkg_example = {
+    "vnfdId": '61723406-6634-2fc0-060a-0b11104d2667',
+    "additionalParams": {
+        "upgrade_type": "RollingUpdate",
+        "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_old_vnf.py",
+        "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
+        "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_new_vnf.py",
+        "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
+        "vdu_params": [{
+            "vdu_id": "VDU1",
+            "old_vnfc_param": {
+                "cp_name": "CP1",
+                "username": "ubuntu",
+                "password": "ubuntu"},
+            "new_vnfc_param": {
+                "cp_name": "CP1",
+                "username": "ubuntu",
+                "password": "ubuntu"},
+        }]
+    }
+}
+
 
 class TestVnfLcmDriverV2(base.BaseTestCase):
 
@@ -1688,3 +1711,193 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         for key, value in check_reses.items():
             for name, ids in value.items():
                 self.assertEqual(len(expected_res_ids[key][name]), len(ids))
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_change_vnfpkg_grant_update_reses(self, mocked_grant):
+        # prepare
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_example)
+        inst.instantiatedVnfInfo = inst_info
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_vnfpkg_example)
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.PROCESSING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_VNFPKG,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run change_vnfpkg_grant
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_1)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': '61723406-6634-2fc0-060a-0b11104d2667',
+            'operation': 'CHANGE_VNFPKG',
+            'isAutomaticInvocation': False
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        update_reses = grant_req['updateResources']
+        target_vdu_list = [
+            vdu_param.get(
+                'vdu_id') for vdu_param in req.additionalParams.get(
+                'vdu_params')]
+        for i in range(len(update_reses)):
+            self.assertEqual('COMPUTE', update_reses[i]['type'])
+            for target_vdu in target_vdu_list:
+                self.assertEqual(target_vdu,
+                                 update_reses[i]['resourceTemplateId'])
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_change_vnfpkg_grant_add_reses(self, mocked_grant):
+        # prepare
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_example)
+        inst.instantiatedVnfInfo = inst_info
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_vnfpkg_example)
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.PROCESSING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_VNFPKG,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run change_vnfpkg_grant
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_1)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': '61723406-6634-2fc0-060a-0b11104d2667',
+            'operation': 'CHANGE_VNFPKG',
+            'isAutomaticInvocation': False
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        add_reses = grant_req['addResources']
+        for inst_vnc in inst_info.vnfcResourceInfo:
+            nodes = self.vnfd_1.get_vdu_nodes(inst_info.flavourId)
+            vdu_storage_names = self.vnfd_1.get_vdu_storages(
+                nodes[inst_vnc.vduId])
+            for i in range(len(add_reses)):
+                self.assertEqual('STORAGE', add_reses[i]['type'])
+                for vdu_storage_name in vdu_storage_names:
+                    self.assertEqual(vdu_storage_name,
+                                     add_reses[i]['resourceTemplateId'])
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_change_vnfpkg_grant_remove_reses(self, mocked_grant):
+        # prepare
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_example)
+        inst.instantiatedVnfInfo = inst_info
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_vnfpkg_example)
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.PROCESSING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_VNFPKG,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+
+        mocked_grant.return_value = objects.GrantV1()
+
+        # run change_vnfpkg_grant
+        grant_req, _ = self.driver.grant(
+            self.context, lcmocc, inst, self.vnfd_1)
+
+        # check grant_req is constructed according to intention
+        grant_req = grant_req.to_dict()
+        expected_fixed_items = {
+            'vnfInstanceId': inst.id,
+            'vnfLcmOpOccId': lcmocc.id,
+            'vnfdId': '61723406-6634-2fc0-060a-0b11104d2667',
+            'operation': 'CHANGE_VNFPKG',
+            'isAutomaticInvocation': False
+        }
+        for key, value in expected_fixed_items.items():
+            self.assertEqual(value, grant_req[key])
+
+        remove_reses = grant_req['removeResources']
+        inst_stor_info = inst_info.virtualStorageResourceInfo
+        check_reses = []
+        for str_info in inst_stor_info:
+            check_res = {
+                'resourceId': str_info.storageResource.resourceId,
+                'vimLevelResourceType':
+                    str_info.storageResource.vimLevelResourceType
+            }
+            check_reses.append(check_res)
+            for i in range(len(remove_reses)):
+                self.assertEqual('STORAGE', remove_reses[i]['type'])
+                self.assertEqual(str_info.virtualStorageDescId,
+                                 remove_reses[i]['resourceTemplateId'])
+        for j in range(len(check_reses)):
+            for k in range(len(remove_reses)):
+                if j == k:
+                    self.assertEqual(
+                        check_reses[j]['resourceId'],
+                        remove_reses[j]['resource']['resourceId'])
+                    self.assertEqual(
+                        check_reses[j]['vimLevelResourceType'],
+                        remove_reses[j]['resource']['vimLevelResourceType'])

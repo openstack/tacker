@@ -914,6 +914,7 @@ _inst_info_example_4 = {
     "extVirtualLinkInfo": _inst_info_example_2["extVirtualLinkInfo"],
     # network resource is not changed but ports are re-receated.
     # this is for check of SOL003 all=True case.
+
     "extManagedVirtualLinkInfo": [
         {
             "id": "res_id_internalVL1",
@@ -1097,6 +1098,257 @@ _inst_info_example_4 = {
         }
     ],
     # "vnfcInfo": omitted
+}
+
+# example_5 is update VDU1 and VDU2's info from example_1.
+_inst_info_example_5 = {
+    # "flavourId", "vnfState", "scaleStatus", "maxScaleLevels" are omitted
+    # "extCpInfo": omitted
+    "extVirtualLinkInfo": [
+        {
+            "id": "bbf0932a-6142-4ea8-93cd-8059dba594a1",
+            "resourceHandle": {
+                "resourceId": "3529d333-dbcc-4d93-9b64-210647712569"
+            },
+            "extLinkPorts": [
+                {
+                    "id": "res_id_VDU2_CP1",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU2_CP1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU2_CP1"
+                },
+                {
+                    "id": "res_id_VDU1_CP1_1",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU1_CP1_1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU1_CP1_1"
+                }
+            ],
+            # "currentVnfExtCpData": omitted
+        },
+        {
+            "id": "790949df-c7b3-4926-a559-3895412f1dfe",
+            "resourceHandle": {
+                "resourceId": "367e5b3b-34dc-47f2-85b8-c39e3272893a"
+            },
+            "extLinkPorts": [
+                {
+                    "id": "res_id_VDU2_CP2",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU2_CP2",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU2_CP2"
+                },
+                {
+                    "id": "res_id_VDU1_CP2_1",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU1_CP2_1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "cp-res_id_VDU1_CP2_1"
+                }
+            ],
+            # "currentVnfExtCpData": omitted
+        }
+    ],
+    "extManagedVirtualLinkInfo": [
+        {
+            "id": "res_id_internalVL1",
+            "vnfVirtualLinkDescId": "internalVL1",
+            "networkResource": {
+                "resourceId": "res_id_internalVL1"
+            },
+            "vnfLinkPorts": [
+                {
+                    "id": "res_id_VDU2_CP3",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU2_CP3",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "VDU2_CP3-res_id_VDU2",
+                    "cpInstanceType": "VNFC_CP"
+                },
+                {
+                    "id": "res_id_VDU1_CP3_1",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU1_CP3_1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "VDU1_CP3-res_id_VDU1_1",
+                    "cpInstanceType": "VNFC_CP"
+                }
+            ]
+        }
+    ],
+    "vnfcResourceInfo": [
+        {
+            "id": "res_id_VDU1_1_update",
+            "vduId": "VDU1",
+            "computeResource": {
+                "vimConnectionId": "vim_connection_id",
+                "resourceId": "res_id_VDU1_1_update",
+                "vimLevelResourceType": "OS::Nova::Server"
+            },
+            "metadata": {
+                "current_vnfd_id": 'new_vnfd_id'
+            },
+            "storageResourceIds": [
+                "new_res_id_VirtualStorage_1"
+            ],
+            "vnfcCpInfo": [
+                {
+                    "id": "VDU1_CP1-res_id_VDU1_1",
+                    "cpdId": "VDU1_CP1",
+                    "vnfExtCpId": "cp-res_id_VDU1_CP1_1"
+                },
+                {
+                    "id": "VDU1_CP2-res_id_VDU1_1",
+                    "cpdId": "VDU1_CP2",
+                    "vnfExtCpId": "cp-res_id_VDU1_CP2_1"
+                },
+                {
+                    "id": "VDU1_CP3-res_id_VDU1_1",
+                    "cpdId": "VDU1_CP3",
+                    "vnfLinkPortId": "res_id_VDU1_CP3_1"
+                },
+                {
+                    "id": "VDU1_CP4-res_id_VDU1_1",
+                    "cpdId": "VDU1_CP4",
+                    "vnfLinkPortId": "res_id_VDU1_CP4_1"
+                },
+                {
+                    "id": "VDU1_CP5-res_id_VDU1_1",
+                    "cpdId": "VDU1_CP5",
+                    "vnfLinkPortId": "res_id_VDU1_CP5_1"
+                }
+            ],
+        },
+        {
+            "id": "res_id_VDU2",
+            "vduId": "VDU2",
+            "computeResource": {
+                "vimConnectionId": "vim_connection_id",
+                "resourceId": "res_id_VDU2",
+                "vimLevelResourceType": "OS::Nova::Server"
+            },
+            "metadata": {
+                "current_vnfd_id": 'new_vnfd_id'
+            },
+            "vnfcCpInfo": [
+                {
+                    "id": "VDU2_CP1-res_id_VDU2",
+                    "cpdId": "VDU2_CP1",
+                    "vnfExtCpId": "cp-res_id_VDU2_CP1"
+                },
+                {
+                    "id": "VDU2_CP2-res_id_VDU2",
+                    "cpdId": "VDU2_CP2",
+                    "vnfExtCpId": "cp-res_id_VDU2_CP2"
+                },
+                {
+                    "id": "VDU2_CP3-res_id_VDU2",
+                    "cpdId": "VDU2_CP3",
+                    "vnfLinkPortId": "res_id_VDU2_CP3"
+                },
+                {
+                    "id": "VDU2_CP4-res_id_VDU2",
+                    "cpdId": "VDU2_CP4",
+                    "vnfLinkPortId": "res_id_VDU2_CP4"
+                },
+                {
+                    "id": "VDU2_CP5-res_id_VDU2",
+                    "cpdId": "VDU2_CP5",
+                    "vnfLinkPortId": "res_id_VDU2_CP5"
+                }
+            ],
+        }
+    ],
+    "vnfVirtualLinkResourceInfo": [
+        {
+            "id": "res_id_internalVL3",
+            "vnfVirtualLinkDescId": "internalVL3",
+            "networkResource": {
+                "vimConnectionId": "vim_connection_id",
+                "resourceId": "res_id_internalVL3",
+                "vimLevelResourceType": "OS::Neutron::Net"
+            },
+            "vnfLinkPorts": [
+                {
+                    "id": "res_id_VDU2_CP5",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU2_CP5",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "VDU2_CP5-res_id_VDU2",
+                    "cpInstanceType": "VNFC_CP"
+                },
+                {
+                    "id": "res_id_VDU1_CP5_1",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU1_CP5_1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "VDU1_CP5-res_id_VDU1_1",
+                    "cpInstanceType": "VNFC_CP"
+                }
+            ]
+        },
+        {
+            "id": "res_id_internalVL2",
+            "vnfVirtualLinkDescId": "internalVL2",
+            "networkResource": {
+                "vimConnectionId": "vim_connection_id",
+                "resourceId": "res_id_internalVL2",
+                "vimLevelResourceType": "OS::Neutron::Net"
+            },
+            "vnfLinkPorts": [
+                {
+                    "id": "res_id_VDU2_CP4",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU2_CP4",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "VDU2_CP4-res_id_VDU2",
+                    "cpInstanceType": "VNFC_CP"
+                },
+                {
+                    "id": "res_id_VDU1_CP4_1",
+                    "resourceHandle": {
+                        "vimConnectionId": "vim_connection_id",
+                        "resourceId": "res_id_VDU1_CP4_1",
+                        "vimLevelResourceType": "OS::Neutron::Port"
+                    },
+                    "cpInstanceId": "VDU1_CP4-res_id_VDU1_1",
+                    "cpInstanceType": "VNFC_CP"
+                }
+            ]
+        }
+    ],
+    "virtualStorageResourceInfo": [
+        {
+            "id": "new_res_id_VirtualStorage_1",
+            "virtualStorageDescId": "VirtualStorage",
+            "storageResource": {
+                "vimConnectionId": "vim_connection_id",
+                "resourceId": "new_res_id_VirtualStorage_1",
+                "vimLevelResourceType": "OS::Cinder::Volume"
+            }
+        }
+    ],
 }
 
 # expected results
@@ -1878,6 +2130,95 @@ _expected_resource_changes_heal = {
         }
     ]
 }
+_expected_resource_changes_change_vnfpkg = {
+    "affectedVnfcs": [
+        {
+            "id": "res_id_VDU1_1",
+            "vduId": "VDU1",
+            "changeType": "REMOVED",
+            "computeResource": {
+                "vimConnectionId": "vim_connection_id",
+                "resourceId": "res_id_VDU1_1",
+                "vimLevelResourceType": "OS::Nova::Server"
+            },
+            "affectedVnfcCpIds": [
+                "VDU1_CP1-res_id_VDU1_1",
+                "VDU1_CP2-res_id_VDU1_1",
+                "VDU1_CP3-res_id_VDU1_1",
+                "VDU1_CP4-res_id_VDU1_1",
+                "VDU1_CP5-res_id_VDU1_1"
+            ],
+            "removedStorageResourceIds": [
+                "res_id_VirtualStorage_1"
+            ]
+        },
+        {
+            "id": "res_id_VDU1_1_update",
+            "vduId": "VDU1",
+            "changeType": "ADDED",
+            "computeResource": {
+                "vimConnectionId": "vim_connection_id",
+                "resourceId": "res_id_VDU1_1_update",
+                "vimLevelResourceType": "OS::Nova::Server"
+            },
+            "affectedVnfcCpIds": [
+                "VDU1_CP1-res_id_VDU1_1",
+                "VDU1_CP2-res_id_VDU1_1",
+                "VDU1_CP3-res_id_VDU1_1",
+                "VDU1_CP4-res_id_VDU1_1",
+                "VDU1_CP5-res_id_VDU1_1"
+            ],
+            "addedStorageResourceIds": [
+                "new_res_id_VirtualStorage_1"
+            ],
+            'metadata': {
+                'current_vnfd_id': 'new_vnfd_id'
+            }
+        },
+        {
+            "id": "res_id_VDU2",
+            "vduId": "VDU2",
+            "changeType": "MODIFIED",
+            "computeResource": {
+                "vimConnectionId": "vim_connection_id",
+                "resourceId": "res_id_VDU2",
+                "vimLevelResourceType": "OS::Nova::Server"
+            },
+            "affectedVnfcCpIds": [
+                "VDU2_CP1-res_id_VDU2",
+                "VDU2_CP2-res_id_VDU2",
+                "VDU2_CP3-res_id_VDU2",
+                "VDU2_CP4-res_id_VDU2",
+                "VDU2_CP5-res_id_VDU2"
+            ],
+            'metadata': {
+                'current_vnfd_id': 'new_vnfd_id'
+            }
+        }
+    ],
+    "affectedVirtualStorages": [
+        {
+            "id": "new_res_id_VirtualStorage_1",
+            "virtualStorageDescId": "VirtualStorage",
+            "changeType": "ADDED",
+            "storageResource": {
+                "vimConnectionId": "vim_connection_id",
+                "resourceId": "new_res_id_VirtualStorage_1",
+                "vimLevelResourceType": "OS::Cinder::Volume"
+            }
+        },
+        {
+            "id": "res_id_VirtualStorage_1",
+            "virtualStorageDescId": "VirtualStorage",
+            "changeType": "REMOVED",
+            "storageResource": {
+                "vimConnectionId": "vim_connection_id",
+                "resourceId": "res_id_VirtualStorage_1",
+                "vimLevelResourceType": "OS::Cinder::Volume"
+            }
+        }
+    ]
+}
 
 
 class TestLcmOpOccUtils(base.BaseTestCase):
@@ -2060,4 +2401,26 @@ class TestLcmOpOccUtils(base.BaseTestCase):
         lcmocc = lcmocc.to_dict()
         self.assertEqual(
             _expected_resource_changes_heal,
+            self._sort_resource_changes(lcmocc['resourceChanges']))
+
+    def test_update_lcmocc_change_vnfpkg(self):
+        # prepare
+        inst_saved = objects.VnfInstanceV2()
+        inst_saved.instantiatedVnfInfo = (
+            objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                _inst_info_example_1))
+        inst_saved.vnfdId = 'old_vnfd_id'
+        inst = objects.VnfInstanceV2()
+        inst.instantiatedVnfInfo = (
+            objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                _inst_info_example_5))
+        lcmocc = objects.VnfLcmOpOccV2(operation='CHANGE_VNFPKG')
+
+        # execute update_lcmocc
+        lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
+
+        # check resourceChanges
+        lcmocc = lcmocc.to_dict()
+        self.assertEqual(
+            _expected_resource_changes_change_vnfpkg,
             self._sort_resource_changes(lcmocc['resourceChanges']))

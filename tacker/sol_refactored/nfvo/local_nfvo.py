@@ -210,6 +210,52 @@ class LocalNfvo(object):
                 softwareImages=vim_sw_images
             )
 
+    def change_vnfpkg_grant(self, context, grant_req, grant_res):
+        attr_list = ['updateResources', 'addResources', 'removeResources']
+        for attr in attr_list:
+            if grant_req.obj_attr_is_set(attr):
+                res_list = []
+                for res_def in grant_req[attr]:
+                    g_info = objects.GrantInfoV1(res_def.id)
+                    res_list.append(g_info)
+                    grant_res[attr] = res_list
+        vnfd = self.get_vnfd(context, grant_req.vnfdId)
+        sw_image_data = vnfd.get_sw_image_data(grant_req.flavourId)
+        target_vdu_ids = [res['resourceTemplateId'] for
+                          res in grant_req['updateResources']]
+        vdu_nodes = {key: value for key, value in vnfd.get_vdu_nodes(
+            grant_req.flavourId).items() if key in target_vdu_ids}
+        target_storage_nodes = []
+        for key, value in vdu_nodes.items():
+            target_storage_nodes.extend(vnfd.get_vdu_storages(value))
+
+        vim_sw_images = []
+        for res_id, sw_data in sw_image_data.items():
+            if 'file' in sw_data and (res_id in target_storage_nodes or
+                                      res_id in target_vdu_ids):
+                vim_info = self._get_vim_info(context, grant_req)
+                if vim_info is None:
+                    msg = "No VimConnectionInfo to create glance image"
+                    LOG.exception(msg)
+                    raise sol_ex.LocalNfvoGrantFailed(sol_detail=msg)
+                try:
+                    image = self._glance_create_image(
+                        vim_info, vnfd, sw_data, grant_req.vnfInstanceId)
+                except Exception:
+                    msg = "glance image create failed"
+                    LOG.exception(msg)
+                    raise sol_ex.LocalNfvoGrantFailed(sol_detail=msg)
+            else:
+                image = sw_data['name']
+            vim_sw_image = objects.VimSoftwareImageV1(
+                vnfdSoftwareImageId=res_id,
+                vimSoftwareImageId=image)
+            vim_sw_images.append(vim_sw_image)
+        if vim_sw_images:
+            grant_res.vimAssets = objects.GrantV1_VimAssets(
+                softwareImages=vim_sw_images
+            )
+
     def grant(self, context, grant_req):
         grant_res = objects.GrantV1(
             id=uuidutils.generate_uuid(),
@@ -221,6 +267,9 @@ class LocalNfvo(object):
         # terminate is granted with no grant_res constructed.
         if grant_req.operation == v2_fields.LcmOperationType.INSTANTIATE:
             self.instantiate_grant(context, grant_req, grant_res)
+
+        elif grant_req.operation == v2_fields.LcmOperationType.CHANGE_VNFPKG:
+            self.change_vnfpkg_grant(context, grant_req, grant_res)
 
         endpoint = config.CONF.v2_vnfm.endpoint
         grant_res._links = objects.GrantV1_Links(
@@ -312,8 +361,10 @@ class LocalNfvo(object):
                 if vim_info is None:
                     # never happen. just for code consistency.
                     return
-                self._glance_delete_images(vim_info, inst.id)
-        elif lcmocc.operation == v2_fields.LcmOperationType.MODIFY_INFO:
+                if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
+                    self._glance_delete_images(vim_info, inst.id)
+        elif lcmocc.operation == v2_fields.LcmOperationType.MODIFY_INFO or (
+                lcmocc.operation == v2_fields.LcmOperationType.CHANGE_VNFPKG):
             if (lcmocc.operationState ==
                     v2_fields.LcmOperationStateType.PROCESSING):
                 # register vnfdId of vnf instance so that

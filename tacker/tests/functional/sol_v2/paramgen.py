@@ -829,3 +829,109 @@ def change_ext_conn_min(net_ids, subnets):
             ext_vl_1
         ]
     }
+
+
+def change_vnfpkg_create(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "vnfInstanceName": "vnf_change_vnfpkg",
+        "vnfInstanceDescription": "test_change_vnfpkg_from_image_to_image",
+        "metadata": {"dummy-key": "dummy-val"}
+    }
+
+
+def change_vnfpkg_instantiate(net_ids, subnet_ids, auth_url,
+                              flavor_id='simple'):
+    ext_vl_1 = {
+        "id": uuidutils.generate_uuid(),
+        "resourceId": net_ids['net0'],
+        "extCps": [
+            {
+                "cpdId": "VDU1_CP1",
+                "cpConfig": {
+                    "VDU1_CP1_1": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    "numDynamicAddresses": 1}]}}]}
+                }
+            },
+            {
+                "cpdId": "VDU2_CP1",
+                "cpConfig": {
+                    "VDU2_CP1_1": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    "fixedAddresses": ["10.10.0.101"]}]}}]}
+                }
+            }
+        ],
+    }
+
+    return {
+        "flavourId": flavor_id,
+        "instantiationLevelId": "instantiation_level_1",
+        "extVirtualLinks": [
+            ext_vl_1
+        ],
+        "vimConnectionInfo": {
+            "vim1": {
+                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                "vimId": uuidutils.generate_uuid(),
+                "interfaceInfo": {"endpoint": auth_url},
+                "accessInfo": {
+                    "username": "nfv_user",
+                    "region": "RegionOne",
+                    "password": "devstack",
+                    "project": "nfv",
+                    "projectDomain": "Default",
+                    "userDomain": "Default"
+                }
+            }
+        },
+    }
+
+
+def change_vnfpkg(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "additionalParams": {
+            "upgrade_type": "RollingUpdate",
+            "lcm-operation-coordinate-old-vnf":
+                "./Scripts/coordinate_old_vnf.py",
+            "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
+            "lcm-operation-coordinate-new-vnf":
+                "./Scripts/coordinate_new_vnf.py",
+            "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
+            "vdu_params": [{
+                "vdu_id": "VDU1",
+                "old_vnfc_param": {
+                    "cp_name": "VDU1_CP1",
+                    "username": "ubuntu",
+                    "password": "ubuntu"
+                },
+                "new_vnfc_param": {
+                    "cp_name": "VDU1_CP1",
+                    "username": "ubuntu",
+                    "password": "ubuntu"
+                }
+            }, {
+                "vdu_id": "VDU2",
+                "old_vnfc_param": {
+                    "cp_name": "VDU2_CP1",
+                    "username": "ubuntu",
+                    "password": "ubuntu"
+                },
+                "new_vnfc_param": {
+                    "cp_name": "VDU2_CP1",
+                    "username": "ubuntu",
+                    "password": "ubuntu"
+                }
+            }]
+        }
+    }

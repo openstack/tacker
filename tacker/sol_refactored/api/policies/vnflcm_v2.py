@@ -129,6 +129,15 @@ rules = [
              'path': VNF_INSTANCES_ID_PATH + '/change_ext_conn'}
         ]
     ),
+    policy.DocumentedRuleDefault(
+        name=POLICY_NAME.format('change_vnfpkg'),
+        check_str=RULE_ANY,
+        description="Change vnf package.",
+        operations=[
+            {'method': 'POST',
+             'path': VNF_INSTANCES_ID_PATH + '/change_vnfpkg'}
+        ]
+    ),
     # NOTE: add when the operation supported
     policy.DocumentedRuleDefault(
         name=POLICY_NAME.format('subscription_create'),

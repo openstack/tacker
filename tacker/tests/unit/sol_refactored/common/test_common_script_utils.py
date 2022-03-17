@@ -15,7 +15,7 @@
 
 import os
 
-from tacker.sol_refactored.infra_drivers.openstack import userdata_utils
+from tacker.sol_refactored.common import common_script_utils
 from tacker.tests import base
 
 
@@ -23,14 +23,14 @@ SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
 SAMPLE_FLAVOUR_ID = "simple"
 
 
-class TestUserDataUtils(base.BaseTestCase):
+class TestCommontScriptUtils(base.BaseTestCase):
 
     def setUp(self):
-        super(TestUserDataUtils, self).setUp()
+        super(TestCommontScriptUtils, self).setUp()
         cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "../..", "samples")
+        sample_dir = os.path.join(cur_dir, "..", "samples")
 
-        self.vnfd_1 = userdata_utils.get_vnfd(SAMPLE_VNFD_ID,
+        self.vnfd_1 = common_script_utils.get_vnfd(SAMPLE_VNFD_ID,
             os.path.join(sample_dir, "sample1"))
 
     def test_init_nfv_dict(self):
@@ -54,7 +54,7 @@ class TestUserDataUtils(base.BaseTestCase):
                                                'subnet': None}}}
             }
         }
-        result = userdata_utils.init_nfv_dict(top_hot)
+        result = common_script_utils.init_nfv_dict(top_hot)
         self.assertEqual(expected_result, result)
 
     def test_get_param_flavor(self):
@@ -68,12 +68,14 @@ class TestUserDataUtils(base.BaseTestCase):
             }
         }
 
-        result = userdata_utils.get_param_flavor('VDU1', SAMPLE_FLAVOUR_ID,
+        result = common_script_utils.get_param_flavor(
+            'VDU1', SAMPLE_FLAVOUR_ID,
             self.vnfd_1, grant)
         self.assertEqual(flavor, result)
 
         # if not exist in grant, get from VNFD
-        result = userdata_utils.get_param_flavor('VDU2', SAMPLE_FLAVOUR_ID,
+        result = common_script_utils.get_param_flavor(
+            'VDU2', SAMPLE_FLAVOUR_ID,
             self.vnfd_1, grant)
         self.assertEqual('m1.tiny', result)
 
@@ -90,7 +92,7 @@ class TestUserDataUtils(base.BaseTestCase):
             }
         }
 
-        result = userdata_utils.get_param_image('VDU2', SAMPLE_FLAVOUR_ID,
+        result = common_script_utils.get_param_image('VDU2', SAMPLE_FLAVOUR_ID,
             self.vnfd_1, grant)
         self.assertEqual(image_id, result)
 
@@ -113,7 +115,7 @@ class TestUserDataUtils(base.BaseTestCase):
             ]
         }
 
-        result = userdata_utils.get_param_zone('VDU1', grant_req, grant)
+        result = common_script_utils.get_param_zone('VDU1', grant_req, grant)
         self.assertEqual('nova', result)
 
     def test_get_param_capacity(self):
@@ -145,9 +147,11 @@ class TestUserDataUtils(base.BaseTestCase):
             }
         }
 
-        result = userdata_utils.get_param_capacity('VDU1', inst, grant_req)
+        result = common_script_utils.get_param_capacity(
+            'VDU1', inst, grant_req)
         self.assertEqual(2, result)
-        result = userdata_utils.get_param_capacity('VDU2', inst, grant_req)
+        result = common_script_utils.get_param_capacity(
+            'VDU2', inst, grant_req)
         self.assertEqual(1, result)
 
     def test_get_parama_network(self):
@@ -167,7 +171,7 @@ class TestUserDataUtils(base.BaseTestCase):
             ]
         }
 
-        result = userdata_utils.get_param_network('VDU1_CP1', {}, req)
+        result = common_script_utils.get_param_network('VDU1_CP1', {}, req)
         self.assertEqual(res_id, result)
 
     def test_get_param_fixed_ips(self):
@@ -207,7 +211,7 @@ class TestUserDataUtils(base.BaseTestCase):
         }
         expected_result = [{'ip_address': ip_address, 'subnet': subnet_id}]
 
-        result = userdata_utils.get_param_fixed_ips('VDU2_CP2', {}, req)
+        result = common_script_utils.get_param_fixed_ips('VDU2_CP2', {}, req)
         self.assertEqual(expected_result, result)
 
     def _inst_example_get_network_fixed_ips_from_inst(self):
@@ -252,7 +256,8 @@ class TestUserDataUtils(base.BaseTestCase):
     def test_get_parama_network_from_inst(self):
         inst = self._inst_example_get_network_fixed_ips_from_inst()
 
-        result = userdata_utils.get_param_network_from_inst('VDU2_CP2', inst)
+        result = common_script_utils.get_param_network_from_inst(
+            'VDU2_CP2', inst)
         self.assertEqual("ext_vl_res_id", result)
 
     def test_get_param_fixed_ips_from_inst(self):
@@ -260,7 +265,8 @@ class TestUserDataUtils(base.BaseTestCase):
 
         expected_result = [{'ip_address': 'ip_address', 'subnet': 'subnet_id'}]
 
-        result = userdata_utils.get_param_fixed_ips_from_inst('VDU2_CP2', inst)
+        result = common_script_utils.get_param_fixed_ips_from_inst(
+            'VDU2_CP2', inst)
         self.assertEqual(expected_result, result)
 
     def test_apply_ext_managed_vls(self):
@@ -289,7 +295,7 @@ class TestUserDataUtils(base.BaseTestCase):
         self.assertIn(vl, top_hot['resources'])
         self.assertIn(vl_subnet, top_hot['resources'])
 
-        userdata_utils.apply_ext_managed_vls(top_hot, req, {})
+        common_script_utils.apply_ext_managed_vls(top_hot, req, {})
 
         # check after
         # replaced to resource id
