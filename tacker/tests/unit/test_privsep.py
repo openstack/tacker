@@ -43,7 +43,8 @@ class PrivsepTest(base.BaseTestCase):
     def setUp(self):
         super(PrivsepTest, self).setUp()
 
-    @unittest.skipIf(_PWD == _PWD_ZUUL, "Failed on zuul for root priv")
+    @unittest.skipIf(_PWD == _PWD_ZUUL or os.getlogin() != 'stack',
+            "Failed on zuul or non-devstack env for root privilege")
     def test_privsep_ls(self):
         """Run ls with root privilege
 
@@ -58,7 +59,8 @@ class PrivsepTest(base.BaseTestCase):
         # 'boot' dir must be under '/'.
         self.assertIn('boot', res)
 
-    @unittest.skipIf(_PWD == _PWD_ZUUL, "Failed on zuul for root priv")
+    @unittest.skipIf(_PWD == _PWD_ZUUL or os.getlogin() != 'stack',
+            "Failed on zuul or non-devstack env for root privilege")
     def test_privsep_pwd(self):
         """Run pwd with root privilege
 
@@ -67,7 +69,8 @@ class PrivsepTest(base.BaseTestCase):
         res = tacker.privileged.linux_cmd.pwd()[0]
         self.assertEqual('/\n', res)
 
-    @unittest.skipIf(_PWD == _PWD_ZUUL, "Failed on zuul for root priv")
+    @unittest.skipIf(_PWD == _PWD_ZUUL or os.getlogin() != 'stack',
+            "Failed on zuul or non-devstack env for root privilege")
     def test_rootwrap(self):
         """Confirm a command can be run with tacker-rootwrap
 
