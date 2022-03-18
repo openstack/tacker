@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Add a Sample Ansible Driver as an option for users who want to use ansible
+    for configuration of VNFs. This Ansible Driver supports the key LCMs such as
+    instantiate_end, scale_start, scale_end, heal_end and terminate_start.
+    A Sample VNF package which contains sample usage of Ansible Driver is
+    provided. User manual is also provided to explain the steps in preparing the
+    environment to use Ansible Driver.
+issues:
+  - |
+    Regarding Sample Ansible Driver, currently, deployment flavors share only
+    one config.yaml due to a limitation in Management Driver.
