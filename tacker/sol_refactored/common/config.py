@@ -80,3 +80,8 @@ NFVO_OPTS = [
 ]
 
 CONF.register_opts(NFVO_OPTS, 'v2_nfvo')
+
+
+def config_opts():
+    return [('v2_nfvo', NFVO_OPTS),
+            ('v2_vnfm', VNFM_OPTS)]
