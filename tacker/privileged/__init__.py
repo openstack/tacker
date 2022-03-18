@@ -22,7 +22,7 @@ from oslo_privsep import priv_context
 default = priv_context.PrivContext(
     __name__,
     cfg_section='privsep',
-    pypath="f{__name__}.default",
+    pypath=__name__ + '.default',
     capabilities=[caps.CAP_SYS_ADMIN,
                   caps.CAP_NET_ADMIN,
                   caps.CAP_DAC_OVERRIDE,
