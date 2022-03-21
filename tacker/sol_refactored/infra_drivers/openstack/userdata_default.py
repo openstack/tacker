@@ -15,6 +15,7 @@
 
 import yaml
 
+from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.infra_drivers.openstack import userdata_utils
 
@@ -23,39 +24,39 @@ class DefaultUserData(userdata_utils.AbstractUserData):
 
     @staticmethod
     def instantiate(req, inst, grant_req, grant, tmp_csar_dir):
-        vnfd = userdata_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
+        vnfd = common_script_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
         flavour_id = req['flavourId']
 
         hot_dict = vnfd.get_base_hot(flavour_id)
         top_hot = hot_dict['template']
 
-        nfv_dict = userdata_utils.init_nfv_dict(top_hot)
+        nfv_dict = common_script_utils.init_nfv_dict(top_hot)
 
         vdus = nfv_dict.get('VDU', {})
         for vdu_name, vdu_value in vdus.items():
             if 'computeFlavourId' in vdu_value:
                 vdu_value['computeFlavourId'] = (
-                    userdata_utils.get_param_flavor(
+                    common_script_utils.get_param_flavor(
                         vdu_name, flavour_id, vnfd, grant))
             if 'vcImageId' in vdu_value:
-                vdu_value['vcImageId'] = userdata_utils.get_param_image(
+                vdu_value['vcImageId'] = common_script_utils.get_param_image(
                     vdu_name, flavour_id, vnfd, grant)
             if 'locationConstraints' in vdu_value:
                 vdu_value['locationConstraints'] = (
-                    userdata_utils.get_param_zone(
+                    common_script_utils.get_param_zone(
                         vdu_name, grant_req, grant))
             if 'desired_capacity' in vdu_value:
                 vdu_value['desired_capacity'] = (
-                    userdata_utils.get_param_capacity(
+                    common_script_utils.get_param_capacity(
                         vdu_name, inst, grant_req))
 
         cps = nfv_dict.get('CP', {})
         for cp_name, cp_value in cps.items():
             if 'network' in cp_value:
-                cp_value['network'] = userdata_utils.get_param_network(
+                cp_value['network'] = common_script_utils.get_param_network(
                     cp_name, grant, req)
             if 'fixed_ips' in cp_value:
-                ext_fixed_ips = userdata_utils.get_param_fixed_ips(
+                ext_fixed_ips = common_script_utils.get_param_fixed_ips(
                     cp_name, grant, req)
                 fixed_ips = []
                 for i in range(len(ext_fixed_ips)):
@@ -70,7 +71,7 @@ class DefaultUserData(userdata_utils.AbstractUserData):
                     fixed_ips.append(ips_i)
                 cp_value['fixed_ips'] = fixed_ips
 
-        userdata_utils.apply_ext_managed_vls(top_hot, req, grant)
+        common_script_utils.apply_ext_managed_vls(top_hot, req, grant)
 
         if 'nfv' in req.get('additionalParams', {}):
             nfv_dict = inst_utils.json_merge_patch(nfv_dict,
@@ -98,19 +99,19 @@ class DefaultUserData(userdata_utils.AbstractUserData):
         # NOTE: complete 'nfv' dict can not be made at the moment
         # since InstantiateVnfRequest is necessary to make it.
 
-        vnfd = userdata_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
+        vnfd = common_script_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
         flavour_id = inst['instantiatedVnfInfo']['flavourId']
 
         hot_dict = vnfd.get_base_hot(flavour_id)
         top_hot = hot_dict['template']
 
-        nfv_dict = userdata_utils.init_nfv_dict(top_hot)
+        nfv_dict = common_script_utils.init_nfv_dict(top_hot)
 
         vdus = nfv_dict.get('VDU', {})
         new_vdus = {}
         for vdu_name, vdu_value in vdus.items():
             if 'desired_capacity' in vdu_value:
-                capacity = userdata_utils.get_param_capacity(
+                capacity = common_script_utils.get_param_capacity(
                     vdu_name, inst, grant_req)
                 new_vdus[vdu_name] = {'desired_capacity': capacity}
 
@@ -125,19 +126,19 @@ class DefaultUserData(userdata_utils.AbstractUserData):
         # It is thought that it is suitable that this method defines
         # here since it is very likely to scale method above.
 
-        vnfd = userdata_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
+        vnfd = common_script_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
         flavour_id = inst['instantiatedVnfInfo']['flavourId']
 
         hot_dict = vnfd.get_base_hot(flavour_id)
         top_hot = hot_dict['template']
 
-        nfv_dict = userdata_utils.init_nfv_dict(top_hot)
+        nfv_dict = common_script_utils.init_nfv_dict(top_hot)
 
         vdus = nfv_dict.get('VDU', {})
         new_vdus = {}
         for vdu_name, vdu_value in vdus.items():
             if 'desired_capacity' in vdu_value:
-                capacity = userdata_utils.get_current_capacity(
+                capacity = common_script_utils.get_current_capacity(
                     vdu_name, inst)
                 new_vdus[vdu_name] = {'desired_capacity': capacity}
 
@@ -155,25 +156,26 @@ class DefaultUserData(userdata_utils.AbstractUserData):
         # NOTE: complete 'nfv' dict can not be made at the moment
         # since InstantiateVnfRequest is necessary to make it.
 
-        vnfd = userdata_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
+        vnfd = common_script_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
         flavour_id = inst['instantiatedVnfInfo']['flavourId']
 
         hot_dict = vnfd.get_base_hot(flavour_id)
         top_hot = hot_dict['template']
 
-        nfv_dict = userdata_utils.init_nfv_dict(top_hot)
+        nfv_dict = common_script_utils.init_nfv_dict(top_hot)
 
         cps = nfv_dict.get('CP', {})
         new_cps = {}
         for cp_name, cp_value in cps.items():
             if 'network' in cp_value:
-                network = userdata_utils.get_param_network(cp_name, grant, req)
+                network = common_script_utils.get_param_network(
+                    cp_name, grant, req)
                 if network is None:
                     continue
                 new_cps.setdefault(cp_name, {})
                 new_cps[cp_name]['network'] = network
             if 'fixed_ips' in cp_value:
-                ext_fixed_ips = userdata_utils.get_param_fixed_ips(
+                ext_fixed_ips = common_script_utils.get_param_fixed_ips(
                     cp_name, grant, req)
                 fixed_ips = []
                 for i in range(len(ext_fixed_ips)):
@@ -200,27 +202,28 @@ class DefaultUserData(userdata_utils.AbstractUserData):
         # It is thought that it is suitable that this method defines
         # here since it is very likely to scale method above.
 
-        vnfd = userdata_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
+        vnfd = common_script_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
         flavour_id = inst['instantiatedVnfInfo']['flavourId']
 
         hot_dict = vnfd.get_base_hot(flavour_id)
         top_hot = hot_dict['template']
 
-        nfv_dict = userdata_utils.init_nfv_dict(top_hot)
+        nfv_dict = common_script_utils.init_nfv_dict(top_hot)
 
         cps = nfv_dict.get('CP', {})
         new_cps = {}
         for cp_name, cp_value in cps.items():
             if 'network' in cp_value:
-                network = userdata_utils.get_param_network_from_inst(
+                network = common_script_utils.get_param_network_from_inst(
                     cp_name, inst)
                 if network is None:
                     continue
                 new_cps.setdefault(cp_name, {})
                 new_cps[cp_name]['network'] = network
             if 'fixed_ips' in cp_value:
-                ext_fixed_ips = userdata_utils.get_param_fixed_ips_from_inst(
-                    cp_name, inst)
+                ext_fixed_ips = (
+                    common_script_utils.get_param_fixed_ips_from_inst(
+                        cp_name, inst))
                 fixed_ips = []
                 for i in range(len(ext_fixed_ips)):
                     if i not in cp_value['fixed_ips']:

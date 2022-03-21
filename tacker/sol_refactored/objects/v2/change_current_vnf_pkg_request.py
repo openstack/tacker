@@ -28,13 +28,23 @@ class ChangeCurrentVnfPkgRequest(base.TackerObject,
 
     fields = {
         'vnfdId': fields.StringField(nullable=False),
+        # NOTE: 'extVirtualLinks' is not supported.
+        # It can be specified but make no effect at all.
         'extVirtualLinks': fields.ListOfObjectsField(
             'ExtVirtualLinkData', nullable=True),
+        # NOTE: 'extManagedVirtualLinks' is not supported.
+        # It can be specified but make no effect at all.
         'extManagedVirtualLinks': fields.ListOfObjectsField(
             'ExtManagedVirtualLinkData', nullable=True),
+        # NOTE: 'vimConnectionInfo' is not supported.
+        # It can be specified but make no effect at all.
         'vimConnectionInfo': fields.DictOfObjectsField(
             'VimConnectionInfo', nullable=True),
         'additionalParams': fields.KeyValuePairsField(nullable=True),
+        # NOTE: 'extensions' is not supported.
+        # It can be specified but make no effect at all.
         'extensions': fields.KeyValuePairsField(nullable=True),
+        # NOTE: 'vnfConfigurableProperties' is not supported.
+        # It can be specified but make no effect at all.
         'vnfConfigurableProperties': fields.KeyValuePairsField(nullable=True),
     }

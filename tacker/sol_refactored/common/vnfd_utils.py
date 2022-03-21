@@ -18,10 +18,10 @@ import io
 import os
 import shutil
 import tempfile
-import yaml
 import zipfile
 
 from oslo_log import log as logging
+import yaml
 
 from tacker.sol_refactored.common import exceptions as sol_ex
 

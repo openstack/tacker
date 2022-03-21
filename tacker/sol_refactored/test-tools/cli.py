@@ -112,6 +112,12 @@ class Client(object):
             path, "POST", body=req_body, version="2.0.0")
         self.print(resp, body)
 
+    def change_vnfpkg(self, id, req_body):
+        path = self.path + '/' + id + '/change_vnfpkg'
+        resp, body = self.client.do_request(
+            path, "POST", body=req_body, version="2.0.0")
+        self.print(resp, body)
+
     def retry(self, id):
         path = self.path + '/' + id + '/retry'
         resp, body = self.client.do_request(path, "POST", version="2.0.0")
@@ -140,6 +146,7 @@ def usage():
     print("  inst scale {id} body(path of content)")
     print("  inst heal {id} body(path of content)")
     print("  inst chg_ext_conn {id} body(path of content)")
+    print("  inst change_vnfpkg {id} body(path of content)")
     print("  subsc create body(path of content)")
     print("  subsc list [body(path of content)]")
     print("  subsc show {id}")
@@ -166,7 +173,8 @@ if __name__ == '__main__':
 
     if resource == "inst":
         if action not in ["create", "list", "show", "delete", "update",
-                          "inst", "term", "scale", "heal", "chg_ext_conn"]:
+                          "inst", "term", "scale", "heal", "chg_ext_conn",
+                          "change_vnfpkg"]:
             usage()
         client = Client("/vnflcm/v2/vnf_instances")
     elif resource == "subsc":
@@ -224,6 +232,10 @@ if __name__ == '__main__':
         if len(sys.argv) != 5:
             usage()
         client.chg_ext_conn(sys.argv[3], get_body(sys.argv[4]))
+    elif action == "change_vnfpkg":
+        if len(sys.argv) != 5:
+            usage()
+        client.change_vnfpkg(sys.argv[3], get_body(sys.argv[4]))
     elif action == "retry":
         if len(sys.argv) != 4:
             usage()

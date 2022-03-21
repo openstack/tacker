@@ -14,21 +14,25 @@
 #    under the License.
 
 
-from dateutil import parser
-import eventlet
+import copy
 import json
 import os
 import pickle
 import subprocess
 
+from dateutil import parser
+import eventlet
 from oslo_log import log as logging
 from oslo_utils import uuidutils
+import yaml
 
+from tacker.sol_refactored.common import cinder_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.infra_drivers.openstack import heat_utils
 from tacker.sol_refactored.infra_drivers.openstack import userdata_default
+from tacker.sol_refactored.nfvo import glance_utils
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields as v2fields
 
@@ -292,6 +296,261 @@ class Openstack(object):
         self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
             heat_reses)
 
+    def change_vnfpkg(self, req, inst, grant_req, grant, vnfd):
+        group_vdu_ids = []
+        if req.additionalParams.get('upgrade_type') == 'RollingUpdate':
+            vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+            heat_client = heat_utils.HeatClient(vim_info)
+            stack_name = heat_utils.get_stack_name(inst)
+            stack_id = heat_client.get_stack_resource(
+                stack_name)['stack']["id"]
+            vdu_infos = self._get_vdu_info(vnfd, grant, inst)
+            new_res_ids = {}
+            for vdu_param in req.additionalParams.get('vdu_params'):
+                vdu_id = vdu_param.get('vdu_id')
+                new_res_ids[vdu_id] = []
+                body = heat_client.get_resource_info(
+                    f"{stack_name}/{stack_id}", vdu_id)
+                if uuidutils.is_uuid_like(
+                        vdu_infos[vdu_id]['image']):
+                    vdu_image_id_flag = True
+                else:
+                    vdu_image_id_flag = False
+                # The previous processing is to obtain the VM information under
+                # the current stack according to vduId, excluding the resources
+                # under nested. When the status_code is 404, it means that
+                # there is no VM under the stack, and the VM is created by
+                # `OS::Heat::AutoScalingGroup` by default.
+                if body is None:
+                    # handle VM under `OS::Heat::AutoScalingGroup`
+                    # In this case, the VM does not support changing from
+                    # image creation to volume creation, or changing from
+                    # volume creation to image creation. Because it cannot
+                    # change VDU.yaml under nested directory.
+                    heat_reses = heat_client.get_resources(stack_name)
+                    group_stack_id = heat_utils.get_group_stack_id(
+                        heat_reses, vdu_id)
+                    templates = heat_client.get_template(
+                        group_stack_id)
+                    reses = heat_client.get_resource_list(
+                        group_stack_id)['resources']
+
+                    # update VM one by one
+                    for res in reses:
+                        templates['resources'][res.get('resource_name')][
+                            'properties']['image'] = vdu_infos[
+                            vdu_id].get('image')
+                        templates['resources'][res.get('resource_name')][
+                            'properties']['flavor'] = vdu_infos[
+                            vdu_id].get('flavor')
+                        fields = {
+                            "stack_id": group_stack_id,
+                            "template": templates
+                        }
+                        try:
+                            heat_client.update_stack(
+                                group_stack_id, fields)
+                        except sol_ex.StackOperationFailed:
+                            self._handle_exception(
+                                res, new_res_ids, vdu_infos,
+                                vdu_id, heat_client, req, inst, vnfd,
+                                stack_name, get_res_flag=True)
+                        self._get_new_res_info(
+                            res.get('resource_name'),
+                            new_res_ids[vdu_id],
+                            heat_utils.get_parent_nested_id(res),
+                            vdu_infos[vdu_id], vdu_id,
+                            heat_client)
+
+                        # execute coordinate_vnf_script
+                        try:
+                            self._execute_coordinate_vnf_script(
+                                req, inst, grant_req, grant, vnfd,
+                                heat_utils.get_parent_nested_id(res),
+                                heat_client, vdu_param, vim_info,
+                                vdu_image_id_flag)
+                        except (sol_ex.SshIpNotFoundException,
+                                sol_ex.CoordinateVNFExecutionFailed) as ex:
+                            self._handle_exception(
+                                res, new_res_ids, vdu_infos,
+                                vdu_id, heat_client, req, inst, vnfd,
+                                stack_name, ex=ex)
+                    group_vdu_ids.append(vdu_id)
+                else:
+                    # handle single VM
+                    res = {
+                        "resource_name": stack_name,
+                        "physical_resource_id": stack_id,
+                    }
+                    new_template = vnfd.get_base_hot(
+                        inst.instantiatedVnfInfo.flavourId)['template']
+                    heat_parameter = self._update_vnf_template_and_parameter(
+                        stack_id, vdu_infos, vdu_id, heat_client, new_template)
+                    fields = {
+                        "stack_id": stack_id,
+                        "parameters": {"nfv": heat_parameter.get('nfv')},
+                        "template": yaml.safe_dump(
+                            heat_parameter.get('templates')),
+                    }
+                    try:
+                        heat_client.update_stack(stack_id, fields, wait=True)
+                    except sol_ex.StackOperationFailed:
+                        self._handle_exception(
+                            res, new_res_ids, vdu_infos,
+                            vdu_id, heat_client, req, inst, vnfd,
+                            stack_name, get_res_flag=True)
+                    self._get_new_res_info(
+                        stack_name,
+                        new_res_ids[vdu_id],
+                        f'{stack_name}/{stack_id}',
+                        vdu_infos[vdu_id], vdu_id,
+                        heat_client)
+
+                    # execute coordinate_vnf_script
+                    try:
+                        self._execute_coordinate_vnf_script(
+                            req, inst, grant_req, grant, vnfd,
+                            f"{stack_name}/{stack_id}",
+                            heat_client, vdu_param, vim_info,
+                            vdu_image_id_flag,
+                            operation='change_vnfpkg')
+                    except (sol_ex.SshIpNotFoundException,
+                            sol_ex.CoordinateVNFExecutionFailed) as ex:
+                        self._handle_exception(
+                            res, new_res_ids, vdu_infos,
+                            vdu_id, heat_client, req, inst, vnfd,
+                            stack_name, ex=ex)
+
+            # Because external parameters are not updated after the image
+            # of the nested-VM is updated, scale will create the original
+            # VM again, so the overall update needs to be performed
+            # at the end.
+            fields = self._get_entire_stack_fields(
+                heat_client, stack_id, group_vdu_ids, vdu_infos)
+            try:
+                heat_client.update_stack(stack_id, fields)
+            except sol_ex.StackOperationFailed:
+                self._handle_exception(
+                    res, new_res_ids, vdu_infos,
+                    vdu_id, heat_client, req, inst, vnfd,
+                    stack_name)
+            self._update_vnf_instantiated_info(
+                req, new_res_ids, inst, vnfd,
+                heat_client, stack_name)
+            inst.vnfdId = req.vnfdId
+        else:
+            # TODO(YiFeng): Blue-Green type will be supported in Zed release.
+            raise sol_ex.NotSupportUpgradeType(
+                upgrade_type=req.additionalParams.get('upgrade_type'))
+
+    def change_vnfpkg_rollback(
+            self, req, inst, grant_req, grant, vnfd, lcmocc):
+        group_vdu_ids = []
+        if req.additionalParams.get('upgrade_type') == 'RollingUpdate':
+            vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+            heat_client = heat_utils.HeatClient(vim_info)
+            stack_name = heat_utils.get_stack_name(inst)
+            stack_id = heat_client.get_stack_resource(
+                stack_name)['stack']["id"]
+            vdu_infos = self._get_vdu_info(vnfd, grant, inst)
+            new_res_ids = {}
+            templates = {}
+            affected_vnfcs = [affected_vnfc for affected_vnfc in
+                             lcmocc.resourceChanges.affectedVnfcs if
+                             affected_vnfc.changeType in {'ADDED', 'MODIFIED'}]
+            for lcmocc_vnf in affected_vnfcs:
+                if new_res_ids.get(lcmocc_vnf.vduId) is None:
+                    new_res_ids[lcmocc_vnf.vduId] = []
+                image = vdu_infos[lcmocc_vnf.vduId]['image']
+                if uuidutils.is_uuid_like(image):
+                    vdu_image_id_flag = True
+                else:
+                    vdu_image_id_flag = False
+                if lcmocc_vnf.metadata.get(
+                        'current_vnfd_id') is not inst.vnfdId:
+                    parent_resource_name = lcmocc_vnf.metadata.get(
+                        'parent_resource_name')
+                    if parent_resource_name:
+                        vdu_stack_id = lcmocc_vnf.metadata.get(
+                            'stack_id')
+                        if not templates.get(lcmocc_vnf.vduId):
+                            templates[lcmocc_vnf.vduId] = {}
+                            heat_reses = heat_client.get_resources(stack_name)
+                            group_stack_id = heat_utils.get_group_stack_id(
+                                heat_reses, lcmocc_vnf.vduId)
+                            template = heat_client.get_template(
+                                group_stack_id)
+                            templates[lcmocc_vnf.vduId] = template
+                        template['resources'][parent_resource_name][
+                            'properties']['image'] = vdu_infos[
+                            lcmocc_vnf.vduId].get('image')
+                        template['resources'][parent_resource_name][
+                            'properties']['flavor'] = vdu_infos[
+                            lcmocc_vnf.vduId].get('flavor')
+                        fields = {
+                            "stack_id": group_stack_id,
+                            "template": template
+                        }
+                        heat_client.update_stack(
+                            group_stack_id, fields, wait=True)
+                        self._get_new_res_info(
+                            parent_resource_name,
+                            new_res_ids[lcmocc_vnf.vduId], vdu_stack_id,
+                            vdu_infos[lcmocc_vnf.vduId],
+                            lcmocc_vnf.vduId, heat_client)
+                        vdu_param = [vdu_param for vdu_param in
+                                     req.get('additionalParams').get(
+                                         'vdu_params')
+                                     if vdu_param.get('vdu_id')
+                                     == lcmocc_vnf.vduId][0]
+                        self._execute_coordinate_vnf_script(
+                            req, inst, grant_req, grant, vnfd,
+                            vdu_stack_id,
+                            heat_client, vdu_param, vim_info,
+                            vdu_image_id_flag,
+                            operation="change_vnfpkg_rollback")
+                        group_vdu_ids.append(lcmocc_vnf.vduId)
+                    else:
+                        vdu_stack_id = lcmocc_vnf.metadata.get('stack_id')
+                        new_template = vnfd.get_base_hot(
+                            inst.instantiatedVnfInfo.flavourId)['template']
+                        heat_parameter = (
+                            self._update_vnf_template_and_parameter(
+                                stack_id, vdu_infos,
+                                lcmocc_vnf.vduId, heat_client, new_template))
+                        fields = {
+                            "stack_id": stack_id,
+                            "parameters": {"nfv": heat_parameter.get('nfv')},
+                            "template": yaml.safe_dump(
+                                heat_parameter.get('templates')),
+                        }
+                        heat_client.update_stack(stack_id,
+                                                 fields, wait=True)
+                        self._get_new_res_info(
+                            stack_name, new_res_ids[lcmocc_vnf.vduId],
+                            vdu_stack_id, vdu_infos[lcmocc_vnf.vduId],
+                            lcmocc_vnf.vduId, heat_client)
+                        vdu_param = [vdu_param for vdu_param in
+                                     req.get('additionalParams').get(
+                                         'vdu_params')
+                                     if vdu_param.get('vdu_id')
+                                     == lcmocc_vnf.vduId][0]
+                        self._execute_coordinate_vnf_script(
+                            req, inst, grant_req, grant, vnfd, vdu_stack_id,
+                            heat_client, vdu_param, vim_info,
+                            vdu_image_id_flag,
+                            operation="change_vnfpkg_rollback")
+            fields = self._get_entire_stack_fields(
+                heat_client, stack_id, group_vdu_ids, vdu_infos)
+            heat_client.update_stack(stack_id, fields, wait=True)
+            self._update_vnf_instantiated_info(
+                req, new_res_ids, inst, vnfd,
+                heat_client, stack_name, operation='change_vnfpkg_rollback')
+        else:
+            # TODO(YiFeng): Blue-Green type will be supported in Zed release.
+            raise sol_ex.NotSupportUpgradeType(
+                upgrade_type=req.additionalParams.get('upgrade_type'))
+
     def _make_hot(self, req, inst, grant_req, grant, vnfd):
         if grant_req.operation == v2fields.LcmOperationType.INSTANTIATE:
             flavour_id = req.flavourId
@@ -371,6 +630,60 @@ class Openstack(object):
         obj.minAddress = range_data.minAddress
         obj.maxAddress = range_data.maxAddress
         return obj
+
+    def _execute_coordinate_vnf_script(
+            self, req, inst, grant_req, grant,
+            vnfd, nested_stack_id, heat_client, vdu_param,
+            vim_info, vdu_image_id_flag, operation='change_vnfpkg'):
+        coordinate_vnf = None
+        coordinate_vnf_class = None
+        if req.obj_attr_is_set('additionalParams'):
+            if operation == 'change_vnfpkg':
+                coordinate_vnf = req.additionalParams.get(
+                    'lcm-operation-coordinate-new-vnf')
+                coordinate_vnf_class = req.additionalParams.get(
+                    'lcm-operation-coordinate-new-vnf-class')
+            else:
+                coordinate_vnf = req.additionalParams.get(
+                    'lcm-operation-coordinate-old-vnf')
+                coordinate_vnf_class = req.additionalParams.get(
+                    'lcm-operation-coordinate-old-vnf-class')
+
+        if coordinate_vnf and coordinate_vnf_class:
+            if operation == 'change_vnfpkg':
+                ssh_ip = self._get_ssh_ip(nested_stack_id,
+                    vdu_param.get('new_vnfc_param'),
+                    heat_client)
+            else:
+                ssh_ip = self._get_ssh_ip(nested_stack_id,
+                    vdu_param.get('old_vnfc_param'),
+                    heat_client)
+            if not ssh_ip:
+                raise sol_ex.SshIpNotFoundException
+            image, flavor = self._get_current_vdu_image_and_flavor(
+                nested_stack_id, vdu_param.get('vdu_id'),
+                heat_client, vim_info, vdu_image_id_flag)
+            tmp_csar_dir = vnfd.make_tmp_csar_dir()
+            script_dict = {
+                "request": req.to_dict(),
+                "vnf_instance": inst.to_dict(),
+                "grant_request": grant_req.to_dict(),
+                "grant_response": grant.to_dict(),
+                "tmp_csar_dir": tmp_csar_dir,
+                "vdu_info": {
+                    "ssh_ip": ssh_ip,
+                    "new_image": image,
+                    "new_flavor": flavor,
+                    "vdu_param": vdu_param
+                }
+            }
+            script_path = os.path.join(tmp_csar_dir, coordinate_vnf)
+            out = subprocess.run(["python3", script_path],
+                input=pickle.dumps(script_dict),
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if out.returncode != 0:
+                LOG.error(out)
+                raise sol_ex.CoordinateVNFExecutionFailed
 
     def _proto_data_to_info(self, proto_data):
         # make CpProtocolInfo (5.5.3.9b) from CpProtocolData (4.4.1.10b)
@@ -462,6 +775,285 @@ class Openstack(object):
         ext_vl.extLinkPorts = link_ports
 
         return ext_vl
+
+    def _get_vdu_info(self, vnfd, grant, inst):
+        flavour_id = inst.instantiatedVnfInfo.flavourId
+        vdu_nodes = vnfd.get_vdu_nodes(flavour_id)
+        storage_nodes = vnfd.get_storage_nodes(flavour_id)
+        vdu_info_dict = {}
+        for name, node in vdu_nodes.items():
+            flavor = self._get_param_flavor(vnfd, name, flavour_id, grant)
+            image = self._get_param_image(vnfd, name, flavour_id, grant)
+            vdu_storage_names = vnfd.get_vdu_storages(node)
+            volume_name = ''
+            volume_size = ''
+            for vdu_storage_name in vdu_storage_names:
+                if storage_nodes[vdu_storage_name].get(
+                        'properties').get('sw_image_data'):
+                    image = self._get_param_image(
+                        vnfd, vdu_storage_name, flavour_id, grant)
+                    volume_name = vdu_storage_name
+                    volume_size = storage_nodes[vdu_storage_name].get(
+                        'properties', {}).get(
+                        'virtual_block_storage_data', '').get(
+                        'size_of_storage', ''
+                    )
+                    volume_size = volume_size.rstrip(' GB')
+                    if not volume_size.isdigit():
+                        raise sol_ex.InvalidVolumeSize
+                    break
+
+            vdu_info_dict[name] = {
+                "flavor": flavor,
+                "image": image
+            }
+
+            if volume_name:
+                vdu_info_dict[name]['volume_info'] = {
+                    "volume_name": volume_name,
+                    "volume_size": volume_size
+                }
+        return vdu_info_dict
+
+    def _get_param_flavor(self, vnfd, vdu_name, flavour_id, grant):
+        # try to get from grant
+        if grant.obj_attr_is_set('vimAssets'):
+            assets = grant.vimAssets
+            if assets.obj_attr_is_set('computeResourceFlavours'):
+                flavours = assets.computeResourceFlavours
+                for flavour in flavours:
+                    if flavour.vnfdVirtualComputeDescId == vdu_name:
+                        return flavour.vimFlavourId
+        # if specified in VNFD, use it
+        # NOTE: if not found. parameter is set to None.
+        #       may be error when stack create
+        return vnfd.get_compute_flavor(flavour_id, vdu_name)
+
+    def _get_param_image(self, vnfd, vdu_name, flavour_id, grant):
+        # try to get from grant
+        if grant.obj_attr_is_set('vimAssets'):
+            assets = grant.vimAssets
+            if assets.obj_attr_is_set('softwareImages'):
+                images = assets.softwareImages
+                for image in images:
+                    if image.vnfdSoftwareImageId == vdu_name:
+                        return image.vimSoftwareImageId
+
+        # if specified in VNFD, use it
+        # NOTE: if not found. parameter is set to None.
+        #       may be error when stack create
+        sw_images = vnfd.get_sw_image(flavour_id)
+        for name, image in sw_images.items():
+            if name == vdu_name:
+                return image
+
+        return None
+
+    def _get_current_vdu_image_and_flavor(
+            self, nested_stack_id, resource_name,
+            heat_client, vim_info, vdu_image_id_flag):
+        vdu_info = heat_client.get_resource_info(
+            nested_stack_id, resource_name)
+        if vdu_info.get('attributes').get('image'):
+            image = vdu_info.get('attributes').get('image').get('id')
+            if not vdu_image_id_flag:
+                glance_client = glance_utils.GlanceClient(vim_info)
+                image = glance_client.get_image(image).name
+
+        else:
+            volume_ids = [volume.get('id') for volume in vdu_info.get(
+                'attributes').get('os-extended-volumes:volumes_attached')]
+            cinder_client = cinder_utils.CinderClient(vim_info)
+            if vdu_image_id_flag:
+                image = [cinder_client.get_volume(
+                    volume_id).volume_image_metadata.get('image_id')
+                    for volume_id in volume_ids if cinder_client.get_volume(
+                    volume_id).volume_image_metadata][0]
+            else:
+                image = [cinder_client.get_volume(
+                    volume_id).volume_image_metadata.get('image_name')
+                    for volume_id in volume_ids if cinder_client.get_volume(
+                    volume_id).volume_image_metadata][0]
+        flavor_name = vdu_info.get('attributes').get('flavor').get(
+            'original_name')
+
+        return image, flavor_name
+
+    def _get_new_res_info(self, parent_resource_name, vdu_infos,
+                          stack_id, vnfd_info, vdu_id, heat_client):
+        new_res_infos = {
+            "stack_id": stack_id,
+            "parent_resource_name": parent_resource_name
+        }
+        nested_reses = heat_client.get_resource_list(
+            stack_id.split('/')[1])['resources']
+        for nested_res in nested_reses:
+            if nested_res.get(
+                    'resource_type') == 'OS::Nova::Server' and nested_res.get(
+                    'resource_name') == vdu_id:
+                new_res_infos["vdu_id"] = nested_res.get(
+                    'physical_resource_id')
+            elif nested_res.get(
+                    'resource_type'
+            ) == 'OS::Cinder::Volume' and nested_res.get(
+                    'resource_name') == vnfd_info.get(
+                    'volume_info').get('volume_name'):
+                new_res_infos['volume_info'] = {
+                    "volume_name": nested_res.get('resource_name'),
+                    "volume_id": nested_res.get('physical_resource_id')
+                }
+        vdu_infos.append(new_res_infos)
+
+    def _get_ssh_ip(self, nested_stack_id, vnfc_param, heat_client):
+        cp_name = vnfc_param.get('cp_name')
+        cp_info = heat_client.get_resource_info(nested_stack_id, cp_name)
+        if cp_info.get('attributes').get('floating_ip_address'):
+            ssh_ip = cp_info.get('attributes').get('floating_ip_address')
+        else:
+            ssh_ip = cp_info.get('attributes').get('fixed_ips')[0].get(
+                'ip_address')
+        return ssh_ip
+
+    def _update_vnf_instantiated_info(
+            self, req, new_res_ids, inst, vnfd, heat_client, stack_name,
+            operation='change_vnfpkg'):
+        instantiated_vnf_info = inst.instantiatedVnfInfo
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        heat_reses = heat_client.get_resources(stack_name)
+        storage_reses = self._get_checked_reses(
+            vnfd.get_storage_nodes(inst.instantiatedVnfInfo.flavourId),
+            heat_utils.get_storage_reses(heat_reses))
+
+        # handle storage_info
+        def _res_to_handle(res):
+            return objects.ResourceHandle(
+                resourceId=res['physical_resource_id'],
+                vimLevelResourceType=res['resource_type'],
+                vimConnectionId=vim_info.vimId)
+
+        storage_infos = [
+            objects.VirtualStorageResourceInfoV2(
+                id=res_id,
+                virtualStorageDescId=res['resource_name'],
+                storageResource=_res_to_handle(res)
+            )
+            for res_id, res in storage_reses.items()
+        ]
+
+        # handle vnfc_resource_info
+        for vnfc_res in instantiated_vnf_info.vnfcResourceInfo:
+            if new_res_ids.get(vnfc_res.vduId):
+                new_res_info = [vnfc_info for vnfc_info
+                                in new_res_ids.get(vnfc_res.vduId)
+                                if vnfc_info['stack_id']
+                                == vnfc_res.metadata['stack_id']]
+                if not new_res_info:
+                    continue
+                new_res_info = new_res_info[0]
+                current_vnfc = []
+                if instantiated_vnf_info.obj_attr_is_set('vnfcInfo'):
+                    current_vnfc = [
+                        vnfc for vnfc in instantiated_vnf_info.vnfcInfo
+                        if vnfc.id == _make_combination_id(
+                            vnfc_res.vduId, vnfc_res.id)][0]
+                vnfc_res.id = new_res_info.get('vdu_id')
+                vnfc_res.computeResource.resourceId = new_res_info.get(
+                    'vdu_id')
+                if current_vnfc:
+                    current_vnfc.id = _make_combination_id(
+                        vnfc_res.vduId, vnfc_res.id)
+                    current_vnfc.vnfcResourceInfoId = vnfc_res.id
+                if operation == 'change_vnfpkg':
+                    vnfc_res.metadata['current_vnfd_id'] = req.vnfdId
+                else:
+                    vnfc_res.metadata['current_vnfd_id'] = inst.vnfdId
+                storage_ids = [
+                    storage_id for storage_id, storage_res in
+                    storage_reses.items()
+                    if (vnfc_res.vduId in storage_res.get(
+                        'required_by', []))]
+                if vnfc_res.metadata.get('parent_resource_name') != stack_name:
+                    storage_ids = [
+                        storage_id for storage_id, storage_res in
+                        storage_reses.items()
+                        if (vnfc_res.vduId in storage_res.get(
+                            'required_by', []) and vnfc_res.metadata.get(
+                            'parent_resource_name') == storage_res.get(
+                            'parent_resource'))]
+                if storage_ids:
+                    vnfc_res.storageResourceIds = storage_ids
+                else:
+                    if vnfc_res.obj_attr_is_set('storageResourceIds'):
+                        del vnfc_res.storageResourceIds
+
+        if storage_infos:
+            instantiated_vnf_info.virtualStorageResourceInfo = storage_infos
+        else:
+            if instantiated_vnf_info.obj_attr_is_set(
+                    'virtualStorageResourceInfo'):
+                del instantiated_vnf_info.virtualStorageResourceInfo
+
+    def _update_vnf_template_and_parameter(
+            self, stack_id, vdu_infos, vdu_id, heat_client, new_template):
+        vdu_info = vdu_infos[vdu_id]
+        volume_info = vdu_info.get('volume_info', {})
+        base_templates = heat_client.get_template(stack_id)
+        old_parameter = heat_client.get_parameters(stack_id)['nfv']
+        new_parameter = json.loads(copy.deepcopy(old_parameter))
+
+        # old VM(created by volume) -> new VM(created by volume)
+        if volume_info and 'image' not in base_templates[
+                'resources'][vdu_id]['properties']:
+            new_parameter['VDU'][vdu_id]['computeFlavourId'] = vdu_info.get(
+                'flavor')
+            new_parameter['VDU'][volume_info.get('volume_name')][
+                'vcImageId'] = vdu_info.get('image')
+
+        # old VM(created by volume) -> new VM(created by image)
+        elif vdu_info.get(
+                'volume_info') is None and 'image' not in base_templates[
+                'resources'][vdu_id]['properties']:
+            # delete vdu's volume definition info
+            if len(base_templates['resources'][vdu_id]['properties'][
+                    'block_device_mapping_v2']) > 1:
+                old_volumes = [name for name, value in
+                               base_templates['resources'].items()
+                               if value['type'] == 'OS::Cinder::Volume'
+                               and value['properties']['image']]
+                for volume in base_templates['resources'][
+                        vdu_id]['properties']['block_device_mapping_v2']:
+                    if volume['volume_id']['get_resource'] in old_volumes:
+                        target_volume_name = volume['volume_id'][
+                            'get_resource']
+            else:
+                target_volume_name = base_templates['resources'][
+                    vdu_id]['properties']['block_device_mapping_v2'][0][
+                    'volume_id']['get_resource']
+            del new_parameter['VDU'][target_volume_name]
+            new_parameter['VDU'][vdu_id]['computeFlavourId'] = vdu_info.get(
+                'flavor')
+            new_parameter['VDU'][vdu_id]['vcImageId'] = vdu_info.get('image')
+
+        # old VM(created by image) -> new VM(created by volume)
+        elif volume_info and 'image' in base_templates[
+                'resources'][vdu_id]['properties']:
+            del new_parameter['VDU'][vdu_id]['vcImageId']
+            new_parameter['VDU'][vdu_id]['computeFlavourId'] = vdu_info.get(
+                'flavor')
+            new_parameter['VDU'][volume_info.get('volume_name')] = {
+                "vcImageId": vdu_infos[vdu_id].get('image')
+            }
+        # old VM(created by image) -> new VM(created by image)
+        else:
+            new_parameter['VDU'][vdu_id]['computeFlavourId'] = vdu_info.get(
+                'flavor')
+            new_parameter['VDU'][vdu_id]['vcImageId'] = vdu_info.get('image')
+
+        heat_parameter = {
+            "templates": new_template,
+            "nfv": new_parameter
+        }
+        return heat_parameter
 
     def _make_ext_vl_info_from_req(self, req, grant, ext_cp_infos):
         # make extVirtualLinkInfo
@@ -947,3 +1539,47 @@ class Openstack(object):
             inst_vnf_info.vnfcInfo = vnfc_infos
 
         inst.instantiatedVnfInfo = inst_vnf_info
+
+    def _handle_exception(
+            self, res, new_res_ids, vdu_infos,
+            vdu_id, heat_client, req, inst, vnfd,
+            stack_name, ex=None, get_res_flag=False):
+        if get_res_flag:
+            if len(res.keys()) == 2:
+                par_stack_id = '{}/{}'.format(
+                    res.get('resource_name'),
+                    res.get('physical_resource_id'))
+            else:
+                par_stack_id = heat_utils.get_parent_nested_id(res)
+            self._get_new_res_info(
+                res.get('resource_name'),
+                new_res_ids[vdu_id],
+                par_stack_id,
+                vdu_infos[vdu_id], vdu_id,
+                heat_client)
+        self._update_vnf_instantiated_info(
+            req, new_res_ids, inst,
+            vnfd, heat_client, stack_name)
+        if ex:
+            raise ex
+        raise sol_ex.StackOperationFailed
+
+    def _get_entire_stack_fields(self, heat_client, stack_id,
+                                 group_vdu_ids, vdu_infos):
+        parameter = json.loads(heat_client.get_parameters(stack_id)['nfv'])
+        for group_vdu_id in group_vdu_ids:
+            if not parameter['VDU'][group_vdu_id].get('vcImageId'):
+                volume_info = vdu_infos[
+                    group_vdu_id].get('volume_info')
+                parameter['VDU'][volume_info.get('volume_name')][
+                    'vcImageId'] = vdu_infos[group_vdu_id].get(
+                    'image')
+            else:
+                parameter['VDU'][group_vdu_id][
+                    'vcImageId'] = vdu_infos[group_vdu_id].get(
+                    'image')
+        fields = {
+            "stack_id": stack_id,
+            "parameters": {"nfv": parameter}
+        }
+        return fields
