@@ -43,14 +43,15 @@ def get_vim(context, vim_id):
 
 
 def vim_to_conn_info(vim):
+    region = None
+    if vim.get('placement_attr', {}).get('regions'):
+        region = vim['placement_attr']['regions'][0]
+
+    vim_auth = vim['vim_auth']
+
     if vim['vim_type'] == "openstack":
         # see. https://nfvwiki.etsi.org/index.php
         # ?title=ETSINFV.OPENSTACK_KEYSTONE.V_3
-        region = None
-        if vim.get('placement_attr', {}).get('regions'):
-            region = vim['placement_attr']['regions'][0]
-
-        vim_auth = vim['vim_auth']
         access_info = {
             'username': vim_auth['username'],
             'password': vim_auth['password'],
@@ -74,6 +75,27 @@ def vim_to_conn_info(vim):
             interfaceInfo=interface_info,
             accessInfo=access_info
         )
-    else:  # k8s
-        # TODO(oda-g): not supported at the moment
-        pass
+    if vim['vim_type'] == "kubernetes":  # k8s
+        if vim_auth['username'] and vim_auth['password']:
+            access_info = {
+                'username': vim_auth['username'],
+                'password': vim_auth['password']
+            }
+        elif vim_auth['bearer_token']:
+            access_info = {
+                'bearer_token': vim_auth['bearer_token']
+            }
+
+        interface_info = {
+            'endpoint': vim_auth['auth_url']
+        }
+        if 'ssl_ca_cert' in vim_auth.keys():
+            interface_info['ssl_ca_cert'] = vim_auth['ssl_ca_cert']
+
+        return objects.VimConnectionInfo(
+            vimId=vim['vim_id'],
+            vimType='kubernetes',
+            interfaceInfo=interface_info,
+            accessInfo=access_info
+        )
+    raise sol_ex.SolException(sol_detail='not support vim type')

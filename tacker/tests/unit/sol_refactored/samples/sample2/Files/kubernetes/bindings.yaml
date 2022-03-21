@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Binding
+metadata:
+  name: curry-endpoint-test001
+  namespace: default
+target:
+  apiVersion: v1
+  kind: Node
+  namespace: default
+  name: k8-worker2

@@ -16,6 +16,7 @@
 
 import io
 import os
+import re
 import shutil
 import tempfile
 import zipfile
@@ -421,3 +422,35 @@ class Vnfd(object):
 
         # should not occur
         return 0
+
+    def get_vnf_artifact_files(self):
+
+        def _get_file_contents(path):
+            with open(path, 'rb') as file_object:
+                content = re.split(b'\n\n+', file_object.read())
+            return content
+
+        mani_artifact_files = []
+        meta_artifacts_files = []
+
+        if self.tosca_meta.get('ETSI-Entry-Manifest'):
+            manifest_path = os.path.join(
+                self.csar_dir, self.tosca_meta.get('ETSI-Entry-Manifest'))
+
+            mani_artifact_files = [
+                yaml.safe_load(content).get('Source')
+                for content in _get_file_contents(manifest_path) if
+                yaml.safe_load(content) and
+                yaml.safe_load(content).get('Source')]
+        else:
+            tosca_path = os.path.join(
+                self.csar_dir, 'TOSCA-Metadata', 'TOSCA.meta')
+
+            meta_artifacts_files = [
+                yaml.safe_load(content).get('Name')
+                for content in _get_file_contents(tosca_path) if
+                yaml.safe_load(content) and yaml.safe_load(
+                    content).get('Name')]
+
+        mani_artifact_files.extend(meta_artifacts_files)
+        return mani_artifact_files
