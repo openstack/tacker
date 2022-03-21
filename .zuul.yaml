@@ -542,6 +542,16 @@
                 kubernetes_vim_rsc_wait_timeout: 800
         tox_envlist: dsvm-functional-sol-kubernetes-v2
 
+- job:
+    name: tacker-compliance-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-legacy
+    description: |
+      Multinodes job for SOL devstack-based compliance tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-compliance-sol-api
+    voting: false
+
 - project:
     templates:
       - check-requirements
@@ -561,3 +571,4 @@
         - tacker-functional-devstack-multinode-sol-kubernetes-v2
         - tacker-functional-devstack-multinode-sol-multi-tenant
         - tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
+        - tacker-compliance-devstack-multinode-sol

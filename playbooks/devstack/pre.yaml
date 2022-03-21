@@ -11,4 +11,5 @@
       bindep_profile: test
       bindep_dir: "{{ zuul_work_dir }}"
     - ensure-tox
+    - ensure-java
     - show-net-setup
