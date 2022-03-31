@@ -126,7 +126,7 @@ Change External VNF Connectivity execution of the entire VNF:
 
 .. code-block:: console
 
-  $ openstack vnflcm change_ext_conn VNF_INSTANCE_ID \
+  $ openstack vnflcm change-ext-conn VNF_INSTANCE_ID \
        ./sample_param_file.json
 
 
