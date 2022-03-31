@@ -80,6 +80,11 @@ class SolHttpError409(SolException):
     title = 'Conflict'
 
 
+class SolHttpError415(SolException):
+    status = 415
+    title = 'Unsupported Media Type'
+
+
 class SolHttpError422(SolException):
     status = 422
     title = 'Unprocessable Entity'
@@ -328,3 +333,17 @@ class UpdateK8SResourceFailed(SolHttpError400):
 
 class NotSupportOperationType(SolHttpError404):
     message = _("This operation is not currently supported.")
+
+
+class NotAllowedContentType(SolHttpError406):
+    message = _("Content type '%(header)s' specified in 'Accept' header"
+                " is not allowed.")
+
+
+class NotSupportedContentType(SolHttpError415):
+    message = _("Content type '%(header)s' specified in 'Content-Type' header"
+                " is not allowed.")
+
+
+class MalformedRequestBody(SolHttpError400):
+    message = _("Malformed request body.")

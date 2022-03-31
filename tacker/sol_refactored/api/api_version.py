@@ -35,20 +35,27 @@ supported_versions_v2 = {
 
 CURRENT_VERSION = '2.0.0'
 
-supported_versions = [
+v1_versions = [
+    item['version'] for item in supported_versions_v1['apiVersions']
+]
+
+v2_versions = [
     item['version'] for item in supported_versions_v2['apiVersions']
 ]
 
 
 class APIVersion(object):
 
-    def __init__(self, version_string=None):
+    def __init__(self, version_string=None, supported_versions=None):
         self.ver_major = 0
         self.ver_minor = 0
         self.ver_patch = 0
 
         if version_string is None:
-            return
+            if supported_versions is None:
+                return
+            else:
+                raise sol_ex.APIVersionMissing()
 
         version_string = self._get_version_id(version_string)
         match = re.match(r"^([1-9]\d*)\.([1-9]\d*|0)\.([1-9]\d*|0)$",
@@ -60,7 +67,8 @@ class APIVersion(object):
         else:
             raise sol_ex.InvalidAPIVersionString(version=version_string)
 
-        if version_string not in supported_versions:
+        if (supported_versions is not None and
+                version_string not in supported_versions):
             raise sol_ex.APIVersionNotSupported(version=version_string)
 
     def _get_version_id(self, version_string):

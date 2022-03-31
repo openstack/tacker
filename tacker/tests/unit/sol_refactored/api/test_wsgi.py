@@ -27,7 +27,7 @@ class TestWsgi(base.TestCase):
         body = {"key": "value0123456789"}
         response = sol_wsgi.SolResponse(200, body)
         self.assertRaises(sol_ex.ResponseTooBig,
-            response.serialize, mock.Mock(), 'application/json')
+            response.serialize, 'application/json')
 
     def test_unknown_error_response(self):
         err_msg = "Test error"
@@ -41,8 +41,8 @@ class TestWsgi(base.TestCase):
         self.assertEqual(problem_details, response.body)
 
     def test_check_api_version_no_version(self):
-        resource = sol_wsgi.SolResource(mock.Mock())
+        resource = sol_wsgi.SolResource(sol_wsgi.SolAPIController())
         request = mock.Mock()
         request.headers = {}
         self.assertRaises(sol_ex.APIVersionMissing,
-            resource.check_api_version, request)
+            resource._check_api_version, request, 'action')

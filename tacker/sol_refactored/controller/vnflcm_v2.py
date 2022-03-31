@@ -19,7 +19,7 @@ from datetime import datetime
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
-from tacker.sol_refactored.api.api_version import supported_versions_v2
+from tacker.sol_refactored.api import api_version
 from tacker.sol_refactored.api.schemas import vnflcm_v2 as schema
 from tacker.sol_refactored.api import validator
 from tacker.sol_refactored.api import wsgi as sol_wsgi
@@ -53,7 +53,7 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         self._subsc_view = vnflcm_view.SubscriptionViewBuilder(self.endpoint)
 
     def api_versions(self, request):
-        return sol_wsgi.SolResponse(200, supported_versions_v2)
+        return sol_wsgi.SolResponse(200, api_version.supported_versions_v2)
 
     @validator.schema(schema.CreateVnfRequest_V200, '2.0.0')
     def create(self, request, body):
@@ -652,3 +652,21 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         lcmocc.delete(context)
 
         return sol_wsgi.SolResponse(204, None)
+
+    def supported_api_versions(self, action):
+        if action == 'api_versions':
+            # support all versions and it is OK there is no Version header.
+            return None
+        else:
+            return api_version.v2_versions
+
+    def allowed_content_types(self, action):
+        if action == 'update':
+            # Content-Type of Modify request shall be
+            # 'application/mergepatch+json' according to SOL spec.
+            # But 'application/json' and 'text/plain' is OK for backward
+            # compatibility.
+            return ['application/mergepatch+json', 'application/json',
+                    'text/plain']
+        else:
+            return ['application/json', 'text/plain']
