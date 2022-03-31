@@ -162,7 +162,18 @@ Param file with optional parameters:
               {
                 "cpProtocolData": [
                   {
-                    "layerProtocol": "IP_OVER_ETHERNET"
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                      "ipAddresses": [
+                        {
+                          "type": "IPV4",
+                          "fixedAddresses": [
+                            "10.10.0.49"  #Set the ip address from subnet range
+                          ],
+                          "subnetId": "06709e3e-33ff-4221-9d07-565c3fd55223" #Set the subnetID of net0
+                        }
+                      ]
+                    }
                   }
                 ]
               }
