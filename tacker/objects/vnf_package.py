@@ -225,20 +225,21 @@ def _destroy_vnf_package(context, package_uuid):
         package_uuid=package_uuid)
 
     software_images_query = api.model_query(
-        context, models.VnfSoftwareImage,
-        (models.VnfSoftwareImage.id, )).filter(
-        models.VnfSoftwareImage.flavour_uuid.in_(flavour_query.subquery()))
+        context, models.VnfSoftwareImage, (models.VnfSoftwareImage.id, )
+    ).filter(models.VnfSoftwareImage.flavour_uuid.in_(
+        flavour_query.subquery().select()))
 
     api.model_query(
-        context, models.VnfSoftwareImageMetadata).filter(
-        models.VnfSoftwareImageMetadata.image_uuid.in_(
-            software_images_query.subquery())).update(
-        updated_values, synchronize_session=False)
+        context, models.VnfSoftwareImageMetadata
+    ).filter(models.VnfSoftwareImageMetadata.image_uuid.in_(
+        software_images_query.subquery().select())
+    ).update(updated_values, synchronize_session=False)
 
-    api.model_query(context, models.VnfSoftwareImage). \
-        filter(models.VnfSoftwareImage.id.in_(
-            flavour_query.subquery())).update(
-        updated_values, synchronize_session=False)
+    api.model_query(
+        context, models.VnfSoftwareImage
+    ).filter(models.VnfSoftwareImage.id.in_(
+        flavour_query.subquery().select())
+    ).update(updated_values, synchronize_session=False)
 
     api.model_query(context, models.VnfPackageUserData). \
         filter_by(package_uuid=package_uuid). \
