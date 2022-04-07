@@ -30,8 +30,8 @@ def get_inst(context, inst_id):
     return inst
 
 
-def get_inst_all(context):
-    return objects.VnfInstanceV2.get_all(context)
+def get_inst_all(context, marker=None):
+    return objects.VnfInstanceV2.get_all(context, marker)
 
 
 def inst_href(inst_id, endpoint):

@@ -42,8 +42,8 @@ def get_subsc(context, subsc_id):
     return subsc
 
 
-def get_subsc_all(context):
-    return objects.LccnSubscriptionV2.get_all(context)
+def get_subsc_all(context, marker=None):
+    return objects.LccnSubscriptionV2.get_all(context, marker)
 
 
 def subsc_href(subsc_id, endpoint):

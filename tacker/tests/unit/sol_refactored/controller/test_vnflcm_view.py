@@ -16,6 +16,7 @@
 from unittest import mock
 
 from dateutil import parser
+import ddt
 
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.controller import vnflcm_view
@@ -184,3 +185,44 @@ class TestBaseViewBuilder(base.BaseTestCase):
         self.assertRaises(sol_ex.InvalidAttributeFilter,
                           builder.parse_filter,
                           "(gt,foo,1,2)")
+
+
+@ddt.ddt
+class TestPager(base.BaseTestCase):
+
+    @ddt.data(
+        {'marker': '5a72eeef-d912-419a-b0e2-23dd3cbbc688',
+         'req_url': ('http://127.0.0.1:9890/vnflcm/v2/vnf_instances'
+                     '?nextpage_opaque_marker='
+                     '5a72eeef-d912-419a-b0e2-23dd3cbbc688'),
+         'next_marker': None,
+         'expect_link': None},
+        {'marker': '5a72eeef-d912-419a-b0e2-23dd3cbbc688',
+         'req_url': ('http://127.0.0.1:9890/vnflcm/v2/vnf_instances'
+                     '?nextpage_opaque_marker='
+                     '5a72eeef-d912-419a-b0e2-23dd3cbbc688'),
+         'next_marker': '5a72eeef-d912-419a-b0e2-23dd3cbbc700',
+         'expect_link': ('<http://127.0.0.1:9890/vnflcm/v2/vnf_instances'
+                         '?nextpage_opaque_marker='
+                         '5a72eeef-d912-419a-b0e2-23dd3cbbc700>;rel="next"')},
+        {'marker': None,
+         'req_url': ('http://127.0.0.1:9890/vnflcm/v2/vnf_instances'
+                     '?all_fields=1'),
+         'next_marker': '5a72eeef-d912-419a-b0e2-23dd3cbbc700',
+         'expect_link': ('<http://127.0.0.1:9890/vnflcm/v2/vnf_instances'
+                         '?all_fields=1&nextpage_opaque_marker='
+                         '5a72eeef-d912-419a-b0e2-23dd3cbbc700>;rel="next"')},
+        {'marker': None,
+         'req_url': 'http://127.0.0.1:9890/vnflcm/v2/vnf_instances',
+         'next_marker': '5a72eeef-d912-419a-b0e2-23dd3cbbc700',
+         'expect_link': ('<http://127.0.0.1:9890/vnflcm/v2/vnf_instances'
+                         '?nextpage_opaque_marker='
+                         '5a72eeef-d912-419a-b0e2-23dd3cbbc700>;rel="next"')})
+    @ddt.unpack
+    def test_get_link(self, marker, req_url, next_marker, expect_link):
+        page_size = 10
+
+        pager = vnflcm_view.Pager(marker, req_url, page_size)
+        pager.next_marker = next_marker
+        link = pager.get_link()
+        self.assertEqual(expect_link, link)

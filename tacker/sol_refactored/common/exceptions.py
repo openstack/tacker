@@ -347,3 +347,7 @@ class NotSupportedContentType(SolHttpError415):
 
 class MalformedRequestBody(SolHttpError400):
     message = _("Malformed request body.")
+
+
+class InvalidPagingMarker(SolHttpError400):
+    message = _("Paging marker value %(marker)s is invalid.")
