@@ -684,7 +684,6 @@ class TestTransformer(base.TestCase):
         self.assertEqual(k8s_obj.api_version, 'v1')
         # V1LimitRangeSpec
         self.assertIsNotNone(k8s_obj.spec.limits)
-        self.assertIsNotNone(k8s_obj.spec.limits[0].type)
 
     def test_pod_template(self):
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(

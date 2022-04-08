@@ -845,7 +845,7 @@ class TestKubernetes(base.BaseTestCase):
 
         mock_node.return_value = fakes.fake_node(status='False')
         mock_read_node.side_effect = [
-            fakes.fake_node(type='UnReady'),
+            fakes.fake_node(type='NetworkUnavailable'),
             fakes.fake_node(), fakes.fake_none()]
 
         self._normal_execute_procedure(req)

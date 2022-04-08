@@ -439,6 +439,12 @@
           KURYR_K8S_API_URL: "https://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:${KURYR_K8S_API_PORT}"
           KURYR_K8S_CONTAINERIZED_DEPLOYMENT: false
           KURYR_NEUTRON_DEFAULT_SUBNETPOOL_ID: shared-default-subnetpool-v4
+          # TODO(YiFeng): At present, the version of kubernetes should be
+          # 1.23.3, and the returned response can pass the verification of
+          # kubernetes-client (1.23.3). This configuration will be removed
+          # after kuryr-kubernetes fixes the following bug.
+          # https://bugs.launchpad.net/kuryr-kubernetes/+bug/1968960
+          KURYR_KUBERNETES_VERSION: 1.23.3
           MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           OCTAVIA_AMP_IMAGE_FILE: "/tmp/test-only-amphora-x64-haproxy-ubuntu-bionic.qcow2"
           OCTAVIA_AMP_IMAGE_NAME: "test-only-amphora-x64-haproxy-ubuntu-bionic"

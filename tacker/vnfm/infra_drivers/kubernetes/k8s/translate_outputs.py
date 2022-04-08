@@ -160,169 +160,30 @@ class Transformer(object):
 
         return kubernetes_objects
 
+    def _gen_k8s_obj_from_name(self, obj_name):
+        """Generate kubernetes object
+
+        The function converts the name passed in to the corresponding
+        kubernetes object and returns it. By default, client_side_validation
+        is True. To skip client-side validation, initialize an empty object,
+        set client_side_validation to False, and pass the configuration to
+        the function of initializing the kubernetes object through the
+        `local_vars_configuration` parameter.
+        """
+        client_config = client.Configuration.get_default_copy()
+        client_config.client_side_validation = False
+        config = '(local_vars_configuration=client_config)'
+        try:
+            k8s_obj = eval('client.{}{}'.format(obj_name, config))
+            return k8s_obj
+        except (ValueError, SyntaxError, AttributeError) as e:
+            msg = '{kind} create failure. Reason={reason}'.format(
+                kind=obj_name, reason=e)
+            raise exceptions.InitApiFalse(error=msg)
+
     def _create_k8s_object(self, kind, file_content_dict):
-        # must_param referring K8s official object page
-        # *e.g:https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1Service.md
-        # initiating k8s object, you need to
-        # give the must param an empty value.
-        must_param = {
-            'V1LocalSubjectAccessReview': '(spec="")',
-            'V1HTTPGetAction': '(port="")',
-            'V1DeploymentSpec': '(selector="", template="")',
-            'V1PodSpec': '(containers=[])',
-            'V1ConfigMapKeySelector': '(key="")',
-            'V1Container': '(name="")',
-            'V1EnvVar': '(name="")',
-            'V1SecretKeySelector': '(key="")',
-            'V1ContainerPort': '(container_port="")',
-            'V1VolumeMount': '(mount_path="", name="")',
-            'V1PodCondition': '(status="", type="")',
-            'V1ContainerStatus': '('
-                                 'image="", image_id="", '
-                                 'name="", ready="", '
-                                 'restart_count="")',
-            'V1ServicePort': '(port=80)',
-            'V1TypedLocalObjectReference': '(kind="", name="")',
-            'V1LabelSelectorRequirement': '(key="", operator="")',
-            'V1PersistentVolumeClaimCondition': '(status="", type="")',
-            'V1AWSElasticBlockStoreVolumeSource': '(volume_id="")',
-            'V1AzureDiskVolumeSource': '(disk_name="", disk_uri="")',
-            'V1AzureFileVolumeSource': '(secret_name="", share_name="")',
-            'V1CephFSVolumeSource': '(monitors=[])',
-            'V1CinderVolumeSource': '(volume_id="")',
-            'V1KeyToPath': '(key="", path="")',
-            'V1CSIVolumeSource': '(driver="")',
-            'V1DownwardAPIVolumeFile': '(path="")',
-            'V1ObjectFieldSelector': '(field_path="")',
-            'V1ResourceFieldSelector': '(resource="")',
-            'V1FlexVolumeSource': '(driver="")',
-            'V1GCEPersistentDiskVolumeSource': '(pd_name="")',
-            'V1GitRepoVolumeSource': '(repository="")',
-            'V1GlusterfsVolumeSource': '(endpoints="", path="")',
-            'V1HostPathVolumeSource': '(path="")',
-            'V1ISCSIVolumeSource': '(iqn="", lun=0, target_portal="")',
-            'V1Volume': '(name="")',
-            'V1NFSVolumeSource': '(path="", server="")',
-            'V1PersistentVolumeClaimVolumeSource': '(claim_name="")',
-            'V1PhotonPersistentDiskVolumeSource': '(pd_id="")',
-            'V1PortworxVolumeSource': '(volume_id="")',
-            'V1ProjectedVolumeSource': '(sources=[])',
-            'V1ServiceAccountTokenProjection': '(path="")',
-            'V1QuobyteVolumeSource': '(registry="", volume="")',
-            'V1RBDVolumeSource': '(image="", monitors=[])',
-            'V1ScaleIOVolumeSource': '('
-                                     'gateway="", secret_ref="", '
-                                     'system="")',
-            'V1VsphereVirtualDiskVolumeSource': '(volume_path="")',
-            'V1LimitRangeSpec': '(limits=[])',
-            'V1Binding': '(target="")',
-            'V1ComponentCondition': '(status="", type="")',
-            'V1NamespaceCondition': '(status="", type="")',
-            'V1ConfigMapNodeConfigSource': '(kubelet_config_key="", '
-                                           'name="", namespace="")',
-            'V1Taint': '(effect="", key="")',
-            'V1NodeAddress': '(address="", type="")',
-            'V1NodeCondition': '(status="", type="")',
-            'V1DaemonEndpoint': '(port=0)',
-            'V1ContainerImage': '(names=[])',
-            'V1NodeSystemInfo': '(architecture="", boot_id="", '
-                                'container_runtime_version="",'
-                                'kernel_version="", '
-                                'kube_proxy_version="", '
-                                'kubelet_version="",'
-                                'machine_id="", operating_system="", '
-                                'os_image="", system_uuid="")',
-            'V1AttachedVolume': '(device_path="", name="")',
-            'V1ScopedResourceSelectorRequirement':
-                '(operator="", scope_name="")',
-            'V1APIServiceSpec': '(group_priority_minimum=0, '
-                                'service="", '
-                                'version_priority=0)',
-            'V1APIServiceCondition': '(status="", type="")',
-            'V1DaemonSetSpec': '(selector="", template="")',
-            'V1ReplicaSetSpec': '(selector="")',
-            'V1StatefulSetSpec': '(selector="", '
-                                 'service_name="", template="")',
-            'V1StatefulSetCondition': '(status="", type="")',
-            'V1StatefulSetStatus': '(replicas=0)',
-            'V1ControllerRevision': '(revision=0)',
-            'V1TokenReview': '(spec="")',
-            'V1SubjectAccessReviewStatus': '(allowed=True)',
-            'V1SelfSubjectAccessReview': '(spec="")',
-            'V1SelfSubjectRulesReview': '(spec="")',
-            'V1SubjectRulesReviewStatus': '(incomplete=True, '
-                                          'non_resource_rules=[], '
-                                          'resource_rules=[])',
-            'V1NonResourceRule': '(verbs=[])',
-            'V1SubjectAccessReview': '(spec="")',
-            'V1HorizontalPodAutoscalerSpec':
-                '(max_replicas=0, scale_target_ref="")',
-            'V1CrossVersionObjectReference': '(kind="", name="")',
-            'V1HorizontalPodAutoscalerStatus':
-                '(current_replicas=0, desired_replicas=0)',
-            'V1JobSpec': '(template="")',
-            'V1NetworkPolicySpec': '(pod_selector="")',
-            'V1PolicyRule': '(verbs=[])',
-            'V1ClusterRoleBinding': '(role_ref="")',
-            'V1RoleRef': '(api_group="", kind="", name="")',
-            'V1Subject': '(kind="", name="")',
-            'V1RoleBinding': '(role_ref="")',
-            'V1PriorityClass': '(value=0)',
-            'V1StorageClass': '(provisioner="")',
-            'V1TopologySelectorLabelRequirement': '(key="", values=[])',
-            'V1VolumeAttachment': '(spec="")',
-            'V1VolumeAttachmentSpec':
-                '(attacher="", node_name="", source="")',
-            'V1VolumeAttachmentStatus': '(attached=True)',
-            'V1NodeSelector': '(node_selector_terms=[])',
-            'V1NodeSelectorRequirement': '(key="", operator="")',
-            'V1PreferredSchedulingTerm': '(preference="", weight=1)',
-            'V1PodAffinityTerm': '(topology_key="")',
-            'V1WeightedPodAffinityTerm': '(pod_affinity_term="", weight=1)',
-            'V1OwnerReference': '(api_version="", kind="", name="", uid="")',
-            'V1HTTPHeader': '(name="", value="")',
-            'V1TCPSocketAction': '(port="")',
-            'V1VolumeDevice': '(device_path="", name="")',
-            'V1PodReadinessGate': '(condition_type="")',
-            'V1Sysctl': '(name="", value="")',
-            'V1ContainerStateTerminated': '(exit_code=0)',
-            'V1AzureFilePersistentVolumeSource': '(secret_name="",'
-                                                 ' share_name="")',
-            'V1CephFSPersistentVolumeSource': '(monitors=[])',
-            'V1CinderPersistentVolumeSource': '(volume_id="")',
-            'V1CSIPersistentVolumeSource': '(driver="", volume_handle="")',
-            'V1FlexPersistentVolumeSource': '(driver="")',
-            'V1GlusterfsPersistentVolumeSource': '(endpoints="", path="")',
-            'V1ISCSIPersistentVolumeSource': '(iqn="", lun=0,'
-                                             ' target_portal="")',
-            'V1LocalVolumeSource': '(path="")',
-            'V1RBDPersistentVolumeSource': '(image="", monitors=[])',
-            'V1ScaleIOPersistentVolumeSource': '('
-                                               'gateway="",'
-                                               ' secret_ref="",'
-                                               ' system="")',
-            'V1DaemonSetStatus': '(current_number_scheduled=0, '
-                                 'desired_number_scheduled=0, '
-                                 'number_misscheduled=0, '
-                                 'number_ready=0)',
-            'V1DaemonSetCondition': '(status="", type="")',
-            'V1DeploymentCondition': '(status="", type="")',
-            'V1ReplicaSetStatus': '(replicas=0)',
-            'V1ReplicaSetCondition': '(status="", type="")',
-            'V1ResourceRule': '(verbs=[])',
-            'V1JobCondition': '(status="", type="")',
-            'V1IPBlock': '(cidr="")',
-            'V1EphemeralContainer': '(name="")',
-            'V1TopologySpreadConstraint': '(max_skew=0, topology_key="",'
-                                          ' when_unsatisfiable="")',
-            'V1LimitRangeItem': '(type="")'
-        }
-        whole_kind = 'V1' + kind
-        if whole_kind in must_param.keys():
-            k8s_obj = eval('client.V1' + kind + must_param.get(whole_kind))
-        else:
-            k8s_obj = eval('client.V1' + kind + '()')
-        self._init_k8s_obj(k8s_obj, file_content_dict, must_param)
+        k8s_obj = self._gen_k8s_obj_from_name('V1' + kind)
+        self._init_k8s_obj(k8s_obj, file_content_dict)
         return k8s_obj
 
     def _get_k8s_obj_from_file_content_dict(self, file_content_dict,
@@ -499,7 +360,7 @@ class Transformer(object):
         name = name.strip()
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
-    def _init_k8s_obj(self, obj, content, must_param):
+    def _init_k8s_obj(self, obj, content):
         for key, value in content.items():
             param_value = self._get_lower_case_name(key)
             if hasattr(obj, param_value) and \
@@ -511,12 +372,8 @@ class Transformer(object):
                 if obj_name == 'dict(str, str)':
                     setattr(obj, param_value, value)
                 else:
-                    if obj_name in must_param.keys():
-                        rely_obj = eval('client.' + obj_name +
-                                       must_param.get(obj_name))
-                    else:
-                        rely_obj = eval('client.' + obj_name + '()')
-                    self._init_k8s_obj(rely_obj, value, must_param)
+                    rely_obj = self._gen_k8s_obj_from_name(obj_name)
+                    self._init_k8s_obj(rely_obj, value)
                     setattr(obj, param_value, rely_obj)
             elif isinstance(value, list):
                 obj_name = obj.openapi_types.get(param_value)
@@ -527,13 +384,8 @@ class Transformer(object):
                     rely_obj_name = \
                         re.findall(r".*\[([^\[\]]*)\].*", obj_name)[0]
                     for v in value:
-                        if rely_obj_name in must_param.keys():
-                            rely_obj = eval('client.' + rely_obj_name +
-                                           must_param.get(rely_obj_name))
-                        else:
-                            rely_obj = \
-                                eval('client.' + rely_obj_name + '()')
-                        self._init_k8s_obj(rely_obj, v, must_param)
+                        rely_obj = self._gen_k8s_obj_from_name(rely_obj_name)
+                        self._init_k8s_obj(rely_obj, v)
                         rely_objs.append(rely_obj)
                     setattr(obj, param_value, rely_objs)
 
@@ -553,9 +405,8 @@ class Transformer(object):
         return sorted_k8s_objs
 
     def get_object_meta(self, content):
-        must_param = {}
         v1_object_meta = client.V1ObjectMeta()
-        self._init_k8s_obj(v1_object_meta, content, must_param)
+        self._init_k8s_obj(v1_object_meta, content)
         return v1_object_meta
 
     # config_labels configures label

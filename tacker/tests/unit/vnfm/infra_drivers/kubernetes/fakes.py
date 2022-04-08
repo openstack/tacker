@@ -238,7 +238,7 @@ def fake_pvc_false():
             name='curry-sc-pvc'
         ),
         status=client.V1PersistentVolumeClaimStatus(
-            phase='UnBound'
+            phase='Pending'
         )
     )
 
@@ -286,7 +286,7 @@ def fake_namespace_false():
             name='curry-ns'
         ),
         status=client.V1NamespaceStatus(
-            phase='NotActive'
+            phase='Terminating'
         )
     )
 
@@ -658,6 +658,8 @@ def fake_v1_volume_attachment_error():
 
 
 def fake_v1_stateful_set():
+    client_config = client.Configuration.get_default_copy()
+    client_config.client_side_validation = False
     return client.V1StatefulSet(
         api_version='apps/v1',
         kind='StatefulSet',
@@ -687,12 +689,15 @@ def fake_v1_stateful_set():
         ),
         status=client.V1StatefulSetStatus(
             replicas=1,
-            ready_replicas=1
+            ready_replicas=1,
+            local_vars_configuration=client_config
         ),
     )
 
 
 def fake_v1_stateful_set_error():
+    client_config = client.Configuration.get_default_copy()
+    client_config.client_side_validation = False
     return client.V1StatefulSet(
         api_version='apps/v1',
         kind='StatefulSet',
@@ -722,7 +727,8 @@ def fake_v1_stateful_set_error():
         ),
         status=client.V1StatefulSetStatus(
             replicas=2,
-            ready_replicas=1
+            ready_replicas=1,
+            local_vars_configuration=client_config
         )
     )
 
@@ -750,7 +756,7 @@ def fake_v1_persistent_volume_claim_error():
             namespace='curryns'
         ),
         status=client.V1PersistentVolumeClaimStatus(
-            phase='Bound1'
+            phase='Pending'
         )
     )
 
@@ -800,7 +806,7 @@ def fake_pod_error():
             namespace='curryns'
         ),
         status=client.V1PodStatus(
-            phase='Terminated',
+            phase='Failed',
         )
     )
 
@@ -850,7 +856,7 @@ def fake_persistent_volume_error():
             namespace='curryns'
         ),
         status=client.V1PersistentVolumeStatus(
-            phase='UnBound',
+            phase='Pending',
         )
     )
 
@@ -1017,7 +1023,7 @@ def fake_pod_list():
                 name="fake-name"
             ),
             status=client.V1PodStatus(
-                phase="Successed"
+                phase="Succeeded"
             )
         )]
     )

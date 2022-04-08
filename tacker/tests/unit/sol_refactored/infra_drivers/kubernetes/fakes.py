@@ -290,7 +290,7 @@ def fake_pc():
 
 
 def fake_persistent_volume(
-        name='curry-sc-pv', phase='UnAvailable'):
+        name='curry-sc-pv', phase='Pending'):
     return client.V1PersistentVolume(
         api_version='v1',
         kind='PersistentVolume',
@@ -395,6 +395,8 @@ def fake_rq():
 
 
 def fake_stateful_set(ready_replicas=0):
+    client_config = client.Configuration.get_default_copy()
+    client_config.client_side_validation = False
     return client.V1StatefulSet(
         api_version='apps/v1',
         kind='StatefulSet',
@@ -424,7 +426,8 @@ def fake_stateful_set(ready_replicas=0):
         ),
         status=client.V1StatefulSetStatus(
             replicas=2,
-            ready_replicas=ready_replicas
+            ready_replicas=ready_replicas,
+            local_vars_configuration=client_config
         ),
     )
 
