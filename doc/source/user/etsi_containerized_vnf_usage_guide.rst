@@ -94,7 +94,7 @@ the [1. Create a config file] chapter.
 
 .. code-block:: console
 
-    $ openstack vim register --config-file vim-k8s.yaml test-vim-k8s --fit-width
+    $ openstack vim register --config-file vim-k8s.yaml test-vim-k8s --fit-width --is-default
     +----------------+-----------------------------------------------------------------------------------------------------------------+
     | Field          | Value                                                                                                           |
     +----------------+-----------------------------------------------------------------------------------------------------------------+
@@ -125,7 +125,7 @@ the [1. Create a config file] chapter.
     | created_at     | 2020-10-19 08:08:12.116040                                                                                      |
     | description    |                                                                                                                 |
     | id             | 8d8373fe-6977-49ff-83ac-7756572ed186                                                                            |
-    | is_default     | False                                                                                                           |
+    | is_default     | True                                                                                                            |
     | name           | test-vim-k8s                                                                                                    |
     | placement_attr | {                                                                                                               |
     |                |     "regions": [                                                                                                |
@@ -153,7 +153,7 @@ Also we can check if the status of VIM is REACHABLE by
     +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
     | ID                                   | Name           | Tenant_id                        | Type       | Is Default | Status    |
     +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
-    | 8d8373fe-6977-49ff-83ac-7756572ed186 | test-vim-k8s   | 2a505a8efb7a4569af73594bd9904834 | kubernetes | False      | REACHABLE |
+    | 8d8373fe-6977-49ff-83ac-7756572ed186 | test-vim-k8s   | 2a505a8efb7a4569af73594bd9904834 | kubernetes | True       | REACHABLE |
     +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
 
 Prepare VNF Package
@@ -656,7 +656,7 @@ Get the ID of target VIM.
     +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
     | ID                                   | Name           | Tenant_id                        | Type       | Is Default | Status    |
     +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
-    | 8d8373fe-6977-49ff-83ac-7756572ed186 | test-vim-k8s   | 2a505a8efb7a4569af73594bd9904834 | kubernetes | False      | REACHABLE |
+    | 8d8373fe-6977-49ff-83ac-7756572ed186 | test-vim-k8s   | 2a505a8efb7a4569af73594bd9904834 | kubernetes | True       | REACHABLE |
     +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
 
 A json file includes path of Kubernetes resource definition file and Kubernetes
