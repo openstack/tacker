@@ -1,0 +1,40 @@
+@startuml
+
+frame "python-tackerclient" {
+    component "tacker-client" as client
+}
+
+frame "tacker" {
+    component "tacker-server" {
+        component "server" as serv
+    }
+    component "tacker-conductor" {
+        component "conductor" as cond
+        component "mgmt-driver" as infra
+    }
+}
+
+node "Kubernetes\nCluster\n(Master)" as k8s_m
+cloud "Hardware Resources" as hw {
+    node "Kubernetes\nCluster\n(Worker)" as k8s_w {
+        node "ConfigMap" as ins1
+        node "Secret" as ins2
+        node "Pod" as ins3
+        node "Deployment" as ins4
+    }
+}
+
+
+'# Relationships
+client --> serv: 1. Request\n update VNF
+serv --> cond
+cond --> infra
+infra -right-> k8s_m: 2. Call Kubernetes\n API
+k8s_m --> ins1
+k8s_m --> ins2: 3. Update the\n deployed resources
+k8s_m --> ins3
+k8s_m --> ins4
+ins1 -[hidden]right-> ins2
+ins2 -[hidden]right-> ins3
+ins3 -[hidden]right-> ins4
+@enduml
