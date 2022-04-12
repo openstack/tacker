@@ -145,7 +145,7 @@ the [1. Create a config file] chapter.
     +----------------+-----------------------------------------------------------------------------------------------------------------+
 
 Also we can check if the status of VIM is REACHABLE by
-`openstack vim list` command.
+:command:`openstack vim list` command.
 
 .. code-block:: console
 
@@ -184,7 +184,7 @@ different yaml files.
 For the types of resources that can be deployed in Victoria, please refer to
 following link Kubernetes resource kind support [#third]_.
 
-The following is a simple example of `deployment` resource.
+The following is a simple example of ``deployment`` resource.
 
 .. code-block:: console
 
@@ -219,11 +219,11 @@ The following is a simple example of `deployment` resource.
             - containerPort: 8080
               protocol: TCP
 
-.. note:: `metadata.name` in this file should be the same as
-          `properties.name` of the corresponding VDU in the deployment flavor
+.. note:: ``metadata.name`` in this file should be the same as
+          ``properties.name`` of the corresponding VDU in the deployment flavor
           definition file.
-          For the example in this procedure, `metadata.name` is same as
-          `topology_template.node_templates.VDU1.properties.name`
+          For the example in this procedure, ``metadata.name`` is same as
+          ``topology_template.node_templates.VDU1.properties.name``
           in the helloworld3_df_simple.yaml file.
 
 3. Create a TOSCA.meta File
@@ -307,7 +307,7 @@ Following is an example of a VNFD file includes the definition of VNF.
             #- virtual_link_external # mapped in lower-level templates
             #- virtual_link_internal # mapped in lower-level templates
 
-The `helloworld3_types.yaml` file defines the parameter types and default
+The ``helloworld3_types.yaml`` file defines the parameter types and default
 values of the VNF.
 
 .. code-block:: console
@@ -364,7 +364,7 @@ values of the VNF.
           - virtual_link_internal:
               capability: tosca.capabilities.nfv.VirtualLinkable
 
-`helloworld3_df_simple.yaml` defines the parameter type of VNF input.
+``helloworld3_df_simple.yaml`` defines the parameter type of VNF input.
 
 .. code-block:: console
 
@@ -475,10 +475,10 @@ values of the VNF.
                   number_of_instances: 3
             targets: [ VDU1 ]
 
-.. note:: `VDU1.properties.name` should be same as `metadata.name` that
+.. note:: ``VDU1.properties.name`` should be same as ``metadata.name`` that
           defined in Kubernetes object file.
-          Therefore, `VDU1.properties.name` should be followed naming rules of
-          Kubernetes resource name. About detail of naming rules, please
+          Therefore, ``VDU1.properties.name`` should be followed naming rules
+          of Kubernetes resource name. About detail of naming rules, please
           refer to Kubernetes document [#fifth]_.
 
 6. Compress VNF Package
@@ -502,7 +502,7 @@ VNF package created in previous section.
 1. Create VNF Package
 ~~~~~~~~~~~~~~~~~~~~~
 An empty vnf package could be created by command
-`openstack vnf package create`.
+:command:`openstack vnf package create`.
 After create a VNF Package successfully, some information including ID, Links,
 Onboarding State, Operational State, and Usage State will be returned.
 When the Onboarding State is CREATED, the Operational State is DISABLED,
@@ -533,7 +533,8 @@ and the Usage State is NOT_IN_USE, indicate the creation is successful.
 ~~~~~~~~~~~~~~~~~~~~~
 Upload the VNF package created above in to the VNF Package by running the
 following command
-`openstack vnf package upload --path <path of vnf package> <vnf package ID>`
+:command:`openstack vnf package upload --path <path of vnf package>
+<vnf package ID>`
 Here is an example of upload VNF package:
 
 .. code-block:: console
@@ -543,7 +544,7 @@ Here is an example of upload VNF package:
 
 3. Check VNF Package Status
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Check the VNF Package Status by `openstack vnf package list` command.
+Check the VNF Package Status by :command:`openstack vnf package list` command.
 Find the item which the id is same as the created vnf package id, when the
 Onboarding State is ONBOARDED, and the Operational State is ENABLED, and the
 Usage State is NOT_IN_USE, indicate the VNF Package is uploaded successfully.
@@ -570,7 +571,7 @@ Create VNF
 ~~~~~~~~~~~~~~
 
 The VNFD ID of a uploaded vnf package could be found by
-`openstack vnf package show <VNF package ID>` command.
+:command:`openstack vnf package show <VNF package ID>` command.
 Here is an example of checking VNFD-ID value:
 
 .. code-block:: console
@@ -616,8 +617,8 @@ Here is an example of checking VNFD-ID value:
 
 2. Execute Create VNF Command
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-We could create VNF by running `openstack vnflcm create <VNFD ID>`.
-After the command is executed, the generated ID is `VNF instance ID`.
+We could create VNF by running :command:`openstack vnflcm create <VNFD ID>`.
+After the command is executed, the generated ID is ``VNF instance ID``.
 
 .. code-block:: console
 
@@ -663,8 +664,28 @@ A json file includes path of Kubernetes resource definition file and Kubernetes
 VIM information should be provided while instantiating a containerized VNF.
 Here is an example of json file:
 
-`additionalParams` includes path of Kubernetes resource definition file,
-notice that `lcm-kubernetes-def-files` should be a list.
+``additionalParams`` includes path of Kubernetes resource definition file,
+notice that ``lcm-kubernetes-def-files`` should be a list. A user can also
+specify the ``namespace`` where the resource needs to be deployed.
+
+.. note::
+
+    The ``namespace`` for the VNF instantiation is determined by the
+    following priority.
+
+    1. If a ``namespace`` is specified in the additionalParams
+       of the instantiate request, the specified ``namespace`` is used.
+    2. If a ``namespace`` is not specified by the method described
+       in 1, a ``namespace`` under metadata defined in
+       :ref:`Create a Kubernetes Object File` is used.
+    3. If a ``namespace`` is not specified by the method described in 2,
+       the default namespace called ``default`` is used.
+
+.. warning::
+
+    If the multiple namespaces are specified in the manifest by the
+    method described in 2, the VNF instantiation will fail.
+
 The vimConnectionInfo includes id whose value can be defined autonomously,
 vimId and vimType.
 
@@ -676,7 +697,8 @@ vimId and vimType.
       "additionalParams": {
         "lcm-kubernetes-def-files": [
           "Files/kubernetes/deployment.yaml"
-        ]
+        ],
+        "namespace": "default"
       },
       "vimConnectionInfo": [
         {
@@ -689,10 +711,11 @@ vimId and vimType.
 
 2. Execute the Instantiation Command
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Run `openstack vnflcm instantiate <VNF instance ID> <json file>` to instantiate
-a VNF.
+Run :command:`openstack vnflcm instantiate <VNF instance ID> <json file>`
+to instantiate a VNF.
 
-The `VNF instance ID` is the ID generated after the `openstack vnflcm create`
+The ``VNF instance ID`` is the ID generated after the
+:command:`openstack vnflcm create`
 command is executed. We can find it in the [2. Execute Create VNF command]
 chapter.
 
@@ -779,6 +802,22 @@ When the READY is 1/1, indicate the deployment is created successfully.
     $ kubectl get deploy
     NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
     curry-probe-test001   1/1     1            1           8m43s
+
+If we want to check whether the resource is deployed in the default namespace,
+we can append ``-A`` to the command line.
+
+.. code-block:: console
+
+    $ kubectl get deploy -A
+    NAMESPACE     NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+    default       curry-probe-test001       1/1     1            1           8m43s
+    kube-system   calico-kube-controllers   1/1     1            1           5d18h
+
+.. note::
+
+    If a value other than ``default`` is specified for the namespace
+    during instantiate, the deployed resources will be instantiated
+    in the corresponding namespace.
 
 References
 ==========
