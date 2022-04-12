@@ -18,21 +18,13 @@ resources:
           flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
           image: { get_param: [ nfv, VDU, VDU1-VirtualStorage, vcImageId] }
           net1: { get_param: [ nfv, CP, VDU1_CP1, network] }
+          volume_type: { get_resource: VDU1-VolumeType }
 
-  VDU1_scale_out:
-    type: OS::Heat::ScalingPolicy
+  VDU1-VolumeType:
+    type: OS::Cinder::VolumeType
     properties:
-      scaling_adjustment: 1
-      auto_scaling_group_id:
-        get_resource: VDU1_scale
-      adjustment_type: change_in_capacity
-  VDU1_scale_in:
-    type: OS::Heat::ScalingPolicy
-    properties:
-      scaling_adjustment: -1
-      auto_scaling_group_id:
-        get_resource: VDU1_scale
-      adjustment_type: change_in_capacity
+      name: VDU1-multi
+      metadata: { multiattach: "<is> True" }
 
   VDU2:
     type: OS::Nova::Server

@@ -42,8 +42,6 @@ resources:
           get_resource: VDU1_CP4
       - port:
           get_resource: VDU1_CP5
-
-
       availability_zone: { get_param: zone }
 
   VDU1-VirtualStorage:
@@ -51,11 +49,11 @@ resources:
     properties:
       image: { get_param: image }
       size: 1
-      volume_type: { get_resource: multi }
-  multi:
+      volume_type: { get_resource: VDU1-VolumeType }
+  VDU1-VolumeType:
     type: OS::Cinder::VolumeType
     properties:
-      name: multivolume
+      name: VDU1-multi
       metadata: { multiattach: "<is> True" }
 
 # extVL without FixedIP or with numDynamicAddresses
