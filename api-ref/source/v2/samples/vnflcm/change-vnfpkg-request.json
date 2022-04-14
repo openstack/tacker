@@ -1,0 +1,35 @@
+{
+    "vnfdId": "c6595341-a5bb-8246-53c4-7aeb843d60c5",
+    "additionalParams": {
+        "upgrade_type": "RollingUpdate",
+        "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_old_vnf.py",
+        "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
+        "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_new_vnf.py",
+        "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
+        "vdu_params": [{
+            "vdu_id": "VDU1",
+            "old_vnfc_param": {
+                "cp_name": "VDU1_CP1",
+                "username": "ubuntu",
+                "password": "ubuntu"
+            },
+            "new_vnfc_param": {
+                "cp_name": "VDU1_CP1",
+                "username": "ubuntu",
+                "password": "ubuntu"
+            }
+        }, {
+            "vdu_id": "VDU2",
+            "old_vnfc_param": {
+                "cp_name": "VDU2_CP1",
+                "username": "ubuntu",
+                "password": "ubuntu"
+            },
+            "new_vnfc_param": {
+                "cp_name": "VDU2_CP1",
+                "username": "ubuntu",
+                "password": "ubuntu"
+            }
+        }]
+    }
+}
