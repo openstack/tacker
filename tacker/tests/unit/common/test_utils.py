@@ -60,8 +60,15 @@ class TestCamelToSnakeCase(testtools.TestCase):
         values should be ignored during conversion
         """
         data = ["camelCaseValue1", "camelCaseValue2"]
-        actual_val = utils.convert_snakecase_to_camelcase(data)
+        actual_val = utils.convert_camelcase_to_snakecase(data)
         expected_val = ["camelCaseValue1", "camelCaseValue2"]
+        self.assertEqual(expected_val, actual_val)
+
+    def test_convert_camelcase_to_snakecase_with_additional_params(self):
+        """additionalParams value's dict should be not converted."""
+        data = {"additionalParams": {"camelCaseKey": "camelCaseValue"}}
+        actual_val = utils.convert_camelcase_to_snakecase(data)
+        expected_val = {"additional_params": data["additionalParams"]}
         self.assertEqual(expected_val, actual_val)
 
 
@@ -91,6 +98,15 @@ class TestSnakeToCamelCase(testtools.TestCase):
         data = ["snake_case_value1", "snake_case_value2"]
         actual_val = utils.convert_snakecase_to_camelcase(data)
         expected_val = ["snake_case_value1", "snake_case_value2"]
+        self.assertEqual(expected_val, actual_val)
+
+    def test_convert_snakecase_to_camelcase_with_additional_params(self):
+        """additional_params value's dict should be not converted."""
+        data = {
+            "additional_params": {
+                "snake_case_key": "snake_case_value"}}
+        actual_val = utils.convert_snakecase_to_camelcase(data)
+        expected_val = {"additionalParams": data["additional_params"]}
         self.assertEqual(expected_val, actual_val)
 
 
