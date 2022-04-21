@@ -1304,7 +1304,7 @@ def vnf_dict_cnf():
     return vnf_dict
 
 
-def vnfd_dict_cnf():
+def vnfd_dict_cnf(vdu_num=1):
     tacker_dir = os.getcwd()
     def_dir = tacker_dir + "/samples/vnf_packages/Definitions/"
     vnfd_dict = {
@@ -1319,42 +1319,21 @@ def vnfd_dict_cnf():
                 "VNF": {
                     "type": "company.provider.VNF",
                     "properties": {
-                        "flavour_description": "A simple flavour"}},
-                "VDU1": {
-                    "type": "tosca.nodes.nfv.Vdu.Compute",
-                    "properties": {
-                        "name": "vdu1",
-                        "description": "vdu1 compute node",
-                        "vdu_profile": {
-                            "min_number_of_instances": 1,
-                            "max_number_of_instances": 3}}}},
+                        "flavour_description": "A simple flavour"}}
+                # add VDU defininition later
+            },
             "policies": [
                 {
                     "scaling_aspects": {
                         "type": "tosca.policies.nfv.ScalingAspects",
                         "properties": {
                             "aspects": {
-                                "vdu1_aspect": {
-                                    "name": "vdu1_aspect",
-                                    "description": "vdu1 scaling aspect",
-                                    "max_scale_level": 2,
-                                    "step_deltas": ["delta_1"]}}}}},
-                {
-                    "vdu1_initial_delta": {
-                        "type": "tosca.policies.nfv.VduInitialDelta",
-                        "properties": {
-                            "initial_delta": {
-                                "number_of_instances": 0}},
-                        "targets": ["VDU1"]}},
-                {
-                    "vdu1_scaling_aspect_deltas": {
-                        "type": "tosca.policies.nfv.VduScalingAspectDeltas",
-                        "properties": {
-                            "aspect": "vdu1_aspect",
-                            "deltas": {
-                                "delta_1": {
-                                    "number_of_instances": 1}}},
-                        "targets": ["VDU1"]}},
+                                # add aspects later
+                            }}}},
+                # add following policies definitions later
+                # - tosca.policies.nfv.VduInitialDelta
+                # - tosca.policies.nfv.VduScalingAspectDeltas
+                # - tosca.policies.nfv.VduInstantiationLevels
                 {
                     "instantiation_levels": {
                         "type": "tosca.policies.nfv.InstantiationLevels",
@@ -1363,28 +1342,64 @@ def vnfd_dict_cnf():
                                 "instantiation_level_1": {
                                     "description": "Smallest size",
                                     "scale_info": {
-                                        "vdu1_aspect": {
-                                            "scale_level": 0}}},
+                                        # add scale_info later
+                                    }},
                                 "instantiation_level_2": {
                                     "description": "Largest size",
                                     "scale_info": {
-                                        "vdu1_aspect": {
-                                            "scale_level": 2}}}
+                                        # add scale_info later
+                                    }}
                             },
-                            "default_level": "instantiation_level_1"}}},
-                {
-                    "vdu1_instantiation_levels": {
-                        "type": "tosca.policies.nfv.VduInstantiationLevels",
-                        "properties": {
-                            "levels": {
-                                "instantiation_level_1": {
-                                    "number_of_instances": 0},
-                                "instantiation_level_2": {
-                                    "number_of_instances": 2}}},
-                        "targets": ["VDU1"]}}
+                            "default_level": "instantiation_level_1"}}}
             ]
         }
     }
+    topology = vnfd_dict["topology_template"]
+    node_templates = topology["node_templates"]
+    policies = topology["policies"]
+    scaling_aspects = policies[0]["scaling_aspects"]
+    levels = policies[1]["instantiation_levels"]["properties"]["levels"]
+    for i in range(1, vdu_num + 1):
+        node_templates[f"VDU{i}"] = {
+            "type": "tosca.nodes.nfv.Vdu.Compute",
+            "properties": {
+                "name": f"vdu{i}",
+                "description": f"vdu{i} compute node",
+                "vdu_profile": {
+                    "min_number_of_instances": 1,
+                    "max_number_of_instances": 3}}}
+        scaling_aspects["properties"]["aspects"][f"vdu{i}_aspect"] = {
+            "name": f"vdu{i}_aspect",
+            "description": f"vdu{i} scaling aspect",
+            "max_scale_level": 2,
+            "step_deltas": ["delta_1"]}
+        policies.append({f"vdu{i}_initial_delta": {
+            "type": "tosca.policies.nfv.VduInitialDelta",
+            "properties": {
+                "initial_delta": {
+                    "number_of_instances": 0}},
+            "targets": [f"VDU{i}"]}})
+        policies.append({f"vdu{i}_scaling_aspect_deltas": {
+            "type": "tosca.policies.nfv.VduScalingAspectDeltas",
+            "properties": {
+                "aspect": f"vdu{i}_aspect",
+                "deltas": {
+                    "delta_1": {
+                        "number_of_instances": 1}}},
+            "targets": [f"VDU{i}"]}})
+        policies.append({f"vdu{i}_instantiation_levels": {
+            "type": "tosca.policies.nfv.VduInstantiationLevels",
+            "properties": {
+                "levels": {
+                    "instantiation_level_1": {
+                        "number_of_instances": 0},
+                    "instantiation_level_2": {
+                        "number_of_instances": 2}}},
+            "targets": [f"VDU{i}"]}})
+        levels["instantiation_level_1"]["scale_info"] = {
+            f"vdu{i}_aspect": {"scale_level": 0}}
+        levels["instantiation_level_2"]["scale_info"] = {
+            f"vdu{i}_aspect": {"scale_level": 2}}
     return vnfd_dict
 
 

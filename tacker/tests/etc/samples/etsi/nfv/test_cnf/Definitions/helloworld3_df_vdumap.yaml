@@ -1,11 +1,11 @@
 tosca_definitions_version: tosca_simple_yaml_1_2
 
-description: Sample CNF with helmchart
+description: Simple deployment flavour for Sample VNF
 
 imports:
   - etsi_nfv_sol001_common_types.yaml
   - etsi_nfv_sol001_vnfd_types.yaml
-  - sample_vnfd_types.yaml
+  - helloworld3_types.yaml
 
 topology_template:
   inputs:
@@ -31,7 +31,7 @@ topology_template:
   substitution_mappings:
     node_type: company.provider.VNF
     properties:
-      flavour_id: helmchart
+      flavour_id: vdumap
     requirements:
       virtual_link_external: []
 
@@ -39,22 +39,13 @@ topology_template:
     VNF:
       type: company.provider.VNF
       properties:
-        flavour_description: A flavour for single resources
+        flavour_description: A simple flavour
 
     VDU1:
       type: tosca.nodes.nfv.Vdu.Compute
       properties:
         name: VDU1
-        description: kubernetes resource as VDU1
-        vdu_profile:
-          min_number_of_instances: 1
-          max_number_of_instances: 3
-
-    VDU2:
-      type: tosca.nodes.nfv.Vdu.Compute
-      properties:
-        name: VDU2
-        description: kubernetes resource as VDU2
+        description: VDU1 compute node
         vdu_profile:
           min_number_of_instances: 1
           max_number_of_instances: 3
@@ -70,21 +61,15 @@ topology_template:
               max_scale_level: 2
               step_deltas:
                 - delta_1
-            vdu2_aspect:
-              name: vdu2_aspect
-              description: vdu2 scaling aspect
-              max_scale_level: 2
-              step_deltas:
-                - delta_1
 
-    - vdu1_initial_delta:
+    - VDU1_initial_delta:
         type: tosca.policies.nfv.VduInitialDelta
         properties:
           initial_delta:
             number_of_instances: 1
         targets: [ VDU1 ]
 
-    - vdu1_scaling_aspect_deltas:
+    - VDU1_scaling_aspect_deltas:
         type: tosca.policies.nfv.VduScalingAspectDeltas
         properties:
           aspect: vdu1_aspect
@@ -92,22 +77,6 @@ topology_template:
             delta_1:
               number_of_instances: 1
         targets: [ VDU1 ]
-
-    - vdu2_initial_delta:
-        type: tosca.policies.nfv.VduInitialDelta
-        properties:
-          initial_delta:
-            number_of_instances: 1
-        targets: [ VDU2 ]
-
-    - vdu2_scaling_aspect_deltas:
-        type: tosca.policies.nfv.VduScalingAspectDeltas
-        properties:
-          aspect: vdu2_aspect
-          deltas:
-            delta_1:
-              number_of_instances: 1
-        targets: [ VDU2 ]
 
     - instantiation_levels:
         type: tosca.policies.nfv.InstantiationLevels
@@ -118,18 +87,14 @@ topology_template:
               scale_info:
                 vdu1_aspect:
                   scale_level: 0
-                vdu2_aspect:
-                  scale_level: 0
             instantiation_level_2:
               description: Largest size
               scale_info:
                 vdu1_aspect:
                   scale_level: 2
-                vdu2_aspect:
-                  scale_level: 2
           default_level: instantiation_level_1
 
-    - vdu1_instantiation_levels:
+    - VDU1_instantiation_levels:
         type: tosca.policies.nfv.VduInstantiationLevels
         properties:
           levels:
@@ -138,14 +103,3 @@ topology_template:
             instantiation_level_2:
               number_of_instances: 3
         targets: [ VDU1 ]
-
-    - vdu2_instantiation_levels:
-        type: tosca.policies.nfv.VduInstantiationLevels
-        properties:
-          levels:
-            instantiation_level_1:
-              number_of_instances: 1
-            instantiation_level_2:
-              number_of_instances: 3
-        targets: [ VDU2 ]
-

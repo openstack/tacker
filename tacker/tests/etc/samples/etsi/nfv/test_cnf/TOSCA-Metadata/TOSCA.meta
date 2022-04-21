@@ -142,3 +142,13 @@ Name: Files/kubernetes/statefulset_fail.yaml
 Content-Type: test-data
 Algorithm: SHA-256
 Hash: 71a99017964b8ce1dfbbade92f3cdf42f1e5b774c6e7edb7aa83c5eee42e5d5e
+
+Name: Files/kubernetes/deployment_vdumap1.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: a266edaa404d080b7e2d6eb9dc17fdefdf0449ae8189487e0746141e0424603d
+
+Name: Files/kubernetes/deployment_vdumap2.yaml
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: a847e345e1d7120b53f1d27b3bbfec38b86780ed67d4780d0934352304b25ab4

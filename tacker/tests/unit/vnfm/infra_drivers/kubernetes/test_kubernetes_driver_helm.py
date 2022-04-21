@@ -310,6 +310,31 @@ class TestKubernetesHelm(base.TestCase):
         msg = f"Replica value for aspectId '{aspect_id}' is missing"
         self.assertEqual(msg, exc.format_message())
 
+    @mock.patch.object(objects.VnfPackageVnfd, "get_by_id")
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_pre_helm_install_missing_helmreleasename_in_vdu_mapping(
+            self, mock_vnfd_dict, mock_vnf_package_vnfd_get_by_id):
+        vnf_instance = fd_utils.get_vnf_instance_object()
+        vim_connection_info = fakes.fake_vim_connection_info_with_extra()
+        vnf_package_path = self.package_path
+        instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart(
+            local=False)
+        helm_install_params = (instantiate_vnf_req
+                               .additional_params['using_helm_install_param'])
+        helm_install_params[0]['helmreleasename'] = 'invalid_relname'
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnf_package_vnfd_get_by_id.return_value = (
+            vnflcm_fakes.return_vnf_package_vnfd())
+        exc = self.assertRaises(exceptions.InvalidInput,
+                                self.kubernetes._pre_helm_install,
+                                self.context, vnf_instance,
+                                vim_connection_info, instantiate_vnf_req,
+                                vnf_package_path)
+        expect_relname = helm_install_params[0]['helmreleasename']
+        msg = ("Parameter input values missing 'helmreleasename="
+               f"{expect_relname}' in vdu_mapping")
+        self.assertEqual(msg, exc.format_message())
+
     @mock.patch.object(objects.VnfResource, 'create')
     @mock.patch.object(paramiko.Transport, 'close')
     @mock.patch.object(paramiko.SFTPClient, 'put')
@@ -443,7 +468,7 @@ class TestKubernetesHelm(base.TestCase):
             self, mock_vnfd_dict, mock_vnf_package_vnfd_get_by_id,
             mock_list_namespaced_pod, mock_command):
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
-        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf(vdu_num=2)
         mock_vnf_package_vnfd_get_by_id.return_value = \
             vnflcm_fakes.return_vnf_package_vnfd()
         mock_list_namespaced_pod.return_value =\
@@ -677,4 +702,33 @@ class TestKubernetesHelm(base.TestCase):
                                 policy, None)
         msg = ("CNF Scale Failed with reason: The number of target replicas "
                "after scaling [4] is out of range")
+        self.assertEqual(msg, exc.format_message())
+
+    @mock.patch.object(helm_client.HelmClient, '_execute_command')
+    @mock.patch.object(vim_client.VimClient, 'get_vim')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_scale_param_not_found_in_vdu_mapping(
+            self, mock_vnf_instance_get_by_id, mock_get_vim, mock_command):
+        policy = fakes.get_scale_policy(type='out', aspect_id='vdu1_aspect',
+                                        vdu_name='vdu1')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        mock_get_vim.return_value = fakes.fake_k8s_vim_obj()
+        vim_connection_info = fakes.fake_vim_connection_info_with_extra()
+        instantiate_vnf_req = fakes.fake_inst_vnf_req_for_helmchart()
+        vdu_mapping = instantiate_vnf_req.additional_params['vdu_mapping']
+        vdu_mapping['VDU1']['helmreleasename'] = 'invalid_releasename'
+        vnf_instance = copy.deepcopy(self.vnf_instance)
+        vnf_instance.vim_connection_info = [vim_connection_info]
+        vnf_instance.scale_status = [scale_status]
+        vnf_instance.instantiated_vnf_info.additional_params = (
+            instantiate_vnf_req.additional_params)
+        mock_vnf_instance_get_by_id.return_value = vnf_instance
+        mock_command.side_effect = fakes.execute_cmd_helm_client
+        exc = self.assertRaises(vnfm.CNFScaleFailed,
+                                self.kubernetes.scale,
+                                self.context, None, utils.get_vim_auth_obj(),
+                                policy, None)
+        msg = ("CNF Scale Failed with reason: Appropriate parameter for "
+               "vdu1_aspect is not found in using_helm_install_param")
         self.assertEqual(msg, exc.format_message())

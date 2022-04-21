@@ -7,6 +7,7 @@ imports:
   - etsi_nfv_sol001_vnfd_types.yaml
   - helloworld3_types.yaml
   - helloworld3_df_simple.yaml
+  - helloworld3_df_vdumap.yaml
 
 topology_template:
   inputs:

@@ -303,3 +303,84 @@ class VnfLcmKubernetesTest(vnflcm_base.BaseVnfLcmKubernetesTest):
             vnf_instance['id'], request_body, wait_state="FAILED_TEMP")
         self._test_rollback_cnf_instantiate(vnf_instance['id'])
         self._delete_vnf_instance(vnf_instance['id'])
+
+    def test_cnf_with_vdu_mapping(self):
+        """Test CNF LCM with vdu_mapping parameter.
+
+        Tests that multiple VNFs can be created from one VNF Package by using
+        the `vdu_mapping` parameter.
+        """
+        # create VNF1
+        _, vnf_instance1 = self._create_vnf_instance(
+            self.vnfd_id,
+            vnf_instance_name="cnf_with_vdu_mapping_1",
+            vnf_instance_description="cnf with vdu_mapping 1")
+        self.assertIsNotNone(vnf_instance1['id'])
+        # create VNF2
+        _, vnf_instance2 = self._create_vnf_instance(
+            self.vnfd_id,
+            vnf_instance_name="cnf_with_vdu_mapping_2",
+            vnf_instance_description="cnf with vdu_mapping 2")
+        self.assertIsNotNone(vnf_instance2['id'])
+
+        # instantiate VNF1
+        additional_param1 = {
+            "lcm-kubernetes-def-files": [
+                "Files/kubernetes/deployment_vdumap1.yaml",
+            ],
+            "vdu_mapping": {
+                "VDU1": {
+                    "name": "vdumap1",
+                    "kind": "Deployment"
+                }
+            }
+        }
+        request_body1 = self._instantiate_vnf_instance_request(
+            "vdumap", vim_id=self.vim_id, additional_param=additional_param1)
+        self._instantiate_vnf_instance(vnf_instance1['id'], request_body1)
+        # instantiate VNF2
+        additional_param2 = {
+            "lcm-kubernetes-def-files": [
+                "Files/kubernetes/deployment_vdumap2.yaml",
+            ],
+            "vdu_mapping": {
+                "VDU1": {
+                    "name": "vdumap2",
+                    "kind": "Deployment"
+                }
+            }
+        }
+        request_body2 = self._instantiate_vnf_instance_request(
+            "vdumap", vim_id=self.vim_id, additional_param=additional_param2)
+        self._instantiate_vnf_instance(vnf_instance2['id'], request_body2)
+
+        # scale VNF1
+        vnf_instance1 = self._show_vnf_instance(vnf_instance1['id'])
+        self._test_scale_out_and_in(vnf_instance1, "vdu1_aspect")
+        # scale VNF2
+        vnf_instance2 = self._show_vnf_instance(vnf_instance2['id'])
+        self._test_scale_out_and_in(vnf_instance2, "vdu1_aspect")
+
+        # heal VNF1 SOL-002 (partial heal)
+        vnf_instance1 = self._show_vnf_instance(vnf_instance1['id'])
+        vnf1_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance1)
+        self._test_heal(vnf_instance1, [vnf1_vnfc_rscs[0]['id']])
+        # heal VNF2 SOL-002 (partial heal)
+        vnf_instance2 = self._show_vnf_instance(vnf_instance2['id'])
+        vnf2_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance2)
+        self._test_heal(vnf_instance2, [vnf2_vnfc_rscs[0]['id']])
+
+        # heal VNF1 SOL-003 (entire heal)
+        vnf_instance1 = self._show_vnf_instance(vnf_instance1['id'])
+        self._test_heal(vnf_instance1, [])
+        # heal VNF2 SOL-003 (entire heal)
+        vnf_instance2 = self._show_vnf_instance(vnf_instance2['id'])
+        self._test_heal(vnf_instance2, [])
+
+        # terminate VNF1
+        self._terminate_vnf_instance(vnf_instance1['id'])
+        # terminate VNF2
+        self._terminate_vnf_instance(vnf_instance2['id'])
+
+        self._delete_vnf_instance(vnf_instance1['id'])
+        self._delete_vnf_instance(vnf_instance2['id'])

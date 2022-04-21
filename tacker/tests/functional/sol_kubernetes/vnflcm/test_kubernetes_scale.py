@@ -32,25 +32,6 @@ class VnfLcmKubernetesScaleTest(vnflcm_base.BaseVnfLcmKubernetesTest):
     def tearDownClass(cls):
         super(VnfLcmKubernetesScaleTest, cls).tearDownClass()
 
-    def _test_cnf_scale(self, vnf_instance, aspect_id,
-                        number_of_steps=1, error=False):
-        scale_level = self._get_scale_level_by_aspect_id(
-            vnf_instance, aspect_id)
-
-        # test scale out
-        scale_level = self._test_scale(
-            vnf_instance['id'], 'SCALE_OUT', aspect_id, scale_level,
-            number_of_steps, error)
-        if error:
-            return scale_level
-
-        # test scale in
-        scale_level = self._test_scale(
-            vnf_instance['id'], 'SCALE_IN', aspect_id, scale_level,
-            number_of_steps)
-
-        return scale_level
-
     def test_scale_cnf_with_statefulset(self):
         """Test scale for CNF (StatefulSet)
 
@@ -64,7 +45,7 @@ class VnfLcmKubernetesScaleTest(vnflcm_base.BaseVnfLcmKubernetesTest):
         vnf_instance = self._create_and_instantiate_vnf_instance(
             self.vnfd_id, "simple", vnf_instance_name,
             vnf_instance_description, inst_additional_param)
-        self._test_cnf_scale(vnf_instance, "vdu1_aspect")
+        self._test_scale_out_and_in(vnf_instance, "vdu1_aspect")
         self._terminate_vnf_instance(vnf_instance['id'])
         self._delete_vnf_instance(vnf_instance['id'])
 
@@ -81,7 +62,7 @@ class VnfLcmKubernetesScaleTest(vnflcm_base.BaseVnfLcmKubernetesTest):
         vnf_instance = self._create_and_instantiate_vnf_instance(
             self.vnfd_id, "simple", vnf_instance_name,
             vnf_instance_description, inst_additional_param)
-        self._test_cnf_scale(vnf_instance, "vdu1_aspect")
+        self._test_scale_out_and_in(vnf_instance, "vdu1_aspect")
         self._terminate_vnf_instance(vnf_instance['id'])
         self._delete_vnf_instance(vnf_instance['id'])
 
@@ -101,7 +82,8 @@ class VnfLcmKubernetesScaleTest(vnflcm_base.BaseVnfLcmKubernetesTest):
             self.vnfd_id, "scalingsteps", vnf_instance_name,
             vnf_instance_description, inst_additional_param)
         # Use flavour_id scalingsteps that is set to delta_num=2
-        self._test_cnf_scale(vnf_instance, "vdu1_aspect", number_of_steps=2)
+        self._test_scale_out_and_in(
+            vnf_instance, "vdu1_aspect", number_of_steps=2)
         self._terminate_vnf_instance(vnf_instance['id'])
         self._delete_vnf_instance(vnf_instance['id'])
 
@@ -121,8 +103,8 @@ class VnfLcmKubernetesScaleTest(vnflcm_base.BaseVnfLcmKubernetesTest):
             vnf_instance_description, inst_additional_param)
         # fail scale out for rollback
         aspect_id = "vdu1_aspect"
-        previous_level = self._test_cnf_scale(vnf_instance, aspect_id,
-                                              number_of_steps=2, error=True)
+        previous_level = self._test_scale_out_and_in(
+            vnf_instance, aspect_id, number_of_steps=2, error=True)
         # test rollback
         self._test_rollback_cnf_scale(
             vnf_instance['id'], aspect_id, previous_level)

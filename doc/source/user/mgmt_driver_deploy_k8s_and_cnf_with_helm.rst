@@ -307,73 +307,6 @@ chart file instead of "deployment.yaml".
 4. Create VNFD
 ~~~~~~~~~~~~~~
 For the original documentation, see `5. Create VNFD`_.
-To deploy CNF using Helm chart, modify the
-``topology_template.node_templates.VDUxx.properties.name`` value in
-"helloworld3_df_simple.yaml".
-The following is an example of setting when using an external repository and a
-local Helm chart file.
-Refer to :ref:`Set the Value to the Request Parameter File for Helm chart` for
-the correspondence between the set value and the parameter.
-
-If you are using a chart file stored in external repository, the
-``topology_template.node_templates.VDUxx.properties.name`` value should be
-"<helmreleasename> - <helmchartname>".
-
-.. note:: If this value is not set as above, scale operation will not work.
-          This limitation will be removed in the future by modifying
-          additionalParams.
-
-The following shows the relationship between
-``topology_template.node_templates.VDUxx.properties.name`` when using an
-external repository and the resource definition file created in the step
-`Instantiate VNF`_.
-
-.. code-block:: console
-
-    $ cat instance_helm.json
-    {
-            "helmreleasename": "vdu1",
-            "helmchartname": "externalhelm",
-    }
-
-    $ cat Definitions/helloworld3_df_simple.yaml
-    topology_template:
-      node_templates:
-        VDU1:
-          properties:
-            name: vdu1-externalhelm
-
-If you are using local Helm chart file,
-``topology_template.node_templates.VDUxx.properties.name`` value should be
-"<helmreleasename> - <part of helmchartfile_path>".
-
-.. note:: "part of helmchart_path" is the part of file name without
-          "-<version>.tgz" at the end. In the following example, it is
-          "localhelm".
-
-.. note:: If this value is not set as above, scale operation will not work.
-          This limitation will be removed in the future by modifying
-          additionalParams.
-
-The following shows the relationship between
-``topology_template.node_templates.VDUxx.properties.name`` when using an
-external repository and the resource definition file created in the step
-`Instantiate VNF`_.
-
-.. code-block:: console
-
-    $ cat instance_helm.json
-    {
-            "helmreleasename": "vdu1",
-            "helmchartfile_path": "Files/kubernetes/localhelm-0.1.0.tgz"
-    }
-
-    $ cat Definitions/helloworld3_df_simple.yaml
-    topology_template:
-      node_templates:
-        VDU1:
-          properties:
-            name: vdu1-localhelm
 
 Instantiate VNF
 ^^^^^^^^^^^^^^^
@@ -447,6 +380,18 @@ following parameter to the json definition file to deploy CNF by Helm chart.
     |                            |           | value: Parameter for the number of replicas defined in    |
     |                            |           |        Helm values.                                       |
     +----------------------------+-----------+-----------------------------------------------------------+
+    |vdu_mapping                 | Dict      | Parameters for associating "VDU ID" with resource         |
+    |                            |           | information and helm install parameter.                   |
+    |                            |           | "helmreleasename" in value shall be present if "use_helm" |
+    |                            |           | is "true".                                                |
+    |                            |           |                                                           |
+    |                            |           | key: "VDU ID" defined in VNFD.                            |
+    |                            |           | value: Parameter for mapping resource information         |
+    |                            |           |        corresponding to "VDU ID" for key like following:  |
+    |                            |           |        "VDU1": { "kind": "Deployment",                    |
+    |                            |           |                  "name": "resource-name",                 |
+    |                            |           |                  "helmreleasename": "vdu1" }              |
+    +----------------------------+-----------+-----------------------------------------------------------+
 
 If you are deploying using a chart file stored in external repository, set
 ``additionalParams.using_helm_install_param.exthelmchart`` to ``true``
@@ -477,6 +422,13 @@ a chart file stored in an external repository.
         ],
         "helm_replica_values": {
           "vdu1_aspect": "replicaCount"
+        },
+        "vdu_mapping": {
+          "VDU1": {
+            "kind": "Deployment",
+            "name": "vdu1-externalhelm",
+            "helmreleasename": "vdu1"
+          }
         }
       },
       "vimConnectionInfo": [
@@ -487,10 +439,6 @@ a chart file stored in an external repository.
         }
       ]
     }
-
-.. note:: The "helmreleasename" and "helmchartname" in the json file must
-          match the ``topology_template.node_templates.VDUxx.properties.name``
-          value set in the VNFD.
 
 If you are deploying using a local Helm chart file, set
 ``additionalParams.using_helm_install_param.exthelmchart`` to "false"
@@ -519,6 +467,13 @@ a local Helm chart file.
         ],
         "helm_replica_values": {
           "vdu1_aspect": "replicaCount"
+        },
+        "vdu_mapping": {
+          "VDU1": {
+            "kind": "Deployment",
+            "name": "vdu1-localhelm",
+            "helmreleasename": "vdu1"
+          }
         }
       },
       "vimConnectionInfo": [
@@ -530,16 +485,12 @@ a local Helm chart file.
       ]
     }
 
-.. note:: The "helmreleasename" and "helmchartfile_path" in the json file must
-          match the ``topology_template.node_templates.VDUxx.properties.name``
-          value set in the VNFD.
-
 2. Check the Deployment in Kubernetes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 For the original documentation, see `4. Check the Deployment in Kubernetes`_ .
 In addition to checkpoints before modifying the procedure, ensure that the NAME
 of the deployed CNF matches the value of
-``topology_template.node_templates.VDUxx.properties.name`` in the VNFD.
+``vdu_mapping.VDUxx.name`` in ```additionalParams``.
 
 .. code-block:: console
 

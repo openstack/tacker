@@ -219,7 +219,8 @@ The following is a simple example of ``deployment`` resource.
             - containerPort: 8080
               protocol: TCP
 
-.. note:: ``metadata.name`` in this file should be the same as
+.. note:: If instantiate parameter does not contain ``vdu_mapping``,
+          ``metadata.name`` in this file should be the same as
           ``properties.name`` of the corresponding VDU in the deployment flavor
           definition file.
           For the example in this procedure, ``metadata.name`` is same as
@@ -475,7 +476,8 @@ values of the VNF.
                   number_of_instances: 3
             targets: [ VDU1 ]
 
-.. note:: ``VDU1.properties.name`` should be same as ``metadata.name`` that
+.. note:: If instantiate parameter does not contain ``vdu_mapping``,
+          ``VDU1.properties.name`` should be same as ``metadata.name`` that
           defined in Kubernetes object file.
           Therefore, ``VDU1.properties.name`` should be followed naming rules
           of Kubernetes resource name. About detail of naming rules, please
@@ -699,6 +701,35 @@ vimId and vimType.
           "Files/kubernetes/deployment.yaml"
         ],
         "namespace": "default"
+      },
+      "vimConnectionInfo": [
+        {
+          "id": "8a3adb69-0784-43c7-833e-aab0b6ab4470",
+          "vimId": "8d8373fe-6977-49ff-83ac-7756572ed186",
+          "vimType": "kubernetes"
+        }
+      ]
+    }
+
+`additionalParams` can also contain `vdu_mapping` parameter.
+In this case, specify the type and name of the resource corresponding to the
+`VDU ID`` defined in the VNFD as follows:
+
+.. code-block:: console
+
+    $ cat ./instance_kubernetes.json
+    {
+      "flavourId": "simple",
+      "additionalParams": {
+        "lcm-kubernetes-def-files": [
+          "Files/kubernetes/deployment.yaml"
+        ],
+        "vdu_mapping": {
+          "VDU1": {
+            "kind": "Deployment",
+            "name": "curry-probe-test001"
+          }
+        }
       },
       "vimConnectionInfo": [
         {

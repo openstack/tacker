@@ -692,6 +692,79 @@ class TestKubernetes(base.TestCase):
             self.assertEqual(item[0].resource_name, 'curry-endpoint-test001')
             self.assertEqual(item[0].resource_type, 'v1,Pod')
 
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    @mock.patch.object(vnf_package_vnfd.VnfPackageVnfd, "get_by_id")
+    def test_pre_instantiation_vnf_with_vdu_mapping(
+            self, mock_vnfd_by_id, mock_vnf_by_id, mock_save, mock_vnfd_dict):
+        vnf_instance = fd_utils.get_vnf_instance_object()
+        vim_connection_info = None
+        vnf_software_images = None
+        vnf_package_path = self.yaml_path
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            flavour_id='simple',
+            additional_params={
+                'lcm-kubernetes-def-files':
+                    ["testdata_artifact_file_content.yaml"],
+                'vdu_mapping': {
+                    'VDU1': {
+                        'name': 'curry-endpoint-test001',
+                        'kind': 'Pod'
+                    }}
+            }
+        )
+        fake_vnfd_get_by_id = models.VnfPackageVnfd()
+        fake_vnfd_get_by_id.package_uuid = "f8c35bd0-4d67" \
+                                           "-4436-9f11-14b8a84c92aa"
+        fake_vnfd_get_by_id.vnfd_id = "f8c35bd0-4d67-4436-9f11-14b8a84c92aa"
+        fake_vnfd_get_by_id.vnf_provider = "fake_provider"
+        fake_vnfd_get_by_id.vnf_product_name = "fake_providername"
+        fake_vnfd_get_by_id.vnf_software_version = "fake_software_version"
+        fake_vnfd_get_by_id.vnfd_version = "fake_vnfd_version"
+        mock_vnfd_by_id.return_value = fake_vnfd_get_by_id
+        fake_vnf_get_by_id = models.VnfPackage()
+        fake_vnf_get_by_id.onboarding_state = "ONBOARD"
+        fake_vnf_get_by_id.operational_state = "ENABLED"
+        fake_vnf_get_by_id.usage_state = "NOT_IN_USE"
+        fake_vnf_get_by_id.size = 128
+        mock_artifacts = models.VnfPackageArtifactInfo()
+        mock_artifacts.package_uuid = "f8c35bd0-4d67-4436-9f11-14b8a84c92aa"
+        mock_artifacts.artifact_path = "testdata_artifact_file_content.yaml"
+        mock_artifacts.algorithm = "SHA-256"
+        mock_artifacts.hash = "fake_hash"
+        fake_vnf_get_by_id.vnf_artifacts = [mock_artifacts]
+        mock_vnf_by_id.return_value = fake_vnf_get_by_id
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        new_k8s_objs = self.kubernetes.pre_instantiation_vnf(
+            self.context, vnf_instance, vim_connection_info,
+            vnf_software_images,
+            instantiate_vnf_req, vnf_package_path)
+        for item in new_k8s_objs.values():
+            self.assertEqual(item[0].resource_name, 'curry-endpoint-test001')
+            self.assertEqual(item[0].resource_type, 'v1,Pod')
+
+    def test_validate_vdu_id_in_vdu_mapping_fail(self):
+        vdu_mapping = {'VDUX': {'name': 'dummy_name', 'kind': 'Pod'}}
+        vnfd = vnflcm_fakes.vnfd_dict_cnf()
+        exc = self.assertRaises(exceptions.InvalidInput,
+                            self.kubernetes._validate_vdu_id_in_vdu_mapping,
+                            vdu_mapping, vnfd)
+        msg = ("Parameter input values missing 'vdu_id={'VDU1'}' "
+               "in vdu_mapping")
+        self.assertEqual(msg, exc.format_message())
+
+    def test_validate_k8s_rsc_in_vdu_mapping_fail(self):
+        vdu_mapping = {'VDU1': {'name': 'dummy_name', 'kind': 'Pod'}}
+        kind = 'Pod'
+        name = 'invalid_name'
+        exc = self.assertRaises(exceptions.InvalidInput,
+                            self.kubernetes._validate_k8s_rsc_in_vdu_mapping,
+                            vdu_mapping, kind, name)
+        msg = (f"Parameter input values missing resource info '{kind}:{name}' "
+               "in vdu_mapping")
+        self.assertEqual(msg, exc.format_message())
+
     def _delete_single_vnf_resource(self, mock_vnf_resource_list,
                                     resource_name, resource_type,
                                     terminate_vnf_req=None):
@@ -2333,6 +2406,67 @@ class TestKubernetes(base.TestCase):
         mock_read_namespaced_deployment_scale.assert_called_once()
         mock_patch_namespaced_deployment_scale.assert_called_once()
 
+    @mock.patch.object(client.AppsV1Api, 'patch_namespaced_deployment_scale')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    def test_scale_out_with_vdu_mapping(self, mock_vnf_resource_list,
+                    mock_vnf_instance_get_by_id,
+                    mock_read_namespaced_deployment_scale,
+                    mock_patch_namespaced_deployment_scale):
+        policy = fakes.get_scale_policy(type='out')
+        mock_vnf_resource_list.return_value = \
+            fakes.get_vnf_resource_list(kind='Deployment')
+        scale_status = objects.ScaleInfo(
+            aspect_id='vdu1_aspect', scale_level=1)
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        vdu_mapping = {
+            'VDU1': {
+                'name': 'dummy-name',
+                'kind': 'Deployment'
+            }}
+        inst_vnf_info = scale_vnf_instance.instantiated_vnf_info
+        inst_vnf_info.additional_params['vdu_mapping'] = vdu_mapping
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
+        mock_read_namespaced_deployment_scale.return_value = \
+            client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
+                           status=client.V1ScaleStatus(replicas=1))
+        mock_patch_namespaced_deployment_scale.return_value = \
+            client.V1Scale(spec=client.V1ScaleSpec(replicas=2),
+                           status=client.V1ScaleStatus(replicas=2))
+        self.kubernetes.scale(context=self.context, plugin=None,
+                              auth_attr=utils.get_vim_auth_obj(),
+                              policy=policy,
+                              region_name=None)
+        mock_read_namespaced_deployment_scale.assert_called_once()
+        mock_patch_namespaced_deployment_scale.assert_called_once()
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
+    def test_scale_invalid_vdu_mapping(self, mock_vnf_resource_list,
+                                      mock_vnf_instance_get_by_id):
+        policy = fakes.get_scale_policy(type='in')
+        mock_vnf_resource_list.return_value = \
+            fakes.get_vnf_resource_list(kind='Pod')
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        vdu_mapping = {
+            'VDU2': {
+                'name': 'dummy-name',
+                'kind': 'Deployment'
+            }}
+        inst_vnf_info = scale_vnf_instance.instantiated_vnf_info
+        inst_vnf_info.additional_params['vdu_mapping'] = vdu_mapping
+        mock_vnf_instance_get_by_id.return_value = scale_vnf_instance
+        self.assertRaises(vnfm.CNFScaleFailed,
+                          self.kubernetes.scale,
+                          self.context, None,
+                          utils.get_vim_auth_obj(), policy, None)
+
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
     def test_scale_target_not_found(self, mock_vnf_resource_list,
@@ -2532,6 +2666,12 @@ class TestKubernetes(base.TestCase):
         mock_read_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
                            status=client.V1ScaleStatus(replicas=1))
+        scale_status = objects.ScaleInfo(aspect_id='vdu1', scale_level=0)
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance.return_value = scale_vnf_instance
         self.kubernetes.scale_wait(context=self.context, plugin=None,
                                    auth_attr=utils.get_vim_auth_obj(),
                                    policy=policy,
@@ -2556,6 +2696,12 @@ class TestKubernetes(base.TestCase):
         mock_read_namespaced_stateful_set_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
                            status=client.V1ScaleStatus(replicas=1))
+        scale_status = objects.ScaleInfo(aspect_id='vdu1', scale_level=0)
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance.return_value = scale_vnf_instance
         self.kubernetes.scale_wait(context=self.context, plugin=None,
                                    auth_attr=utils.get_vim_auth_obj(),
                                    policy=policy,
@@ -2580,24 +2726,18 @@ class TestKubernetes(base.TestCase):
         mock_read_namespaced_replica_set_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=1),
                            status=client.V1ScaleStatus(replicas=1))
+        scale_status = objects.ScaleInfo(aspect_id='vdu1', scale_level=0)
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance.return_value = scale_vnf_instance
         self.kubernetes.scale_wait(context=self.context, plugin=None,
                                    auth_attr=utils.get_vim_auth_obj(),
                                    policy=policy,
                                    region_name=None,
                                    last_event_id=None)
         mock_list_namespaced_pod.assert_called_once()
-
-    @mock.patch.object(objects.VnfInstance, "get_by_id")
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_scale_wait_target_not_found(
-            self, mock_vnf_resource_list, mock_vnf_instance):
-        policy = fakes.get_scale_policy(type='out')
-        mock_vnf_resource_list.return_value = \
-            fakes.get_vnf_resource_list(kind='Depoyment', name='other_name')
-        self.assertRaises(vnfm.CNFScaleWaitFailed,
-                          self.kubernetes.scale_wait,
-                          self.context, None,
-                          utils.get_vim_auth_obj(), policy, None, None)
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
@@ -2617,6 +2757,12 @@ class TestKubernetes(base.TestCase):
         mock_read_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=2),
                            status=client.V1ScaleStatus(replicas=2))
+        scale_status = objects.ScaleInfo(aspect_id='vdu1', scale_level=0)
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance.return_value = scale_vnf_instance
         self.assertRaises(vnfm.CNFScaleWaitFailed,
                           self.kubernetes.scale_wait,
                           self.context, None,
@@ -2640,6 +2786,12 @@ class TestKubernetes(base.TestCase):
         mock_read_namespaced_deployment_scale.return_value = \
             client.V1Scale(spec=client.V1ScaleSpec(replicas=2),
                            status=client.V1ScaleStatus(replicas=2))
+        scale_status = objects.ScaleInfo(aspect_id='vdu1', scale_level=0)
+        scale_vnf_instance = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            scale_status=scale_status)
+        scale_vnf_instance.vnf_metadata['namespace'] = "default"
+        mock_vnf_instance.return_value = scale_vnf_instance
         self.assertRaises(vnfm.CNFScaleWaitFailed,
                           self.kubernetes.scale_wait,
                           self.context, None,

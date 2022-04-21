@@ -460,6 +460,25 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
 
         return scale_level
 
+    def _test_scale_out_and_in(self, vnf_instance, aspect_id,
+                               number_of_steps=1, error=False):
+        scale_level = self._get_scale_level_by_aspect_id(
+            vnf_instance, aspect_id)
+
+        # test scale out
+        scale_level = self._test_scale(
+            vnf_instance['id'], 'SCALE_OUT', aspect_id, scale_level,
+            number_of_steps, error)
+        if error:
+            return scale_level
+
+        # test scale in
+        scale_level = self._test_scale(
+            vnf_instance['id'], 'SCALE_IN', aspect_id, scale_level,
+            number_of_steps)
+
+        return scale_level
+
     def _test_heal(self, vnf_instance, vnfc_instance_id):
         before_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance)
         self._heal_vnf_instance(vnf_instance['id'], vnfc_instance_id)

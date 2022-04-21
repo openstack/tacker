@@ -1195,31 +1195,35 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         helm_install_params = inst_additional_params.get(
             'using_helm_install_param', [])
         # Get releasename and chartname from Helm install params in Instantiate
-        # request parameter by using VDU properties name.
-        found_flag = False
-        for vdu_def in vdu_defs.values():
+        # request parameter by using vdu_mapping.
+        vdu_mapping = inst_additional_params.get('vdu_mapping')
+        for vdu_id, vdu_def in vdu_defs.items():
+            release_name = (vdu_mapping.get(vdu_id, {}).get('helmreleasename'))
+            if not release_name:
+                continue
+            helm_install_param = [
+                param for param in helm_install_params
+                if param.get('helmreleasename') == release_name]
+            if not helm_install_param:
+                error_reason = (f"Appropriate parameter for {aspect_id} is "
+                                "not found in using_helm_install_param")
+                LOG.error(error_reason)
+                raise vnfm.CNFScaleFailed(reason=error_reason)
+            if self._is_exthelmchart(helm_install_param[0]):
+                chart_name = helm_install_param[0].get('helmchartname')
+                upgrade_chart_name = "/".join(
+                    [helm_install_param[0].get('helmrepositoryname'),
+                     chart_name])
+            else:
+                chartfile_path = helm_install_param[0].get(
+                    'helmchartfile_path')
+                chartfile_name = chartfile_path[
+                    chartfile_path.rfind(os.sep) + 1:]
+                chart_name = "-".join(chartfile_name.split("-")[:-1])
+                upgrade_chart_name = ("/var/tacker/helm/"
+                                      f"{vnf_instance.id}/{chart_name}")
             vdu_properties = vdu_def.get('properties')
-            for helm_install_param in helm_install_params:
-                if self._is_exthelmchart(helm_install_param):
-                    chart_name = helm_install_param.get('helmchartname')
-                    upgrade_chart_name = "/".join(
-                        [helm_install_param.get('helmrepositoryname'),
-                         chart_name])
-                else:
-                    chartfile_path = helm_install_param.get(
-                        'helmchartfile_path')
-                    chartfile_name = chartfile_path[
-                        chartfile_path.rfind(os.sep) + 1:]
-                    chart_name = "-".join(chartfile_name.split("-")[:-1])
-                    upgrade_chart_name = ("/var/tacker/helm/"
-                                          f"{vnf_instance.id}/{chart_name}")
-                release_name = helm_install_param.get('helmreleasename')
-                resource_name = "-".join([release_name, chart_name])
-                if resource_name == vdu_properties.get('name'):
-                    found_flag = True
-                    break
-            if found_flag:
-                break
+            break
 
         # Prepare for scale operation
         helm_replica_values = inst_additional_params.get('helm_replica_values')
@@ -1256,6 +1260,54 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
 
         return
 
+    def _get_scale_target_info(self, aspect_id, vdu_defs, vnf_resources,
+                               vdu_mapping):
+        """get information of scale target."""
+        if not vdu_mapping:
+            is_found = False
+            target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
+            for vnf_resource in vnf_resources:
+                # The resource that matches the following is the
+                # resource to be scaled:
+                # The `name` of the resource stored in vnf_resource
+                # (the name defined in `metadata.name` of Kubernetes
+                # object file) matches the value of `properties.name`
+                # of VDU defined in VNFD.
+                # Infomation are stored in vnfc_resource as follows:
+                #   - resource_name : "name"
+                #   - resource_type : "api_version,kind"
+                name = vnf_resource.resource_name
+                for vdu_id, vdu_def in vdu_defs.items():
+                    vdu_properties = vdu_def.get('properties')
+                    if name == vdu_properties.get('name'):
+                        _, kind = (vnf_resource.resource_type
+                                   .split(COMMA_CHARACTER))
+                        if kind in target_kinds:
+                            is_found = True
+                            break
+                if is_found:
+                    break
+            else:
+                error_reason = (
+                    "Target VnfResource for aspectId"
+                    f" {aspect_id} is not found in DB")
+                raise vnfm.CNFScaleFailed(reason=error_reason)
+        else:
+            # Get parameters from vdu_mapping with using vdu_id as key.
+            for vdu_id, vdu_def in vdu_defs.items():
+                vdu_map_value = vdu_mapping.get(vdu_id, {})
+                kind = vdu_map_value.get('kind')
+                name = vdu_map_value.get('name')
+                if kind and name:
+                    vdu_properties = vdu_def.get('properties')
+                    break
+            else:
+                error_reason = (
+                    "Target vdu information for aspectId"
+                    f" {aspect_id} is not found in vdu_mapping")
+                raise vnfm.CNFScaleFailed(reason=error_reason)
+        return kind, name, vdu_id, vdu_properties
+
     @log.log
     def scale(self, context, plugin, auth_attr, policy, region_name):
         """Scale function
@@ -1275,7 +1327,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     context, policy['vnf_instance_id'])
                 # check use_helm flag
                 inst_vnf_info = vnf_instance.instantiated_vnf_info
-                if self._is_use_helm_flag(inst_vnf_info.additional_params):
+                additional_params = inst_vnf_info.additional_params
+                if self._is_use_helm_flag(additional_params):
                     self._helm_scale(context, vnf_instance, policy)
                     return
                 namespace = vnf_instance.vnf_metadata['namespace']
@@ -1285,33 +1338,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     auth=auth_cred)
                 aspect_id = policy['name']
                 vdu_defs = policy['vdu_defs']
-                is_found = False
-                error_reason = None
-                target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
-                for vnf_resource in vnf_resources:
-                    # The resource that matches the following is the resource
-                    # to be scaled:
-                    # The `name` of the resource stored in vnf_resource (the
-                    # name defined in `metadata.name` of Kubernetes object
-                    # file) matches the value of `properties.name` of VDU
-                    # defined in VNFD.
-                    name = vnf_resource.resource_name
-                    for vdu_id, vdu_def in vdu_defs.items():
-                        vdu_properties = vdu_def.get('properties')
-                        if name == vdu_properties.get('name'):
-                            kind = vnf_resource.resource_type.\
-                                split(COMMA_CHARACTER)[1]
-                            if kind in target_kinds:
-                                is_found = True
-                                break
-                    if is_found:
-                        break
-                else:
-                    error_reason = _(
-                        "Target VnfResource for aspectId"
-                        " {aspect_id} is not found in DB").format(
-                        aspect_id=aspect_id)
-                    raise vnfm.CNFScaleFailed(reason=error_reason)
+                vdu_mapping = additional_params.get('vdu_mapping')
+                kind, name, _, vdu_properties = self._get_scale_target_info(
+                    aspect_id, vdu_defs, vnf_resources, vdu_mapping)
 
                 scale_info = self._call_read_scale_api(
                     app_v1_api_client=app_v1_api_client,
@@ -1330,7 +1359,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 min_replicas = vdu_profile.get('min_number_of_instances')
                 if (scale_replicas < min_replicas) or \
                         (scale_replicas > max_replicas):
-                    error_reason = _(
+                    error_reason = (
                         "The number of target replicas after"
                         " scaling [{after_replicas}] is out of range").\
                         format(
@@ -1446,27 +1475,11 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     auth=auth_cred)
                 aspect_id = policy['name']
                 vdu_defs = policy['vdu_defs']
-                is_found = False
-                error_reason = None
-                target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
-                for vnf_resource in vnf_resources:
-                    name = vnf_resource.resource_name
-                    for vdu_id, vdu_def in vdu_defs.items():
-                        vdu_properties = vdu_def.get('properties')
-                        if name == vdu_properties.get('name'):
-                            kind = vnf_resource.resource_type.\
-                                split(COMMA_CHARACTER)[1]
-                            if kind in target_kinds:
-                                is_found = True
-                                break
-                    if is_found:
-                        break
-                else:
-                    error_reason = _(
-                        "Target VnfResource for aspectId {aspect_id}"
-                        " is not found in DB").format(
-                        aspect_id=aspect_id)
-                    raise vnfm.CNFScaleWaitFailed(reason=error_reason)
+                inst_vnf_info = vnf_instance.instantiated_vnf_info
+                additional_params = inst_vnf_info.additional_params
+                vdu_mapping = additional_params.get('vdu_mapping')
+                kind, name, _, _ = self._get_scale_target_info(
+                    aspect_id, vdu_defs, vnf_resources, vdu_mapping)
 
                 scale_info = self._call_read_scale_api(
                     app_v1_api_client=app_v1_api_client,
@@ -1495,13 +1508,13 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                         stack_retries = stack_retries - 1
                         time.sleep(self.STACK_RETRY_WAIT)
                     elif status == 'Unknown':
-                        error_reason = _(
+                        error_reason = (
                             "CNF Scale failed caused by the Pod status"
                             " is Unknown")
                         raise vnfm.CNFScaleWaitFailed(reason=error_reason)
 
                 if stack_retries == 0 and status != 'Running':
-                    error_reason = _(
+                    error_reason = (
                         "CNF Scale failed to complete within"
                         " {wait} seconds while waiting for the aspect_id"
                         " {aspect_id} to be scaled").format(
@@ -1563,6 +1576,31 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         if type(exthelmchart) == str:
             return exthelmchart.lower() == 'true'
         return bool(exthelmchart)
+
+    def _validate_vdu_id_in_vdu_mapping(self, vdu_mapping, vnfd):
+        """validate vdu_id between vdu_mapping and VDU defined in VNFD."""
+        nodes = vnfd.get("topology_template", {}).get("node_templates", {})
+        vdu_ids = {name for name, data in nodes.items()
+                   if data['type'] == 'tosca.nodes.nfv.Vdu.Compute'}
+        unfound_vdu_ids = {vdu_id for vdu_id in vdu_ids
+                           if vdu_id not in vdu_mapping.keys()}
+        if unfound_vdu_ids:
+            error_reason = ("Parameter input values missing "
+                            f"'vdu_id={str(unfound_vdu_ids)}' in vdu_mapping")
+            LOG.error(error_reason)
+            raise exceptions.InvalidInput(error_reason)
+
+    def _validate_k8s_rsc_in_vdu_mapping(self, vdu_mapping, kind, name):
+        """validate k8s resource kind/name between vdu_mapping and manifest."""
+        if kind in ('Pod', 'Deployment', 'DaemonSet', 'StatefulSet',
+                    'ReplicaSet'):
+            found_rsc = {values['name'] for values in vdu_mapping.values()
+                         if values['kind'] == kind and values['name'] == name}
+            if not found_rsc:
+                error_reason = ("Parameter input values missing resource info "
+                                f"'{kind}:{name}' in vdu_mapping")
+                LOG.error(error_reason)
+                raise exceptions.InvalidInput(error_reason)
 
     def _pre_helm_install(self, context, vnf_instance, vim_connection_info,
                           instantiate_vnf_req, vnf_package_path):
@@ -1627,6 +1665,22 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 raise exceptions.InvalidInput(
                     f"Replica value for aspectId '{aspect_id}' is missing")
 
+        # check vdu_mapping parameter
+        _check_param_exists(additional_params, 'vdu_mapping')
+        vdu_mapping = additional_params.get('vdu_mapping', {})
+        # check vdu_id between vdu_mapping and VNFD
+        self._validate_vdu_id_in_vdu_mapping(vdu_mapping, vnfd)
+        # check helmreleasename in vdu_mapping and using_helm_install_param
+        helmreleasenames = {values.get('helmreleasename')
+                            for _, values in vdu_mapping.items()}
+        for helm_install_param in helm_install_param_list:
+            helmreleasename = helm_install_param.get('helmreleasename')
+            if helmreleasename not in helmreleasenames:
+                error_reason = ("Parameter input values missing "
+                    f"'helmreleasename={helmreleasename}' in vdu_mapping")
+                LOG.error(error_reason)
+                raise exceptions.InvalidInput(error_reason)
+
     def _get_target_k8s_files(self, instantiate_vnf_req):
         if instantiate_vnf_req.additional_params and\
                 CNF_TARGET_FILES_KEY in\
@@ -1681,9 +1735,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             # and we will push the request to existed code
             return vnf_resources
         else:
-            vnfd = vnfd_obj.VnfPackageVnfd.get_by_id(
+            package_vnfd = vnfd_obj.VnfPackageVnfd.get_by_id(
                 context, vnf_instance.vnfd_id)
-            package_uuid = vnfd.package_uuid
+            package_uuid = package_vnfd.package_uuid
             vnf_package = vnf_package_obj.VnfPackage.get_by_id(
                 context, package_uuid, expected_attrs=['vnf_artifacts'])
             if vnf_package.vnf_artifacts:
@@ -1736,6 +1790,23 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                          'kind': file_content_dict.get('kind', '')})
 
                 vnf_resources[target_k8s_index] = vnf_resources_temp
+
+            # check vdu_mapping parameter if exist
+            vdu_mapping = (instantiate_vnf_req.additional_params
+                           .get('vdu_mapping'))
+            if vdu_mapping:
+                vnfd = vnflcm_utils.get_vnfd_dict(context,
+                    vnf_instance.vnfd_id, instantiate_vnf_req.flavour_id)
+                # check vdu_id between vdu_mapping and VNFD
+                self._validate_vdu_id_in_vdu_mapping(vdu_mapping, vnfd)
+                for resources in vnf_resources.values():
+                    for vnf_resource in resources:
+                        name = vnf_resource.resource_name
+                        _, kind = vnf_resource.resource_type.split(
+                            COMMA_CHARACTER)
+                        # check kind and name between vdu_mapping and manifest
+                        self._validate_k8s_rsc_in_vdu_mapping(
+                            vdu_mapping, kind, name)
 
             LOG.debug(f"all manifest namespace and kind: {chk_namespaces}")
             k8s_utils.check_and_save_namespace(
@@ -1897,7 +1968,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             # initialize Transformer
             transformer = translate_outputs.Transformer(
                 None, None, None, None)
-            if self._is_use_helm_flag(instantiate_vnf_req.additional_params):
+            additional_params = instantiate_vnf_req.additional_params
+            if self._is_use_helm_flag(additional_params):
                 k8s_objs = self._post_helm_install(context,
                     vim_connection_info, instantiate_vnf_req, transformer,
                     namespace)
@@ -1905,21 +1977,28 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 # get Kubernetes object
                 k8s_objs = transformer.get_k8s_objs_from_yaml(
                     target_k8s_files, vnf_package_path, namespace)
-            # get TOSCA node templates
-            vnfd_dict = vnflcm_utils._get_vnfd_dict(
-                context, vnf_instance.vnfd_id,
-                vnf_instance.instantiated_vnf_info.flavour_id)
-            tosca = tosca_template.ToscaTemplate(
-                parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict)
-            tosca_node_tpls = tosca.topology_template.nodetemplates
-            # get vdu_ids dict {vdu_name(as pod_name): vdu_id}
-            vdu_ids = {}
-            for node_tpl in tosca_node_tpls:
-                for node_name, node_value in node_tpl.templates.items():
-                    if node_value.get('type') == "tosca.nodes.nfv.Vdu.Compute":
-                        vdu_id = node_name
-                        vdu_name = node_value.get('properties').get('name')
-                        vdu_ids[vdu_name] = vdu_id
+            vdu_mapping = additional_params.get('vdu_mapping')
+            if not vdu_mapping:
+                # get TOSCA node templates
+                vnfd_dict = vnflcm_utils._get_vnfd_dict(
+                    context, vnf_instance.vnfd_id,
+                    vnf_instance.instantiated_vnf_info.flavour_id)
+                tosca = tosca_template.ToscaTemplate(
+                    parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict)
+                tosca_node_tpls = tosca.topology_template.nodetemplates
+                # get vdu_ids dict {vdu_name: vdu_id} from VNFD
+                vdu_ids = {}
+                for node_tpl in tosca_node_tpls:
+                    for node_name, node_value in node_tpl.templates.items():
+                        if (node_value.get('type') ==
+                                "tosca.nodes.nfv.Vdu.Compute"):
+                            vdu_id = node_name
+                            vdu_name = node_value.get('properties').get('name')
+                            vdu_ids[vdu_name] = vdu_id
+            else:
+                # get vdu_ids dict {vdu_name: vdu_id} from vdu_mapping
+                vdu_ids = {values.get('name'): vdu_id
+                           for vdu_id, values in vdu_mapping.items()}
             # initialize Kubernetes APIs
             core_v1_api_client = self.kubernetes.get_core_v1_api_client(
                 auth=auth_cred)
@@ -2433,29 +2512,17 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                                                  a_file=False,
                                                  yaml_dict_tpl=vnfd_dict)
             extract_policy_infos = vnflcm_utils.get_extract_policy_infos(tosca)
+            aspect_id = scale_vnf_request.aspect_id
             vdu_defs = vnflcm_utils.get_target_vdu_def_dict(
                 extract_policy_infos=extract_policy_infos,
-                aspect_id=scale_vnf_request.aspect_id,
+                aspect_id=aspect_id,
                 tosca=tosca)
             namespace = vnf_instance.vnf_metadata['namespace']
-            is_found = False
-            target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
-            for vnf_resource in vnf_resources:
-                # For CNF operations, Kubernetes resource information is
-                # stored in vnfc_resource as follows:
-                #   - resource_name : "name"
-                #   - resource_type : "api_version,kind"
-                rsc_name = vnf_resource.resource_name
-                for vdu_id, vdu_def in vdu_defs.items():
-                    vdu_properties = vdu_def.get('properties')
-                    if rsc_name == vdu_properties.get('name'):
-                        rsc_kind = vnf_resource.resource_type.split(',')[1]
-                        target_vdu_id = vdu_id
-                        if rsc_kind in target_kinds:
-                            is_found = True
-                            break
-                if is_found:
-                    break
+            inst_vnf_info = vnf_instance.instantiated_vnf_info
+            vdu_mapping = (inst_vnf_info.additional_params
+                           .get('vdu_mapping'))
+            rsc_kind, rsc_name, target_vdu_id, _ = self._get_scale_target_info(
+                aspect_id, vdu_defs, vnf_resources, vdu_mapping)
             # extract stored Pod names by vdu_id
             stored_pod_list = []
             metadata = None

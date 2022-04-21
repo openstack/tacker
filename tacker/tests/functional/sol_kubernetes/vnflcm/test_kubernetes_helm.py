@@ -124,6 +124,18 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
             "helm_replica_values": {
                 "vdu1_aspect": "replicaCount",
                 "vdu2_aspect": "replicaCount"
+            },
+            "vdu_mapping": {
+                "VDU1": {
+                    "name": "vdu1-localhelm",
+                    "kind": "Deployment",
+                    "helmreleasename": "vdu1"
+                },
+                "VDU2": {
+                    "name": "vdu2-apache",
+                    "kind": "Deployment",
+                    "helmreleasename": "vdu2"
+                }
             }
         }
         vnf_instance = self._create_and_instantiate_vnf_instance(

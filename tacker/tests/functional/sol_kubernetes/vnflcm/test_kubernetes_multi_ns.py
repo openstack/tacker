@@ -29,25 +29,6 @@ class VnfLcmKubernetesMultiNsTest(vnflcm_base.BaseVnfLcmKubernetesTest):
     def tearDownClass(cls):
         super(VnfLcmKubernetesMultiNsTest, cls).tearDownClass()
 
-    def _test_cnf_scale(self, vnf_instance, aspect_id,
-                        number_of_steps=1, error=False):
-        scale_level = self._get_scale_level_by_aspect_id(
-            vnf_instance, aspect_id)
-
-        # test scale out
-        scale_level = self._test_scale(
-            vnf_instance['id'], 'SCALE_OUT', aspect_id, scale_level,
-            number_of_steps, error)
-        if error:
-            return scale_level
-
-        # test scale in
-        scale_level = self._test_scale(
-            vnf_instance['id'], 'SCALE_IN', aspect_id, scale_level,
-            number_of_steps)
-
-        return scale_level
-
     def test_multi_tenant_k8s_additional_params(self):
         vnf_instance_name = "multi_tenant_k8s_additional_params"
         vnf_instance_description = "multi tenant k8s additional params"
@@ -61,7 +42,8 @@ class VnfLcmKubernetesMultiNsTest(vnflcm_base.BaseVnfLcmKubernetesTest):
             self.vnfd_id, "simple", vnf_instance_name,
             vnf_instance_description, additional_param)
         # scale
-        self._test_cnf_scale(vnf_instance, "vdu1_aspect", number_of_steps=1)
+        self._test_scale_out_and_in(
+            vnf_instance, "vdu1_aspect", number_of_steps=1)
 
         before_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance)
         deployment_target_vnfc = [vnfc_rsc for vnfc_rsc in before_vnfc_rscs if
@@ -91,7 +73,8 @@ class VnfLcmKubernetesMultiNsTest(vnflcm_base.BaseVnfLcmKubernetesTest):
             self.vnfd_id, "simple", vnf_instance_name,
             vnf_instance_description, additional_param)
         # scale
-        self._test_cnf_scale(vnf_instance, "vdu1_aspect", number_of_steps=1)
+        self._test_scale_out_and_in(
+            vnf_instance, "vdu1_aspect", number_of_steps=1)
 
         before_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance)
         deployment_target_vnfc = [vnfc_rsc for vnfc_rsc in before_vnfc_rscs if
@@ -120,7 +103,8 @@ class VnfLcmKubernetesMultiNsTest(vnflcm_base.BaseVnfLcmKubernetesTest):
             self.vnfd_id, "simple", vnf_instance_name,
             vnf_instance_description, additional_param)
         # scale
-        self._test_cnf_scale(vnf_instance, "vdu2_aspect", number_of_steps=1)
+        self._test_scale_out_and_in(
+            vnf_instance, "vdu2_aspect", number_of_steps=1)
 
         before_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance)
         deployment_target_vnfc = [vnfc_rsc for vnfc_rsc in before_vnfc_rscs if

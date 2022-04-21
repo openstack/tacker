@@ -1151,7 +1151,9 @@ def fake_vim_connection_info_with_extra(del_field=None, multi_ip=False):
 
 def fake_inst_vnf_req_for_helmchart(external=True, local=True, namespace=None):
     additional_params = {"use_helm": "true"}
-    using_helm_install_param = list()
+    using_helm_install_param = []
+    vdu_mapping = {}
+    vdu_num = 0
     if external:
         using_helm_install_param.append(
             {
@@ -1162,6 +1164,12 @@ def fake_inst_vnf_req_for_helmchart(external=True, local=True, namespace=None):
                 "exthelmrepo_url": "http://helmrepo.example.com/sample-charts"
             }
         )
+        vdu_num += 1
+        vdu_mapping[f"VDU{vdu_num}"] = {
+            "kind": "Deployment",
+            "name": f"vdu{vdu_num}",
+            "helmreleasename": "myrelease-ext"
+        }
     if local:
         using_helm_install_param.append(
             {
@@ -1174,8 +1182,16 @@ def fake_inst_vnf_req_for_helmchart(external=True, local=True, namespace=None):
                 ]
             }
         )
+        vdu_num += 1
+        vdu_mapping[f"VDU{vdu_num}"] = {
+            "kind": "Deployment",
+            "name": f"vdu{vdu_num}",
+            "helmreleasename": "myrelease-local"
+        }
     additional_params['using_helm_install_param'] = using_helm_install_param
-    additional_params['helm_replica_values'] = {"vdu1_aspect": "replicaCount"}
+    additional_params['helm_replica_values'] = {
+        f"vdu{i}_aspect": "replicaCount" for i in range(1, vdu_num + 1)}
+    additional_params['vdu_mapping'] = vdu_mapping
     if namespace:
         additional_params['namespace'] = namespace
 
