@@ -18,10 +18,12 @@ import ddt
 from http import client as http_client
 import json
 import os
+import re
 from unittest import mock
 import urllib
 from webob import exc
 
+from oslo_config import cfg
 from oslo_serialization import jsonutils
 
 from tacker.api.vnfpkgm.v1 import controller
@@ -127,7 +129,9 @@ class TestController(base.TestCase):
                 'checksum',
                 'userDefinedData',
                 'additionalArtifacts'])
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     def test_index_attribute_selector_all_fields(self, mock_vnf_list):
@@ -138,7 +142,9 @@ class TestController(base.TestCase):
         mock_vnf_list.return_value = fakes.return_vnf_package_list()
         res_dict = self.controller.index(req)
         expected_result = fakes.index_response()
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     def test_index_attribute_selector_exclude_default(self, mock_vnf_list):
@@ -154,7 +160,9 @@ class TestController(base.TestCase):
                 'checksum',
                 'userDefinedData',
                 'additionalArtifacts'])
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     @ddt.data(
@@ -172,7 +180,9 @@ class TestController(base.TestCase):
         res_dict = self.controller.index(req)
         remove_attrs = [params['exclude_fields']]
         expected_result = fakes.index_response(remove_attrs=remove_attrs)
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     @ddt.data(
@@ -199,7 +209,9 @@ class TestController(base.TestCase):
         res_dict = self.controller.index(req)
         remove_attrs = [x for x in complex_attrs if x != params['fields']]
         expected_result = fakes.index_response(remove_attrs=remove_attrs)
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     def test_index_attribute_selector_user_defined_data_combination(self,
@@ -226,7 +238,9 @@ class TestController(base.TestCase):
                 'checksum',
                 'additionalArtifacts'],
             vnf_package_updates=vnf_package_updates)
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     def test_index_attribute_selector_user_defined_data(self, mock_vnf_list):
@@ -238,7 +252,9 @@ class TestController(base.TestCase):
         res_dict = self.controller.index(req)
         expected_result = fakes.index_response(remove_attrs=[
             'checksum', 'softwareImages', 'additionalArtifacts'])
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     def test_index_attribute_selector_nested_complex_attribute(self,
@@ -264,7 +280,9 @@ class TestController(base.TestCase):
         expected_result = fakes.index_response(remove_attrs=[
             'checksum', 'userDefinedData'],
             vnf_package_updates=vnf_package_updates)
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     @ddt.data(
@@ -303,7 +321,9 @@ class TestController(base.TestCase):
                 'checksum',
                 'userDefinedData',
                 'additionalArtifacts'])
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     def test_index_filter_combination(self, mock_vnf_list):
@@ -321,7 +341,9 @@ class TestController(base.TestCase):
                 'checksum',
                 'userDefinedData',
                 'additionalArtifacts'])
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     @ddt.data(
@@ -368,7 +390,9 @@ class TestController(base.TestCase):
                 'checksum',
                 'userDefinedData',
                 'additionalArtifacts'])
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     @ddt.data(
@@ -400,7 +424,9 @@ class TestController(base.TestCase):
                 'checksum',
                 'userDefinedData',
                 'additionalArtifacts'])
-        self.assertEqual(expected_result, res_dict)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(VnfPackagesList, "get_by_filters")
     @ddt.data(
@@ -533,6 +559,52 @@ class TestController(base.TestCase):
         mock_vnf_list.return_value = fakes.return_vnf_package_list()
         self.assertRaises(tacker_exc.ValidationError, self.controller.index,
                           req)
+
+    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @ddt.data(
+        {'params': {'all_records': 'yes'},
+            'result_names': ['sample1', 'sample2', 'sample3', 'sample4']},
+        {'params': {'all_records': 'yes', 'nextpage_opaque_marker': 'abc'},
+            'result_names': ['sample1', 'sample2', 'sample3', 'sample4']},
+        {'params': {'nextpage_opaque_marker': 'abc'},
+            'result_names': []},
+        {'params': {},
+            'result_names': ['sample2']}
+    )
+    def test_index_paging(self, values, mock_vnf_list):
+        cfg.CONF.set_override('vnf_package_num', 1, group='vnf_package')
+        query = urllib.parse.urlencode(values['params'])
+        req = fake_request.HTTPRequest.blank('/vnfpkgm/v1/vnf_packages?' +
+            query)
+        mock_vnf_list.return_value = [
+            fakes.return_vnfpkg_obj(
+                vnfd_updates={'vnf_product_name': 'sample1'}),
+            fakes.return_vnfpkg_obj(
+                vnfd_updates={'vnf_product_name': 'sample2'}),
+            fakes.return_vnfpkg_obj(
+                vnfd_updates={'vnf_product_name': 'sample3'}),
+            fakes.return_vnfpkg_obj(
+                vnfd_updates={'vnf_product_name': 'sample4'})
+        ]
+        expected_result = []
+        for name in values['result_names']:
+            expected_result += fakes.index_response(
+                remove_attrs=[
+                    'softwareImages',
+                    'checksum',
+                    'userDefinedData',
+                    'additionalArtifacts'],
+                vnf_package_updates={'vnfProductName': name})
+        res_dict = self.controller.index(req)
+        if 'Link' in res_dict.headers:
+            next_url = re.findall('<(.*)>', res_dict.headers['Link'])[0]
+            query = urllib.parse.urlparse(next_url).query
+            req = fake_request.HTTPRequest.blank('/vnfpkgm/v1/vnf_packages?' +
+                query)
+            res_dict = self.controller.index(req)
+        self.assertEqual(
+            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
+                default=str)), res_dict.json)
 
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     @mock.patch.object(VNFPackageRPCAPI, "delete_vnf_package")
