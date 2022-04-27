@@ -420,7 +420,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm change_ext_conn VNF_INSTANCE_ID \
+  $ openstack vnflcm change-ext-conn VNF_INSTANCE_ID \
        ./sample_param_file.json
 
 
@@ -435,14 +435,14 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm change_ext_conn --help
-  usage: openstack vnflcm change_ext_conn [-h] <vnf-instance> <param-file>
+  $ openstack vnflcm change-ext-conn --help
+  usage: openstack vnflcm change-ext-conn [-h] <vnf-instance> <param-file>
 
   Change External VNF Connectivity
 
   positional arguments:
     <vnf-instance>  VNF instance ID to Change External VNF Connectivity
-    <param-file>    Specify change_ext_conn request parameters in a json file.
+    <param-file>    Specify change-ext-conn request parameters in a json file.
 
   optional arguments:
     -h, --help      show this help message and exit
