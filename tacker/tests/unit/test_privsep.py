@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+import getpass
 import os
 from oslo_log import log as logging
 import unittest
@@ -43,7 +43,7 @@ class PrivsepTest(base.BaseTestCase):
     def setUp(self):
         super(PrivsepTest, self).setUp()
 
-    @unittest.skipIf(_PWD == _PWD_ZUUL or os.getlogin() != 'stack',
+    @unittest.skipIf(_PWD == _PWD_ZUUL or getpass.getuser() != 'stack',
             "Failed on zuul or non-devstack env for root privilege")
     def test_privsep_ls(self):
         """Run ls with root privilege
@@ -59,7 +59,7 @@ class PrivsepTest(base.BaseTestCase):
         # 'boot' dir must be under '/'.
         self.assertIn('boot', res)
 
-    @unittest.skipIf(_PWD == _PWD_ZUUL or os.getlogin() != 'stack',
+    @unittest.skipIf(_PWD == _PWD_ZUUL or getpass.getuser() != 'stack',
             "Failed on zuul or non-devstack env for root privilege")
     def test_privsep_pwd(self):
         """Run pwd with root privilege
@@ -69,7 +69,7 @@ class PrivsepTest(base.BaseTestCase):
         res = tacker.privileged.linux_cmd.pwd()[0]
         self.assertEqual('/\n', res)
 
-    @unittest.skipIf(_PWD == _PWD_ZUUL or os.getlogin() != 'stack',
+    @unittest.skipIf(_PWD == _PWD_ZUUL or getpass.getuser() != 'stack',
             "Failed on zuul or non-devstack env for root privilege")
     def test_rootwrap(self):
         """Confirm a command can be run with tacker-rootwrap
