@@ -379,7 +379,7 @@ class VnfLcmDriverV2(object):
             # As the controller does for req.vimConnectionInfo, if accessInfo
             # or interfaceInfo is not specified, get them from VIM DB.
             # vimId must be in VIM DB.
-            res_vim_infos = grant.vimConnectioninfo
+            res_vim_infos = grant.vimConnectionInfo
             for key, res_vim_info in res_vim_infos.items():
                 if not (res_vim_info.obj_attr_is_set('accessInfo') and
                         res_vim_info.obj_attr_is_set('interfaceInfo')):

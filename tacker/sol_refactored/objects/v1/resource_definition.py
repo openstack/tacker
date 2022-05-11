@@ -42,5 +42,5 @@ class ResourceDefinitionV1(base.TackerObject, base.TackerObjectDictCompat):
         'resource': fields.ObjectField(
             'ResourceHandle', nullable=True),
         'snapshotResDef': fields.ObjectField(
-            'SnapshotResourceDefinition', nullable=True),
+            'SnapshotResourceDefinitionV1', nullable=True),
     }
