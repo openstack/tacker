@@ -3435,6 +3435,7 @@ class TestController(base.TestCase):
 
         self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
 
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(controller.VnfLcmController,
                        "_update_vnf_fail_status")
     @mock.patch.object(objects.VnfInstance, "save")
@@ -3444,12 +3445,20 @@ class TestController(base.TestCase):
     def test_fail_lcm_op_occs(self, mock_lcm_get_by_id,
             mock_lcm_save, mock_vnf_get_by_id,
             mock_vnf_save,
-            mock_update):
+            mock_update,
+            mock_send_notification):
         req = fake_request.HTTPRequest.blank(
             '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
         mock_lcm_get_by_id.return_value = fakes.vnflcm_fail_insta()
         res_dict = self.controller.fail(req, constants.UUID)
         self.assertEqual('FAILED', res_dict['operationState'])
+        self.assertIsNone(
+            mock_send_notification.call_args[0][1].get("affectedVnfcs"))
+        self.assertIsNone(
+            mock_send_notification.call_args[0][1].get(
+                "affectedVirtualStorages"))
+        self.assertIsNone(
+            mock_send_notification.call_args[0][1].get("affectedVirtualLinks"))
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")

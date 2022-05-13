@@ -326,13 +326,15 @@ class VnfLcmController(wsgi.Controller):
         if operation_state in (fields.LcmOccsOperationState.FAILED,
                                fields.LcmOccsOperationState.FAILED_TEMP):
             vnf_lcm_op_occs_id = vnf_lcm_op_occs.id
-
-            notification['affectedVnfcs'] = affected_resources.get(
-                'affectedVnfcs', [])
-            notification['affectedVirtualLinks'] = affected_resources.get(
-                'affectedVirtualLinks', [])
-            notification['affectedVirtualStorages'] = affected_resources.get(
-                'affectedVirtualStorages', [])
+            if affected_resources.get("affectedVnfcs"):
+                notification['affectedVnfcs'] = affected_resources.get(
+                    'affectedVnfcs')
+            if affected_resources.get("affectedVirtualLinks"):
+                notification['affectedVirtualLinks'] = affected_resources.get(
+                    'affectedVirtualLinks')
+            if affected_resources.get("affectedVirtualStorages"):
+                notification['affectedVirtualStorages'] = \
+                    affected_resources.get('affectedVirtualStorages')
             notification['error'] = str(vnf_lcm_op_occs.error)
 
         else:

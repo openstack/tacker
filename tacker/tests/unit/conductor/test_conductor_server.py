@@ -407,6 +407,65 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '.send_notification')
+    @mock.patch('tacker.vnflcm.utils._get_affected_resources')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._build_instantiated_vnf_info')
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.utils._convert_desired_capacity')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_instantiate_vnf_instance_without_virtual_storage(
+            self, mock_vnf_by_id,
+            mock_des, mock_vnfd_dict,
+            mock_get_lock, mock_save,
+            mock_build_info, mock_change_vnf_status,
+            mock_update_vnf_attributes,
+            mock_affected_resources,
+            mock_send_notification):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        mock_vnf_by_id.return_value = \
+            objects.VnfLcmOpOcc(context=self.context,
+                                **lcm_op_occs_data)
+
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+                                       flavour=instantiate_vnf_req.flavour_id)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        vnfd_key = 'vnfd_' + instantiate_vnf_req.flavour_id
+        vnfd_yaml = vnf_dict['vnfd']['attributes'].get(vnfd_key, '')
+        mock_vnfd_dict.return_value = yaml.safe_load(vnfd_yaml)
+        mock_affected_resources.return_value = {}
+        self.conductor.instantiate(self.context, vnf_instance, vnf_dict,
+                                   instantiate_vnf_req, vnf_lcm_op_occs_id)
+        self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
+            self.context, mock.ANY, vnf_dict, instantiate_vnf_req)
+        self.vnflcm_driver._vnf_instance_update.assert_called_once()
+        mock_change_vnf_status. \
+            assert_called_once_with(self.context, vnf_instance.id,
+                                    mock.ANY, 'PENDING_CREATE')
+        mock_update_vnf_attributes.assert_called_once()
+        self.assertIsNone(
+            mock_send_notification.call_args[0][1].get("affectedVnfcs"))
+        self.assertIsNone(
+            mock_send_notification.call_args[0][1].get(
+                "affectedVirtualStorages"))
+        self.assertIsNone(
+            mock_send_notification.call_args[0][1].get("affectedVirtualLinks"))
+
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._update_vnf_attributes')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
@@ -830,6 +889,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                 '._change_vnf_status')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._build_instantiated_vnf_info')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(coordination.Coordinator, 'get_lock')
     @mock.patch.object(objects.LccnSubscriptionRequest,
@@ -843,7 +904,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             self, mock_res, mock_vnf_by_id, mock_log,
             mock_des, mock_vnfd_dict,
             mock_vnf_lcm_subscriptions_get,
-            mock_get_lock, mock_save, mock_build_info,
+            mock_get_lock, mock_save,
+            mock_send_notification, mock_build_info,
             mock_change_vnf_status,
             mock_update_vnf_attributes):
         lcm_op_occs_data = fakes.get_lcm_op_occs_data()
@@ -875,6 +937,13 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                    instantiate_vnf_req, vnf_lcm_op_occs_id)
         self.vnflcm_driver.instantiate_vnf.assert_called_once_with(
             self.context, vnf_instance, vnf_dict, instantiate_vnf_req)
+        self.assertIsNone(
+            mock_send_notification.call_args[0][1].get("affectedVnfcs"))
+        self.assertIsNone(
+            mock_send_notification.call_args[0][1].get(
+                "affectedVirtualStorages"))
+        self.assertIsNone(
+            mock_send_notification.call_args[0][1].get("affectedVirtualLinks"))
         mock_change_vnf_status.assert_called_with(self.context,
             vnf_instance.id, mock.ANY, 'ERROR')
         mock_update_vnf_attributes.assert_called_once()
