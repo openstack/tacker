@@ -465,7 +465,7 @@ class VnfPackageTest(base.BaseTackerTest):
         zipf.writestr(file_path, data)
 
         # Partial download 2
-        range_ = 'bytes=11-{}'.format(self.SIZE_CSAR_ZIP)
+        range_ = f'bytes=11-{self.SIZE_CSAR_ZIP - 1}'
         headers = {'Range': range_}
         response_2 = self.http_client.do_request(
             '{base_path}/{id}/package_content'.format(
@@ -537,3 +537,45 @@ class VnfPackageTest(base.BaseTackerTest):
         image_path = body[0]['softwareImages'][0]['imagePath']
         expected_result = self.package2.get('softwareImages')[0]['imagePath']
         self.assertEqual(image_path, expected_result)
+
+    def test_fetch_vnf_package_artifacts_range_exception(self):
+        # Invalid Range: test for response status code 416 when
+        # range start greater than range end
+        range_ = 'bytes=9-8'
+        # get headers
+        headers = {'Range': range_}
+        # request download api
+        response = self.http_client.do_request(
+            '{base_path}/{id}/artifacts/{artifact_path}'.format(
+                base_path=self.base_url, id=self.package_id1,
+                artifact_path='Scripts/install.sh'),
+            "GET", body={}, headers=headers)
+        # verification
+        self.assertEqual(416, response[0].status_code)
+
+        # Invalid End Range: range end greater than
+        # or equal to size of the file
+        range_ = 'bytes=0-33'
+        # get headers
+        headers = {'Range': range_}
+        # request download api
+        response = self.http_client.do_request(
+            '{base_path}/{id}/artifacts/{artifact_path}'.format(
+                base_path=self.base_url, id=self.package_id1,
+                artifact_path='Scripts/install.sh'),
+            "GET", body={}, headers=headers)
+        # verification
+        self.assertEqual(416, response[0].status_code)
+
+        # Invalid Start Range: range start greater than size of the file
+        range_ = 'bytes=33-'
+        # get headers
+        headers = {'Range': range_}
+        # request download api
+        response = self.http_client.do_request(
+            '{base_path}/{id}/artifacts/{artifact_path}'.format(
+                base_path=self.base_url, id=self.package_id1,
+                artifact_path='Scripts/install.sh'),
+            "GET", body={}, headers=headers)
+        # verification
+        self.assertEqual(416, response[0].status_code)

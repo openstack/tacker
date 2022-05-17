@@ -1016,6 +1016,14 @@ class TestController(base.TestCase):
         self.assertRaises(exc.HTTPRequestRangeNotSatisfiable,
                           self.controller._get_range_from_request,
                           request, 120)
+        request.headers["Range"] = 'bytes=110-100'
+        self.assertRaises(exc.HTTPRequestRangeNotSatisfiable,
+                          self.controller._get_range_from_request,
+                          request, 120)
+        request.headers["Range"] = 'bytes=100-120'
+        self.assertRaises(exc.HTTPRequestRangeNotSatisfiable,
+                          self.controller._get_range_from_request,
+                          request, 120)
 
     def test_fetch_vnf_package_content_invalid_multiple_range(self):
         request = fake_request.HTTPRequest.blank(
