@@ -56,25 +56,28 @@ class TestValidator(base.BaseTestCase):
     def _test_method(self, request, body):
         return True
 
-    @mock.patch.object(api_version, 'supported_versions',
-        new=['2.0.0', '2.0.1', '2.0.2', '2.1.0', '2.2.0'])
     def test_validator(self):
+        supported_versions = ['2.0.0', '2.0.1', '2.0.2', '2.1.0', '2.2.0']
         body = {"vnfdId": "vnfd_id", "ProductId": "product_id"}
         for ok_ver in ['2.0.0', '2.0.1', '2.0.2']:
-            self.context.api_version = api_version.APIVersion(ok_ver)
+            self.context.api_version = api_version.APIVersion(
+                ok_ver, supported_versions)
             result = self._test_method(request=self.request, body=body)
             self.assertTrue(result)
         for ng_ver in ['2.1.0', '2.2.0']:
-            self.context.api_version = api_version.APIVersion(ng_ver)
+            self.context.api_version = api_version.APIVersion(
+                ng_ver, supported_versions)
             self.assertRaises(sol_ex.SolValidationError,
                 self._test_method, request=self.request, body=body)
 
         body = {"vnfdId": "vnfd_id", "flavourId": "flavour_id"}
         for ok_ver in ['2.1.0', '2.2.0']:
-            self.context.api_version = api_version.APIVersion(ok_ver)
+            self.context.api_version = api_version.APIVersion(
+                ok_ver, supported_versions)
             result = self._test_method(request=self.request, body=body)
             self.assertTrue(result)
         for ng_ver in ['2.0.0', '2.0.1', '2.0.2']:
-            self.context.api_version = api_version.APIVersion(ng_ver)
+            self.context.api_version = api_version.APIVersion(
+                ng_ver, supported_versions)
             self.assertRaises(sol_ex.SolValidationError,
                 self._test_method, request=self.request, body=body)

@@ -25,3 +25,7 @@ class VnfLcmVersionsController(sol_wsgi.SolAPIController):
         body = {"uriPrefix": "/vnflcm",
                 "apiVersions": api_versions}
         return sol_wsgi.SolResponse(200, body)
+
+    def supported_api_versions(self, action):
+        # support all versions and it is OK there is no Version header.
+        return None
