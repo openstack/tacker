@@ -297,6 +297,13 @@ class VnfPkgmController(wsgi.Controller):
                        "[0, %s].") % (zip_file_size - 1)
                 raise webob.exc.HTTPRequestRangeNotSatisfiable(
                     explanation=msg)
+            if range_.end is not None:
+                if range_.end - 1 >= zip_file_size:
+                    msg = _("Invalid end position in Range header. "
+                           "End position MUST be in the inclusive range"
+                           "[0, %d].") % (zip_file_size - 1)
+                    raise webob.exc.HTTPRequestRangeNotSatisfiable(
+                        explanation=msg)
             return range_
 
     @wsgi.response(http_client.ACCEPTED)
