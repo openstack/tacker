@@ -258,3 +258,88 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
                           vnf_instance_obj, vnf_dict,
                           instantiate_vnf_req_obj)
         shutil.rmtree(fake_csar)
+
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
+    @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
+    @mock.patch.object(VnfLcmDriver, '_init_mgmt_driver_hash')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfResource, 'create')
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.VnfInstance, "save")
+    def test_instantiate_multi(self, mock_vnf_instance_save,
+                             mock_vnf_package_vnfd, mock_create,
+                             mock_get_service_plugins, mock_init_hash,
+                             mock_final_vnf_dict, mock_default_status):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "10edbecaa6df7e782c610ef4cc5e57"
+                           "e2b0405869a559e2f4cb40e6b11e367547"
+        }
+        vnf_package_vnfd = fakes.return_vnf_package_vnfd()
+        vnf_package_id = vnf_package_vnfd.package_uuid
+        mock_vnf_package_vnfd.return_value = vnf_package_vnfd
+        instantiate_vnf_req_dict = fakes.get_dummy_instantiate_vnf_request()
+        instantiate_vnf_req_obj = \
+            objects.InstantiateVnfRequest.obj_from_primitive(
+                instantiate_vnf_req_dict, self.context)
+        vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
+
+        fake_csar = os.path.join(self.temp_dir, vnf_package_id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
+                              group='vnf_package')
+        test_utils.copy_csar_files(fake_csar, "multi_flavour_deployment")
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": fields.ErrorPoint.VNF_CONFIG_START}
+        driver.instantiate_vnf(self.context, vnf_instance_obj, vnf_dict,
+                               instantiate_vnf_req_obj)
+
+        self.assertEqual(1, mock_vnf_instance_save.call_count)
+        self.assertEqual(6, self._vnf_manager.invoke.call_count)
+        shutil.rmtree(fake_csar)
+
+    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
+    @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
+    @mock.patch.object(VnfLcmDriver, '_init_mgmt_driver_hash')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+        return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfResource, 'create')
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_by_id')
+    @mock.patch.object(objects.VnfInstance, "save")
+    def test_instantiate_multi_invalid(self, mock_vnf_instance_save,
+                             mock_vnf_package_vnfd, mock_create,
+                             mock_get_service_plugins, mock_init_hash,
+                             mock_final_vnf_dict, mock_default_status):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        vnf_package_vnfd = fakes.return_vnf_package_vnfd()
+        vnf_package_id = vnf_package_vnfd.package_uuid
+        mock_vnf_package_vnfd.return_value = vnf_package_vnfd
+        instantiate_vnf_req_dict = fakes.get_dummy_instantiate_vnf_request()
+        instantiate_vnf_req_obj = \
+            objects.InstantiateVnfRequest.obj_from_primitive(
+                instantiate_vnf_req_dict, self.context)
+        vnf_instance_obj = fakes.return_vnf_instance()
+        mock_default_status.return_value = None
+
+        fake_csar = os.path.join(self.temp_dir, vnf_package_id)
+        cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
+                              group='vnf_package')
+        test_utils.copy_csar_files(fake_csar,
+                "multi_flavour_deployment_invalid")
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        vnf_dict = {
+            "vnfd": {"attributes": {}}, "attributes": {},
+            "before_error_point": fields.ErrorPoint.VNF_CONFIG_START}
+
+        self.assertRaises(exceptions.MgmtDriverInconsistent,
+                          driver.instantiate_vnf, self.context,
+                          vnf_instance_obj, vnf_dict,
+                          instantiate_vnf_req_obj)
+        shutil.rmtree(fake_csar)

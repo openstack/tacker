@@ -458,14 +458,27 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         return hash_obj.hexdigest()
 
     def _check_mgmt_driver(self, artifact_mgmt_driver, artifacts_value,
-                           vnf_package_path):
+                           vnf_package_path,
+                           artifact_mgmt_driver_dependency=None):
         # check implementation and artifacts exist in cfg.CONF.tacker
         if artifact_mgmt_driver not in self._mgmt_driver_hash:
-            LOG.error('The {} specified in the VNFD '
-                      'is inconsistent with the MgmtDriver in '
-                      'the configuration file.'.format(artifact_mgmt_driver))
+            LOG.error('The management driver {} specified in the VNFD '
+                      'at vnf package path {} is inconsistent with '
+                      'the MgmtDriver in the configuration file {}.'
+                      .format(artifact_mgmt_driver, vnf_package_path,
+                          cfg.CONF.default_config_files))
             raise exceptions.MgmtDriverInconsistent(
                 MgmtDriver=artifact_mgmt_driver)
+
+        if artifact_mgmt_driver_dependency is not None:
+            if artifact_mgmt_driver_dependency in self._mgmt_driver_hash:
+                LOG.error('The management driver dependencies {} specified in '
+                          'the VNFD at vnf package path {} is inconsistent '
+                          ' with the MgmtDriver in the configuration file {}.'
+                          .format(artifact_mgmt_driver, vnf_package_path,
+                            cfg.CONF.default_config_files))
+                raise exceptions.MgmtDriverInconsistent(
+                    MgmtDriver=artifact_mgmt_driver_dependency)
 
         # check file content
         pkg_mgmt_driver_path = os.path.join(vnf_package_path,
@@ -497,8 +510,25 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             artifact_mgmt_driver = interfaces_vnflcm_value.get(
                 method_name).get('implementation')
             if artifact_mgmt_driver:
-                tacker_mgmt_driver = self._check_mgmt_driver(
-                    artifact_mgmt_driver, artifacts_value, vnf_package_path)
+                # TODO(w-juso): Dependencies are defined List type in OASIS.
+                # This function handles dependencies as a List type, however
+                # currently only a single parameter in List can be read.
+                # If necessary, we need to implement the ability to load
+                # multiple definitions.
+                if isinstance(artifact_mgmt_driver, dict):
+                    primary = artifact_mgmt_driver.get('primary')
+                    dependencies = artifact_mgmt_driver.get('dependencies')
+
+                    if not isinstance(dependencies, list):
+                        dependencies = [dependencies]
+                    for dependency in dependencies:
+                        tacker_mgmt_driver = self._check_mgmt_driver(
+                            primary, artifacts_value,
+                            vnf_package_path, dependency)
+                else:
+                    tacker_mgmt_driver = self._check_mgmt_driver(
+                        artifact_mgmt_driver, artifacts_value,
+                        vnf_package_path)
 
         return tacker_mgmt_driver
 
