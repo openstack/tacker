@@ -38,13 +38,13 @@ OPTS = [cfg.StrOpt('user_domain_id',
                    default='default',
                    help='User Name'),
         cfg.StrOpt('user_domain_name',
-                   default='default',
+                   default='Default',
                    help='Use Domain Name'),
         cfg.StrOpt('project_name',
                    default='default',
                    help='Project Name'),
         cfg.StrOpt('project_domain_name',
-                   default='default',
+                   default='Default',
                    help='Project Domain Name'),
         cfg.StrOpt('auth_url',
                    default='http://localhost/identity/v3',
@@ -107,26 +107,26 @@ class TestOpenstack_Driver(base.TestCase):
                 'openstack', 'auth_url': 'http://localhost/identity',
                 'auth_cred': {'username': 'test_user',
                               'password': 'test_password',
-                              'user_domain_name': 'default',
+                              'user_domain_name': 'Default',
                               'cert_verify': 'True',
                               'auth_url': 'http://localhost/identity'},
                 'name': 'VIM0',
                 'vim_project': {'name': 'test_project',
-                                'project_domain_name': 'default'}}
+                                'project_domain_name': 'Default'}}
 
     def get_vim_obj_barbican(self):
         return {'id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff', 'type':
                 'openstack', 'auth_url': 'http://localhost/identity',
                 'auth_cred': {'username': 'test_user',
                               'password': 'test_password',
-                              'user_domain_name': 'default',
+                              'user_domain_name': 'Default',
                               'key_type': 'barbican_key',
                               'secret_uuid': 'fake-secret-uuid',
                               'cert_verify': 'True',
                               'auth_url': 'http://localhost/identity'},
                 'name': 'VIM0',
                 'vim_project': {'name': 'test_project',
-                                'project_domain_name': 'default'}}
+                                'project_domain_name': 'Default'}}
 
     def test_register_keystone_v3(self):
         regions = [mock_dict({'id': 'RegionOne'})]

@@ -328,8 +328,8 @@ def get_vim_auth_obj():
             'project_name': 'test_project',
             'cert_verify': 'True',
             'auth_url': 'http://localhost/identity/v3',
-            'user_domain_name': 'default',
-            'project_domain_name': 'default'}
+            'user_domain_name': 'Default',
+            'project_domain_name': 'Default'}
 
 
 def get_dummy_vnffgd_obj():
