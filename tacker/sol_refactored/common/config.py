@@ -34,6 +34,18 @@ VNFM_OPTS = [
     cfg.IntOpt('kubernetes_vim_rsc_wait_timeout',
                default=500,
                help='Timeout (second) of k8s res creation.'),
+    cfg.IntOpt('vnf_instance_page_size',
+               default=0,  # 0 means no paging
+               help=_('Paged response size of the query result '
+                      'for VNF instances.')),
+    cfg.IntOpt('subscription_page_size',
+               default=0,  # 0 means no paging
+               help=_('Paged response size of the query result '
+                      'for Subscriptions.')),
+    cfg.IntOpt('lcm_op_occ_page_size',
+               default=0,  # 0 means no paging
+               help=_('Paged response size of the query result '
+                      'for VNF LCM operation occurrences.')),
     # NOTE: This is for test use since it is convenient to be able to delete
     # under development.
     cfg.BoolOpt('test_enable_lcm_op_occ_delete',

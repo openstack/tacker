@@ -118,11 +118,15 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         selector = self._inst_view.parse_selector(request.GET)
 
-        insts = inst_utils.get_inst_all(request.context)
+        pager = self._inst_view.parse_pager(request)
 
-        resp_body = self._inst_view.detail_list(insts, filters, selector)
+        insts = inst_utils.get_inst_all(request.context,
+                                        marker=pager.marker)
 
-        return sol_wsgi.SolResponse(200, resp_body)
+        resp_body = self._inst_view.detail_list(insts, filters,
+                                                selector, pager)
+
+        return sol_wsgi.SolResponse(200, resp_body, link=pager.get_link())
 
     def show(self, request, id):
         inst = inst_utils.get_inst(request.context, id)
@@ -502,11 +506,14 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         else:
             filters = None
 
-        subscs = subsc_utils.get_subsc_all(request.context)
+        pager = self._subsc_view.parse_pager(request)
 
-        resp_body = self._subsc_view.detail_list(subscs, filters)
+        subscs = subsc_utils.get_subsc_all(request.context,
+                                           marker=pager.marker)
 
-        return sol_wsgi.SolResponse(200, resp_body)
+        resp_body = self._subsc_view.detail_list(subscs, filters, pager)
+
+        return sol_wsgi.SolResponse(200, resp_body, link=pager.get_link())
 
     def subscription_show(self, request, id):
         subsc = subsc_utils.get_subsc(request.context, id)
@@ -532,11 +539,15 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         selector = self._lcmocc_view.parse_selector(request.GET)
 
-        lcmoccs = lcmocc_utils.get_lcmocc_all(request.context)
+        pager = self._lcmocc_view.parse_pager(request)
 
-        resp_body = self._lcmocc_view.detail_list(lcmoccs, filters, selector)
+        lcmoccs = lcmocc_utils.get_lcmocc_all(request.context,
+                                              marker=pager.marker)
 
-        return sol_wsgi.SolResponse(200, resp_body)
+        resp_body = self._lcmocc_view.detail_list(lcmoccs, filters,
+                                                  selector, pager)
+
+        return sol_wsgi.SolResponse(200, resp_body, link=pager.get_link())
 
     def lcm_op_occ_show(self, request, id):
         lcmocc = lcmocc_utils.get_lcmocc(request.context, id)

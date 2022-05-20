@@ -20,6 +20,7 @@ from dateutil import parser
 
 from oslo_log import log as logging
 
+from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored.common import subscription_utils as subsc_utils
@@ -28,6 +29,7 @@ from tacker.sol_refactored import objects
 
 
 LOG = logging.getLogger(__name__)
+CONF = config.CONF
 
 
 class KeyAttribute(object):
@@ -308,9 +310,27 @@ class BaseViewBuilder(object):
                 return False
         return True
 
-    def detail_list(self, values, filters, selector):
-        return [self.detail(v, selector) for v in values
-                if self.match_filters(v, filters)]
+    def parse_pager(self, request, page_size):
+        """Implement SOL013 5.4 Handling of large query results"""
+        marker = request.GET.get('nextpage_opaque_marker')
+        req_url = request.url
+
+        return Pager(marker, req_url, page_size)
+
+    def detail_list(self, values, filters, selector, pager):
+        resp_body = [self.detail(v, selector) for v in values
+                     if self.match_filters(v, filters)]
+
+        if pager.page_size == 0:
+            pager.next_marker = None
+            return resp_body
+
+        if len(resp_body) > pager.page_size:
+            resp_body = resp_body[:pager.page_size]
+            pager.next_marker = resp_body[-1]["id"]
+        else:
+            pager.next_marker = None
+        return resp_body
 
 
 class InstanceViewBuilder(BaseViewBuilder):
@@ -325,6 +345,10 @@ class InstanceViewBuilder(BaseViewBuilder):
 
     def parse_filter(self, filter):
         return super().parse_filter(filter)
+
+    def parse_pager(self, request):
+        page_size = CONF.v2_vnfm.vnf_instance_page_size
+        return super().parse_pager(request, page_size)
 
     def detail(self, inst, selector=None):
         # NOTE: _links is not saved in DB. create when it is necessary.
@@ -344,8 +368,8 @@ class InstanceViewBuilder(BaseViewBuilder):
             resp = selector.filter(inst, resp)
         return resp
 
-    def detail_list(self, insts, filters, selector):
-        return super().detail_list(insts, filters, selector)
+    def detail_list(self, insts, filters, selector, pager):
+        return super().detail_list(insts, filters, selector, pager)
 
 
 class LcmOpOccViewBuilder(BaseViewBuilder):
@@ -361,6 +385,10 @@ class LcmOpOccViewBuilder(BaseViewBuilder):
     def parse_filter(self, filter):
         return super().parse_filter(filter)
 
+    def parse_pager(self, request):
+        page_size = CONF.v2_vnfm.lcm_op_occ_page_size
+        return super().parse_pager(request, page_size)
+
     def detail(self, lcmocc, selector=None):
         # NOTE: _links is not saved in DB. create when it is necessary.
         if not lcmocc.obj_attr_is_set('_links'):
@@ -371,8 +399,8 @@ class LcmOpOccViewBuilder(BaseViewBuilder):
             resp = selector.filter(lcmocc, resp)
         return resp
 
-    def detail_list(self, lcmoccs, filters, selector):
-        return super().detail_list(lcmoccs, filters, selector)
+    def detail_list(self, lcmoccs, filters, selector, pager):
+        return super().detail_list(lcmoccs, filters, selector, pager)
 
 
 class SubscriptionViewBuilder(BaseViewBuilder):
@@ -381,6 +409,10 @@ class SubscriptionViewBuilder(BaseViewBuilder):
 
     def parse_filter(self, filter):
         return super().parse_filter(filter)
+
+    def parse_pager(self, request):
+        page_size = CONF.v2_vnfm.subscription_page_size
+        return super().parse_pager(request, page_size)
 
     def detail(self, subsc, selector=None):
         # NOTE: _links is not saved in DB. create when it is necessary.
@@ -398,5 +430,34 @@ class SubscriptionViewBuilder(BaseViewBuilder):
             resp = selector.filter(subsc, resp)
         return resp
 
-    def detail_list(self, subscs, filters):
-        return super().detail_list(subscs, filters, None)
+    def detail_list(self, subscs, filters, pager):
+        return super().detail_list(subscs, filters, None, pager)
+
+
+class Pager:
+    def __init__(self, marker, req_url, page_size):
+        self.marker = marker
+        self.req_url = req_url
+        self.page_size = page_size
+        self.next_marker = None
+
+    def _marker_string(self, marker):
+        return f'nextpage_opaque_marker={marker}'
+
+    def _link_value(self, url):
+        return f'<{url}>;rel="next"'
+
+    def get_link(self):
+        if self.next_marker is None:
+            return
+
+        if self.marker is not None:
+            # req_url includes marker string
+            url = self.req_url.replace(self._marker_string(self.marker),
+                                       self._marker_string(self.next_marker))
+        elif '?' not in self.req_url:
+            url = f'{self.req_url}?{self._marker_string(self.next_marker)}'
+        else:
+            url = f'{self.req_url}&{self._marker_string(self.next_marker)}'
+
+        return self._link_value(url)

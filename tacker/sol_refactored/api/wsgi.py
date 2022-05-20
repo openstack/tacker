@@ -65,7 +65,7 @@ class SolResponse(object):
         self.body = body
         self.headers = {}
         for hdr in self.allowed_headers:
-            if hdr in kwargs:
+            if kwargs.get(hdr):
                 self.headers[hdr] = kwargs[hdr]
         self.headers.setdefault('version', api_version.CURRENT_VERSION)
         self.headers.setdefault('accept-ranges', 'none')

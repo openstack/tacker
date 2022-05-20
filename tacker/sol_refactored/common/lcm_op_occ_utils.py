@@ -36,8 +36,8 @@ def get_lcmocc(context, lcmocc_id):
     return lcmocc
 
 
-def get_lcmocc_all(context):
-    return objects.VnfLcmOpOccV2.get_all(context)
+def get_lcmocc_all(context, marker=None):
+    return objects.VnfLcmOpOccV2.get_all(context, marker)
 
 
 def lcmocc_href(lcmocc_id, endpoint):
