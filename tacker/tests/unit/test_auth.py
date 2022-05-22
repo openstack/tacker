@@ -72,7 +72,6 @@ class TackerKeystoneContextTestCase(test_base.BaseTestCase):
         response = self.request.get_response(self.middleware)
         self.assertEqual('200 OK', response.status)
         self.assertEqual('testuserid', self.context.user_id)
-        self.assertEqual('testuserid', self.context.user)
 
     def test_with_tenant_id(self):
         self.request.headers['X_PROJECT_ID'] = 'testtenantid'

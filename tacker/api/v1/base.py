@@ -488,6 +488,7 @@ class Controller(object):
         if is_create and 'tenant_id' not in res_dict:
             if context.tenant_id:
                 res_dict['tenant_id'] = context.tenant_id
+                res_dict['project_id'] = context.tenant_id
             else:
                 msg = _("Running without keystone AuthN requires "
                         "that tenant_id is specified")
@@ -591,7 +592,13 @@ class Controller(object):
 
     @staticmethod
     def _verify_attributes(res_dict, attr_info):
-        extra_keys = set(res_dict.keys()) - set(attr_info.keys())
+        # TODO(h-asahina): The `project_id` is not included in attr_info, but
+        # it is used as an alternative of `tenant_id` which is already
+        # deprecated in oslo.context. Excluding `project_id` from the
+        # verification is a workaround to avoid directly modifying attr_info
+        # which has a strong influence on the existing code.
+        excluded = {'project_id'}
+        extra_keys = set(res_dict.keys()) - set(attr_info.keys()) - excluded
         if extra_keys:
             msg = _("Unrecognized attribute(s) '%s'") % ', '.join(extra_keys)
             raise webob.exc.HTTPBadRequest(msg)

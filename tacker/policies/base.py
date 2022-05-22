@@ -28,7 +28,7 @@ rules = [
         "Decides what is required for the 'is_admin:True' check to succeed."),
     policy.RuleDefault(
         "admin_or_owner",
-        "is_admin:True or tenant_id:%(tenant_id)s",
+        "is_admin:True or project_id:%(project_id)s",
         "Default rule for most non-Admin APIs."),
     policy.RuleDefault(
         "admin_only",

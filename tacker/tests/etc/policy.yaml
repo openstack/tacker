@@ -1,4 +1,4 @@
-"admin_or_owner": "rule:context_is_admin or tenant_id:%(tenant_id)s"
+"admin_or_owner": "rule:context_is_admin or project_id:%(project_id)s"
 "admin_only": "rule:context_is_admin"
 "regular_user": ""
 "shared": "field:vims:shared=True"
