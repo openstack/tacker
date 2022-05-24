@@ -38,8 +38,9 @@ class NfvoClient(object):
 
         if CONF.v2_nfvo.use_external_nfvo:
             self.is_local = False
+            self.endpoint = CONF.v2_nfvo.endpoint
             auth_handle = http_client.OAuth2AuthHandle(
-                CONF.v2_nfvo.endpoint,
+                self.endpoint,
                 CONF.v2_nfvo.token_endpoint,
                 CONF.v2_nfvo.client_id,
                 CONF.v2_nfvo.client_password)
@@ -51,7 +52,8 @@ class NfvoClient(object):
         if self.is_local:
             return self.nfvo.onboarded_show(context, vnfd_id)
 
-        url = "/vnfpkgm/v2/onboarded_vnf_packages/{}".format(vnfd_id)
+        url = "{}/vnfpkgm/v2/onboarded_vnf_packages/{}".format(
+            self.endpoint, vnfd_id)
         resp, body = self.client.do_request(
             url, "GET", expected_status=[200],
             version=self.vnfpkgm_api_version)
@@ -64,7 +66,8 @@ class NfvoClient(object):
             LOG.error("onboarded_show_vnfd is called.")
             return
 
-        url = "/vnfpkgm/v2/onboarded_vnf_packages/{}/vnfd".format(vnfd_id)
+        url = "{}/vnfpkgm/v2/onboarded_vnf_packages/{}/vnfd".format(
+            self.endpoint, vnfd_id)
         resp, body = self.client.do_request(
             url, "GET", expected_status=[200],
             version=self.vnfpkgm_api_version)
@@ -76,8 +79,8 @@ class NfvoClient(object):
             LOG.error("onboarded_package_content is called.")
             return
 
-        url = "/vnfpkgm/v2/onboarded_vnf_packages/{}/package_content"
-        url = url.format(vnfd_id)
+        url = "{}/vnfpkgm/v2/onboarded_vnf_packages/{}/package_content"
+        url = url.format(self.endpoint, vnfd_id)
         resp, body = self.client.do_request(
             url, "GET", expected_status=[200],
             version=self.vnfpkgm_api_version)
@@ -89,7 +92,7 @@ class NfvoClient(object):
         if self.is_local:
             grant_res = self.nfvo.grant(context, grant_req)
         else:
-            url = "/grant/v2/grants"
+            url = "{}/grant/v1/grants".format(self.endpoint)
             resp, body = self.client.do_request(
                 url, "POST", expected_status=[201], body=grant_req,
                 version=self.grant_api_version)
