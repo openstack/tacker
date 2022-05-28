@@ -357,11 +357,11 @@ class Request(webob.Request):
         type_from_header = self.get_content_type()
         if type_from_header:
             return type_from_header
-        ctypes = ['application/json', 'text/plain', 'application/zip']
+        offers = ['application/json', 'text/plain', 'application/zip']
 
         # Finally search in Accept-* headers
-        bm = self.accept.best_match(ctypes)
-        return bm or 'application/json'
+        ctypes = self.accept.acceptable_offers(offers)
+        return ctypes[0][0] if ctypes else 'application/json'
 
     def get_content_type(self):
         allowed_types = ("application/json", "application/zip")
