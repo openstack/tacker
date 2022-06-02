@@ -234,4 +234,6 @@ class OAuth2AuthHandle(AuthHandle):
                 self.client_id, self.client_password)
 
     def get_session(self, auth, service_type):
-        return session.Session(auth=auth, verify=False)
+        _session = session.Session(auth=auth, verify=False)
+        return adapter.Adapter(session=_session,
+                               service_type=service_type)

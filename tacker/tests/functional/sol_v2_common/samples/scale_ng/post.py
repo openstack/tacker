@@ -12,7 +12,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-from tacker.tests.functional.sol_v2 import utils
+from tacker.tests.functional.sol_v2_common import utils
 
 utils.delete_network('ft-net0')
 # NOTE: subnet is automatically deleted by network deletion

@@ -25,11 +25,13 @@ from oslo_log import log as logging
 from oslo_utils import uuidutils
 from tempest.lib import base
 
+from tacker.common import utils as common_utils
 from tacker.sol_refactored.common import http_client
 from tacker.sol_refactored.infra_drivers.openstack import heat_utils
+from tacker.sol_refactored.nfvo import glance_utils
 from tacker.sol_refactored import objects
 from tacker.tests.functional.common.fake_server import FakeServerManager
-from tacker.tests.functional.sol_v2 import utils
+from tacker.tests.functional.sol_v2_common import utils
 from tacker.tests import utils as base_utils
 from tacker import version
 
@@ -104,7 +106,8 @@ class BaseSolV2Test(base.BaseTestCase):
         return vim_info
 
     @classmethod
-    def create_vnf_package(cls, sample_path, user_data={}, image_path=None):
+    def create_vnf_package(cls, sample_path, user_data={},
+                           image_path=None, nfvo=False):
         vnfd_id = uuidutils.generate_uuid()
         tmp_dir = tempfile.mkdtemp()
 
@@ -113,37 +116,42 @@ class BaseSolV2Test(base.BaseTestCase):
         zip_file_name = os.path.basename(os.path.abspath(sample_path)) + ".zip"
         zip_file_path = os.path.join(tmp_dir, zip_file_name)
 
-        path = "/vnfpkgm/v1/vnf_packages"
-        req_body = {'userDefinedData': user_data}
-        resp, body = cls.tacker_client.do_request(
-            path, "POST", expected_status=[201], body=req_body)
+        if nfvo:
+            return zip_file_path, vnfd_id
 
-        pkg_id = body['id']
-
-        with open(zip_file_path, 'rb') as fp:
-            path = "/vnfpkgm/v1/vnf_packages/{}/package_content".format(pkg_id)
+        else:
+            path = "/vnfpkgm/v1/vnf_packages"
+            req_body = {'userDefinedData': user_data}
             resp, body = cls.tacker_client.do_request(
-                path, "PUT", body=fp, content_type='application/zip',
-                expected_status=[202])
+                path, "POST", expected_status=[201], body=req_body)
 
-        # wait for onboard
-        timeout = VNF_PACKAGE_UPLOAD_TIMEOUT
-        start_time = int(time.time())
-        path = "/vnfpkgm/v1/vnf_packages/{}".format(pkg_id)
-        while True:
-            resp, body = cls.tacker_client.do_request(
-                path, "GET", expected_status=[200])
-            if body['onboardingState'] == "ONBOARDED":
-                break
+            pkg_id = body['id']
 
-            if ((int(time.time()) - start_time) > timeout):
-                raise Exception("Failed to onboard vnf package")
+            with open(zip_file_path, 'rb') as fp:
+                path = "/vnfpkgm/v1/vnf_packages/{}/package_content".format(
+                    pkg_id)
+                resp, body = cls.tacker_client.do_request(
+                    path, "PUT", body=fp, content_type='application/zip',
+                    expected_status=[202])
 
-            time.sleep(5)
+            # wait for onboard
+            timeout = VNF_PACKAGE_UPLOAD_TIMEOUT
+            start_time = int(time.time())
+            path = "/vnfpkgm/v1/vnf_packages/{}".format(pkg_id)
+            while True:
+                resp, body = cls.tacker_client.do_request(
+                    path, "GET", expected_status=[200])
+                if body['onboardingState'] == "ONBOARDED":
+                    break
 
-        shutil.rmtree(tmp_dir)
+                if ((int(time.time()) - start_time) > timeout):
+                    raise Exception("Failed to onboard vnf package")
 
-        return pkg_id, vnfd_id
+                time.sleep(5)
+
+            shutil.rmtree(tmp_dir)
+
+            return pkg_id, vnfd_id
 
     @classmethod
     def delete_vnf_package(cls, pkg_id):
@@ -283,6 +291,66 @@ class BaseSolV2Test(base.BaseTestCase):
             if server_name == server['name']:
                 server_details = server
         return server_details
+
+    def get_zone_list(self):
+        path = "/os-services"
+        resp, resp_body = self.nova_client.do_request(path, "GET")
+
+        zone_name_list = [zone.get("zone") for zone in
+                          resp_body.get('services')
+                          if zone.get("binary") == 'nova-compute']
+        return zone_name_list
+
+    def glance_create_image(
+            self, vim_info, filename, sw_data, inst_id, num_vdu=1):
+        min_disk = 0
+        if 'min_disk' in sw_data:
+            min_disk = common_utils.MemoryUnit.convert_unit_size_to_num(
+                sw_data['min_disk'], 'GB')
+
+        min_ram = 0
+        if 'min_ram' in sw_data:
+            min_ram = common_utils.MemoryUnit.convert_unit_size_to_num(
+                sw_data['min_ram'], 'MB')
+
+        # NOTE: use tag to find to delete images when terminate vnf instance.
+        create_args = {
+            'min_disk': min_disk,
+            'min_ram': min_ram,
+            'disk_format': sw_data.get('disk_format'),
+            'container_format': sw_data.get('container_format'),
+            'filename': filename,
+            'visibility': 'private',
+            'tags': [inst_id]
+        }
+        vim = objects.VimConnectionInfo(
+            vimId=vim_info.get("vimId"),
+            vimType=vim_info.get("vimType"),
+            interfaceInfo=vim_info.get("interfaceInfo"),
+            accessInfo=vim_info.get("accessInfo")
+        )
+        glance_client = glance_utils.GlanceClient(vim)
+        if num_vdu == 1:
+            image = glance_client.create_image(
+                sw_data['VDU2-VirtualStorage']['name'], **create_args)
+            return image.id
+
+        image_1 = glance_client.create_image(
+            sw_data['VDU1-VirtualStorage']['name'], **create_args)
+        image_2 = glance_client.create_image(
+            sw_data['VDU2-VirtualStorage']['name'], **create_args)
+        return image_1.id, image_2.id
+
+    def glance_delete_image(self, vim_info, image_ids):
+        vim = objects.VimConnectionInfo(
+            vimId=vim_info.get("vimId"),
+            vimType=vim_info.get("vimType"),
+            interfaceInfo=vim_info.get("interfaceInfo"),
+            accessInfo=vim_info.get("accessInfo")
+        )
+        glance_client = glance_utils.GlanceClient(vim)
+        for image_id in image_ids:
+            glance_client.delete_image(image_id)
 
     def create_vnf_instance(self, req_body):
         path = "/vnflcm/v2/vnf_instances"
