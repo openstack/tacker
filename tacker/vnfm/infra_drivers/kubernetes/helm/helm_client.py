@@ -25,6 +25,7 @@ from tacker.common import cmd_executer
 from tacker.extensions import vnfm
 
 LOG = logging.getLogger(__name__)
+HELM_CMD_INTERVAL = 30
 HELM_CMD_TIMEOUT = 30
 HELM_INSTALL_TIMEOUT = 120
 HELM_UPGRADE_TIMEOUT = 120
@@ -64,7 +65,7 @@ class HelmClient():
                     LOG.error(error_message)
                     raise vnfm.HelmClientOtherError(
                         error_message=error_message)
-                time.sleep(30)
+                time.sleep(HELM_CMD_INTERVAL)
         if result.get_return_code():
             self.close_session()
             err = result.get_stderr()

@@ -19,6 +19,7 @@ from unittest.mock import patch
 
 import ddt
 import iso8601
+from oslo_config import cfg
 from oslo_utils import uuidutils
 import yaml
 
@@ -149,6 +150,10 @@ class TestVNFMPluginMonitor(db_base.SqlTestCase):
 @ddt.ddt
 class TestVNFMPlugin(db_base.SqlTestCase):
     def setUp(self):
+        # NOTE(h-asahina): set timer to 0 to reduce test time.
+        cfg.CONF.set_override('boot_wait', 0, 'tacker')
+        self.addClassCleanup(cfg.CONF.clear_override, 'boot_wait', 'tacker')
+
         super(TestVNFMPlugin, self).setUp()
         self.addCleanup(mock.patch.stopall)
         self.context = context.get_admin_context()

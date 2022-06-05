@@ -85,7 +85,7 @@ class TestKubernetesHelm(base.TestCase):
         super(TestKubernetesHelm, self).setUp()
         self.kubernetes = kubernetes_driver.Kubernetes()
         self.kubernetes.STACK_RETRIES = 1
-        self.kubernetes.STACK_RETRY_WAIT = 5
+        self.kubernetes.STACK_RETRY_WAIT = 0
         self.k8s_client_dict = fakes.fake_k8s_client_dict()
         self.context = context.get_admin_context()
         self.vnf_instance = fd_utils.get_vnf_instance_object()
@@ -96,6 +96,11 @@ class TestKubernetesHelm(base.TestCase):
         self._mock_transport()
         self.helm_client = helm_client.HelmClient('127.0.0.1', 'user', 'pass')
         self.helm_client.commander = FakeCommander()
+        mock.patch('tacker.vnfm.infra_drivers.kubernetes'
+                   '.helm.helm_client.HELM_CMD_INTERVAL', 0).start()
+        mock.patch('tacker.vnfm.infra_drivers.kubernetes'
+                   '.helm.helm_client.TRANSPORT_WAIT', 0).start()
+        self.addClassCleanup(mock.patch.stopall)
 
     def _mock_remote_command_executor(self):
         self.commander = mock.Mock(wraps=FakeRemoteCommandExecutor())

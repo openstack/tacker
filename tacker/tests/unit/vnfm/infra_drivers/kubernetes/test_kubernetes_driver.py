@@ -49,7 +49,7 @@ class TestKubernetes(base.TestCase):
         super(TestKubernetes, self).setUp()
         self.kubernetes = kubernetes_driver.Kubernetes()
         self.kubernetes.STACK_RETRIES = 1
-        self.kubernetes.STACK_RETRY_WAIT = 5
+        self.kubernetes.STACK_RETRY_WAIT = 0
         self.k8s_client_dict = fakes.fake_k8s_client_dict()
         self.context = context.get_admin_context()
         self.vnf_instance = fd_utils.get_vnf_instance_object()

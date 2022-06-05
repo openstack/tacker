@@ -104,6 +104,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.body_data = self._create_body_data()
         self.vnf_lcm_opoccs = self._create_vnf_lcm_opoccs()
         self.vnfd_pkg_data = self._create_vnfd_pkg_data()
+        cfg.CONF.set_override('retry_wait', 0, group='vnf_lcm')
+        self.addCleanup(cfg.CONF.clear_override, 'retry_wait', group='vnf_lcm')
 
     def _mock_vnfm_plugin(self):
         self.vnfm_plugin = mock.Mock(wraps=FakeVNFMPlugin())
@@ -3260,7 +3262,6 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                        'vnf_lcm_subscriptions_get')
     def test_send_notification_timeout(self, mock_subscriptions_get,
             mock_vnf_by_id):
-        cfg.CONF.set_override('retry_wait', 0, group='vnf_lcm')
         self.requests_mock.register_uri(
             'POST',
             "https://localhost/callback",
@@ -3280,7 +3281,6 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
         # return value when timeout for POST method is 0
         self.assertEqual(result, 0)
-        cfg.CONF.clear_override('retry_wait', group='vnf_lcm')
 
     def test_get_notification(self):
         cfg.CONF.set_override('test_callback_uri', True,
@@ -3360,7 +3360,6 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
     def test_get_notification_retry(self):
         cfg.CONF.set_override('test_callback_uri', True, group='vnf_lcm')
-        cfg.CONF.set_override('retry_wait', 0, group='vnf_lcm')
         self.requests_mock.register_uri('GET',
             "https://localhost/callback",
             headers={
@@ -3386,11 +3385,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(3, req_count)
         cfg.CONF.set_override('test_callback_uri', False,
                               group='vnf_lcm')
-        cfg.CONF.clear_override('retry_wait', group='vnf_lcm')
 
     def test_get_notification_timeout(self):
         cfg.CONF.set_override('test_callback_uri', True, group='vnf_lcm')
-        cfg.CONF.set_override('retry_wait', 0, group='vnf_lcm')
         self.requests_mock.register_uri(
             'GET',
             "https://localhost/callback",
@@ -3415,7 +3412,6 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(3, req_count)
         cfg.CONF.set_override('test_callback_uri', False,
                               group='vnf_lcm')
-        cfg.CONF.clear_override('retry_wait', group='vnf_lcm')
 
     @mock.patch.object(conductor_server, 'revert_update_lcm')
     @mock.patch.object(t_context.get_admin_context().session, "add")
