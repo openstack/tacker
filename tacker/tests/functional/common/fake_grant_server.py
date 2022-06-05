@@ -34,6 +34,7 @@ from oslo_utils import uuidutils
 from tackerclient.v1_0 import client as tacker_client
 import yaml
 
+from tacker.common.utils import str_to_bool
 from tacker.tests import constants
 from tacker.tests.functional.sol_separated_nfvo.vnflcm.fake_grant import Grant
 from tacker.tests.functional.sol_separated_nfvo_v2 import fake_grant_v2
@@ -98,7 +99,7 @@ class GrantServer:
             project_name=vim_params['project_name'],
             user_domain_name=vim_params['user_domain_name'],
             project_domain_name=vim_params['project_domain_name'])
-        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        verify = str_to_bool(vim_params.pop('cert_verify', 'False'))
         auth_ses = session.Session(auth=auth, verify=verify)
         return auth_ses
 
@@ -119,7 +120,7 @@ class GrantServer:
             project_name=vim_params['project_name'],
             user_domain_name=vim_params['user_domain_name'],
             project_domain_name=vim_params['project_domain_name'])
-        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        verify = str_to_bool(vim_params.pop('cert_verify', 'False'))
         auth_ses = session.Session(auth=auth, verify=verify)
         return nova_client.Client(constants.NOVA_CLIENT_VERSION,
                                   session=auth_ses)

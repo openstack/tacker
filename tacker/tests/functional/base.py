@@ -30,6 +30,7 @@ from oslo_serialization import jsonutils
 from tempest.lib import base
 
 from tacker.common import clients
+from tacker.common import utils
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.utils import read_file
@@ -121,7 +122,7 @@ class BaseTackerTest(base.BaseTestCase):
             project_name=vim_params['project_name'],
             user_domain_name=vim_params['user_domain_name'],
             project_domain_name=vim_params['project_domain_name'])
-        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        verify = utils.str_to_bool(vim_params.pop('cert_verify', 'False'))
         auth_ses = session.Session(auth=auth, verify=verify)
         return auth_ses
 
@@ -146,7 +147,7 @@ class BaseTackerTest(base.BaseTestCase):
             project_name=vim_params['project_name'],
             user_domain_name=vim_params['user_domain_name'],
             project_domain_name=vim_params['project_domain_name'])
-        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        verify = utils.str_to_bool(vim_params.pop('cert_verify', 'False'))
         auth_ses = session.Session(auth=auth, verify=verify)
         return nova_client.Client(constants.NOVA_CLIENT_VERSION,
                                   session=auth_ses)
@@ -160,7 +161,7 @@ class BaseTackerTest(base.BaseTestCase):
             project_name=vim_params['project_name'],
             user_domain_name=vim_params['user_domain_name'],
             project_domain_name=vim_params['project_domain_name'])
-        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        verify = utils.str_to_bool(vim_params.pop('cert_verify', 'False'))
         auth_ses = session.Session(auth=auth, verify=verify)
         return neutron_client.Client(session=auth_ses)
 
@@ -197,7 +198,7 @@ class BaseTackerTest(base.BaseTestCase):
             project_name=vim_params['project_name'],
             user_domain_name=vim_params['user_domain_name'],
             project_domain_name=vim_params['project_domain_name'])
-        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        verify = utils.str_to_bool(vim_params.pop('cert_verify', 'False'))
         auth_ses = session.Session(auth=auth, verify=verify)
         return glance_client.Client(session=auth_ses)
 
@@ -217,7 +218,7 @@ class BaseTackerTest(base.BaseTestCase):
             project_name=vim_params['project_name'],
             user_domain_name=vim_params['user_domain_name'],
             project_domain_name=vim_params['project_domain_name'])
-        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        verify = utils.str_to_bool(vim_params.pop('cert_verify', 'False'))
         auth_ses = session.Session(auth=auth, verify=verify)
         return cinder_client.Client(constants.CINDER_CLIENT_VERSION,
                                     session=auth_ses)

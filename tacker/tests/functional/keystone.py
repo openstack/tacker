@@ -23,6 +23,8 @@ from keystoneclient import client
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from tacker.common import utils
+
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -52,7 +54,7 @@ class Keystone(object):
         return ses.get_endpoint(service_type, region_name)
 
     def initialize_client(self, **kwargs):
-        verify = 'True' == kwargs.pop('cert_verify', 'False')
+        verify = utils.str_to_bool(kwargs.pop('cert_verify', 'False'))
         auth_plugin = v3.Password(**kwargs)
         ses = self.get_session(auth_plugin=auth_plugin, verify=verify)
 

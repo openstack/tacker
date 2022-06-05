@@ -23,6 +23,8 @@ from keystoneauth1 import session
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from tacker.common import utils
+
 
 DEFAULT_IDENTITY_VERSION = "v3"
 LOG = logging.getLogger(__name__)
@@ -52,7 +54,7 @@ class Keystone(object):
         return ses.get_endpoint(service_type, region_name)
 
     def initialize_client(self, **kwargs):
-        verify = 'True' == kwargs.pop('cert_verify', 'True')
+        verify = utils.str_to_bool(kwargs.pop('cert_verify', 'True'))
         if 'token' in kwargs:
             auth_plugin = identity.v3.Token(**kwargs)
         else:

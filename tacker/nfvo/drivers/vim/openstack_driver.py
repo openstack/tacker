@@ -28,6 +28,7 @@ from oslo_log import log as logging
 
 from tacker._i18n import _
 from tacker.common import log
+from tacker.common import utils
 from tacker import context as t_context
 from tacker.extensions import nfvo
 from tacker.keymgr import API as KEYMGR_API
@@ -118,7 +119,8 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         Initialize keystoneclient with provided authentication attributes.
         """
-        verify = 'True' == vim_obj['auth_cred'].get('cert_verify', 'True')
+        verify = utils.str_to_bool(vim_obj['auth_cred']
+                                   .get('cert_verify', 'True'))
         auth_url = vim_obj['auth_url']
         NfvoPlugin.validate_keystone_auth_url(
             auth_url=auth_url,
@@ -301,7 +303,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         :param client_type: openstack client to initialize
         :return: initialized client
         """
-        verify = 'True' == vim_obj.get('cert_verify', 'True')
+        verify = utils.str_to_bool(vim_obj.get('cert_verify', 'True'))
         auth_url = vim_obj['auth_url']
         NfvoPlugin.validate_keystone_auth_url(
             auth_url=auth_url,
@@ -802,7 +804,7 @@ class NeutronClient(object):
 
     def __init__(self, auth_attr):
         auth_cred = auth_attr.copy()
-        verify = 'True' == auth_cred.pop('cert_verify', 'True') or False
+        verify = utils.str_to_bool(auth_cred.pop('cert_verify', 'True'))
         auth = identity.Password(**auth_cred)
         sess = session.Session(auth=auth, verify=verify)
         self.client = neutron_client.Client(session=sess)
