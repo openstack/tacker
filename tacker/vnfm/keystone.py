@@ -17,10 +17,9 @@
 import os
 
 from cryptography import fernet
-from keystoneauth1 import exceptions
+from keystoneauth1 import adapter
 from keystoneauth1 import identity
 from keystoneauth1 import session
-from keystoneclient import client
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -37,17 +36,17 @@ class Keystone(object):
     instance such as version, session and client
     """
 
-    def get_version(self, base_url=None, verify=True):
-        try:
-            keystone_client = client.Client(auth_url=base_url,
-                                            verify=verify)
-        except exceptions.ConnectionError:
-            raise
-        return keystone_client.version
+    def get_version(self, base_url=None, verify=False):
+        # TODO(h-asahina): Maybe it's better to add error handling here. In
+        # that case, defiining common exceptions for this module would be also
+        # better.
+        sess = session.Session()
+        return sess.get(base_url, authenticated=False, verify=verify)
 
     def get_session(self, auth_plugin, verify):
-        ses = session.Session(auth=auth_plugin, verify=verify)
-        return ses
+        sess = session.Session(auth=auth_plugin, verify=verify)
+        return adapter.Adapter(session=sess,
+                               service_type='identity')
 
     def get_endpoint(self, ses, service_type, region_name=None):
         return ses.get_endpoint(service_type, region_name)
@@ -58,14 +57,7 @@ class Keystone(object):
             auth_plugin = identity.v3.Token(**kwargs)
         else:
             auth_plugin = identity.v3.Password(**kwargs)
-        ses = self.get_session(auth_plugin=auth_plugin, verify=verify)
-        # note: Using `interface` may be an appropriate way to control
-        # the keystone endpoint, e.g., client.Client(DEFAULT_IDENTITY_VERSION,
-        # session=ses, interface=interface), but it requires the modification
-        # in the DB schema. Thus, use `endpoint_override` for now.
-        cli = client.Client(DEFAULT_IDENTITY_VERSION, session=ses,
-                            endpoint_override=auth_plugin.auth_url)
-        return cli
+        return self.get_session(auth_plugin=auth_plugin, verify=verify)
 
     @staticmethod
     def create_key_dir(path):

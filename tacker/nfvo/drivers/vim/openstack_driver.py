@@ -120,13 +120,13 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         """
         verify = 'True' == vim_obj['auth_cred'].get('cert_verify', 'True')
         auth_url = vim_obj['auth_url']
-        keystone_version = NfvoPlugin.validate_keystone_auth_url(
+        NfvoPlugin.validate_keystone_auth_url(
             auth_url=auth_url,
             verify=verify)
-        auth_cred = self._get_auth_creds(vim_obj, keystone_version)
+        auth_cred = self._get_auth_creds(vim_obj)
         return self._initialize_keystone(auth_cred)
 
-    def _get_auth_creds(self, vim_obj, keystone_version):
+    def _get_auth_creds(self, vim_obj):
         auth_cred = vim_obj['auth_cred']
         vim_project = vim_obj['vim_project']
         auth_cred['project_id'] = vim_project.get('id')
@@ -134,9 +134,8 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         auth_cred['project_domain_name'] = vim_project.get(
             'project_domain_name')
         auth_cred['auth_url'] = vim_obj['auth_url']
-        if keystone_version not in auth_cred['auth_url']:
-            auth_cred['auth_url'] = auth_cred['auth_url'] + '/' + \
-                keystone_version
+        if 'v3' not in auth_cred['auth_url']:
+            auth_cred['auth_url'] = f'{auth_cred["auth_url"]}/v3'
         return auth_cred
 
     def _get_auth_plugin(self, **kwargs):
@@ -145,13 +144,12 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         return auth_plugin
 
     def _initialize_keystone(self, auth):
-        ks_client = self.keystone.initialize_client(**auth)
-        return ks_client
+        return self.keystone.initialize_client(**auth)
 
     def _find_regions(self, ks_client):
-        region_info = ks_client.regions.list()
-        region_list = [region.id for region in region_info]
-        return region_list
+        # TODO(h-asahina): implement this method into KeystoneClient module
+        resp = ks_client.get('/v3/regions')
+        return [region['id'] for region in resp.json().get('regions', [])]
 
     def discover_placement_attr(self, vim_obj, ks_client):
         """Fetch VIM placement information
@@ -159,11 +157,11 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         Attributes can include regions, AZ.
         """
         try:
-            regions_list = self._find_regions(ks_client)
+            regions = self._find_regions(ks_client)
         except (exceptions.Unauthorized, exceptions.BadRequest) as e:
             LOG.warning("Authorization failed for user")
             raise nfvo.VimUnauthorizedException(message=e.message)
-        vim_obj['placement_attr'] = {'regions': regions_list}
+        vim_obj['placement_attr'] = {'regions': regions}
         return vim_obj
 
     @log.log
@@ -305,12 +303,12 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         :param client_type: openstack client to initialize
         :return: initialized client
         """
-        verify = 'True' == vim_obj.get('cert_verify', 'True') or False
+        verify = 'True' == vim_obj.get('cert_verify', 'True')
         auth_url = vim_obj['auth_url']
-        keystone_version = NfvoPlugin.validate_keystone_auth_url(
+        NfvoPlugin.validate_keystone_auth_url(
             auth_url=auth_url,
             verify=verify)
-        auth_cred = self._get_auth_creds(vim_obj, keystone_version)
+        auth_cred = self._get_auth_creds(vim_obj)
         auth_plugin = self._get_auth_plugin(**auth_cred)
         sess = session.Session(auth=auth_plugin)
         return client_type(session=sess)
