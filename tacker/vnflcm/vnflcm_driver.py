@@ -552,6 +552,11 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 except Exception as e:
                     LOG.error('Invalid format operationParams')
                     raise exceptions.InvalidInput(str(e))
+            # NOTE(fengyi): Please be careful not to modify the parameters
+            # in kwargs, because MgmtDriver will depend on the
+            # parameters here, you can add parameters, but do not
+            # modify the original, unless you know that your
+            # modification has no effect on other MgmtDrivers.
             kwargs = {"old_vnf_package_path": old_vnf_package_path,
                       "configmap_secret_paths": cm_secret_paths}
 
@@ -625,6 +630,12 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             # passed from conductor to vnflcm_driver, thus we put Null
             # value to grant_reqeust temporary.
             # This part will be updated in next release.
+            #
+            # NOTE(fengyi): Please be careful not to modify the parameters
+            # in kwargs, because MgmtDriver will depend on the parameters
+            # here, you can add parameters, but do not modify the original,
+            # unless you know that your modification has no effect on
+            # other MgmtDrivers.
             kwargs = {'vnf': copy.deepcopy(vnf_dict)}
             self._mgmt_manager.invoke(
                 self._load_vnf_interface(
@@ -656,6 +667,12 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             # passed from conductor to vnflcm_driver, thus we put Null
             # value to grant and grant_reqeust temporary.
             # This part will be updated in next release.
+            #
+            # NOTE(fengyi): Please be careful not to modify the parameters
+            # in kwargs, because MgmtDriver will depend on the
+            # parameters here, you can add parameters, but do not
+            # modify the original, unless you know that your
+            # modification has no effect on other MgmtDrivers.
             kwargs = {'vnf': copy.deepcopy(vnf_dict)}
             self._mgmt_manager.invoke(
                 self._load_vnf_interface(
@@ -933,6 +950,12 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             # passed from conductor to vnflcm_driver, thus we put Null
             # value to grant and grant_reqeust temporary.
             # This part will be updated in next release.
+            #
+            # NOTE(fengyi): Please be careful not to modify the parameters
+            # in kwargs, because MgmtDriver will depend on the
+            # parameters here, you can add parameters, but do not
+            # modify the original, unless you know that your
+            # modification has no effect on other MgmtDrivers.
             kwargs = {'vnf': copy.deepcopy(vnf_dict)}
             self._mgmt_manager.invoke(
                 self._load_vnf_interface(
@@ -983,8 +1006,13 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 # This part will be updated in next release.
                 if len(scale_id_list) != 0 or \
                         vim_connection_info.vim_type == 'kubernetes':
+                    # NOTE(fengyi): Please be careful not to modify the
+                    # parameters in kwargs, because MgmtDriver will depend
+                    # on the parameters here, you can add parameters, but
+                    # do not modify the original, unless you know that your
+                    # modification has no effect on other MgmtDrivers.
                     kwargs = {'scale_name_list': scale_name_list,
-                              'scale_stack_id': scale_id_list,
+                              'scale_out_id_list': scale_id_list,
                               'vnf': copy.deepcopy(vnf_info)}
                     self._mgmt_manager.invoke(
                         self._load_vnf_interface(
@@ -1052,7 +1080,12 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 # This part will be updated in next release.
                 if len(id_list) != 0 or \
                         vim_connection_info.vim_type == 'kubernetes':
-                    kwargs = {'scale_stack_id': id_list,
+                    # NOTE(fengyi): Please be careful not to modify the
+                    # parameters in kwargs, because MgmtDriver will depend
+                    # on the parameters here, you can add parameters, but
+                    # do not modify the original, unless you know that your
+                    # modification has no effect on other MgmtDrivers.
+                    kwargs = {'scale_out_id_list': id_list,
                               'vnf': copy.deepcopy(vnf_info)}
                     self._mgmt_manager.invoke(
                         self._load_vnf_interface(
@@ -1595,6 +1628,11 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     vnf_instance.instantiated_vnf_info.flavour_id)
                 vnf_info['action'] = 'in'
                 if len(scale_id_list) != 0:
+                    # NOTE(fengyi): Please be careful not to modify the
+                    # parameters in kwargs, because MgmtDriver will depend
+                    # on the parameters here, you can add parameters, but
+                    # do not modify the original, unless you know that your
+                    # modification has no effect on other MgmtDrivers.
                     kwargs = {'scale_name_list': scale_name_list}
                     # TODO(LiangLu): grant_request here is planned to pass
                     # as a parameter, however due to grant_request are not

@@ -17,7 +17,7 @@
 # key
 KEY_ACTION = 'action'
 KEY_KWARGS = 'kwargs'
-KEY_SCALE = 'scale_stack_id'
+KEY_SCALE = 'scale_out_id_list'
 
 # ACTION type
 ACTION_CREATE_VNF = 'create_vnf'

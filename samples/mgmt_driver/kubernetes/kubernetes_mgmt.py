@@ -136,7 +136,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                     return []
                 raise exceptions.MgmtDriverRemoteCommandError(err_info=err)
         elif type == 'check_node':
-            err = result.get_stderr()
+            err = result.get_stderr()[0].replace('\n', '')
             if result.get_return_code() == 0:
                 pass
             elif (result.get_return_code() != 0 and
@@ -477,12 +477,13 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                     user=user, password=password, host=host,
                     timeout=K8S_INSTALL_TIMEOUT)
                 return commander
-            except paramiko.SSHException as e:
+            except (exceptions.NotAuthorized, paramiko.SSHException,
+                    paramiko.ssh_exception.NoValidConnectionsError) as e:
                 LOG.debug(e)
                 retry -= 1
                 if retry == 0:
                     LOG.error(e)
-                    raise paramiko.SSHException()
+                    raise exceptions.MgmtDriverOtherError(error_message=e)
                 time.sleep(SERVER_WAIT_COMPLETE_TIME)
 
     def _init_commander(self, user, password, host, retry=4):
@@ -735,9 +736,8 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         user = vm_dict.get('ssh', {}).get('username')
         password = vm_dict.get('ssh', {}).get('password')
         host = vm_dict.get('ssh', {}).get('ipaddr')
-        commander = cmd_executer.RemoteCommandExecutor(
-            user=user, password=password,
-            host=host, timeout=K8S_CMD_TIMEOUT)
+        commander = self._init_commander_and_send_install_scripts(
+            user, password, host)
         ssh_command = f"kubectl get node | grep {master_name}"
         result = self._execute_command(commander, ssh_command,
                                        K8S_CMD_TIMEOUT, 'check_node', 0)

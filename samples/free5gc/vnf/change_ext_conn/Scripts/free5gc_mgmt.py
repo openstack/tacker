@@ -899,3 +899,13 @@ class Free5gcMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                     commander.close_session()
                 else:
                     pass
+
+    @log.log
+    def modify_information_start(self, context, vnf_instance,
+                                 modify_vnf_request, **kwargs):
+        pass
+
+    @log.log
+    def modify_information_end(self, context, vnf_instance,
+                               modify_vnf_request, **kwargs):
+        pass
