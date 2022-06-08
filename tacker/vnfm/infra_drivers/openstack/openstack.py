@@ -1737,6 +1737,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             region_name=access_info.get('region'))
 
         if scale_vnf_request.type == 'SCALE_OUT':
+            storage_dict = {}
             grp = heatclient.resource_get(
                 inst_vnf_info.instance_id,
                 scale_vnf_request.aspect_id)
@@ -1784,9 +1785,9 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                 if not volumes_attached:
                                     volumes_attached = []
                                 for vol in volumes_attached:
-                                    vnfc_resource_info.\
-                                        storage_resource_ids.\
-                                        append(vol.get('id'))
+                                    if vol.get('id'):
+                                        storage_dict[vol['id']] = \
+                                            vnfc_resource_info.id
                                 vnfc_rscs.append(vnfc_resource_info)
                 if len(vnfc_rscs) == 0:
                     continue
@@ -1901,6 +1902,15 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                     storage_resource = resource
                                 inst_vnf_info.virtual_storage_resource_info.\
                                     append(virtual_storage_resource_info)
+                                vnfc_id = storage_dict.\
+                                    get(rsc.physical_resource_id)
+                                if not vnfc_id:
+                                    continue
+                                for vnfc_rsc in vnfc_rscs:
+                                    if vnfc_rsc.id == vnfc_id:
+                                        vnfc_rsc.storage_resource_ids.append(
+                                            virtual_storage_resource_info.id)
+                                        break
                 inst_vnf_info.vnfc_resource_info.extend(vnfc_rscs)
         if scale_vnf_request.type == 'SCALE_IN':
             resurce_list = heatclient.resource_get_list(

@@ -3587,3 +3587,4 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertNotEqual(uuidsentinel.storage_id,
             vnf_instance.instantiated_vnf_info.
             virtual_storage_resource_info[0].id)
+        self.assertEqual(uuidsentinel.storage_id, v_s_resource_info.id)
