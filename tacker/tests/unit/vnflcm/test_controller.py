@@ -596,6 +596,7 @@ class TestController(base.TestCase):
                 status='INACTIVE')
 
         body = {"flavourId": "simple"}
+        body.update({"additionalParams": {"foo_number": 12}})
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
