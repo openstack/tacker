@@ -168,22 +168,18 @@ class VnfLcmWithMultiTenant(base.BaseVnfLcmMultiTenantTest):
             - Show Subscription
               - User A only gets information about Subscription A.
               - User B only gets information about Subscription B.
+              - User A fails to get information about Subscription B.
+              - User B fails to get information about Subscription A.
             - List Subscription
               - User A gets subscription list and confirms only
                 Subscription A is output.
               - User B gets subscription list and confirms only
                 Subscription B is output.
             - Delete Subscription
-              - User A deletes Subscription A.
-              - User B deletes Subscription B.
-        TODO(manpreetk): Only positive test cases are validated in
-        Y-release.
-        Negative test cases
               - User A fails to delete Subscription B.
               - User B fails to delete Subscription A.
-        Validation of negative test cases would require design changes
-        in Fake NFVO server, which could be implemented in the upcoming
-        cycle.
+              - User A deletes Subscription A.
+              - User B deletes Subscription B.
         """
         # Create subscription
         # User A registers Subscription A.
@@ -229,6 +225,16 @@ class VnfLcmWithMultiTenant(base.BaseVnfLcmMultiTenantTest):
             subscription_id_t2, self.tacker_client_t2)
         self.assert_subscription_show(resp_t2, resp_body_show_t2)
 
+        # User A fails to get information for Subscription B
+        resp_tx1, resp_body_show_tx1 = self._wait_show_subscription(
+            subscription_id_t2, self.tacker_client_t1)
+        self.assertEqual(404, resp_tx1.status_code)
+
+        # User B fails to get information for Subscription A
+        resp_tx2, resp_body_show_tx2 = self._wait_show_subscription(
+            subscription_id_t1, self.tacker_client_t2)
+        self.assertEqual(404, resp_tx2.status_code)
+
         # List Subscription
         # User A gets subscription list
         resp, _ = self._list_subscription(self.tacker_client_t1)
@@ -260,6 +266,16 @@ class VnfLcmWithMultiTenant(base.BaseVnfLcmMultiTenantTest):
         self.assertEqual(1, len(subscription_body_t2))
 
         # Delete subscription
+        # User A fails to delete Subscription B
+        resp, _ = self._delete_subscription(subscription_id_t2,
+            self.tacker_client_t1)
+        self.assertEqual(404, resp.status_code)
+
+        # User B fails to delete Subscription A
+        resp, _ = self._delete_subscription(subscription_id_t1,
+            self.tacker_client_t2)
+        self.assertEqual(404, resp.status_code)
+
         # User A deletes Subscription A
         self.addCleanup(self._delete_subscription,
             subscription_id_t1, self.tacker_client_t1)
