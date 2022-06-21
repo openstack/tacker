@@ -20,9 +20,6 @@ resources:
           net5: { get_resource: internalVL3 }
           affinity: { get_resource: nfvi_node_affinity }
 
-# NOTE: Resource definition of OS::Heat::ScalingPolicy is omitted.
-# It is not used by v2 scale implementation unlike v1.
-
   VDU2:
     type: OS::Nova::Server
     properties:

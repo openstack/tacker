@@ -709,9 +709,8 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         nested_stacks = self.heat_client.get_resources(stack_name)
         count_after_scaleout = len(nested_stacks)
         # check nested stack was created
-        # 9 was the sum of 1 VM, 1 Volume, 1 VolumeType, 5 CPs,
-        # 1 stack(VDU1.yaml)
-        self.assertEqual(9, count_after_scaleout - count_before_scaleout)
+        # 8 was the sum of 1 VM, 1 Volume, 5 CPs, 1 stack(VDU1.yaml)
+        self.assertEqual(8, count_after_scaleout - count_before_scaleout)
 
         # 15. Scale in operation
         self._set_grant_response(
@@ -753,9 +752,8 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         nested_stacks = self.heat_client.get_resources(stack_name)
         count_after_scalein = len(nested_stacks)
         # check nested stack was deleted
-        # 9 was the sum of 1 VM, 1 Volume, 1 VolumeType, 5 CPs,
-        # 1 stack(VDU1.yaml)
-        self.assertEqual(9, count_after_scaleout - count_after_scalein)
+        # 8 was the sum of 1 VM, 1 Volume, 5 CPs, 1 stack(VDU1.yaml)
+        self.assertEqual(8, count_after_scaleout - count_after_scalein)
 
         # 17. Heal VNF(vnfc)
         self._set_grant_response(

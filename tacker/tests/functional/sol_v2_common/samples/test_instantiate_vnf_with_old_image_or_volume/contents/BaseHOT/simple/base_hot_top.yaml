@@ -19,21 +19,6 @@ resources:
           image: { get_param: [ nfv, VDU, VDU1, vcImageId] }
           net1: { get_param: [ nfv, CP, VDU1_CP1, network] }
 
-  VDU1_scale_out:
-    type: OS::Heat::ScalingPolicy
-    properties:
-      scaling_adjustment: 1
-      auto_scaling_group_id:
-        get_resource: VDU1_scale
-      adjustment_type: change_in_capacity
-  VDU1_scale_in:
-    type: OS::Heat::ScalingPolicy
-    properties:
-      scaling_adjustment: -1
-      auto_scaling_group_id:
-        get_resource: VDU1_scale
-      adjustment_type: change_in_capacity
-
   VDU2:
     type: OS::Nova::Server
     properties:
