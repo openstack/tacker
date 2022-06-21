@@ -1724,12 +1724,15 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 vnf_lcm_op_occ.changed_ext_connectivity = (
                     changed_ext_connectivity)
                 vnf_lcm_op_occ.save()
-                notification_data['affectedVnfcs'] = \
-                    affected_resources.get('affectedVnfcs', [])
-                notification_data['affectedVirtualLinks'] = \
-                    affected_resources.get('affectedVirtualLinks', [])
-                notification_data['affectedVirtualStorages'] = \
-                    affected_resources.get('affectedVirtualStorages', [])
+                if affected_resources.get('affectedVnfcs'):
+                    notification_data['affectedVnfcs'] = \
+                        affected_resources.get('affectedVnfcs')
+                if affected_resources.get('affectedVirtualLinks'):
+                    notification_data['affectedVirtualLinks'] = \
+                        affected_resources.get('affectedVirtualLinks')
+                if affected_resources.get('affectedVirtualStorages'):
+                    notification_data['affectedVirtualStorages'] = \
+                        affected_resources.get('affectedVirtualStorages')
                 notification_data['notificationStatus'] = \
                     fields.LcmOccsNotificationStatus.RESULT
                 notification_data['changedExtConnectivity'] = \
