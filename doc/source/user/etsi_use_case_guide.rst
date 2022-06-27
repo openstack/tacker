@@ -126,6 +126,14 @@ Ansible Driver
 
    mgmt_driver_for_ansible_driver_usage_guide
 
+Container Update
+~~~~~~~~~~~~~~~~
+
+.. toctree::
+   :maxdepth: 1
+
+   mgmt_driver_for_container_update
+
 Sample Usage
 ^^^^^^^^^^^^
 
