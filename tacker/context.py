@@ -103,7 +103,6 @@ class ContextBase(oslo_context.RequestContext):
 
     def to_policy_values(self):
         values = super(ContextBase, self).to_policy_values()
-        values['tenant_id'] = self.project_id
         values['is_admin'] = self.is_admin
 
         # NOTE(jamielennox): These are almost certainly unused and non-standard
@@ -150,7 +149,7 @@ class ContextBase(oslo_context.RequestContext):
             authorized and False if not authorized and fatal is False.
         """
         if target is None:
-            target = {'tenant_id': self.tenant_id,
+            target = {'project_id': self.tenant_id,
                       'user_id': self.user_id}
         try:
             return policy.authorize(self, action, target)
