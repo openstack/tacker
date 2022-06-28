@@ -355,13 +355,15 @@ def convert_camelcase_to_snakecase(request_data):
     This method takes care only keys in a `dict` or `dicts in a list`.
     For simple list with string items, the elements which are actual values
     are ignored during conversion.
+    And property value is not converted when key is `additionalParams`.
 
     :param request_data: dict with keys or list with items, in camelCase.
     """
     if isinstance(request_data, dict):
         new_dict = {}
         for key, property_value in request_data.items():
-            property_value = convert_camelcase_to_snakecase(property_value)
+            if key != "additionalParams":
+                property_value = convert_camelcase_to_snakecase(property_value)
             underscore_joined = convert_string_to_snakecase(key)
             new_dict[underscore_joined] = property_value
         return new_dict
@@ -386,6 +388,7 @@ def convert_snakecase_to_camelcase(request_data):
     Also, Snake case is a notation method that uses underscores to connect
     words. For that reason, if the initial word of the key in dict starts
     with '_', this function ignore to convert the key.
+    And property value is not converted when key is `additional_params`.
 
     :param request_data: dict with keys or list with items, in snake_case.
 
@@ -419,7 +422,8 @@ def convert_snakecase_to_camelcase(request_data):
     if isinstance(request_data, dict):
         new_dict = {}
         for key, property_value in request_data.items():
-            property_value = convert_snakecase_to_camelcase(property_value)
+            if key != "additional_params":
+                property_value = convert_snakecase_to_camelcase(property_value)
             camelcase = key if key.startswith('_') else convert(key)
             new_dict[camelcase] = property_value
         return new_dict
