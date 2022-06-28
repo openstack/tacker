@@ -25,9 +25,18 @@ CLI Reference for VNF Lifecycle Management
 
 .. note::
     In Yoga release, version 2 vnflcm APIs of instantiate vnf,
-    terminate vnf, scale vnf, heal vnf, change external vnf connectivity,
-    rollback, retry and fail only support VNF, not CNF. CNF will be supported
-    by version 2 vnflcm APIs in future releases.
+    terminate vnf, change current vnf package and fail both support VNF and
+    CNF. Version 2 vnflcm APIs of scale vnf, heal vnf and
+    change external vnf connectivity only support VNF, not CNF. Rollback and
+    retry with all lifecycle only support VNF, rollback change current vnf
+    package support CNF, and retry change current vnf package and retry
+    terminate support CNF. Other operation by version 2 vnflcm APIs
+    will support CNF in future releases.
+
+.. note::
+   Change current vnf package only support version 2 vnflcm APIs. In Yoga
+   release, it only support ``RollingUpdate`` upgrade type, ``BlueGreen``
+   will be supported in future releases.
 
 1. Create VNF Identifier
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -420,7 +429,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm change-ext-conn VNF_INSTANCE_ID \
+  $ openstack vnflcm change_ext_conn VNF_INSTANCE_ID \
        ./sample_param_file.json
 
 
@@ -435,20 +444,53 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm change-ext-conn --help
-  usage: openstack vnflcm change-ext-conn [-h] <vnf-instance> <param-file>
+  $ openstack vnflcm change_ext_conn --help
+  usage: openstack vnflcm change_ext_conn [-h] <vnf-instance> <param-file>
 
   Change External VNF Connectivity
 
   positional arguments:
     <vnf-instance>  VNF instance ID to Change External VNF Connectivity
-    <param-file>    Specify change-ext-conn request parameters in a json file.
+    <param-file>    Specify change_ext_conn request parameters in a json file.
 
   optional arguments:
     -h, --help      show this help message and exit
 
 
-11. Rollback VNF Lifecycle Management Operation
+11. Change Current VNF Package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm change-vnfpkg VNF_INSTANCE_ID \
+       ./sample_param_file.json --os-tacker-api-version 2
+
+
+Result:
+
+.. code-block:: console
+
+  Change Current VNF Package for VNF Instance 725f625e-f6b7-4bcd-b1b7-7184039fde45 has been accepted.
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm change-vnfpkg --os-tacker-api-version 2 --help
+  usage: openstack vnflcm change-vnfpkg [-h] <vnf-instance> <param-file>
+
+  Change Current VNF Package
+
+  positional arguments:
+    <vnf-instance>  VNF instance ID to Change Current VNF Package
+    <param-file>    Specify change-vnfpkg request parameters in a json file.
+
+  optional arguments:
+    -h, --help            show this help message and exit.
+
+
+12. Rollback VNF Lifecycle Management Operation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
@@ -479,7 +521,7 @@ Help:
     -h, --help           show this help message and exit
 
 
-12. Retry
+13. Retry
 ^^^^^^^^^
 
 The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
@@ -512,7 +554,7 @@ Help:
     -h, --help           show this help message and exit
 
 
-13. Fail
+14. Fail
 ^^^^^^^^
 
 The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
@@ -640,7 +682,7 @@ Help:
     -h, --help           show this help message and exit
 
 
-14. List LCM Operation Occurrences
+15. List LCM Operation Occurrences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
@@ -687,7 +729,7 @@ Help:
                           tacker server will throw bad request error
 
 
-15. Show LCM Operation Occurrence
+16. Show LCM Operation Occurrence
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
@@ -751,7 +793,7 @@ Help:
     -h, --help           show this help message and exit
 
 
-16. Show VNF LCM API versions
+17. Show VNF LCM API versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console

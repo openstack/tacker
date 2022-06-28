@@ -280,6 +280,13 @@ Rollback VNF LCM Operation
      - ROLLED_BACK or FAILED_TEMP
      -
      - X
+   * - Change Current VNF Package
+     - | VNFM reverts changes of current vnf package for VNF instances.
+       | e.g. Tacker reverts stack parameters and executes Heat stack-update.
+     - FAILED_TEMP
+     - ROLLED_BACK or FAILED_TEMP
+     -
+     - X
 
 .. note::
     | In some cases, Rollback of Change external connectivity cannot recover
@@ -288,6 +295,8 @@ Rollback VNF LCM Operation
       the IP address and Port Id will be recovered by its rollback operation.
     | Otherwise, dynamic IP address and Port Id are not recovered
       by rollback operation.
+    | Currently, Instantiate VNF with kubernetes vim does not support rollback
+      operation when using v2 API.
 
 This manual describes the following operations as use cases for
 rollback operations.
@@ -389,6 +398,12 @@ Fail VNF LCM Operation
      - FAILED_TEMP
      - FAILED
      - X
+     - X
+   * - Change Current VNF Package
+     - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
+     - FAILED_TEMP
+     - FAILED
+     -
      - X
 
 This manual describes the following operations as use cases for
@@ -492,6 +507,16 @@ Retry VNF LCM Operation
      - COMPLETED or FAILED_TEMP
      - X
      - X
+   * - Change Current VNF Package
+     - VNFM retries a Change Current VNF Package operation.
+     - FAILED_TEMP
+     - COMPLETED or FAILED_TEMP
+     -
+     - X
+
+.. note::
+    | Currently, Instantiate VNF with kubernetes vim does not support retry
+      operation when using v2 API.
 
 This manual describes the following operations as use cases for
 retry operations.

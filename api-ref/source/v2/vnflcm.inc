@@ -782,6 +782,47 @@ Request Example
 .. literalinclude:: samples/vnflcm/change-ext-conn-request.json
    :language: javascript
 
+Change Current VNF Package (v2)
+===============================
+
+.. rest_method::  POST /vnflcm/v2/vnf_instances/{vnfInstanceId}/change_vnfpkg
+
+This task resource represents the "Change Current VNF Package" operation.
+The client can use this resource to change current vnf package of a VNF instance.
+
+The POST method changes current vnf package of a VNF instance.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 202
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 401
+  - 404
+  - 406
+  - 409
+  - 422
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnflcm.yaml
+
+  - vnfInstanceId: vnf_instance_id
+  - vnfdId: change_vnfpkg_vnfd_id
+  - additionalParams: change_current_vnf_package_additional_params
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnflcm/change-vnfpkg-request.json
+   :language: javascript
+
 Show VNF LCM operation occurrence (v2)
 ======================================
 

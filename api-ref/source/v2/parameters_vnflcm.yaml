@@ -287,6 +287,13 @@ cause:
   in: body
   required: false
   type: string
+change_current_vnf_package_additional_params:
+  description: |
+    Additional parameters passed by the NFVO as input to a process,
+    specific to the VNF of which upgrade_type is selected.
+  in: body
+  required: false
+  type: key value pairs
 change_ext_vnf_connectivity_additional_params:
   description: |
     Additional parameters passed by the NFVO as input to the process,
@@ -301,6 +308,13 @@ change_ext_vnf_connectivity_ext_virtual_links:
   in: body
   required: true
   type: array
+change_vnfpkg_vnfd_id:
+  description: |
+    Identifier of VNFD which defines the destination
+    VNF Package for the change.
+  in: body
+  required: true
+  type: string
 changed_ext_connectivity:
   description: |
     Information about changed external connectivity,
@@ -938,9 +952,13 @@ operation_params:
 
     HEAL: HealVnfRequest
 
+    CHANGE_EXT_CONN: ChangeExtVnfConnectivityRequest
+
     TERMINATE: TerminateVnfRequest
 
     MODIFY_INFO: VnfInfoModificationRequest
+
+    CHANGE_VNFPKG: ChangeCurrentVnfPkgRequest
 
     This attribute shall be present if this data type is returned
     in a response to reading an individual resource, and may

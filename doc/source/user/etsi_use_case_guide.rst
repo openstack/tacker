@@ -86,6 +86,25 @@ VM
 
    etsi_vnf_change_external_vnf_connectivity
 
+Change Current VNF Package
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+VM
+~~
+
+.. toctree::
+   :maxdepth: 1
+
+   etsi_vnf_change_current_vnf_package
+
+Container
+~~~~~~~~~
+
+.. toctree::
+   :maxdepth: 1
+
+   etsi_cnf_change_current_vnf_package
+
 Error Handling
 ^^^^^^^^^^^^^^
 
