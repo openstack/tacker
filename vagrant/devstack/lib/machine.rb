@@ -9,7 +9,7 @@ class Machines < Array
     def initialize(
       hostname="controller", provider="virtualbox", box="ubuntu/focal64",
       nof_cpus=2, mem_size=4, disk_size=10,
-      private_ips=["192.168.33.11"], public_ips=nil, ssh_forward_x11=false,
+      private_ips=["192.168.56.11"], public_ips=nil, ssh_forward_x11=false,
       fwd_port_list=nil)
       @hostname = hostname
       @provider = provider

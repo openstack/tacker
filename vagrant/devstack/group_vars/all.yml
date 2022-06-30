@@ -10,8 +10,8 @@ service_password: devstack
 service_token: devstack
 
 # compute nodes
-service_host: 192.168.33.11
-floating_range: 192.168.33.128/25
+service_host: 192.168.56.11
+floating_range: 192.168.56.128/25
 fixed_range: 10.4.128.0/20
 
 # 2. Configure optional tools on controller node

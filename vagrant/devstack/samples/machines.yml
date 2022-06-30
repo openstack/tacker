@@ -9,13 +9,11 @@ machines:
     # Supported boxes are `ubuntu/focal64`, `centos/stream8`.
     box: ubuntu/focal64
     nof_cpus: 4
-    mem_size: 8
+    mem_size: 12
     disk_size: 50
     private_ips:
-      - 192.168.33.11
+      - 192.168.56.11
     public_ips:
     fwd_port_list:
       - guest: 80
-        host: 10080
-      - guest: 6081
-        host: 6081
+        host: 20080
