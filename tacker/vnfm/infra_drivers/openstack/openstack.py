@@ -53,6 +53,7 @@ from tacker.vnfm.infra_drivers.openstack import update_template as ut
 from tacker.vnfm.infra_drivers.openstack import vdu
 from tacker.vnfm.infra_drivers import scale_driver
 from tacker.vnfm.lcm_user_data.constants import USER_DATA_TIMEOUT
+from tacker.vnfm.lcm_user_data import utils as user_data_utils
 
 
 eventlet.monkey_patch(time=True)
@@ -1544,7 +1545,22 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         stack_update_param = {
             'existing': True}
 
+        vnfd_dict = vnflcm_utils.get_vnfd_dict(
+            context, vnf_instance.vnfd_id,
+            vnf_instance.instantiated_vnf_info.flavour_id)
+
         if base_hot_dict:
+            tmp_base_hot_dict = {'heat_template': base_hot_dict}
+            desired_capacity_dict = user_data_utils.get_desired_capacity_dict(
+                tmp_base_hot_dict, vnfd_dict, inst_vnf_info)
+
+            for key, value in base_hot_dict.get('resources').items():
+                for an, dc in desired_capacity_dict.items():
+                    if key == an and value.get('properties').get(
+                            'desired_capacity'):
+                        value['properties']['desired_capacity'] = dc
+                        base_hot_dict['resources'][key] = value
+
             stack_update_param['template'] = \
                 self._format_base_hot(base_hot_dict)
 
