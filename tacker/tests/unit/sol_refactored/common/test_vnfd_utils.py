@@ -12,8 +12,13 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
 import os
+import shutil
+import tempfile
+
+from oslo_log import log as logging
+from oslo_utils import uuidutils
+import yaml
 
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnfd_utils
@@ -22,6 +27,7 @@ from tacker.tests import base
 
 SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
 SAMPLE_FLAVOUR_ID = "simple"
+LOG = logging.getLogger()
 
 
 class TestVnfd(base.BaseTestCase):
@@ -179,3 +185,126 @@ class TestVnfd(base.BaseTestCase):
         result = self.vnfd_1.get_max_scale_level(SAMPLE_FLAVOUR_ID,
             'VDU1_scale')
         self.assertEqual(2, result)
+
+    def test_init_from_zip_file(self):
+        vnfd_id = uuidutils.generate_uuid()
+        tmp_dir = tempfile.mkdtemp()
+        cur_dir = os.path.dirname(__file__)
+        sample_path = os.path.join(cur_dir, "../samples/sample1")
+        shutil.make_archive(tmp_dir, 'zip', root_dir=sample_path)
+
+        vnfd = vnfd_utils.Vnfd(vnfd_id)
+        with open(f'{tmp_dir}.zip', "rb") as f:
+            content = f.read()
+        vnfd.init_from_zip_file(content)
+        with open(f'{sample_path}/TOSCA-Metadata/TOSCA.meta', 'r') as f:
+            tosca_content = yaml.safe_load(f.read())
+        with open(f'{sample_path}/Definitions/'
+                  f'ut_sample1_df_simple.yaml', 'r') as f:
+            definition_content = yaml.safe_load(f.read())
+        self.assertEqual(tosca_content, vnfd.tosca_meta)
+        self.assertEqual(True, vnfd.csar_dir_is_tmp)
+        self.assertEqual(
+            definition_content, vnfd.definitions['ut_sample1_df_simple.yaml'])
+
+    def test_init_vnfd_error(self):
+        vnfd_id = uuidutils.generate_uuid()
+        vnfd = vnfd_utils.Vnfd(vnfd_id)
+        vnfd.csar_dir = 'test'
+        self.assertRaises(sol_ex.InvalidVnfdFormat, vnfd.init_vnfd)
+
+    def test_delete(self):
+        os.mkdir("/tmp/test")
+        vnfd_id = uuidutils.generate_uuid()
+        vnfd = vnfd_utils.Vnfd(vnfd_id)
+        vnfd.csar_dir_is_tmp = True
+        vnfd.csar_dir = "/tmp/test"
+        vnfd.delete()
+        result = os.path.isdir(vnfd.csar_dir)
+        self.assertEqual(False, result)
+
+    def test_get_vnfd_properties(self):
+        vnfd_id = uuidutils.generate_uuid()
+        vnfd = vnfd_utils.Vnfd(vnfd_id)
+        expected_result = {
+            'vnfConfigurableProperties': {},
+            'extensions': {},
+            'metadata': {}
+        }
+        result = vnfd.get_vnfd_properties()
+        self.assertEqual(expected_result, result)
+
+    def test_get_base_hot_abnormal(self):
+        flavour_id = 'simple'
+        vnfd_id = uuidutils.generate_uuid()
+        vnfd = vnfd_utils.Vnfd(vnfd_id)
+        vnfd.csar_dir = '/test/'
+        base_hot_result = vnfd.get_base_hot(flavour_id)
+        self.assertEqual({}, base_hot_result)
+
+        flavour_id = 'error'
+        base_hot_result = self.vnfd_1.get_base_hot(flavour_id)
+        self.assertIsNotNone(base_hot_result['template'])
+
+    def test_remove_tmp_csar_dir(self):
+        os.mkdir("/tmp/test")
+        vnfd_id = uuidutils.generate_uuid()
+        vnfd = vnfd_utils.Vnfd(vnfd_id)
+        tmp_dir = "/tmp/test"
+        vnfd.remove_tmp_csar_dir(tmp_dir)
+        result = os.path.isdir(tmp_dir)
+        self.assertEqual(False, result)
+
+    def test_remove_tmp_csar_dir_error(self):
+        vnfd_id = uuidutils.generate_uuid()
+        vnfd = vnfd_utils.Vnfd(vnfd_id)
+        log_name = "tacker.sol_refactored.common.vnfd_utils"
+        with self.assertLogs(logger=log_name, level=logging.DEBUG) as cm:
+            vnfd.remove_tmp_csar_dir('test')
+
+        msg = (f'ERROR:{log_name}:rmtree test failed')
+        self.assertIn(f'{msg}', cm.output[0].split('\n')[0])
+
+    def test_get_policy_values_by_type(self):
+        result = self.vnfd_1.get_policy_values_by_type(
+            'error', 'tosca.policies.nfv.AntiAffinityRule')
+        self.assertEqual('nfvi_node', result[0]['properties']['scope'])
+
+    def test_get_vdu_num_none(self):
+        result = self.vnfd_1.get_vdu_num('error', 'VDU1', 'default')
+        self.assertEqual(0, result)
+
+    def test_get_affinity_targets(self):
+        result = self.vnfd_1.get_affinity_targets('error')
+        expected_result = [(['VDU3'], 'zone')]
+        self.assertEqual(expected_result, result)
+
+    def test_get_interface_script_abnormal(self):
+        result = self.vnfd_1.get_interface_script('error', 'instantiate_start')
+        self.assertEqual(None, result)
+
+        result = self.vnfd_1.get_interface_script('error', 'instantiate_end')
+        self.assertEqual(None, result)
+
+        self.vnfd_1.get_interface_script('error', 'instantiate_end')
+        self.assertRaises(
+            sol_ex.SolHttpError422, self.vnfd_1.get_interface_script,
+            'error', 'terminate_start')
+
+    def test_get_scale_vdu_and_num_abnormal(self):
+        result = self.vnfd_1.get_scale_vdu_and_num('error', 'VDU1_scale')
+        self.assertEqual({}, result)
+
+    def test_get_scale_info_from_inst_level_abnormal(self):
+        result = self.vnfd_1.get_scale_info_from_inst_level('error', 'default')
+        self.assertEqual({}, result)
+
+    def test_get_max_scale_level_abnormal(self):
+        result = self.vnfd_1.get_max_scale_level('error', 'VDU1_scale')
+        self.assertEqual(0, result)
+
+    def test_get_vnf_artifact_files_manifest(self):
+        result = self.vnfd_1.get_vnf_artifact_files()
+        expected_result = ['Scripts/install.sh',
+                           'Files/kubernetes/deployment.yaml']
+        self.assertEqual(expected_result, result)

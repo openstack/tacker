@@ -12,7 +12,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+import copy
 from datetime import datetime
 import os
 from unittest import mock
@@ -20,9 +20,13 @@ from unittest import mock
 from oslo_utils import uuidutils
 
 from tacker import context
+from tacker.sol_refactored.common import exceptions as sol_ex
+from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
+from tacker.sol_refactored.common import vim_utils
 from tacker.sol_refactored.common import vnfd_utils
 from tacker.sol_refactored.conductor import vnflcm_driver_v2
 from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes
+from tacker.sol_refactored.infra_drivers.openstack import openstack
 from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
@@ -187,7 +191,8 @@ _ext_vl_3 = {
     ]
 }
 _change_ext_conn_req_example = {
-    "extVirtualLinks": [_ext_vl_3]
+    "extVirtualLinks": [_ext_vl_3],
+    "additionalParams": {"key": "value"}
 }
 
 # instantiatedVnfInfo example for terminate/scale grant test
@@ -198,6 +203,7 @@ _change_ext_conn_req_example = {
 _inst_info_example = {
     "flavourId": "simple",
     "vnfState": "STARTED",
+    'scaleStatus': [],
     "extCpInfo": [
         {
             "id": "90561570-264c-4472-b84f-1fff98513475",
@@ -397,6 +403,11 @@ _inst_info_example = {
                     "id": "39a7d895-3b19-4330-b6ec-ae3557ea9c01",
                     "cpdId": "VDU2_CP5",
                     "vnfLinkPortId": "4dd7cadd-b9a1-484f-b2f2-1ff50ef0d90f"
+                },
+                {
+                    "id": "315a938a-b194-0c20-6398-ba92cce39c18",
+                    "cpdId": "VDU2_CP6",
+                    "vnfLinkPortId": "6dafdda1-db6c-492e-6dc2-4e5d323d6f98"
                 }
             ]
         },
@@ -474,6 +485,15 @@ _inst_info_example = {
                     "vnfLinkPortId": "e0f98917-70ff-4f79-8747-9d7fc22827a4"
                 }
             ]
+        },
+        {
+            "id": "vnfc_res_no_cp_info",
+            "vduId": "VDU1",
+            "computeResource": {
+                # "vimConnectionId": omitted
+                "resourceId": "res_id_VDU1_3",
+                "vimLevelResourceType": "OS::Nova::Server"
+            }
         }
     ],
     "vnfVirtualLinkResourceInfo": [
@@ -754,7 +774,7 @@ _change_cnf_vnfpkg_example = {
             "Files/new_kubernetes/new_deployment.yaml"
         ],
         "vdu_params": [{
-            "vduId": "VDU1"
+            "vdu_id": "VDU1"
         }]
     }
 }
@@ -946,12 +966,12 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             'LINKPORT': {'VDU1_CP1': [], 'VDU1_CP2': [], 'VDU1_CP3': [],
                          'VDU1_CP4': [], 'VDU1_CP5': [],
                          'VDU2_CP1': [], 'VDU2_CP2': [], 'VDU2_CP3': [],
-                         'VDU2_CP4': [], 'VDU2_CP5': []},
+                         'VDU2_CP4': [], 'VDU2_CP5': [], 'VDU2_CP6': []},
             'VL': {'internalVL2': [], 'internalVL3': []}
         }
         expected_res_ids = {
             'COMPUTE': {
-                'VDU1': ['res_id_VDU1_1', 'res_id_VDU1_2'],
+                'VDU1': ['res_id_VDU1_1', 'res_id_VDU1_2', 'res_id_VDU1_3'],
                 'VDU2': ['res_id_VDU2']
             },
             'STORAGE': {
@@ -968,7 +988,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
                 'VDU2_CP2': ['res_id_VDU2_CP2'],
                 'VDU2_CP3': ['res_id_VDU2_CP3'],
                 'VDU2_CP4': ['res_id_VDU2_CP4'],
-                'VDU2_CP5': ['res_id_VDU2_CP5']
+                'VDU2_CP5': ['res_id_VDU2_CP5'],
+                'VDU2_CP6': []
             },
             'VL': {
                 'internalVL2': ['res_id_internalVL2'],
@@ -976,8 +997,9 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             }
         }
         for res in rm_reses:
-            check_reses[res['type']][res['resourceTemplateId']].append(
-                res['resource']['resourceId'])
+            if res.get('resource', {}).get('resourceId'):
+                check_reses[res['type']][res['resourceTemplateId']].append(
+                    res['resource']['resourceId'])
 
         for key, value in check_reses.items():
             for name, ids in value.items():
@@ -1723,7 +1745,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         }
         expected_res_ids = {
             'COMPUTE': {
-                'VDU1': ['res_id_VDU1_1', 'res_id_VDU1_2'],
+                'VDU1': ['res_id_VDU1_1', 'res_id_VDU1_2', 'res_id_VDU1_3'],
                 'VDU2': ['res_id_VDU2']
             }
         }
@@ -1782,12 +1804,12 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             'LINKPORT': {'VDU1_CP1': [], 'VDU1_CP2': [], 'VDU1_CP3': [],
                          'VDU1_CP4': [], 'VDU1_CP5': [],
                          'VDU2_CP1': [], 'VDU2_CP2': [], 'VDU2_CP3': [],
-                         'VDU2_CP4': [], 'VDU2_CP5': []},
+                         'VDU2_CP4': [], 'VDU2_CP5': [], 'VDU2_CP6': []},
             'VL': {'internalVL2': [], 'internalVL3': []}
         }
         expected_res_ids = {
             'COMPUTE': {
-                'VDU1': ['res_id_VDU1_1', 'res_id_VDU1_2'],
+                'VDU1': ['res_id_VDU1_1', 'res_id_VDU1_2', 'res_id_VDU1_3'],
                 'VDU2': ['res_id_VDU2']
             },
             'STORAGE': {
@@ -1804,7 +1826,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
                 'VDU2_CP2': ['res_id_VDU2_CP2'],
                 'VDU2_CP3': ['res_id_VDU2_CP3'],
                 'VDU2_CP4': ['res_id_VDU2_CP4'],
-                'VDU2_CP5': ['res_id_VDU2_CP5']
+                'VDU2_CP5': ['res_id_VDU2_CP5'],
+                'VDU2_CP6': []
             },
             'VL': {
                 'internalVL2': ['res_id_internalVL2'],
@@ -1812,8 +1835,9 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             }
         }
         for res in rm_reses:
-            check_reses[res['type']][res['resourceTemplateId']].append(
-                res['resource']['resourceId'])
+            if res.get('resource', {}).get('resourceId'):
+                check_reses[res['type']][res['resourceTemplateId']].append(
+                    res['resource']['resourceId'])
 
         for key, value in check_reses.items():
             for name, ids in value.items():
@@ -1827,13 +1851,14 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             'LINKPORT': {'VDU1_CP1': [], 'VDU1_CP2': [], 'VDU1_CP3': [],
                          'VDU1_CP4': [], 'VDU1_CP5': [],
                          'VDU2_CP1': [], 'VDU2_CP2': [], 'VDU2_CP3': [],
-                         'VDU2_CP4': [], 'VDU2_CP5': []},
+                         'VDU2_CP4': [], 'VDU2_CP5': [], 'VDU2_CP6': []},
             'VL': {'internalVL2': [], 'internalVL3': []}
         }
         for res in add_reses:
-            check_reses[res['type']][res['resourceTemplateId']].append(
-                res['id'])
-
+            if res.get('id'):
+                check_reses[res['type']][res['resourceTemplateId']].append(
+                    res['id'])
+        expected_res_ids['LINKPORT']['VDU2_CP6'] = ['res_id_VDU2_CP6']
         for key, value in check_reses.items():
             for name, ids in value.items():
                 self.assertEqual(len(expected_res_ids[key][name]), len(ids))
@@ -1897,7 +1922,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         }
         expected_res_ids = {
             'COMPUTE': {
-                'VDU1': ['res_id_VDU1_1', 'res_id_VDU1_2'],
+                'VDU1': ['res_id_VDU1_1', 'res_id_VDU1_2', 'res_id_VDU1_3'],
                 'VDU2': ['res_id_VDU2']
             },
             'STORAGE': {
@@ -2099,3 +2124,1155 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         mock_vnfd.return_value = self.vnfd_2
         self.driver.change_vnfpkg_process(
             self.context, lcmocc, inst, grant_req, grant, self.vnfd_3)
+
+        # no lcm-kubernetes-def-files in req
+        del req.additionalParams['lcm-kubernetes-def-files']
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_VNFPKG,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.driver.change_vnfpkg_process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_3)
+
+    def test_post_grant(self):
+        # prepare
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+        self.driver.post_grant(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+        self.assertEqual(_inst_req_example['vimConnectionInfo']['vim1'],
+                         inst.vimConnectionInfo['vim1'].to_dict())
+
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'instantiate_process')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'terminate_process')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'modify_info_process')
+    @mock.patch.object(lcmocc_utils, 'update_lcmocc')
+    def test_process(self, mock_update_lcmocc, mock_modify,
+                     mock_terminate, mock_process):
+        # instantiate
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+        self.driver.process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        # other operation
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_example)
+        inst.instantiatedVnfInfo = inst_info
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.TERMINATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=objects.TerminateVnfRequest(
+                terminationType='FORCEFUL'))
+        self.driver.process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        # no flavour_id
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED'
+        )
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.MODIFY_INFO,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=objects.VnfInfoModificationRequest()
+        )
+        self.driver.process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'instantiate_rollback')
+    def test_rollback(self, mock_inst_rollback):
+        # instantiate
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+        self.driver.rollback(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        # no rollback
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.TERMINATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=objects.TerminateVnfRequest(
+                terminationType='FORCEFUL'))
+        self.assertRaises(
+            sol_ex.RollbackNotSupported, self.driver.rollback,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+    def test_instantiate_grant_error(self):
+        # instantiate
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        req_inst.flavourId = 'test'
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        self.assertRaises(
+            sol_ex.FlavourIdNotFound, self.driver.instantiate_grant,
+            grant_req, req_inst, inst, self.vnfd_1)
+
+    @mock.patch.object(vim_utils, 'get_vim')
+    def test_instantiate_post_grant(self, mock_vim):
+        # instantiate
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED'
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        vim_connection_info = {
+            "vim1": {
+                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                "vimId": uuidutils.generate_uuid(),
+                "interfaceInfo": {"endpoint": "http://localhost/identity/v3"},
+                "accessInfo": {
+                    "username": "nfv_user",
+                    "region": "RegionOne",
+                    "password": "devstack",
+                    "project": "nfv",
+                    "projectDomain": "Default",
+                    "userDomain": "Default"
+                }
+            },
+            "vim2": {
+                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                "vimId": uuidutils.generate_uuid()
+            }
+        }
+        grant = objects.GrantV1(
+            vimConnectionInfo={
+                "vim1": objects.VimConnectionInfo.from_dict(
+                    vim_connection_info['vim1']),
+                "vim2": objects.VimConnectionInfo.from_dict(
+                    vim_connection_info['vim2'])
+            }
+        )
+        mock_vim.return_value = objects.VimConnectionInfo.from_dict(
+            vim_connection_info['vim2'])
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+        self.driver.instantiate_post_grant(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+        self.assertEqual(2, len(inst.vimConnectionInfo.keys()))
+
+    @mock.patch.object(vim_utils, 'get_default_vim')
+    def test_instantiate_post_grant_default(self, mock_vim):
+        # instantiate
+        mock_vim.return_value = objects.VimConnectionInfo.from_dict(
+            _inst_req_example['vimConnectionInfo']['vim1'])
+        expected_result = _inst_req_example[
+            'vimConnectionInfo']['vim1']['vimId']
+        new_inst_req = copy.deepcopy(_inst_req_example)
+        del new_inst_req['vimConnectionInfo']
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            new_inst_req)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED'
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+        self.driver.instantiate_post_grant(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+        self.assertEqual(
+            expected_result, inst.vimConnectionInfo["default"]['vimId'])
+
+    @mock.patch.object(vim_utils, 'get_default_vim')
+    def test_instantiate_post_grant_error(self, mock_vim):
+        # instantiate
+        mock_vim.return_value = None
+        new_inst_req = copy.deepcopy(_inst_req_example)
+        del new_inst_req['vimConnectionInfo']
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            new_inst_req)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED'
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+        self.assertRaises(
+            sol_ex.NoVimConnectionInfo, self.driver.instantiate_post_grant,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+    @mock.patch.object(openstack.Openstack, 'instantiate')
+    @mock.patch.object(kubernetes.Kubernetes, 'instantiate')
+    def test_instantiate_process(self, mock_kubernetes, mock_openstack):
+        # openstack
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+        self.driver.instantiate_process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+        self.assertEqual('INSTANTIATED', inst.instantiationState)
+
+        # kubernetes
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_cnf_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+        self.driver.instantiate_process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_2)
+        self.assertEqual('INSTANTIATED', inst.instantiationState)
+
+        # error
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED',
+            vimConnectionInfo={'vim1': objects.VimConnectionInfo(
+                vimType='error')}
+        )
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+        self.assertRaises(
+            sol_ex.SolException, self.driver.instantiate_process,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+    @mock.patch.object(openstack.Openstack, 'instantiate_rollback')
+    def test_instantiate_rollback(self, mock_openstack):
+        # openstack
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+        self.driver.instantiate_rollback(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+        self.assertEqual('NOT_INSTANTIATED', inst.instantiationState)
+
+        # other type
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED',
+            vimConnectionInfo={'vim1': objects.VimConnectionInfo(
+                vimType='error')}
+        )
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+        self.assertRaises(
+            sol_ex.SolException, self.driver.instantiate_process,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_2)
+
+    @mock.patch.object(openstack.Openstack, 'terminate')
+    @mock.patch.object(kubernetes.Kubernetes, 'terminate')
+    def test_terminate_process(self, mock_kubernetes, mock_openstack):
+        # openstack
+        req_inst = objects.InstantiateVnfRequest.from_dict(_inst_req_example)
+        req = objects.TerminateVnfRequest(terminationType='FORCEFUL')
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _inst_info_example))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.TERMINATE
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.TERMINATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.driver.terminate_process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+        self.assertEqual('NOT_INSTANTIATED', inst.instantiationState)
+        self.assertEqual({}, inst.vimConnectionInfo)
+
+        # kubernetes
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_cnf_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _inst_info_cnf_example))
+        )
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.TERMINATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.driver.terminate_process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_2)
+        self.assertEqual('NOT_INSTANTIATED', inst.instantiationState)
+        self.assertEqual({}, inst.vimConnectionInfo)
+
+        # error
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo={'vim1': objects.VimConnectionInfo(
+                vimType='error')}
+        )
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.TERMINATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.assertRaises(
+            sol_ex.SolException, self.driver.terminate_process,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+    def test_scale_grant(self):
+        req = objects.ScaleVnfRequest(
+            type='SCALE_OUT', aspectId='error', numberOfSteps=1)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _inst_info_example))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.SCALE
+        )
+        self.assertRaises(
+            sol_ex.InvalidScaleAspectId, self.driver.scale_grant,
+            grant_req, req, inst, self.vnfd_1)
+
+        # normal
+        req = objects.ScaleVnfRequest(
+            type='SCALE_OUT', aspectId='VDU1_scale', numberOfSteps=1,
+            additionalParams={"key": "value"})
+        self.driver.scale_grant(grant_req, req, inst, self.vnfd_1)
+        self.assertEqual('value', grant_req.additionalParams['key'])
+
+    @mock.patch.object(openstack.Openstack, 'scale')
+    def test_scale_process(self, mock_openstack):
+        # openstack
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        req = objects.ScaleVnfRequest(
+            type='SCALE_OUT', aspectId='VDU1_scale', numberOfSteps=1)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _inst_info_example))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.SCALE
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.SCALE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.driver.scale_process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        # other type
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo={'vim1': objects.VimConnectionInfo(
+                vimType='error')}
+        )
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.SCALE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.assertRaises(
+            sol_ex.SolException, self.driver.scale_process,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_2)
+
+    @mock.patch.object(openstack.Openstack, 'scale_rollback')
+    def test_scale_rollback(self, mock_openstack):
+        # openstack
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        req = objects.ScaleVnfRequest(
+            type='SCALE_OUT', aspectId='VDU1_scale', numberOfSteps=1)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _inst_info_example))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.SCALE
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.SCALE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.driver.scale_rollback(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        # 'SCALE_IN'
+        req = objects.ScaleVnfRequest(
+            type='SCALE_IN', aspectId='VDU1_scale', numberOfSteps=1)
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.SCALE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.assertRaises(
+            sol_ex.RollbackNotSupported, self.driver.scale_rollback,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        # other type
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo={'vim1': objects.VimConnectionInfo(
+                vimType='error')}
+        )
+        req = objects.ScaleVnfRequest(
+            type='SCALE_OUT', aspectId='VDU1_scale', numberOfSteps=1)
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.SCALE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.assertRaises(
+            sol_ex.SolException, self.driver.scale_rollback,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_2)
+
+    @mock.patch.object(openstack.Openstack, 'heal')
+    def test_heal_process(self, mock_heal):
+        # openstack
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        req = objects.HealVnfRequest()
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _inst_info_example))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.HEAL
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.HEAL,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.driver.heal_process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        # other type
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo={'vim1': objects.VimConnectionInfo(
+                vimType='error')}
+        )
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.HEAL,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.assertRaises(
+            sol_ex.SolException, self.driver.heal_process,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_2)
+
+    @mock.patch.object(openstack.Openstack, 'change_ext_conn')
+    def test_change_ext_conn_process(self, mock_change_ext_conn):
+        # openstack
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        req = objects.ChangeExtVnfConnectivityRequest.from_dict(
+            _change_ext_conn_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _inst_info_example))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_EXT_CONN
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_EXT_CONN,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.driver.change_ext_conn_process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        # other type
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_cnf_req_example)
+        req = objects.ChangeExtVnfConnectivityRequest(
+            vimConnectionInfo=req_inst.vimConnectionInfo)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_EXT_CONN,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.assertRaises(
+            sol_ex.SolException, self.driver.change_ext_conn_process,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_2)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'grant')
+    def test_cnf_change_vnfpkg_grant(self, mock_grant):
+        # prepare
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_cnf_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=CNF_SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            metadata={'lcm-kubernetes-def-files': [
+                'Files/kubernetes/deployment.yaml']}
+        )
+        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+            _inst_info_cnf_example)
+        inst.instantiatedVnfInfo = inst_info
+
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_cnf_vnfpkg_example)
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_VNFPKG
+        )
+        self.driver.change_vnfpkg_grant(grant_req, req, inst, self.vnfd_3)
+        self.assertEqual(2, len(grant_req.addResources))
+        self.assertEqual(2, len(grant_req.removeResources))
+
+    @mock.patch.object(openstack.Openstack, 'change_vnfpkg')
+    def test_change_vnfpkg_process(self, mock_change_vnfpkg):
+        # openstack
+        req_inst = objects.InstantiateVnfRequest.from_dict(_inst_req_example)
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_vnfpkg_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _inst_info_example))
+        )
+        grant_req = objects.GrantRequestV1(
+            dstVnfdId=SAMPLE_VNFD_ID,
+            operation=fields.LcmOperationType.CHANGE_VNFPKG
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_VNFPKG,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.driver.change_vnfpkg_process(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        # error
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo={'vim1': objects.VimConnectionInfo(
+                vimType='error')}
+        )
+        self.assertRaises(
+            sol_ex.SolException, self.driver.change_vnfpkg_process,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+    @mock.patch.object(openstack.Openstack, 'change_ext_conn_rollback')
+    def test_change_ext_conn_rollback(self, mock_change_ext_conn_rollback):
+        # openstack
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        req = objects.ChangeExtVnfConnectivityRequest()
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _inst_info_example))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_EXT_CONN
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_EXT_CONN,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.driver.change_ext_conn_rollback(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        # other type
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_cnf_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+        self.assertRaises(
+            sol_ex.SolException, self.driver.change_ext_conn_rollback,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_2)
+
+    @mock.patch.object(openstack.Openstack, 'change_vnfpkg_rollback')
+    @mock.patch.object(kubernetes.Kubernetes, 'change_vnfpkg_rollback')
+    def test_change_vnfpkg_rollback(self, mock_cnf_change_vnfpkg_rollback,
+                                    mock_change_vnfpkg_rollback):
+        # openstack
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        req = objects.ChangeCurrentVnfPkgRequest()
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _inst_info_example))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_VNFPKG
+        )
+        grant = objects.GrantV1()
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.CHANGE_VNFPKG,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req)
+        self.driver.change_vnfpkg_rollback(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        # kubernetes
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_cnf_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+        self.driver.change_vnfpkg_rollback(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_2)
+
+        # other type
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo={'vim1': objects.VimConnectionInfo(
+                vimType='error')}
+        )
+        self.assertRaises(
+            sol_ex.SolException, self.driver.change_vnfpkg_rollback,
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)

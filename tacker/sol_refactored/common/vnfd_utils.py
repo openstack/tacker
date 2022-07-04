@@ -77,7 +77,10 @@ class Vnfd(object):
 
     def delete(self):
         if self.csar_dir_is_tmp:
-            shutil.rmtree(self.csar_dir)
+            try:
+                shutil.rmtree(self.csar_dir)
+            except Exception:
+                LOG.exception("rmtree %s failed", self.csar_dir)
 
     def get_vnfd_flavour(self, flavour_id):
         if flavour_id in self.vnfd_flavours:
@@ -336,6 +339,8 @@ class Vnfd(object):
 
     def get_interface_script(self, flavour_id, operation):
         vnfd = self.get_vnfd_flavour(flavour_id)
+        if not vnfd:
+            return
         nodes = (vnfd.get('topology_template', {})
                      .get('node_templates', {}))
         for node in nodes.values():

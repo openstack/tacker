@@ -12,8 +12,10 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from unittest import mock
 
 from tacker import context
+from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
@@ -2108,6 +2110,31 @@ _expected_resource_changes_change_vnfpkg = {
     ]
 }
 
+# lcmocc_info_example
+_error = {
+    'status': 1,
+    'detail': 'error'
+}
+_lcmocc_modify_value = {
+    'id': 'test-1',
+    'vnfInstanceId': 'instance-1',
+    'operation': 'MODIFY_INFO',
+    'operationState': 'PROCESSING',
+    'isAutomaticInvocation': False,
+    'startTime': '2021-01-22 13:41:03+00:00'
+}
+_lcmocc_inst_value = {
+    'id': 'test-2',
+    'vnfInstanceId': 'instance-2',
+    'operation': 'INSTANTIATE',
+    'operationState': 'COMPLETED',
+    'isAutomaticInvocation': False,
+    'startTime': '2021-01-23 13:41:03+00:00',
+    'resourceChanges': _expected_resource_changes_instantiate,
+    'changedInfo': _expected_changedInfo
+
+}
+
 
 class TestLcmOpOccUtils(base.BaseTestCase):
 
@@ -2312,3 +2339,149 @@ class TestLcmOpOccUtils(base.BaseTestCase):
         self.assertEqual(
             _expected_resource_changes_change_vnfpkg,
             self._sort_resource_changes(lcmocc['resourceChanges']))
+
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
+    def test_get_lcmocc(self, mock_lcmocc):
+        mock_lcmocc.return_value = objects.VnfLcmOpOccV2(
+            operation='INSTANTIATE')
+        expected_result = objects.VnfLcmOpOccV2(
+            operation='INSTANTIATE')
+
+        result = lcmocc_utils.get_lcmocc(context, 'lcmocc_id')
+        self.assertEqual(expected_result.operation, result.operation)
+
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
+    def test_get_lcmocc_error(self, mock_lcmocc):
+        mock_lcmocc.return_value = None
+        self.assertRaises(
+            sol_ex.VnfLcmOpOccNotFound,
+            lcmocc_utils.get_lcmocc, context, 'lcmocc_id')
+
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_all')
+    def test_get_lcmocc_all(self, mock_lcmocc):
+        mock_lcmocc.return_value = [objects.VnfLcmOpOccV2(
+            operation='INSTANTIATE')]
+        expected_result = [objects.VnfLcmOpOccV2(
+            operation='INSTANTIATE')]
+
+        result = lcmocc_utils.get_lcmocc_all(context)
+        self.assertEqual(expected_result[0].operation, result[0].operation)
+
+    def test_make_lcmocc_links(self):
+        lcmocc = objects.VnfLcmOpOccV2(
+            id='test-1', vnfInstanceId='instance-1', operation='INSTANTIATE')
+        endpoint = 'http://127.0.0.1:9890'
+
+        expected_result = objects.VnfLcmOpOccV2_Links()
+        expected_result.self = objects.Link(
+            href=f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc.id}')
+        expected_result.vnfInstance = objects.Link(
+            href=f'{endpoint}/vnflcm/v2/vnf_instances/{lcmocc.vnfInstanceId}')
+        expected_result.retry = objects.Link(
+            href=f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc.id}/retry')
+        expected_result.rollback = objects.Link(
+            href=f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc.id}/rollback')
+        expected_result.fail = objects.Link(
+            href=f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc.id}/fail')
+
+        result = lcmocc_utils.make_lcmocc_links(lcmocc, endpoint)
+        self.assertEqual(expected_result.self.href, result.self.href)
+        self.assertEqual(expected_result.vnfInstance.href,
+                         result.vnfInstance.href)
+        self.assertEqual(expected_result.retry.href, result.retry.href)
+        self.assertEqual(expected_result.rollback.href, result.rollback.href)
+        self.assertEqual(expected_result.fail.href, result.fail.href)
+
+    def test_make_lcmocc_notif_data(self):
+        subsc_modify = objects.LccnSubscriptionV2(
+            id='sub-1', verbosity='SHORT')
+        subsc_inst = objects.LccnSubscriptionV2(
+            id='sub-1', verbosity='FULL')
+        lcmocc_modify = objects.VnfLcmOpOccV2.from_dict(_lcmocc_modify_value)
+        lcmocc_modify.error = objects.ProblemDetails.from_dict(_error)
+        lcmocc_inst = objects.VnfLcmOpOccV2.from_dict(_lcmocc_inst_value)
+        endpoint = 'http://127.0.0.1:9890'
+
+        # execute modify lcmocc
+        modify_result = lcmocc_utils.make_lcmocc_notif_data(
+            subsc_modify, lcmocc_modify, endpoint)
+        # execute inst lcmocc
+        inst_result = lcmocc_utils.make_lcmocc_notif_data(
+            subsc_inst, lcmocc_inst, endpoint)
+
+        self.assertEqual('START', modify_result.notificationStatus)
+        self.assertEqual('error', modify_result.error.detail)
+        self.assertIsNotNone(inst_result.affectedVnfcs)
+        self.assertIsNotNone(inst_result.changedInfo)
+
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_filter')
+    def test_get_inst_lcmocc(self, mock_value):
+        inst = objects.VnfInstanceV2(id='test-instance')
+        value_1 = {
+            'id': 'test-1',
+            'vnfInstanceId': 'instance-1',
+            'operation': 'INSTANTIATE',
+            'operationState': 'COMPLETED',
+            'startTime': '2021-01-22 13:41:03+00:00'
+        }
+        value_2 = {
+            'id': 'test-2',
+            'vnfInstanceId': 'instance-2',
+            'operation': 'INSTANTIATE',
+            'operationState': 'COMPLETED',
+            'startTime': '2021-01-23 13:41:03+00:00'
+        }
+        mock_value.return_value = [
+            objects.VnfLcmOpOccV2.from_dict(value_1),
+            objects.VnfLcmOpOccV2.from_dict(value_2)
+        ]
+        expected_result = objects.VnfLcmOpOccV2.from_dict(value_2)
+        result = lcmocc_utils.get_inst_lcmocc(context, inst)
+        self.assertEqual(expected_result.id, result.id)
+
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_filter')
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
+    def test_get_grant_req_and_grant(self, mock_grant, mock_grant_reqs):
+        lcmocc_modify = objects.VnfLcmOpOccV2.from_dict(_lcmocc_modify_value)
+        lcmocc_inst = objects.VnfLcmOpOccV2.from_dict(_lcmocc_inst_value)
+
+        # execute modify lcmocc
+        modify_grant_req, modify_grant = lcmocc_utils.get_grant_req_and_grant(
+            context, lcmocc_modify)
+        self.assertIsNone(modify_grant_req)
+        self.assertIsNone(modify_grant)
+
+        # execute inst lcmocc
+        lcmocc_inst.grantId = 'grant-1'
+        mock_grant_reqs.return_value = [objects.GrantRequestV1(
+            vnfInstanceId='inst-1', vnfLcmOpOccId='lcmocc-1',
+            vnfdId='vnfd-1', operation='INSTANTIATE',
+            isAutomaticInvocation=False)]
+        mock_grant.return_value = objects.GrantV1(
+            id='grant-1', vnfInstanceId='inst-1', vnfLcmOpOccId='lcmocc-1')
+        inst_grant_req, inst_grant = lcmocc_utils.get_grant_req_and_grant(
+            context, lcmocc_inst)
+        self.assertEqual('inst-1', inst_grant_req.vnfInstanceId)
+        self.assertEqual('grant-1', inst_grant.id)
+
+    @mock.patch.object(objects.base.TackerPersistentObject,
+                       'get_by_filter')
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
+    def test_get_grant_req_and_grant_error(self, mock_grant_reqs, mock_grant):
+        lcmocc_modify = objects.VnfLcmOpOccV2.from_dict(_lcmocc_modify_value)
+        lcmocc_inst = objects.VnfLcmOpOccV2.from_dict(_lcmocc_inst_value)
+
+        # execute modify lcmocc
+        modify_grant_req, modify_grant = lcmocc_utils.get_grant_req_and_grant(
+            context, lcmocc_modify)
+        self.assertIsNone(modify_grant_req)
+        self.assertIsNone(modify_grant)
+
+        # execute inst lcmocc
+        lcmocc_inst.grantId = 'grant-1'
+        mock_grant_reqs.return_value = None
+        mock_grant.return_value = objects.GrantV1(
+            id='grant-1', vnfInstanceId='inst-1', vnfLcmOpOccId='lcmocc-1')
+        self.assertRaises(
+            sol_ex.GrantRequestOrGrantNotFound,
+            lcmocc_utils.get_grant_req_and_grant, context, lcmocc_inst)

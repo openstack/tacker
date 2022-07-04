@@ -39,7 +39,9 @@ class TestCommontScriptUtils(base.BaseTestCase):
 
         expected_result = {
             'VDU': {
-                'VDU1': {'computeFlavourId': None},
+                'VDU1': {'computeFlavourId': None,
+                         'desired_capacity': None,
+                         'locationConstraints': None},
                 'VirtualStorage': {'vcImageId': None},
                 'VDU2': {'computeFlavourId': None, 'vcImageId': None}
             },
@@ -56,6 +58,9 @@ class TestCommontScriptUtils(base.BaseTestCase):
         }
         result = common_script_utils.init_nfv_dict(top_hot)
         self.assertEqual(expected_result, result)
+        self.assertIsNone(result['CP'].get('VDU1_CP6'))
+        self.assertIsNone(result['CP'].get('VDU1_CP7'))
+        self.assertIsNone(result['CP'].get('VDU1_CP8'))
 
     def test_get_param_flavor(self):
         flavor = 'm1.large'
@@ -72,6 +77,24 @@ class TestCommontScriptUtils(base.BaseTestCase):
             'VDU1', SAMPLE_FLAVOUR_ID,
             self.vnfd_1, grant)
         self.assertEqual(flavor, result)
+
+        # if not exist in grant, get from VNFD
+        result = common_script_utils.get_param_flavor(
+            'VDU2', SAMPLE_FLAVOUR_ID,
+            self.vnfd_1, grant)
+        self.assertEqual('m1.tiny', result)
+
+    def test_get_param_flavor_no_compute_resource_flavours(self):
+        grant = {
+            'vimAssets': {
+            }
+        }
+
+        # if not exist in grant, get from VNFD
+        result = common_script_utils.get_param_flavor(
+            'VDU1', SAMPLE_FLAVOUR_ID,
+            self.vnfd_1, grant)
+        self.assertEqual('m1.tiny', result)
 
         # if not exist in grant, get from VNFD
         result = common_script_utils.get_param_flavor(
@@ -96,6 +119,33 @@ class TestCommontScriptUtils(base.BaseTestCase):
             self.vnfd_1, grant)
         self.assertEqual(image_id, result)
 
+    def test_get_param_image_no_software_images(self):
+        grant = {
+            'vimAssets': {
+            }
+        }
+
+        result = common_script_utils.get_param_image('VDU2', SAMPLE_FLAVOUR_ID,
+            self.vnfd_1, grant)
+        self.assertEqual('VDU2-image', result)
+
+    def test_get_param_image_no_match_image(self):
+        image_id = 'f30e149d-b3c7-497a-8b19-a092bc81e47b'
+        grant = {
+            'vimAssets': {
+                'softwareImages': [
+                    {'vnfdSoftwareImageId': 'VDU3',
+                     'vimSoftwareImageId': image_id},
+                    {'vnfdSoftwareImageId': 'VirtualStorage',
+                     'vimSoftwareImageId': 'image-1.0.0-x86_64-disk'}
+                ]
+            }
+        }
+
+        result = common_script_utils.get_param_image('VDU2', SAMPLE_FLAVOUR_ID,
+            self.vnfd_1, grant)
+        self.assertEqual('VDU2-image', result)
+
     def test_get_param_zone(self):
         grant_req = {
             'addResources': [
@@ -111,6 +161,75 @@ class TestCommontScriptUtils(base.BaseTestCase):
             'addResources': [
                 {'resourceDefinitionId':
                     'dd60c89a-29a2-43bc-8cff-a534515523df',
+                 'zoneId': '717f6ae9-3094-46b6-b070-89ede8337571'}
+            ]
+        }
+
+        result = common_script_utils.get_param_zone('VDU1', grant_req, grant)
+        self.assertEqual('nova', result)
+
+    def test_get_param_zone_no_zones(self):
+        grant_req = {
+            'addResources': [
+                {'id': 'dd60c89a-29a2-43bc-8cff-a534515523df',
+                 'type': 'COMPUTE', 'resourceTemplateId': 'VDU1'}
+            ]
+        }
+        grant = {
+            'addResources': [
+                {'resourceDefinitionId':
+                    'dd60c89a-29a2-43bc-8cff-a534515523df',
+                 'zoneId': '717f6ae9-3094-46b6-b070-89ede8337571'}
+            ]
+        }
+
+        common_script_utils.get_param_zone('VDU1', grant_req, grant)
+
+    def test_get_param_zone_no_add_resources(self):
+        grant_req = {
+            'addResources': [
+                {'id': 'dd60c89a-29a2-43bc-8cff-a534515523df',
+                 'type': 'COMPUTE', 'resourceTemplateId': 'VDU1'}
+            ]
+        }
+        grant = {
+            'zones': [
+                {'id': '717f6ae9-3094-46b6-b070-89ede8337571',
+                 'zoneId': 'nova'}
+            ]
+        }
+
+        common_script_utils.get_param_zone('VDU1', grant_req, grant)
+
+    def test_get_param_zone_no_zone_id(self):
+        grant_req = {
+            'addResources': [
+                {'id': 'dd60c89a-29a2-43bc-8cff-a534515523df',
+                 'type': 'COMPUTE', 'resourceTemplateId': 'VDU1'},
+                {'id': 'e3ac628c-29a4-2878-b4a2-29aa685dcd70',
+                 'type': 'COMPUTE', 'resourceTemplateId': 'VDU1'},
+                {'id': '36628ed5-6821-6f55-8c99-cbab0890fc71',
+                 'type': 'COMPUTE', 'resourceTemplateId': 'VDU2'},
+                {'id': 'eed6860c-e9b2-ef79-5deb-89dee39785ec',
+                 'type': 'COMPUTE', 'resourceTemplateId': 'VDU3'},
+            ]
+        }
+        grant = {
+            'zones': [
+                {'id': '717f6ae9-3094-46b6-b070-89ede8337571',
+                 'zoneId': 'nova'}
+            ],
+            'addResources': [
+                {'resourceDefinitionId': 'eed6860c-e9b2-'
+                                         'ef79-5deb-89dee39785ec'},
+                {'resourceDefinitionId': 'e3ac628c-29a4-'
+                                         '2878-b4a2-29aa685dcd70',
+                 'zoneId': '99171a93-d0b2-d2cd-83c1-b0694a3f771b'},
+                {'resourceDefinitionId': '36628ed5-6821-'
+                                         '6f55-8c99-cbab0890fc71',
+                 'zoneId': '717f6ae9-3094-46b6-b070-89ede8337571'},
+                {'resourceDefinitionId': 'dd60c89a-29a2-'
+                                         '43bc-8cff-a534515523df',
                  'zoneId': '717f6ae9-3094-46b6-b070-89ede8337571'}
             ]
         }
@@ -211,6 +330,81 @@ class TestCommontScriptUtils(base.BaseTestCase):
         }
         expected_result = [{'ip_address': ip_address, 'subnet': subnet_id}]
 
+        result = common_script_utils.get_param_fixed_ips('VDU2_CP2', {}, req)
+        self.assertEqual(expected_result, result)
+
+    def test_get_param_fixed_ips_other_cases(self):
+        ip_address = "10.10.1.101"
+        subnet_id = "9defebca-3e9c-4bd2-9fa0-c4210c56ece6"
+        ext_cp = {
+            "cpdId": "VDU2_CP2",
+            "cpConfig": {
+                "VDU2_CP2_1": {
+                    "cpProtocolData": [
+                        {
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [
+                                    {
+                                        "type": "IPV4",
+                                        "fixedAddresses": [
+                                            ip_address
+                                        ],
+                                        "subnetId": subnet_id
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "VDU2_CP2_2": {
+                },
+                "VDU2_CP2_3": {
+                    "cpProtocolData": [
+                        {
+                            "layerProtocol": "IP_OVER_ETHERNET"
+                        }
+                    ]
+                },
+                "VDU2_CP2_4": {
+                    "cpProtocolData": [
+                        {
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {}
+                        }
+                    ]
+                },
+                "VDU2_CP2_5": {
+                    "cpProtocolData": [
+                        {
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [
+                                    {
+                                        "type": "IPV4"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+
+            }
+        }
+        req = {
+            "extVirtualLinks": [
+                {
+                    "id": "8b49f4b6-1ff9-4a03-99cf-ff445b788436",
+                    "resourceId": "4c54f742-5f1d-4287-bb81-37bf2e6ddc3e",
+                    "extCps": [ext_cp]
+                }
+            ]
+        }
+        expected_result = [{'ip_address': ip_address, 'subnet': subnet_id}]
+
+        # no vls
+        common_script_utils.get_param_fixed_ips('VDU2_CP2', {}, {})
+        # with other cases
         result = common_script_utils.get_param_fixed_ips('VDU2_CP2', {}, req)
         self.assertEqual(expected_result, result)
 

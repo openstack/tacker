@@ -12,23 +12,31 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from unittest import mock
 
+from tacker import context
+from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
+from tacker.sol_refactored import objects
 from tacker.tests import base
 
 
 class TestVnfInstanceUtils(base.BaseTestCase):
+    def setUp(self):
+        super(TestVnfInstanceUtils, self).setUp()
+        objects.register_all()
+        self.context = context.get_admin_context()
 
     def test_json_merge_patch(self):
         # patch is not dict.
-        target = {"key1", "value1"}
+        target = {"key1": "value1"}
         patch = "text"
         result = inst_utils.json_merge_patch(target, patch)
         self.assertEqual(patch, result)
 
         # target is not dict.
         target = "text"
-        patch = {"key1", "value1"}
+        patch = {"key1": "value1"}
         result = inst_utils.json_merge_patch(target, patch)
         self.assertEqual(patch, result)
 
@@ -65,3 +73,24 @@ class TestVnfInstanceUtils(base.BaseTestCase):
         }
         result = inst_utils.json_merge_patch(target, patch)
         self.assertEqual(expected_result, result)
+
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
+    def test_get_inst(self, mock_inst):
+        mock_inst.return_value = objects.VnfInstanceV2(id='inst-1')
+
+        result = inst_utils.get_inst(context, 'inst-1')
+        self.assertEqual('inst-1', result.id)
+
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
+    def test_get_inst_error(self, mock_inst):
+        mock_inst.return_value = None
+        self.assertRaises(
+            sol_ex.VnfInstanceNotFound,
+            inst_utils.get_inst, context, 'inst-1')
+
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_all')
+    def test_get_inst_all(self, mock_inst):
+        mock_inst.return_value = [objects.VnfInstanceV2(id='inst-1')]
+
+        result = inst_utils.get_inst_all(context)
+        self.assertEqual('inst-1', result[0].id)
