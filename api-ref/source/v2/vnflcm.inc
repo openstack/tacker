@@ -244,7 +244,6 @@ Response Codes
   - 404
   - 406
   - 409
-  - 422
 
 Request Parameters
 ------------------
@@ -282,6 +281,7 @@ Response Codes
 
 .. rest_status_code:: error status.yaml
 
+  - 400
   - 401
   - 404
   - 406
@@ -313,6 +313,7 @@ Response Codes
 
 .. rest_status_code:: error status.yaml
 
+  - 400
   - 401
   - 404
   - 406
@@ -620,7 +621,6 @@ Response Codes
   - 404
   - 406
   - 409
-  - 422
 
 Request Parameters
 ------------------
@@ -730,7 +730,6 @@ Response Codes
   - 404
   - 406
   - 409
-  - 422
 
 Request Parameters
 ------------------
@@ -806,7 +805,6 @@ Response Codes
   - 404
   - 406
   - 409
-  - 422
 
 Request Parameters
 ------------------
@@ -840,6 +838,7 @@ Response Codes
 
 .. rest_status_code:: error status.yaml
 
+  - 400
   - 401
   - 404
   - 406
@@ -1127,10 +1126,11 @@ Response Codes
 
 .. rest_status_code:: error status.yaml
 
+  - 400
   - 401
   - 404
+  - 406
   - 409
-  - 422
 
 Request Parameters
 ------------------
@@ -1156,11 +1156,11 @@ Response Codes
 
 .. rest_status_code:: error status.yaml
 
+  - 400
   - 401
   - 404
   - 406
   - 409
-  - 422
 
 Request Parameters
 ------------------
@@ -1300,8 +1300,10 @@ Response Codes
 
 .. rest_status_code:: error status.yaml
 
+  - 400
   - 401
   - 404
+  - 406
   - 409
   - 422
 
@@ -1339,6 +1341,7 @@ Response Codes
 
 .. rest_status_code:: error status.yaml
 
+  - 400
   - 401
   - 406
   - 422
@@ -1416,6 +1419,7 @@ Response Codes
 
 .. rest_status_code:: error status.yaml
 
+  - 400
   - 401
   - 404
   - 406
@@ -1443,6 +1447,7 @@ Response Codes
 
 .. rest_status_code:: error status.yaml
 
+  - 400
   - 401
   - 404
   - 406
