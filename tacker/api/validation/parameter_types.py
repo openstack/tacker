@@ -123,7 +123,8 @@ keyvalue_pairs = {
                 {'type': 'string', 'maxLength': 1024},
                 {'type': 'object'},
                 {'type': 'null'},
-                {'type': 'boolean'}
+                {'type': 'boolean'},
+                {'type': 'number'}
             ]
         }
     },
