@@ -42,6 +42,18 @@ DASH_CHARACTER = '_'
 # to ensure that when multiple resources are to be created, the order of
 # other resources is after NetworkPolicy and before Service.
 OTHER_RESOURCE_SORT_POSITION = 8
+# Some special parameters are recorded in this variable. These parameters are
+# in the form shown in the following list in k8S manifest file, but are not
+# recognized by k8S client code, where they are in the form of an underscore
+# before the name, for example:
+#
+#     Parameter in manifest: 'exec',
+#     Parameter in k8s-client-code: '_exec',
+#
+# So we need to recognize these parameters during processing and modify them
+# to a form that k8S's client can recognize. If some parameters are appended
+# or removed in a later K8S release, please update this list synchronously.
+SPECIAL_PARAMETERS_IN_MANIFEST = ['exec', 'not', 'except', 'continue', 'from']
 
 
 class Transformer(object):
@@ -363,6 +375,8 @@ class Transformer(object):
     def _init_k8s_obj(self, obj, content):
         for key, value in content.items():
             param_value = self._get_lower_case_name(key)
+            if param_value in SPECIAL_PARAMETERS_IN_MANIFEST:
+                param_value = f'_{param_value}'
             if hasattr(obj, param_value) and \
                     not isinstance(value, dict) and \
                     not isinstance(value, list):
