@@ -97,6 +97,14 @@
     become: yes
     become_user: stack
 
+  - name: Fetch k8s's CA Certificate
+    fetch:
+       src: "/etc/kubernetes/pki/ca.crt"
+       dest: "/tmp/"
+       flat: true
+    when:
+      - k8s_ssl_verify
+
   when:
     - inventory_hostname == 'controller-k8s'
     - kuryr_k8s_api_url is defined
@@ -170,6 +178,32 @@
        - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml"
     when:
       - p.stat.exists
+
+  - name: Copy k8s's CA Certificate to tacker
+    copy:
+       src: "/tmp/ca.crt"
+       dest: "/tmp/"
+    when:
+      - p.stat.exists
+      - k8s_ssl_verify
+
+  - name: Get k8s's CA Certificate
+    command: cat "/tmp/ca.crt"
+    register: ssl_ca_cert
+    when:
+      - p.stat.exists
+      - k8s_ssl_verify
+
+  - name: Replace k8s CA Certificate in local-k8s-vim.yaml
+    replace:
+       path: "{{ item }}"
+       regexp: "ssl_ca_cert: .*$"
+       replace: "ssl_ca_cert: '{{ ssl_ca_cert.stdout }}'"
+    with_items:
+       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml"
+    when:
+      - p.stat.exists
+      - k8s_ssl_verify
 
   - name: Replace the config file path in the test-setup-k8s-vim.sh
     replace:

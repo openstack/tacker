@@ -146,7 +146,7 @@ class TestKubernetes(base.BaseTestCase):
             _instantiate_req_example)
         req.additionalParams['lcm-kubernetes-def-files'].append(
             'Files/kubernetes/namespace.yaml')
-        req.vimConnectionInfo['vim1']['interfaceInfo']['ssl_ca_cert '] = 'test'
+        req.vimConnectionInfo['vim1']['interfaceInfo']['ssl_ca_cert'] = 'test'
         req.additionalParams['namespace'] = 'curry'
         inst = objects.VnfInstanceV2(
             vimConnectionInfo=req.vimConnectionInfo
@@ -1009,6 +1009,7 @@ class TestKubernetes(base.BaseTestCase):
         # prepare instantiate
         req = objects.InstantiateVnfRequest.from_dict(
             _instantiate_req_example)
+        req.vimConnectionInfo['vim1']['interfaceInfo']['ssl_ca_cert'] = 'test'
         inst = objects.VnfInstanceV2(
             vimConnectionInfo=req.vimConnectionInfo
         )
@@ -1302,6 +1303,7 @@ class TestKubernetes(base.BaseTestCase):
         # prepare instantiate
         req = objects.InstantiateVnfRequest.from_dict(
             _instantiate_req_example)
+        req.vimConnectionInfo['vim1']['interfaceInfo']['ssl_ca_cert'] = 'test'
         inst = objects.VnfInstanceV2(
             id=uuidutils.generate_uuid(),
             vimConnectionInfo=req.vimConnectionInfo

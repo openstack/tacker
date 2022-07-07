@@ -63,17 +63,26 @@ class Kubernetes(object):
 
         # deploy k8s resources with sorted resources
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
-        k8s_client = kubernetes_utils.KubernetesClient(vim_info)
-        created_k8s_reses = k8s_client.create_k8s_resource(
-            sorted_k8s_reses, namespace)
+        # This is Context Manager for creation and deletion
+        # of CA certificate temp file
+        with kubernetes_utils.CaCertFileContextManager(
+                vim_info.interfaceInfo.get('ssl_ca_cert')) as ca_cert_cm:
 
-        # wait k8s resource create complete
-        k8s_client.wait_k8s_res_create(created_k8s_reses)
+            # add an item ca_cert_file:file_path into vim_info.interfaceInfo,
+            # and will be deleted in KubernetesClient
+            vim_info.interfaceInfo['ca_cert_file'] = ca_cert_cm.file_path
 
-        # make instantiated info
-        all_pods = k8s_client.list_namespaced_pods(namespace)
-        self._make_cnf_instantiated_info(
-            req, inst, vnfd, namespace, created_k8s_reses, all_pods)
+            k8s_client = kubernetes_utils.KubernetesClient(vim_info)
+            created_k8s_reses = k8s_client.create_k8s_resource(
+                sorted_k8s_reses, namespace)
+
+            # wait k8s resource create complete
+            k8s_client.wait_k8s_res_create(created_k8s_reses)
+
+            # make instantiated info
+            all_pods = k8s_client.list_namespaced_pods(namespace)
+            self._make_cnf_instantiated_info(
+                req, inst, vnfd, namespace, created_k8s_reses, all_pods)
 
     def terminate(self, req, inst, grant_req, grant, vnfd):
         target_k8s_files = inst.metadata.get('lcm-kubernetes-def-files')
@@ -88,11 +97,20 @@ class Kubernetes(object):
 
         # delete k8s resources with sorted resources
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
-        k8s_client = kubernetes_utils.KubernetesClient(vim_info)
-        k8s_client.delete_k8s_resource(req, sorted_k8s_reses, namespace)
+        # This is Context Manager for creation and deletion
+        # of CA certificate temp file
+        with kubernetes_utils.CaCertFileContextManager(
+                vim_info.interfaceInfo.get('ssl_ca_cert')) as ca_cert_cm:
 
-        # wait k8s resource delete complete
-        k8s_client.wait_k8s_res_delete(sorted_k8s_reses, namespace)
+            # add an item ca_cert_file:file_path into vim_info.interfaceInfo,
+            # and will be deleted in KubernetesClient
+            vim_info.interfaceInfo['ca_cert_file'] = ca_cert_cm.file_path
+
+            k8s_client = kubernetes_utils.KubernetesClient(vim_info)
+            k8s_client.delete_k8s_resource(req, sorted_k8s_reses, namespace)
+
+            # wait k8s resource delete complete
+            k8s_client.wait_k8s_res_delete(sorted_k8s_reses, namespace)
 
     def change_vnfpkg(self, req, inst, grant_req, grant, vnfd):
         if req.additionalParams.get('upgrade_type') == 'RollingUpdate':
@@ -103,43 +121,56 @@ class Kubernetes(object):
 
             # check deployment exists in kubernetes
             vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
-            k8s_client = kubernetes_utils.KubernetesClient(vim_info)
-            k8s_client.check_deployment_exist(deployment_names, namespace)
+            # This is Context Manager for creation and deletion
+            # of CA certificate temp file
+            with kubernetes_utils.CaCertFileContextManager(
+                    vim_info.interfaceInfo.get('ssl_ca_cert')) as ca_cert_cm:
 
-            # get new deployment body
-            new_deploy_reses = kubernetes_utils.get_new_deployment_body(
-                req, inst, vnfd, deployment_names, operation='CHANGE_VNFPKG')
+                # add an item ca_cert_file:file_path
+                # into vim_info.interfaceInfo,
+                # and will be deleted in KubernetesClient
+                vim_info.interfaceInfo['ca_cert_file'] = ca_cert_cm.file_path
 
-            # apply new deployment
-            k8s_client.update_k8s_resource(new_deploy_reses, namespace)
+                k8s_client = kubernetes_utils.KubernetesClient(vim_info)
+                k8s_client.check_deployment_exist(deployment_names, namespace)
 
-            # wait k8s resource update complete
-            old_pods_names = [vnfc.computeResource.resourceId for vnfc in
-                              inst.instantiatedVnfInfo.vnfcResourceInfo]
-            try:
-                k8s_client.wait_k8s_res_update(
-                    new_deploy_reses, namespace, old_pods_names)
-            except sol_ex.UpdateK8SResourceFailed as ex:
+                # get new deployment body
+                new_deploy_reses = kubernetes_utils.get_new_deployment_body(
+                    req, inst, vnfd, deployment_names,
+                    operation='CHANGE_VNFPKG')
+
+                # apply new deployment
+                k8s_client.update_k8s_resource(new_deploy_reses, namespace)
+
+                # wait k8s resource update complete
+                old_pods_names = [vnfc.computeResource.resourceId for vnfc in
+                                  inst.instantiatedVnfInfo.vnfcResourceInfo]
+                try:
+                    k8s_client.wait_k8s_res_update(
+                        new_deploy_reses, namespace, old_pods_names)
+                except sol_ex.UpdateK8SResourceFailed as ex:
+                    self._update_cnf_instantiated_info(
+                        inst, deployment_names,
+                        k8s_client.list_namespaced_pods(
+                            namespace=namespace))
+                    raise ex
+
+                # execute coordinate vnf script
+                try:
+                    self._execute_coordinate_vnf_script(
+                        req, inst, grant_req, grant, vnfd, 'CHANGE_VNFPKG',
+                        namespace, new_deploy_reses)
+                except sol_ex.CoordinateVNFExecutionFailed as ex:
+                    self._update_cnf_instantiated_info(
+                        inst, deployment_names,
+                        k8s_client.list_namespaced_pods(
+                            namespace=namespace))
+                    raise ex
+
+                # update cnf instantiated info
+                all_pods = k8s_client.list_namespaced_pods(namespace)
                 self._update_cnf_instantiated_info(
-                    inst, deployment_names, k8s_client.list_namespaced_pods(
-                        namespace=namespace))
-                raise ex
-
-            # execute coordinate vnf script
-            try:
-                self._execute_coordinate_vnf_script(
-                    req, inst, grant_req, grant, vnfd, 'CHANGE_VNFPKG',
-                    namespace, new_deploy_reses)
-            except sol_ex.CoordinateVNFExecutionFailed as ex:
-                self._update_cnf_instantiated_info(
-                    inst, deployment_names, k8s_client.list_namespaced_pods(
-                        namespace=namespace))
-                raise ex
-
-            # update cnf instantiated info
-            all_pods = k8s_client.list_namespaced_pods(namespace)
-            self._update_cnf_instantiated_info(
-                inst, deployment_names, all_pods)
+                    inst, deployment_names, all_pods)
 
         else:
             # TODO(YiFeng): Blue-Green type will be supported in next version.
@@ -169,31 +200,41 @@ class Kubernetes(object):
 
             # apply old deployment
             vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
-            k8s_client = kubernetes_utils.KubernetesClient(vim_info)
-            k8s_client.update_k8s_resource(old_deploy_reses, namespace)
+            # This is Context Manager for creation and deletion
+            # of CA certificate temp file
+            with kubernetes_utils.CaCertFileContextManager(
+                    vim_info.interfaceInfo.get('ssl_ca_cert')) as ca_cert_cm:
 
-            # wait k8s resource update complete
-            old_pods_names = [vnfc.computeResource.resourceId for vnfc in
-                              inst.instantiatedVnfInfo.vnfcResourceInfo]
-            try:
-                k8s_client.wait_k8s_res_update(
-                    old_deploy_reses, namespace, old_pods_names)
-            except sol_ex.UpdateK8SResourceFailed as ex:
-                raise ex
+                # add an item ca_cert_file:file_path
+                # into vim_info.interfaceInfo,
+                # and will be deleted in KubernetesClient
+                vim_info.interfaceInfo['ca_cert_file'] = ca_cert_cm.file_path
 
-            # execute coordinate vnf script
-            try:
-                self._execute_coordinate_vnf_script(
-                    req, inst, grant_req, grant, vnfd,
-                    'CHANGE_VNFPKG_ROLLBACK',
-                    namespace, old_deploy_reses)
-            except sol_ex.CoordinateVNFExecutionFailed as ex:
-                raise ex
+                k8s_client = kubernetes_utils.KubernetesClient(vim_info)
+                k8s_client.update_k8s_resource(old_deploy_reses, namespace)
 
-            # update cnf instantiated info
-            all_pods = k8s_client.list_namespaced_pods(namespace)
-            self._update_cnf_instantiated_info(
-                inst, deployment_names, all_pods)
+                # wait k8s resource update complete
+                old_pods_names = [vnfc.computeResource.resourceId for vnfc in
+                                  inst.instantiatedVnfInfo.vnfcResourceInfo]
+                try:
+                    k8s_client.wait_k8s_res_update(
+                        old_deploy_reses, namespace, old_pods_names)
+                except sol_ex.UpdateK8SResourceFailed as ex:
+                    raise ex
+
+                # execute coordinate vnf script
+                try:
+                    self._execute_coordinate_vnf_script(
+                        req, inst, grant_req, grant, vnfd,
+                        'CHANGE_VNFPKG_ROLLBACK',
+                        namespace, old_deploy_reses)
+                except sol_ex.CoordinateVNFExecutionFailed as ex:
+                    raise ex
+
+                # update cnf instantiated info
+                all_pods = k8s_client.list_namespaced_pods(namespace)
+                self._update_cnf_instantiated_info(
+                    inst, deployment_names, all_pods)
 
         else:
             # TODO(YiFeng): Blue-Green type will be supported in next version.

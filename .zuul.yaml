@@ -522,6 +522,7 @@
             controller_worker:
               amp_active_retries: 9999
       kuryr_k8s_api_url: "https://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:6443"
+      k8s_ssl_verify: true
       helm_version: "3.5.4"
       test_matrix_configs: [neutron]
       zuul_work_dir: src/opendev.org/openstack/tacker

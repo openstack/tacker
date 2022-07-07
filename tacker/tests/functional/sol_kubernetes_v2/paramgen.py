@@ -47,7 +47,7 @@ def test_instantiate_cnf_resources_terminate():
     }
 
 
-def max_sample_instantiate(auth_url, bearer_token):
+def max_sample_instantiate(auth_url, bearer_token, ssl_ca_cert=None):
     # All attributes are set.
     # NOTE: All of the following cardinality attributes are set.
     # In addition, 0..N or 1..N attributes are set to 2 or more.
@@ -78,6 +78,9 @@ def max_sample_instantiate(auth_url, bearer_token):
         },
         "extra": {"dummy-key": "dummy-val"}
     }
+    if ssl_ca_cert:
+        vim_1["interfaceInfo"]["ssl_ca_cert"] = ssl_ca_cert
+        vim_2["interfaceInfo"]["ssl_ca_cert"] = ssl_ca_cert
     return {
         "flavourId": "simple",
         "vimConnectionInfo": {

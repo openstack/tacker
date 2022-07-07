@@ -131,6 +131,23 @@ keyvalue_pairs = {
     'additionalProperties': False
 }
 
+keyvalue_pairs_no_length_limit = {
+    'type': 'object',
+    'patternProperties': {
+        '^[a-zA-Z0-9-_:. /]+$': {
+            'anyOf': [
+                {'type': 'array'},
+                {'type': 'string'},
+                {'type': 'object'},
+                {'type': 'null'},
+                {'type': 'boolean'},
+                {'type': 'number'}
+            ]
+        }
+    },
+    'additionalProperties': False
+}
+
 description = {
     'type': 'string', 'minLength': 0, 'maxLength': 1024,
     'pattern': valid_description_regex,

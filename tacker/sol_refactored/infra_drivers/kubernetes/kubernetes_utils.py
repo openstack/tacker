@@ -17,6 +17,7 @@ import copy
 import ipaddress
 import os
 import re
+import tempfile
 import time
 from urllib.parse import urlparse
 import urllib.request as urllib2
@@ -583,6 +584,9 @@ def init_k8s_api_client(vim_info):
     k8s_config = client.Configuration()
     k8s_config.host = vim_info.interfaceInfo['endpoint']
 
+    ca_cert_file = (vim_info.interfaceInfo.pop('ca_cert_file')
+                    if 'ca_cert_file' in vim_info.interfaceInfo else None)
+
     if ('username' in vim_info.accessInfo and 'password'
             in vim_info.accessInfo and vim_info.accessInfo.get(
                 'password') is not None):
@@ -596,8 +600,8 @@ def init_k8s_api_client(vim_info):
         k8s_config.api_key['authorization'] = vim_info.accessInfo[
             'bearer_token']
 
-    if 'ssl_ca_cert' in vim_info.accessInfo:
-        k8s_config.ssl_ca_cert = vim_info.accessInfo['ssl_ca_cert']
+    if 'ssl_ca_cert' in vim_info.interfaceInfo and ca_cert_file:
+        k8s_config.ssl_ca_cert = ca_cert_file
         k8s_config.verify_ssl = True
     else:
         k8s_config.verify_ssl = False
@@ -724,3 +728,27 @@ def get_new_deployment_body(
             new_deploy_reses.append(k8s_res)
 
     return new_deploy_reses
+
+
+class CaCertFileContextManager:
+    def __init__(self, ca_cert_str):
+        self._file_descriptor = None
+        self.file_path = None
+        self.ca_cert_str = ca_cert_str
+
+    def __enter__(self):
+        if not self.ca_cert_str:
+            return self
+        self._file_descriptor, self.file_path = tempfile.mkstemp()
+        ca_cert = re.sub(r'\s', '\n', self.ca_cert_str)
+        ca_cert = re.sub(r'BEGIN\nCERT', r'BEGIN CERT', ca_cert)
+        ca_cert = re.sub(r'END\nCERT', r'END CERT', ca_cert)
+        # write ca cert file
+        os.write(self._file_descriptor, ca_cert.encode())
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if not self.ca_cert_str:
+            return
+        os.close(self._file_descriptor)
+        os.remove(self.file_path)

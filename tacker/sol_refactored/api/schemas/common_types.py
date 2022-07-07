@@ -61,9 +61,9 @@ VimConnectionInfo = {
     'properties': {
         'vimId': {'type': 'string', 'maxLength': 255},
         'vimType': {'type': 'string', 'minLength': 1, 'maxLength': 255},
-        'interfaceInfo': parameter_types.keyvalue_pairs,
-        'accessInfo': parameter_types.keyvalue_pairs,
-        'extra': parameter_types.keyvalue_pairs,
+        'interfaceInfo': parameter_types.keyvalue_pairs_no_length_limit,
+        'accessInfo': parameter_types.keyvalue_pairs_no_length_limit,
+        'extra': parameter_types.keyvalue_pairs_no_length_limit,
     },
     'required': ['vimType'],
     'additionalProperties': True,
