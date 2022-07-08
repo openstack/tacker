@@ -25,7 +25,7 @@ class VnfLcmWithNfvoSeparator(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.basic_lcms_min_common_test(True)
 
     def test_change_vnfpkg(self):
-        self.change_vnfpkg_from_image_to_volume_common_test(True)
+        self.change_vnfpkg_from_image_to_image_common_test(True)
 
     def test_retry_rollback_scale_out(self):
         self.retry_rollback_scale_out_common_test(True)

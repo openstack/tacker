@@ -68,13 +68,10 @@ class VnfLcmDriverV2(object):
         grant_req = objects.GrantRequestV1(
             vnfInstanceId=inst.id,
             vnfLcmOpOccId=lcmocc.id,
+            vnfdId=inst.vnfdId,
             operation=lcmocc.operation,
             isAutomaticInvocation=lcmocc.isAutomaticInvocation
         )
-        if lcmocc.operation == v2fields.LcmOperationType.CHANGE_VNFPKG:
-            grant_req.vnfdId = lcmocc.operationParams.get('vnfdId')
-        else:
-            grant_req.vnfdId = inst.vnfdId
         grant_req._links = objects.GrantRequestV1_Links(
             vnfLcmOpOcc=objects.Link(
                 href=lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)),
@@ -966,66 +963,67 @@ class VnfLcmDriverV2(object):
             # only support openstack at the moment
             raise sol_ex.SolException(sol_detail='not support vim type')
 
+    def change_ext_conn_rollback(self, context, lcmocc, inst, grant_req,
+            grant, vnfd):
+        req = lcmocc.operationParams
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
+            driver = openstack.Openstack()
+            driver.change_ext_conn_rollback(req, inst, grant_req, grant, vnfd)
+        else:
+            # only support openstack at the moment
+            raise sol_ex.SolException(sol_detail='not support vim type')
+
     def change_vnfpkg_grant(self, grant_req, req, inst, vnfd):
-        inst_info = inst.instantiatedVnfInfo
-        grant_req.flavourId = inst_info.flavourId
-        if req.additionalParams.get('vdu_params'):
-            target_vdu_ids = [
-                vdu_param.get(
-                    'vdu_id') for vdu_param in req.additionalParams.get(
-                    'vdu_params')]
+        grant_req.dstVnfdId = req.vnfdId
+        # NOTE: flavourId is not necessary according to the SOL003 spec.
+        # It is for local_nfvo to handle images.
+        grant_req.flavourId = inst.instantiatedVnfInfo.flavourId
+
+        if req.additionalParams['upgrade_type'] == 'RollingUpdate':
+            self._change_vnfpkg_grant_rolling_update(
+                grant_req, req, inst, vnfd)
         else:
-            if inst_info.obj_attr_is_set('vnfcResourceInfo'):
-                target_vdu_ids = [inst_vnc.vduId for inst_vnc in
-                                  inst_info.vnfcResourceInfo]
-
-        if req.additionalParams.get('upgrade_type') == 'RollingUpdate':
-            update_reses = []
-            add_reses = []
-            remove_reses = []
-            if inst_info.obj_attr_is_set('vnfcResourceInfo'):
-                for inst_vnc in inst_info.vnfcResourceInfo:
-                    if inst_vnc.vduId in target_vdu_ids:
-                        vdu_res_id = uuidutils.generate_uuid()
-                        res_def = objects.ResourceDefinitionV1(
-                            id=vdu_res_id,
-                            type='COMPUTE',
-                            resourceTemplateId=inst_vnc.vduId)
-                        update_reses.append(res_def)
-                        nodes = vnfd.get_vdu_nodes(inst_info.flavourId)
-                        vdu_storage_names = vnfd.get_vdu_storages(
-                            nodes[inst_vnc.vduId])
-                        for vdu_storage_name in vdu_storage_names:
-                            res_def = objects.ResourceDefinitionV1(
-                                id=_make_combination_id(
-                                    vdu_storage_name, vdu_res_id),
-                                type='STORAGE',
-                                resourceTemplateId=vdu_storage_name)
-                            add_reses.append(res_def)
-                        if inst_vnc.obj_attr_is_set('storageResourceIds'):
-                            inst_stor_info = (
-                                inst_info.virtualStorageResourceInfo)
-                            for str_info in inst_stor_info:
-                                if str_info.id in inst_vnc.storageResourceIds:
-                                    res_def = objects.ResourceDefinitionV1(
-                                        id=uuidutils.generate_uuid(),
-                                        type='STORAGE',
-                                        resourceTemplateId=(
-                                            str_info.virtualStorageDescId),
-                                        resource=str_info.storageResource)
-                                    remove_reses.append(res_def)
-            if update_reses:
-                grant_req.updateResources = update_reses
-
-            if add_reses:
-                grant_req.addResources = add_reses
-
-            if remove_reses:
-                grant_req.removeResources = remove_reses
-        else:
-            # TODO(YiFeng): Blue-Green type will be supported in Zed release.
-            # not reach here at the moment
+            # Only support RollingUpdate at the moment.
             pass
+
+    def _change_vnfpkg_grant_rolling_update(self, grant_req, req, inst, vnfd):
+        inst_info = inst.instantiatedVnfInfo
+        if not inst_info.obj_attr_is_set('vnfcResourceInfo'):
+            return
+
+        if req.additionalParams.get('vdu_params'):
+            vdu_ids = [vdu_param['vdu_id']
+                       for vdu_param in req.additionalParams['vdu_params']]
+            inst_vnfcs = [inst_vnfc
+                          for inst_vnfc in inst_info.vnfcResourceInfo
+                          if inst_vnfc.vduId in vdu_ids]
+        else:
+            inst_vnfcs = inst_info.vnfcResourceInfo
+
+        add_reses = []
+        rm_reses = []
+        for inst_vnfc in inst_vnfcs:
+            rm_vdu_res_id = uuidutils.generate_uuid()
+            add_vdu_res_id = uuidutils.generate_uuid()
+            self._set_rm_add_reses(rm_reses, add_reses, 'COMPUTE',
+                inst_vnfc.vduId, inst_vnfc.computeResource,
+                rm_vdu_res_id, add_vdu_res_id)
+
+            if inst_vnfc.obj_attr_is_set('storageResourceIds'):
+                for storage_id in inst_vnfc.storageResourceIds:
+                    inst_str = _get_obj_by_id(storage_id,
+                        inst_info.virtualStorageResourceInfo)
+                    str_name = inst_str.virtualStorageDescId
+                    self._set_rm_add_reses(rm_reses, add_reses, 'STORAGE',
+                        str_name, inst_str.storageResource,
+                        _make_combination_id(str_name, rm_vdu_res_id),
+                        _make_combination_id(str_name, add_vdu_res_id))
+
+        if add_reses:
+            grant_req.addResources = add_reses
+        if rm_reses:
+            grant_req.removeResources = rm_reses
 
     def _pre_check_for_change_vnfpkg(self, context, req, inst, vnfd):
         def _get_file_content(file_path):
@@ -1093,16 +1091,14 @@ class VnfLcmDriverV2(object):
 
     def change_vnfpkg_process(
             self, context, lcmocc, inst, grant_req, grant, vnfd):
-        inst_saved = inst.obj_clone()
         req = lcmocc.operationParams
+        if req.obj_attr_is_set('vimConnectionInfo'):
+            self._merge_vim_connection_info(inst, req)
+
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
-            try:
-                driver.change_vnfpkg(req, inst, grant_req, grant, vnfd)
-            except Exception as ex:
-                lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
-                raise Exception from ex
+            driver.change_vnfpkg(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'kubernetes':  # k8s
             target_k8s_files = self._pre_check_for_change_vnfpkg(
                 context, req, inst, vnfd)
@@ -1110,32 +1106,19 @@ class VnfLcmDriverV2(object):
             update_req.additionalParams[
                 'lcm-kubernetes-def-files'] = target_k8s_files
             driver = kubernetes.Kubernetes()
-            try:
-                driver.change_vnfpkg(update_req, inst, grant_req, grant, vnfd)
-            except Exception as ex:
-                lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
-                raise Exception from ex
+            driver.change_vnfpkg(update_req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
 
-    def change_ext_conn_rollback(self, context, lcmocc, inst, grant_req,
-            grant, vnfd):
-        req = lcmocc.operationParams
-        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
-        if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
-            driver = openstack.Openstack()
-            driver.change_ext_conn_rollback(req, inst, grant_req, grant, vnfd)
-        else:
-            # only support openstack at the moment
-            raise sol_ex.SolException(sol_detail='not support vim type')
+        inst.vnfdId = grant_req.dstVnfdId
 
     def change_vnfpkg_rollback(
             self, context, lcmocc, inst, grant_req, grant, vnfd):
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         req = lcmocc.operationParams
-        driver = openstack.Openstack()
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
+            driver = openstack.Openstack()
             driver.change_vnfpkg_rollback(
                 req, inst, grant_req, grant, vnfd, lcmocc)
         elif vim_info.vimType == 'kubernetes':  # k8s

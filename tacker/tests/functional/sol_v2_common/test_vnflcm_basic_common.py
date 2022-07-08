@@ -152,7 +152,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                     response_headers={"Content-Type": "application/json"},
                     callback=lambda req_headers, req_body:
                     fake_grant_v2.GrantV2.make_change_vnfpkg_response_body(
-                        req_body))
+                        req_body, glance_image, flavour_vdu_dict))
             else:
                 raise Exception
 
@@ -1612,8 +1612,8 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         resp, body = self.show_subscription(sub_id)
         self.assertEqual(404, resp.status_code)
 
-    def change_vnfpkg_from_image_to_volume_common_test(self, is_nfvo=False):
-        """Test ChangeCurrentVNFPackage from image to volume
+    def change_vnfpkg_from_image_to_image_common_test(self, is_nfvo=False):
+        """Test ChangeCurrentVNFPackage from image to image
 
         * About attributes:
           All of the following cardinality attributes are set.
@@ -1641,15 +1641,15 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                 "samples/test_instantiate_vnf_with_old_image_or_volume")
             zip_file_path_1, vnfd_id_1 = self.create_vnf_package(
                 change_vnfpkg_from_image_to_image_path, nfvo=True)
-            change_vnfpkg_from_image_to_volume_path = os.path.join(
-                cur_dir, "samples/test_change_vnf_pkg_with_new_volume")
+            change_vnfpkg_from_image_to_image_path_2 = os.path.join(
+                cur_dir, "samples/test_change_vnf_pkg_with_new_image")
             image_dir = os.path.join(
                 cur_dir, "../../etc/samples/etsi/nfv/common/Files/images")
             image_file = "cirros-0.5.2-x86_64-disk.img"
             image_path = os.path.abspath(os.path.join(image_dir, image_file))
-            zip_file_path_3, vnfd_id_3 = self.create_vnf_package(
-                change_vnfpkg_from_image_to_volume_path, image_path=image_path,
-                nfvo=True)
+            zip_file_path_2, vnfd_id_2 = self.create_vnf_package(
+                change_vnfpkg_from_image_to_image_path_2,
+                image_path=image_path, nfvo=True)
             package_dir = os.path.join(
                 cur_dir,
                 "samples/test_instantiate_vnf_with_old_image_or_volume")
@@ -1657,10 +1657,10 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                 "contents/Definitions/change_vnf_pkg_old_image_df_simple.yaml")
 
             change_package_dir = os.path.join(
-                cur_dir, "samples/test_change_vnf_pkg_with_new_volume")
+                cur_dir, "samples/test_change_vnf_pkg_with_new_image")
             change_vnfd_path = (
                 "contents/Definitions/"
-                "change_vnf_pkg_new_volume_df_simple.yaml")
+                "change_vnf_pkg_new_image_df_simple.yaml")
             sw_data = fake_grant_v2.GrantV2.get_sw_data(
                 change_package_dir, change_vnfd_path)
             glance_image = fake_grant_v2.GrantV2.get_sw_image(
@@ -1671,13 +1671,13 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             self._register_vnf_package_mock_response(
                 vnfd_id_1, zip_file_path_1)
             create_req = paramgen.change_vnfpkg_create(vnfd_id_1)
-            change_vnfpkg_req = paramgen.change_vnfpkg(vnfd_id_3)
+            change_vnfpkg_req = paramgen.change_vnfpkg(vnfd_id_2)
         else:
             glance_image = None
             flavour_vdu_dict = None
             zone_name_list = None
             create_req = paramgen.change_vnfpkg_create(self.vnfd_id_1)
-            change_vnfpkg_req = paramgen.change_vnfpkg(self.vnfd_id_3)
+            change_vnfpkg_req = paramgen.change_vnfpkg(self.vnfd_id_2)
 
         # 1. Create VNF instance
         resp, body = self.create_vnf_instance(create_req)
@@ -1734,19 +1734,18 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(200, resp_1.status_code)
         self.check_resp_headers_in_get(resp_1)
         self.check_resp_body(body_1, expected_inst_attrs)
-        resource_ids_1 = [obj['id'] for obj in body_1[
-            'instantiatedVnfInfo']['vnfcResourceInfo'] if obj[
-            'vduId'] == 'VDU2'][0]
 
         # 4. Change Current VNF Package
         if is_nfvo:
             self._register_vnf_package_mock_response(
-                vnfd_id_3, zip_file_path_3)
-            image_id = self.glance_create_image(
+                vnfd_id_2, zip_file_path_2)
+            g_image_id_1, g_image_id_2 = self.glance_create_image(
                 instantiate_req.get("vimConnectionInfo").get("vim1"),
-                image_path, sw_data, inst_id)
-        self._set_grant_response(is_nfvo, 'CHANGE_VNFPKG')
-        del change_vnfpkg_req['additionalParams']['vdu_params'][0]
+                image_path, sw_data, inst_id, num_vdu=2)
+            glance_image['VDU1'] = g_image_id_1
+            glance_image['VDU2'] = g_image_id_2
+        self._set_grant_response(is_nfvo, 'CHANGE_VNFPKG',
+            glance_image=glance_image, flavour_vdu_dict=flavour_vdu_dict)
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -1757,15 +1756,6 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         # 5. Show VNF instance
         resp_2, body_2 = self.show_vnf_instance(inst_id)
         image_id_2 = self.get_current_vdu_image(stack_id, stack_name, 'VDU2')
-        storage_resource_ids = [obj.get('storageResourceIds')
-                                for obj in body_2['instantiatedVnfInfo'][
-                                    'vnfcResourceInfo'] if obj[
-                                    'vduId'] == 'VDU2']
-        self.assertIsNotNone(storage_resource_ids)
-        resource_ids_2 = [obj['id'] for obj in body_2[
-            'instantiatedVnfInfo']['vnfcResourceInfo'] if obj[
-            'vduId'] == 'VDU2'][0]
-        self.assertNotEqual(resource_ids_1, resource_ids_2)
         self.assertNotEqual(image_id_1, image_id_2)
 
         self.assertEqual(200, resp_2.status_code)
@@ -1794,7 +1784,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         if is_nfvo:
             self.glance_delete_image(
                 instantiate_req.get("vimConnectionInfo").get("vim1"),
-                [image_id])
+                [g_image_id_1, g_image_id_2])
 
     def retry_rollback_scale_out_common_test(self, is_nfvo=False):
         """Test retry and rollback scale out operations

@@ -16,7 +16,7 @@ resources:
         type: VDU1.yaml
         properties:
           flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
-          image: { get_param: [ nfv, VDU, VDU1-VirtualStorage, vcImageId ] }
+          image-VDU1-VirtualStorage: { get_param: [ nfv, VDU, VDU1-VirtualStorage, vcImageId ] }
           zone: { get_param: [ nfv, VDU, VDU1, locationConstraints] }
           net1: { get_param: [ nfv, CP, VDU1_CP1, network] }
           net2: { get_param: [ nfv, CP, VDU1_CP2, network ] }

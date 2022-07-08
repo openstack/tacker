@@ -205,10 +205,8 @@ def change_vnfpkg_all_params(vnfd_id):
             "upgrade_type": "RollingUpdate",
             "lcm-operation-coordinate-old-vnf":
                 "Scripts/coordinate_old_vnf.py",
-            "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
             "lcm-operation-coordinate-new-vnf":
                 "Scripts/coordinate_new_vnf.py",
-            "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
             "lcm-kubernetes-def-files": [
                 "Files/new_kubernetes/new_deployment.yaml"],
             "vdu_params": [{
@@ -243,10 +241,8 @@ def change_vnfpkg_min(vnfd_id):
             "upgrade_type": "RollingUpdate",
             "lcm-operation-coordinate-old-vnf":
                 "Scripts/coordinate_old_vnf.py",
-            "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
             "lcm-operation-coordinate-new-vnf":
                 "Scripts/coordinate_new_vnf.py",
-            "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf"
         }
     }
 
@@ -276,10 +272,8 @@ def change_vnfpkg_error(vnfd_id):
             "upgrade_type": "RollingUpdate",
             "lcm-operation-coordinate-old-vnf":
                 "Scripts/coordinate_old_vnf.py",
-            "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
             "lcm-operation-coordinate-new-vnf":
                 "Scripts/coordinate_new_vnf.py",
-            "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
             "lcm-kubernetes-def-files": [
                 "Files/new_kubernetes/error_deployment.yaml"]
         }

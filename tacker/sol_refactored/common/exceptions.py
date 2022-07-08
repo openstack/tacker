@@ -131,10 +131,6 @@ class VnfInstanceIsNotInstantiated(SolHttpError409):
     message = _("VnfInstance %(inst_id)s isn't instantiated.")
 
 
-class VnfInstanceIsNotChanged(SolHttpError409):
-    message = _("VnfInstance %(inst_id)s isn't changed.")
-
-
 class LccnSubscriptionNotFound(SolHttpError404):
     message = _("LccnSubscription %(subsc_id)s not found.")
 
@@ -258,15 +254,6 @@ class DeltaMissingInVnfd(SolHttpError400):
 class ConductorProcessingError(SolException):
     title = 'Internal Server Error'
     message = _("Failure due to conductor processing error.")
-
-
-class InvalidVolumeSize(SolHttpError400):
-    message = _("The volume size set in VNFD is invalid.")
-
-
-class VduIdNotFound(SolHttpError404):
-    message = _("This vdu_id '%(vdu_id)s' does not exist"
-                " in current VnfInstance.")
 
 
 class SshIpNotFoundException(SolHttpError404):

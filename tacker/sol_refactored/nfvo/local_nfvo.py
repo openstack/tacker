@@ -43,7 +43,7 @@ LOG = logging.getLogger(__name__)
 # NOTE:
 # It is NFVO implementation used when an external NFVO is not used.
 # It implements only functions necessary for vnflcm v2.
-# It uses original tacker vnfpkgm v1 for vnf package managemnet
+# It uses original tacker vnfpkgm v1 for vnf package management
 # and adds grant functions.
 
 
@@ -138,12 +138,48 @@ class LocalNfvo(object):
 
     def _get_vim_info(self, context, grant_req):
         lcmocc = lcmocc_utils.get_lcmocc(context, grant_req.vnfLcmOpOccId)
-        inst_req = lcmocc.operationParams
-        if inst_req.obj_attr_is_set('vimConnectionInfo'):
-            return inst_utils.select_vim_info(inst_req.vimConnectionInfo)
+        req = lcmocc.operationParams
+        if req.obj_attr_is_set('vimConnectionInfo'):
+            return inst_utils.select_vim_info(req.vimConnectionInfo)
+        elif grant_req.operation != v2_fields.LcmOperationType.INSTANTIATE:
+            # should be found
+            inst = inst_utils.get_inst(context, grant_req.vnfInstanceId)
+            return inst_utils.select_vim_info(inst.vimConnectionInfo)
 
         # NOTE: exception is not raised.
         return vim_utils.get_default_vim(context)
+
+    def _handle_vim_assets(self, grant_req, grant_res, vnfd, sw_image_data,
+            vim_info):
+        vim_sw_images = []
+        for res_id, sw_data in sw_image_data.items():
+            if 'file' in sw_data:
+                # if artifact is specified, create glance image.
+                # it may fail. catch exception and raise 403(not granted)
+                # if error occur.
+                if vim_info is None:
+                    msg = "No vimConnectionInfo to create glance image"
+                    raise sol_ex.LocalNfvoGrantFailed(sol_detail=msg)
+
+                try:
+                    image = self._glance_create_image(vim_info, vnfd, sw_data,
+                            grant_req.vnfInstanceId)
+                except Exception:
+                    msg = "glance image create failed"
+                    LOG.exception(msg)
+                    raise sol_ex.LocalNfvoGrantFailed(sol_detail=msg)
+            else:
+                # there is no artifact. suppose image already created.
+                image = sw_data['name']
+            vim_sw_image = objects.VimSoftwareImageV1(
+                vnfdSoftwareImageId=res_id,
+                vimSoftwareImageId=image)
+            vim_sw_images.append(vim_sw_image)
+
+        if vim_sw_images:
+            grant_res.vimAssets = objects.GrantV1_VimAssets(
+                softwareImages=vim_sw_images
+            )
 
     def instantiate_grant(self, context, grant_req, grant_res):
         # handle ZoneInfo
@@ -178,83 +214,26 @@ class LocalNfvo(object):
         # if there is an artifact, create glance image.
         vnfd = self.get_vnfd(context, grant_req.vnfdId)
         sw_image_data = vnfd.get_sw_image_data(grant_req.flavourId)
-        vim_sw_images = []
-        for res_id, sw_data in sw_image_data.items():
-            if 'file' in sw_data:
-                # if artifact is specified, create glance image.
-                # it may fail. catch exception and raise 403(not granted)
-                # if error occur.
-
-                # get vim_info to access glance
-                vim_info = self._get_vim_info(context, grant_req)
-                if vim_info is None:
-                    msg = "No vimConnectionInfo to create glance image"
-                    raise sol_ex.LocalNfvoGrantFailed(sol_detail=msg)
-
-                try:
-                    image = self._glance_create_image(vim_info, vnfd, sw_data,
-                            grant_req.vnfInstanceId)
-                except Exception:
-                    msg = "glance image create failed"
-                    LOG.exception(msg)
-                    raise sol_ex.LocalNfvoGrantFailed(sol_detail=msg)
-            else:
-                # there is no artifact. suppose image already created.
-                image = sw_data['name']
-            vim_sw_image = objects.VimSoftwareImageV1(
-                vnfdSoftwareImageId=res_id,
-                vimSoftwareImageId=image)
-            vim_sw_images.append(vim_sw_image)
-        if vim_sw_images:
-            grant_res.vimAssets = objects.GrantV1_VimAssets(
-                softwareImages=vim_sw_images
-            )
+        vim_info = self._get_vim_info(context, grant_req)
+        self._handle_vim_assets(grant_req, grant_res, vnfd,
+                                sw_image_data, vim_info)
 
     def change_vnfpkg_grant(self, context, grant_req, grant_res):
-        attr_list = ['updateResources', 'addResources', 'removeResources']
-        for attr in attr_list:
-            if grant_req.obj_attr_is_set(attr):
-                res_list = []
-                for res_def in grant_req[attr]:
-                    g_info = objects.GrantInfoV1(res_def.id)
-                    res_list.append(g_info)
-                    grant_res[attr] = res_list
-        vnfd = self.get_vnfd(context, grant_req.vnfdId)
-        sw_image_data = vnfd.get_sw_image_data(grant_req.flavourId)
-        target_vdu_ids = [res['resourceTemplateId'] for
-                          res in grant_req['updateResources']]
-        vdu_nodes = {key: value for key, value in vnfd.get_vdu_nodes(
-            grant_req.flavourId).items() if key in target_vdu_ids}
-        target_storage_nodes = []
-        for key, value in vdu_nodes.items():
-            target_storage_nodes.extend(vnfd.get_vdu_storages(value))
+        if not grant_req.obj_attr_is_set('addResources'):
+            return
 
-        vim_sw_images = []
-        for res_id, sw_data in sw_image_data.items():
-            if 'file' in sw_data and (res_id in target_storage_nodes or
-                                      res_id in target_vdu_ids):
-                vim_info = self._get_vim_info(context, grant_req)
-                if vim_info is None:
-                    msg = "No VimConnectionInfo to create glance image"
-                    LOG.exception(msg)
-                    raise sol_ex.LocalNfvoGrantFailed(sol_detail=msg)
-                try:
-                    image = self._glance_create_image(
-                        vim_info, vnfd, sw_data, grant_req.vnfInstanceId)
-                except Exception:
-                    msg = "glance image create failed"
-                    LOG.exception(msg)
-                    raise sol_ex.LocalNfvoGrantFailed(sol_detail=msg)
-            else:
-                image = sw_data['name']
-            vim_sw_image = objects.VimSoftwareImageV1(
-                vnfdSoftwareImageId=res_id,
-                vimSoftwareImageId=image)
-            vim_sw_images.append(vim_sw_image)
-        if vim_sw_images:
-            grant_res.vimAssets = objects.GrantV1_VimAssets(
-                softwareImages=vim_sw_images
-            )
+        # handle vimAssets
+        # if there is an artifact, create glance image.
+        target_vdus = {res['resourceTemplateId']
+                       for res in grant_req['addResources']}
+        vnfd = self.get_vnfd(context, grant_req.dstVnfdId)
+        all_sw_image_data = vnfd.get_sw_image_data(grant_req.flavourId)
+        sw_image_data = {res_id: sw_data
+                         for res_id, sw_data in all_sw_image_data.items()
+                         if res_id in target_vdus}
+        vim_info = self._get_vim_info(context, grant_req)
+        self._handle_vim_assets(grant_req, grant_res, vnfd,
+                                sw_image_data, vim_info)
 
     def grant(self, context, grant_req):
         grant_res = objects.GrantV1(
@@ -263,11 +242,9 @@ class LocalNfvo(object):
             vnfLcmOpOccId=grant_req.vnfLcmOpOccId
         )
 
-        # NOTE: considered instantiate only at the moment.
-        # terminate is granted with no grant_res constructed.
+        # NOTE: considered instantiate and change_vnfpkg only at the moment.
         if grant_req.operation == v2_fields.LcmOperationType.INSTANTIATE:
             self.instantiate_grant(context, grant_req, grant_res)
-
         elif grant_req.operation == v2_fields.LcmOperationType.CHANGE_VNFPKG:
             self.change_vnfpkg_grant(context, grant_req, grant_res)
 

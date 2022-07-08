@@ -4,7 +4,7 @@ description: 'VDU1 HOT for Sample VNF'
 parameters:
   flavor:
     type: string
-  image:
+  image-VDU1:
     type: string
   net5:
     type: string
@@ -16,7 +16,7 @@ resources:
     type: OS::Nova::Server
     properties:
       flavor: { get_param: flavor }
-      image: { get_param: image }
+      image: { get_param: image-VDU1 }
       name: VDU1
       networks:
       - port:

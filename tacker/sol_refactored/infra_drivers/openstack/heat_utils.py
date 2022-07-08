@@ -134,19 +134,13 @@ class HeatClient(object):
             raise sol_ex.StackOperationFailed
         return body
 
-    def get_resource_info(self, nested_stack_id, resource_name):
-        path = f"stacks/{nested_stack_id}/resources/{resource_name}"
+    def get_resource_info(self, stack_id, resource_name):
+        path = f"stacks/{stack_id}/resources/{resource_name}"
         resp, body = self.client.do_request(path, "GET",
                                             expected_status=[200, 404])
         if resp.status_code == 404:
             return None
         return body['resource']
-
-    def get_resource_list(self, stack_id):
-        path = f"stacks/{stack_id}/resources"
-        resp, body = self.client.do_request(path, "GET",
-                                            expected_status=[200, 404])
-        return body
 
     def get_parameters(self, stack_name):
         path = f"stacks/{stack_name}"
@@ -211,34 +205,9 @@ def get_resource_stack_id(heat_res):
             return "{}/{}".format(items[-2], items[-1])
 
 
-def get_parent_nested_id(res):
-    for link in res.get('links', []):
-        if link['rel'] == 'nested':
-            items = link['href'].split('/')
-            return "{}/{}".format(items[-2], items[-1])
-
-
 def get_parent_resource(heat_res, heat_reses):
     parent = heat_res.get('parent_resource')
     if parent:
         for res in heat_reses:
             if res['resource_name'] == parent:
                 return res
-
-
-def get_group_stack_id(heat_reses, vdu_id):
-    parent_resources = [heat_res for heat_res in heat_reses
-                        if heat_res.get('resource_name') == vdu_id]
-    if parent_resources:
-        parent_resource = parent_resources[0].get('parent_resource')
-    else:
-        raise sol_ex.VduIdNotFound(vdu_id=vdu_id)
-    group_resource_name = [heat_res for heat_res in
-                           heat_reses if
-                           heat_res.get('resource_name') ==
-                           parent_resource][0].get('parent_resource')
-    group_stack_id = [heat_res for heat_res in
-                      heat_reses if
-                      heat_res.get('resource_name') ==
-                      group_resource_name][0].get('physical_resource_id')
-    return group_stack_id

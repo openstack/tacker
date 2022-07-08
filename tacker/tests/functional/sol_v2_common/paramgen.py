@@ -904,10 +904,8 @@ def change_vnfpkg(vnfd_id):
             "upgrade_type": "RollingUpdate",
             "lcm-operation-coordinate-old-vnf":
                 "./Scripts/coordinate_old_vnf.py",
-            "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
             "lcm-operation-coordinate-new-vnf":
                 "./Scripts/coordinate_new_vnf.py",
-            "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
             "vdu_params": [{
                 "vdu_id": "VDU1",
                 "old_vnfc_param": {

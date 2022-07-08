@@ -273,7 +273,7 @@ class TestVnflcmV2(db_base.SqlTestCase):
         ex = self.assertRaises(sol_ex.InvalidSubscription,
             self.controller.subscription_create, request=self.request,
             body=body)
-        self.assertEqual("ParmasBasic must be specified.", ex.detail)
+        self.assertEqual("ParamsBasic must be specified.", ex.detail)
 
         body = {
             "callbackUri": "http://127.0.0.1:6789/notification",

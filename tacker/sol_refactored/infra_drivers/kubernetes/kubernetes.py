@@ -282,20 +282,15 @@ class Kubernetes(object):
             self, req, inst, grant_req, grant, vnfd,
             operation, namespace, new_deploy_reses):
         coordinate_vnf = None
-        coordinate_vnf_class = None
         if req.obj_attr_is_set('additionalParams'):
             if operation == 'CHANGE_VNFPKG':
                 coordinate_vnf = req.additionalParams.get(
                     'lcm-operation-coordinate-new-vnf')
-                coordinate_vnf_class = req.additionalParams.get(
-                    'lcm-operation-coordinate-new-vnf-class')
             else:
                 coordinate_vnf = req.additionalParams.get(
                     'lcm-operation-coordinate-old-vnf')
-                coordinate_vnf_class = req.additionalParams.get(
-                    'lcm-operation-coordinate-old-vnf-class')
 
-        if coordinate_vnf and coordinate_vnf_class:
+        if coordinate_vnf:
             tmp_csar_dir = vnfd.make_tmp_csar_dir()
             script_dict = {
                 "request": req.to_dict(),

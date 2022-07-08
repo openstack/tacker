@@ -331,14 +331,17 @@ class BaseSolV2Test(base.BaseTestCase):
         )
         glance_client = glance_utils.GlanceClient(vim)
         if num_vdu == 1:
+            vdu = 'VDU2' if 'VDU2' in sw_data else 'VDU2-VirtualStorage'
             image = glance_client.create_image(
-                sw_data['VDU2-VirtualStorage']['name'], **create_args)
+                sw_data[vdu]['name'], **create_args)
             return image.id
 
+        vdu = 'VDU1' if 'VDU1' in sw_data else 'VDU1-VirtualStorage'
         image_1 = glance_client.create_image(
-            sw_data['VDU1-VirtualStorage']['name'], **create_args)
+            sw_data[vdu]['name'], **create_args)
+        vdu = 'VDU2' if 'VDU2' in sw_data else 'VDU2-VirtualStorage'
         image_2 = glance_client.create_image(
-            sw_data['VDU2-VirtualStorage']['name'], **create_args)
+            sw_data[vdu]['name'], **create_args)
         return image_1.id, image_2.id
 
     def glance_delete_image(self, vim_info, image_ids):

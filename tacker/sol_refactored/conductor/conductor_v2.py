@@ -14,7 +14,6 @@
 #    under the License.
 
 from oslo_log import log as logging
-from oslo_utils import uuidutils
 
 from tacker.common import log
 from tacker import context as tacker_context
@@ -93,7 +92,7 @@ class ConductorV2(object):
         inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
 
         # NOTE: error cannot happen to here basically.
-        # if an error occurred lcmocc.opetationState remains STARTING.
+        # if an error occurred lcmocc.operationState remains STARTING.
         # see the log of the tacker-conductor to investigate the cause
         # of error.
 
@@ -250,24 +249,8 @@ class ConductorV2(object):
                 context, lcmocc)
             self.vnflcm_driver.post_grant(context, lcmocc, inst, grant_req,
                                           grant, vnfd)
-            if lcmocc.operation == fields.LcmOperationType.CHANGE_VNFPKG:
-                inst_lcmocc = lcmocc_utils.get_inst_lcmocc(context, inst)
-                inst_grant_req = objects.GrantRequestV1(
-                    vnfInstanceId=inst.id,
-                    vnfLcmOpOccId=inst_lcmocc.id,
-                    operation=inst_lcmocc.operation,
-                    isAutomaticInvocation=lcmocc.isAutomaticInvocation
-                )
-                inst_grant = objects.GrantV1(
-                    id=uuidutils.generate_uuid(),
-                    vnfInstanceId=inst_grant_req.vnfInstanceId,
-                    vnfLcmOpOccId=inst_grant_req.vnfLcmOpOccId
-                )
-                self.vnflcm_driver.rollback(
-                    context, lcmocc, inst, inst_grant_req, inst_grant, vnfd)
-            else:
-                self.vnflcm_driver.rollback(context, lcmocc, inst, grant_req,
-                                            grant, vnfd)
+            self.vnflcm_driver.rollback(context, lcmocc, inst, grant_req,
+                                        grant, vnfd)
 
             lcmocc.operationState = fields.LcmOperationStateType.ROLLED_BACK
             with context.session.begin(subtransactions=True):

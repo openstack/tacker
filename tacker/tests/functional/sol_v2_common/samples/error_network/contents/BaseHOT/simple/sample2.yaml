@@ -16,7 +16,7 @@ resources:
         type: VDU1.yaml
         properties:
           flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
-          image: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
+          image-VDU1: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
           net5: { get_resource: internalVL3 }
           affinity: { get_resource: nfvi_node_affinity }
 

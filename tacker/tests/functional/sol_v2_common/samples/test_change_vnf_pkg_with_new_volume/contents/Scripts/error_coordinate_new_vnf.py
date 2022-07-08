@@ -27,13 +27,8 @@ SSH_CONNECT_RETRY_COUNT = 4
 
 class SampleErrorNewCoordinateVNFScript(object):
 
-    def __init__(self, req, inst, grant_req, grant, csar_dir, vdu_info):
-        self.req = req
-        self.inst = inst
-        self.grant_req = grant_req
-        self.grant = grant
-        self.csar_dir = csar_dir
-        self.vdu_info = vdu_info
+    def __init__(self, vnfc_param):
+        self.vnfc_param = vnfc_param
 
     def coordinate_vnf(self):
         raise Exception("ErrorNewCoordinateVNFScript")
@@ -41,16 +36,8 @@ class SampleErrorNewCoordinateVNFScript(object):
 
 def main():
     operation = "coordinate_vnf"
-    script_dict = pickle.load(sys.stdin.buffer)
-    req = script_dict['request']
-    inst = script_dict['vnf_instance']
-    grant_req = script_dict['grant_request']
-    grant = script_dict['grant_response']
-    csar_dir = script_dict['tmp_csar_dir']
-    vdu_info = script_dict['vdu_info']
-    script = SampleErrorNewCoordinateVNFScript(
-        req, inst, grant_req, grant,
-        csar_dir, vdu_info)
+    vnfc_param = pickle.load(sys.stdin.buffer)
+    script = SampleErrorNewCoordinateVNFScript(vnfc_param)
     try:
         getattr(script, operation)()
     except Exception:

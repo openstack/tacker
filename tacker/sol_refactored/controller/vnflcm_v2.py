@@ -383,6 +383,43 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         return sol_wsgi.SolResponse(202, None, location=location)
 
+    def _check_vdu_params(self, inst, vdu_params, vim_type, new_script,
+            old_script):
+        inst_vdu_ids = []
+        if inst.instantiatedVnfInfo.obj_attr_is_set('vnfcResourceInfo'):
+            inst_vdu_ids = [inst_vnfc.vduId
+                for inst_vnfc in inst.instantiatedVnfInfo.vnfcResourceInfo]
+
+        for vdu_param in vdu_params:
+            if 'vdu_id' not in vdu_param:
+                raise sol_ex.SolValidationError(
+                    detail="If you set vdu_params in additionalParams, you"
+                           "must set vdu_id for each element.")
+            if vdu_param['vdu_id'] not in inst_vdu_ids:
+                raise sol_ex.SolValidationError(
+                    detail="vdu_id '%s' does not exist." % vdu_param['vdu_id'])
+
+            def _check_vnfc_param(attr):
+                for key in ['cp_name', 'username', 'password']:
+                    if key not in vdu_param[attr]:
+                        raise sol_ex.SolValidationError(
+                            detail=f"If you set {attr} in "
+                                   f"vdu_param, you must set"
+                                   f" 'cp_name', 'username' and"
+                                   f" 'password'")
+
+            if vim_type == 'ETSINFV.OPENSTACK_KEYSTONE.V_3' and new_script:
+                if 'new_vnfc_param' not in vdu_param:
+                    raise sol_ex.SolValidationError(
+                        detail="'new_vnfc_param' must exist in vdu_param")
+                _check_vnfc_param('new_vnfc_param')
+
+            if vim_type == 'ETSINFV.OPENSTACK_KEYSTONE.V_3' and old_script:
+                if 'old_vnfc_param' not in vdu_param:
+                    raise sol_ex.SolValidationError(
+                        detail="'old_vnfc_param' must exist in vdu_param")
+                _check_vnfc_param('old_vnfc_param')
+
     @validator.schema(schema.ChangeCurrentVnfPkgRequest_V200, '2.0.0')
     @coordinate.lock_vnf_instance('{id}')
     def change_vnfpkg(self, request, id, body):
@@ -408,24 +445,16 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         upgrade_type = additional_params.get('upgrade_type', '')
         if upgrade_type != 'RollingUpdate':
             raise sol_ex.NotSupportUpgradeType(upgrade_type=upgrade_type)
-        if additional_params.get('vdu_params'):
-            vdu_ids = [vdu.get('vdu_id') for vdu in
-                       additional_params.get('vdu_params')]
-            if None in vdu_ids:
-                raise sol_ex.SolValidationError(
-                    detail="If you set vdu_params in additionalParams, you"
-                           "must set vduId for each element.")
-            for vdu in additional_params.get('vdu_params'):
-                for attr in ['old_vnfc_param', 'new_vnfc_param']:
-                    if vdu.get(attr):
-                        vdu_keys = vdu.get(attr).keys()
-                        if set(vdu_keys).difference(set(
-                                ['cp_name', 'username', 'password'])):
-                            raise sol_ex.SolValidationError(
-                                detail=f"If you set {attr} in "
-                                       f"additionalParams, you must set"
-                                       f" 'cp_name', 'username' and"
-                                       f" 'password'")
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        vdu_params = additional_params.get('vdu_params')
+        if (vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3' and
+                vdu_params is None):
+            raise sol_ex.SolValidationError(
+                detail="'vdu_params' must exist in additionalParams")
+        if vdu_params:
+            self._check_vdu_params(inst, vdu_params, vim_info.vimType,
+                additional_params.get('lcm-operation-coordinate-new-vnf'),
+                additional_params.get('lcm-operation-coordinate-old-vnf'))
 
         lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.CHANGE_VNFPKG,
                                   body)
@@ -461,7 +490,7 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
             if 'BASIC' in auth.authType:
                 basic_req = auth_req.get('paramsBasic')
                 if basic_req is None:
-                    msg = "ParmasBasic must be specified."
+                    msg = "ParamsBasic must be specified."
                     raise sol_ex.InvalidSubscription(sol_detail=msg)
                 auth.paramsBasic = (
                     objects.SubscriptionAuthentication_ParamsBasic(

@@ -4,7 +4,7 @@ description: 'VDU1 HOT for Sample VNF'
 parameters:
   flavor:
     type: string
-  image:
+  image-VDU1-VirtualStorage:
     type: string
   zone:
     type: string
@@ -49,7 +49,7 @@ resources:
   VDU1-VirtualStorage:
     type: OS::Cinder::Volume
     properties:
-      image: { get_param: image }
+      image: { get_param: image-VDU1-VirtualStorage }
       size: 1
       volume_type: { get_param: volume_type }
 
