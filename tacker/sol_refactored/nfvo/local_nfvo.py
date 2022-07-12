@@ -19,6 +19,7 @@ import os
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
+from tacker.common import exceptions
 from tacker.common import utils as common_utils
 import tacker.conf
 from tacker.objects import fields
@@ -54,15 +55,12 @@ class LocalNfvo(object):
         self.inst_vnfd_id = {}
 
     def onboarded_show(self, context, id):
-        pkg_vnfd = vnf_package_vnfd.VnfPackageVnfd().get_by_vnfdId(
-            context, id)
-        if not pkg_vnfd:
-            raise sol_ex.VnfdIdNotFound(vnfd_id=id)
-
-        vnf_pkg = vnf_package.VnfPackage().get_by_id(
-            context, pkg_vnfd.package_uuid)
-        if not vnf_pkg:
-            # never happen. just for code consistency.
+        try:
+            pkg_vnfd = vnf_package_vnfd.VnfPackageVnfd().get_by_id(context, id)
+            vnf_pkg = vnf_package.VnfPackage().get_by_id(
+                context, pkg_vnfd.package_uuid)
+        except (exceptions.VnfPackageVnfdNotFound,
+                exceptions.VnfPackageNotFound):
             raise sol_ex.VnfdIdNotFound(vnfd_id=id)
 
         if (vnf_pkg.onboarding_state !=
@@ -87,9 +85,10 @@ class LocalNfvo(object):
         return res
 
     def get_csar_dir(self, context, vnfd_id):
-        pkg_vnfd = vnf_package_vnfd.VnfPackageVnfd().get_by_vnfdId(
-            context, vnfd_id)
-        if not pkg_vnfd:
+        try:
+            pkg_vnfd = vnf_package_vnfd.VnfPackageVnfd().get_by_id(
+                context, vnfd_id)
+        except exceptions.VnfPackageVnfdNotFound:
             raise sol_ex.VnfdIdNotFound(vnfd_id=vnfd_id)
 
         csar_dir = os.path.join(CONF.vnf_package.vnf_package_csar_path,
@@ -286,16 +285,18 @@ class LocalNfvo(object):
         return grant_res
 
     def _update_vnf_pkg_usage_state(self, context, vnfd_id, state):
-        pkg_vnfd = vnf_package_vnfd.VnfPackageVnfd().get_by_vnfdId(
-            context, vnfd_id)
-        if not pkg_vnfd:
+        try:
+            pkg_vnfd = vnf_package_vnfd.VnfPackageVnfd().get_by_id(
+                context, vnfd_id)
+        except exceptions.VnfPackageVnfdNotFound:
             # should not happen. just for code consistency.
             LOG.error("VnfPackage of vnfdID %s not found.", vnfd_id)
             return
 
-        vnf_pkg = vnf_package.VnfPackage().get_by_id(
-            context, pkg_vnfd.package_uuid)
-        if not vnf_pkg:
+        try:
+            vnf_pkg = vnf_package.VnfPackage().get_by_id(
+                context, pkg_vnfd.package_uuid)
+        except exceptions.VnfPackageNotFound:
             # should not happen. just for code consistency.
             LOG.error("VnfPackage %s not found.", pkg_vnfd.package_uuid)
             return
