@@ -1,4 +1,4 @@
-# vagrant-devstack
+# Devstack Installer for Tacker
 
 ## What is this
 
@@ -65,19 +65,23 @@ There are some parameters in `group_vars/all.yml` such as password on devstack
 or optional configurations. You don't need to update it usually.
 
 ```sh
-$ ansible-playbook -i hosts site.yml
+$ ansible-playbook -i hosts site.yaml
 ```
 
-After finished ansible's tasks, you can login to launched VMs. So, login to
-controller node and run `stack.sh` for installing OpenStack. You will find that
-`local.conf` is prepared for your environment by using its example.
-See instruction how to configure `local.conf` described in
-[DevStack Quick Start](https://docs.openstack.org/devstack/latest/)
-if you customize it by yourself.
+After finished ansible's tasks, you can login to launched VMs with hostname you
+defined in `machines.yml`.
+So, let's login to controller node and OpenStack. You will find that two
+examples of `local.conf` are prepared in `$HOME/devstack` for your environment.
+
+* local.conf.example
+* local.conf.kubernetes
 
 ```sh
-$ ssh stack@192.168.33.11
+$ ssh stack@192.168.56.11
 $ cd devstack
-$ YOUR_FAVORITE_EDITOR local.conf
+$ cp local.conf.kubernetes local.conf
 $ ./stack.sh
 ```
+
+See instruction how to configure `local.conf` described in
+[DevStack Quick Start](https://docs.openstack.org/devstack/latest/).

@@ -70,7 +70,7 @@ Setup Configuration File
 
    .. code-block:: console
 
-       $ ssh -F ssh_config controller
+       $ ssh -F /path/to/tacker/vagrant/devstack/ssh_config controller
 
 Setup ``machines.yml`` which is a config file defines parameters of each
 VM you deploy.
@@ -155,7 +155,7 @@ describing how you configure the file.
 
 .. code-block:: console
 
-    $ ansible-playbook -i hosts site.yml
+    $ ansible-playbook -i hosts site.yaml
 
 After finished all tasks, you can login to the launched VMs. So, login to
 controller node and run ``stack.sh`` for installing OpenStack.
@@ -167,7 +167,7 @@ if you customize it furthermore by yourself.
 
 .. code-block:: console
 
-    $ ssh stack@192.168.33.11
+    $ ssh stack@192.168.56.11
     $ cd devstack
     $ YOUR_FAVORITE_EDITOR local.conf
     $ ./stack.sh
