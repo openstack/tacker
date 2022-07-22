@@ -27,6 +27,7 @@ from tacker.common import utils
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
+from tacker.db import sqlalchemyutils
 from tacker.db.vnfm import vnfm_db
 from tacker import objects
 from tacker.objects import base
@@ -125,6 +126,23 @@ def _vnf_instance_list_by_filter(context, columns_to_join=None,
         query = common.apply_filters(query, filters)
 
     return query.all()
+
+
+@db_api.context_manager.reader
+def _vnf_instance_list_by_filter_query(context, columns_to_join=None,
+                                 filters=None):
+    query = api.model_query(context, models.VnfInstance,
+                            read_deleted="no",
+                            project_only=True)
+
+    if columns_to_join:
+        for column in columns_to_join:
+            query = query.options(joinedload(column))
+
+    if filters:
+        query = common.apply_filters(query, filters)
+
+    return query
 
 
 def _make_vnf_instance_list(context, vnf_instance_list, db_vnf_instance_list,
@@ -544,6 +562,22 @@ class VnfInstanceList(ovoo_base.ObjectListBase, base.TackerObject):
                                               columns_to_join=expected_attrs)
         return _make_vnf_instance_list(context, cls(), db_vnf_instances,
                                        expected_attrs)
+
+    @base.remotable_classmethod
+    def get_by_marker_filter(cls, context, limit, marker_obj,
+            filters=None, expected_attrs=None):
+        expected_attrs = ["instantiated_vnf_info"]
+        query = _vnf_instance_list_by_filter_query(context,
+                columns_to_join=expected_attrs,
+                filters=filters)
+        query = sqlalchemyutils.paginate_query(query, model=models.VnfInstance,
+            limit=limit,
+            sorts=[['id', 'asc']],
+            marker_obj=marker_obj)
+        db_vnf_instances = query.all()
+
+        return _make_vnf_instance_list(context, cls(), db_vnf_instances,
+                expected_attrs)
 
     @base.remotable_classmethod
     def get_by_filters(cls, context, filters=None,
