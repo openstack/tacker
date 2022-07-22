@@ -56,8 +56,11 @@ from tacker import manager
 from tacker import objects
 from tacker.objects import fields
 from tacker.objects.fields import ErrorPoint as EP
+from tacker.objects.vnf_instance import VnfInstanceList as vnf_instance_list
 from tacker.objects import vnf_lcm_op_occs as vnf_lcm_op_occs_obj
+from tacker.objects.vnf_lcm_op_occs import VnfLcmOpOccList as vnf_lcm_op_list
 from tacker.objects import vnf_lcm_subscriptions as subscription_obj
+from tacker.objects.vnf_lcm_subscriptions import LccnSubscriptionList as s_list
 from tacker.plugins.common import constants
 from tacker.policies import vnf_lcm as vnf_lcm_policies
 from tacker.tosca import utils as toscautils
@@ -192,9 +195,6 @@ class VnfLcmController(wsgi.Controller):
         self._vnfm_plugin = manager.TackerManager.get_service_plugins()['VNFM']
         self._view_builder_op_occ = vnf_op_occs_view.ViewBuilder()
         self._view_builder_subscription = vnf_subscription_view.ViewBuilder()
-        self._nextpages_vnf_instances = {}
-        self._nextpages_lcm_op_occs = {}
-        self._nextpages_subscriptions = {}
 
     def _get_vnf_instance_href(self, vnf_instance):
         return '{}vnflcm/v1/vnf_instances/{}'.format(
@@ -560,13 +560,6 @@ class VnfLcmController(wsgi.Controller):
 
         return vnf_package_info[0]
 
-    def _delete_expired_nextpages(self, nextpages):
-        for k, v in list(nextpages.items()):
-            if timeutils.is_older_than(v['created_time'],
-                    CONF.vnf_lcm.nextpage_expiration_time):
-                LOG.debug('Old nextpages are deleted. id: %s' % k)
-                nextpages.pop(k)
-
     @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def show(self, request, id):
@@ -596,39 +589,43 @@ class VnfLcmController(wsgi.Controller):
         nextpage = request.GET.get('nextpage_opaque_marker')
         allrecords = request.GET.get('all_records')
 
+        limit = None
+        marker_obj = None
         result = []
 
-        if allrecords != 'yes' and nextpage:
-            self._delete_expired_nextpages(self._nextpages_vnf_instances)
+        # get maximum record size per page
+        if allrecords != 'yes':
+            limit = CONF.vnf_lcm.vnf_instance_num
 
-            if nextpage in self._nextpages_vnf_instances:
-                result = self._nextpages_vnf_instances.pop(
-                    nextpage)['nextpage']
-        else:
-            vnf_instances = objects.VnfInstanceList.get_by_filters(
-                request.context, filters=filters)
+            # get next page marker object from nextpage id
+            if nextpage:
+                marker_obj = objects.VnfInstance.get_by_id(request.context,
+                                                           nextpage)
+        try:
+            # get records from DB within maximum record size per page
+            # except for getting all records case
+            result = vnf_instance_list.get_by_marker_filter(request.context,
+                    limit, marker_obj, filters=filters)
+        except Exception as e:
+            LOG.exception(traceback.format_exc())
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
 
-            result = self._view_builder.index(vnf_instances)
+        result = self._view_builder.index(result)
 
         res = webob.Response(content_type='application/json')
         res.status_int = 200
 
-        if (allrecords != 'yes' and
-                len(result) > CONF.vnf_lcm.vnf_instance_num):
-            nextpageid = uuidutils.generate_uuid()
+        # if the number of records obtained from DB is equal to maximum record
+        # size per page, the id of the last record is used as next page marker
+        # and set it to Link header of the response
+        if (allrecords != 'yes' and len(result) >= limit):
+            nextpageid = result[(limit - 1)]['id']
             links = ('Link', '<%s?nextpage_opaque_marker=%s>; rel="next"' % (
                 request.path_url, nextpageid))
             res.headerlist.append(links)
-            res.body = jsonutils.dump_as_bytes(
-                result[: CONF.vnf_lcm.vnf_instance_num])
 
-            self._delete_expired_nextpages(self._nextpages_vnf_instances)
-
-            remain = result[CONF.vnf_lcm.vnf_instance_num:]
-            self._nextpages_vnf_instances.update({nextpageid:
-                {'created_time': timeutils.utcnow(), 'nextpage': remain}})
-        else:
-            res.body = jsonutils.dump_as_bytes(result)
+        res.body = jsonutils.dump_as_bytes(result)
 
         return res
 
@@ -1061,9 +1058,9 @@ class VnfLcmController(wsgi.Controller):
     @wsgi.response(http_client.OK)
     def subscription_list(self, request):
         nextpage_opaque_marker = None
-        paging = 1
         filter_string = ""
-        ignore_nextpages = False
+        limit = None
+        marker_obj = None
         subscription_data = []
 
         query_params = request.query_string
@@ -1083,9 +1080,6 @@ class VnfLcmController(wsgi.Controller):
                     filter_string = query_param_key_value[1]
                 if query_param_key_value[0] == 'nextpage_opaque_marker':
                     nextpage_opaque_marker = query_param_key_value[1]
-                if query_param_key_value[0] == 'page':
-                    paging = int(query_param_key_value[1])
-                    ignore_nextpages = True
 
             if filter_string:
                 # check enumerations columns
@@ -1114,54 +1108,47 @@ class VnfLcmController(wsgi.Controller):
                                 title='Bad Request')
 
         nextpage = nextpage_opaque_marker
-        if allrecords != 'yes' and not ignore_nextpages and nextpage:
-            self._delete_expired_nextpages(self._nextpages_subscriptions)
 
-            if nextpage in self._nextpages_subscriptions:
-                subscription_data = self._nextpages_subscriptions.pop(
-                    nextpage)['nextpage']
-        else:
-            try:
-                filter_string_parsed = self._view_builder_subscription. \
-                    validate_filter(filter_string)
-                if nextpage_opaque_marker:
-                    start_index = paging - 1
-                else:
-                    start_index = None
+        try:
+            filter_string_parsed = self._view_builder_subscription. \
+                validate_filter(filter_string)
 
-                vnf_lcm_subscriptions = (
-                    subscription_obj.LccnSubscriptionList.
-                    get_by_filters(request.context,
-                                read_deleted='no',
-                                filters=filter_string_parsed,
-                                nextpage_opaque_marker=start_index))
+            # get maximum record size per page
+            if allrecords != 'yes':
+                limit = CONF.vnf_lcm.subscription_num
 
-                LOG.debug("vnf_lcm_subscriptions %s" % vnf_lcm_subscriptions)
-                subscription_data = self._view_builder_subscription. \
-                    subscription_list(vnf_lcm_subscriptions)
-            except Exception as e:
-                LOG.error(traceback.format_exc())
-                return self._make_problem_detail(
-                    str(e), 500, title='Internal Server Error')
+            # get next page marker object from nextpage id
+            if nextpage:
+                marker_obj = objects.LccnSubscription.get_by_id(
+                    request.context, nextpage)
+
+            # get records from DB within maximum record size per page
+            # except for getting all records case
+            result = s_list.get_by_marker_filter(
+                request.context, limit,
+                marker_obj, filters=filter_string_parsed,
+                read_deleted='no')
+            LOG.debug("vnf_lcm_subscriptions %s" % result)
+
+            subscription_data = self._view_builder_subscription. \
+                subscription_list(result)
+        except Exception as e:
+            LOG.error(traceback.format_exc())
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
 
         # make response
         res = webob.Response(content_type='application/json')
         res.status_int = 200
 
-        if (allrecords != 'yes' and not ignore_nextpages and
-                len(subscription_data) > CONF.vnf_lcm.subscription_num):
-            nextpageid = uuidutils.generate_uuid()
+        # if the number of records obtained from DB is equal to maximum record
+        # size per page, the id of the last record is used as next page marker
+        # and set it to Link header of the response
+        if (allrecords != 'yes' and len(subscription_data) >= limit):
+            nextpageid = subscription_data[(limit - 1)]['id']
             links = ('Link', '<%s?nextpage_opaque_marker=%s>; rel="next"' % (
                 request.path_url, nextpageid))
             res.headerlist.append(links)
-
-            remain = subscription_data[CONF.vnf_lcm.subscription_num:]
-            subscription_data = (
-                subscription_data[: CONF.vnf_lcm.subscription_num])
-
-            self._delete_expired_nextpages(self._nextpages_subscriptions)
-            self._nextpages_subscriptions.update({nextpageid:
-                {'created_time': timeutils.utcnow(), 'nextpage': remain}})
 
         res.body = jsonutils.dump_as_bytes(subscription_data)
 
@@ -1748,52 +1735,53 @@ class VnfLcmController(wsgi.Controller):
         nextpage = request.GET.get('nextpage_opaque_marker')
         allrecords = request.GET.get('all_records')
 
+        limit = None
+        marker_obj = None
         result = []
 
-        if allrecords != 'yes' and nextpage:
-            self._delete_expired_nextpages(self._nextpages_lcm_op_occs)
+        self._view_builder_op_occ.validate_attribute_fields(
+            all_fields=all_fields, fields=fields,
+            exclude_fields=exclude_fields,
+            exclude_default=exclude_default)
 
-            if nextpage in self._nextpages_lcm_op_occs:
-                result = self._nextpages_lcm_op_occs.pop(nextpage)['nextpage']
-        else:
-            self._view_builder_op_occ.validate_attribute_fields(
-                all_fields=all_fields, fields=fields,
-                exclude_fields=exclude_fields,
-                exclude_default=exclude_default)
+        filters = self._view_builder_op_occ.validate_filter(filters)
 
-            filters = self._view_builder_op_occ.validate_filter(filters)
+        # get maximum record size per page
+        if allrecords != 'yes':
+            limit = CONF.vnf_lcm.lcm_op_occ_num
 
-            try:
-                vnf_lcm_op_occs = (
-                    vnf_lcm_op_occs_obj.VnfLcmOpOccList.get_by_filters(
-                        request.context, read_deleted='no', filters=filters))
-            except Exception as e:
-                LOG.exception(traceback.format_exc())
-                return self._make_problem_detail(
-                    str(e), 500, title='Internal Server Error')
+        # get next page marker object from nextpage id
+        if nextpage:
+            marker_obj = vnf_lcm_op_occs_obj.VnfLcmOpOcc.get_by_id(
+                request.context, nextpage)
 
-            result = self._view_builder_op_occ.index(request, vnf_lcm_op_occs,
-                    all_fields=all_fields, exclude_fields=exclude_fields,
-                    fields=fields, exclude_default=exclude_default)
+        try:
+            # get records from DB within maximum record size per page
+            # except for getting all records case
+            result = vnf_lcm_op_list.get_by_marker_filter(request.context,
+                    limit, marker_obj, filters=filters, read_deleted='no')
+        except Exception as e:
+            LOG.exception(traceback.format_exc())
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
+
+        result = self._view_builder_op_occ.index(request, result,
+             all_fields=all_fields, exclude_fields=exclude_fields,
+             fields=fields, exclude_default=exclude_default)
 
         res = webob.Response(content_type='application/json')
         res.status_int = 200
 
-        if allrecords != 'yes' and len(result) > CONF.vnf_lcm.lcm_op_occ_num:
-            nextpageid = uuidutils.generate_uuid()
+        # if the number of records obtained from DB is equal to maximum record
+        # size per page, the id of the last record is used as next page marker
+        # and set it to Link header of the response
+        if (allrecords != 'yes' and len(result) >= limit):
+            nextpageid = result[(limit - 1)]['id']
             links = ('Link', '<%s?nextpage_opaque_marker=%s>; rel="next"' % (
                 request.path_url, nextpageid))
             res.headerlist.append(links)
-            res.body = jsonutils.dump_as_bytes(
-                result[: CONF.vnf_lcm.lcm_op_occ_num])
 
-            self._delete_expired_nextpages(self._nextpages_lcm_op_occs)
-
-            remain = result[CONF.vnf_lcm.lcm_op_occ_num:]
-            self._nextpages_lcm_op_occs.update({nextpageid:
-                {'created_time': timeutils.utcnow(), 'nextpage': remain}})
-        else:
-            res.body = jsonutils.dump_as_bytes(result)
+        res.body = jsonutils.dump_as_bytes(result)
 
         return res
 

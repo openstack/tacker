@@ -1882,7 +1882,15 @@ def _subscription_links(subscription_dict):
     return subscription_dict
 
 
-def return_subscription_obj(**updates):
+def return_lccn_subscription(**updates):
+    subscription = _fake_subscription_obj(**updates)
+    subscription['filter'] = json.dumps(subscription['filter'])
+    obj = objects.LccnSubscription(**subscription)
+
+    return obj
+
+
+def return_lccn_subscription_obj(**updates):
     subscription = _fake_subscription_obj(**updates)
     subscription['filter'] = json.dumps(subscription['filter'])
     obj = objects.LccnSubscriptionRequest(**subscription)

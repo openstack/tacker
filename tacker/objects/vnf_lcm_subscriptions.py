@@ -24,6 +24,7 @@ import tacker.conf
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
+from tacker.db import sqlalchemyutils
 from tacker import objects
 from tacker.objects import base
 from tacker.objects import common
@@ -381,6 +382,37 @@ def _vnf_lcm_subscription_list_by_filters(context,
         return query.order_by(models.VnfLcmSubscriptions.created_at).all()
 
 
+@db_api.context_manager.reader
+def _vnf_lcm_subscription_get_query(context, read_deleted=None, filters=None):
+    query = api.model_query(context, models.VnfLcmSubscriptions,
+                            read_deleted=read_deleted,
+                            project_only=True)
+    binary_columns = ['notification_types', 'operation_types']
+
+    if filters:
+        filter_data = json.dumps(filters)
+        if 'ChangeNotificationsFilter' in filter_data:
+            query = query.join(models.VnfLcmFilters)
+
+        if 'and' in filters:
+            filters_and = []
+            for filter in filters['and']:
+                if filter['field'] in binary_columns:
+                    converted_value = utils.str_to_bytes(filter['value'])
+                    filter['value'] = converted_value
+                filters_and.append(filter)
+
+            filters = {'and': filters_and}
+        else:
+            if filters['field'] in binary_columns:
+                converted_value = utils.str_to_bytes(filters['value'])
+                filters.update({'value': converted_value})
+
+        query = common.apply_filters(query, filters)
+
+    return query.order_by(models.VnfLcmSubscriptions.created_at)
+
+
 @db_api.context_manager.writer
 def _vnf_lcm_subscriptions_create(context, values, filter):
     with db_api.context_manager.writer.using(context):
@@ -720,6 +752,22 @@ class LccnSubscriptionList(ovoo_base.ObjectListBase, base.TackerObject):
     fields = {
         'objects': fields.ListOfObjectsField('LccnSubscription')
     }
+
+    @base.remotable_classmethod
+    def get_by_marker_filter(cls, context,
+            limit, marker_obj,
+            filters=None, read_deleted=None):
+        query = _vnf_lcm_subscription_get_query(context,
+                                               read_deleted=read_deleted,
+                                               filters=filters)
+        query = sqlalchemyutils.paginate_query(query,
+            model=models.VnfLcmSubscriptions,
+            limit=limit,
+            sorts=[['id', 'asc']],
+            marker_obj=marker_obj)
+        db_subscriptions = query.all()
+
+        return _make_subscription_list(context, cls(), db_subscriptions)
 
     @base.remotable_classmethod
     def get_by_filters(cls, context, read_deleted=None,

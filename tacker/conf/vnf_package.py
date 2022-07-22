@@ -78,10 +78,7 @@ Related options:
                 help=_("List of del inputs from lower-vnfd")),
     cfg.IntOpt('vnf_package_num',
                default=100,
-               help=_("Number of vnf_packages contained in 1 page")),
-    cfg.IntOpt('nextpage_expiration_time',
-               default=3600,
-               help=_("Expiration time (sec) for paging")),
+               help=_("Number of vnf_packages contained in 1 page"))
 
 ]
 

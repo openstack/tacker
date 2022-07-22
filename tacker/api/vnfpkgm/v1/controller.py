@@ -18,6 +18,7 @@ from io import BytesIO
 import json
 import mimetypes
 import os
+import traceback
 import webob
 import zipfile
 from zipfile import ZipFile
@@ -28,7 +29,6 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import encodeutils
 from oslo_utils import excutils
-from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from tacker._i18n import _
@@ -40,8 +40,10 @@ from tacker.common import exceptions
 from tacker.common import utils
 from tacker.conductor.conductorrpc import vnf_pkgm_rpc
 from tacker.glance_store import store as glance_store
+from tacker import objects
 from tacker.objects import fields
 from tacker.objects import vnf_package as vnf_package_obj
+from tacker.objects.vnf_package import VnfPackagesList as vnf_package_list
 from tacker.policies import vnf_package as vnf_package_policies
 from tacker import wsgi
 
@@ -74,13 +76,6 @@ class VnfPkgmController(wsgi.Controller):
             msg = _("Can not find requested vnf package: %s") % id
             raise webob.exc.HTTPNotFound(explanation=msg)
         return vnf_package
-
-    def _delete_expired_nextpages(self, nextpages):
-        for k, v in nextpages.items():
-            if timeutils.is_older_than(v['created_time'],
-                    CONF.vnf_package.nextpage_expiration_time):
-                LOG.debug('Old nextpages are deleted. id: %s' % k)
-                nextpages.pop(k)
 
     @wsgi.response(http_client.CREATED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN))
@@ -162,42 +157,47 @@ class VnfPkgmController(wsgi.Controller):
         filters = self._view_builder.validate_filter(filters)
 
         results = []
+        limit = None
+        marker_obj = None
 
-        if allrecords != 'yes' and nextpage:
-            self._delete_expired_nextpages(self._nextpages)
+        if allrecords != 'yes':
+            limit = CONF.vnf_package.vnf_package_num
 
-            if nextpage in self._nextpages:
-                results = self._nextpages.pop(
-                    nextpage)['nextpage']
-        else:
-            vnf_packages = vnf_package_obj.VnfPackagesList.get_by_filters(
-                request.context, read_deleted='no', filters=filters)
+            # get next page marker object from nextpage id
+            if nextpage:
+                marker_obj = objects.VnfPackage.get_by_id(request.context,
+                        nextpage)
 
-            results = self._view_builder.index(vnf_packages,
-                                               all_fields=all_fields,
-                                               exclude_fields=exclude_fields,
-                                               fields=fields,
-                                               exclude_default=exclude_default)
+        try:
+            # get records from DB within maximum record size per page
+            # except for getting all records case
+            result = vnf_package_list.get_by_marker_filter(request.context,
+                    limit, marker_obj, filters=filters, read_deleted='no')
+        except Exception as e:
+            LOG.exception(traceback.format_exc())
+            return self._make_problem_detail(
+                str(e), 500, title='Internal Server Error')
+
+        results = self._view_builder.index(result,
+                all_fields=all_fields,
+                exclude_fields=exclude_fields,
+                fields=fields,
+                exclude_default=exclude_default)
 
         res = webob.Response(content_type='application/json')
         res.status_int = 200
 
+        # if the number of records obtained from DB is equal to maximum record
+        # size per page, the id of the last record is used as next page marker
+        # and set it to Link header of the response
         if (allrecords != 'yes' and
-                len(results) > CONF.vnf_package.vnf_package_num):
-            nextpageid = uuidutils.generate_uuid()
+                len(results) >= limit):
+            nextpageid = result[(limit - 1)]['id']
             links = ('Link', '<%s?nextpage_opaque_marker=%s>; rel="next"' % (
                 request.path_url, nextpageid))
             res.headerlist.append(links)
-            res.body = jsonutils.dump_as_bytes(
-                results[: CONF.vnf_package.vnf_package_num], default=str)
 
-            self._delete_expired_nextpages(self._nextpages)
-
-            remain = results[CONF.vnf_package.vnf_package_num:]
-            self._nextpages.update({nextpageid:
-                {'created_time': timeutils.utcnow(), 'nextpage': remain}})
-        else:
-            res.body = jsonutils.dump_as_bytes(results, default=str)
+        res.body = jsonutils.dump_as_bytes(results, default=str)
 
         return res
 

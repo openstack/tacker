@@ -117,7 +117,7 @@ class TestController(base.TestCase):
         self.assertRaises(exc.HTTPNotFound, self.controller.show,
                           req, constants.UUID)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data('/vnfpkgm/v1/vnf_packages')
     def test_index(self, path, mock_vnf_list):
         req = fake_request.HTTPRequest.blank(path)
@@ -133,7 +133,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     def test_index_attribute_selector_all_fields(self, mock_vnf_list):
         params = {'all_fields': ''}
         query = urllib.parse.urlencode(params)
@@ -146,7 +146,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     def test_index_attribute_selector_exclude_default(self, mock_vnf_list):
         params = {'exclude_default': ''}
         query = urllib.parse.urlencode(params)
@@ -164,7 +164,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'exclude_fields': 'softwareImages'},
         {'exclude_fields': 'checksum'},
@@ -184,7 +184,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'fields': 'softwareImages'},
         {'fields': 'checksum'},
@@ -213,7 +213,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     def test_index_attribute_selector_user_defined_data_combination(self,
             mock_vnf_list):
         """Query user defined data with fields parameter
@@ -242,7 +242,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     def test_index_attribute_selector_user_defined_data(self, mock_vnf_list):
         params = {'fields': 'userDefinedData/key1,userDefinedData/key2'}
         query = urllib.parse.urlencode(params)
@@ -256,7 +256,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     def test_index_attribute_selector_nested_complex_attribute(self,
             mock_vnf_list):
         params = {'fields': 'softwareImages/checksum/algorithm,'
@@ -284,7 +284,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'filter': '(eq,vnfdId,%s)' % constants.UUID},
         {'filter': '(in,vnfdId,%s)' % constants.UUID},
@@ -325,7 +325,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     def test_index_filter_combination(self, mock_vnf_list):
         """Test multiple filter parameters separated by semicolon """
         params = {'filter': '(eq,vnfdId,%s);(eq,id,%s)' %
@@ -345,7 +345,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'filter': '(eq,id,%s)' % constants.UUID},
         {'filter': '(eq,vnfdId,%s)' % constants.UUID},
@@ -394,7 +394,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'filter': "(eq,vnfProductName,dummy_value)"},
         {'filter': "(eq,vnfProductName,dummy value)"},
@@ -428,7 +428,7 @@ class TestController(base.TestCase):
             jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
                 default=str)), res_dict.json)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'filter': "(eq,vnfProductName,value"},
         {'filter': "eq,vnfProductName,value)"},
@@ -446,7 +446,7 @@ class TestController(base.TestCase):
         self.assertRaises(tacker_exc.ValidationError, self.controller.index,
                           req)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'filter': "(eq,vnfProductName,singl'quote)"},
         {'filter': "(eq,vnfProductName,three''' quotes)"},
@@ -466,7 +466,7 @@ class TestController(base.TestCase):
         self.assertRaises(tacker_exc.ValidationError, self.controller.index,
                           req)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'filter': '(eq,vnfdId,value1,value2)'},
         {'filter': '(fake,vnfdId,dummy_vnfd_id)'},
@@ -481,7 +481,7 @@ class TestController(base.TestCase):
         self.assertRaises(tacker_exc.ValidationError, self.controller.index,
                           req)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'filter': '(eq,fakeattr,fakevalue)'},
         {'filter': '(eq,,fakevalue)'},
@@ -495,7 +495,7 @@ class TestController(base.TestCase):
         self.assertRaises(tacker_exc.ValidationError, self.controller.index,
                           req)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'filter': '(eq,id,fake_value)'},
         {'filter': '(eq,vnfd_id,fake_value)'},
@@ -515,7 +515,7 @@ class TestController(base.TestCase):
         self.assertRaises(tacker_exc.ValidationError, self.controller.index,
                           req)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'fields': 'nonExistentField'},
         {'exclude_fields': 'nonExistentField'}
@@ -529,7 +529,7 @@ class TestController(base.TestCase):
         self.assertRaises(tacker_exc.ValidationError, self.controller.index,
                           req)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'fields': 'softwareImages', 'all_fields': ''},
         {'exclude_fields': 'checksum', 'all_fields': ''},
@@ -545,7 +545,7 @@ class TestController(base.TestCase):
         self.assertRaises(tacker_exc.ValidationError, self.controller.index,
                           req)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
     @ddt.data(
         {'exclude_default': 'softwareImages'},
         {'all_fields': 'checksum'},
@@ -560,51 +560,92 @@ class TestController(base.TestCase):
         self.assertRaises(tacker_exc.ValidationError, self.controller.index,
                           req)
 
-    @mock.patch.object(VnfPackagesList, "get_by_filters")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
+    @mock.patch.object(objects.VnfPackage, "get_by_id")
     @ddt.data(
         {'params': {'all_records': 'yes'},
             'result_names': ['sample1', 'sample2', 'sample3', 'sample4']},
-        {'params': {'all_records': 'yes', 'nextpage_opaque_marker': 'abc'},
+        {'params': {'all_records': 'yes', 'nextpage_opaque_marker':
+            '22222222-2222-2222-2222-222222222222'},
             'result_names': ['sample1', 'sample2', 'sample3', 'sample4']},
-        {'params': {'nextpage_opaque_marker': 'abc'},
+        {'params': {'nextpage_opaque_marker':
+            '44444444-4444-4444-4444-444444444444'},
             'result_names': []},
+        {'params': {'nextpage_opaque_marker':
+            '22222222-2222-2222-2222-222222222222'},
+            'result_names': ['sample3', 'sample4']},
         {'params': {},
-            'result_names': ['sample2']}
+            'result_names': ['sample1', 'sample2']}
     )
-    def test_index_paging(self, values, mock_vnf_list):
-        cfg.CONF.set_override('vnf_package_num', 1, group='vnf_package')
+    def test_index_paging(self, values,
+            mock_marker_obj, mock_vnf_package_list):
+        ids = ['11111111-1111-1111-1111-111111111111',
+               '22222222-2222-2222-2222-222222222222',
+               '33333333-3333-3333-3333-333333333333',
+               '44444444-4444-4444-4444-444444444444',
+               None]
+        cfg.CONF.set_override('vnf_package_num', 2, group='vnf_package')
         query = urllib.parse.urlencode(values['params'])
         req = fake_request.HTTPRequest.blank('/vnfpkgm/v1/vnf_packages?' +
             query)
-        mock_vnf_list.return_value = [
-            fakes.return_vnfpkg_obj(
-                vnfd_updates={'vnf_product_name': 'sample1'}),
-            fakes.return_vnfpkg_obj(
-                vnfd_updates={'vnf_product_name': 'sample2'}),
-            fakes.return_vnfpkg_obj(
-                vnfd_updates={'vnf_product_name': 'sample3'}),
-            fakes.return_vnfpkg_obj(
-                vnfd_updates={'vnf_product_name': 'sample4'})
-        ]
+
+        target_index = []
+        if 'all_records' in values['params'] \
+                and values['params']['all_records'] == 'yes':
+            mock_marker_obj.return_value = None
+            target_index = [0, 1, 2, 3]
+        elif 'nextpage_opaque_marker' in values['params']:
+            mock_marker_obj.return_value = fakes.return_vnfpkg_obj(
+                vnf_package_updates={'id':
+                    values['params']['nextpage_opaque_marker']})
+            marker_obj_index = ids.index(mock_marker_obj.return_value['id'])
+            for i in range(marker_obj_index + 1, len(ids) - 1):
+                target_index.append(i)
+        else:
+            mock_marker_obj.return_value = None
+            target_index = [0, 1]
+
+        mock_vnf_package_list.return_value = []
+        for index in range(len(target_index)):
+            mock_vnf_package_list.return_value.append(
+                fakes.return_vnfpkg_obj(
+                    vnf_package_updates={'id':
+                        ids[target_index[index]]},
+                    vnfd_updates={'vnf_product_name':
+                        values['result_names'][index]}))
+
         expected_result = []
-        for name in values['result_names']:
-            expected_result += fakes.index_response(
+        for index in range(len(target_index)):
+            _links = fakes.index_response()[0]['_links']
+            expected_links = (re.sub("vnf_packages/[a-zA-Z0-9-]*",
+                    "vnf_packages/{}".format(ids[target_index[index]]),
+                    str(_links)))
+            expected_links = json.loads(expected_links.replace("'", '"'))
+            print("expected_links", expected_links)
+
+            expected_result.append(fakes.index_response(
                 remove_attrs=[
                     'softwareImages',
                     'checksum',
                     'userDefinedData',
                     'additionalArtifacts'],
-                vnf_package_updates={'vnfProductName': name})
+                vnf_package_updates={'vnfProductName':
+                    values['result_names'][index],
+                    'id': ids[target_index[index]],
+                    '_links': expected_links})[0])
+
         res_dict = self.controller.index(req)
-        if 'Link' in res_dict.headers:
-            next_url = re.findall('<(.*)>', res_dict.headers['Link'])[0]
-            query = urllib.parse.urlparse(next_url).query
-            req = fake_request.HTTPRequest.blank('/vnfpkgm/v1/vnf_packages?' +
-                query)
-            res_dict = self.controller.index(req)
-        self.assertEqual(
-            jsonutils.loads(jsonutils.dump_as_bytes(expected_result,
-                default=str)), res_dict.json)
+
+        expected_result_link = None
+        if 'all_records' not in values['params'] and len(target_index) >= 2:
+            expected_result_link = (
+                '<http://localhost//vnfpkgm/v1/vnf_packages' +
+                '?nextpage_opaque_marker=%s>; rel="next"'
+                % ids[target_index[1]])
+
+        self.assertEqual(expected_result, res_dict.json)
+        if expected_result_link is not None:
+            self.assertEqual(expected_result_link, res_dict.headers['Link'])
 
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     @mock.patch.object(VNFPackageRPCAPI, "delete_vnf_package")
