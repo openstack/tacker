@@ -39,7 +39,10 @@ def main():
     module = importlib.import_module(class_module)
     klass = getattr(module, userdata_class)
 
-    method = getattr(klass, grant_req['operation'].lower())
+    operation = grant_req['operation'].lower()
+    if script_dict['is_rollback']:
+        operation = operation + '_rollback'
+    method = getattr(klass, operation)
     stack_dict = method(req, inst, grant_req, grant, tmp_csar_dir)
 
     pickle.dump(stack_dict, sys.stdout.buffer)

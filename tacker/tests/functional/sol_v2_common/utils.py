@@ -23,7 +23,8 @@ import subprocess
 SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
 
 
-def make_zip(sample_dir, tmp_dir, vnfd_id, image_path=None):
+def make_zip(sample_dir, tmp_dir, vnfd_id, image_path=None,
+        userdata_path=None):
     # NOTE: '.zip' will be added by shutil.make_archive
     zip_file_name = os.path.basename(os.path.abspath(sample_dir))
     zip_file_path = os.path.join(tmp_dir, zip_file_name)
@@ -52,6 +53,12 @@ def make_zip(sample_dir, tmp_dir, vnfd_id, image_path=None):
         file_path = os.path.join(tmp_contents, "Files", "images")
         os.makedirs(file_path)
         shutil.copy(image_path, file_path)
+
+    if userdata_path is not None:
+        # mkdir UserData/ and copy userdata_path into it
+        file_path = os.path.join(tmp_contents, "UserData")
+        os.makedirs(file_path)
+        shutil.copy(userdata_path, file_path)
 
     shutil.make_archive(zip_file_path, "zip", tmp_contents)
 

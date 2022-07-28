@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Support individual VNFC management using OpenStack Heat.
+    New sample BaseHOT, corresponding UserData script,
+    and utility functions are added to UserData class
+    for v2 VNF Lifecycle management API.
