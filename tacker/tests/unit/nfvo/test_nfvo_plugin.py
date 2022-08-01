@@ -280,6 +280,79 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         session.add(vim_auth_db)
         session.flush()
 
+    def _insert_dummy_vim_k8s_user(self):
+        session = self.context.session
+        vim_db = nfvo_db.Vim(
+            id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='fake_vim',
+            description='fake_vim_description',
+            type='kubernetes',
+            status='Active',
+            deleted_at=datetime.min,
+            placement_attr={'regions': ['RegionOne']})
+        vim_auth_db = nfvo_db.VimAuth(
+            vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            password='encrypted_pw',
+            auth_url='http://localhost:6443',
+            vim_project={'name': 'test_project'},
+            auth_cred={'username': 'test_user',
+                       'key_type': 'barbican_key',
+                       'secret_uuid': 'fake-secret-uuid'})
+        session.add(vim_db)
+        session.add(vim_auth_db)
+        session.flush()
+
+    def _insert_dummy_vim_k8s_token(self):
+        session = self.context.session
+        vim_db = nfvo_db.Vim(
+            id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='fake_vim',
+            description='fake_vim_description',
+            type='kubernetes',
+            status='Active',
+            deleted_at=datetime.min,
+            placement_attr={'regions': ['RegionOne']})
+        vim_auth_db = nfvo_db.VimAuth(
+            vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            password='encrypted_pw',
+            auth_url='http://localhost:6443',
+            vim_project={'name': 'test_project'},
+            auth_cred={'bearer_token': 'encrypted_token',
+                       'key_type': 'barbican_key',
+                       'secret_uuid': 'fake-secret-uuid'})
+        session.add(vim_db)
+        session.add(vim_auth_db)
+        session.flush()
+
+    def _insert_dummy_vim_k8s_oidc(self):
+        session = self.context.session
+        vim_db = nfvo_db.Vim(
+            id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
+            name='fake_vim',
+            description='fake_vim_description',
+            type='kubernetes',
+            status='Active',
+            deleted_at=datetime.min,
+            placement_attr={'regions': ['RegionOne']})
+        vim_auth_db = nfvo_db.VimAuth(
+            vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+            password='encrypted_pw',
+            auth_url='http://localhost:6443',
+            vim_project={'name': 'test_project'},
+            auth_cred={'username': 'oidc_user',
+                       'oidc_token_url': 'https://localhost:8443',
+                       'client_id': 'oidc_client',
+                       'client_secret': 'encrypted_secret',
+                       'ssl_ca_cert': 'cert_content',
+                       'key_type': 'barbican_key',
+                       'secret_uuid': 'fake-secret-uuid'})
+        session.add(vim_db)
+        session.add(vim_auth_db)
+        session.flush()
+
     def test_create_vim(self):
         vim_dict = utils.get_vim_obj()
         vim_type = 'openstack'
@@ -307,6 +380,90 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertIn('updated_at', res)
         self.assertEqual(False, res['is_default'])
         self.assertEqual('openstack', res['type'])
+
+    def test_create_vim_k8s_token(self):
+        vim_dict = {'vim': {'type': 'kubernetes',
+                    'auth_url': 'http://localhost/identity',
+                    'vim_project': {'name': 'test_project'},
+                    'auth_cred': {'bearer_token': 'test_token'},
+                    'name': 'VIM0',
+                    'tenant_id': 'test-project'}}
+        vim_type = 'kubernetes'
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
+        res = self.nfvo_plugin.create_vim(self.context, vim_dict)
+        self._cos_db_plugin.create_event.assert_any_call(
+            self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
+            tstamp=mock.ANY)
+        self._driver_manager.invoke.assert_any_call(
+            vim_type, 'register_vim', vim_obj=vim_dict['vim'])
+        self.assertIsNotNone(res)
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['bearer_token'])
+        self.assertIn('id', res)
+        self.assertIn('placement_attr', res)
+        self.assertIn('created_at', res)
+        self.assertIn('updated_at', res)
+        self.assertEqual(False, res['is_default'])
+        self.assertEqual(vim_type, res['type'])
+
+    def test_create_vim_k8s_oidc(self):
+        vim_dict = {'vim': {'type': 'kubernetes',
+                    'auth_url': 'http://localhost/identity',
+                    'vim_project': {'name': 'test_project'},
+                    'auth_cred': {
+                        'username': 'oidc_user',
+                        'password': 'oidc_password',
+                        'oidc_token_url': 'https://localhost:8443',
+                        'client_id': 'oidc_client',
+                        'client_secret': 'oidc_secret',
+                        'ssl_ca_cert': 'cert_content'},
+                    'name': 'VIM0',
+                    'tenant_id': 'test-project'}}
+        vim_type = 'kubernetes'
+        vim_auth_username = vim_dict['vim']['auth_cred']['username']
+        vim_auth_client_id = vim_dict['vim']['auth_cred']['client_id']
+        vim_auth_oidc_url = vim_dict['vim']['auth_cred']['oidc_token_url']
+        vim_auth_cert = vim_dict['vim']['auth_cred']['ssl_ca_cert']
+        vim_project = vim_dict['vim']['vim_project']
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
+        res = self.nfvo_plugin.create_vim(self.context, vim_dict)
+        self._cos_db_plugin.create_event.assert_any_call(
+            self.context, evt_type=constants.RES_EVT_CREATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
+            tstamp=mock.ANY)
+        self._driver_manager.invoke.assert_any_call(
+            vim_type, 'register_vim', vim_obj=vim_dict['vim'])
+        self.assertIsNotNone(res)
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
+        self.assertEqual(vim_project, res['vim_project'])
+        self.assertEqual(vim_auth_username, res['auth_cred']['username'])
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
+        self.assertEqual(vim_auth_oidc_url, res['auth_cred']['oidc_token_url'])
+        self.assertEqual(vim_auth_client_id, res['auth_cred']['client_id'])
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['client_secret'])
+        self.assertEqual(vim_auth_cert, res['auth_cred']['ssl_ca_cert'])
+        self.assertIn('id', res)
+        self.assertIn('placement_attr', res)
+        self.assertIn('created_at', res)
+        self.assertIn('updated_at', res)
+        self.assertEqual(False, res['is_default'])
+        self.assertEqual(vim_type, res['type'])
 
     def test_delete_vim(self):
         self._insert_dummy_vim()
@@ -412,6 +569,163 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         self.assertEqual(vim_project, res['vim_project'])
         self.assertEqual(vim_auth_username, res['auth_cred']['username'])
         self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
+        self.assertIn('updated_at', res)
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
+            tstamp=mock.ANY)
+
+    def test_update_vim_userpass_to_oidc(self):
+        vim_dict = {'vim': {'id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                            'vim_project': {'name': 'new_project'},
+                            'auth_cred': {
+                                'username': 'oidc_user',
+                                'password': 'oidc_password',
+                                'oidc_token_url': 'https://localhost:8443',
+                                'client_id': 'oidc_client',
+                                'client_secret': 'oidc_secret',
+                                'ssl_ca_cert': 'cert_content'
+                            }}}
+        vim_type = 'kubernetes'
+        vim_auth_username = vim_dict['vim']['auth_cred']['username']
+        vim_auth_client_id = vim_dict['vim']['auth_cred']['client_id']
+        vim_auth_oidc_url = vim_dict['vim']['auth_cred']['oidc_token_url']
+        vim_auth_cert = vim_dict['vim']['auth_cred']['ssl_ca_cert']
+        vim_project = vim_dict['vim']['vim_project']
+        self._insert_dummy_vim_k8s_user()
+        self.context.tenant_id = 'ad7ebc56538745a08ef7c5e97f8bd437'
+        old_vim_obj = self.nfvo_plugin._get_vim(
+            self.context, vim_dict['vim']['id'])
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
+        res = self.nfvo_plugin.update_vim(self.context, vim_dict['vim']['id'],
+                                          vim_dict)
+        vim_obj = self.nfvo_plugin._get_vim(
+            self.context, vim_dict['vim']['id'])
+        vim_obj['updated_at'] = None
+        self._driver_manager.invoke.assert_called_with(
+            vim_type, 'delete_vim_auth',
+            vim_id=vim_obj['id'],
+            auth=old_vim_obj['auth_cred'])
+        self.assertIsNotNone(res)
+        self.assertIn('id', res)
+        self.assertIn('placement_attr', res)
+        self.assertEqual(vim_project, res['vim_project'])
+        self.assertEqual(vim_auth_username, res['auth_cred']['username'])
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
+        self.assertEqual(vim_auth_oidc_url, res['auth_cred']['oidc_token_url'])
+        self.assertEqual(vim_auth_client_id, res['auth_cred']['client_id'])
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['client_secret'])
+        self.assertEqual(vim_auth_cert, res['auth_cred']['ssl_ca_cert'])
+        self.assertIn('updated_at', res)
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
+            tstamp=mock.ANY)
+
+    def test_update_vim_token_to_oidc(self):
+        vim_dict = {'vim': {'id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                            'vim_project': {'name': 'new_project'},
+                            'auth_cred': {
+                                'username': 'oidc_user',
+                                'password': 'oidc_password',
+                                'oidc_token_url': 'https://localhost:8443',
+                                'client_id': 'oidc_client',
+                                'client_secret': 'oidc_secret',
+                                'ssl_ca_cert': 'cert_content'
+                            }}}
+        vim_type = 'kubernetes'
+        vim_auth_username = vim_dict['vim']['auth_cred']['username']
+        vim_auth_client_id = vim_dict['vim']['auth_cred']['client_id']
+        vim_auth_oidc_url = vim_dict['vim']['auth_cred']['oidc_token_url']
+        vim_auth_cert = vim_dict['vim']['auth_cred']['ssl_ca_cert']
+        vim_project = vim_dict['vim']['vim_project']
+        self._insert_dummy_vim_k8s_token()
+        self.context.tenant_id = 'ad7ebc56538745a08ef7c5e97f8bd437'
+        old_vim_obj = self.nfvo_plugin._get_vim(
+            self.context, vim_dict['vim']['id'])
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
+        res = self.nfvo_plugin.update_vim(self.context, vim_dict['vim']['id'],
+                                          vim_dict)
+        vim_obj = self.nfvo_plugin._get_vim(
+            self.context, vim_dict['vim']['id'])
+        vim_obj['updated_at'] = None
+        self._driver_manager.invoke.assert_called_with(
+            vim_type, 'delete_vim_auth',
+            vim_id=vim_obj['id'],
+            auth=old_vim_obj['auth_cred'])
+        self.assertIsNotNone(res)
+        self.assertIn('id', res)
+        self.assertIn('placement_attr', res)
+        self.assertEqual(vim_project, res['vim_project'])
+        self.assertNotIn('bearer_token', res['auth_cred'])
+        self.assertEqual(vim_auth_username, res['auth_cred']['username'])
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['password'])
+        self.assertEqual(vim_auth_oidc_url, res['auth_cred']['oidc_token_url'])
+        self.assertEqual(vim_auth_client_id, res['auth_cred']['client_id'])
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['client_secret'])
+        self.assertEqual(vim_auth_cert, res['auth_cred']['ssl_ca_cert'])
+        self.assertIn('updated_at', res)
+        self._cos_db_plugin.create_event.assert_called_with(
+            self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,
+            res_state=mock.ANY, res_type=constants.RES_TYPE_VIM,
+            tstamp=mock.ANY)
+
+    def test_update_vim_oidc_to_token(self):
+        vim_dict = {'vim': {'id': '6261579e-d6f3-49ad-8bc3-a9cb974778ff',
+                            'vim_project': {'name': 'new_project'},
+                            'auth_cred': {
+                                'bearer_token': 'bearer_token'
+                            }}}
+        vim_type = 'kubernetes'
+        vim_project = vim_dict['vim']['vim_project']
+        self._insert_dummy_vim_k8s_oidc()
+        self.context.tenant_id = 'ad7ebc56538745a08ef7c5e97f8bd437'
+        old_vim_obj = self.nfvo_plugin._get_vim(
+            self.context, vim_dict['vim']['id'])
+        self._mock_driver_manager()
+        mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin._get_vim_from_vnf',
+                   side_effect=dummy_get_vim).start()
+        self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
+        mock.patch('tacker.db.common_services.common_services_db_plugin.'
+                   'CommonServicesPluginDb.create_event'
+                   ).start()
+        self._cos_db_plugin =\
+            common_services_db_plugin.CommonServicesPluginDb()
+        res = self.nfvo_plugin.update_vim(self.context, vim_dict['vim']['id'],
+                                          vim_dict)
+        vim_obj = self.nfvo_plugin._get_vim(
+            self.context, vim_dict['vim']['id'])
+        vim_obj['updated_at'] = None
+        self._driver_manager.invoke.assert_called_with(
+            vim_type, 'delete_vim_auth',
+            vim_id=vim_obj['id'],
+            auth=old_vim_obj['auth_cred'])
+        self.assertIsNotNone(res)
+        self.assertIn('id', res)
+        self.assertIn('placement_attr', res)
+        self.assertEqual(vim_project, res['vim_project'])
+        self.assertEqual(SECRET_PASSWORD, res['auth_cred']['bearer_token'])
+        self.assertNotIn('oidc_token_url', res['auth_cred'])
+        self.assertNotIn('client_id', res['auth_cred'])
+        self.assertNotIn('client_secret', res['auth_cred'])
+        self.assertNotIn('username', res['auth_cred'])
+        self.assertNotIn('password', res['auth_cred'])
         self.assertIn('updated_at', res)
         self._cos_db_plugin.create_event.assert_called_with(
             self.context, evt_type=constants.RES_EVT_UPDATE, res_id=mock.ANY,

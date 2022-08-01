@@ -257,6 +257,11 @@ class InvalidMaintenanceParameter(exceptions.InvalidInput):
     message = _("Could not find the required params for maintenance")
 
 
+class OIDCAuthFailed(exceptions.InvalidInput):
+    message = _("OIDC authentication and authorization failed."
+                " Detail: %(detail)s")
+
+
 def _validate_service_type_list(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("Invalid data format for service list: '%s'") % data

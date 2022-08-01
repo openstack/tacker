@@ -356,3 +356,8 @@ class K8sResourceNotFound(SolHttpError404):
 
 class K8sInvalidManifestFound(SolHttpError400):
     message = _("Invalid manifest found.")
+
+
+class OIDCAuthFailed(SolHttpError400):
+    message = _("OIDC authentication and authorization failed."
+                " Detail: %(detail)s")

@@ -77,6 +77,35 @@ class TestVIMClient(base.TestCase):
                           'tenant': 'test', 'extra': {}}
             self.assertEqual(vim_expect, vim_result)
 
+    def test_get_vim_oidc_auth(self):
+        self.nfvo_plugin.get_vim.return_value = {
+            'id': 'aaaa', 'name': 'VIM0', 'type': 'test_vim',
+            'auth_cred': {'password': '****',
+                          'client_secret': '****',
+                          'ssl_ca_cert': '****'},
+            'auth_url': 'http://127.0.0.1/identity/v3',
+            'placement_attr': {'regions': ['TestRegionOne']},
+            'tenant_id': 'test'}
+        self.service_plugins.get.return_value = self.nfvo_plugin
+        self.vimclient._build_vim_auth = mock.Mock()
+        self.vimclient._build_vim_auth.return_value = {
+            'password': '****',
+            'client_secret': '****',
+            'ssl_ca_cert': '****'}
+        with mock.patch.object(manager.TackerManager, 'get_service_plugins',
+                               return_value=self.service_plugins):
+            vim_result = self.vimclient.get_vim(None,
+                                                vim_id=self.vim_info['id'],
+                                                region_name='TestRegionOne')
+            vim_expect = {'vim_auth': {'password': '****',
+                                       'client_secret': '****',
+                                       'ssl_ca_cert': '****'},
+                          'vim_id': 'aaaa',
+                          'vim_name': 'VIM0', 'vim_type': 'test_vim',
+                          'placement_attr': {'regions': ['TestRegionOne']},
+                          'tenant': 'test', 'extra': {}}
+            self.assertEqual(vim_expect, vim_result)
+
     def test_get_vim_with_default_name(self):
         self.vim_info.pop('name')
         self.nfvo_plugin.get_vim.return_value = self.vim_info

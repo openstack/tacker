@@ -1,0 +1,109 @@
+- block:
+  - name: Create a work directory
+    file:
+      path: "{{ oidc_work_dir }}"
+      state: directory
+      mode: 0755
+    become: yes
+
+  - name: Copy setup files to k8s server
+    copy:
+      src: "{{ item }}"
+      dest: "{{ oidc_work_dir }}"
+      owner: stack
+      group: stack
+      mode: 0644
+    with_items:
+      - "ssl_csr.conf"
+      - "generate_ssl_cert.sh"
+      - "create_keycloak.sh"
+      - "oidc_realm.json"
+      - "import_oidc_realm.sh"
+      - "cluster_role_binding.yaml"
+    become: yes
+
+  - name: Replace {{ oidc_work_dir }} if not default
+    replace:
+      path: "{{ item }}"
+      regexp: "/tmp/oidc"
+      replace: "{{ oidc_work_dir }}"
+    with_items:
+      - "{{ oidc_work_dir }}/generate_ssl_cert.sh"
+    when:
+      - oidc_work_dir != '/tmp/oidc'
+    become: yes
+
+  - name: Add keycloak's ip to CSR conf
+    lineinfile:
+      path: "{{ oidc_work_dir }}/ssl_csr.conf"
+      line: "IP.2 = {{ keycloak_host }}"
+    become: yes
+
+  - name: Generate SSL certificate for keycloak
+    command: /bin/bash {{ oidc_work_dir }}/generate_ssl_cert.sh
+    become: yes
+
+  - name: Create and start keycloak server
+    command: /bin/bash {{ oidc_work_dir }}/create_keycloak.sh
+    become: yes
+
+  - name: Wait for keycloak be active
+    wait_for:
+      host: "{{ keycloak_host }}"
+      port: "{{ keycloak_https_port }}"
+      delay: 120
+      timeout: 300
+
+  - name: Install jq command
+    package:
+      name: jq
+      state: present
+    become: yes
+
+  - name: Replace keycloak host:port to import_oidc_realm.sh
+    replace:
+      path: "{{ item }}"
+      regexp: "https://127.0.0.1:8443"
+      replace: "https://{{ keycloak_host}}:{{ keycloak_https_port }}"
+    with_items:
+      - "{{ oidc_work_dir }}/import_oidc_realm.sh"
+    become: yes
+
+  - name: Import oidc realm
+    command: /bin/bash import_oidc_realm.sh
+    args:
+      chdir: "{{ oidc_work_dir }}"
+    become: yes
+
+  - name: Setup oidc on k8s server
+    blockinfile:
+      path: /etc/kubernetes/manifests/kube-apiserver.yaml
+      insertafter: "- --tls-private-key-file=.*"
+      block: |2
+            - --oidc-issuer-url=https://{{ keycloak_host }}:{{ keycloak_https_port }}/realms/oidc
+            - --oidc-client-id=tacker
+            - --oidc-username-claim=name
+            - --oidc-username-prefix=-
+            - --oidc-ca-file=/etc/kubernetes/pki/ca.crt
+    become: yes
+    ignore_errors: yes
+
+  - name: Wait for k8s apiserver to restart
+    wait_for:
+      host: "{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}"
+      port: 6443
+      delay: 30
+      timeout: 180
+    ignore_errors: yes
+
+  - name: Create clusterrolebinding on k8s server
+    command: >
+      kubectl create -f {{ oidc_work_dir }}/cluster_role_binding.yaml
+    become: yes
+    become_user: stack
+    ignore_errors: yes
+
+  when:
+    - inventory_hostname == 'controller-k8s'
+    - keycloak_host is defined
+

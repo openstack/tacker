@@ -3,6 +3,7 @@
     - ensure-db-cli-installed
     - orchestrate-devstack
     - modify-heat-policy
+    - setup-k8s-oidc
     - setup-default-vim
     - setup-helm
     - role: setup-multi-tenant-vim

@@ -569,6 +569,19 @@
         tox_envlist: dsvm-functional-sol-kubernetes-v2
 
 - job:
+    name: tacker-functional-devstack-kubernetes-oidc-auth
+    parent: tacker-functional-devstack-multinode-sol-kubernetes-v2
+    description: |
+      Multinodes job for Kubernetes OIDC Auth tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-sol_kubernetes_oidc_auth
+    vars:
+      keycloak_host: "{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}"
+      keycloak_http_port: 8080
+      keycloak_https_port: 8443
+
+- job:
     name: tacker-compliance-devstack-multinode-sol
     parent: tacker-functional-devstack-multinode-legacy
     description: |
@@ -597,4 +610,5 @@
         - tacker-functional-devstack-multinode-sol-kubernetes-v2
         - tacker-functional-devstack-multinode-sol-multi-tenant
         - tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
+        - tacker-functional-devstack-kubernetes-oidc-auth
         - tacker-compliance-devstack-multinode-sol

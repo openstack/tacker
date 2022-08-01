@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds "openid token" authentication strategy for Kubernetes VIM. Users can
+    specify openid authentication parameters in the `VIM Register Request`
+    or the `VNF Instantiate Request` to indicate tacker to use openid token
+    for authentication.

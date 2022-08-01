@@ -161,7 +161,21 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
             # is not updatable. so no need to consider it
             if 'auth_cred' in update_args:
                 auth_cred = update_args['auth_cred']
-                if ('username' in auth_cred) and ('password' in auth_cred)\
+                if 'oidc_token_url' in auth_cred:
+                    # update oidc info, and remove bearer_token if exists
+                    vim_obj['auth_cred']['oidc_token_url'] = auth_cred.get(
+                        'oidc_token_url')
+                    vim_obj['auth_cred']['username'] = auth_cred.get(
+                        'username')
+                    vim_obj['auth_cred']['password'] = auth_cred.get(
+                        'password')
+                    vim_obj['auth_cred']['client_id'] = auth_cred.get(
+                        'client_id')
+                    vim_obj['auth_cred']['client_secret'] = auth_cred.get(
+                        'client_secret')
+                    if 'bearer_token' in vim_obj['auth_cred']:
+                        vim_obj['auth_cred'].pop('bearer_token')
+                elif ('username' in auth_cred) and ('password' in auth_cred)\
                         and (auth_cred['password'] is not None):
                     # update new username and password, remove bearer_token
                     # if it exists in the old vim
@@ -169,15 +183,27 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                     vim_obj['auth_cred']['password'] = auth_cred['password']
                     if 'bearer_token' in vim_obj['auth_cred']:
                         vim_obj['auth_cred'].pop('bearer_token')
+                    if 'oidc_token_url' in vim_obj['auth_cred']:
+                        vim_obj['auth_cred'].pop('oidc_token_url')
+                    if 'client_id' in vim_obj['auth_cred']:
+                        vim_obj['auth_cred'].pop('client_id')
+                    if 'client_secret' in vim_obj['auth_cred']:
+                        vim_obj['auth_cred'].pop('client_secret')
                 elif 'bearer_token' in auth_cred:
                     # update bearer_token, remove username and password
                     # if they exist in the old vim
                     vim_obj['auth_cred']['bearer_token'] =\
                         auth_cred['bearer_token']
-                    if ('username' in vim_obj['auth_cred']) and\
-                            ('password' in vim_obj['auth_cred']):
+                    if 'username' in vim_obj['auth_cred']:
                         vim_obj['auth_cred'].pop('username')
+                    if 'password' in vim_obj['auth_cred']:
                         vim_obj['auth_cred'].pop('password')
+                    if 'oidc_token_url' in vim_obj['auth_cred']:
+                        vim_obj['auth_cred'].pop('oidc_token_url')
+                    if 'client_id' in vim_obj['auth_cred']:
+                        vim_obj['auth_cred'].pop('client_id')
+                    if 'client_secret' in vim_obj['auth_cred']:
+                        vim_obj['auth_cred'].pop('client_secret')
                 if 'ssl_ca_cert' in auth_cred:
                     # update new ssl_ca_cert
                     vim_obj['auth_cred']['ssl_ca_cert'] =\

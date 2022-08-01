@@ -23,6 +23,8 @@ from kubernetes.client import api_client
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from tacker.common import oidc_utils
+
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
@@ -32,15 +34,33 @@ class KubernetesHTTPAPI(object):
     def get_k8s_client(self, auth_plugin):
         config = client.Configuration()
         config.host = auth_plugin['auth_url']
-        if ('username' in auth_plugin) and ('password' in auth_plugin)\
-                and (auth_plugin['password'] is not None):
-            config.username = auth_plugin['username']
-            config.password = auth_plugin['password']
-            basic_token = config.get_basic_auth_token()
-            config.api_key['authorization'] = basic_token
-        if 'bearer_token' in auth_plugin:
+        if 'oidc_token_url' in auth_plugin:
+            # obtain token from oidc server
+            if 'id_token' not in auth_plugin:
+                id_token = oidc_utils.get_id_token_with_password_grant(
+                    auth_plugin.get('oidc_token_url'),
+                    auth_plugin.get('username'),
+                    auth_plugin.get('password'),
+                    auth_plugin.get('client_id'),
+                    client_secret=auth_plugin.get('client_secret'),
+                    ssl_ca_cert=auth_plugin.get('ca_cert_file')
+                )
+                auth_plugin['id_token'] = id_token
+
+            # set id token to k8s config
             config.api_key_prefix['authorization'] = 'Bearer'
-            config.api_key['authorization'] = auth_plugin['bearer_token']
+            config.api_key['authorization'] = auth_plugin['id_token']
+
+        else:
+            if ('username' in auth_plugin) and ('password' in auth_plugin)\
+                    and (auth_plugin['password'] is not None):
+                config.username = auth_plugin['username']
+                config.password = auth_plugin['password']
+                basic_token = config.get_basic_auth_token()
+                config.api_key['authorization'] = basic_token
+            if 'bearer_token' in auth_plugin:
+                config.api_key_prefix['authorization'] = 'Bearer'
+                config.api_key['authorization'] = auth_plugin['bearer_token']
         ca_cert_file = auth_plugin.get('ca_cert_file')
         if ca_cert_file is not None:
             config.ssl_ca_cert = ca_cert_file

@@ -1,0 +1,9 @@
+auth_url: "https://127.0.0.1:6443"
+project_name: "default"
+oidc_token_url: "https://127.0.0.1:8443/realms/oidc/protocol/openid-connect/token"
+username: "end-user"
+password: "end-user"
+client_id: "tacker"
+client_secret: "K0Zp5dvdOFhZ7W9PVNZn14omW9NmCQvQ"
+ssl_ca_cert: None
+type: "kubernetes"

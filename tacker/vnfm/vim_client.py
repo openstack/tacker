@@ -95,6 +95,13 @@ class VimClient(object):
                                  vim_auth,
                                  vim_auth['ssl_ca_cert'])
 
+        # decode client_secret
+        if 'client_secret' in vim_auth and vim_auth['client_secret']:
+            vim_auth['client_secret'] = self._decode_vim_auth(
+                vim_info['id'],
+                vim_auth,
+                vim_auth['client_secret'])
+
         vim_auth['auth_url'] = vim_info['auth_url']
 
         # These attributes are needless for authentication

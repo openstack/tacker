@@ -139,6 +139,10 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
         self.discover_placement_attr(vim_obj)
         self.encode_vim_auth(vim_obj['id'],
                              vim_obj['auth_cred'])
+        # NOTE(Yao Qibin): To avoid obtaining token multiple times,
+        # the id_token is keeped in auth_cred, which will be deleted here.
+        if 'id_token' in vim_obj['auth_cred']:
+            vim_obj['auth_cred'].pop('id_token')
         LOG.debug('VIM registration completed for %s', vim_obj)
 
     @log.log
@@ -197,6 +201,10 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
             encoded_auth = fernet_obj.encrypt(
                 auth['ssl_ca_cert'].encode('utf-8'))
             auth['ssl_ca_cert'] = encoded_auth
+        if 'client_secret' in auth:
+            encoded_auth = fernet_obj.encrypt(
+                auth["client_secret"].encode("utf-8"))
+            auth["client_secret"] = encoded_auth
 
         if CONF.k8s_vim.use_barbican:
             try:

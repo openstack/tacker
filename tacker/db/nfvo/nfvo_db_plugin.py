@@ -52,9 +52,20 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
         res['auth_url'] = vim_auth_db[0].auth_url
         res['vim_project'] = vim_auth_db[0].vim_project
         res['auth_cred'] = vim_auth_db[0].auth_cred
-        res['auth_cred']['password'] = vim_auth_db[0].password
+        if vim_auth_db[0].password:
+            res['auth_cred']['password'] = vim_auth_db[0].password
+        # NOTE(Yao Qibin): Since oidc_token_url contains keyword `token`,
+        # its value will be masked.
+        # To prevent its value from being masked, temporarily change its name.
+        if "oidc_token_url" in res['auth_cred']:
+            res['auth_cred']['oidc_x_url'] = res['auth_cred'].pop(
+                'oidc_token_url')
         if mask_password:
             res['auth_cred'] = strutils.mask_dict_password(res['auth_cred'])
+        # Revert to oidc_token_url
+        if "oidc_x_url" in res['auth_cred']:
+            res['auth_cred']['oidc_token_url'] = res['auth_cred'].pop(
+                'oidc_x_url')
         return self._fields(res, fields)
 
     def _fields(self, resource, fields):
@@ -93,7 +104,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                 vim_auth_db = nfvo_db.VimAuth(
                     id=uuidutils.generate_uuid(),
                     vim_id=vim.get('id'),
-                    password=vim_cred.pop('password'),
+                    password=vim_cred.pop('password', None),
                     vim_project=vim.get('vim_project'),
                     auth_url=vim.get('auth_url'),
                     auth_cred=vim_cred)
@@ -167,7 +178,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
             except orm_exc.NoResultFound:
                 raise nfvo.VimNotFoundException(vim_id=vim_id)
             vim_auth_db.update({'auth_cred': vim_cred, 'password':
-                                vim_cred.pop('password'), 'vim_project':
+                                vim_cred.pop('password', None), 'vim_project':
                                 vim_project})
             vim_db.update({'updated_at': timeutils.utcnow()})
             self._cos_db_plg.create_event(

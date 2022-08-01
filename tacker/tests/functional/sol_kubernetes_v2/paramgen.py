@@ -178,6 +178,27 @@ def min_sample_instantiate(vim_id_1):
     }
 
 
+def min_sample_instantiate_with_vim_info(k8s_vim_info):
+
+    vim_1 = {
+        "vimId": uuidutils.generate_uuid(),
+        "vimType": "kubernetes",
+        "accessInfo": k8s_vim_info.accessInfo,
+        "interfaceInfo": k8s_vim_info.interfaceInfo
+    }
+    return {
+        "flavourId": "simple",
+        "vimConnectionInfo": {
+            "vim1": vim_1,
+        },
+        "additionalParams": {
+            "lcm-kubernetes-def-files": [
+                "Files/kubernetes/pod.yaml"
+            ]
+        }
+    }
+
+
 def min_sample_terminate():
     # Omit except for required attributes
     # NOTE: Only the following cardinality attributes are set.

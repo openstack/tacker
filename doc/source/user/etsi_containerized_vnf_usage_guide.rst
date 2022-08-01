@@ -57,7 +57,7 @@ please refer to [#first]_.
     auth_url: "https://192.168.33.100:6443"
     project_name: "default"
     bearer_token: "eyJhbGciOiJSUzI1NiIsImtpZCI6IlBRVDgxQkV5VDNVR1M1WGEwUFYxSXFkZFhJWDYzNklvMEp2WklLMnNFdk0ifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi10b2tlbi12cnpoaiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJhZG1pbiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6ImNhY2VmMzEzLTMzYjYtNDQ5MS1iMWUyLTg0NmQ2N2E0OTdkNSIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlLXN5c3RlbTphZG1pbiJ9.R76VIWVZnQxa9NG02HIqux1xTJG4i7dkXsp52T4UU8bvNfsfi18kW_p3ZvaNTxw0yABBcmkYZoOBe4MNP5cTP6TtR_ERZoA5QCViasW_u36rSTBT0-MHRPbkXjJYetzYaFYUO-DlJd3194yOtVHtrxUd8D31qw0f1FlP8BHxblDjZkYlgYSjHCxcwEdwlnYaa0SiH2kl6_oCBRFg8cUfXDeTOmH9XEfdrJ6ubJ4OyqG6YjfiKDDiEHgIehy7s7vZGVwVIPy6EhT1YSOIhY5aF-G9nQSg-GK1V9LIq7petFoW_MIEt0yfNQVXy2D1tBhdJEa1bgtVsLmdlrNVf-m3uA"
-    ssl_ca_cert: "-----BEGIN CERTIFICATE-----
+    ssl_ca_cert: "-----BEGIN CERTIFICATE-----nID
     MIICwjCCAaqgAwIBAgIBADANBgkqhkiG9w0BAQsFADASMRAwDgYDVQQDEwdrdWJl
     LWNhMB4XDTIwMDgyNjA5MzIzMVoXDTMwMDgyNDA5MzIzMVowEjEQMA4GA1UEAxMH
     a3ViZS1jYTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALxkeE16lPAd
@@ -75,6 +75,66 @@ please refer to [#first]_.
     2ZrqgOcTmyFzFh9h2dj1DJWvCvExybRmzWK1e8JMzTb40MEApyY=
     -----END CERTIFICATE-----"
     type: "kubernetes"
+
+In addition to using ``bearer_token`` to authenticate with Kubernetes ,
+OpenID token [#sixth]_ is also supported. The following sample specifies
+``oidc_token_url``, ``client_id``, ``client_secret``, ``username``, ``password``
+instead of ``bearer_token`` for OpenID token authentication.
+
+Before using OpenID token authentication, additional settings are required.
+Please refer to [#seventh]_, and how to get the values of the ``oidc_token_url``,
+``client_id``, ``client_secret``, ``username``, ``password`` and ``ssl_ca_cert``
+parameters is documented.
+
+The SSL certificates of Kubernetes and OpenID provider are concatenated
+in ``ssl_ca_cert``.
+
+.. code-block:: console
+
+   $ cat vim-k8s.yaml
+   auth_url: "https://192.168.33.100:6443"
+   project_name: "default"
+   oidc_token_url: "https://192.168.33.100:8443/realms/oidc/protocol/openid-connect/token"
+   client_id: "tacker"
+   client_secret: "A93HfOUpySm6BjPug9PJdJumjEGUJMhc"
+   username: "end-user"
+   password: "end-user"
+   ssl_ca_cert: "-----BEGIN CERTIFICATE-----
+   MIICwjCCAaqgAwIBAgIBADANBgkqhkiG9w0BAQsFADASMRAwDgYDVQQDEwdrdWJl
+   LWNhMB4XDTIwMDgyNjA5MzIzMVoXDTMwMDgyNDA5MzIzMVowEjEQMA4GA1UEAxMH
+   a3ViZS1jYTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALxkeE16lPAd
+   pfJj5GJMvZJFcX/CD6EB/LUoKwGmqVoOUQPd3b/NGy+qm+3bO9EU73epUPsVaWk2
+   Lr+Z1ua7u+iib/OMsfsSXMZ5OEPgd8ilrTGhXOH8jDkif9w1NtooJxYSRcHEwxVo
+   +aXdIJhqKdw16NVP/elS9KODFdRZDfQ6vU5oHSg3gO49kgv7CaxFdkF7QEHbchsJ
+   0S1nWMPAlUhA5b8IAx0+ecPlMYUGyGQIQgjgtHgeawJebH3PWy32UqfPhkLPzxsy
+   TSxk6akiXJTg6mYelscuxPLSe9UqNvHRIUoad3VnkF3+0CJ1z0qvfWIrzX3w92/p
+   YsDBZiP6vi8CAwEAAaMjMCEwDgYDVR0PAQH/BAQDAgKkMA8GA1UdEwEB/wQFMAMB
+   Af8wDQYJKoZIhvcNAQELBQADggEBAIbv2ulEcQi019jKz4REy7ZyH8+ExIUBBuIz
+   InAkfxNNxV83GkdyA9amk+LDoF/IFLMltAMM4b033ZKO5RPrHoDKO+xCA0yegYqU
+   BViaUiEXIvi/CcDpT9uh2aNO8wX5T/B0WCLfWFyiK+rr9qcosFYxWSdU0kFeg+Ln
+   YAaeFY65ZWpCCyljGpr2Vv11MAq1Tws8rEs3rg601SdKhBmkgcTAcCzHWBXR1P8K
+   rfzd6h01HhIomWzM9xrP2/2KlYRvExDLpp9qwOdMSanrszPDuMs52okXgfWnEqlB
+   2ZrqgOcTmyFzFh9h2dj1DJWvCvExybRmzWK1e8JMzTb40MEApyY=
+   -----END CERTIFICATE-----
+   -----BEGIN CERTIFICATE-----
+   MIIC7TCCAdWgAwIBAgIUQK2k5uNvlRLx43LI/t3a2/A/3iQwDQYJKoZIhvcNAQEL
+   BQAwFTETMBEGA1UEAxMKa3ViZXJuZXRlczAeFw0yMjA4MDQwNjIwNTFaFw0yMzA4
+   MDQwNjIwNTFaMBMxETAPBgNVBAMMCEtleWNsb2FrMIIBIjANBgkqhkiG9w0BAQEF
+   AAOCAQ8AMIIBCgKCAQEAni7HWLn2IpUImGO1sbBf/XuqATkXSeIIRuQuFymwYPoX
+   BP7RowzrbfF9KUwdIKlz9IXjqb1hplumiqNy1Sc7MmrTY9Fj87MNAMlnCIvyWkjE
+   XVXWxGef49mqc85P2K1iuAsr2R7sDrv7SC0ch+lHclOjGDmCjKOk8qF3kD1LATWg
+   zf42aXb4nNF9kyIOPEbI+jX4PWhAQpEz5nIG+xIRjTHGfacjpeg0+XOK21wLAuQB
+   fqebJ6GxX4OzB37ZtLLgrKyBYWaWuYkWbexVRM3wEvQu8ENkvhV017iPuPHSxNWx
+   Y8z072XMs9j8XRQD65EVqObXyizotPRJF4slEJ9qMQIDAQABozcwNTAJBgNVHRME
+   AjAAMAsGA1UdDwQEAwIF4DAbBgNVHREEFDAShwR/AAABhwTAqAIhhwQKCgCMMA0G
+   CSqGSIb3DQEBCwUAA4IBAQBebjmNHd8sJXjvPQc3uY/3KSDpk9AYfYzhUZvcvLNg
+   z0llFqXHaFlMqHTsz1tOH4Ns4PDKKoRT0JIKC1FkvjzqgL+X2jWFS0NRoNyd3W3B
+   yHLEL7MdQqDR+tZX02EGfaGXjuy8GHIU4J2hXhohmpn6ntfiRONfY8jaEjIecPFS
+   IwZWXNhsDESa1zuDe0PatES/Ati8bAUpN2rb/7rsE/AeM5GXpQfOKV0XxdIeBZ82
+   Vf5cUDWPipvq2Q9KS+yrTvEObGtA6gKhQ4bpz3MieU3N8AtQpEKtROH7mJWMHyl2
+   roD1k8KeJlfvR/XcVTGFcgIdNLfKIdd99Xfi4gSaIKuw
+   -----END CERTIFICATE-----"
+   type: "kubernetes"
 
 2. Register Kubernetes VIM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -857,3 +917,5 @@ References
 .. [#third] https://specs.openstack.org/openstack/tacker-specs/specs/victoria/container-network-function.html#kubernetes-resource-kind-support
 .. [#fourth] https://docs.openstack.org/tacker/latest/user/vnfd-sol001.html
 .. [#fifth] https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names
+.. [#sixth] https://kubernetes.io/docs/reference/access-authn-authz/authentication/#openid-connect-tokens
+.. [#seventh] https://docs.openstack.org/tacker/latest/reference/kubernetes_openid_token_auth_usage_guide.html

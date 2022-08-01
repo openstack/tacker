@@ -24,6 +24,7 @@ from oslo_log import log as logging
 import yaml
 
 from tacker.sol_refactored.common import exceptions as sol_ex
+from tacker.sol_refactored.common import oidc_utils
 from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes_resource
 
 
@@ -84,6 +85,7 @@ def is_match_pod_naming_rule(rsc_kind, rsc_name, pod_name):
 
 def get_k8s_reses_from_json_files(target_k8s_files, vnfd, k8s_api_client,
         namespace):
+
     k8s_resources = []
 
     for target_k8s_file in target_k8s_files:
@@ -156,21 +158,36 @@ class AuthContextManager:
         k8s_config = client.Configuration()
         k8s_config.host = self.vim_info.interfaceInfo['endpoint']
 
-        if ('username' in self.vim_info.accessInfo and
-                self.vim_info.accessInfo.get('password') is not None):
-            k8s_config.username = self.vim_info.accessInfo['username']
-            k8s_config.password = self.vim_info.accessInfo['password']
-            basic_token = k8s_config.get_basic_auth_token()
-            k8s_config.api_key['authorization'] = basic_token
-
-        if 'bearer_token' in self.vim_info.accessInfo:
-            k8s_config.api_key_prefix['authorization'] = 'Bearer'
-            k8s_config.api_key['authorization'] = self.vim_info.accessInfo[
-                'bearer_token']
-
         if 'ssl_ca_cert' in self.vim_info.interfaceInfo:
             self._create_ca_cert_file(
                 self.vim_info.interfaceInfo['ssl_ca_cert'])
+
+        if 'oidc_token_url' in self.vim_info.accessInfo:
+            # Obtain a openid token from openid provider
+            id_token = oidc_utils.get_id_token_with_password_grant(
+                self.vim_info.accessInfo.get('oidc_token_url'),
+                self.vim_info.accessInfo.get('username'),
+                self.vim_info.accessInfo.get('password'),
+                self.vim_info.accessInfo.get('client_id'),
+                client_secret=self.vim_info.accessInfo.get('client_secret'),
+                ssl_ca_cert=self.ca_cert_file
+            )
+            k8s_config.api_key_prefix['authorization'] = 'Bearer'
+            k8s_config.api_key['authorization'] = id_token
+        else:
+            if ('username' in self.vim_info.accessInfo and
+                    self.vim_info.accessInfo.get('password') is not None):
+                k8s_config.username = self.vim_info.accessInfo['username']
+                k8s_config.password = self.vim_info.accessInfo['password']
+                basic_token = k8s_config.get_basic_auth_token()
+                k8s_config.api_key['authorization'] = basic_token
+
+            if 'bearer_token' in self.vim_info.accessInfo:
+                k8s_config.api_key_prefix['authorization'] = 'Bearer'
+                k8s_config.api_key['authorization'] = self.vim_info.accessInfo[
+                    'bearer_token']
+
+        if self.ca_cert_file:
             k8s_config.ssl_ca_cert = self.ca_cert_file
             k8s_config.verify_ssl = True
         else:

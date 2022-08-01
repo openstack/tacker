@@ -97,13 +97,21 @@
     become: yes
     become_user: stack
 
-  - name: Fetch k8s's CA Certificate
+  - name: Fetch k8s CA certificate
     fetch:
        src: "/etc/kubernetes/pki/ca.crt"
        dest: "/tmp/"
        flat: true
     when:
       - k8s_ssl_verify
+
+  - name: Fetch keycloak server certificate
+    fetch:
+       src: "/etc/keycloak/ssl/keycloak.crt"
+       dest: "/tmp/"
+       flat: true
+    when:
+      - keycloak_host is defined
 
   when:
     - inventory_hostname == 'controller-k8s'
@@ -122,6 +130,14 @@
        remote_src=True
        src={{ devstack_base_dir }}/tacker/tacker/tests/etc/samples/local-k8s-vim.yaml
        dest={{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml
+
+  - name: Copy test k8s vim file for oidc
+    copy:
+       remote_src=True
+       src={{ devstack_base_dir }}/tacker/tacker/tests/etc/samples/local-k8s-vim-oidc.yaml
+       dest={{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim-oidc.yaml
+    when:
+      - keycloak_host is defined
 
   - name: Check if project's tools/test-setup-k8s-vim.sh exists
     stat:
@@ -169,6 +185,28 @@
     when:
       - p.stat.exists
 
+  - name: Replace k8s auth uri in local-k8s-vim-oidc.yaml
+    replace:
+       path: "{{ item }}"
+       regexp: "https://127.0.0.1:6443"
+       replace: "{{ kuryr_k8s_api_url }}"
+    with_items:
+       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim-oidc.yaml"
+    when:
+      - p.stat.exists
+      - keycloak_host is defined
+
+  - name: Replace keycloak uri in local-k8s-vim-oidc.yaml
+    replace:
+       path: "{{ item }}"
+       regexp: "https://127.0.0.1:8443"
+       replace: "https://{{ keycloak_host }}:{{ keycloak_https_port }}"
+    with_items:
+       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim-oidc.yaml"
+    when:
+      - p.stat.exists
+      - keycloak_host is defined
+
   - name: Replace k8s auth token in local-k8s-vim.yaml
     replace:
        path: "{{ item }}"
@@ -179,7 +217,7 @@
     when:
       - p.stat.exists
 
-  - name: Copy k8s's CA Certificate to tacker
+  - name: Copy k8s CA certificate to tacker
     copy:
        src: "/tmp/ca.crt"
        dest: "/tmp/"
@@ -187,23 +225,41 @@
       - p.stat.exists
       - k8s_ssl_verify
 
-  - name: Get k8s's CA Certificate
-    command: cat "/tmp/ca.crt"
-    register: ssl_ca_cert
+  - name: Copy keycloak server certificate to tacker
+    copy:
+       src: "/tmp/keycloak.crt"
+       dest: "/tmp/"
     when:
       - p.stat.exists
-      - k8s_ssl_verify
+      - keycloak_host is defined
 
-  - name: Replace k8s CA Certificate in local-k8s-vim.yaml
+  - name: Write k8s CA certificate to a certificates aggregated file
+    shell: cat /tmp/ca.crt > /tmp/agg.crt
+    when:
+    - p.stat.exists
+    - k8s_ssl_verify
+
+  - name: Write keycloak server certificate to a certificates aggregated file
+    shell: cat /tmp/keycloak.crt >> /tmp/agg.crt
+    when:
+    - p.stat.exists
+    - keycloak_host is defined
+
+  - name: Register ssl certificate if exists
+    shell: test -f /tmp/agg.crt && cat /tmp/agg.crt
+    register: ssl_ca_cert
+
+  - name: Replace ssl_ca_cert in local-k8s-vim.yaml and local-k8s-vim-oidc.yaml
     replace:
        path: "{{ item }}"
        regexp: "ssl_ca_cert: .*$"
        replace: "ssl_ca_cert: '{{ ssl_ca_cert.stdout }}'"
     with_items:
        - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml"
+       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim-oidc.yaml"
     when:
       - p.stat.exists
-      - k8s_ssl_verify
+      - ssl_ca_cert.rc == 0 and ssl_ca_cert.stdout != ""
 
   - name: Replace the config file path in the test-setup-k8s-vim.sh
     replace:

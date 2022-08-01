@@ -76,7 +76,15 @@ def vim_to_conn_info(vim):
             accessInfo=access_info
         )
     if vim['vim_type'] == "kubernetes":  # k8s
-        if vim_auth['username'] and vim_auth['password']:
+        if 'oidc_token_url' in vim_auth:
+            access_info = {
+                'oidc_token_url': vim_auth.get('oidc_token_url'),
+                'username': vim_auth.get('username'),
+                'password': vim_auth.get('password'),
+                'client_id': vim_auth.get('client_id'),
+                'client_secret': vim_auth.get('client_secret')
+            }
+        elif vim_auth.get('username') and vim_auth.get('password'):
             access_info = {
                 'username': vim_auth['username'],
                 'password': vim_auth['password']

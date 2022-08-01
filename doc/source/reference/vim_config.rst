@@ -166,10 +166,12 @@ Cert Verify
 Kubernetes
 ----------
 
-You configure Kubernetes VIM with parameters retrieved from ``kubectl`` command
-as described in
+You configure Kubernetes VIM with parameters retrieved
+from ``kubectl`` command as described in
 :doc:`/install/kubernetes_vim_installation`.
-Here is an example of Kubernetes VIM configuration.
+
+1. This is an example of Kubernetes VIM configuration with
+Service Account Token.
 
 .. code-block:: yaml
 
@@ -195,6 +197,56 @@ Here is an example of Kubernetes VIM configuration.
   -----END CERTIFICATE-----"
   type: "kubernetes"
 
+2. Another example of Kubernetes VIM configuration with
+OpenID Connect Token. The OpenID Connect related parameters are described in
+:doc:`kubernetes_openid_token_auth_usage_guide`.
+
+.. code-block:: yaml
+
+  auth_url: "https://192.168.33.100:6443"
+  project_name: "default"
+  oidc_token_url: "https://192.168.33.100:8443/realms/oidc/protocol/openid-connect/token"
+  client_id: "tacker"
+  client_secret: "A93HfOUpySm6BjPug9PJdJumjEGUJMhc"
+  username: "end-user"
+  password: "end-user"
+  ssl_ca_cert: "-----BEGIN CERTIFICATE-----
+  MIICwjCCAaqgAwIBAgIBADANBgkqhkiG9w0BAQsFADASMRAwDgYDVQQDEwdrdWJl
+  LWNhMB4XDTIwMDgyNjA5MzIzMVoXDTMwMDgyNDA5MzIzMVowEjEQMA4GA1UEAxMH
+  a3ViZS1jYTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALxkeE16lPAd
+  pfJj5GJMvZJFcX/CD6EB/LUoKwGmqVoOUQPd3b/NGy+qm+3bO9EU73epUPsVaWk2
+  Lr+Z1ua7u+iib/OMsfsSXMZ5OEPgd8ilrTGhXOH8jDkif9w1NtooJxYSRcHEwxVo
+  +aXdIJhqKdw16NVP/elS9KODFdRZDfQ6vU5oHSg3gO49kgv7CaxFdkF7QEHbchsJ
+  0S1nWMPAlUhA5b8IAx0+ecPlMYUGyGQIQgjgtHgeawJebH3PWy32UqfPhkLPzxsy
+  TSxk6akiXJTg6mYelscuxPLSe9UqNvHRIUoad3VnkF3+0CJ1z0qvfWIrzX3w92/p
+  YsDBZiP6vi8CAwEAAaMjMCEwDgYDVR0PAQH/BAQDAgKkMA8GA1UdEwEB/wQFMAMB
+  Af8wDQYJKoZIhvcNAQELBQADggEBAIbv2ulEcQi019jKz4REy7ZyH8+ExIUBBuIz
+  InAkfxNNxV83GkdyA9amk+LDoF/IFLMltAMM4b033ZKO5RPrHoDKO+xCA0yegYqU
+  BViaUiEXIvi/CcDpT9uh2aNO8wX5T/B0WCLfWFyiK+rr9qcosFYxWSdU0kFeg+Ln
+  YAaeFY65ZWpCCyljGpr2Vv11MAq1Tws8rEs3rg601SdKhBmkgcTAcCzHWBXR1P8K
+  rfzd6h01HhIomWzM9xrP2/2KlYRvExDLpp9qwOdMSanrszPDuMs52okXgfWnEqlB
+  2ZrqgOcTmyFzFh9h2dj1DJWvCvExybRmzWK1e8JMzTb40MEApyY=
+  -----END CERTIFICATE-----
+  -----BEGIN CERTIFICATE-----
+  MIIC7TCCAdWgAwIBAgIUQK2k5uNvlRLx43LI/t3a2/A/3iQwDQYJKoZIhvcNAQEL
+  BQAwFTETMBEGA1UEAxMKa3ViZXJuZXRlczAeFw0yMjA4MDQwNjIwNTFaFw0yMzA4
+  MDQwNjIwNTFaMBMxETAPBgNVBAMMCEtleWNsb2FrMIIBIjANBgkqhkiG9w0BAQEF
+  AAOCAQ8AMIIBCgKCAQEAni7HWLn2IpUImGO1sbBf/XuqATkXSeIIRuQuFymwYPoX
+  BP7RowzrbfF9KUwdIKlz9IXjqb1hplumiqNy1Sc7MmrTY9Fj87MNAMlnCIvyWkjE
+  XVXWxGef49mqc85P2K1iuAsr2R7sDrv7SC0ch+lHclOjGDmCjKOk8qF3kD1LATWg
+  zf42aXb4nNF9kyIOPEbI+jX4PWhAQpEz5nIG+xIRjTHGfacjpeg0+XOK21wLAuQB
+  fqebJ6GxX4OzB37ZtLLgrKyBYWaWuYkWbexVRM3wEvQu8ENkvhV017iPuPHSxNWx
+  Y8z072XMs9j8XRQD65EVqObXyizotPRJF4slEJ9qMQIDAQABozcwNTAJBgNVHRME
+  AjAAMAsGA1UdDwQEAwIF4DAbBgNVHREEFDAShwR/AAABhwTAqAIhhwQKCgCMMA0G
+  CSqGSIb3DQEBCwUAA4IBAQBebjmNHd8sJXjvPQc3uY/3KSDpk9AYfYzhUZvcvLNg
+  z0llFqXHaFlMqHTsz1tOH4Ns4PDKKoRT0JIKC1FkvjzqgL+X2jWFS0NRoNyd3W3B
+  yHLEL7MdQqDR+tZX02EGfaGXjuy8GHIU4J2hXhohmpn6ntfiRONfY8jaEjIecPFS
+  IwZWXNhsDESa1zuDe0PatES/Ati8bAUpN2rb/7rsE/AeM5GXpQfOKV0XxdIeBZ82
+  Vf5cUDWPipvq2Q9KS+yrTvEObGtA6gKhQ4bpz3MieU3N8AtQpEKtROH7mJWMHyl2
+  roD1k8KeJlfvR/XcVTGFcgIdNLfKIdd99Xfi4gSaIKuw
+  -----END CERTIFICATE-----"
+  type: "kubernetes"
+
 Auth URL
 ~~~~~~~~
 
@@ -214,8 +266,35 @@ Use SSL CA Cert
 ~~~~~~~~~~~~~~~
 
 The value of SSL CA Cert for X.509 client authentication. It can be ``None``.
+The SSL certificates of Kubernetes and OpenID provider should be concatenated
+with a newline if both are needed.
 
 Type
 ~~~~
 
 Type of VIM to specify it explicitly as ``kubernetes``.
+
+OpenID Token URL
+~~~~~~~~~~~~~~~~
+
+Token Endpoint URL of OpenID provider.
+
+Client ID
+~~~~~~~~~
+
+The name of Relying Party(client).
+
+Client Secret
+~~~~~~~~~~~~~
+
+The secret of Relying Party(client).
+
+Username
+~~~~~~~~
+
+The name of End-user.
+
+Password
+~~~~~~~~
+
+The password of End-user.

@@ -15,13 +15,26 @@
 #  --os-auth-url
 #  --config-file
 
-openstack vim register \
-    --os-username nfv_user \
-    --os-project-name nfv \
-    --os-password devstack \
-    --os-auth-url http://127.0.0.1/identity \
-    --os-project-domain-name Default \
-    --os-user-domain-name Default \
-    --description "Kubernetes VIM" \
-    --config-file /opt/stack/tacker/tacker/tests/etc/samples/local-k8s-vim.yaml \
-    vim-kubernetes
+conf_dir=/opt/stack/tacker/tacker/tests/etc/samples
+
+register_vim() {
+    openstack vim register \
+        --os-username nfv_user \
+        --os-project-name nfv \
+        --os-password devstack \
+        --os-auth-url http://127.0.0.1/identity \
+        --os-project-domain-name Default \
+        --os-user-domain-name Default \
+        --description "Kubernetes VIM" \
+        --config-file $1 \
+        $2
+}
+
+# regiter vim with bearer token
+register_vim $conf_dir/local-k8s-vim.yaml vim-kubernetes
+
+# regiter vim with OpenID Connect info
+if [ -f $conf_dir/local-k8s-vim-oidc.yaml ]
+then
+    register_vim $conf_dir/local-k8s-vim-oidc.yaml vim-kubernetes-oidc
+fi

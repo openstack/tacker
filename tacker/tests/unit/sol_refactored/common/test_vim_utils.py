@@ -60,6 +60,18 @@ _vim_kubernetes_user = {
     "vim_type": "kubernetes",
     "vim_id": "kubernetes-2"
 }
+_vim_kubernetes_oidc = {
+    "vim_auth": {
+        "username": "admin",
+        "password": "admin",
+        "auth_url": "https://127.0.0.1:6443",
+        "oidc_token_url": "https://127.0.0.1:8443",
+        "client_id": "tacker",
+        "client_secret": "K0Zp5dvdOFhZ7W9PVNZn14omW9NmCQvQ",
+    },
+    "vim_type": "kubernetes",
+    "vim_id": "kubernetes-3"
+}
 
 
 class TestVimUtils(base.BaseTestCase):
@@ -99,6 +111,7 @@ class TestVimUtils(base.BaseTestCase):
         vim_openstack = _vim_openstack
         vim_kubernetes_1 = _vim_kubernetes_bearer_token
         vim_kubernetes_2 = _vim_kubernetes_user
+        vim_kubernetes_3 = _vim_kubernetes_oidc
 
         result_1 = vim_utils.vim_to_conn_info(vim_openstack)
         self.assertEqual('openstack-1', result_1.vimId)
@@ -108,6 +121,9 @@ class TestVimUtils(base.BaseTestCase):
 
         result_3 = vim_utils.vim_to_conn_info(vim_kubernetes_2)
         self.assertEqual('kubernetes-2', result_3.vimId)
+
+        result_4 = vim_utils.vim_to_conn_info(vim_kubernetes_3)
+        self.assertEqual('kubernetes-3', result_4.vimId)
 
         self.assertRaises(
             sol_ex.SolException, vim_utils.vim_to_conn_info,

@@ -52,7 +52,10 @@ class Vim(model_base.BASE,
 class VimAuth(model_base.BASE, models_v1.HasId):
     vim_id = sa.Column(types.Uuid, sa.ForeignKey('vims.id'),
                        nullable=False)
-    password = sa.Column(sa.String(255), nullable=False)
+    # NOTE(Yao Qibin): The password is nullable in the actual database, and
+    # password is not necessary in some cases(eg. use bearer token for auth),
+    # so change the nullable from False to True.
+    password = sa.Column(sa.String(255), nullable=True)
     auth_url = sa.Column(sa.String(255), nullable=False)
     vim_project = sa.Column(types.Json, nullable=False)
     auth_cred = sa.Column(types.Json, nullable=False)
