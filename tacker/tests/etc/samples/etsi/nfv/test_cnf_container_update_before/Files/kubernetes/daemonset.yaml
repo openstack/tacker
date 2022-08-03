@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemonset-vdu5
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        imagePullPolicy: IfNotPresent
+        ports:
+            - containerPort: 80
+              protocol: TCP
+        env:
+          - name: CMENV
+            valueFrom:
+              configMapKeyRef:
+                name: cm-data
+                key: cmKey1.txt
+          - name: SECENV
+            valueFrom:
+              secretKeyRef:
+                name: secret-data
+                key: password
+        envFrom:
+          - prefix: CM_
+            configMapRef:
+              name: cm-data
+          - prefix: SEC_
+            secretRef:
+              name: secret-data

@@ -87,6 +87,43 @@ topology_template:
         vdu_profile:
           min_number_of_instances: 1
           max_number_of_instances: 1
+
+    VDU5:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: daemonset-vdu5
+        description: kubernetes resource as VDU5
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+
+    VDU6:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: deployment2-vdu6
+        description: kubernetes resource as VDU6
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+
+    VDU7:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: env-test2
+        description: kubernetes resource as VDU7
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+
+    VDU8:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: volume-test2
+        description: kubernetes resource as VDU8
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+
   policies:
     - scaling_aspects:
         type: tosca.policies.nfv.ScalingAspects

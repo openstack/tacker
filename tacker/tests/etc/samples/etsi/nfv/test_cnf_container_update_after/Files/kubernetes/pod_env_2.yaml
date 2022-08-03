@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: env-test2
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+    env:
+    - name: CMENV
+      valueFrom:
+        configMapKeyRef:
+          name: cm-data3
+          key: cmKey1.txt
+    - name: SECENV
+      valueFrom:
+        secretKeyRef:
+          name: secret-data3
+          key: password
+    envFrom:
+    - prefix: CM_
+      configMapRef:
+        name: cm-data3
+    - prefix: SEC_
+      secretRef:
+        name: secret-data3

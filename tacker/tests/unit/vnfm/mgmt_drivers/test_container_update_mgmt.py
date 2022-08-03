@@ -15,6 +15,8 @@
 
 import os
 
+from oslo_config import cfg
+
 from kubernetes import client
 from samples.mgmt_driver.kubernetes.container_update import (
     container_update_mgmt as mgmt_driver)
@@ -39,6 +41,7 @@ class TestContainerUpdate(base.TestCase):
         self.context = context.get_admin_context()
         self.cntr_update_mgmt = mgmt_driver.ContainerUpdateMgmtDriver()
         self.vnf_instance = mgmt_fakes.get_vnf_instance_object()
+        cfg.CONF.kubernetes_vim.stack_retry_wait = 0
         self.modify_vnf_request = None
         self._mock_vim_client()
         self._stub_get_vim()
@@ -108,8 +111,6 @@ class TestContainerUpdate(base.TestCase):
             {'namespace': 'default', 'object': mgmt_fakes.fake_pod()}
         ]
         kube_driver = Kubernetes()
-        kube_driver.STACK_RETRIES = 1
-        kube_driver.STACK_RETRY_WAIT = 5
         mock_list_pod.return_value = mgmt_fakes.fake_list_pod()
         self.assertRaises(
             exceptions.MgmtDriverOtherError,
@@ -137,12 +138,143 @@ class TestContainerUpdate(base.TestCase):
     @mock.patch.object(client.CoreV1Api, 'replace_namespaced_config_map')
     @mock.patch.object(client.CoreV1Api, 'replace_namespaced_pod')
     @mock.patch.object(client.CoreV1Api, 'read_namespaced_pod')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set')
     def test_container_update_modify_information_end(
-            self, mock_read_pod, mock_replace_pod, mock_replace_config_map,
+            self, mock_read_replica_set,
+            mock_read_pod, mock_replace_pod, mock_replace_config_map,
             mock_replace_secret, mock_list_pod, mock_vnfd_dict, mock_save):
         mock_read_pod.return_value = mgmt_fakes.fake_pod()
         mock_list_pod.return_value = client.V1PodList(items=[
             mgmt_fakes.get_fake_pod_info(kind='Pod', name='vdu1')])
+        mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
+        kwargs = {
+            'old_vnf_package_path': self.yaml_path_before,
+            'configmap_secret_paths': [
+                "Files/kubernetes/configmap_2.yaml",
+                "Files/kubernetes/secret_2.yaml"
+            ]
+        }
+        self.cntr_update_mgmt.modify_information_end(
+            self.context, self.vnf_instance, self.modify_vnf_request, **kwargs)
+        self.assertEqual(1, mock_save.call_count)
+
+    @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_secret')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_config_map')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_pod')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set')
+    @mock.patch.object(client.AppsV1Api, 'replace_namespaced_replica_set')
+    def test_container_update_modify_information_end_container_config_changed(
+            self, mock_replace_replica_set, mock_read_replicaset,
+            mock_read_pod, mock_replace_pod, mock_replace_config_map,
+            mock_replace_secret, mock_list_pod, mock_vnfd_dict, mock_save,
+    ):
+        mock_read_replicaset.return_value = (mgmt_fakes.
+                                    fake_replicaset_container_config_changed())
+        mock_read_pod.return_value = (mgmt_fakes.
+                                      fake_pod_container_config_changed())
+        mock_list_pod.return_value = client.V1PodList(items=[
+            mgmt_fakes.get_fake_pod_info(kind='Pod', name='vdu1')])
+        mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
+        kwargs = {
+            'old_vnf_package_path': self.yaml_path_before,
+            'configmap_secret_paths': [
+                "Files/kubernetes/configmap_2.yaml",
+                "Files/kubernetes/secret_2.yaml"
+            ]
+        }
+        self.cntr_update_mgmt.modify_information_end(
+            self.context, self.vnf_instance, self.modify_vnf_request, **kwargs)
+        self.assertEqual(1, mock_save.call_count)
+
+    @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_secret')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_config_map')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_pod')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set')
+    @mock.patch.object(client.AppsV1Api, 'replace_namespaced_replica_set')
+    def test_container_update_modify_information_end_volume_config_changed(
+            self, mock_replace_replica_set, mock_read_replicaset,
+            mock_read_pod, mock_replace_pod, mock_replace_config_map,
+            mock_replace_secret, mock_list_pod, mock_vnfd_dict, mock_save,
+    ):
+        mock_read_replicaset.return_value = (mgmt_fakes.
+                                    fake_replicaset_volume_config_changed())
+        mock_read_pod.return_value = (mgmt_fakes.
+                                      fake_pod_volume_config_changed())
+        mock_list_pod.return_value = client.V1PodList(items=[
+            mgmt_fakes.get_fake_pod_info(kind='Pod', name='vdu1')])
+        mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
+        kwargs = {
+            'old_vnf_package_path': self.yaml_path_before,
+            'configmap_secret_paths': [
+                "Files/kubernetes/configmap_2.yaml",
+                "Files/kubernetes/secret_2.yaml"
+            ]
+        }
+        self.cntr_update_mgmt.modify_information_end(
+            self.context, self.vnf_instance, self.modify_vnf_request, **kwargs)
+        self.assertEqual(1, mock_save.call_count)
+
+    @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_secret')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_config_map')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_pod')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set')
+    @mock.patch.object(client.AppsV1Api, 'replace_namespaced_replica_set')
+    def test_container_update_modify_information_end_image_changed(
+            self, mock_replace_replica_set, mock_read_replicaset,
+            mock_read_pod, mock_replace_pod, mock_replace_config_map,
+            mock_replace_secret, mock_list_pod, mock_vnfd_dict, mock_save,
+    ):
+        mock_read_replicaset.return_value = (mgmt_fakes.
+                                             fake_replicaset_image_changed())
+        mock_read_pod.return_value = mgmt_fakes.fake_pod_image_changed()
+        mock_list_pod.return_value = client.V1PodList(items=[
+            mgmt_fakes.get_fake_pod_info(kind='Pod', name='vdu1')])
+        mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
+        kwargs = {
+            'old_vnf_package_path': self.yaml_path_before,
+            'configmap_secret_paths': [
+                "Files/kubernetes/configmap_2.yaml",
+                "Files/kubernetes/secret_2.yaml"
+            ]
+        }
+        self.cntr_update_mgmt.modify_information_end(
+            self.context, self.vnf_instance, self.modify_vnf_request, **kwargs)
+        self.assertEqual(1, mock_save.call_count)
+
+    @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_secret')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_config_map')
+    @mock.patch.object(client.CoreV1Api, 'replace_namespaced_pod')
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_pod')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set')
+    @mock.patch.object(client.AppsV1Api, 'replace_namespaced_replica_set')
+    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
+    def test_container_update_modify_information_end_replicasetpod_deleted(
+            self, mock_delete_namespaced_pod,
+            mock_replace_replica_set, mock_read_replicaset,
+            mock_read_pod, mock_replace_pod, mock_replace_config_map,
+            mock_replace_secret, mock_list_pod, mock_vnfd_dict, mock_save,
+    ):
+        mock_read_replicaset.return_value = (mgmt_fakes.
+                                             fake_replicaset_image_changed())
+        mock_read_pod.return_value = mgmt_fakes.fake_pod()
+        mock_list_pod.return_value = client.V1PodList(items=[
+            mgmt_fakes.get_fake_pod_info(kind='Pod',
+                                         name='vdu2-rldmg')])
         mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
         kwargs = {
             'old_vnf_package_path': self.yaml_path_before,

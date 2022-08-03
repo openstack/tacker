@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    In the current implementation, when users invoke update operation of
+    ConfigMaps and Secrets, all Pods are restarted even if they don't use
+    those updated ConfigMaps and Secrets.
+
+    Remove this limitation by filtering out resources that use
+    Configmaps/Secrets and restarting those resources.

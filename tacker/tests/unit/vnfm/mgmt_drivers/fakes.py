@@ -24,7 +24,6 @@ from tacker.tests import uuidsentinel
 
 def get_vnf_instance_object(
         instantiation_state=fields.VnfInstanceState.NOT_INSTANTIATED):
-
     inst_vnf_info = get_vnf_instantiated_info()
 
     vnf_instance = objects.VnfInstance(
@@ -86,6 +85,313 @@ def fake_pod():
                     name="curry"
                 )
             ]
+        ),
+        status=client.V1PodStatus(
+            phase='Running',
+        )
+    )
+
+
+def fake_pod_container_config_changed():
+    return client.V1Pod(
+        api_version='v1',
+        kind='Pod',
+        metadata=client.V1ObjectMeta(
+            name='volume-test',
+            namespace='default'
+        ),
+        spec=client.V1PodSpec(
+            containers=[
+                client.V1Container(
+                    image="cirros",
+                    name="nginx",
+                    env=[
+                        client.V1EnvVar(
+                            name='param0',
+                            value_from=client.V1EnvVarSource(
+                                config_map_key_ref=client.
+                                V1ConfigMapKeySelector(
+                                    key='param0',
+                                    name='cm-data'
+                                )
+                            )
+                        ),
+                        client.V1EnvVar(
+                            name='param1',
+                            value_from=client.V1EnvVarSource(
+                                secret_key_ref=client.
+                                V1SecretKeySelector(
+                                    key='password',
+                                    name='secret-data'
+                                )
+                            )
+                        )
+                    ],
+                )
+            ]
+        ),
+        status=client.V1PodStatus(
+            phase='Running',
+        )
+    )
+
+
+def fake_pod_volume_config_changed():
+    return client.V1Pod(
+        api_version='v1',
+        kind='Pod',
+        metadata=client.V1ObjectMeta(
+            name='volume-test',
+            namespace='default'
+        ),
+        spec=client.V1PodSpec(
+            containers=[
+                client.V1Container(
+                    image="cirros",
+                    name="nginx",
+                    volume_mounts=[
+                        client.V1VolumeMount(
+                            name='cm-volume',
+                            mount_path='/config'
+                        ),
+                        client.V1VolumeMount(
+                            name='sec-volume',
+                            mount_path='/etc/secrets'
+                        ),
+                    ]
+                )
+            ],
+            volumes=[
+                client.V1Volume(
+                    name='cm-volume',
+                    config_map=client.V1ConfigMapVolumeSource(
+                        name='cm-data'
+                    ),
+                ),
+                client.V1Volume(
+                    name='sec-volume',
+                    secret=client.V1SecretVolumeSource(
+                        secret_name='secret-data'
+                    )
+                )
+            ]
+        ),
+        status=client.V1PodStatus(
+            phase='Running',
+        )
+    )
+
+
+def fake_pod_image_changed():
+    return client.V1Pod(
+        api_version='v1',
+        kind='Pod',
+        metadata=client.V1ObjectMeta(
+            name='volume-test',
+            namespace='default'
+        ),
+        spec=client.V1PodSpec(
+            containers=[
+                client.V1Container(
+                    image="nginx-old",
+                    name="nginx",
+                )
+            ]
+        ),
+        status=client.V1PodStatus(
+            phase='Running',
+        )
+    )
+
+
+def fake_replicaset_container_config_changed():
+    return client.V1ReplicaSet(
+        api_version='apps/v1',
+        kind='ReplicaSet',
+        metadata=client.V1ObjectMeta(
+            name='vdu2',
+            namespace='default'
+        ),
+        spec=client.V1ReplicaSetSpec(
+            selector=client.V1LabelSelector(
+                match_labels={'app': 'webserver'}
+            ),
+            template=client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    labels={'app': 'webserver',
+                            'scaling_name': 'SP1'}
+                ),
+                spec=client.V1PodSpec(
+                    containers=[
+                        client.V1Container(
+                            env=[
+                                client.V1EnvVar(
+                                    name='param0',
+                                    value_from=client.V1EnvVarSource(
+                                        config_map_key_ref=client.
+                                        V1ConfigMapKeySelector(
+                                            key='param0',
+                                            name='cm-data'
+                                        )
+                                    )
+                                ),
+                                client.V1EnvVar(
+                                    name='param1',
+                                    value_from=client.V1EnvVarSource(
+                                        secret_key_ref=client.
+                                        V1SecretKeySelector(
+                                            key='password',
+                                            name='secret-data'
+                                        )
+                                    )
+                                )
+                            ],
+                            image='celebdor/kuryr-demo',
+                            image_pull_policy='IfNotPresent',
+                            name='nginx',
+                            ports=[
+                                client.V1ContainerPort(
+                                    container_port=8080
+                                )
+                            ],
+                            resources=client.V1ResourceRequirements(
+                                limits={
+                                    'cpu': '500m', 'memory': '512M'
+                                },
+                                requests={
+                                    'cpu': '500m', 'memory': '512M'
+                                }
+                            ),
+                            volume_mounts=[
+                                client.V1VolumeMount(
+                                    name='curry-claim-volume',
+                                    mount_path='/data'
+                                )
+                            ]
+                        )
+                    ],
+                    termination_grace_period_seconds=0
+                )
+            )
+        ),
+        status=client.V1PodStatus(
+            phase='Running',
+        )
+    )
+
+
+def fake_replicaset_volume_config_changed():
+    return client.V1ReplicaSet(
+        api_version='apps/v1',
+        kind='ReplicaSet',
+        metadata=client.V1ObjectMeta(
+            name='vdu2',
+            namespace='default'
+        ),
+        spec=client.V1ReplicaSetSpec(
+            selector=client.V1LabelSelector(
+                match_labels={'app': 'webserver'}
+            ),
+            template=client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    labels={'app': 'webserver',
+                            'scaling_name': 'SP1'}
+                ),
+                spec=client.V1PodSpec(
+                    containers=[
+                        client.V1Container(
+                            image='celebdor/kuryr-demo',
+                            image_pull_policy='IfNotPresent',
+                            name='nginx',
+                            ports=[
+                                client.V1ContainerPort(
+                                    container_port=8080
+                                )
+                            ],
+                            resources=client.V1ResourceRequirements(
+                                limits={
+                                    'cpu': '500m', 'memory': '512M'
+                                },
+                                requests={
+                                    'cpu': '500m', 'memory': '512M'
+                                }
+                            ),
+                            volume_mounts=[
+                                client.V1VolumeMount(
+                                    name='curry-claim-volume',
+                                    mount_path='/data'
+                                )
+                            ]
+                        )
+                    ],
+                    volumes=[
+                        client.V1Volume(
+                            name='curry-claim-volume',
+                            persistent_volume_claim=client.
+                            V1PersistentVolumeClaimVolumeSource(
+                                claim_name='curry-pv-claim'
+                            ),
+                            config_map=client.V1ConfigMapVolumeSource(
+                                default_mode=438,
+                                name='cm-data'
+
+                            ),
+                            secret=client.V1SecretVolumeSource(
+                                secret_name='secret-data'
+                            )
+                        )
+                    ],
+                    termination_grace_period_seconds=0
+                )
+            )
+        ),
+        status=client.V1PodStatus(
+            phase='Running',
+        )
+    )
+
+
+def fake_replicaset_image_changed():
+    return client.V1ReplicaSet(
+        api_version='apps/v1',
+        kind='ReplicaSet',
+        metadata=client.V1ObjectMeta(
+            name='vdu2',
+            namespace='default'
+        ),
+        spec=client.V1ReplicaSetSpec(
+            selector=client.V1LabelSelector(
+                match_labels={'app': 'webserver'}
+            ),
+            template=client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    labels={'app': 'webserver',
+                            'scaling_name': 'SP1'}
+                ),
+                spec=client.V1PodSpec(
+                    containers=[
+                        client.V1Container(
+                            image='celebdor/kuryr-demo-old',
+                            image_pull_policy='IfNotPresent',
+                            name='nginx',
+                            ports=[
+                                client.V1ContainerPort(
+                                    container_port=8080
+                                )
+                            ],
+                            resources=client.V1ResourceRequirements(
+                                limits={
+                                    'cpu': '500m', 'memory': '512M'
+                                },
+                                requests={
+                                    'cpu': '500m', 'memory': '512M'
+                                }
+                            ),
+                        )
+                    ],
+                    termination_grace_period_seconds=0
+                )
+            )
         ),
         status=client.V1PodStatus(
             phase='Running',

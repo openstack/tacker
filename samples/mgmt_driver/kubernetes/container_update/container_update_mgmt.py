@@ -88,13 +88,48 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
         return k8s_objs
 
     def _modify_container_img(self, old_containers, new_containers):
+        flag = False
         for old_container in old_containers:
             for new_container in new_containers:
                 if (old_container.name == new_container.name and
                         old_container.image != new_container.image):
                     # Replace the old image with the new image
+                    flag = True
                     old_container.image = new_container.image
                     break
+        return flag
+
+    def _is_config_updated(self, k8s_resource_info, modify_config_names):
+        containers = None
+        volumes = None
+        k8s_obj_kind = k8s_resource_info.kind
+        if k8s_obj_kind == 'Pod':
+            containers = k8s_resource_info.spec.containers
+            volumes = k8s_resource_info.spec.volumes
+        elif k8s_obj_kind in ('Deployment', 'ReplicaSet', 'DaemonSet'):
+            containers = k8s_resource_info.spec.template.spec.containers
+            volumes = k8s_resource_info.spec.template.spec.volumes
+        if containers:
+            for container in containers:
+                if container.env:
+                    for env in container.env:
+                        if env.value_from.config_map_key_ref and (
+                                env.value_from.config_map_key_ref.name
+                                in modify_config_names):
+                            return True
+                        if env.value_from.secret_key_ref and (
+                                env.value_from.secret_key_ref.name
+                                in modify_config_names):
+                            return True
+        if volumes:
+            for volume in volumes:
+                if volume.config_map and (
+                        volume.config_map.name in modify_config_names):
+                    return True
+                if volume.secret and (
+                        volume.secret.secret_name in modify_config_names):
+                    return True
+        return False
 
     def _replace_api(self, k8s_clients, namespace, k8s_obj):
         # get api
@@ -197,6 +232,9 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
                                         vnf_instance.vim_connection_info)
         vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
             vim_info, context)
+
+        # the name of updated configmap/secret will be in this set
+        modify_config_names = set()
         for configmap_secret_path in configmap_secret_paths:
             # Read the contents of the manifest file and get name and kind
             configmap_secrets = self._get_kind_and_name(configmap_secret_path,
@@ -215,6 +253,8 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
                         new_inst_vnf_info.additional_params[
                             'lcm-kubernetes-def-files'][
                             index] = configmap_secret_path
+                        for obj in resource:
+                            modify_config_names.add(obj['name'])
                         break
                     raise exceptions.MgmtDriverOtherError(
                         error_message='The number of resources in the '
@@ -249,7 +289,10 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
         for old_k8s_obj in old_k8s_objs:
             old_k8s_obj_kind = old_k8s_obj['object'].kind
             old_k8s_obj_name = old_k8s_obj['object'].metadata.name
-            if old_k8s_obj_kind in ['Pod', 'Deployment']:
+            if old_k8s_obj_kind in ('Pod', 'Deployment',
+                                    'ReplicaSet', 'DaemonSet'):
+                image_modify_flag = False
+                config_modify_flag = False
                 for new_k8s_obj in new_k8s_objs:
                     # If the old and new k8s_obj have the same kind and name
                     new_k8s_obj_kind = new_k8s_obj['object'].kind
@@ -268,7 +311,12 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
                         # Assign old_k8s_resource_info to old_k8s_obj['object']
                         old_k8s_obj['object'] = old_k8s_resource_info
 
-                        if old_k8s_obj_kind == 'Deployment':
+                        # if config of Pod/Deployment/ReplicaSet/DaemonSet
+                        # is to be updated then set config_modify_flag True
+                        config_modify_flag = self._is_config_updated(
+                            old_k8s_resource_info, modify_config_names)
+                        if old_k8s_obj_kind in ('Deployment', 'ReplicaSet',
+                                                'DaemonSet'):
                             old_containers = (old_k8s_obj['object'].spec
                                               .template.spec.containers)
                             new_containers = (new_k8s_obj['object'].spec
@@ -279,12 +327,13 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
                             new_containers = (new_k8s_obj['object']
                                               .spec.containers)
                         # Replace the old image with the new image
-                        self._modify_container_img(old_containers,
-                                                   new_containers)
+                        image_modify_flag = self._modify_container_img(
+                            old_containers, new_containers)
                         break
-
-                # Append old_k8s_obj to k8s_pod_objs
-                k8s_pod_objs.append(old_k8s_obj)
+                # Append only old_k8s_obj whose image or config would
+                # be updated to k8s_pod_objs
+                if image_modify_flag or config_modify_flag:
+                    k8s_pod_objs.append(old_k8s_obj)
             elif old_k8s_obj_kind in ['ConfigMap', 'Secret']:
                 for new_k8s_obj in new_k8s_objs:
                     # If the old and new k8s_obj have the same kind and name
@@ -292,18 +341,36 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
                     new_k8s_obj_name = new_k8s_obj['object'].metadata.name
                     if old_k8s_obj_kind == new_k8s_obj_kind and (
                             old_k8s_obj_name == new_k8s_obj_name):
-                        # Append old_k8s_obj to k8s_pod_objs
+                        # Append new_k8s_obj to k8s_config_objs
                         k8s_config_objs.append(new_k8s_obj)
                         break
         for k8s_config_obj in k8s_config_objs:
             # Call the replace API
             self._replace_api(k8s_clients, namespace, k8s_config_obj)
+        core_v1_api_client = k8s_clients['v1']
+        pods = core_v1_api_client.list_namespaced_pod(namespace=namespace)
         for k8s_pod_obj in k8s_pod_objs:
             # Call the replace API
             self._replace_api(k8s_clients, namespace, k8s_pod_obj)
+            # delete pod of modified replicaset
+            # After using the replace_namespaced_replicaset API of k8s,
+            # the new configuration cannot be applied to the pod created
+            # by the replicaset, so you need to delete the pod first, and
+            # then the replicaset will automatically rebuild the pod to make
+            # the new configuration take effect.
+            if k8s_pod_obj['object'].kind == 'ReplicaSet':
+                for pod in pods.items:
+                    match_result = kube_driver.is_match_pod_naming_rule(
+                        'ReplicaSet',
+                        k8s_pod_obj['object'].metadata.name,
+                        pod.metadata.name)
+                    if match_result:
+                        core_v1_api_client.delete_namespaced_pod(
+                            namespace=namespace,
+                            name=pod.metadata.name,
+                            body=pod)
 
         # _replace_wait_k8s
-        core_v1_api_client = k8s_clients['v1']
         self._replace_wait_k8s(kube_driver, k8s_pod_objs, core_v1_api_client,
                                vnf_instance)
         # Get all pod information under the specified namespace
