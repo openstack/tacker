@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes `bug 1983575`_. In a multi-tenant environment, tacker disallows
+    deletion operation and showing of subscription details belonging to
+    different tenants.
+
+    .. _bug 1983575: https://bugs.launchpad.net/tacker/+bug/1983575

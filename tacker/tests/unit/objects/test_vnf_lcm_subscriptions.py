@@ -205,6 +205,17 @@ class TestVnfLcmSubScriptions(SqlTestCase):
         self.assertTrue(filter, result)
 
     @mock.patch.object(objects.vnf_lcm_subscriptions,
+                       '_vnf_lcm_subscriptions_show')
+    def test_show_for_invalid_tenant_id(self, mock_vnf_lcm_subscriptions_show):
+        mock_vnf_lcm_subscriptions_show.return_value = None
+        self.context.tenant_id = 12345
+        subs_obj = objects.vnf_lcm_subscriptions.LccnSubscriptionRequest(
+            context=self.context)
+        result = subs_obj.vnf_lcm_subscriptions_show(self.context,
+            self.subscription.id)
+        self.assertIsNone(result)
+
+    @mock.patch.object(objects.vnf_lcm_subscriptions,
                        '_vnf_lcm_subscriptions_all')
     def test_list(self, mock_vnf_lcm_subscriptions_all):
         filter = fakes.filter
@@ -273,6 +284,18 @@ class TestVnfLcmSubScriptions(SqlTestCase):
     def test_destroy(self, mock_get_by_subscriptionid,
                      mock_vnf_lcm_subscriptions_destroy):
         mock_get_by_subscriptionid.result_value = "OK"
+        self.subscription.destroy(self.context, self.subscription.id)
+        mock_vnf_lcm_subscriptions_destroy.assert_called_with(
+            self.context, self.subscription.id)
+
+    @mock.patch.object(objects.vnf_lcm_subscriptions,
+                       '_destroy_vnf_lcm_subscription')
+    @mock.patch.object(objects.vnf_lcm_subscriptions, '_get_by_subscriptionid')
+    def test_destroy_for_invalid_tenant_id(self,
+            mock_get_by_subscriptionid,
+            mock_vnf_lcm_subscriptions_destroy):
+        mock_get_by_subscriptionid.result_value = None
+        self.context.tenant_id = 12345
         self.subscription.destroy(self.context, self.subscription.id)
         mock_vnf_lcm_subscriptions_destroy.assert_called_with(
             self.context, self.subscription.id)

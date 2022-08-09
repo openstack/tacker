@@ -160,7 +160,12 @@ def _vnf_lcm_subscriptions_get(context,
 
 @db_api.context_manager.reader
 def _vnf_lcm_subscriptions_show(context, subscriptionId):
+    """Query to retrieve desired subscription details
 
+    The SQL query fetches subscription details only when
+    the requester's tenant details match with the target
+    subscription.
+    """
     sql = text(
         "select "
         "t1.id,t1.callback_uri,t1.tenant_id,t2.filter "
@@ -168,14 +173,17 @@ def _vnf_lcm_subscriptions_show(context, subscriptionId):
         "(select distinct subscription_uuid,filter from vnf_lcm_filters) t2 "
         "where t1.id = t2.subscription_uuid "
         "and deleted = 0 "
-        "and t1.id = :subsc_id")
+        "and t1.id = :subsc_id "
+        "and t1.tenant_id = :tenant_id")
     result_line = ""
     try:
-        result = context.session.execute(sql, {'subsc_id': subscriptionId})
+        result = context.session.execute(sql, {'subsc_id': subscriptionId,
+            'tenant_id': context.project_id})
         for line in result:
             result_line = line
     except exceptions.NotFound:
-        return ''
+        LOG.error('Subscription %(id) not found.', {"id": subscriptionId})
+        return None
     except Exception as e:
         raise e
     return result_line
@@ -208,15 +216,20 @@ def _get_by_subscriptionid(context, subscriptionsId):
     sql = text("select id "
              "from vnf_lcm_subscriptions "
              "where id = :subsc_id "
-             "and deleted = 0 ")
+             "and deleted = 0 "
+             "and tenant_id = :tenant_id")
+    result_line = ""
     try:
-        result = context.session.execute(sql, {'subsc_id': subscriptionsId})
+        result = context.session.execute(sql, {'subsc_id': subscriptionsId,
+            'tenant_id': context.project_id})
+        for line in result:
+            result_line = line
     except exceptions.NotFound:
-        return ''
+        LOG.error('Subscription %(id) not found.', {"id": subscriptionsId})
+        return None
     except Exception as e:
         raise e
-
-    return result
+    return result_line
 
 
 @db_api.context_manager.reader
