@@ -86,7 +86,7 @@
       - openstack/blazar-nova
       - openstack/horizon
       - openstack/barbican
-      - openstack/ceilometer
+      #- openstack/ceilometer
       - openstack/heat
       - openstack/mistral
       - openstack/mistral-dashboard
@@ -187,7 +187,7 @@
         tox_install_siblings: false
       controller-tacker:
         devstack_plugins:
-          ceilometer: https://opendev.org/openstack/ceilometer
+          #ceilometer: https://opendev.org/openstack/ceilometer
           tacker: https://opendev.org/openstack/tacker
         devstack_services:
           # OVN services
@@ -197,10 +197,10 @@
           # Neutron services
           q-ovn-metadata-agent: true
           # Ceilometer services
-          ceilometer-acompute: false
-          ceilometer-acentral: true
-          ceilometer-aipmi: false
-          ceilometer-anotification: true
+          #ceilometer-acompute: false
+          #ceilometer-acentral: true
+          #ceilometer-aipmi: false
+          #ceilometer-anotification: true
           # Tacker services
           tacker: true
           tacker-conductor: true
@@ -236,7 +236,7 @@
           #   gnocchi setup would run on every compute nodes (esp. multiple asynchronous calls
           #   of recreate_database() would be disastrous). Unused api servers would also be
           #   deployed on each compute node.
-          CEILOMETER_BACKEND: "{% if 'compute' in group_names %}none{% else %}gnocchi{% endif %}"
+          #CEILOMETER_BACKEND: "{% if 'compute' in group_names %}none{% else %}gnocchi{% endif %}"
           Q_SERVICE_PLUGIN_CLASSES: "qos,\
             networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,\
             neutron.services.qos.qos_plugin.QoSPlugin,\
@@ -244,10 +244,10 @@
           L2_AGENT_EXTENSIONS: qos
           ENABLE_CHASSIS_AS_GW: false
           Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
-        devstack_plugins:
-          ceilometer: https://opendev.org/openstack/ceilometer
+        #devstack_plugins:
+          #ceilometer: https://opendev.org/openstack/ceilometer
         devstack_services:
-          ceilometer-acompute: true
+          #ceilometer-acompute: true
           # To override the parent job's definitions.
           tls-proxy: false
           # OVN services

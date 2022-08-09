@@ -458,7 +458,7 @@ def get_vnf_instantiation_request_body():
                                     {
                                         "type": "IPV4",
                                         "fixedAddresses": [
-                                            '192.168.11.01',
+                                            '192.168.11.1',
                                             '192.168.21.202'
                                         ],
                                         "subnetId":
