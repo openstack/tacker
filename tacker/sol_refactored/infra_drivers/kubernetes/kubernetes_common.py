@@ -13,6 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
+import operator
+import re
+
 from oslo_log import log as logging
 from oslo_service import loopingcall
 
@@ -21,6 +25,7 @@ from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes_resource
 from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes_utils
+from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 
 
@@ -214,3 +219,175 @@ class KubernetesCommon(object):
         check_reses = set(k8s_reses)
         self._check_status(_check_updated, check_reses, k8s_api_client,
                            namespace, old_pods_names)
+
+    def diff_check_inst(self, inst, vim_info):
+        inst_tmp = copy.deepcopy(inst)
+        self.diff_check_and_update_vnfc(inst_tmp, vim_info)
+
+    def diff_check_and_update_vnfc(self, vnf_instance, vim_info):
+        with kubernetes_utils.AuthContextManager(vim_info) as acm:
+            k8s_api_client = acm.init_k8s_api_client()
+            old_pods_names = {
+                vnfc.computeResource.resourceId for vnfc in
+                vnf_instance.instantiatedVnfInfo.vnfcResourceInfo}
+            self._update_vnfc_info(vnf_instance, k8s_api_client)
+            new_pods_names = {
+                vnfc.computeResource.resourceId for vnfc in
+                vnf_instance.instantiatedVnfInfo.vnfcResourceInfo}
+            if operator.eq(old_pods_names, new_pods_names):
+                raise sol_ex.DbSyncNoDiff(
+                    "There are no differences in Vnfc resources.")
+
+    def sync_db(self, context, vnf_instance, vim_info):
+        self.diff_check_and_update_vnfc(vnf_instance, vim_info)
+
+        vdu_id_list = self._get_vdu_list(vnf_instance)
+        for vdu_id in vdu_id_list:
+            resource_type = ""
+            resource_name = ""
+            # get pod information
+            for vnfc in vnf_instance.instantiatedVnfInfo.vnfcResourceInfo:
+                if vnfc.vduId == vdu_id:
+                    resource_type = (vnfc.computeResource
+                                     .vimLevelResourceType)
+                    resource_name = self._get_resource_name(
+                        vnfc.computeResource.resourceId, resource_type)
+                    break
+            pod_resources_from_k8s = self._get_pod_information(
+                resource_name, resource_type, vnf_instance, vim_info)
+
+            vnfcs = [vnfc for vnfc in
+                     vnf_instance.instantiatedVnfInfo.vnfcResourceInfo if
+                     vnfc.vduId == vdu_id]
+            replicas = vnf_instance.instantiatedVnfInfo.metadata[
+                'vdu_reses'][vdu_id]['spec'].get('replicas')
+            if replicas is not None:
+                vnf_instance.instantiatedVnfInfo.metadata[
+                    'vdu_reses'][vdu_id]['spec']['replicas'] = len(vnfcs)
+
+            self._calc_scale_level(
+                context, vnf_instance, vdu_id,
+                len(pod_resources_from_k8s))
+
+    def _calc_scale_level(self, context, vnf_instance,
+            vdu_id, current_pod_num):
+        """calc scale_level and set"""
+        aspect_id = ""
+        flavour_id = vnf_instance.instantiatedVnfInfo.flavourId
+        client = nfvo_client.NfvoClient()
+        vnfd = client.get_vnfd(context, vnf_instance.vnfdId)
+        for aspect_delta in vnfd.get_policy_values_by_type(flavour_id,
+                              'tosca.policies.nfv.VduScalingAspectDeltas'):
+            if vdu_id in aspect_delta.get('targets', []):
+                aspect_id = aspect_delta.get('properties', {}).get('aspect')
+                break
+        if not aspect_id:
+            return
+
+        delta = vnfd.get_scale_vdu_and_num(flavour_id, aspect_id).get(vdu_id)
+        initial_delta = vnfd.get_initial_delta(flavour_id, vdu_id)
+
+        if (current_pod_num - initial_delta) % delta != 0:
+            raise sol_ex.DbSyncFailed(
+                "Error computing 'scale_level'. current Pod num: "
+                f"{current_pod_num} delta: {delta}. vnf: {vnf_instance.id} "
+                f"vdu: {vdu_id}")
+
+        scale_level = (current_pod_num - initial_delta) // delta
+
+        for inst_vnf in vnf_instance.instantiatedVnfInfo.scaleStatus:
+            if inst_vnf.aspectId == aspect_id:
+                inst_vnf.scaleLevel = scale_level
+                break
+
+        self._check_pod_range(
+            vnf_instance, vnfd, vdu_id, flavour_id, current_pod_num)
+
+    def _check_pod_range(self, vnf_instance, vnfd, vdu_id,
+            flavour_id, current_pod_num):
+        """Check the range of the maximum or minimum number of pods.
+
+        If it finds out of range, output a error log and do not update
+        database.
+        """
+        vdu_profile = (vnfd.get_vdu_nodes(flavour_id)
+                           .get(vdu_id, {})
+                           .get("properties", {})
+                           .get("vdu_profile", {}))
+        max_number_of_instances = vdu_profile.get("max_number_of_instances")
+        min_number_of_instances = vdu_profile.get("min_number_of_instances")
+
+        if (current_pod_num > max_number_of_instances
+                or current_pod_num < min_number_of_instances):
+            raise sol_ex.DbSyncFailed(
+                f"Failed to update database vnf {vnf_instance.id} "
+                f"vdu: {vdu_id}. Pod num is out of range. "
+                f"pod_num: {current_pod_num}")
+
+    def _get_pod_information(self, resource_name,
+            resource_type, vnf_instance, vim_connection_info):
+        """Extract a Pod starting with the specified 'resource_name' name"""
+        namespace = vnf_instance.metadata.get('namespace')
+        if not namespace:
+            namespace = "default"
+
+        with kubernetes_utils.AuthContextManager(vim_connection_info) as acm:
+            k8s_api_client = acm.init_k8s_api_client()
+            all_pods = kubernetes_utils.list_namespaced_pods(
+                k8s_api_client, namespace)
+
+        resource_pods = {}
+
+        for pod in all_pods:
+            if self.is_match_pod_naming(resource_type,
+                  resource_name, pod.metadata.name):
+                resource_pods[pod.metadata.name] = pod.metadata.to_dict()
+        return resource_pods
+
+    def _get_vdu_list(self, vnf_instance):
+        """get vdu_list"""
+        vdu_id_list = set()
+
+        for vnfc in vnf_instance.instantiatedVnfInfo.vnfcResourceInfo:
+            vdu_id_list.add(vnfc.vduId)
+        return vdu_id_list
+
+    def _get_resource_name(self, resource_id, resource_type):
+        """get resource name"""
+        if resource_type == 'Pod':
+            resource_name = resource_id
+        else:
+            name_list = resource_id.split("-")
+            if resource_type == 'Deployment':
+                del name_list[-2:]
+            elif resource_type in ('ReplicaSet', 'DaemonSet', 'StatefulSet'):
+                del name_list[-1]
+            resource_name = '-'.join(name_list)
+
+        return resource_name
+
+    def is_match_pod_naming(self, rsc_kind, rsc_name, pod_name):
+        match_result = None
+        if rsc_kind == 'Pod':
+            # Expected example: name
+            if rsc_name == pod_name:
+                return True
+        elif rsc_kind == 'Deployment':
+            # Expected example: name-012789abef-019az
+            # NOTE(horie): The naming rule of Pod in deployment is
+            # "(deployment name)-(pod template hash)-(5 charactors)".
+            # The "pod template hash" string is generated from 32 bit hash.
+            # This may be from 1 to 10 caracters but not sure the lower limit
+            # from the source code of Kubernetes.
+            match_result = re.match(
+                rsc_name + '-([0-9a-f]{1,10})-([0-9a-z]{5})+$', pod_name)
+        elif rsc_kind in ('ReplicaSet', 'DaemonSet'):
+            # Expected example: name-019az
+            match_result = re.match(rsc_name + '-([0-9a-z]{5})+$', pod_name)
+        elif rsc_kind == 'StatefulSet':
+            # Expected example: name-0
+            match_result = re.match(rsc_name + '-[0-9]+$', pod_name)
+        if match_result:
+            return True
+
+        return False

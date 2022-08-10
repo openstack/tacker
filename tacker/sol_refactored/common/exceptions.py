@@ -347,6 +347,14 @@ class InvalidPagingMarker(SolHttpError400):
     message = _("Paging marker value %(marker)s is invalid.")
 
 
+class DbSyncNoDiff(Exception):
+    pass
+
+
+class DbSyncFailed(Exception):
+    pass
+
+
 class K8sOperationFailed(SolHttpError422):
     # title and detail are set in the code from kubernetes operation
     pass

@@ -1118,3 +1118,29 @@ class VnfLcmDriverV2(object):
         else:
             # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
+
+    def sync_db(self, context, vnf_inst, vim_info):
+        # Database synchronization works only when
+        # the vimType is kubernetes or ETSINFV.HELM.V_3
+        if vim_info.vimType == 'kubernetes':
+            driver = kubernetes.Kubernetes()
+            driver.sync_db(context, vnf_inst, vim_info)
+        elif vim_info.vimType == 'ETSINFV.HELM.V_3':
+            driver = helm.Helm()
+            driver.sync_db(context, vnf_inst, vim_info)
+        else:
+            # Only support CNF
+            raise sol_ex.DbSyncNoDiff(
+                "There are no differences in Vnfc resources.")
+
+    def diff_check_inst(self, vnf_inst, vim_info):
+        if vim_info.vimType == 'kubernetes':
+            driver = kubernetes.Kubernetes()
+            driver.diff_check_inst(vnf_inst, vim_info)
+        elif vim_info.vimType == 'ETSINFV.HELM.V_3':
+            driver = helm.Helm()
+            driver.diff_check_inst(vnf_inst, vim_info)
+        else:
+            # Only support CNF
+            raise sol_ex.DbSyncNoDiff(
+                "There are no differences in Vnfc resources.")

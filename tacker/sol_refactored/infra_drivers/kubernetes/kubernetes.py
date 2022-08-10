@@ -13,8 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import re
-
 from kubernetes import client
 from oslo_log import log as logging
 
@@ -305,27 +303,4 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
         )
 
     def _is_match_pod_naming_rule(self, rsc_kind, rsc_name, pod_name):
-        match_result = None
-        if rsc_kind == 'Pod':
-            # Expected example: name
-            if rsc_name == pod_name:
-                return True
-        elif rsc_kind == 'Deployment':
-            # Expected example: name-012789abef-019az
-            # NOTE(horie): The naming rule of Pod in deployment is
-            # "(deployment name)-(pod template hash)-(5 charactors)".
-            # The "pod template hash" string is generated from 32 bit hash.
-            # This may be from 1 to 10 caracters but not sure the lower limit
-            # from the source code of Kubernetes.
-            match_result = re.match(
-                rsc_name + '-([0-9a-f]{1,10})-([0-9a-z]{5})+$', pod_name)
-        elif rsc_kind in ('ReplicaSet', 'DaemonSet'):
-            # Expected example: name-019az
-            match_result = re.match(rsc_name + '-([0-9a-z]{5})+$', pod_name)
-        elif rsc_kind == 'StatefulSet':
-            # Expected example: name-0
-            match_result = re.match(rsc_name + '-[0-9]+$', pod_name)
-        if match_result:
-            return True
-
-        return False
+        return self.is_match_pod_naming(rsc_kind, rsc_name, pod_name)

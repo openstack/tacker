@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    This patch adds the ability to periodically synchronize resources
+    in K8s VIM and Tacker DB.
+    There is no interface on the K8s to notify Tacker when the auto-scale or
+    auto-heal of a pod is running and the pod information is updated.
+    This can lead to inconsistencies between the Pod information in Tacker
+    database and the Pod information running on the actual K8s.
+    This function periodically checks the pod information in the Tacker
+    database and the pod information in the K8s, and updates the information
+    in the Tacker database according to the K8s side if there is
+    any inconsistency.

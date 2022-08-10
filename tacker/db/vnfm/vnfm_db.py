@@ -37,6 +37,7 @@ from tacker.db import db_base
 from tacker.db.db_sqlalchemy import models
 from tacker.db import model_base
 from tacker.db import models_v1
+from tacker.db.nfvo import nfvo_db  # noqa: F401
 from tacker.db.nfvo import ns_db
 from tacker.db import types
 from tacker.extensions import vnfm

@@ -23,6 +23,10 @@ interval_opts = [
                default=1800,
                help=_('Seconds between running periodic tasks '
                       'to cleanup residues of deleted vnf packages')),
+    cfg.IntOpt('db_synchronization_interval',
+               default=300,
+               help=_('Interval time in sec for DB sync between '
+                      'Tacker and Kubernetes VIMs')),
 ]
 
 

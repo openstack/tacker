@@ -18,6 +18,7 @@ import ddt
 import os
 
 from kubernetes import client
+from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from tacker.common.container import kubernetes_utils
 from tacker.common import exceptions
@@ -36,6 +37,7 @@ from tacker.tests.unit.vnflcm import fakes as vnflcm_fakes
 from tacker.tests.unit.vnfm.infra_drivers.kubernetes import fakes
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import \
     fixture_data_utils as fd_utils
+from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnfm.infra_drivers.kubernetes.k8s import tosca_kube_object
 from tacker.vnfm.infra_drivers.kubernetes.k8s import translate_outputs
 from tacker.vnfm.infra_drivers.kubernetes import kubernetes_driver
@@ -3855,3 +3857,525 @@ class TestKubernetes(base.TestCase):
                         vim_connection_info=vim_connection_object,
                         heal_vnf_request=heal_request_data_obj)
         self.assertEqual(mock_list_namespaced_pod.call_count, 0)
+
+    @mock.patch.object(kubernetes_driver.Kubernetes,
+                       "_sync_vnfc_resource_and_pod_resource")
+    @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
+    @mock.patch.object(vnflcm_utils, "get_vim")
+    @mock.patch.object(VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(kubernetes_driver.Kubernetes, '_check_pod_information')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db(
+            self, mock_list_namespaced_pod, mock_check_pod_information,
+            mock_get_by_id, mock_save, mock_get_vim, mock_vim,
+            mock_sync_vnfc):
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[fakes.get_fake_pod_info(kind='Deployment')])
+        mock_check_pod_information.return_value = True
+
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod')
+        vnfc_resource_info_obj2 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU2', rsc_kind='Deployment')
+        vnfc_resource_info_obj3 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU3', rsc_kind='ReplicaSet')
+        vnfc_resource_info_obj4 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU4', rsc_kind='DaemonSet')
+        vnfc_resource_info_obj5 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU5', rsc_kind='StatefulSet')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1,
+            vnfc_resource_info_obj2,
+            vnfc_resource_info_obj3,
+            vnfc_resource_info_obj4,
+            vnfc_resource_info_obj5
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+
+        mock_get_by_id.return_value = vnf_instance_obj
+        mock_vim.return_value = vim_connection_object
+        mock_sync_vnfc.return_value = True
+
+        log_name = "tacker.vnfm.infra_drivers.kubernetes.kubernetes_driver"
+        with self.assertLogs(logger=log_name, level=logging.INFO) as cm:
+            self.kubernetes.sync_db(
+                context=self.context, vnf_instance=vnf_instance_obj,
+                vim_info=vim_connection_object)
+        self.assertCountEqual([
+            f'INFO:{log_name}:Database synchronization succeeded. '
+            f'vnf: {vnf_instance_obj.id} '
+            f'vdu: {vnfc_resource_info_obj1.vdu_id}',
+            f'INFO:{log_name}:Database synchronization succeeded. '
+            f'vnf: {vnf_instance_obj.id} '
+            f'vdu: {vnfc_resource_info_obj2.vdu_id}',
+            f'INFO:{log_name}:Database synchronization succeeded. '
+            f'vnf: {vnf_instance_obj.id} '
+            f'vdu: {vnfc_resource_info_obj3.vdu_id}',
+            f'INFO:{log_name}:Database synchronization succeeded. '
+            f'vnf: {vnf_instance_obj.id} '
+            f'vdu: {vnfc_resource_info_obj4.vdu_id}',
+            f'INFO:{log_name}:Database synchronization succeeded. '
+            f'vnf: {vnf_instance_obj.id} '
+            f'vdu: {vnfc_resource_info_obj5.vdu_id}',
+        ], cm.output)
+
+    @mock.patch.object(kubernetes_driver.Kubernetes, '_check_pod_information')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db_vnf_conflict(
+            self, mock_list_namespaced_pod, mock_check_pod_information):
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[fakes.get_fake_pod_info(kind='Deployment')])
+        mock_check_pod_information.return_value = True
+
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        log_name = "tacker.vnfm.infra_drivers.kubernetes.kubernetes_driver"
+
+        with self.assertLogs(logger=log_name, level=logging.INFO) as cm:
+            self.kubernetes.sync_db(
+                context=self.context, vnf_instance=vnf_instance_obj,
+                vim_info=vim_connection_object)
+        self.assertEqual(
+            [f'INFO:{log_name}:There is an LCM operation in progress, '
+             'so skip this DB synchronization. '
+             f'vnf: {vnf_instance_obj.id}'], cm.output)
+
+    def test_sync_db_exception(self):
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED)
+        vnf_instance_obj.instantiated_vnf_info = None
+        vim_connection_object = fakes.fake_vim_connection_info()
+        log_name = "tacker.vnfm.infra_drivers.kubernetes.kubernetes_driver"
+
+        with self.assertLogs(logger=log_name, level=logging.INFO) as cm:
+            self.kubernetes.sync_db(
+                context=self.context, vnf_instance=vnf_instance_obj,
+                vim_info=vim_connection_object)
+        self.assertIn(
+            f"Failed to synchronize database vnf: "
+            f"{vnf_instance_obj.id}", cm.output[0])
+
+    @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
+    @mock.patch.object(vnflcm_utils, "get_vim")
+    @mock.patch.object(VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(kubernetes_driver.Kubernetes, '_check_pod_information')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db_check_pod_false(
+            self, mock_list_namespaced_pod, mock_check_pod_information,
+            mock_get_by_id, mock_save, mock_get_vim, mock_vim):
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[fakes.get_fake_pod_info(kind='Pod')])
+        mock_check_pod_information.side_effect = [True, False]
+
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+
+        mock_get_by_id.return_value = vnf_instance_obj
+        mock_vim.return_value = vim_connection_object
+
+        self.kubernetes.sync_db(
+            context=self.context, vnf_instance=vnf_instance_obj,
+            vim_info=vim_connection_object)
+
+        self.assertEqual(2, mock_check_pod_information.call_count)
+        self.assertEqual(2, mock_save.call_count)
+
+    @mock.patch.object(kubernetes_driver.Kubernetes,
+                       "_sync_vnfc_resource_and_pod_resource")
+    @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
+    @mock.patch.object(vnflcm_utils, "get_vim")
+    @mock.patch.object(VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(kubernetes_driver.Kubernetes, '_check_pod_information')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db_not_succeeded(
+            self, mock_list_namespaced_pod, mock_check_pod_information,
+            mock_get_by_id, mock_save, mock_get_vim, mock_vim,
+            mock_sync_vnfc):
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[fakes.get_fake_pod_info(kind='Pod')])
+        mock_check_pod_information.return_value = True
+
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+
+        mock_get_by_id.return_value = vnf_instance_obj
+        mock_vim.return_value = vim_connection_object
+        mock_sync_vnfc.return_value = False
+
+        self.kubernetes.sync_db(
+            context=self.context, vnf_instance=vnf_instance_obj,
+            vim_info=vim_connection_object)
+        self.assertEqual(1, mock_sync_vnfc.call_count)
+
+    @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
+    @mock.patch.object(vnflcm_utils, "get_vim")
+    @mock.patch.object(VnfInstance, "save")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(kubernetes_driver.Kubernetes, '_check_pod_information')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db_failed_update_db(
+            self, mock_list_namespaced_pod, mock_check_pod_information,
+            mock_get_by_id, mock_save, mock_get_vim, mock_vim):
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[fakes.get_fake_pod_info(kind='Deployment')])
+        mock_check_pod_information.return_value = True
+
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+
+        mock_get_by_id.return_value = vnf_instance_obj
+        mock_vim.return_value = vim_connection_object
+
+        log_name = "tacker.vnfm.infra_drivers.kubernetes.kubernetes_driver"
+        with self.assertLogs(logger=log_name, level=logging.ERROR) as cm:
+            self.kubernetes.sync_db(
+                context=self.context, vnf_instance=vnf_instance_obj,
+                vim_info=vim_connection_object)
+        self.assertIn(
+            f'ERROR:{log_name}:Failed to update database vnf '
+            f'{vnf_instance_obj.id} Error: ', cm.output[0])
+
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_get_pod_information_no_namespace(self, mock_list_namespaced_pod):
+        mock_list_namespaced_pod.return_value = client.V1PodList(items=[])
+
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = ""
+        vim_connection_object = fakes.fake_vim_connection_info()
+
+        result = self.kubernetes._get_pod_information(
+            resource_name=mock.ANY, resource_type=mock.ANY,
+            vnf_instance=vnf_instance_obj,
+            vim_connection_info=vim_connection_object)
+
+        self.assertEqual({}, result)
+
+    @mock.patch.object(kubernetes_driver.Kubernetes, '_sync_resource_id')
+    def test_sync_vnfc_resource_and_pod_resource_eq(
+            self, mock_sync_resource_id):
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        pod_resources_from_k8s = {
+            'fake_name-1234567890-abcde': {
+                'name': 'fake_name-1234567890-abcde',
+                'namespace': 'default'
+            }
+        }
+        result = self.kubernetes._sync_vnfc_resource_and_pod_resource(
+            context=self.context, vnf_instance=vnf_instance_obj,
+            pod_resources_from_k8s=pod_resources_from_k8s, vdu_id='VDU1')
+        self.assertTrue(result)
+
+    @mock.patch.object(kubernetes_driver.Kubernetes, '_delete_vnfc_resource')
+    def test_sync_vnfc_resource_and_pod_resource_gt(
+            self, mock_delete_vnfc_resource):
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        pod_resources_from_k8s = {}
+        mock_delete_vnfc_resource.return_value = False
+        result = self.kubernetes._sync_vnfc_resource_and_pod_resource(
+            context=self.context, vnf_instance=vnf_instance_obj,
+            pod_resources_from_k8s=pod_resources_from_k8s, vdu_id='VDU1')
+        self.assertEqual(1, mock_delete_vnfc_resource.call_count)
+        self.assertFalse(result)
+
+    @mock.patch.object(kubernetes_driver.Kubernetes, '_add_vnfc_resource')
+    def test_sync_vnfc_resource_and_pod_resource_lt(
+            self, mock_add_vnfc_resource):
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        pod_resources_from_k8s = {
+            'fake_name-1234567890-abcde': {
+                'name': 'fake_name-1234567890-abcde',
+                'namespace': 'default'
+            }
+        }
+        mock_add_vnfc_resource.return_value = True
+        result = self.kubernetes._sync_vnfc_resource_and_pod_resource(
+            context=self.context, vnf_instance=vnf_instance_obj,
+            pod_resources_from_k8s=pod_resources_from_k8s, vdu_id='VDU1')
+        self.assertEqual(1, mock_add_vnfc_resource.call_count)
+        self.assertTrue(result)
+
+    @mock.patch.object(kubernetes_driver.Kubernetes, '_calc_scale_level')
+    def test_delete_vnfc_resource(self, mock_calc_scale_level):
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod', pod_name='pod')
+        vnfc_resource_info_obj2 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU2', rsc_kind='Deployment',
+            pod_name='deploy-1234567890-fghij')
+        vnfc_resource_info_obj3 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU2', rsc_kind='Deployment',
+            pod_name='deploy-1234567890-abcde')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1, vnfc_resource_info_obj2,
+            vnfc_resource_info_obj3
+        ]
+        pod_resources_from_k8s = {
+            'deploy-1234567890-abcde': {
+                'name': 'deploy-1234567890-abcde',
+                'namespace': 'default'
+            }
+        }
+        mock_calc_scale_level.return_value = True
+        result = self.kubernetes._delete_vnfc_resource(
+            context=self.context, vnf_instance=vnf_instance_obj, vdu_id='VDU2',
+            pod_resources_from_k8s=pod_resources_from_k8s, vnfc_count=2)
+        self.assertEqual(1, mock_calc_scale_level.call_count)
+        self.assertTrue(result)
+
+    @mock.patch.object(kubernetes_driver.Kubernetes, '_calc_scale_level')
+    def test_delete_vnfc_resource_rsc_not_same(self, mock_calc_scale_level):
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod', pod_name='pod')
+        vnfc_resource_info_obj2 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU2', rsc_kind='Deployment',
+            pod_name='deploy-1234567890-fghij')
+        vnfc_resource_info_obj3 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU2', rsc_kind='Deployment',
+            pod_name='deploy-1234567890-abcde')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1, vnfc_resource_info_obj2,
+            vnfc_resource_info_obj3
+        ]
+        pod_resources_from_k8s = {
+            'deploy-1234567890-klmno': {
+                'name': 'deploy-1234567890-klmno',
+                'namespace': 'default'
+            }
+        }
+        mock_calc_scale_level.return_value = False
+        result = self.kubernetes._delete_vnfc_resource(
+            context=self.context, vnf_instance=vnf_instance_obj, vdu_id='VDU2',
+            pod_resources_from_k8s=pod_resources_from_k8s, vnfc_count=2)
+        self.assertEqual(1, mock_calc_scale_level.call_count)
+        self.assertFalse(result)
+
+    @mock.patch.object(kubernetes_driver.Kubernetes, '_calc_scale_level')
+    def test_add_vnfc_resource(self, mock_calc_scale_level):
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU2', rsc_kind='Deployment',
+            pod_name='deploy-1234567890-fghij')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        pod_resources_from_k8s = {
+            'deploy-1234567890-klmno': {
+                'name': 'deploy-1234567890-klmno',
+                'namespace': 'default'
+            },
+            'deploy-1234567890-abcde': {
+                'name': 'deploy-1234567890-abcde',
+                'namespace': 'default'
+            }
+        }
+        mock_calc_scale_level.return_value = False
+        result = self.kubernetes._add_vnfc_resource(
+            context=self.context, vnf_instance=vnf_instance_obj, vdu_id='VDU2',
+            pod_resources_from_k8s=pod_resources_from_k8s, vnfc_count=1)
+        self.assertEqual(1, mock_calc_scale_level.call_count)
+        self.assertFalse(result)
+
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_calc_scale_level(self, mock_get_vnfd_dict):
+        mock_get_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, 'scale_status')
+        vnf_instance_obj.instantiated_vnf_info.scale_status[0].aspect_id = (
+            'vdu1_aspect')
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name='deploy-1234567890-fghij')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        result = self.kubernetes._calc_scale_level(
+            context=self.context, vnf_instance=vnf_instance_obj,
+            vdu_id='VDU1', current_pod_num=1)
+        self.assertTrue(result)
+
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_calc_scale_level_error(self, mock_get_vnfd_dict):
+        delta = 2
+        vnfd_obj = vnflcm_fakes.vnfd_dict_cnf()
+        for policy in vnfd_obj['topology_template']['policies']:
+            if policy.get('vdu1_scaling_aspect_deltas'):
+                policy['vdu1_scaling_aspect_deltas']['properties'][
+                    'deltas']['delta_1']['number_of_instances'] = delta
+                break
+        mock_get_vnfd_dict.return_value = vnfd_obj
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, 'scale_status')
+        vnf_instance_obj.instantiated_vnf_info.scale_status[0].aspect_id = (
+            'vdu1_aspect')
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name='deploy-1234567890-fghij')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        current_pod_num = 5
+
+        log_name = "tacker.vnfm.infra_drivers.kubernetes.kubernetes_driver"
+        with self.assertLogs(logger=log_name, level=logging.ERROR) as cm:
+            result = self.kubernetes._calc_scale_level(
+                context=self.context, vnf_instance=vnf_instance_obj,
+                vdu_id='VDU1', current_pod_num=current_pod_num)
+        self.assertEqual(
+            [f"ERROR:{log_name}:Error computing 'scale_level'. current Pod "
+             f"num: {current_pod_num} delta: {delta}. "
+             f"vnf: {vnf_instance_obj.id} vdu: VDU1"], cm.output)
+        self.assertFalse(result)
+
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    def test_calc_scale_level_pod_range_error(self, mock_get_vnfd_dict):
+        delta = 2
+        vnfd_obj = vnflcm_fakes.vnfd_dict_cnf()
+        for policy in vnfd_obj['topology_template']['policies']:
+            if policy.get('vdu1_scaling_aspect_deltas'):
+                policy['vdu1_scaling_aspect_deltas']['properties'][
+                    'deltas']['delta_1']['number_of_instances'] = delta
+                break
+        mock_get_vnfd_dict.return_value = vnfd_obj
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED, 'scale_status')
+        vnf_instance_obj.instantiated_vnf_info.scale_status[0].aspect_id = (
+            'vdu1_aspect')
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name='deploy-1234567890-fghij')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        current_pod_num = 4
+
+        log_name = "tacker.vnfm.infra_drivers.kubernetes.kubernetes_driver"
+        with self.assertLogs(logger=log_name, level=logging.ERROR) as cm:
+            result = self.kubernetes._calc_scale_level(
+                context=self.context, vnf_instance=vnf_instance_obj,
+                vdu_id='VDU1', current_pod_num=current_pod_num)
+        self.assertEqual(
+            [f"ERROR:{log_name}:Failed to update database vnf "
+             f"{vnf_instance_obj.id} vdu: VDU1. Pod num is out of range. "
+             f"pod_num: {current_pod_num}"], cm.output)
+        self.assertFalse(result)
+
+    def test_check_pod_information_len(self):
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name='deploy-1234567890-fghij')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        pod_resources_from_k8s = {
+            'deploy-1234567890-klmno': {
+                'name': 'deploy-1234567890-klmno'
+            },
+            'deploy-1234567890-abcde': {
+                'name': 'deploy-1234567890-abcde'
+            }
+        }
+        result = self.kubernetes._check_pod_information(
+            vnf_instance=vnf_instance_obj, vdu_id='VDU1',
+            pod_resources_from_k8s=pod_resources_from_k8s)
+        self.assertTrue(result)
+
+    def test_check_pod_information_set(self):
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name='deploy-1234567890-fghij')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        pod_resources_from_k8s = {
+            'deploy-1234567890-klmno': {
+                'name': 'deploy-1234567890-klmno'
+            }
+        }
+        result = self.kubernetes._check_pod_information(
+            vnf_instance=vnf_instance_obj, vdu_id='VDU1',
+            pod_resources_from_k8s=pod_resources_from_k8s)
+        self.assertTrue(result)
+
+    def test_check_pod_information_false(self):
+        vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnfc_resource_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name='deploy-1234567890-fghij')
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
+            vnfc_resource_info_obj1
+        ]
+        pod_resources_from_k8s = {
+            'deploy-1234567890-fghij': {
+                'name': 'deploy-1234567890-fghij'
+            }
+        }
+        result = self.kubernetes._check_pod_information(
+            vnf_instance=vnf_instance_obj, vdu_id='VDU1',
+            pod_resources_from_k8s=pod_resources_from_k8s)
+        self.assertFalse(result)

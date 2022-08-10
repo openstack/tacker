@@ -22,6 +22,7 @@ import oslo_messaging
 import requests
 import shutil
 import sys
+import threading
 import time
 import traceback
 import yaml
@@ -30,6 +31,7 @@ from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
+from oslo_service import loopingcall
 from oslo_service import periodic_task
 from oslo_service import service
 from oslo_utils import encodeutils
@@ -75,6 +77,10 @@ from tacker.vnfm import nfvo_client
 from tacker.vnfm import plugin
 
 CONF = tacker.conf.CONF
+# NOTE(fengyi): After the conductor is started, since the start-up process
+# is being executed, it should take a while to start the actual DB
+# synchronization periodical process.
+DB_SYNC_INITIAL_DELAY = 60
 
 # NOTE(tpatil): keystone_authtoken opts registered explicitly as conductor
 # service doesn't use the keystonemiddleware.authtoken middleware as it's
@@ -292,6 +298,14 @@ def grant_error_common(function):
     return decorated_function
 
 
+def async_call(func):
+    def inner(*args, **kwargs):
+        th = threading.Thread(target=func, args=args,
+                kwargs=kwargs, daemon=True)
+        th.start()
+    return inner
+
+
 class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
     def __init__(self, host, conf=None):
         if conf:
@@ -304,6 +318,15 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         self.vnf_manager = driver_manager.DriverManager(
             'tacker.tacker.vnfm.drivers',
             cfg.CONF.tacker.infra_driver)
+        self._periodic_call()
+
+    @async_call
+    def _periodic_call(self):
+        self.periodic = loopingcall.FixedIntervalLoopingCall(
+            self._sync_db)
+        self.periodic.start(
+            interval=CONF.db_synchronization_interval,
+            initial_delay=DB_SYNC_INITIAL_DELAY)
 
     def start(self):
         coordination.COORDINATOR.start()
@@ -2505,6 +2528,13 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                     error=str(e),
                     error_point=vnf_dict['current_error_point']
                 )
+
+    def _sync_db(self):
+        """Periodic database update invocation method"""
+        LOG.debug("Starting _sync_db")
+        context = t_context.get_admin_context()
+        self.vnflcm_driver.sync_db(context)
+        LOG.debug("Ended _sync_db")
 
 
 def init(args, **kwargs):

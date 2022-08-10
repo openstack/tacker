@@ -14,14 +14,19 @@
 #    under the License.
 
 import os
+
+from kubernetes import client
+from oslo_utils import uuidutils
 from unittest import mock
 
+from tacker import context
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnfd_utils
 from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes
+from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 from tacker.tests.unit import base
-
+from tacker.tests.unit.sol_refactored.infra_drivers.kubernetes import fakes
 
 CNF_SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d70a1177"
 
@@ -32,6 +37,7 @@ class TestKubernetes(base.TestCase):
         super(TestKubernetes, self).setUp()
         objects.register_all()
         self.driver = kubernetes.Kubernetes()
+        self.context = context.get_admin_context()
 
         cur_dir = os.path.dirname(__file__)
         sample_dir = os.path.join(cur_dir, "../..", "samples")
@@ -104,3 +110,167 @@ class TestKubernetes(base.TestCase):
 
         # maybe 3 but possible 2
         self.assertTrue(res1.is_ready.call_count >= 2)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db(
+            self, mock_list_namespaced_pod, mock_get_vnfd):
+        vnf_instance_obj = fakes.fake_vnf_instance()
+
+        vnfc_rsc_info_obj1, vnfc_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name="vdu1-1234567890-abcd", rsc_name="vdu1")
+
+        vnf_instance_obj.instantiatedVnfInfo.vnfcResourceInfo = [
+            vnfc_rsc_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        vnf_instance_obj.vimConnectionInfo['vim1'] = vim_connection_object
+
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd1"),
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd2")])
+        mock_get_vnfd.return_value = self.vnfd_1
+        vnf_instance_obj.vnfdId = uuidutils.generate_uuid()
+        vnf_instance_obj.instantiatedVnfInfo.scaleStatus = [
+            fakes.fake_scale_status(vnfd_id=vnf_instance_obj.vnfdId)
+        ]
+
+        self.driver.sync_db(
+            context=self.context, vnf_instance=vnf_instance_obj,
+            vim_info=vim_connection_object)
+
+        self.assertEqual(
+            2, vnf_instance_obj.instantiatedVnfInfo.metadata[
+                'vdu_reses']['VDU1']['spec']['replicas'])
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db_no_diff(
+            self, mock_list_namespaced_pod, mock_get_vnfd):
+        vnf_instance_obj = fakes.fake_vnf_instance()
+
+        vnfc_rsc_info_obj1, vnfc_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name="vdu1-1234567890-abcd1", rsc_name="vdu1")
+
+        vnf_instance_obj.instantiatedVnfInfo.vnfcResourceInfo = [
+            vnfc_rsc_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        vnf_instance_obj.vimConnectionInfo['vim1'] = vim_connection_object
+
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd1")])
+        mock_get_vnfd.return_value = self.vnfd_1
+        vnf_instance_obj.vnfdId = uuidutils.generate_uuid()
+        vnf_instance_obj.instantiatedVnfInfo.scaleStatus = [
+            fakes.fake_scale_status(vnfd_id=vnf_instance_obj.vnfdId)
+        ]
+
+        ex = self.assertRaises(
+            sol_ex.DbSyncNoDiff, self.driver.sync_db,
+            self.context, vnf_instance_obj, vim_connection_object)
+        self.assertEqual(
+            "There are no differences in Vnfc resources.", ex.args[0])
+
+    @mock.patch.object(vnfd_utils.Vnfd, 'get_scale_vdu_and_num')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db_scale_level(
+            self, mock_list_namespaced_pod, mock_get_vnfd,
+            mock_scale_vdu_and_num):
+        vnf_instance_obj = fakes.fake_vnf_instance()
+
+        vnfc_rsc_info_obj1, vnfc_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name="vdu1-1234567890-abcd1", rsc_name="vdu1")
+
+        vnf_instance_obj.instantiatedVnfInfo.vnfcResourceInfo = [
+            vnfc_rsc_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        vnf_instance_obj.vimConnectionInfo['vim1'] = vim_connection_object
+
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd1"),
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd2"),
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd3"),
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd4")
+            ])
+        mock_get_vnfd.return_value = self.vnfd_1
+        vnf_instance_obj.vnfdId = uuidutils.generate_uuid()
+        vnf_instance_obj.instantiatedVnfInfo.scaleStatus = [
+            fakes.fake_scale_status(vnfd_id=vnf_instance_obj.vnfdId)
+        ]
+        delta = 2
+        mock_scale_vdu_and_num.return_value = {'VDU1': delta}
+        current_pod_num = 4
+        vdu_id = "VDU1"
+
+        ex = self.assertRaises(
+            sol_ex.DbSyncFailed, self.driver.sync_db,
+            self.context, vnf_instance_obj, vim_connection_object)
+        self.assertEqual(
+            "Error computing 'scale_level'. current Pod num: "
+            f"{current_pod_num} delta: {delta}. vnf: {vnf_instance_obj.id} "
+            f"vdu: {vdu_id}", ex.args[0])
+
+    @mock.patch.object(vnfd_utils.Vnfd, 'get_scale_vdu_and_num')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db_pod_range(
+            self, mock_list_namespaced_pod, mock_get_vnfd,
+            mock_scale_vdu_and_num):
+        vnf_instance_obj = fakes.fake_vnf_instance()
+
+        vnfc_rsc_info_obj1, vnfc_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name="vdu1-1234567890-abcd1", rsc_name="vdu1")
+
+        vnf_instance_obj.instantiatedVnfInfo.vnfcResourceInfo = [
+            vnfc_rsc_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        vnf_instance_obj.vimConnectionInfo['vim1'] = vim_connection_object
+
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd1"),
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd2"),
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd3"),
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd4"),
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd5")
+            ])
+        mock_get_vnfd.return_value = self.vnfd_1
+        vnf_instance_obj.vnfdId = uuidutils.generate_uuid()
+        vnf_instance_obj.instantiatedVnfInfo.scaleStatus = [
+            fakes.fake_scale_status(vnfd_id=vnf_instance_obj.vnfdId)
+        ]
+        delta = 2
+        mock_scale_vdu_and_num.return_value = {'VDU1': delta}
+        current_pod_num = 5
+        vdu_id = "VDU1"
+
+        ex = self.assertRaises(
+            sol_ex.DbSyncFailed, self.driver.sync_db,
+            self.context, vnf_instance_obj, vim_connection_object)
+        self.assertEqual(
+            f"Failed to update database vnf {vnf_instance_obj.id} "
+            f"vdu: {vdu_id}. Pod num is out of range. "
+            f"pod_num: {current_pod_num}", ex.args[0])

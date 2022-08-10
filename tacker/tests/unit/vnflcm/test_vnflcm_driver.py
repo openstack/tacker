@@ -20,6 +20,7 @@ from unittest import mock
 import yaml
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 
@@ -38,6 +39,7 @@ from tacker.objects import vim_connection
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.nfvo.test_nfvo_plugin import FakeVNFMPlugin
 from tacker.tests.unit.vnflcm import fakes
+from tacker.tests.unit.vnfm.infra_drivers.kubernetes import fakes as k8s_fakes
 from tacker.tests import utils as test_utils
 from tacker.tests import uuidsentinel
 from tacker.vnflcm import vnflcm_driver
@@ -3538,3 +3540,74 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                        "connectivity vnf '%s' is completed successfully")
         mock_log.info.assert_called_with(expected_msg,
             vnf_instance.id)
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver, '_init_mgmt_driver_hash')
+    @mock.patch.object(yaml, "safe_load")
+    @mock.patch.object(objects.VnfInstanceList, 'get_by_filters')
+    @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
+    def test_sync_db(self, mock_vim, mock_get_by_filter,
+                     mock_yaml_safe_load, mock_init_hash,
+                     mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_yaml_safe_load.return_value = fakes.vnfd_dict_cnf()
+        vnf_instance_obj = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj = k8s_fakes.fake_vnfc_resource_info(
+            namespace="default")
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = (
+            [vnfc_resource_info_obj])
+
+        vim_connection_info = vim_connection.VimConnectionInfo(
+            vim_type="kubernetes", id="8a3adb69-0784-43c7-833e-aab0b6ab4470",
+            vim_id="67e5de95-1ad2-4627-89f8-597dec1683fa")
+
+        vnf_instance_obj.vim_connection_info.append(vim_connection_info)
+        mock_get_by_filter.return_value = [vnf_instance_obj]
+        mock_vim.return_value = vim_connection_info
+
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.sync_db(self.context)
+        mock_get_by_filter.assert_called_once()
+        self._vnf_manager.invoke.assert_called_once()
+
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(VnfLcmDriver, '_init_mgmt_driver_hash')
+    @mock.patch.object(yaml, "safe_load")
+    @mock.patch.object(objects.VnfInstanceList, 'get_by_filters')
+    @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
+    def test_sync_db_exception(
+            self, mock_vim, mock_get_by_filter, mock_yaml_safe_load,
+            mock_init_hash, mock_get_service_plugins):
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        mock_yaml_safe_load.return_value = fakes.vnfd_dict_cnf()
+        vnf_instance_obj = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance_obj.vnf_metadata['namespace'] = "default"
+        vnfc_resource_info_obj = k8s_fakes.fake_vnfc_resource_info(
+            namespace="default")
+        vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = (
+            [vnfc_resource_info_obj])
+
+        mock_get_by_filter.return_value = [vnf_instance_obj]
+        mock_vim.return_value = None
+
+        driver = vnflcm_driver.VnfLcmDriver()
+        log_name = "tacker.vnflcm.vnflcm_driver"
+        with self.assertLogs(logger=log_name, level=logging.ERROR) as cm:
+            driver.sync_db(self.context)
+
+        self.assertIn(
+            f"ERROR:{log_name}:Error is occoured vnf {vnf_instance_obj.id} "
+            f"Error: ", cm.output[0])
+        mock_get_by_filter.assert_called_once()
