@@ -3987,3 +3987,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         mock_change_vnf_status.assert_not_called()
         self.assertEqual(mock_change_ext_conn_grant.call_count, 0)
         mock_update_vnf_attributes.assert_called_once()
+
+    def test_sync_db(self):
+        self.conductor._sync_db()
+        self.vnflcm_driver.sync_db.assert_called_once()

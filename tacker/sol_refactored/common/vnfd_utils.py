@@ -459,3 +459,14 @@ class Vnfd(object):
 
         mani_artifact_files.extend(meta_artifacts_files)
         return mani_artifact_files
+
+    def get_initial_delta(self, flavour_id, vdu_id):
+        initial_deltas = self.get_policy_values_by_type(flavour_id,
+            'tosca.policies.nfv.VduInitialDelta')
+        for aspect in initial_deltas:
+            if vdu_id in aspect.get('targets', []):
+                initial_delta = (aspect.get('properties', {})
+                    .get('initial_delta', {})
+                    .get('number_of_instances'))
+                break
+        return initial_delta

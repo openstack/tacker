@@ -13,7 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+
 from kubernetes import client
+from oslo_utils import uuidutils
+
+from tacker.sol_refactored import objects
 
 
 def fake_namespace():
@@ -547,3 +552,114 @@ def fake_node(type='Ready', status='True'):
             ]
         )
     )
+
+
+def get_fake_pod_info(kind, name='fake_name', pod_status='Running',
+                      pod_name=None):
+    if not pod_name:
+        if kind == 'Deployment':
+            pod_name = _('{name}-1234567890-abcde').format(name=name)
+        elif kind == 'ReplicaSet' or kind == 'DaemonSet':
+            pod_name = _('{name}-12345').format(name=name)
+        elif kind == 'StatefulSet':
+            pod_name = _('{name}-1').format(name=name)
+        elif kind == 'Pod':
+            pod_name = name
+    return client.V1Pod(
+        metadata=client.V1ObjectMeta(
+            name=pod_name,
+            creation_timestamp=datetime.datetime.now().isoformat('T')),
+        status=client.V1PodStatus(phase=pod_status))
+
+
+def fake_vim_connection_info(vim_type="kubernetes"):
+    return objects.VimConnectionInfo.from_dict({
+        'vimId': 'a56258df-9853-4437-9fdb-7d470bc0b162',
+        'vimType': vim_type,
+        'interfaceInfo': {
+            'endpoint': 'https://127.0.0.1:6443'
+        },
+        'accessInfo': {
+            'bearer_token': 'secret_token',
+            'username': 'test',
+            'password': 'test',
+            'region': 'RegionOne'
+        }
+    })
+
+
+def fake_vnfc_resource_info(vdu_id='VDU1', rsc_kind='Deployment',
+                            rsc_name='fake_name', pod_name=None,
+                            namespace='default'):
+    if not pod_name:
+        v1_pod = get_fake_pod_info(rsc_kind, rsc_name)
+        pod_name = v1_pod.metadata.name
+    id = uuidutils.generate_uuid()
+    vnfc_rsc_info = {
+        'id': id,
+        'vduId': vdu_id,
+        'computeResource': {
+            'resourceId': pod_name,
+            'vimLevelResourceType': rsc_kind
+        },
+        'metadata': {
+            'Deployment': {
+                'name': rsc_name,
+                'namespace': namespace
+            }
+        }
+    }
+    vnfc_rsc_info_obj = objects.VnfcResourceInfoV2.from_dict(vnfc_rsc_info)
+
+    vnfc_info = {
+        'id': vdu_id + "-" + id,
+        'vduId': vdu_id,
+        'vnfcResourceInfoId': id,
+        'vnfcState': 'STARTED'
+    }
+    vnfc_info_obj = objects.VnfcInfoV2.from_dict(vnfc_info)
+
+    return vnfc_rsc_info_obj, vnfc_info_obj
+
+
+def fake_vnf_instance(instantiated_state='INSTANTIATED'):
+    return objects.VnfInstanceV2.from_dict({
+        'id': uuidutils.generate_uuid(),
+        'vimConnectionInfo': {},
+        'instantiationState': instantiated_state,
+        'instantiatedVnfInfo': {
+            'flavourId': 'simple',
+            'vnfState': 'STARTED',
+            'vnfcResourceInfo': [],
+            'vnfcInfo': [],
+            'metadata': {
+                'namespace': 'default',
+                'lcm-kubernetes-def-files': [
+                    'Files/kubernetes/deployment.yaml'],
+                'vdu_reses': {
+                    'VDU1': {
+                        'kind': 'Deployment',
+                        'metadata': {
+                            'name': 'vdu1',
+                            'namespace': 'default',
+                        },
+                        'spec': {
+                            'replicas': 0
+                        }
+                    }
+                }
+            }
+        },
+        'metadata': {
+            'lcm-kubernetes-def-files': ['Files/kubernetes/deployment.yaml']
+        }
+    })
+
+
+def fake_scale_status(aspect_id='vdu1_aspect',
+                      vnfd_id=uuidutils.generate_uuid(), scale_level=1):
+    return objects.ScaleInfoV2.from_dict({
+        'aspectId': aspect_id,
+        'vnfdId': vnfd_id,
+        'scaleLevel': scale_level
+    })

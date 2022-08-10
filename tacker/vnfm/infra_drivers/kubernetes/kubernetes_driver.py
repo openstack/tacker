@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import os
 import re
 import time
@@ -23,16 +24,19 @@ from kubernetes import client
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
+from oslo_utils import encodeutils
 from oslo_utils import uuidutils
 from toscaparser import tosca_template
 
 from tacker._i18n import _
+from tacker.api.vnflcm.v1.controller import check_vnf_state
 from tacker.common.container import kubernetes_utils
 from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import utils
 from tacker.extensions import vnfm
 from tacker import objects
+from tacker.objects import fields
 from tacker.objects.fields import ErrorPoint as EP
 from tacker.objects import vnf_package as vnf_package_obj
 from tacker.objects import vnf_package_vnfd as vnfd_obj
@@ -2671,3 +2675,395 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         return_name_list = []
         return_grp_id = None
         return return_id_list, return_name_list, return_grp_id
+
+    def sync_db(self, context, vnf_instance, vim_info):
+        """method for database synchronization"""
+        try:
+            vdu_id_list = self._get_vdu_list(vnf_instance)
+
+            for vdu_id in vdu_id_list:
+                # get pod information
+                for vnfc in (
+                    vnf_instance.instantiated_vnf_info.vnfc_resource_info
+                ):
+                    if vnfc.vdu_id == vdu_id:
+                        resource_type = (
+                            vnfc.compute_resource.vim_level_resource_type)
+                        resource_name = self._get_resource_name(
+                            vnfc.compute_resource.resource_id, resource_type)
+                        break
+                pod_resources_from_k8s = self._get_pod_information(
+                    resource_name, resource_type,
+                    vnf_instance, vim_info
+                )
+                # check difference
+                if not self._check_pod_information(vnf_instance, vdu_id,
+                        pod_resources_from_k8s):
+                    # no difference
+                    continue
+
+                # exec db sync
+                try:
+                    if self._database_update(context, vnf_instance,
+                                             vdu_id):
+                        LOG.info("Database synchronization succeeded. "
+                                 f"vnf: {vnf_instance.id} vdu: {vdu_id}")
+
+                except exceptions.VnfInstanceConflictState:
+                    LOG.info("There is an LCM operation in progress, so "
+                             "skip this DB synchronization. "
+                             f"vnf: {vnf_instance.id}")
+
+        except Exception as e:
+            LOG.error(f"Failed to synchronize database vnf: "
+                      f"{vnf_instance.id} Error: "
+                      f"{encodeutils.exception_to_unicode(e)}")
+
+    @check_vnf_state(action="db_sync",
+        instantiation_state=[fields.VnfInstanceState.INSTANTIATED],
+        task_state=[None])
+    def _database_update(self, context, vnf_inst,
+                         vdu_id):
+        """Update tacker DB
+
+        True: succeeded database update
+        False: failed database update
+        """
+        # get target object
+        vnf_instance = objects.VnfInstance.get_by_id(
+            context, vnf_inst.id)
+        if vnf_instance.instantiation_state != 'INSTANTIATED':
+            return False
+        # change task_state
+        vnf_instance.task_state = fields.VnfInstanceTaskState.DB_SYNCHRONIZING
+        vnf_instance.save()
+
+        backup_vnf_instance = copy.deepcopy(vnf_instance)
+
+        vim_info = vnflcm_utils.get_vim(
+            context, vnf_instance.vim_connection_info)
+        vim_connection_info = objects.VimConnectionInfo.obj_from_primitive(
+            vim_info, context)
+
+        # get pod information
+        try:
+            for vnfc in vnf_instance.instantiated_vnf_info.vnfc_resource_info:
+                if vnfc.vdu_id == vdu_id:
+                    resource_type = (
+                        vnfc.compute_resource.vim_level_resource_type)
+                    resource_name = self._get_resource_name(
+                        vnfc.compute_resource.resource_id, resource_type)
+                    break
+            pod_resources_from_k8s = self._get_pod_information(
+                resource_name, resource_type,
+                vnf_instance, vim_connection_info
+            )
+
+            # check difference
+            if not self._check_pod_information(vnf_instance, vdu_id,
+                    pod_resources_from_k8s):
+                vnf_instance.task_state = None
+                vnf_instance.save()
+                return False
+
+            if self._sync_vnfc_resource_and_pod_resource(context,
+                    vnf_instance, pod_resources_from_k8s, vdu_id):
+                vnf_instance.task_state = None
+                vnf_instance.save()
+                return True
+
+            vnf_instance = copy.deepcopy(backup_vnf_instance)
+            vnf_instance.task_state = None
+            vnf_instance.save()
+            return False
+
+        except Exception as e:
+            LOG.error(f"Failed to update database vnf {vnf_instance.id} "
+                    f"Error: {encodeutils.exception_to_unicode(e)}")
+            vnf_instance = copy.deepcopy(backup_vnf_instance)
+            vnf_instance.task_state = None
+            vnf_instance.save()
+            return False
+
+    def _sync_vnfc_resource_and_pod_resource(self, context, vnf_instance,
+         pod_resources_from_k8s, vdu_id):
+        """Sync Pod name between k8s and tacker"""
+        vnfc_count = 0
+        for vnfc in vnf_instance.instantiated_vnf_info.vnfc_resource_info:
+            if vnfc.vdu_id == vdu_id:
+                vnfc_count += 1
+
+        result = False
+        # number of pod is same as k8s
+        if vnfc_count == len(pod_resources_from_k8s):
+            self._sync_resource_id(vnf_instance.instantiated_vnf_info,
+                                   vdu_id, pod_resources_from_k8s)
+            result = True
+        # the number of pod is greater than k8s
+        elif vnfc_count > len(pod_resources_from_k8s):
+            result = self._delete_vnfc_resource(context, vnf_instance, vdu_id,
+                pod_resources_from_k8s, vnfc_count)
+        # the number of pod is less than k8s
+        elif vnfc_count < len(pod_resources_from_k8s):
+            result = self._add_vnfc_resource(context, vnf_instance, vdu_id,
+                pod_resources_from_k8s, vnfc_count)
+
+        return result
+
+    def _delete_vnfc_resource(self, context, vnf_instance, vdu_id,
+           pod_resources_from_k8s, vnfc_count):
+        """Remove 'vnfcResourceInfo' with mismatched pod names"""
+        delete_index = []
+        for i, vnfc_resource_info in enumerate(
+                vnf_instance.instantiated_vnf_info.vnfc_resource_info):
+            if vnfc_resource_info.vdu_id != vdu_id:
+                continue
+            if vnfc_resource_info.compute_resource.resource_id not in (
+                    set(pod_resources_from_k8s.keys())):
+                delete_index.append(i)
+
+        # For patterns where the number of pods is reduced and
+        # the remaining pods are also renamed
+        delete_cnt = vnfc_count - len(pod_resources_from_k8s)
+        if delete_cnt != len(delete_index):
+            for i in range(len(delete_index) - delete_cnt):
+                del delete_index[-1]
+        for idx in reversed(delete_index):
+            del vnf_instance.instantiated_vnf_info.vnfc_resource_info[idx]
+
+        self._sync_resource_id(vnf_instance.instantiated_vnf_info,
+                               vdu_id, pod_resources_from_k8s)
+        return self._calc_scale_level(context, vnf_instance, vdu_id,
+                                len(pod_resources_from_k8s))
+
+    def _add_vnfc_resource(self, context, vnf_instance, vdu_id,
+            pod_resources_from_k8s, vnfc_count):
+        """Add vnfcResourceInfo"""
+        stored_pod_names = {
+            vnfc.compute_resource.resource_id
+            for vnfc in (
+                vnf_instance.instantiated_vnf_info.vnfc_resource_info)
+            if vnfc.vdu_id == vdu_id}
+        add_pod_names = {
+            pod_name for pod_name in (
+                set(pod_resources_from_k8s.keys()))
+            if pod_name not in stored_pod_names}
+
+        # Determine the number of 'vnfc_resource_info' to add
+        add_vnfc_resource_info_num = (
+            len(pod_resources_from_k8s) - vnfc_count)
+        for vnfc in vnf_instance.instantiated_vnf_info.vnfc_resource_info:
+            if vnfc.vdu_id == vdu_id:
+                resource_type = (
+                    vnfc.compute_resource.vim_level_resource_type)
+                metadata = vnfc.metadata[resource_type]
+                break
+        for dummy in range(add_vnfc_resource_info_num):
+            resource_id = add_pod_names.pop()
+            vnfc_resource = objects.VnfcResourceInfo()
+            vnfc_resource.id = uuidutils.generate_uuid()
+            vnfc_resource.vdu_id = vdu_id
+            resource = objects.ResourceHandle()
+            resource.resource_id = resource_id
+            resource.vim_level_resource_type = resource_type
+            vnfc_resource.compute_resource = resource
+            vnfc_resource.metadata = {}
+            vnfc_resource.metadata["Pod"] = (
+                jsonutils.dumps(pod_resources_from_k8s.get(resource_id))
+            )
+            vnfc_resource.metadata[resource_type] = metadata
+            vnf_instance.instantiated_vnf_info.vnfc_resource_info.append(
+                vnfc_resource)
+
+        self._sync_resource_id(vnf_instance.instantiated_vnf_info,
+                               vdu_id, pod_resources_from_k8s)
+        return self._calc_scale_level(context, vnf_instance, vdu_id,
+                            len(pod_resources_from_k8s))
+
+    def _check_pod_information(self, vnf_instance,
+            vdu_id, pod_resources_from_k8s):
+        """Compare 'instantiatedVnfInfo' and 'pod_resources_from_k8s' info
+
+        True: find difference
+        False: No difference
+        """
+        vnfc_rscs = vnf_instance.instantiated_vnf_info.vnfc_resource_info
+        pod_names = {vnfc.compute_resource.resource_id for vnfc in vnfc_rscs
+                    if vnfc.vdu_id == vdu_id}
+
+        if len(pod_names) != len(pod_resources_from_k8s):
+            return True
+
+        # pod name check
+        if pod_names != set(pod_resources_from_k8s.keys()):
+            return True
+
+        return False
+
+    def _sync_resource_id(self, instantiated_vnf_info,
+            vdu_id, pod_resources_from_k8s):
+        """Set new resourceId into old resourceId"""
+        match_pod_names = set()
+        unmatch_pod_in_tacker = set()
+
+        for vnfc in instantiated_vnf_info.vnfc_resource_info:
+            if vnfc.vdu_id != vdu_id:
+                continue
+
+            if vnfc.compute_resource.resource_id in (
+                    set(pod_resources_from_k8s.keys())):
+                match_pod_names.add(
+                    vnfc.compute_resource.resource_id)
+            else:
+                unmatch_pod_in_tacker.add(
+                    vnfc.compute_resource.resource_id)
+
+        # pickup new pod name
+        new_pod_name = set(pod_resources_from_k8s.keys()) ^ match_pod_names
+
+        for unmatch_pod_name in unmatch_pod_in_tacker:
+            for vnfc in instantiated_vnf_info.vnfc_resource_info:
+                if vnfc.vdu_id != vdu_id:
+                    continue
+                if vnfc.compute_resource.resource_id == (
+                        unmatch_pod_name):
+                    vnfc.compute_resource.resource_id = (
+                        new_pod_name.pop()
+                    )
+                    vnfc.metadata["Pod"] = (
+                        jsonutils.dumps(
+                            pod_resources_from_k8s.get(
+                                (vnfc.compute_resource.resource_id)
+                            )
+                        )
+                    )
+                    break
+
+    def _calc_scale_level(self, context, vnf_instance,
+            vdu_id, current_pod_num):
+        """calc scale_level and set"""
+        vnfd = vnflcm_utils.get_vnfd_dict(context,
+            vnf_instance.vnfd_id,
+            vnf_instance.instantiated_vnf_info.flavour_id)
+
+        policies = vnfd.get("topology_template", {}).get("policies", {})
+        for policy in policies:
+            for v in policy.values():
+                if (v.get("type") == (
+                        "tosca.policies.nfv.VduScalingAspectDeltas")):
+                    if vdu_id in v.get("targets", []):
+                        aspect_id = v.get("properties", {}).get("aspect")
+                        break
+        step_deltas = (self._get_scale_value(policies, aspect_id))
+
+        for policy in policies:
+            for v in policy.values():
+                if (v.get("type") == (
+                    "tosca.policies.nfv.VduScalingAspectDeltas")
+                        and step_deltas
+                        and vdu_id in v.get("targets", [])):
+                    delta = (v.get("properties", {})
+                             .get("deltas", {})
+                             .get(step_deltas, {})
+                             .get("number_of_instances"))
+                elif (v.get("type") == (
+                        "tosca.policies.nfv.VduInitialDelta")
+                      and vdu_id in v.get("targets", [])):
+                    initial_delta = (v.get("properties", {})
+                                      .get("initial_delta", {})
+                                      .get("number_of_instances"))
+        if (current_pod_num - initial_delta) % delta != 0:
+            LOG.error("Error computing 'scale_level'. "
+                      f"current Pod num: {current_pod_num} delta: {delta}. "
+                      f"vnf: {vnf_instance.id} vdu: {vdu_id}")
+            return False
+
+        scale_level = (current_pod_num - initial_delta) // delta
+
+        for inst_vnf in vnf_instance.instantiated_vnf_info.scale_status:
+            if inst_vnf.aspect_id == aspect_id:
+                inst_vnf.scale_level = scale_level
+                break
+
+        return self._check_pod_range(vnf_instance, vnfd, vdu_id,
+                current_pod_num)
+
+    def _get_scale_value(self, policies, aspect_id):
+        """get step_deltas from vnfd"""
+        for policy in policies:
+            for v in policy.values():
+                if v.get("type") == "tosca.policies.nfv.ScalingAspects":
+                    step_deltas = (v.get("properties", {})
+                                   .get("aspects", {})
+                                   .get(aspect_id, {})
+                                   .get("step_deltas", [])[0])
+                    break
+        return step_deltas
+
+    def _check_pod_range(self, vnf_instance, vnfd, vdu_id,
+            current_pod_num):
+        """Check the range of the maximum or minimum number of pods.
+
+        If it finds out of range, output a error log and do not update
+        database.
+        """
+        vdu_profile = (vnfd.get("topology_template", {})
+                           .get("node_templates", [])
+                           .get(vdu_id, {})
+                           .get("properties", {})
+                           .get("vdu_profile"))
+        max_number_of_instances = vdu_profile.get("max_number_of_instances")
+        min_number_of_instances = vdu_profile.get("min_number_of_instances")
+
+        if (current_pod_num > max_number_of_instances
+                or current_pod_num < min_number_of_instances):
+            LOG.error(f"Failed to update database vnf {vnf_instance.id} "
+                      f"vdu: {vdu_id}. Pod num is out of range. "
+                      f"pod_num: {current_pod_num}")
+            return False
+        return True
+
+    def _get_pod_information(self, resource_name,
+            resource_type, vnf_instance, vim_connection_info):
+        """Extract a Pod starting with the specified 'resource_name' name"""
+        namespace = vnf_instance.vnf_metadata.get('namespace')
+        if not namespace:
+            namespace = "default"
+        auth_attr = vim_connection_info.access_info
+        auth_cred, _ = self.get_auth_creds(auth_attr)
+
+        core_v1_api_client = self.kubernetes.get_core_v1_api_client(
+            auth=auth_cred)
+        resource_pods = {}
+        all_pods = core_v1_api_client.list_namespaced_pod(
+            namespace=namespace)
+
+        for pod in all_pods.items:
+            if self.is_match_pod_naming_rule(resource_type,
+                  resource_name, pod.metadata.name):
+                resource_pods[pod.metadata.name] = pod.metadata.to_dict()
+
+        return resource_pods
+
+    def _get_vdu_list(self, vnf_instance):
+        """get vdu_list"""
+        vdu_id_list = set()
+
+        for vnfc in vnf_instance.instantiated_vnf_info.vnfc_resource_info:
+            if vnfc.compute_resource.resource_id != "":
+                vdu_id_list.add(vnfc.vdu_id)
+        return vdu_id_list
+
+    def _get_resource_name(self, resource_id, resource_type):
+        """get resource name"""
+        if resource_type == 'Pod':
+            resource_name = resource_id
+        else:
+            name_list = resource_id.split("-")
+            if resource_type == 'Deployment':
+                del name_list[-2:]
+            elif resource_type in ('ReplicaSet', 'DaemonSet', 'StatefulSet'):
+                del name_list[-1]
+            resource_name = '-'.join(name_list)
+
+        return resource_name
