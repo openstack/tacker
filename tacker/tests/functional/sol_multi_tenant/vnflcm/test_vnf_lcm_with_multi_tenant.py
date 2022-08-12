@@ -125,7 +125,7 @@ class VnfLcmWithMultiTenant(base.BaseVnfLcmMultiTenantTest):
                                       base_path=self.base_url),
             "PATCH", content_type='application/json',
             body=update_req_body)
-        self.assertEqual(200, resp.status_code)
+        return resp.status_code
 
     def assert_vnf_package_usage_state(
             self,
@@ -287,17 +287,13 @@ class VnfLcmWithMultiTenant(base.BaseVnfLcmMultiTenantTest):
             - Show VNF Package
               - User A only gets information about VNF Package A.
               - User B only gets information about VNF Package B.
+              - User A fails to get information about VNF Package B.
+              - User B fails to get information about VNF Package A.
             - Delete VNF Package
-              - User A deletes VNF Package A.
-              - User B deletes VNF Package B.
-        TODO(manpreetk): Only positive test cases are validated in
-        Y-release.
-        Negative test cases
               - User A fails to delete VNF Package B.
               - User B fails to delete VNF Package A.
-        Validation of negative test cases would require design changes
-        in Fake NFVO server, which could be implemented in the upcoming
-        cycle.
+              - User A deletes VNF Package A.
+              - User B deletes VNF Package B.
         """
         # Create and Upload VNF Package
         # User A creates VNF Package A
@@ -362,16 +358,40 @@ class VnfLcmWithMultiTenant(base.BaseVnfLcmMultiTenantTest):
             show_url_t2, "GET")
         self.assertEqual(200, resp_t2.status_code)
 
+        # User A fails to get information about VNF Package B
+        show_url = os.path.join(self.base_url, vnf_pkg_id2)
+        resp, body = self.http_client_tenant1.do_request(
+            show_url, "GET")
+        self.assertEqual(404, resp.status_code)
+
+        # User B fails to get information about VNF Package A
+        show_url_t2 = os.path.join(self.base_url, vnf_pkg_id)
+        resp_t2, body_t2 = self.http_client_tenant2.do_request(
+            show_url_t2, "GET")
+        self.assertEqual(404, resp_t2.status_code)
+
         # Delete VNF Package
-        # User A deletes VNF Package A
-        self._disable_operational_state(vnf_pkg_id,
+        # User A fails to delete VNF Package B
+        resp_status_code = self._disable_operational_state(vnf_pkg_id2,
             self.http_client_tenant1)
+        self.assertEqual(404, resp_status_code)
+
+        # User B fails to delete VNF Package A
+        resp_status_code = self._disable_operational_state(vnf_pkg_id,
+            self.http_client_tenant2)
+        self.assertEqual(404, resp_status_code)
+
+        # User A deletes VNF Package A
+        resp_status_code = self._disable_operational_state(vnf_pkg_id,
+            self.http_client_tenant1)
+        self.assertEqual(200, resp_status_code)
         self._delete_vnf_package(vnf_pkg_id, self.http_client_tenant1)
         self._wait_for_delete(vnf_pkg_id, self.http_client_tenant1)
 
         # User B deletes VNF Package B
-        self._disable_operational_state(vnf_pkg_id2,
+        resp_status_code = self._disable_operational_state(vnf_pkg_id2,
             self.http_client_tenant2)
+        self.assertEqual(200, resp_status_code)
         self._delete_vnf_package(vnf_pkg_id2, self.http_client_tenant2)
         self._wait_for_delete(vnf_pkg_id2, self.http_client_tenant2)
 
