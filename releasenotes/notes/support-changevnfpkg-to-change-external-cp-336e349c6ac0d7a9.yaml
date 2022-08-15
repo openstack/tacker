@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Support Change Current VNF Package API to change external CP.
+    We add new functions to Openstack and UserData class, and
+    ``extVirtualLinks`` parameter to ChangeCurrentVnfPkgRequest.

@@ -1612,6 +1612,21 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         resp, body = self.show_subscription(sub_id)
         self.assertEqual(404, resp.status_code)
 
+    def _get_vnfc_cp_net_id(self, inst, vdu, cp):
+        for vnfc in inst['instantiatedVnfInfo']['vnfcResourceInfo']:
+            if vnfc['vduId'] == vdu:
+                for cp_info in vnfc['vnfcCpInfo']:
+                    if cp_info['cpdId'] == cp:
+                        # must be found
+                        ext_cp_id = cp_info['vnfExtCpId']
+                        break
+                break
+        for ext_vl in inst['instantiatedVnfInfo']['extVirtualLinkInfo']:
+            for port in ext_vl['extLinkPorts']:
+                if port['cpInstanceId'] == ext_cp_id:
+                    # must be found
+                    return ext_vl['resourceHandle']['resourceId']
+
     def change_vnfpkg_from_image_to_image_common_test(self, is_nfvo=False):
         """Test ChangeCurrentVNFPackage from image to image
 
@@ -1671,13 +1686,15 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             self._register_vnf_package_mock_response(
                 vnfd_id_1, zip_file_path_1)
             create_req = paramgen.change_vnfpkg_create(vnfd_id_1)
-            change_vnfpkg_req = paramgen.change_vnfpkg(vnfd_id_2)
+            change_vnfpkg_req = paramgen.change_vnfpkg_with_ext_vl(
+                vnfd_id_2, self.get_network_ids(['net1']))
         else:
             glance_image = None
             flavour_vdu_dict = None
             zone_name_list = None
             create_req = paramgen.change_vnfpkg_create(self.vnfd_id_1)
-            change_vnfpkg_req = paramgen.change_vnfpkg(self.vnfd_id_2)
+            change_vnfpkg_req = paramgen.change_vnfpkg_with_ext_vl(
+                self.vnfd_id_2, self.get_network_ids(['net1']))
 
         # 1. Create VNF instance
         resp, body = self.create_vnf_instance(create_req)
@@ -1735,6 +1752,9 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.check_resp_headers_in_get(resp_1)
         self.check_resp_body(body_1, expected_inst_attrs)
 
+        vdu1_cp1_net_id = self._get_vnfc_cp_net_id(body_1, 'VDU1', 'VDU1_CP1')
+        self.assertEqual(net_ids['net0'], vdu1_cp1_net_id)
+
         # 4. Change Current VNF Package
         if is_nfvo:
             self._register_vnf_package_mock_response(
@@ -1761,6 +1781,10 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(200, resp_2.status_code)
         self.check_resp_headers_in_get(resp_2)
         self.check_resp_body(body_2, expected_inst_attrs)
+
+        vdu1_cp1_net_id = self._get_vnfc_cp_net_id(body_2, 'VDU1', 'VDU1_CP1')
+        # changed from net0 to net1
+        self.assertEqual(net_ids['net1'], vdu1_cp1_net_id)
 
         # 6. Terminate VNF
         self._set_grant_response(is_nfvo, 'TERMINATE')

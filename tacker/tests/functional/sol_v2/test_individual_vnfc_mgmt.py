@@ -261,7 +261,8 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self._get_vnfc_cp_net_id(inst_5, 'VDU2', 0, 'VDU2_CP1'))
 
         # 6. Change_vnfpkg operation
-        change_vnfpkg_req = paramgen.sample4_change_vnfpkg(self.vnfd_id_2)
+        change_vnfpkg_req = paramgen.sample4_change_vnfpkg(self.vnfd_id_2,
+            net_ids, subnet_ids)
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
 
@@ -281,6 +282,19 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
                             self._get_vnfc_image(inst_6, 'VDU1', 1))
         self.assertNotEqual(self._get_vnfc_image(inst_5, 'VDU2', 0),
                             self._get_vnfc_image(inst_6, 'VDU2', 0))
+        # check VDU2_CP1 is changed to net0 from net1. other are not changed.
+        self.assertEqual(net_ids['net0'],
+            self._get_vnfc_cp_net_id(inst_5, 'VDU1', 0, 'VDU1_CP1'))
+        self.assertEqual(net_ids['net0'],
+            self._get_vnfc_cp_net_id(inst_5, 'VDU1', 1, 'VDU1_CP1'))
+        self.assertEqual(net_ids['net1'],
+            self._get_vnfc_cp_net_id(inst_5, 'VDU2', 0, 'VDU2_CP1'))
+        self.assertEqual(net_ids['net0'],
+            self._get_vnfc_cp_net_id(inst_6, 'VDU1', 0, 'VDU1_CP1'))
+        self.assertEqual(net_ids['net0'],
+            self._get_vnfc_cp_net_id(inst_6, 'VDU1', 1, 'VDU1_CP1'))
+        self.assertEqual(net_ids['net0'],
+            self._get_vnfc_cp_net_id(inst_6, 'VDU2', 0, 'VDU2_CP1'))
 
         # Terminate VNF instance
         terminate_req = paramgen.sample4_terminate()
@@ -396,7 +410,8 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
         # 3. Change_vnfpkg operation
         self._put_fail_file('change_vnfpkg')
-        change_vnfpkg_req = paramgen.sample4_change_vnfpkg(self.vnfd_id_2)
+        change_vnfpkg_req = paramgen.sample4_change_vnfpkg(self.vnfd_id_2,
+            net_ids, subnet_ids)
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
 
@@ -420,6 +435,11 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
                          self._get_vnfc_image(inst_3, 'VDU1', 0))
         self.assertEqual(self._get_vnfc_image(inst_2, 'VDU2', 0),
                          self._get_vnfc_image(inst_3, 'VDU2', 0))
+        # check network of extVL cps are not changed. (i.e. net1)
+        self.assertEqual(net_ids['net1'],
+            self._get_vnfc_cp_net_id(inst_3, 'VDU1', 0, 'VDU1_CP1'))
+        self.assertEqual(net_ids['net1'],
+            self._get_vnfc_cp_net_id(inst_3, 'VDU2', 0, 'VDU2_CP1'))
 
         # Terminate VNF instance
         terminate_req = paramgen.sample3_terminate()

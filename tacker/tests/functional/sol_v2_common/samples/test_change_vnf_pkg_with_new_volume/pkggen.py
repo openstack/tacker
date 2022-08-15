@@ -50,3 +50,11 @@ change_vnfpkg_req_error_coodinate_vnf['additionalParams'][
 
 with open("change_vnfpkg_req_error_coodinate_vnf", "w", encoding='utf-8') as f:
     f.write(json.dumps(change_vnfpkg_req_error_coodinate_vnf, indent=2))
+
+net_ids = utils.get_network_ids(['net1'])
+change_vnfpkg_req_with_ext_vl = paramgen.change_vnfpkg_with_ext_vl(
+    vnfd_id, net_ids)
+
+with open("change_vnfpkg_req_from_volume_with_ext_vl",
+        "w", encoding='utf-8') as f:
+    f.write(json.dumps(change_vnfpkg_req_with_ext_vl, indent=2))
