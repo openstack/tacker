@@ -273,6 +273,11 @@
       Multinodes job for SOL V2 devstack-based functional tests
     host-vars:
       controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              server_notification:
+                server_notification: true
         tox_envlist: dsvm-functional-sol-v2
 
 - job:

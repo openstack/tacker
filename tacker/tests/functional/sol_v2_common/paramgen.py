@@ -1174,3 +1174,17 @@ def sample4_terminate():
     return {
         "terminationType": "FORCEFUL"
     }
+
+
+def server_notification(alarm_id):
+    return {
+        'notification': {
+            'host_id': 'host_id',
+            'alarm_id': alarm_id,
+            'fault_id': '1234',
+            'fault_type': '10',
+            'fault_option': {
+                'detail': 'server is down.'
+            }
+        }
+    }

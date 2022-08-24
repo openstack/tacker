@@ -51,6 +51,25 @@ class VnfLcmRpcApiV2(object):
     def modify_vnfinfo(self, context, lcmocc_id):
         self._cast_lcm_op(context, lcmocc_id, 'modify_vnfinfo')
 
+    def server_notification_cast(self, context, method, **kwargs):
+        serializer = objects_base.TackerObjectSerializer()
+        client = rpc.get_client(
+            self.target, version_cap=None, serializer=serializer)
+        cctxt = client.prepare()
+        cctxt.cast(context, method, **kwargs)
+
+    def server_notification_notify(
+            self, context, vnf_instance_id, vnfc_instance_ids):
+        self.server_notification_cast(
+            context, 'server_notification_notify',
+            vnf_instance_id=vnf_instance_id,
+            vnfc_instance_ids=vnfc_instance_ids)
+
+    def server_notification_remove_timer(self, context, vnf_instance_id):
+        self.server_notification_cast(
+            context, 'server_notification_remove_timer',
+            vnf_instance_id=vnf_instance_id)
+
 
 TOPIC_PROMETHEUS_PLUGIN = 'TACKER_PROMETHEUS_PLUGIN'
 

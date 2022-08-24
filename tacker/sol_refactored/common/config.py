@@ -132,8 +132,28 @@ PROMETHEUS_PLUGIN_OPTS = [
 
 CONF.register_opts(PROMETHEUS_PLUGIN_OPTS, 'prometheus_plugin')
 
+SERVER_NOTIFICATION_OPTS = [
+    cfg.BoolOpt('server_notification',
+                default=False,
+                help=_('Enable server notification autohealing')),
+
+    cfg.StrOpt('uri_path_prefix',
+               default='/server_notification',
+               help=_('Uri path prefix string for server notification. '
+                      'When changing this configuration, '
+                      'server_notification description in api-paste.ini '
+                      'must be changed to the same value.')),
+    cfg.IntOpt('timer_interval',
+               default=20,
+               help=_('Timeout (second) of packing for multiple '
+                      'server notification.')),
+]
+
+CONF.register_opts(SERVER_NOTIFICATION_OPTS, 'server_notification')
+
 
 def config_opts():
     return [('v2_nfvo', NFVO_OPTS),
             ('v2_vnfm', VNFM_OPTS),
-            ('prometheus_plugin', PROMETHEUS_PLUGIN_OPTS)]
+            ('prometheus_plugin', PROMETHEUS_PLUGIN_OPTS),
+            ('server_notification', SERVER_NOTIFICATION_OPTS)]

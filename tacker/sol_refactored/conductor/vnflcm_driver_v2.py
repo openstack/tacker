@@ -123,6 +123,17 @@ class VnfLcmDriverV2(object):
             LOG.debug("execute %s failed: %s", operation, out.stderr)
             msg = "{} failed: {}".format(operation, out.stderr)
             raise sol_ex.MgmtDriverExecutionFailed(sol_detail=msg)
+        else:
+            try:
+                output = pickle.loads(out.stdout)
+                if isinstance(output, dict) and 'vnf_instance' in output:
+                    _inst = objects.VnfInstanceV2.from_dict(
+                        output['vnf_instance'])
+                    inst.__dict__.update(_inst.__dict__)
+            except EOFError:
+                pass
+            except pickle.UnpicklingError:
+                pass
 
         LOG.debug("execute %s of %s success.", operation, script)
 

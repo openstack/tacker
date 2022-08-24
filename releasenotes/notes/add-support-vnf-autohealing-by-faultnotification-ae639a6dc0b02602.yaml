@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Support AutoHealing using FaultNotification interface between Tacker
+    and VIM.
+    Provide sample Mgmt driver script to register/unregister
+    FaultNotification interface.
+    At the same time, a user guide is also made to help users understand the
+    function.

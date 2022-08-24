@@ -427,3 +427,12 @@ class PrometheusPluginValidationError(SolValidationError):
 
 class PrometheusSettingFailed(SolHttpError503):
     message = _("Setting PM job on External Monitoring Tool failed.")
+
+
+# server_notification
+class ServerNotificationNotEnabled(SolHttpError404):
+    message = _("ServerNotification API is not enabled.")
+
+
+class ServerNotificationValidationError(SolValidationError):
+    message = _("%(detail)s")

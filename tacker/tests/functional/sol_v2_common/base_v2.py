@@ -579,3 +579,9 @@ class BaseSolV2Test(base.BaseTestCase):
                         'volume_image_metadata'].get('image_id')
 
         return image_id
+
+    def server_notification(self, inst_id, server_id, req_body):
+        path = ("/server_notification/vnf_instances/"
+                f"{inst_id}/servers/{server_id}/notify")
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body)

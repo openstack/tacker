@@ -28,6 +28,9 @@ module_and_class = {
     'auto_healing':
         ('tacker.sol_refactored.common.prometheus_plugin',
          'PrometheusPluginAutoScaling'),
+    'server_notification':
+        ('tacker.sol_refactored.common.server_notification',
+        'ServerNotification'),
 }
 
 
