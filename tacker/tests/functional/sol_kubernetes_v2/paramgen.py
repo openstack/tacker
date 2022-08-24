@@ -407,3 +407,328 @@ def helm_error_handling_change_vnfpkg(vnfd_id):
             }]
         }
     }
+
+
+def instantiate_cnf_resources_create(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "vnfInstanceName": "test",
+        "vnfInstanceDescription": "test",
+        "metadata": {"dummy-key": "dummy-val"}
+    }
+
+
+def pm_instantiate_cnf_resources_create(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "vnfInstanceName": "test",
+        "vnfInstanceDescription": "test"
+    }
+
+
+def instantiate_vnf_min():
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return {
+        "flavourId": "simple"
+    }
+
+
+def sub_create_min(callback_uri):
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return {
+        "callbackUri": callback_uri
+    }
+
+
+def sub_create_max(callback_uri, vnfd_id, inst_id):
+    return {
+        "filter": {
+            "vnfInstanceSubscriptionFilter": {
+                "vnfdIds": [vnfd_id],
+                "vnfProductsFromProviders": [
+                    {
+                        "vnfProvider": "Company",
+                        "vnfProducts": [
+                            {
+                                "vnfProductName": "Sample VNF",
+                                "versions": [
+                                    {
+                                        "vnfSoftwareVersion": "1.0",
+                                        "vnfdVersions": ["1.0"]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                ],
+                "vnfInstanceIds": [inst_id],
+                "vnfInstanceNames": ["test"],
+            },
+            "notificationTypes": ["AlarmNotification",
+                                  "AlarmClearedNotification"],
+            "faultyResourceTypes": ["COMPUTE"],
+            "perceivedSeverities": ["WARNING"],
+            "eventTypes": ["PROCESSING_ERROR_ALARM"],
+            "probableCauses": ["Process Terminated"]
+        },
+        "callbackUri": callback_uri
+    }
+
+
+def alert_event_firing(inst_id, pod_name):
+    return {
+        "receiver": "receiver",
+        "status": "firing",
+        "alerts": [
+            {
+                "status": "firing",
+                "labels": {
+                    "receiver_type": "tacker",
+                    "function_type": "vnffm",
+                    "vnf_instance_id": inst_id,
+                    "pod": pod_name,
+                    "perceived_severity": "WARNING",
+                    "event_type": "PROCESSING_ERROR_ALARM"
+                },
+                "annotations": {
+                    "fault_type": "Server Down",
+                    "probable_cause": "Process Terminated",
+                    "fault_details": "pid 12345"
+                },
+                "startsAt": "2022-06-21T23:47:36.453Z",
+                "endsAt": "0001-01-01T00:00:00Z",
+                "generatorURL": "http://controller147:9090/graph?g0.expr="
+                                "up%7Bjob%3D%22node%22%7D+%3D%3D+0&g0.tab=1",
+                "fingerprint": "5ef77f1f8a3ecb8d"
+            }
+        ],
+        "groupLabels": {},
+        "commonLabels": {
+            "alertname": "NodeInstanceDown",
+            "job": "node"
+        },
+        "commonAnnotations": {
+            "description": "sample"
+        },
+        "externalURL": "http://controller147:9093",
+        "version": "4",
+        "groupKey": "{}:{}",
+        "truncatedAlerts": 0
+    }
+
+
+def alert_event_resolved(inst_id, pod_name):
+    return {
+        "receiver": "receiver",
+        "status": "resolved",
+        "alerts": [
+            {
+                "status": "resolved",
+                "labels": {
+                    "receiver_type": "tacker",
+                    "function_type": "vnffm",
+                    "vnf_instance_id": inst_id,
+                    "pod": pod_name,
+                    "perceived_severity": "WARNING",
+                    "event_type": "PROCESSING_ERROR_ALARM"
+                },
+                "annotations": {
+                    "fault_type": "Server Down",
+                    "probable_cause": "Process Terminated",
+                    "fault_details": "pid 12345"
+                },
+                "startsAt": "2022-06-21T23:47:36.453Z",
+                "endsAt": "2022-06-22T23:47:36.453Z",
+                "generatorURL": "http://controller147:9090/graph?g0.expr=up%7B"
+                                "job%3D%22node%22%7D+%3D%3D+0&g0.tab=1",
+                "fingerprint": "5ef77f1f8a3ecb8d"
+            }
+        ],
+        "groupLabels": {},
+        "commonLabels": {
+            "alertname": "NodeInstanceDown",
+            "job": "node"
+        },
+        "commonAnnotations": {
+            "description": "sample"
+        },
+        "externalURL": "http://controller147:9093",
+        "version": "4",
+        "groupKey": "{}:{}",
+        "truncatedAlerts": 0
+    }
+
+
+def update_alarm():
+    return {
+        "ackState": "ACKNOWLEDGED"
+    }
+
+
+def terminate_vnf_min():
+    # Omit except for required attributes
+    # NOTE: Only the following cardinality attributes are set.
+    #  - 1
+    #  - 1..N (1)
+    return {
+        "terminationType": "FORCEFUL"
+    }
+
+
+def pm_job_min(callback_uri, inst_id, host_ip):
+    return {
+        "objectType": "Vnf",
+        "objectInstanceIds": [inst_id],
+        "criteria": {
+            "performanceMetric": [
+                f"VCpuUsageMeanVnf.{inst_id}"],
+            "collectionPeriod": 5,
+            "reportingPeriod": 10
+        },
+        "callbackUri": callback_uri,
+        "metadata": {
+            "monitoring": {
+                "monitorName": "prometheus",
+                "driverType": "external",
+                "targetsInfo": [
+                    {
+                        "prometheusHost": host_ip,
+                        "prometheusHostPort": 50022,
+                        "authInfo": {
+                            "ssh_username": "root",
+                            "ssh_password": "root"
+                        },
+                        "alertRuleConfigPath":
+                            "/tmp",
+                        "prometheusReloadApiEndpoint":
+                            "http://localhost:9990/-/reload",
+                    }
+                ]
+            }
+        }
+
+    }
+
+
+def pm_job_max(callback_uri, inst_id, host_ip):
+    return {
+        "objectType": "Vnf",
+        "objectInstanceIds": [inst_id],
+        "subObjectInstanceIds": [],
+        "criteria": {
+            "performanceMetric": [
+                f"VCpuUsageMeanVnf.{inst_id}"],
+            "performanceMetricGroup": ["VirtualisedComputeResource"],
+            "collectionPeriod": 5,
+            "reportingPeriod": 10,
+            "reportingBoundary": "2099-08-05T02:24:46Z"
+        },
+        "callbackUri": callback_uri,
+        "metadata": {
+            "monitoring": {
+                "monitorName": "prometheus",
+                "driverType": "external",
+                "targetsInfo": [
+                    {
+                        "prometheusHost": host_ip,
+                        "prometheusHostPort": 50022,
+                        "authInfo": {
+                            "ssh_username": "root",
+                            "ssh_password": "root"
+                        },
+                        "alertRuleConfigPath":
+                            "/tmp",
+                        "prometheusReloadApiEndpoint":
+                            "http://localhost:9990/-/reload"
+                    }
+                ]
+            }
+        }
+    }
+
+
+def update_pm_job(callback_uri):
+    return {
+        "callbackUri": callback_uri
+    }
+
+
+def pm_event(job_id, inst_id):
+    return {
+        "receiver": "receiver",
+        "status": "firing",
+        "alerts": [
+            {
+                "status": "firing",
+                "labels": {
+                    "receiver_type": "tacker",
+                    "function_type": "vnfpm",
+                    "job_id": job_id,
+                    "metric": f"VCpuUsageMeanVnf.{inst_id}",
+                    "object_instance_id": inst_id
+                },
+                "annotations": {
+                    "value": 99,
+                },
+                "startsAt": "2022-06-21T23:47:36.453Z",
+                "endsAt": "0001-01-01T00:00:00Z",
+                "generatorURL": "http://controller147:9090/graph?g0.expr=up%7B"
+                                "job%3D%22node%22%7D+%3D%3D+0&g0.tab=1",
+                "fingerprint": "5ef77f1f8a3ecb8d"
+            }
+        ],
+        "groupLabels": {},
+        "commonLabels": {
+            "alertname": "NodeInstanceDown",
+            "job": "node"
+        },
+        "commonAnnotations": {
+            "description": "sample"
+        },
+        "externalURL": "http://controller147:9093",
+        "version": "4",
+        "groupKey": "{}:{}",
+        "truncatedAlerts": 0
+    }
+
+
+def prometheus_auto_scaling_alert(inst_id):
+    return {
+        "receiver": "receiver",
+        "status": "firing",
+        "alerts": [{
+            "status": "firing",
+            "labels": {
+                "receiver_type": "tacker",
+                "function_type": "auto_scale",
+                "vnf_instance_id": inst_id,
+                "auto_scale_type": "SCALE_OUT",
+                "aspect_id": "vdu2_aspect"
+            },
+            "annotations": {
+            },
+            "startsAt": "2022-06-21T23:47:36.453Z",
+            "endsAt": "0001-01-01T00:00:00Z",
+            "generatorURL": "http://controller147:9090/graph?g0.expr="
+                            "up%7Bjob%3D%22node%22%7D+%3D%3D+0&g0.tab=1",
+            "fingerprint": "5ef77f1f8a3ecb8d"
+        }],
+        "groupLabels": {},
+        "commonLabels": {
+            "alertname": "NodeInstanceDown",
+            "job": "node"
+        },
+        "commonAnnotations": {
+            "description": "sample"
+        },
+        "externalURL": "http://controller147:9093",
+        "version": "4",
+        "groupKey": "{}:{}",
+        "truncatedAlerts": 0
+    }

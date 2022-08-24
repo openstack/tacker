@@ -67,3 +67,36 @@ def lock_vnf_instance(inst_arg, delay=False):
         return wrapper
 
     return operation_lock
+
+
+def lock_resources(res_arg, delay=False):
+
+    def operation_lock(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            coord = coordination.COORDINATOR
+            # ensure coordination start
+            # NOTE: it is noop if already started.
+            coord.start()
+
+            sig = inspect.signature(func)
+            call_args = sig.bind(*args, **kwargs).arguments
+            res_id = res_arg.format(**call_args)
+            lock = coord.get_lock(res_id)
+
+            blocking = False if not delay else 10
+            # NOTE: 'with lock' is not used since it can't handle
+            # lock failed exception well.
+            if not lock.acquire(blocking=blocking):
+                LOG.debug("Locking resources %s failed.", res_id)
+                raise sol_ex.ResourcesOtherOperationInProgress(inst_id=res_id)
+
+            try:
+                LOG.debug("resources %s locked.", res_id)
+                return func(*args, **kwargs)
+            finally:
+                lock.release()
+
+        return wrapper
+
+    return operation_lock

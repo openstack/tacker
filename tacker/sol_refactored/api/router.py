@@ -14,10 +14,14 @@
 #    under the License.
 
 
+from tacker.sol_refactored.api.policies import vnffm_v1 as vnffm_policy_v1
 from tacker.sol_refactored.api.policies import vnflcm_v2 as vnflcm_policy_v2
+from tacker.sol_refactored.api.policies import vnfpm_v2 as vnfpm_policy_v2
 from tacker.sol_refactored.api import wsgi as sol_wsgi
+from tacker.sol_refactored.controller import vnffm_v1
 from tacker.sol_refactored.controller import vnflcm_v2
 from tacker.sol_refactored.controller import vnflcm_versions
+from tacker.sol_refactored.controller import vnfpm_v2
 
 
 class VnflcmVersions(sol_wsgi.SolAPIRouter):
@@ -56,4 +60,28 @@ class VnflcmAPIRouterV2(sol_wsgi.SolAPIRouter):
         # v2_vnfm.test_enable_lcm_op_occ_delete set to True.
         ("/vnf_lcm_op_occs/{id}", {"GET": "lcm_op_occ_show",
                                    "DELETE": "lcm_op_occ_delete"})
+    ]
+
+
+class VnffmAPIRouterV1(sol_wsgi.SolAPIRouter):
+    controller = sol_wsgi.SolResource(vnffm_v1.VnfFmControllerV1(),
+                                      policy_name=vnffm_policy_v1.POLICY_NAME)
+    route_list = [
+        ("/alarms", {"GET": "index"}),
+        ("/alarms/{id}", {"GET": "show", "PATCH": "update"}),
+        ("/subscriptions", {"GET": "subscription_list",
+                            "POST": "subscription_create"}),
+        ("/subscriptions/{id}", {"GET": "subscription_show",
+                                 "DELETE": "subscription_delete"})
+    ]
+
+
+class VnfPmAPIRouterV2(sol_wsgi.SolAPIRouter):
+    controller = sol_wsgi.SolResource(vnfpm_v2.VnfPmControllerV2(),
+                                      policy_name=vnfpm_policy_v2.POLICY_NAME)
+    route_list = [
+        ("/pm_jobs", {"POST": "create", "GET": "index"}),
+        ("/pm_jobs/{id}", {
+            "PATCH": "update", "GET": "show", "DELETE": "delete"}),
+        ("/pm_jobs/{id}/reports/{report_id}", {"GET": "report_get"}),
     ]

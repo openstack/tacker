@@ -33,7 +33,23 @@ supported_versions_v2 = {
     ]
 }
 
+supported_fm_versions_v1 = {
+    'uriPrefix': '/vnffm/v1',
+    'apiVersions': [
+        {'version': '1.3.0', 'isDeprecated': False}
+    ]
+}
+
+supported_pm_versions_v2 = {
+    'uriPrefix': '/vnfpm/v2',
+    'apiVersions': [
+        {'version': '2.1.0', 'isDeprecated': False}
+    ]
+}
+
 CURRENT_VERSION = '2.0.0'
+CURRENT_FM_VERSION = '1.3.0'
+CURRENT_PM_VERSION = '2.1.0'
 
 v1_versions = [
     item['version'] for item in supported_versions_v1['apiVersions']
@@ -41,6 +57,14 @@ v1_versions = [
 
 v2_versions = [
     item['version'] for item in supported_versions_v2['apiVersions']
+]
+
+v1_fm_versions = [
+    item['version'] for item in supported_fm_versions_v1['apiVersions']
+]
+
+v2_pm_versions = [
+    item['version'] for item in supported_pm_versions_v2['apiVersions']
 ]
 
 

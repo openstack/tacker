@@ -16,7 +16,6 @@
 
 from tacker.api.validation import parameter_types
 
-
 # SOL013 7.2.2
 Identifier = {
     'type': 'string', 'minLength': 1, 'maxLength': 255
@@ -121,6 +120,40 @@ _IpAddresses = {
         {'required': ['addressRange']},
     ],
     'additionalProperties': True
+}
+
+# SOL013 8.3.4
+SubscriptionAuthentication = {
+    'type': 'object',
+    'properties': {
+        'authType': {
+            'type': 'array',
+            'items': {
+                'type': 'string',
+                'enum': [
+                    'BASIC',
+                    'OAUTH2_CLIENT_CREDENTIALS',
+                    'TLS_CERT']
+            }
+        },
+        'paramsBasic': {
+            'type': 'object',
+            'properties': {
+                'userName': {'type': 'string'},
+                'password': {'type': 'string'}
+            }
+        },
+        'paramsOauth2ClientCredentials': {
+            'type': 'object',
+            'properties': {
+                'clientId': {'type': 'string'},
+                'clientPassword': {'type': 'string'},
+                'tokenEndpoint': {'type': 'string'}
+            }
+        }
+    },
+    'required': ['authType'],
+    'additionalProperties': True,
 }
 
 # SOL003 4.4.1.10c

@@ -17,8 +17,11 @@
 from oslo_log import log as logging
 
 from tacker.sol_refactored.common import config
+from tacker.sol_refactored.common import fm_alarm_utils as alarm_utils
+from tacker.sol_refactored.common import fm_subscription_utils as fm_utils
 from tacker.sol_refactored.common import http_client
 from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
+from tacker.sol_refactored.common import pm_job_utils
 from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.common import vnfd_utils
 from tacker.sol_refactored.nfvo import local_nfvo
@@ -144,3 +147,24 @@ class NfvoClient(object):
 
         if self.is_local:
             self.nfvo.recv_lcmocc_notification(context, lcmocc, inst)
+
+    def send_alarm_notification(self, context, alarm, inst, endpoint):
+        subscs = fm_utils.get_alarm_subscs(context, alarm, inst)
+        for subsc in subscs:
+            notif_data = alarm_utils.make_alarm_notif_data(
+                subsc, alarm, endpoint)
+            fm_utils.send_notification(subsc, notif_data)
+
+    def send_pm_job_notification(self, report, pm_job, timestamp, endpoint):
+        report_object_instance_id = {entry.objectInstanceId
+                                     for entry in report.entries}
+        for instance_id in report_object_instance_id:
+            sub_instance_ids = [
+                entry.subObjectInstanceId for entry in report.entries
+                if (entry.objectInstanceId == instance_id and
+                    entry.obj_attr_is_set('subObjectInstanceId'))
+            ]
+            notif_data = pm_job_utils.make_pm_notif_data(
+                instance_id, sub_instance_ids, report.id,
+                pm_job, timestamp, endpoint)
+            pm_job_utils.send_notification(pm_job, notif_data)

@@ -189,7 +189,28 @@ def PrepareRequestHandler(manager):
                  inspect.currentframe().f_code.co_name))
 
         def do_PUT(self):
-            raise NotImplementedError
+            """Process PUT request"""
+            LOG.debug(
+                '[Start] %s.%s()' %
+                (self.__class__.__name__,
+                 inspect.currentframe().f_code.co_name))
+
+            # URI might have trailing uuid or not.
+            if self._is_match_with_list():
+                # Request is registered in our list.
+                tplUri = urlparse(self.path)
+                self._returned_callback(tplUri.path,
+                                        manager._funcs_puts[tplUri.path])
+            else:
+                # Unregistered URI is requested
+                LOG.debug('PUT Recv. Unknown URL: "%s"' % self.path)
+                self.send_response(http.HTTPStatus.BAD_REQUEST)
+                self.end_headers()
+
+            LOG.debug(
+                '[ End ] %s.%s()' %
+                (self.__class__.__name__,
+                 inspect.currentframe().f_code.co_name))
 
     return DummyRequestHandler
 

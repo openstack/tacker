@@ -21,6 +21,7 @@ from tacker import context
 from tacker.sol_refactored.api import api_version
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import http_client
+from tacker.sol_refactored.common import pm_job_utils
 from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.common import vnfd_utils
 from tacker.sol_refactored.nfvo import local_nfvo
@@ -419,3 +420,22 @@ class TestNfvoClient(base.BaseTestCase):
             self.context, lcmocc, inst, 'http://127.0.0.1:9890')
         self.assertEqual(1, mock_recv.call_count)
         self.assertEqual(1, mock_send.call_count)
+
+    @mock.patch.object(pm_job_utils, 'send_notification')
+    @mock.patch.object(pm_job_utils, 'make_pm_notif_data')
+    def test_send_pm_job_notification(self, mock_notif, mock_send):
+        mock_notif.return_value = 'mock_notif'
+        mock_send.return_value = None
+        entries = {
+            'objectType': "VNF",
+            'objectInstanceId': "instance_id_1",
+            'subObjectInstanceId': "subObjectInstanceId_1"
+        }
+        report = objects.PerformanceReportV2(
+            id=uuidutils.generate_uuid(),
+            jobId='pm_job_id',
+            entries=[objects.VnfPmReportV2_Entries.from_dict(entries)]
+        )
+        self.nfvo_client.send_pm_job_notification(
+            report, "pm_job", 'timestamp', self.nfvo_client.endpoint
+        )

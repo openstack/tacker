@@ -41,3 +41,60 @@ class GrantedLcmOperationType(fields.BaseTackerEnum):
 
 class GrantedLcmOperationTypeField(fields.BaseEnumField):
     AUTO_TYPE = GrantedLcmOperationType()
+
+
+# NFV-SOL 003
+# - v2.6.1 7.5.4.3 (API version: 1.2.0)
+# - v2.7.1 7.5.4.3 (API version: 1.3.0)
+# - v2.8.1 7.5.4.3 (API version: 1.3.0)
+# - v3.3.1 7.5.4.3 (API version: 1.3.0)
+class PerceivedSeverityType(fields.BaseTackerEnum):
+    CRITICAL = 'CRITICAL'
+    MAJOR = 'MAJOR'
+    MINOR = 'MINOR'
+    WARNING = 'WARNING'
+    INDETERMINATE = 'INDETERMINATE'
+    CLEARED = 'CLEARED'
+
+    ALL = (CRITICAL, MAJOR, MINOR, WARNING, INDETERMINATE, CLEARED)
+
+
+class PerceivedSeverityTypeField(fields.BaseEnumField):
+    AUTO_TYPE = PerceivedSeverityType()
+
+
+# NFV-SOL 003
+# - v2.6.1 7.5.4.5 (API version: 1.2.0)
+# - v2.7.1 7.5.4.5 (API version: 1.3.0)
+# - v2.8.1 7.5.4.5 (API version: 1.3.0)
+# - v3.3.1 7.5.4.5 (API version: 1.3.0)
+class EventType(fields.BaseTackerEnum):
+    COMMUNICATIONS_ALARM = 'COMMUNICATIONS_ALARM'
+    PROCESSING_ERROR_ALARM = 'PROCESSING_ERROR_ALARM'
+    ENVIRONMENTAL_ALARM = 'ENVIRONMENTAL_ALARM'
+    QOS_ALARM = 'QOS_ALARM'
+    EQUIPMENT_ALARM = 'EQUIPMENT_ALARM'
+
+    ALL = (COMMUNICATIONS_ALARM, PROCESSING_ERROR_ALARM,
+           ENVIRONMENTAL_ALARM, QOS_ALARM, EQUIPMENT_ALARM)
+
+
+class EventTypeField(fields.BaseEnumField):
+    AUTO_TYPE = EventType()
+
+
+# NFV-SOL 003
+# - v2.6.1 7.5.4.5 (API version: 1.2.0)
+# - v2.7.1 7.5.4.5 (API version: 1.3.0)
+# - v2.8.1 7.5.4.5 (API version: 1.3.0)
+# - v3.3.1 7.5.4.5 (API version: 1.3.0)
+class FaultyResourceType(fields.BaseTackerEnum):
+    COMPUTE = 'COMPUTE'
+    STORAGE = 'STORAGE'
+    NETWORK = 'NETWORK'
+
+    ALL = (COMPUTE, STORAGE, NETWORK)
+
+
+class FaultyResourceTypeField(fields.BaseEnumField):
+    AUTO_TYPE = FaultyResourceType()

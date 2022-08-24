@@ -84,12 +84,14 @@ def send_notification(subsc, notif_data):
 
     url = subsc.callbackUri
     try:
-        resp, body = client.do_request(url, "POST", body=notif_data)
-        if resp.status_code != 204:
-            LOG.error("send_notification failed: %d" % resp.status_code)
-    except Exception:
+        resp, body = client.do_request(
+            url, "POST", expected_status=[204], body=notif_data)
+    except sol_ex.SolException:
         # it may occur if test_notification was not executed.
         LOG.exception("send_notification failed")
+
+    if resp.status_code != 204:
+        LOG.error("send_notification failed: %d" % resp.status_code)
 
 
 def test_notification(subsc):
@@ -100,11 +102,12 @@ def test_notification(subsc):
 
     url = subsc.callbackUri
     try:
-        resp, _ = client.do_request(url, "GET")
-        if resp.status_code != 204:
-            raise sol_ex.TestNotificationFailed()
-    except Exception:
+        resp, _ = client.do_request(url, "GET", expected_status=[204])
+    except sol_ex.SolException as e:
         # any sort of error is considered. avoid 500 error.
+        raise sol_ex.TestNotificationFailed() from e
+
+    if resp.status_code != 204:
         raise sol_ex.TestNotificationFailed()
 
 

@@ -561,7 +561,13 @@
             $TACKER_CONF:
               v2_vnfm:
                 kubernetes_vim_rsc_wait_timeout: 800
+              prometheus_plugin:
+                fault_management: True
+                performance_management: True
+                auto_scaling: True
         tox_envlist: dsvm-functional-sol-kubernetes-v2
+    vars:
+      prometheus_setup: true
 
 - job:
     name: tacker-functional-devstack-kubernetes-oidc-auth

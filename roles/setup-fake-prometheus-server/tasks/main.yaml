@@ -1,0 +1,39 @@
+- block:
+  - name: Copy tools/test-setup-fake-prometheus-server.sh
+    copy:
+       remote_src=True
+       src={{ devstack_base_dir }}/tacker/tools/test-setup-fake-prometheus-server.sh
+       dest={{ zuul_work_dir }}/tools/test-setup-fake-prometheus-server.sh
+       mode=0755
+
+  - name: Get stackenv from devstack environment
+    slurp:
+      src: "{{ devstack_base_dir }}/devstack/.stackenv"
+    register: stackenv
+
+  - name: Install docker
+    package:
+      name: docker.io
+      state: present
+    become: yes
+
+  - name: Replace prometheus host ip
+    replace:
+      path: "{{ item }}"
+      regexp: "0.0.0.0"
+      replace: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
+    with_items:
+      - "{{ zuul_work_dir }}/tools/test-setup-fake-prometheus-server.sh"
+    when:
+      - p.stat.exists
+
+  - name: Run tools/test-setup-fake-prometheus-server.sh
+    command: tools/test-setup-fake-prometheus-server.sh
+    args:
+      chdir: "{{ zuul_work_dir }}"
+    when:
+      - p.stat.exists
+      - p.stat.executable
+
+  when:
+    - inventory_hostname == 'controller-tacker'
