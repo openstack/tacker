@@ -76,12 +76,12 @@ Help:
 
   $ openstack vnflcm create --help
   usage: openstack vnflcm create [-h] [-f {json,shell,table,value,yaml}]
-                                [-c COLUMN] [--noindent] [--prefix PREFIX]
-                                [--max-width <integer>] [--fit-width]
-                                [--print-empty] [--name <vnf-instance-name>]
-                                [--description <vnf-instance-description>]
-                                [--I <param-file>]
-                                <vnfd-id>
+                                 [-c COLUMN] [--noindent] [--prefix PREFIX]
+                                 [--max-width <integer>] [--fit-width]
+                                 [--print-empty] [--name <vnf-instance-name>]
+                                 [--description <vnf-instance-description>]
+                                 [--I <param-file>]
+                                 <vnfd-id>
 
   Create a new VNF Instance
 
@@ -156,10 +156,10 @@ Help:
 
   $ openstack vnflcm list --help
   usage: openstack vnflcm list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN]
-                              [--quote {all,minimal,none,nonnumeric}]
-                              [--noindent] [--max-width <integer>]
-                              [--fit-width] [--print-empty]
-                              [--sort-column SORT_COLUMN]
+                               [--quote {all,minimal,none,nonnumeric}]
+                               [--noindent] [--max-width <integer>]
+                               [--fit-width] [--print-empty]
+                               [--sort-column SORT_COLUMN]
 
   List VNF Instance
 
@@ -211,10 +211,10 @@ Help:
 
   $ openstack vnflcm show --help
   usage: openstack vnflcm show [-h] [-f {json,shell,table,value,yaml}]
-                              [-c COLUMN] [--noindent] [--prefix PREFIX]
-                              [--max-width <integer>] [--fit-width]
-                              [--print-empty]
-                              <vnf-instance>
+                               [-c COLUMN] [--noindent] [--prefix PREFIX]
+                               [--max-width <integer>] [--fit-width]
+                               [--print-empty]
+                               <vnf-instance>
 
   Display VNF instance details
 
@@ -281,7 +281,7 @@ Result:
 
 .. code-block:: console
 
-  Vnf instance '725f625e-f6b7-4bcd-b1b7-7184039fde45' deleted successfully
+  Vnf instance '725f625e-f6b7-4bcd-b1b7-7184039fde45' is deleted successfully
 
 
 Help:
@@ -429,7 +429,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm change_ext_conn VNF_INSTANCE_ID \
+  $ openstack vnflcm change-ext-conn VNF_INSTANCE_ID \
        ./sample_param_file.json
 
 
@@ -444,14 +444,14 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm change_ext_conn --help
-  usage: openstack vnflcm change_ext_conn [-h] <vnf-instance> <param-file>
+  $ openstack vnflcm change-ext-conn --help
+  usage: openstack vnflcm change-ext-conn [-h] <vnf-instance> <param-file>
 
   Change External VNF Connectivity
 
   positional arguments:
     <vnf-instance>  VNF instance ID to Change External VNF Connectivity
-    <param-file>    Specify change_ext_conn request parameters in a json file.
+    <param-file>    Specify change-ext-conn request parameters in a json file.
 
   optional arguments:
     -h, --help      show this help message and exit
@@ -793,7 +793,290 @@ Help:
     -h, --help           show this help message and exit
 
 
-17. Show VNF LCM API versions
+17. Create Lccn Subscription
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm subsc create ./sample_param_file.json
+
+
+Result:
+
+.. code-block:: console
+
+  +--------------+------------------------------------------------------------------------------------------------------+
+  | Field        | Value                                                                                                |
+  +--------------+------------------------------------------------------------------------------------------------------+
+  | Callback URI | http://localhost:9990/notification/callback/test                                                     |
+  | Filter       | {                                                                                                    |
+  |              |     "vnfInstanceSubscriptionFilter": {                                                               |
+  |              |         "vnfdIds": [                                                                                 |
+  |              |             "dummy-vnfdId-1",                                                                        |
+  |              |             "dummy-vnfdId-2"                                                                         |
+  |              |         ],                                                                                           |
+  |              |         "vnfProductsFromProviders": [                                                                |
+  |              |             {                                                                                        |
+  |              |                 "vnfProvider": "dummy-vnfProvider-1",                                                |
+  |              |                 "vnfProducts": [                                                                     |
+  |              |                     {                                                                                |
+  |              |                         "vnfProductName": "dummy-vnfProductName-1",                                  |
+  |              |                         "versions": [                                                                |
+  |              |                             {                                                                        |
+  |              |                                 "vnfSoftwareVersion": "1.0",                                         |
+  |              |                                 "vnfdVersions": [                                                    |
+  |              |                                     "1.0",                                                           |
+  |              |                                     "2.0"                                                            |
+  |              |                                 ]                                                                    |
+  |              |                             },                                                                       |
+  |              |                             {                                                                        |
+  |              |                                 "vnfSoftwareVersion": "1.1",                                         |
+  |              |                                 "vnfdVersions": [                                                    |
+  |              |                                     "1.1",                                                           |
+  |              |                                     "2.1"                                                            |
+  |              |                                 ]                                                                    |
+  |              |                             }                                                                        |
+  |              |                         ]                                                                            |
+  |              |                     }                                                                                |
+  |              |                 ]                                                                                    |
+  |              |             }                                                                                        |
+  |              |         ],                                                                                           |
+  |              |         "vnfInstanceIds": [                                                                          |
+  |              |             "dummy-vnfInstanceId-1"                                                                  |
+  |              |         ],                                                                                           |
+  |              |         "vnfInstanceNames": [                                                                        |
+  |              |             "dummy-vnfInstanceName-1"                                                                |
+  |              |         ]                                                                                            |
+  |              |     },                                                                                               |
+  |              |     "notificationTypes": [                                                                           |
+  |              |         "VnfLcmOperationOccurrenceNotification",                                                     |
+  |              |         "VnfIdentifierCreationNotification",                                                         |
+  |              |         "VnfIdentifierDeletionNotification"                                                          |
+  |              |     ],                                                                                               |
+  |              |     "operationTypes": [                                                                              |
+  |              |         "INSTANTIATE",                                                                               |
+  |              |         "SCALE",                                                                                     |
+  |              |         "TERMINATE",                                                                                 |
+  |              |         "HEAL",                                                                                      |
+  |              |         "MODIFY_INFO",                                                                               |
+  |              |         "CHANGE_EXT_CONN"                                                                            |
+  |              |     ],                                                                                               |
+  |              |     "operationStates": [                                                                             |
+  |              |         "COMPLETED",                                                                                 |
+  |              |         "FAILED",                                                                                    |
+  |              |         "FAILED_TEMP",                                                                               |
+  |              |         "PROCESSING",                                                                                |
+  |              |         "ROLLING_BACK",                                                                              |
+  |              |         "ROLLED_BACK",                                                                               |
+  |              |         "STARTING"                                                                                   |
+  |              |     ]                                                                                                |
+  |              | }                                                                                                    |
+  | ID           | e796811c-5e4d-47ab-93ce-fd52efcc5aa5                                                                 |
+  | Links        | {                                                                                                    |
+  |              |     "self": {                                                                                        |
+  |              |         "href": "http://localhost:9890/vnflcm/v1/subscriptions/e796811c-5e4d-47ab-93ce-fd52efcc5aa5" |
+  |              |     }                                                                                                |
+  |              | }                                                                                                    |
+  +--------------+------------------------------------------------------------------------------------------------------+
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm subsc create --help
+  usage: openstack vnflcm subsc create [-h] [-f {json,shell,table,value,yaml}]
+                                       [-c COLUMN] [--noindent] [--prefix PREFIX]
+                                       [--max-width <integer>] [--fit-width]
+                                       [--print-empty] <param-file>
+
+  Create a new Lccn Subscription
+
+  positional arguments:
+    <param-file>  Specify create request parameters in a json file.
+
+  optional arguments:
+    -h, --help            show this help message and exit
+
+
+18. List Lccn Subscription
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm subsc list
+
+
+Result:
+
+.. code-block:: console
+
+  +--------------------------------------+--------------------------------------------------+
+  | ID                                   | Callback URI                                     |
+  +--------------------------------------+--------------------------------------------------+
+  | e796811c-5e4d-47ab-93ce-fd52efcc5aa5 | http://localhost:9990/notification/callback/test |
+  +--------------------------------------+--------------------------------------------------+
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm subsc list --help
+  usage: openstack vnflcm subsc list [-h] [-f {csv,json,table,value,yaml}]
+                                     [-c COLUMN] [--quote {all,minimal,none,nonnumeric}]
+                                     [--noindent] [--max-width <integer>] [--fit-width]
+                                     [--print-empty] [--sort-column SORT_COLUMN]
+                                     [--sort-ascending | --sort-descending] [--filter <filter>]
+
+  List Lccn Subscriptions
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    --filter <filter>
+                          Attribute-based-filtering parameters
+
+
+19. Show Lccn Subscription
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm subsc show LCCN_SUBSCRIPTION_ID
+
+
+Result:
+
+.. code-block:: console
+
+  +--------------+------------------------------------------------------------------------------------------------------+
+  | Field        | Value                                                                                                |
+  +--------------+------------------------------------------------------------------------------------------------------+
+  | Callback URI | http://localhost:9990/notification/callback/test                                                     |
+  | Filter       | {                                                                                                    |
+  |              |     "operationTypes": [                                                                              |
+  |              |         "INSTANTIATE",                                                                               |
+  |              |         "SCALE",                                                                                     |
+  |              |         "TERMINATE",                                                                                 |
+  |              |         "HEAL",                                                                                      |
+  |              |         "MODIFY_INFO",                                                                               |
+  |              |         "CHANGE_EXT_CONN"                                                                            |
+  |              |     ],                                                                                               |
+  |              |     "operationStates": [                                                                             |
+  |              |         "COMPLETED",                                                                                 |
+  |              |         "FAILED",                                                                                    |
+  |              |         "FAILED_TEMP",                                                                               |
+  |              |         "PROCESSING",                                                                                |
+  |              |         "ROLLING_BACK",                                                                              |
+  |              |         "ROLLED_BACK",                                                                               |
+  |              |         "STARTING"                                                                                   |
+  |              |     ],                                                                                               |
+  |              |     "notificationTypes": [                                                                           |
+  |              |         "VnfLcmOperationOccurrenceNotification",                                                     |
+  |              |         "VnfIdentifierCreationNotification",                                                         |
+  |              |         "VnfIdentifierDeletionNotification"                                                          |
+  |              |     ],                                                                                               |
+  |              |     "vnfInstanceSubscriptionFilter": {                                                               |
+  |              |         "vnfdIds": [                                                                                 |
+  |              |             "dummy-vnfdId-1",                                                                        |
+  |              |             "dummy-vnfdId-2"                                                                         |
+  |              |         ],                                                                                           |
+  |              |         "vnfInstanceIds": [                                                                          |
+  |              |             "dummy-vnfInstanceId-1"                                                                  |
+  |              |         ],                                                                                           |
+  |              |         "vnfInstanceNames": [                                                                        |
+  |              |             "dummy-vnfInstanceName-1"                                                                |
+  |              |         ],                                                                                           |
+  |              |         "vnfProductsFromProviders": [                                                                |
+  |              |             {                                                                                        |
+  |              |                 "vnfProducts": [                                                                     |
+  |              |                     {                                                                                |
+  |              |                         "versions": [                                                                |
+  |              |                             {                                                                        |
+  |              |                                 "vnfdVersions": [                                                    |
+  |              |                                     "1.0",                                                           |
+  |              |                                     "2.0"                                                            |
+  |              |                                 ],                                                                   |
+  |              |                                 "vnfSoftwareVersion": "1.0"                                          |
+  |              |                             },                                                                       |
+  |              |                             {                                                                        |
+  |              |                                 "vnfdVersions": [                                                    |
+  |              |                                     "1.1",                                                           |
+  |              |                                     "2.1"                                                            |
+  |              |                                 ],                                                                   |
+  |              |                                 "vnfSoftwareVersion": "1.1"                                          |
+  |              |                             }                                                                        |
+  |              |                         ],                                                                           |
+  |              |                         "vnfProductName": "dummy-vnfProductName-1"                                   |
+  |              |                     }                                                                                |
+  |              |                 ],                                                                                   |
+  |              |                 "vnfProvider": "dummy-vnfProvider-1"                                                 |
+  |              |             }                                                                                        |
+  |              |         ]                                                                                            |
+  |              |     }                                                                                                |
+  |              | }                                                                                                    |
+  | ID           | e796811c-5e4d-47ab-93ce-fd52efcc5aa5                                                                 |
+  | Links        | {                                                                                                    |
+  |              |     "self": {                                                                                        |
+  |              |         "href": "http://localhost:9890/vnflcm/v1/subscriptions/e796811c-5e4d-47ab-93ce-fd52efcc5aa5" |
+  |              |     }                                                                                                |
+  |              | }                                                                                                    |
+  +--------------+------------------------------------------------------------------------------------------------------+
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm subsc show --help
+  usage: openstack vnflcm subsc show [-h] [-f {json,shell,table,value,yaml}]
+                                     [-c COLUMN] [--noindent] [--prefix PREFIX]
+                                     [--max-width <integer>] [--fit-width]
+                                     [--print-empty] <subscription-id>
+
+  Display Lccn Subscription details
+
+  positional arguments:
+    <subscription-id>
+                          Lccn Subscription ID to display
+
+  optional arguments:
+    -h, --help            show this help message and exit
+
+
+20. Delete Lccn Subscription
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnflcm delete LCCN_SUBSCRIPTION_ID
+
+
+Result:
+
+.. code-block:: console
+
+  Lccn Subscription 'e796811c-5e4d-47ab-93ce-fd52efcc5aa5' is deleted successfully
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnflcm subsc delete --help
+  usage: openstack vnflcm subsc delete [-h] <subscription-id> [<subscription-id> ...]
+
+  Delete Lccn Subscription(s)
+
+  positional arguments:
+    <subscription-id>
+                          Lccn Subscription ID(s) to delete
+
+  optional arguments:
+    -h, --help            show this help message and exit
+
+
+21. Show VNF LCM API versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
