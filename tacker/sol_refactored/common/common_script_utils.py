@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnfd_utils
 
 
@@ -21,47 +20,6 @@ def get_vnfd(vnfd_id, csar_dir):
     vnfd = vnfd_utils.Vnfd(vnfd_id)
     vnfd.init_from_csar_dir(csar_dir)
     return vnfd
-
-
-def get_vdu_info(grant, inst, vnfd):
-    volume_name = ''
-    volume_size = ''
-    flavour_id = inst['instantiatedVnfInfo']['flavourId']
-    vdu_nodes = vnfd.get_vdu_nodes(flavour_id)
-    storage_nodes = vnfd.get_storage_nodes(flavour_id)
-    vdu_info_dict = {}
-    for name, node in vdu_nodes.items():
-        flavor = get_param_flavor(name, flavour_id, vnfd, grant)
-        image = get_param_image(name, flavour_id, vnfd, grant)
-        vdu_storage_names = vnfd.get_vdu_storages(node)
-        for vdu_storage_name in vdu_storage_names:
-            if storage_nodes[vdu_storage_name].get(
-                    'properties', {}).get('sw_image_data'):
-                image = get_param_image(vdu_storage_name, flavour_id, vnfd,
-                                        grant)
-                volume_name = vdu_storage_name
-                volume_size = storage_nodes[vdu_storage_name].get(
-                    'properties', {}).get(
-                    'virtual_block_storage_data', '').get(
-                    'size_of_storage', ''
-                )
-                volume_size = volume_size.rstrip(' GB')
-                if not volume_size.isdigit():
-                    raise sol_ex.VmRunningFailed(
-                        error_info='The volume size set in VNFD is invalid.')
-                break
-
-        vdu_info_dict[name] = {
-            "flavor": flavor,
-            "image": image
-        }
-
-        if volume_name:
-            vdu_info_dict[name]['volume_info'] = {
-                "volume_name": volume_name,
-                "volume_size": volume_size
-            }
-    return vdu_info_dict
 
 
 def init_nfv_dict(hot_template):

@@ -342,12 +342,16 @@ class GrantV2:
 
     @staticmethod
     def make_change_vnfpkg_response_body(
-            request_body):
+            request_body, image_id_dict, flavour_id_dict):
         request_body = GrantV2.convert_body_to_dict(request_body)
         res = GrantV2._make_response_template(request_body)
         if 'addResources' in request_body.keys():
             res["addResources"] = GrantV2._make_add_resources(
                 request_body['addResources'])
+            res["vimAssets"] = GrantV2._make_vim_assets(
+                request_body['addResources'],
+                image_id_dict,
+                flavour_id_dict)
         if 'removeResources' in request_body.keys():
             res["removeResources"] = GrantV2._make_remove_resources(
                 request_body['removeResources'])

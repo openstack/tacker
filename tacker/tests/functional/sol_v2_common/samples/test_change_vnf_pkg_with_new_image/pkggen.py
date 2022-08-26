@@ -42,10 +42,3 @@ change_vnfpkg_req_from_image_to_image = paramgen.change_vnfpkg(vnfd_id)
 
 with open("change_vnfpkg_req_from_image_to_image", "w", encoding='utf-8') as f:
     f.write(json.dumps(change_vnfpkg_req_from_image_to_image, indent=2))
-
-# if your sample is change VM from volume to image
-change_vnfpkg_req_from_volume_to_image = paramgen.change_vnfpkg(vnfd_id)
-del change_vnfpkg_req_from_volume_to_image['additionalParams']['vdu_params'][0]
-
-with open("change_vnfpkg_req_from_volume", "w", encoding='utf-8') as f:
-    f.write(json.dumps(change_vnfpkg_req_from_volume_to_image, indent=2))

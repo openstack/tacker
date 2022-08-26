@@ -249,3 +249,75 @@ class DefaultUserData(userdata_utils.AbstractUserData):
         fields = {'parameters': {'nfv': {}}}
 
         return fields
+
+    @staticmethod
+    def change_vnfpkg(req, inst, grant_req, grant, tmp_csar_dir):
+        vnfd = common_script_utils.get_vnfd(grant_req['dstVnfdId'],
+                                            tmp_csar_dir)
+        flavour_id = inst['instantiatedVnfInfo']['flavourId']
+
+        hot_dict = vnfd.get_base_hot(flavour_id)
+        top_hot = hot_dict['template']
+
+        nfv_dict = common_script_utils.init_nfv_dict(top_hot)
+
+        vdus = nfv_dict.get('VDU', {})
+        new_vdus = {}
+        for vdu_name, vdu_value in vdus.items():
+            if 'computeFlavourId' in vdu_value:
+                flavor = common_script_utils.get_param_flavor(
+                    vdu_name, flavour_id, vnfd, grant)
+                new_vdus.setdefault(vdu_name, {})
+                new_vdus[vdu_name]['computeFlavourId'] = flavor
+            if 'vcImageId' in vdu_value:
+                image = common_script_utils.get_param_image(
+                    vdu_name, flavour_id, vnfd, grant)
+                new_vdus.setdefault(vdu_name, {})
+                new_vdus[vdu_name]['vcImageId'] = image
+
+        fields = {
+            'parameters': {'nfv': {'VDU': new_vdus}}
+        }
+
+        return fields
+
+    @staticmethod
+    def change_vnfpkg_rollback(req, inst, grant_req, grant, tmp_csar_dir):
+        images = {}
+        flavors = {}
+        for vnfc in inst.get('instantiatedVnfInfo', {}).get(
+                'vnfcResourceInfo', []):
+            vdu_name = vnfc['vduId']
+            if vdu_name in flavors:
+                continue
+            for key, value in vnfc['metadata'].items():
+                if key == 'flavor':
+                    flavors[vdu_name] = value
+                elif key.startswith('image-'):
+                    image_vdu = key.replace('image-', '')
+                    images[image_vdu] = value
+
+        vnfd = common_script_utils.get_vnfd(inst['vnfdId'],
+                                            tmp_csar_dir)
+        flavour_id = inst['instantiatedVnfInfo']['flavourId']
+
+        hot_dict = vnfd.get_base_hot(flavour_id)
+        top_hot = hot_dict['template']
+
+        nfv_dict = common_script_utils.init_nfv_dict(top_hot)
+
+        vdus = nfv_dict.get('VDU', {})
+        new_vdus = {}
+        for vdu_name, vdu_value in vdus.items():
+            if 'computeFlavourId' in vdu_value:
+                new_vdus.setdefault(vdu_name, {})
+                new_vdus[vdu_name]['computeFlavourId'] = flavors.get(vdu_name)
+            if 'vcImageId' in vdu_value:
+                new_vdus.setdefault(vdu_name, {})
+                new_vdus[vdu_name]['vcImageId'] = images.get(vdu_name)
+
+        fields = {
+            'parameters': {'nfv': {'VDU': new_vdus}}
+        }
+
+        return fields

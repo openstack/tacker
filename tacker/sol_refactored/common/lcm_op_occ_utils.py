@@ -147,6 +147,31 @@ def _make_affected_vnfc(vnfc, change_type, strgs):
     return affected_vnfc
 
 
+def _make_affected_vnfc_modified(vnfc, vnfc_saved):
+    affected_vnfc = objects.AffectedVnfcV2(
+        id=vnfc.id,
+        vduId=vnfc.vduId,
+        changeType='MODIFIED',
+        computeResource=vnfc.computeResource
+    )
+    affected_vnfc.metadata = vnfc.metadata
+    # NOTE: cps may not be affected.
+    if vnfc.obj_attr_is_set('vnfcCpInfo'):
+        cp_ids = [cp.id for cp in vnfc.vnfcCpInfo]
+        affected_vnfc.affectedVnfcCpIds = cp_ids
+    if vnfc.obj_attr_is_set('storageResourceIds'):
+        added_str_ids = (set(vnfc.storageResourceIds) -
+                         set(vnfc_saved.storageResourceIds))
+        removed_str_ids = (set(vnfc_saved.storageResourceIds) -
+                           set(vnfc.storageResourceIds))
+        if added_str_ids:
+            affected_vnfc.addedStorageResourceIds = list(added_str_ids)
+        if removed_str_ids:
+            affected_vnfc.removedStorageResourceIds = list(removed_str_ids)
+
+    return affected_vnfc
+
+
 def _make_affected_vl(vl, change_type):
     affected_vl = objects.AffectedVirtualLinkV2(
         id=vl.id,
@@ -383,15 +408,7 @@ def update_lcmocc(lcmocc, inst_saved, inst):
                            for strg in inst_info.virtualStorageResourceInfo
                            if strg.id in added_strgs]
 
-    removed_vnfcs, added_vnfcs, common_objs = _calc_diff('vnfcResourceInfo')
-    updated_vnfcs = []
-    if lcmocc.operation == fields.LcmOperationType.CHANGE_VNFPKG:
-        updated_vnfcs = [
-            obj.id for obj in inst_info.vnfcResourceInfo
-            if obj.metadata.get('current_vnfd_id') != inst_saved.vnfdId
-            and obj.id in common_objs and
-            obj.metadata.get('current_vnfd_id') is not None]
-
+    removed_vnfcs, added_vnfcs, common_vnfcs = _calc_diff('vnfcResourceInfo')
     affected_vnfcs = []
     if removed_vnfcs:
         affected_vnfcs += [
@@ -405,11 +422,18 @@ def update_lcmocc(lcmocc, inst_saved, inst):
             for vnfc in inst_info.vnfcResourceInfo
             if vnfc.id in added_vnfcs
         ]
+    if lcmocc.operation == fields.LcmOperationType.CHANGE_VNFPKG:
+        def _get_vnfc(vnfc_id, inst_info):
+            for vnfc in inst_info.vnfcResourceInfo:
+                if vnfc.id == vnfc_id:
+                    return vnfc
 
-    if updated_vnfcs:
-        affected_vnfcs += [_make_affected_vnfc(vnfc, 'MODIFIED', added_strgs)
-                           for vnfc in inst_info.vnfcResourceInfo
-                           if vnfc.id in updated_vnfcs]
+        for obj_id in common_vnfcs:
+            vnfc = _get_vnfc(obj_id, inst_info)
+            vnfc_saved = _get_vnfc(obj_id, inst_saved.instantiatedVnfInfo)
+            if vnfc.metadata != vnfc_saved.metadata:
+                affected_vnfcs.append(
+                    _make_affected_vnfc_modified(vnfc, vnfc_saved))
 
     removed_vls, added_vls, common_vls = _calc_diff(
         'vnfVirtualLinkResourceInfo')

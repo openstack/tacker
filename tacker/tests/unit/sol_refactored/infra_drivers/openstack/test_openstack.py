@@ -14,19 +14,15 @@
 #    under the License.
 
 import copy
+import json
 import os
-import requests
-import subprocess
 
-from datetime import datetime
 from oslo_utils import uuidutils
 from unittest import mock
 
 from tacker import context
 from tacker.sol_refactored.common import vnfd_utils
-from tacker.sol_refactored.infra_drivers.openstack import heat_utils
 from tacker.sol_refactored.infra_drivers.openstack import openstack
-from tacker.sol_refactored.nfvo import glance_utils
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests import base
@@ -857,6 +853,36 @@ _heat_reses_example = (
 _heat_reses_example_change_ext_conn = (
     _heat_reses_example_base + _heat_reses_example_cps_after)
 
+# heat get_parameters example
+_nfv_dict = {
+    "VDU": {
+        "VDU1": {"computeFlavourId": "m1.tiny"},
+        "VDU1-VirtualStorage": {"vcImageId": "image-VDU1"},
+        "VDU2": {"vcImageId": "image-VDU2", "computeFlavourId": "m1.small"}
+    }
+}
+_heat_get_parameters_example = {
+    'nfv': json.dumps(_nfv_dict)
+}
+
+# heat get_template example
+_heat_get_template_example = {
+    "resources": {
+        "myet4efobvvp": {
+            "properties": {
+                "flavor": "m1.tiny",
+                "image-VDU1-VirtualStorage": "image-VDU1"
+            }
+        },
+        "bemybz4ugeso": {
+            "properties": {
+                "flavor": "m1.tiny",
+                "image-VDU1-VirtualStorage": "image-VDU1"
+            }
+        }
+    }
+}
+
 # change vnfpkg before inst info
 _inst_info_example = {
     "flavourId": "simple",
@@ -1571,7 +1597,9 @@ _expected_inst_info = {
                 "creation_time": "2021-12-10T01:03:49Z",
                 "parent_stack_id": _stack_id_VDU1_scale,
                 "parent_resource_name": "myet4efobvvp",
-                "stack_id": _stack_id_VDU1_2
+                "stack_id": _stack_id_VDU1_2,
+                "flavor": "m1.tiny",
+                "image-VDU1-VirtualStorage": "image-VDU1"
             }
         },
         {
@@ -1616,7 +1644,9 @@ _expected_inst_info = {
                 "creation_time": "2021-12-10T00:41:43Z",
                 "parent_stack_id": _stack_id_VDU1_scale,
                 "parent_resource_name": "bemybz4ugeso",
-                "stack_id": _stack_id_VDU1_1
+                "stack_id": _stack_id_VDU1_1,
+                "flavor": "m1.tiny",
+                "image-VDU1-VirtualStorage": "image-VDU1"
             }
         },
         {
@@ -1657,7 +1687,9 @@ _expected_inst_info = {
             ],
             "metadata": {
                 "creation_time": "2021-12-10T00:40:46Z",
-                "stack_id": _stack_id
+                "stack_id": _stack_id,
+                "flavor": "m1.small",
+                "image-VDU2": "image-VDU2"
             }
         }
     ],
@@ -2126,7 +2158,9 @@ _expected_inst_info_change_ext_conn = {
                 "creation_time": "2021-12-10T01:03:49Z",
                 "parent_stack_id": _stack_id_VDU1_scale,
                 "parent_resource_name": "myet4efobvvp",
-                "stack_id": _stack_id_VDU1_2
+                "stack_id": _stack_id_VDU1_2,
+                "flavor": "m1.tiny",
+                "image-VDU1-VirtualStorage": "image-VDU1"
             }
         },
         {
@@ -2171,7 +2205,9 @@ _expected_inst_info_change_ext_conn = {
                 "creation_time": "2021-12-10T00:41:43Z",
                 "parent_stack_id": _stack_id_VDU1_scale,
                 "parent_resource_name": "bemybz4ugeso",
-                "stack_id": _stack_id_VDU1_1
+                "stack_id": _stack_id_VDU1_1,
+                "flavor": "m1.tiny",
+                "image-VDU1-VirtualStorage": "image-VDU1"
             }
         },
         {
@@ -2212,7 +2248,9 @@ _expected_inst_info_change_ext_conn = {
             ],
             "metadata": {
                 "creation_time": "2021-12-10T00:40:46Z",
-                "stack_id": _stack_id
+                "stack_id": _stack_id,
+                "flavor": "m1.small",
+                "image-VDU2": "image-VDU2"
             }
         }
     ],
@@ -2684,6 +2722,7 @@ class TestOpenstack(base.BaseTestCase):
         req = objects.InstantiateVnfRequest.from_dict(
             _instantiate_req_example)
         inst = objects.VnfInstanceV2(
+            id=uuidutils.generate_uuid(),
             vimConnectionInfo=req.vimConnectionInfo
         )
         grant_req = objects.GrantRequestV1(
@@ -2691,9 +2730,15 @@ class TestOpenstack(base.BaseTestCase):
         )
         grant = objects.GrantV1()
 
+        # prepare heat responses
+        heat_client = mock.Mock()
+        heat_client.get_resources.return_value = _heat_reses_example
+        heat_client.get_parameters.return_value = _heat_get_parameters_example
+        heat_client.get_template.return_value = _heat_get_template_example
+
         # execute make_instantiated_vnf_info
         self.driver._make_instantiated_vnf_info(req, inst, grant_req, grant,
-            self.vnfd_1, _heat_reses_example)
+            self.vnfd_1, heat_client)
 
         # check
         result = inst.to_dict()["instantiatedVnfInfo"]
@@ -2709,6 +2754,7 @@ class TestOpenstack(base.BaseTestCase):
                 _vim_connection_info_example)
         }
         inst = objects.VnfInstanceV2(
+            id=uuidutils.generate_uuid(),
             instantiatedVnfInfo=inst_info,
             vimConnectionInfo=vim_info
         )
@@ -2717,9 +2763,15 @@ class TestOpenstack(base.BaseTestCase):
         )
         grant = objects.GrantV1()
 
+        # prepare heat responses
+        heat_client = mock.Mock()
+        heat_client.get_resources.return_value = _heat_reses_example
+        heat_client.get_parameters.return_value = _heat_get_parameters_example
+        heat_client.get_template.return_value = _heat_get_template_example
+
         # execute make_instantiated_vnf_info
         self.driver._make_instantiated_vnf_info(req, inst, grant_req, grant,
-            self.vnfd_1, _heat_reses_example)
+            self.vnfd_1, heat_client)
 
         # check
         result = inst.to_dict()["instantiatedVnfInfo"]
@@ -2736,6 +2788,7 @@ class TestOpenstack(base.BaseTestCase):
                 _vim_connection_info_example)
         }
         inst = objects.VnfInstanceV2(
+            id=uuidutils.generate_uuid(),
             instantiatedVnfInfo=inst_info,
             vimConnectionInfo=vim_info
         )
@@ -2744,402 +2797,17 @@ class TestOpenstack(base.BaseTestCase):
         )
         grant = objects.GrantV1()
 
+        # prepare heat responses
+        heat_client = mock.Mock()
+        heat_client.get_resources.return_value = (
+            _heat_reses_example_change_ext_conn)
+        heat_client.get_parameters.return_value = _heat_get_parameters_example
+        heat_client.get_template.return_value = _heat_get_template_example
+
         # execute make_instantiated_vnf_info
         self.driver._make_instantiated_vnf_info(req, inst, grant_req, grant,
-            self.vnfd_1, _heat_reses_example_change_ext_conn)
+            self.vnfd_1, heat_client)
 
         # check
         result = inst.to_dict()["instantiatedVnfInfo"]
         self._check_inst_info(_expected_inst_info_change_ext_conn, result)
-
-    @mock.patch.object(heat_utils.HeatClient, 'get_parameters')
-    @mock.patch.object(subprocess, 'run')
-    @mock.patch.object(glance_utils.GlanceClient, 'get_image')
-    @mock.patch.object(heat_utils.HeatClient, 'update_stack')
-    @mock.patch.object(heat_utils.HeatClient, 'get_resource_list')
-    @mock.patch.object(heat_utils.HeatClient, 'get_template')
-    @mock.patch.object(heat_utils.HeatClient, 'get_resources')
-    @mock.patch.object(heat_utils.HeatClient, 'get_resource_info')
-    @mock.patch.object(heat_utils.HeatClient, 'get_stack_resource')
-    def test_change_vnfpkg_404(
-            self, mocked_get_stack_resource, mocked_get_resource_info,
-            mocked_get_resources, mocked_get_template,
-            mocked_get_resource_list, mocked_update_stack,
-            mocked_get_image, mocked_run, mocked_get_parameters):
-        # prepare
-        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
-            _change_vnfpkg_example)
-        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
-            _inst_info_example)
-        vim_info = {
-            "vim1": objects.VimConnectionInfo.from_dict(
-                _vim_connection_info_for_change_vnfpkg)
-        }
-        inst = objects.VnfInstanceV2(
-            # required fields
-            id=uuidutils.generate_uuid(),
-            vnfdId=SAMPLE_VNFD_ID,
-            vnfProvider='provider',
-            vnfProductName='product name',
-            vnfSoftwareVersion='software version',
-            vnfdVersion='vnfd version',
-            instantiationState='INSTANTIATED'
-        )
-        inst.vimConnectionInfo = vim_info
-        inst.instantiatedVnfInfo = inst_info
-        grant_req = objects.GrantRequestV1(
-            operation=fields.LcmOperationType.CHANGE_VNFPKG
-        )
-        grant = objects.GrantV1()
-        stack_body = {'stack': {'id': uuidutils.generate_uuid(),
-                                'name': 'test'}}
-        stack_body_2 = {'stack': {
-            'stack_name':
-                'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-VDU1_scale_group'}}
-        mocked_get_stack_resource.side_effect = [stack_body, stack_body_2]
-
-        body_2 = {"attributes": {"floating_ip_address": "192.168.0.1"}}
-        body_3 = {"attributes": {
-            "image": {"id": "image-1.0.0-x86_64-disk"},
-            "flavor": {"original_name": "m1.tiny"}
-        }
-        }
-        mocked_get_resource_info.side_effect = [None,
-                                                body_2, body_3]
-        mocked_get_resources.side_effect = [mock_resource['resources'],
-                                            _heat_reses_example]
-        mocked_get_template.return_value = mock_resource_template
-        mocked_get_resource_list.side_effect = [mock_resource_list,
-                                                mock_resource_list_2]
-        mocked_update_stack.return_value = mock.Mock()
-        resp_image = requests.Response()
-        resp_image.name = "image-1.0.0-x86_64-disk"
-        mocked_get_image.return_value = resp_image
-        out = requests.Response()
-        out.returncode = 0
-        mocked_run.return_value = out
-        parameter = {
-            'nfv': '{"VDU":{"VDU1":{"vcImageId":""},'
-                   '"VDU2":{"vcImageId":""},'
-                   '"VirtualStorage":{"vcImageId":""}}}'
-        }
-        mocked_get_parameters.return_value = parameter
-        # execute change_vnfpkg
-        self.driver.change_vnfpkg(req, inst, grant_req, grant,
-                                  self.vnfd_1)
-
-        # check
-        for vnfc_res in inst.instantiatedVnfInfo.vnfcResourceInfo:
-            if vnfc_res.vduId == "VDU1":
-                self.assertEqual(vnfc_res.id,
-                                'e79ebeaf-1b26-4ff9-9895-f4c78a8a39a6')
-                self.assertEqual(vnfc_res.computeResource.resourceId,
-                                 'e79ebeaf-1b26-4ff9-9895-f4c78a8a39a6')
-                self.assertIn('current_vnfd_id', vnfc_res.metadata)
-
-    @mock.patch.object(heat_utils.HeatClient, 'get_resources')
-    @mock.patch.object(subprocess, 'run')
-    @mock.patch.object(glance_utils.GlanceClient, 'get_image')
-    @mock.patch.object(heat_utils.HeatClient, 'get_resource_list')
-    @mock.patch.object(heat_utils.HeatClient, 'update_stack')
-    @mock.patch.object(heat_utils.HeatClient, 'get_parameters')
-    @mock.patch.object(heat_utils.HeatClient, 'get_template')
-    @mock.patch.object(heat_utils.HeatClient, 'get_resource_info')
-    @mock.patch.object(heat_utils.HeatClient, 'get_stack_resource')
-    def test_change_vnfpkg_200(
-            self, mocked_get_stack_resource, mocked_get_resource_info,
-            mocked_get_template, mocked_get_parameters,
-            mocked_update_stack, mocked_get_resource_list, mocked_get_image,
-            mocked_run, mocked_get_resources):
-        # prepare
-        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
-            _change_vnfpkg_example_2)
-        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
-            _inst_info_example)
-        vim_info = {
-            "vim1": objects.VimConnectionInfo.from_dict(
-                _vim_connection_info_for_change_vnfpkg)
-        }
-        inst = objects.VnfInstanceV2(
-            # required fields
-            id="d7aeba20-1b00-4bff-b050-6b42a262c84d",
-            vnfdId=SAMPLE_VNFD_ID,
-            vnfProvider='provider',
-            vnfProductName='product name',
-            vnfSoftwareVersion='software version',
-            vnfdVersion='vnfd version',
-            instantiationState='INSTANTIATED'
-        )
-        inst.vimConnectionInfo = vim_info
-        inst.instantiatedVnfInfo = inst_info
-        grant_req = objects.GrantRequestV1(
-            operation=fields.LcmOperationType.CHANGE_VNFPKG
-        )
-        grant = objects.GrantV1()
-        stack_body = {'stack': {'id': "d7aeba20-1b00-4bff-b050-6b42a262c84d",
-                                'name': 'test'}}
-        stack_body_2 = {'stack': {
-            'stack_name':
-                'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-VDU1_scale_group'}}
-        mocked_get_stack_resource.side_effect = [stack_body, stack_body_2]
-
-        body = {"resource": "resource"}
-        body_2 = {"attributes": {"floating_ip_address": "192.168.0.1"}}
-        body_3 = {"attributes": {
-            "image": {"id": "image-1.0.0-x86_64-disk"},
-            "flavor": {"original_name": "m1.tiny"}
-        }
-        }
-        mocked_get_resource_info.side_effect = [body['resource'], body_2,
-                                                body_3]
-        mocked_get_resources.side_effect = [mock_resource['resources'],
-                                            _heat_reses_example]
-        mocked_get_template.return_value = mock_resource_template_2
-        mocked_get_resource_list.return_value = mock_resource_list_3
-        mocked_update_stack.return_value = mock.Mock()
-        resp_image = requests.Response()
-        resp_image.name = "image-1.0.0-x86_64-disk"
-        mocked_get_image.return_value = resp_image
-        out = requests.Response()
-        out.returncode = 0
-        mocked_run.return_value = out
-        parameter = {
-            'nfv': '{"VDU":{"VDU1":{"vcImageId":""},'
-                   '"VDU2":{"vcImageId":""},'
-                   '"VirtualStorage":{"vcImageId":""}}}'
-        }
-        mocked_get_parameters.return_value = parameter
-        # execute change_vnfpkg
-        self.driver.change_vnfpkg(req, inst, grant_req, grant,
-                                  self.vnfd_1)
-
-        # check
-        for vnfc_res in inst.instantiatedVnfInfo.vnfcResourceInfo:
-            if vnfc_res.vduId == "VDU2":
-                self.assertEqual(vnfc_res.id,
-                                 'res_id_VDU2_1')
-                self.assertEqual(vnfc_res.computeResource.resourceId,
-                                 'res_id_VDU2_1')
-                self.assertIn('current_vnfd_id', vnfc_res.metadata)
-
-    @mock.patch.object(heat_utils.HeatClient, 'get_parameters')
-    @mock.patch.object(subprocess, 'run')
-    @mock.patch.object(glance_utils.GlanceClient, 'get_image')
-    @mock.patch.object(heat_utils.HeatClient, 'get_resource_info')
-    @mock.patch.object(heat_utils.HeatClient, 'get_resource_list')
-    @mock.patch.object(heat_utils.HeatClient, 'update_stack')
-    @mock.patch.object(heat_utils.HeatClient, 'get_template')
-    @mock.patch.object(heat_utils.HeatClient, 'get_resources')
-    @mock.patch.object(heat_utils.HeatClient, 'get_stack_resource')
-    def test_change_vnfpkg_rollback(
-            self, mocked_get_stack_resource, mocked_get_resources,
-            mocked_get_template, mocked_update_stack,
-            mocked_get_resource_list, mocked_get_resource_info,
-            mocked_get_image, mocked_run, mocked_get_parameters):
-        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
-            _change_vnfpkg_example)
-        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
-            _inst_info_example)
-        vim_info = {
-            "vim1": objects.VimConnectionInfo.from_dict(
-                _vim_connection_info_for_change_vnfpkg)
-        }
-        inst = objects.VnfInstanceV2(
-            # required fields
-            id=uuidutils.generate_uuid(),
-            vnfdId=SAMPLE_VNFD_ID,
-            vnfProvider='provider',
-            vnfProductName='product name',
-            vnfSoftwareVersion='software version',
-            vnfdVersion='vnfd version',
-            instantiationState='INSTANTIATED'
-        )
-        inst.vimConnectionInfo = vim_info
-        inst.instantiatedVnfInfo = inst_info
-        grant_req = objects.GrantRequestV1(
-            operation=fields.LcmOperationType.CHANGE_VNFPKG
-        )
-        grant = objects.GrantV1()
-
-        affected_vnfcs = objects.AffectedVnfcV2(
-            id=uuidutils.generate_uuid(),
-            vduId='VDU1',
-            vnfdId=SAMPLE_VNFD_ID,
-            changeType='ADDED',
-            metadata={
-                "creation_time": "2021-12-10T01:03:49Z",
-                "stack_id": "vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-"
-                            "VDU1_scale_group-2zmsxtwtsj7n-"
-                            "fkwryhyv6qbr-qoemdwxw7o5c/"
-                            "d7aeba20-1b00-4bff-b050-6b42a262c84d",
-                "parent_resource_name": "fkwryhyv6qbr"
-            }
-        )
-        resource_change = objects.VnfLcmOpOccV2_ResourceChanges(
-            affectedVnfcs=[affected_vnfcs]
-        )
-
-        lcmocc = objects.VnfLcmOpOccV2(
-            # required fields
-            id=uuidutils.generate_uuid(),
-            operationState=fields.LcmOperationStateType.FAILED_TEMP,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
-            vnfInstanceId=inst.id,
-            operation=fields.LcmOperationType.CHANGE_VNFPKG,
-            resourceChanges=resource_change,
-            isAutomaticInvocation=False,
-            isCancelPending=False,
-            operationParams=req)
-
-        stack_body = {'stack': {'id': uuidutils.generate_uuid(),
-                                'name': 'test'}}
-        stack_body_2 = {'stack': {
-            'stack_name':
-                'vnf-d8962b72-6dac-4eb5-a8c4-8c7a2abaefb7-VDU1_scale_group'}}
-        mocked_get_stack_resource.side_effect = [stack_body, stack_body_2]
-
-        body = {"attributes": {"floating_ip_address": "192.168.0.1"}}
-        body_2 = {"attributes": {
-            "image": {"id": "image-1.0.0-x86_64-disk"},
-            "flavor": {"original_name": "m1.tiny"}
-        }
-        }
-        mocked_get_resource_info.side_effect = [body, body_2]
-        mocked_get_resources.side_effect = [mock_resource['resources'],
-                                            _heat_reses_example]
-        mocked_get_template.return_value = mock_resource_template
-        mocked_get_resource_list.return_value = mock_resource_list_2
-        mocked_update_stack.return_value = mock.Mock()
-        resp_image = requests.Response()
-        resp_image.name = "image-1.0.0-x86_64-disk"
-        mocked_get_image.return_value = resp_image
-        out = requests.Response()
-        out.returncode = 0
-        mocked_run.return_value = out
-        parameter = {
-            'nfv': '{"VDU":{"VDU1":{"vcImageId":""},'
-                   '"VDU2":{"vcImageId":""},'
-                   '"VirtualStorage":{"vcImageId":""}}}'
-        }
-        mocked_get_parameters.return_value = parameter
-        self.driver.change_vnfpkg_rollback(req, inst, grant_req, grant,
-                                  self.vnfd_1, lcmocc)
-        # check
-        for vnfc_res in inst.instantiatedVnfInfo.vnfcResourceInfo:
-            if vnfc_res.vduId == "VDU1":
-                self.assertEqual(vnfc_res.id,
-                                 'e79ebeaf-1b26-4ff9-9895-f4c78a8a39a6')
-                self.assertEqual(vnfc_res.computeResource.resourceId,
-                                 'e79ebeaf-1b26-4ff9-9895-f4c78a8a39a6')
-                self.assertIn('current_vnfd_id', vnfc_res.metadata)
-
-    @mock.patch.object(heat_utils.HeatClient, 'get_resources')
-    @mock.patch.object(subprocess, 'run')
-    @mock.patch.object(glance_utils.GlanceClient, 'get_image')
-    @mock.patch.object(heat_utils.HeatClient, 'get_resource_info')
-    @mock.patch.object(heat_utils.HeatClient, 'get_resource_list')
-    @mock.patch.object(heat_utils.HeatClient, 'update_stack')
-    @mock.patch.object(heat_utils.HeatClient, 'get_parameters')
-    @mock.patch.object(heat_utils.HeatClient, 'get_template')
-    @mock.patch.object(heat_utils.HeatClient, 'get_stack_resource')
-    def test_change_vnfpkg_rollback_same(
-            self, mocked_get_stack_resource, mocked_get_template,
-            mocked_get_parameters, mocked_update_stack,
-            mocked_get_resource_list, mocked_get_resource_info,
-            mocked_get_image, mocked_run, mocked_get_resources):
-        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
-            _change_vnfpkg_example_2)
-        inst_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
-            _inst_info_example)
-        vim_info = {
-            "vim1": objects.VimConnectionInfo.from_dict(
-                _vim_connection_info_for_change_vnfpkg)
-        }
-        inst = objects.VnfInstanceV2(
-            # required fields
-            id="d7aeba20-1b00-4bff-b050-6b42a262c84d",
-            vnfdId=SAMPLE_VNFD_ID,
-            vnfProvider='provider',
-            vnfProductName='product name',
-            vnfSoftwareVersion='software version',
-            vnfdVersion='vnfd version',
-            instantiationState='INSTANTIATED'
-        )
-        inst.vimConnectionInfo = vim_info
-        inst.instantiatedVnfInfo = inst_info
-        grant_req = objects.GrantRequestV1(
-            operation=fields.LcmOperationType.CHANGE_VNFPKG
-        )
-        grant = objects.GrantV1()
-
-        affected_vnfcs = objects.AffectedVnfcV2(
-            id=uuidutils.generate_uuid(),
-            vduId='VDU2',
-            vnfdId=SAMPLE_VNFD_ID,
-            changeType='MODIFIED',
-            metadata={
-                "creation_time": "2021-12-10T01:03:49Z",
-                "stack_id": 'vnf-d7aeba20-1b00-4bff-b050-6b42a262c84d/'
-                            'd7aeba20-1b00-4bff-b050-6b42a262c84d'
-            }
-        )
-        resource_change = objects.VnfLcmOpOccV2_ResourceChanges(
-            affectedVnfcs=[affected_vnfcs]
-        )
-
-        lcmocc = objects.VnfLcmOpOccV2(
-            # required fields
-            id=uuidutils.generate_uuid(),
-            operationState=fields.LcmOperationStateType.FAILED_TEMP,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
-            vnfInstanceId=inst.id,
-            operation=fields.LcmOperationType.CHANGE_VNFPKG,
-            resourceChanges=resource_change,
-            isAutomaticInvocation=False,
-            isCancelPending=False,
-            operationParams=req)
-
-        stack_body = {'stack': {'id': 'd7aeba20-1b00-4bff-b050-6b42a262c84d',
-                      'name': 'test'}}
-        stack_body_2 = {'stack': {
-            'stack_name':
-                'vnf-d7aeba20-1b00-4bff-b050-6b42a262c84d-VDU1_scale_group'}}
-        mocked_get_stack_resource.side_effect = [stack_body, stack_body_2]
-
-        body = {"attributes": {"floating_ip_address": "192.168.0.1"}}
-        body_2 = {"attributes": {
-            "image": {
-                "id": "image-1.0.0-x86_64-disk"},
-            "flavor": {"original_name": "m1.tiny"}
-        }
-        }
-        mocked_get_resource_info.side_effect = [body, body_2]
-        mocked_get_resources.side_effect = [mock_resource['resources'],
-                                            _heat_reses_example]
-        mocked_get_template.return_value = mock_resource_template_3
-        mocked_get_resource_list.return_value = mock_resource_list_3
-        mocked_update_stack.return_value = mock.Mock()
-        resp_image = requests.Response()
-        resp_image.name = "image-1.0.0-x86_64-disk"
-        mocked_get_image.return_value = resp_image
-        out = requests.Response()
-        out.returncode = 0
-        mocked_run.return_value = out
-        parameter = {
-            'nfv': '{"VDU":{"VDU1":{"vcImageId":""},'
-                   '"VDU2":{"vcImageId":""},'
-                   '"VirtualStorage":{"vcImageId":""}}}'
-        }
-        mocked_get_parameters.return_value = parameter
-        self.driver.change_vnfpkg_rollback(req, inst, grant_req, grant,
-                                  self.vnfd_1, lcmocc)
-        # check
-        for vnfc_res in inst.instantiatedVnfInfo.vnfcResourceInfo:
-            if vnfc_res.vduId == "VDU2":
-                self.assertEqual(vnfc_res.id,
-                                 'res_id_VDU2_1')
-                self.assertEqual(vnfc_res.computeResource.resourceId,
-                                 'res_id_VDU2_1')
-                self.assertIn('current_vnfd_id', vnfc_res.metadata)

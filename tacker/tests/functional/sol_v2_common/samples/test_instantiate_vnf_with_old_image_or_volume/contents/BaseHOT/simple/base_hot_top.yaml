@@ -16,7 +16,7 @@ resources:
         type: base_hot_nested_VDU1.yaml
         properties:
           flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
-          image: { get_param: [ nfv, VDU, VDU1, vcImageId] }
+          image-VDU1: { get_param: [ nfv, VDU, VDU1, vcImageId] }
           net1: { get_param: [ nfv, CP, VDU1_CP1, network] }
 
   VDU2:

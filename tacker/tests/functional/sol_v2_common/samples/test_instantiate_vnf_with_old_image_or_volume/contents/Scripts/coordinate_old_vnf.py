@@ -20,9 +20,7 @@ import time
 from oslo_log import log as logging
 import paramiko
 
-from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import exceptions as sol_ex
-from tacker.sol_refactored.common import vnfd_utils
 
 LOG = logging.getLogger(__name__)
 CMD_TIMEOUT = 30
@@ -32,13 +30,8 @@ SSH_CONNECT_RETRY_COUNT = 4
 
 class SampleOldCoordinateVNFScript(object):
 
-    def __init__(self, req, inst, grant_req, grant, csar_dir, vdu_info):
-        self.req = req
-        self.inst = inst
-        self.grant_req = grant_req
-        self.grant = grant
-        self.csar_dir = csar_dir
-        self.vdu_info = vdu_info
+    def __init__(self, vnfc_param):
+        self.vnfc_param = vnfc_param
 
     def coordinate_vnf(self):
         # check ssh connect and os version
@@ -48,11 +41,9 @@ class SampleOldCoordinateVNFScript(object):
             Since the zuul's network cannot check this content, so
             we comment this part of code. If you want to check them
             in your local environment, please uncomment.
-        # user = self.vdu_info.get('vdu_param').get(
-        #     'old_vnfc_param').get('username')
-        # password = self.vdu_info.get('vdu_param').get(
-        #     'old_vnfc_param').get('password')
-        # host = self.vdu_info.get("ssh_ip"),
+        # user = self.vnfc_param['username']
+        # password = self.vnfc_param['password']
+        # host = self.vnfc_param['ssh_ip']
         # commander = self._init_commander(
         #     user, password, host, retry=SSH_CONNECT_RETRY_COUNT)
         # ssh_command = 'cat /etc/os-release | grep PRETTY_NAME'
@@ -60,20 +51,7 @@ class SampleOldCoordinateVNFScript(object):
         # os_version = result.get_stdout()[0].replace('\n', '').split('=')
         # LOG.info('The os version of this new VM is %s', os_version)
         """
-        # check image and flavour updated successfully
-        vnfd = vnfd_utils.Vnfd(self.req.get('vnfdId'))
-        vnfd.init_from_csar_dir(self.csar_dir)
-        vdu_infos = common_script_utils.get_vdu_info(
-            self.grant, self.inst, vnfd)
-
-        vdu_id = self.vdu_info.get('vdu_param').get('vdu_id')
-        image = vdu_infos.get(vdu_id, {}).get('image')
-        flavor = vdu_infos.get(vdu_id, {}).get('flavor')
-        if self.vdu_info.get('new_image') != image or self.vdu_info.get(
-                'new_flavor') != flavor:
-            error = "The VM's image or flavour update failed'"
-            LOG.error(error)
-            raise sol_ex.VMRunningFailed(error)
+        pass
 
     def _init_commander(self, user, password, host, retry):
         while retry > 0:
@@ -119,16 +97,8 @@ class SampleOldCoordinateVNFScript(object):
 
 def main():
     operation = "coordinate_vnf"
-    script_dict = pickle.load(sys.stdin.buffer)
-    req = script_dict['request']
-    inst = script_dict['vnf_instance']
-    grant_req = script_dict['grant_request']
-    grant = script_dict['grant_response']
-    csar_dir = script_dict['tmp_csar_dir']
-    vdu_info = script_dict['vdu_info']
-    script = SampleOldCoordinateVNFScript(
-        req, inst, grant_req, grant,
-        csar_dir, vdu_info)
+    vnfc_param = pickle.load(sys.stdin.buffer)
+    script = SampleOldCoordinateVNFScript(vnfc_param)
     try:
         getattr(script, operation)()
     except Exception:

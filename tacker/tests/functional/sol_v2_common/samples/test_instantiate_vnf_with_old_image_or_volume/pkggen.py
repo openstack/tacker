@@ -47,14 +47,6 @@ subnet_ids = utils.get_subnet_ids(['subnet0'])
 instantiate_req_from_image_to_image = paramgen.change_vnfpkg_instantiate(
     net_ids, subnet_ids, "http://localhost/identity/v3")
 
-# if your sample is change VM from volume to image
-instantiate_req_from_volume_to_image = paramgen.change_vnfpkg_instantiate(
-    net_ids, subnet_ids, "http://localhost/identity/v3", flavor_id='volume')
-
-# if your sample is change VM from image to volume
-instantiate_req_from_image_to_volume = paramgen.change_vnfpkg_instantiate(
-    net_ids, subnet_ids, "http://localhost/identity/v3")
-
 # if your sample is change VM from volume to volume
 instantiate_req_from_volume_to_volume = paramgen.change_vnfpkg_instantiate(
     net_ids, subnet_ids, "http://localhost/identity/v3", flavor_id='volume')
@@ -71,12 +63,6 @@ with open("terminate_req", "w") as f:
 
 with open("instantiate_req_from_image_to_image", "w") as f:
     f.write(json.dumps(instantiate_req_from_image_to_image, indent=2))
-
-with open("instantiate_req_from_volume_to_image", "w") as f:
-    f.write(json.dumps(instantiate_req_from_volume_to_image, indent=2))
-
-with open("instantiate_req_from_image_to_volume", "w") as f:
-    f.write(json.dumps(instantiate_req_from_image_to_volume, indent=2))
 
 with open("instantiate_req_from_volume_to_volume", "w") as f:
     f.write(json.dumps(instantiate_req_from_volume_to_volume, indent=2))

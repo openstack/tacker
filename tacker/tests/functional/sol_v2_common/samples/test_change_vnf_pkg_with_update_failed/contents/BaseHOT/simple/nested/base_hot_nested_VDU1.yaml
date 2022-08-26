@@ -4,7 +4,7 @@ description: 'VDU1 HOT for Sample VNF'
 parameters:
   flavor:
     type: string
-  image:
+  image-VDU1:
     type: string
   net1:
     type: string
@@ -15,7 +15,7 @@ resources:
     properties:
       flavor: { get_param: flavor }
       name: VDU1
-      image: { get_param: image }
+      image: { get_param: image-VDU1 }
       networks:
       - port:
           get_resource: VDU1_CP1

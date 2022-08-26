@@ -16,6 +16,7 @@
 import ddt
 import os
 import time
+import unittest
 
 from tacker.tests.functional.sol_kubernetes_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
@@ -50,6 +51,7 @@ class VnfLcmKubernetesErrorHandingTest(base_v2.BaseVnfLcmKubernetesV2Test):
     def setUp(self):
         super(VnfLcmKubernetesErrorHandingTest, self).setUp()
 
+    @unittest.skip("Until refactor CNF v2 API")
     def test_change_vnfpkg_failed_in_update_wait_and_rollback(self):
         """Test LCM operations error handing
 
@@ -182,6 +184,7 @@ class VnfLcmKubernetesErrorHandingTest(base_v2.BaseVnfLcmKubernetesV2Test):
         usage_state = self.get_vnf_package(self.vnf_pkg_2).get('usageState')
         self.assertEqual('NOT_IN_USE', usage_state)
 
+    @unittest.skip("Until refactor CNF v2 API")
     def test_change_vnfpkg_failed_and_retry(self):
         """Test LCM operations error handing
 

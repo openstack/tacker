@@ -256,7 +256,10 @@ _inst_info_example_1 = {
                     "vnfLinkPortId": "res_id_VDU1_CP5_1"
                 }
             ],
-            # "metadata": omitted
+            "metadata": {
+                "image-VDU1-VirtualStorage": "image-VDU1"
+                # other attributes omitted
+            }
         },
         {
             "id": "res_id_VDU2",
@@ -293,7 +296,10 @@ _inst_info_example_1 = {
                     "vnfLinkPortId": "res_id_VDU2_CP5"
                 }
             ],
-            # "metadata": omitted
+            "metadata": {
+                "image-VDU2": "image-VDU2"
+                # other attributes omitted
+            }
         }
     ],
     "vnfVirtualLinkResourceInfo": [
@@ -532,7 +538,10 @@ _inst_info_example_2 = {
                     "vnfLinkPortId": "res_id_VDU1_CP5_2"
                 }
             ],
-            # "metadata": omitted
+            "metadata": {
+                "image-VDU1-VirtualStorage": "image-VDU1"
+                # other attributes omitted
+            }
         },
         {
             "id": "res_id_VDU1_1",
@@ -572,7 +581,10 @@ _inst_info_example_2 = {
                     "vnfLinkPortId": "res_id_VDU1_CP5_1"
                 }
             ],
-            # "metadata": omitted
+            "metadata": {
+                "image-VDU1-VirtualStorage": "image-VDU1"
+                # other attributes omitted
+            }
         },
         {
             "id": "res_id_VDU2",
@@ -609,7 +621,10 @@ _inst_info_example_2 = {
                     "vnfLinkPortId": "res_id_VDU2_CP5"
                 }
             ],
-            # "metadata": omitted
+            "metadata": {
+                "image-VDU2": "image-VDU2"
+                # other attributes omitted
+            }
         }
     ],
     "vnfVirtualLinkResourceInfo": [
@@ -905,14 +920,14 @@ _inst_info_example_3 = {
 
 # example_4 is for update_lcmocc test in case of heal. based on example_2.
 # * VDU1_1: update server only. VDU1_2: update both server and volume.
-# * ports of extMangagedVirtualLink are re-created.
+# * ports of extManagedVirtualLink are re-created.
 # NOTE: combination of the above sentences can not be happened really.
 # it is the data for unit test.
 _inst_info_example_4 = {
     # "flavourId", "vnfState", "scaleStatus", "maxScaleLevels" are omitted
     # "extCpInfo": omitted
     "extVirtualLinkInfo": _inst_info_example_2["extVirtualLinkInfo"],
-    # network resource is not changed but ports are re-receated.
+    # network resource is not changed but ports are re-created.
     # this is for check of SOL003 all=True case.
 
     "extManagedVirtualLinkInfo": [
@@ -995,7 +1010,10 @@ _inst_info_example_4 = {
                     "vnfLinkPortId": "res_id_VDU1_CP5_2_new"
                 }
             ],
-            # "metadata": omitted
+            "metadata": {
+                "image-VDU1-VirtualStorage": "image-VDU1"
+                # other attributes omitted
+            }
         },
         {
             "id": "res_id_VDU1_1_new",
@@ -1035,7 +1053,10 @@ _inst_info_example_4 = {
                     "vnfLinkPortId": "res_id_VDU1_CP5_1_new"
                 }
             ],
-            # "metadata": omitted
+            "metadata": {
+                "image-VDU1-VirtualStorage": "image-VDU1"
+                # other attributes omitted
+            }
         },
         {
             "id": "res_id_VDU2",
@@ -1072,7 +1093,10 @@ _inst_info_example_4 = {
                     "vnfLinkPortId": "res_id_VDU2_CP5"
                 }
             ],
-            # "metadata": omitted
+            "metadata": {
+                "image-VDU2": "image-VDU2"
+                # other attributes omitted
+            }
         }
     ],
     "vnfVirtualLinkResourceInfo":
@@ -1104,93 +1128,9 @@ _inst_info_example_4 = {
 _inst_info_example_5 = {
     # "flavourId", "vnfState", "scaleStatus", "maxScaleLevels" are omitted
     # "extCpInfo": omitted
-    "extVirtualLinkInfo": [
-        {
-            "id": "bbf0932a-6142-4ea8-93cd-8059dba594a1",
-            "resourceHandle": {
-                "resourceId": "3529d333-dbcc-4d93-9b64-210647712569"
-            },
-            "extLinkPorts": [
-                {
-                    "id": "res_id_VDU2_CP1",
-                    "resourceHandle": {
-                        "vimConnectionId": "vim_connection_id",
-                        "resourceId": "res_id_VDU2_CP1",
-                        "vimLevelResourceType": "OS::Neutron::Port"
-                    },
-                    "cpInstanceId": "cp-res_id_VDU2_CP1"
-                },
-                {
-                    "id": "res_id_VDU1_CP1_1",
-                    "resourceHandle": {
-                        "vimConnectionId": "vim_connection_id",
-                        "resourceId": "res_id_VDU1_CP1_1",
-                        "vimLevelResourceType": "OS::Neutron::Port"
-                    },
-                    "cpInstanceId": "cp-res_id_VDU1_CP1_1"
-                }
-            ],
-            # "currentVnfExtCpData": omitted
-        },
-        {
-            "id": "790949df-c7b3-4926-a559-3895412f1dfe",
-            "resourceHandle": {
-                "resourceId": "367e5b3b-34dc-47f2-85b8-c39e3272893a"
-            },
-            "extLinkPorts": [
-                {
-                    "id": "res_id_VDU2_CP2",
-                    "resourceHandle": {
-                        "vimConnectionId": "vim_connection_id",
-                        "resourceId": "res_id_VDU2_CP2",
-                        "vimLevelResourceType": "OS::Neutron::Port"
-                    },
-                    "cpInstanceId": "cp-res_id_VDU2_CP2"
-                },
-                {
-                    "id": "res_id_VDU1_CP2_1",
-                    "resourceHandle": {
-                        "vimConnectionId": "vim_connection_id",
-                        "resourceId": "res_id_VDU1_CP2_1",
-                        "vimLevelResourceType": "OS::Neutron::Port"
-                    },
-                    "cpInstanceId": "cp-res_id_VDU1_CP2_1"
-                }
-            ],
-            # "currentVnfExtCpData": omitted
-        }
-    ],
-    "extManagedVirtualLinkInfo": [
-        {
-            "id": "res_id_internalVL1",
-            "vnfVirtualLinkDescId": "internalVL1",
-            "networkResource": {
-                "resourceId": "res_id_internalVL1"
-            },
-            "vnfLinkPorts": [
-                {
-                    "id": "res_id_VDU2_CP3",
-                    "resourceHandle": {
-                        "vimConnectionId": "vim_connection_id",
-                        "resourceId": "res_id_VDU2_CP3",
-                        "vimLevelResourceType": "OS::Neutron::Port"
-                    },
-                    "cpInstanceId": "VDU2_CP3-res_id_VDU2",
-                    "cpInstanceType": "VNFC_CP"
-                },
-                {
-                    "id": "res_id_VDU1_CP3_1",
-                    "resourceHandle": {
-                        "vimConnectionId": "vim_connection_id",
-                        "resourceId": "res_id_VDU1_CP3_1",
-                        "vimLevelResourceType": "OS::Neutron::Port"
-                    },
-                    "cpInstanceId": "VDU1_CP3-res_id_VDU1_1",
-                    "cpInstanceType": "VNFC_CP"
-                }
-            ]
-        }
-    ],
+    "extVirtualLinkInfo": _inst_info_example_1["extVirtualLinkInfo"],
+    "extManagedVirtualLinkInfo":
+        _inst_info_example_1["extManagedVirtualLinkInfo"],
     "vnfcResourceInfo": [
         {
             "id": "res_id_VDU1_1_update",
@@ -1199,9 +1139,6 @@ _inst_info_example_5 = {
                 "vimConnectionId": "vim_connection_id",
                 "resourceId": "res_id_VDU1_1_update",
                 "vimLevelResourceType": "OS::Nova::Server"
-            },
-            "metadata": {
-                "current_vnfd_id": 'new_vnfd_id'
             },
             "storageResourceIds": [
                 "new_res_id_VirtualStorage_1"
@@ -1233,6 +1170,10 @@ _inst_info_example_5 = {
                     "vnfLinkPortId": "res_id_VDU1_CP5_1"
                 }
             ],
+            "metadata": {
+                "image-VDU1-VirtualStorage": "image-VDU1-update"
+                # other attributes omitted
+            }
         },
         {
             "id": "res_id_VDU2",
@@ -1241,9 +1182,6 @@ _inst_info_example_5 = {
                 "vimConnectionId": "vim_connection_id",
                 "resourceId": "res_id_VDU2",
                 "vimLevelResourceType": "OS::Nova::Server"
-            },
-            "metadata": {
-                "current_vnfd_id": 'new_vnfd_id'
             },
             "vnfcCpInfo": [
                 {
@@ -1272,72 +1210,14 @@ _inst_info_example_5 = {
                     "vnfLinkPortId": "res_id_VDU2_CP5"
                 }
             ],
+            "metadata": {
+                "image-VDU2": "image-VDU2-update"
+                # other attributes omitted
+            }
         }
     ],
-    "vnfVirtualLinkResourceInfo": [
-        {
-            "id": "res_id_internalVL3",
-            "vnfVirtualLinkDescId": "internalVL3",
-            "networkResource": {
-                "vimConnectionId": "vim_connection_id",
-                "resourceId": "res_id_internalVL3",
-                "vimLevelResourceType": "OS::Neutron::Net"
-            },
-            "vnfLinkPorts": [
-                {
-                    "id": "res_id_VDU2_CP5",
-                    "resourceHandle": {
-                        "vimConnectionId": "vim_connection_id",
-                        "resourceId": "res_id_VDU2_CP5",
-                        "vimLevelResourceType": "OS::Neutron::Port"
-                    },
-                    "cpInstanceId": "VDU2_CP5-res_id_VDU2",
-                    "cpInstanceType": "VNFC_CP"
-                },
-                {
-                    "id": "res_id_VDU1_CP5_1",
-                    "resourceHandle": {
-                        "vimConnectionId": "vim_connection_id",
-                        "resourceId": "res_id_VDU1_CP5_1",
-                        "vimLevelResourceType": "OS::Neutron::Port"
-                    },
-                    "cpInstanceId": "VDU1_CP5-res_id_VDU1_1",
-                    "cpInstanceType": "VNFC_CP"
-                }
-            ]
-        },
-        {
-            "id": "res_id_internalVL2",
-            "vnfVirtualLinkDescId": "internalVL2",
-            "networkResource": {
-                "vimConnectionId": "vim_connection_id",
-                "resourceId": "res_id_internalVL2",
-                "vimLevelResourceType": "OS::Neutron::Net"
-            },
-            "vnfLinkPorts": [
-                {
-                    "id": "res_id_VDU2_CP4",
-                    "resourceHandle": {
-                        "vimConnectionId": "vim_connection_id",
-                        "resourceId": "res_id_VDU2_CP4",
-                        "vimLevelResourceType": "OS::Neutron::Port"
-                    },
-                    "cpInstanceId": "VDU2_CP4-res_id_VDU2",
-                    "cpInstanceType": "VNFC_CP"
-                },
-                {
-                    "id": "res_id_VDU1_CP4_1",
-                    "resourceHandle": {
-                        "vimConnectionId": "vim_connection_id",
-                        "resourceId": "res_id_VDU1_CP4_1",
-                        "vimLevelResourceType": "OS::Neutron::Port"
-                    },
-                    "cpInstanceId": "VDU1_CP4-res_id_VDU1_1",
-                    "cpInstanceType": "VNFC_CP"
-                }
-            ]
-        }
-    ],
+    "vnfVirtualLinkResourceInfo":
+        _inst_info_example_1["vnfVirtualLinkResourceInfo"],
     "virtualStorageResourceInfo": [
         {
             "id": "new_res_id_VirtualStorage_1",
@@ -1348,7 +1228,7 @@ _inst_info_example_5 = {
                 "vimLevelResourceType": "OS::Cinder::Volume"
             }
         }
-    ],
+    ]
 }
 
 # expected results
@@ -1372,7 +1252,8 @@ _expected_resource_changes_instantiate = {
             ],
             "addedStorageResourceIds": [
                 "res_id_VirtualStorage_1"
-            ]
+            ],
+            "metadata": {"image-VDU1-VirtualStorage": "image-VDU1"}
         },
         {
             "id": "res_id_VDU2",
@@ -1389,7 +1270,8 @@ _expected_resource_changes_instantiate = {
                 "VDU2_CP3-res_id_VDU2",
                 "VDU2_CP4-res_id_VDU2",
                 "VDU2_CP5-res_id_VDU2"
-            ]
+            ],
+            "metadata": {"image-VDU2": "image-VDU2"}
         }
     ],
     "affectedVirtualLinks": [
@@ -1510,7 +1392,8 @@ _expected_resource_changes_scale_out = {
             ],
             "addedStorageResourceIds": [
                 "res_id_VirtualStorage_2"
-            ]
+            ],
+            "metadata": {"image-VDU1-VirtualStorage": "image-VDU1"}
         }
     ],
     "affectedVirtualLinks": [
@@ -1608,7 +1491,8 @@ _expected_resource_changes_scale_in = {
             ],
             "removedStorageResourceIds": [
                 "res_id_VirtualStorage_2"
-            ]
+            ],
+            "metadata": {"image-VDU1-VirtualStorage": "image-VDU1"}
         }
     ],
     "affectedVirtualLinks": [
@@ -1706,7 +1590,8 @@ _expected_resource_changes_terminate = {
             ],
             "removedStorageResourceIds": [
                 "res_id_VirtualStorage_1"
-            ]
+            ],
+            "metadata": {"image-VDU1-VirtualStorage": "image-VDU1"}
         },
         {
             "id": "res_id_VDU2",
@@ -1723,7 +1608,8 @@ _expected_resource_changes_terminate = {
                 "VDU2_CP3-res_id_VDU2",
                 "VDU2_CP4-res_id_VDU2",
                 "VDU2_CP5-res_id_VDU2"
-            ]
+            ],
+            "metadata": {"image-VDU2": "image-VDU2"}
         }
     ],
     "affectedVirtualLinks": [
@@ -2017,7 +1903,8 @@ _expected_resource_changes_heal = {
                 "VDU1_CP3-res_id_VDU1_1",
                 "VDU1_CP4-res_id_VDU1_1",
                 "VDU1_CP5-res_id_VDU1_1"
-            ]
+            ],
+            "metadata": {"image-VDU1-VirtualStorage": "image-VDU1"}
         },
         {
             "id": "res_id_VDU1_1_new",
@@ -2034,7 +1921,8 @@ _expected_resource_changes_heal = {
                 "VDU1_CP3-res_id_VDU1_1_new",
                 "VDU1_CP4-res_id_VDU1_1_new",
                 "VDU1_CP5-res_id_VDU1_1_new"
-            ]
+            ],
+            "metadata": {"image-VDU1-VirtualStorage": "image-VDU1"}
         },
         {
             "id": "res_id_VDU1_2",
@@ -2054,7 +1942,8 @@ _expected_resource_changes_heal = {
             ],
             "removedStorageResourceIds": [
                 "res_id_VirtualStorage_2"
-            ]
+            ],
+            "metadata": {"image-VDU1-VirtualStorage": "image-VDU1"}
         },
         {
             "id": "res_id_VDU1_2_new",
@@ -2074,7 +1963,8 @@ _expected_resource_changes_heal = {
             ],
             "addedStorageResourceIds": [
                 "res_id_VirtualStorage_2_new"
-            ]
+            ],
+            "metadata": {"image-VDU1-VirtualStorage": "image-VDU1"}
         },
     ],
     "affectedVirtualLinks": [
@@ -2130,6 +2020,7 @@ _expected_resource_changes_heal = {
         }
     ]
 }
+
 _expected_resource_changes_change_vnfpkg = {
     "affectedVnfcs": [
         {
@@ -2150,7 +2041,8 @@ _expected_resource_changes_change_vnfpkg = {
             ],
             "removedStorageResourceIds": [
                 "res_id_VirtualStorage_1"
-            ]
+            ],
+            "metadata": {"image-VDU1-VirtualStorage": "image-VDU1"}
         },
         {
             "id": "res_id_VDU1_1_update",
@@ -2171,9 +2063,7 @@ _expected_resource_changes_change_vnfpkg = {
             "addedStorageResourceIds": [
                 "new_res_id_VirtualStorage_1"
             ],
-            'metadata': {
-                'current_vnfd_id': 'new_vnfd_id'
-            }
+            "metadata": {"image-VDU1-VirtualStorage": "image-VDU1-update"}
         },
         {
             "id": "res_id_VDU2",
@@ -2191,9 +2081,7 @@ _expected_resource_changes_change_vnfpkg = {
                 "VDU2_CP4-res_id_VDU2",
                 "VDU2_CP5-res_id_VDU2"
             ],
-            'metadata': {
-                'current_vnfd_id': 'new_vnfd_id'
-            }
+            "metadata": {"image-VDU2": "image-VDU2-update"}
         }
     ],
     "affectedVirtualStorages": [
