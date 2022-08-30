@@ -808,9 +808,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
 
     def _get_helm_info(self, vim_connection_info):
         # replace single quote to double quote
-        helm_info = jsonutils.loads(
-            vim_connection_info.extra.get('helm_info')
-            .replace("'", '"'))
+        helm_info = vim_connection_info.extra.get('helm_info')
+        if isinstance(helm_info, str):
+            helm_info = jsonutils.loads(helm_info.replace("'", '"'))
         ips = helm_info.get('masternode_ip', [])
         username = helm_info.get('masternode_username', '')
         password = helm_info.get('masternode_password', '')

@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    When executing the 'openstack vim register' or 'openstack vim set' command,
+    if the `extra` parameter is specified in the config-file, data is stored
+    in the `extra` field of the VIM DB.
+    Develop to accept the vimConnectionInfo.extra field, if present, in the
+    input parameter file when performing a CNF deployment via helm.

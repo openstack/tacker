@@ -30,8 +30,7 @@ class VimConnectionInfo(base.TackerObject, base.TackerPersistentObject):
                                                          default={}),
         'access_info': fields.DictOfNullableStringsField(nullable=True,
                                                          default={}),
-        'extra': fields.DictOfNullableStringsField(nullable=True,
-                                                   default={}),
+        'extra': fields.DictOfNullableField(nullable=True, default={}),
     }
 
     @classmethod
