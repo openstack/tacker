@@ -35,13 +35,18 @@ shutil.move(os.path.join(tmp_dir, zip_file_name), ".")
 shutil.rmtree(tmp_dir)
 
 # if you change_vnfpkg with all parameters
-change_vnfpkg_all_params = paramgen.change_vnfpkg_all_params(vnfd_id)
+change_vnfpkg = paramgen.change_vnfpkg(vnfd_id)
 
 # if you change_vnfpkg with no operational parameters
-change_vnfpkg_min = paramgen.change_vnfpkg_min(vnfd_id)
+change_vnfpkg_error = paramgen.change_vnfpkg_error(vnfd_id)
 
-with open("change_vnfpkg_all_params", "w", encoding='utf-8') as f:
-    f.write(json.dumps(change_vnfpkg_all_params, indent=2))
+change_vnfpkg_terminate = paramgen.change_vnfpkg_terminate()
 
-with open("change_vnfpkg_min", "w", encoding='utf-8') as f:
-    f.write(json.dumps(change_vnfpkg_min, indent=2))
+with open("change_vnfpkg", "w", encoding='utf-8') as f:
+    f.write(json.dumps(change_vnfpkg, indent=2))
+
+with open("change_vnfpkg_error", "w", encoding='utf-8') as f:
+    f.write(json.dumps(change_vnfpkg_error, indent=2))
+
+with open("change_vnfpkg_terminate", "w", encoding='utf-8') as f:
+    f.write(json.dumps(change_vnfpkg_terminate, indent=2))

@@ -13,17 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
-import os
-import pickle
-import subprocess
-
+from kubernetes import client
 from oslo_log import log as logging
-from oslo_utils import uuidutils
+from oslo_service import loopingcall
 
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
+from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes_resource
 from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes_utils
 from tacker.sol_refactored import objects
 
@@ -31,6 +28,10 @@ from tacker.sol_refactored import objects
 LOG = logging.getLogger(__name__)
 
 CONF = config.CONF
+CHECK_INTERVAL = 10
+
+TARGET_KIND = {"Pod", "Deployment", "DaemonSet", "StatefulSet", "ReplicaSet"}
+SCALABLE_KIND = {"Deployment", "ReplicaSet", "StatefulSet"}
 
 
 class Kubernetes(object):
@@ -39,351 +40,435 @@ class Kubernetes(object):
         pass
 
     def instantiate(self, req, inst, grant_req, grant, vnfd):
-        # pre instantiate cnf
-        target_k8s_files = req.additionalParams.get(
-            'lcm-kubernetes-def-files')
-        vnf_artifact_files = vnfd.get_vnf_artifact_files()
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        with kubernetes_utils.AuthContextManager(vim_info) as acm:
+            k8s_api_client = acm.init_k8s_api_client()
+            self._instantiate(req, inst, grant_req, grant, vnfd,
+                              k8s_api_client)
 
-        if vnf_artifact_files is None or set(target_k8s_files).difference(
-                set(vnf_artifact_files)):
-            if vnf_artifact_files:
-                diff_files = ','.join(list(set(
-                    target_k8s_files).difference(set(vnf_artifact_files))))
-            else:
-                diff_files = ','.join(target_k8s_files)
+    def _instantiate(self, req, inst, grant_req, grant, vnfd, k8s_api_client):
+        target_k8s_files = req.additionalParams['lcm-kubernetes-def-files']
+
+        k8s_reses, namespace = self._setup_k8s_reses(
+            vnfd, target_k8s_files, k8s_api_client,
+            req.additionalParams.get('namespace'))
+
+        vdus_num = self._get_vdus_num_from_grant_req_res_defs(
+            grant_req.addResources)
+        vdu_reses = self._select_vdu_reses(vnfd, req.flavourId, k8s_reses)
+
+        for vdu_name, vdu_res in vdu_reses.items():
+            if vdu_name not in vdus_num:
+                LOG.debug(f'resource name {vdu_res.name} in the kubernetes'
+                          f' manifest does not match the VNFD.')
+                continue
+
+            if vdu_res.kind in SCALABLE_KIND:
+                vdu_res.body['spec']['replicas'] = vdus_num[vdu_name]
+
+        # deploy k8s resources
+        for k8s_res in k8s_reses:
+            if not k8s_res.is_exists():
+                k8s_res.create()
+
+        # wait k8s resource create complete
+        self._wait_k8s_reses_ready(k8s_reses)
+
+        # make instantiated info
+        self._init_instantiated_vnf_info(
+            inst, req.flavourId, target_k8s_files, vdu_reses, namespace)
+        self._update_vnfc_info(inst, k8s_api_client)
+
+    def _setup_k8s_reses(self, vnfd, target_k8s_files, k8s_api_client,
+            namespace):
+        # NOTE: this check should be done in STARTING phase.
+        vnf_artifact_files = vnfd.get_vnf_artifact_files()
+        diff_files = set(target_k8s_files) - set(vnf_artifact_files)
+        if diff_files:
+            diff_files = ','.join(list(diff_files))
             raise sol_ex.CnfDefinitionNotFound(diff_files=diff_files)
 
         # get k8s content from yaml file
-        k8s_resources, namespace = kubernetes_utils.get_k8s_json_file(
-            req, inst, target_k8s_files, vnfd, 'INSTANTIATE')
+        return kubernetes_utils.get_k8s_reses_from_json_files(
+            target_k8s_files, vnfd, k8s_api_client, namespace)
 
-        # sort k8s resource
-        sorted_k8s_reses = kubernetes_utils.sort_k8s_resource(
-            k8s_resources, 'INSTANTIATE')
-
-        # deploy k8s resources with sorted resources
+    def instantiate_rollback(self, req, inst, grant_req, grant, vnfd):
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
-        # This is Context Manager for creation and deletion
-        # of CA certificate temp file
-        with kubernetes_utils.CaCertFileContextManager(
-                vim_info.interfaceInfo.get('ssl_ca_cert')) as ca_cert_cm:
+        with kubernetes_utils.AuthContextManager(vim_info) as acm:
+            k8s_api_client = acm.init_k8s_api_client()
+            self._instantiate_rollback(req, inst, grant_req, grant, vnfd,
+                                       k8s_api_client)
 
-            # add an item ca_cert_file:file_path into vim_info.interfaceInfo,
-            # and will be deleted in KubernetesClient
-            vim_info.interfaceInfo['ca_cert_file'] = ca_cert_cm.file_path
+    def _instantiate_rollback(self, req, inst, grant_req, grant, vnfd,
+            k8s_api_client):
+        target_k8s_files = req.additionalParams['lcm-kubernetes-def-files']
 
-            k8s_client = kubernetes_utils.KubernetesClient(vim_info)
-            created_k8s_reses = k8s_client.create_k8s_resource(
-                sorted_k8s_reses, namespace)
+        try:
+            k8s_reses, _ = self._setup_k8s_reses(
+                vnfd, target_k8s_files, k8s_api_client,
+                req.additionalParams.get('namespace'))
+        except sol_ex.SolException:
+            # it means it failed in a basic check and it failes always.
+            # nothing to do since instantiate failed in it too.
+            return
+        k8s_reses.reverse()
 
-            # wait k8s resource create complete
-            k8s_client.wait_k8s_res_create(created_k8s_reses)
+        # delete k8s resources
+        body = client.V1DeleteOptions(propagation_policy='Foreground')
+        self._delete_k8s_resource(k8s_reses, body)
 
-            # make instantiated info
-            all_pods = k8s_client.list_namespaced_pods(namespace)
-            self._make_cnf_instantiated_info(
-                req, inst, vnfd, namespace, created_k8s_reses, all_pods)
+        # wait k8s resource delete complete
+        self._wait_k8s_reses_deleted(k8s_reses)
+
+    def _delete_k8s_resource(self, k8s_reses, body):
+        for k8s_res in k8s_reses:
+            if k8s_res.is_exists():
+                k8s_res.delete(body)
 
     def terminate(self, req, inst, grant_req, grant, vnfd):
-        target_k8s_files = inst.metadata.get('lcm-kubernetes-def-files')
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        with kubernetes_utils.AuthContextManager(vim_info) as acm:
+            k8s_api_client = acm.init_k8s_api_client()
+            self._terminate(req, inst, grant_req, grant, vnfd,
+                            k8s_api_client)
+
+    def _terminate(self, req, inst, grant_req, grant, vnfd, k8s_api_client):
+        target_k8s_files = inst.instantiatedVnfInfo.metadata[
+            'lcm-kubernetes-def-files']
 
         # get k8s content from yaml file
-        k8s_resources, namespace = kubernetes_utils.get_k8s_json_file(
-            req, inst, target_k8s_files, vnfd, 'TERMINATE')
+        namespace = inst.instantiatedVnfInfo.metadata['namespace']
+        k8s_reses, _ = kubernetes_utils.get_k8s_reses_from_json_files(
+            target_k8s_files, vnfd, k8s_api_client, namespace)
+        k8s_reses.reverse()
 
-        # sort k8s resource
-        sorted_k8s_reses = kubernetes_utils.sort_k8s_resource(
-            k8s_resources, 'TERMINATE')
+        # delete k8s resources
+        timeout = 0
+        if req.terminationType == 'GRACEFUL':
+            timeout = CONF.v2_vnfm.default_graceful_termination_timeout
+            if req.obj_attr_is_set('gracefulTerminationTimeout'):
+                timeout = req.gracefulTerminationTimeout
 
-        # delete k8s resources with sorted resources
-        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
-        # This is Context Manager for creation and deletion
-        # of CA certificate temp file
-        with kubernetes_utils.CaCertFileContextManager(
-                vim_info.interfaceInfo.get('ssl_ca_cert')) as ca_cert_cm:
+        body = client.V1DeleteOptions(propagation_policy='Foreground',
+                                      grace_period_seconds=timeout)
+        self._delete_k8s_resource(k8s_reses, body)
 
-            # add an item ca_cert_file:file_path into vim_info.interfaceInfo,
-            # and will be deleted in KubernetesClient
-            vim_info.interfaceInfo['ca_cert_file'] = ca_cert_cm.file_path
+        # wait k8s resource delete complete
+        self._wait_k8s_reses_deleted(k8s_reses)
 
-            k8s_client = kubernetes_utils.KubernetesClient(vim_info)
-            k8s_client.delete_k8s_resource(req, sorted_k8s_reses, namespace)
+    def _change_vnfpkg_rolling_update(
+            self, inst, grant_req, grant, vnfd, k8s_api_client,
+            namespace, old_pods_names):
 
-            # wait k8s resource delete complete
-            k8s_client.wait_k8s_res_delete(sorted_k8s_reses, namespace)
+        vdus_num = self._get_vdus_num_from_grant_req_res_defs(
+            grant_req.addResources)
+        vdu_reses = []
+        for vdu_name, vdu_num in vdus_num.items():
+            vdu_res = self._get_vdu_res(inst, k8s_api_client, vdu_name)
+            vdu_res.body['spec']['replicas'] = vdu_num
+            vdu_reses.append(vdu_res)
+
+        # apply new deployment
+        for vdu_res in vdu_reses:
+            vdu_res.patch()
+
+        # wait k8s resource update complete
+        self._wait_k8s_reses_updated(
+            vdu_reses, k8s_api_client, namespace, old_pods_names)
+
+        # update cnf instantiated info
+        self._update_vnfc_info(inst, k8s_api_client)
 
     def change_vnfpkg(self, req, inst, grant_req, grant, vnfd):
-        if req.additionalParams.get('upgrade_type') == 'RollingUpdate':
-            # get deployment name from vnfd
-            deployment_names, namespace = (
-                self._get_update_deployment_names_and_namespace(
-                    vnfd, req, inst))
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        with kubernetes_utils.AuthContextManager(vim_info) as acm:
+            k8s_api_client = acm.init_k8s_api_client()
+            self._change_vnfpkg(req, inst, grant_req, grant, vnfd,
+                                k8s_api_client)
 
-            # check deployment exists in kubernetes
-            vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
-            # This is Context Manager for creation and deletion
-            # of CA certificate temp file
-            with kubernetes_utils.CaCertFileContextManager(
-                    vim_info.interfaceInfo.get('ssl_ca_cert')) as ca_cert_cm:
+    def _change_vnfpkg(self, req, inst, grant_req, grant, vnfd,
+            k8s_api_client):
+        if req.additionalParams['upgrade_type'] == 'RollingUpdate':
+            target_k8s_files = req.additionalParams[
+                'lcm-kubernetes-def-files']
+            namespace = inst.instantiatedVnfInfo.metadata['namespace']
 
-                # add an item ca_cert_file:file_path
-                # into vim_info.interfaceInfo,
-                # and will be deleted in KubernetesClient
-                vim_info.interfaceInfo['ca_cert_file'] = ca_cert_cm.file_path
+            target_vdus = {res_def.resourceTemplateId
+                           for res_def in grant_req.addResources
+                           if res_def.type == 'COMPUTE'}
+            old_pods_names = {vnfc.computeResource.resourceId
+                for vnfc in inst.instantiatedVnfInfo.vnfcResourceInfo
+                if vnfc.vduId in target_vdus}
 
-                k8s_client = kubernetes_utils.KubernetesClient(vim_info)
-                k8s_client.check_deployment_exist(deployment_names, namespace)
+            k8s_reses, _ = self._setup_k8s_reses(
+                vnfd, target_k8s_files, k8s_api_client, namespace)
 
-                # get new deployment body
-                new_deploy_reses = kubernetes_utils.get_new_deployment_body(
-                    req, inst, vnfd, deployment_names,
-                    operation='CHANGE_VNFPKG')
+            vdu_reses = self._select_vdu_reses(
+                vnfd, inst.instantiatedVnfInfo.flavourId, k8s_reses)
 
-                # apply new deployment
-                k8s_client.update_k8s_resource(new_deploy_reses, namespace)
+            self._init_instantiated_vnf_info(
+                inst, inst.instantiatedVnfInfo.flavourId, target_k8s_files,
+                vdu_reses, namespace)
 
-                # wait k8s resource update complete
-                old_pods_names = [vnfc.computeResource.resourceId for vnfc in
-                                  inst.instantiatedVnfInfo.vnfcResourceInfo]
-                try:
-                    k8s_client.wait_k8s_res_update(
-                        new_deploy_reses, namespace, old_pods_names)
-                except sol_ex.UpdateK8SResourceFailed as ex:
-                    self._update_cnf_instantiated_info(
-                        inst, deployment_names,
-                        k8s_client.list_namespaced_pods(
-                            namespace=namespace))
-                    raise ex
-
-                # execute coordinate vnf script
-                try:
-                    self._execute_coordinate_vnf_script(
-                        req, inst, grant_req, grant, vnfd, 'CHANGE_VNFPKG',
-                        namespace, new_deploy_reses)
-                except sol_ex.CoordinateVNFExecutionFailed as ex:
-                    self._update_cnf_instantiated_info(
-                        inst, deployment_names,
-                        k8s_client.list_namespaced_pods(
-                            namespace=namespace))
-                    raise ex
-
-                # update cnf instantiated info
-                all_pods = k8s_client.list_namespaced_pods(namespace)
-                self._update_cnf_instantiated_info(
-                    inst, deployment_names, all_pods)
-
+            self._change_vnfpkg_rolling_update(
+                inst, grant_req, grant, vnfd, k8s_api_client, namespace,
+                old_pods_names)
         else:
-            # TODO(YiFeng): Blue-Green type will be supported in next version.
-            raise sol_ex.SolException(sol_detail='not support update type')
+            # not reach here
+            pass
 
         inst.vnfdId = req.vnfdId
-        if set(req.additionalParams.get(
-                'lcm-kubernetes-def-files')).difference(set(
-                inst.metadata.get('lcm-kubernetes-def-files'))):
-            inst.metadata['lcm-kubernetes-def-files'] = (
-                req.additionalParams.get('lcm-kubernetes-def-files'))
 
-    def change_vnfpkg_rollback(
-            self, req, inst, grant_req, grant, vnfd, lcmocc):
-        if not lcmocc.obj_attr_is_set('resourceChanges'):
-            return
-        if req.additionalParams.get('upgrade_type') == 'RollingUpdate':
-            deployment_names = list({
-                affected_vnfc.metadata['Deployment']['name'] for affected_vnfc
-                in lcmocc.resourceChanges.affectedVnfcs if
-                affected_vnfc.changeType == 'ADDED'})
-            namespace = inst.metadata.get('namespace')
+    def change_vnfpkg_rollback(self, req, inst, grant_req, grant, vnfd):
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        with kubernetes_utils.AuthContextManager(vim_info) as acm:
+            k8s_api_client = acm.init_k8s_api_client()
+            self._change_vnfpkg_rollback(req, inst, grant_req, grant, vnfd,
+                                         k8s_api_client)
 
-            old_deploy_reses = kubernetes_utils.get_new_deployment_body(
-                req, inst, vnfd, deployment_names,
-                operation='CHANGE_VNFPKG_ROLLBACK')
+    def _change_vnfpkg_rollback(self, req, inst, grant_req, grant, vnfd,
+            k8s_api_client):
+        if req.additionalParams['upgrade_type'] == 'RollingUpdate':
+            namespace = inst.instantiatedVnfInfo.metadata['namespace']
 
-            # apply old deployment
-            vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
-            # This is Context Manager for creation and deletion
-            # of CA certificate temp file
-            with kubernetes_utils.CaCertFileContextManager(
-                    vim_info.interfaceInfo.get('ssl_ca_cert')) as ca_cert_cm:
+            original_pods = {vnfc.computeResource.resourceId for vnfc in
+                             inst.instantiatedVnfInfo.vnfcResourceInfo}
+            all_pods = kubernetes_utils.list_namespaced_pods(
+                k8s_api_client, namespace)
+            current_pods = {pod.metadata.name for pod in all_pods}
+            old_pods_names = current_pods - original_pods
 
-                # add an item ca_cert_file:file_path
-                # into vim_info.interfaceInfo,
-                # and will be deleted in KubernetesClient
-                vim_info.interfaceInfo['ca_cert_file'] = ca_cert_cm.file_path
-
-                k8s_client = kubernetes_utils.KubernetesClient(vim_info)
-                k8s_client.update_k8s_resource(old_deploy_reses, namespace)
-
-                # wait k8s resource update complete
-                old_pods_names = [vnfc.computeResource.resourceId for vnfc in
-                                  inst.instantiatedVnfInfo.vnfcResourceInfo]
-                try:
-                    k8s_client.wait_k8s_res_update(
-                        old_deploy_reses, namespace, old_pods_names)
-                except sol_ex.UpdateK8SResourceFailed as ex:
-                    raise ex
-
-                # execute coordinate vnf script
-                try:
-                    self._execute_coordinate_vnf_script(
-                        req, inst, grant_req, grant, vnfd,
-                        'CHANGE_VNFPKG_ROLLBACK',
-                        namespace, old_deploy_reses)
-                except sol_ex.CoordinateVNFExecutionFailed as ex:
-                    raise ex
-
-                # update cnf instantiated info
-                all_pods = k8s_client.list_namespaced_pods(namespace)
-                self._update_cnf_instantiated_info(
-                    inst, deployment_names, all_pods)
-
+            self._change_vnfpkg_rolling_update(
+                inst, grant_req, grant, vnfd, k8s_api_client, namespace,
+                old_pods_names)
         else:
-            # TODO(YiFeng): Blue-Green type will be supported in next version.
-            raise sol_ex.SolException(sol_detail='not support update type')
+            # not reach here
+            pass
 
-    def _get_update_deployment_names_and_namespace(self, vnfd, req, inst):
-        vdu_nodes = vnfd.get_vdu_nodes(
-            flavour_id=inst.instantiatedVnfInfo.flavourId)
+    def heal(self, req, inst, grant_req, grant, vnfd):
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        with kubernetes_utils.AuthContextManager(vim_info) as acm:
+            k8s_api_client = acm.init_k8s_api_client()
+            self._heal(req, inst, grant_req, grant, vnfd, k8s_api_client)
 
-        if req.additionalParams.get('vdu_params'):
-            target_vdus = [vdu_param.get('vdu_id') for vdu_param
-                           in req.additionalParams.get('vdu_params')]
-            if None in target_vdus:
-                raise sol_ex.MissingParameterException
-        else:
-            target_vdus = [inst_vnc.vduId for inst_vnc in
-                           inst.instantiatedVnfInfo.vnfcResourceInfo]
+    def _heal(self, req, inst, grant_req, grant, vnfd, k8s_api_client):
+        namespace = inst.instantiatedVnfInfo.metadata['namespace']
 
-        deployment_names = [value.get('properties', {}).get('name')
-                            for name, value in vdu_nodes.items()
-                            if name in target_vdus]
-        namespace = inst.metadata.get('namespace')
+        # get heal Pod name
+        vnfc_res_ids = [res_def.resource.resourceId
+                        for res_def in grant_req.removeResources
+                        if res_def.type == 'COMPUTE']
 
-        return deployment_names, namespace
+        target_vnfcs = [vnfc
+                        for vnfc in inst.instantiatedVnfInfo.vnfcResourceInfo
+                        if vnfc.computeResource.resourceId in vnfc_res_ids]
 
-    def _make_cnf_instantiated_info(
-            self, req, inst, vnfd, namespace, created_k8s_reses, all_pods):
-        flavour_id = req.flavourId
-        target_kinds = {"Pod", "Deployment", "DaemonSet",
-                        "StatefulSet", "ReplicaSet"}
+        # check running Pod
+        all_pods = kubernetes_utils.list_namespaced_pods(
+            k8s_api_client, namespace)
+        current_pods_name = [pod.metadata.name for pod in all_pods]
 
+        old_pods_names = set()
+        vdu_reses = {}
+        for vnfc in target_vnfcs:
+            if vnfc.id not in current_pods_name:
+                # may happen when retry or auto healing
+                msg = f'heal target pod {vnfc.id} is not in the running pod.'
+                LOG.error(msg)
+                continue
+            if vnfc.vduId in vdu_reses:
+                res = vdu_reses[vnfc.vduId]
+            else:
+                res = self._get_vdu_res(inst, k8s_api_client, vnfc.vduId)
+                vdu_reses[vnfc.vduId] = res
+            res.delete_pod(vnfc.id)
+            old_pods_names.add(vnfc.id)
+
+        # wait k8s resource create complete
+        if old_pods_names:
+            self._wait_k8s_reses_updated(list(vdu_reses.values()),
+                k8s_api_client, namespace, old_pods_names)
+
+        # make instantiated info
+        self._update_vnfc_info(inst, k8s_api_client)
+
+    def _scale_k8s_resource(self, inst, vdus_num, k8s_api_client):
+        namespace = inst.instantiatedVnfInfo.metadata['namespace']
+
+        vdu_reses = []
+        for vdu_name, vdu_num in vdus_num.items():
+            vdu_res = self._get_vdu_res(inst, k8s_api_client, vdu_name)
+            if vdu_res.kind not in SCALABLE_KIND:
+                LOG.error(f'scale vdu {vdu_name}'
+                          f' is not scalable resource')
+                continue
+            vdu_res.scale(vdu_num)
+            vdu_reses.append(vdu_res)
+
+        # wait k8s resource create complete
+        self._wait_k8s_reses_updated(vdu_reses, k8s_api_client,
+                                     namespace, old_pods_names=set())
+
+        # make instantiated info
+        self._update_vnfc_info(inst, k8s_api_client)
+
+    def scale(self, req, inst, grant_req, grant, vnfd):
+
+        if req.type == 'SCALE_OUT':
+            vdus_num = self._get_vdus_num_from_grant_req_res_defs(
+                grant_req.addResources)
+            for vdu_name, vdu_num in vdus_num.items():
+                vdus_num[vdu_name] = (self._get_current_vdu_num(inst, vdu_name)
+                                      + vdu_num)
+        elif req.type == 'SCALE_IN':
+            vdus_num = self._get_vdus_num_from_grant_req_res_defs(
+                grant_req.removeResources)
+            for vdu_name, vdu_num in vdus_num.items():
+                vdus_num[vdu_name] = (self._get_current_vdu_num(inst, vdu_name)
+                                      - vdu_num)
+
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        with kubernetes_utils.AuthContextManager(vim_info) as acm:
+            k8s_api_client = acm.init_k8s_api_client()
+            self._scale_k8s_resource(inst, vdus_num, k8s_api_client)
+
+    def scale_rollback(self, req, inst, grant_req, grant, vnfd):
+
+        vdus_num = self._get_vdus_num_from_grant_req_res_defs(
+            grant_req.addResources)
+        for vdu_name, _ in vdus_num.items():
+            vdus_num[vdu_name] = self._get_current_vdu_num(inst, vdu_name)
+
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        with kubernetes_utils.AuthContextManager(vim_info) as acm:
+            k8s_api_client = acm.init_k8s_api_client()
+            self._scale_k8s_resource(inst, vdus_num, k8s_api_client)
+
+    def _get_vdus_num_from_grant_req_res_defs(self, res_defs):
+        vdus_num = {}
+        for res_def in res_defs:
+            if res_def.type == 'COMPUTE':
+                vdus_num.setdefault(res_def.resourceTemplateId, 0)
+                vdus_num[res_def.resourceTemplateId] += 1
+        return vdus_num
+
+    def _get_current_vdu_num(self, inst, vdu):
+        num = 0
+        for vnfc in inst.instantiatedVnfInfo.vnfcResourceInfo:
+            if vnfc.vduId == vdu:
+                num += 1
+        return num
+
+    def _select_vdu_reses(self, vnfd, flavour_id, k8s_reses):
         vdu_nodes = vnfd.get_vdu_nodes(flavour_id)
         vdu_ids = {value.get('properties').get('name'): key
                    for key, value in vdu_nodes.items()}
+        return {vdu_ids[res.name]: res
+                for res in k8s_reses
+                if res.kind in TARGET_KIND and res.name in vdu_ids}
 
-        vnfc_resources = []
-        for k8s_res in created_k8s_reses:
-            if k8s_res.get('kind', '') not in target_kinds:
-                continue
-            for pod in all_pods:
-                pod_name = pod.metadata.name
-                match_result = kubernetes_utils.is_match_pod_naming_rule(
-                    k8s_res.get('kind', ''), k8s_res.get('name', ''),
-                    pod_name)
-                if match_result:
-                    metadata = {}
-                    metadata[k8s_res.get('kind')] = k8s_res.get('metadata')
-                    if k8s_res.get('kind') != 'Pod':
-                        metadata['Pod'] = pod.metadata.to_dict()
-                    vnfc_resource = objects.VnfcResourceInfoV2(
-                        id=uuidutils.generate_uuid(),
-                        vduId=vdu_ids.get(k8s_res.get('name', '')),
-                        computeResource=objects.ResourceHandle(
-                            resourceId=pod_name,
-                            vimLevelResourceType=k8s_res.get('kind')
-                        ),
-                        metadata=metadata
-                    )
-                    vnfc_resources.append(vnfc_resource)
-
-        inst_vnf_info = objects.VnfInstanceV2_InstantiatedVnfInfo(
+    def _init_instantiated_vnf_info(self, inst, flavour_id, def_files,
+            vdu_reses, namespace):
+        metadata = {
+            'namespace': namespace,
+            'lcm-kubernetes-def-files': def_files,
+            'vdu_reses': {vdu_name: vdu_res.body
+                          for vdu_name, vdu_res in vdu_reses.items()}
+        }
+        inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
             flavourId=flavour_id,
             vnfState='STARTED',
+            metadata=metadata
         )
 
-        if vnfc_resources:
-            inst_vnf_info.vnfcResourceInfo = vnfc_resources
-            # make vnfcInfo
-            # NOTE: vnfcInfo only exists in SOL002
-            inst_vnf_info.vnfcInfo = [
-                objects.VnfcInfoV2(
-                    id=f'{vnfc_res_info.vduId}-{vnfc_res_info.id}',
-                    vduId=vnfc_res_info.vduId,
-                    vnfcResourceInfoId=vnfc_res_info.id,
-                    vnfcState='STARTED'
-                )
-                for vnfc_res_info in vnfc_resources
-            ]
+    def _get_vdu_res(self, inst, k8s_api_client, vdu):
+        # must be found
+        res = inst.instantiatedVnfInfo.metadata['vdu_reses'][vdu]
+        cls = getattr(kubernetes_resource, res['kind'])
+        return cls(k8s_api_client, res)
 
-        inst.instantiatedVnfInfo = inst_vnf_info
-        inst.metadata = {"namespace": namespace if namespace else None}
-        inst.metadata['lcm-kubernetes-def-files'] = req.additionalParams.get(
-            'lcm-kubernetes-def-files')
-
-    def _execute_coordinate_vnf_script(
-            self, req, inst, grant_req, grant, vnfd,
-            operation, namespace, new_deploy_reses):
-        coordinate_vnf = None
-        if req.obj_attr_is_set('additionalParams'):
-            if operation == 'CHANGE_VNFPKG':
-                coordinate_vnf = req.additionalParams.get(
-                    'lcm-operation-coordinate-new-vnf')
-            else:
-                coordinate_vnf = req.additionalParams.get(
-                    'lcm-operation-coordinate-old-vnf')
-
-        if coordinate_vnf:
-            tmp_csar_dir = vnfd.make_tmp_csar_dir()
-            script_dict = {
-                "request": req.to_dict(),
-                "vnf_instance": inst.to_dict(),
-                "grant_request": grant_req.to_dict(),
-                "grant_response": grant.to_dict(),
-                "tmp_csar_dir": tmp_csar_dir,
-                "k8s_info": {
-                    "namespace": namespace,
-                    "new_deploy_reses": new_deploy_reses
-                }
-            }
-            script_path = os.path.join(tmp_csar_dir, coordinate_vnf)
-            out = subprocess.run(["python3", script_path],
-                input=pickle.dumps(script_dict),
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if out.returncode != 0:
-                LOG.error(out)
-                raise sol_ex.CoordinateVNFExecutionFailed
-
-    def _update_cnf_instantiated_info(self, inst, deployment_names, all_pods):
-        error_resource = None
-        for vnfc in inst.instantiatedVnfInfo.vnfcResourceInfo:
-            if (vnfc.computeResource.vimLevelResourceType == 'Deployment'
-                ) and (vnfc.metadata.get('Deployment').get(
-                    'name') in deployment_names):
-                pods_info = [pod for pod in all_pods if
-                            kubernetes_utils.is_match_pod_naming_rule(
-                                'Deployment',
-                                vnfc.metadata.get('Deployment').get('name'),
-                                pod.metadata.name)]
-                if 'Pending' in [pod.status.phase for pod in pods_info] or (
-                        'Unknown' in [pod.status.phase for pod in pods_info]):
-                    pod_name = [pod.metadata.name for pod in pods_info
-                                if pod.status.phase in [
-                                    'Pending', 'Unknown']][0]
-                    error_resource = objects.VnfcResourceInfoV2(
-                        id=uuidutils.generate_uuid(),
-                        vduId=vnfc.vduId,
+    def _update_vnfc_info(self, inst, k8s_api_client):
+        all_pods = kubernetes_utils.list_namespaced_pods(
+            k8s_api_client, inst.instantiatedVnfInfo.metadata['namespace'])
+        vnfc_resources = []
+        for pod in all_pods:
+            pod_name = pod.metadata.name
+            for vdu_name, vdu_res in (
+                    inst.instantiatedVnfInfo.metadata['vdu_reses'].items()):
+                if kubernetes_utils.is_match_pod_naming_rule(
+                        vdu_res['kind'], vdu_res['metadata']['name'],
+                        pod_name):
+                    vnfc_resources.append(objects.VnfcResourceInfoV2(
+                        id=pod_name,
+                        vduId=vdu_name,
                         computeResource=objects.ResourceHandle(
                             resourceId=pod_name,
-                            vimLevelResourceType='Deployment'
+                            vimLevelResourceType=vdu_res['kind']
                         ),
-                        metadata={'Deployment': vnfc.metadata.get(
-                            'Deployment')}
-                    )
-                    continue
-                pod_info = pods_info.pop(-1)
-                vnfc.id = uuidutils.generate_uuid()
-                vnfc.computeResource.resourceId = pod_info.metadata.name
-                vnfc.metadata['Pod'] = pod_info.metadata.to_dict()
-                all_pods.remove(pod_info)
+                        # lcmocc_utils.update_lcmocc assumes its existence
+                        metadata={}
+                    ))
 
-        if error_resource:
-            inst.instantiatedVnfInfo.vnfcResourceInfo.append(error_resource)
+        inst.instantiatedVnfInfo.vnfcResourceInfo = vnfc_resources
+
+        # make vnfcInfo
+        # NOTE: vnfcInfo only exists in SOL002
+        inst.instantiatedVnfInfo.vnfcInfo = [
+            objects.VnfcInfoV2(
+                id=f'{vnfc_res_info.vduId}-{vnfc_res_info.id}',
+                vduId=vnfc_res_info.vduId,
+                vnfcResourceInfoId=vnfc_res_info.id,
+                vnfcState='STARTED'
+            )
+            for vnfc_res_info in vnfc_resources
+        ]
+
+    def _check_status(self, check_func, *args):
+        timer = loopingcall.FixedIntervalWithTimeoutLoopingCall(
+            check_func, *args)
+        try:
+            timer.start(interval=CHECK_INTERVAL,
+                timeout=CONF.v2_vnfm.kubernetes_vim_rsc_wait_timeout).wait()
+        except loopingcall.LoopingCallTimeOut:
+            raise sol_ex.K8sOperaitionTimeout()
+
+    def _wait_k8s_reses_ready(self, k8s_reses):
+        def _check_ready(check_reses):
+            ok_reses = {res for res in check_reses if res.is_ready()}
+            check_reses -= ok_reses
+            if not check_reses:
+                raise loopingcall.LoopingCallDone()
+
+        check_reses = set(k8s_reses)
+        self._check_status(_check_ready, check_reses)
+
+    def _wait_k8s_reses_deleted(self, k8s_reses):
+        def _check_deleted(check_reses):
+            ok_reses = {res for res in check_reses if not res.is_exists()}
+            check_reses -= ok_reses
+            if not check_reses:
+                raise loopingcall.LoopingCallDone()
+
+        check_reses = set(k8s_reses)
+        self._check_status(_check_deleted, check_reses)
+
+    def _wait_k8s_reses_updated(self, k8s_reses, k8s_api_client, namespace,
+            old_pods_names):
+        def _check_update(check_reses, k8s_api_client, namespace,
+                old_pods_names):
+            ok_reses = set()
+            all_pods = kubernetes_utils.list_namespaced_pods(
+                k8s_api_client, namespace)
+            for res in check_reses:
+                pods_info = [pod for pod in all_pods
+                             if kubernetes_utils.is_match_pod_naming_rule(
+                                 res.kind, res.name, pod.metadata.name)]
+                if res.is_update(pods_info, old_pods_names):
+                    ok_reses.add(res)
+            check_reses -= ok_reses
+            if not check_reses:
+                raise loopingcall.LoopingCallDone()
+
+        check_reses = set(k8s_reses)
+        self._check_status(_check_update, check_reses, k8s_api_client,
+                           namespace, old_pods_names)

@@ -193,6 +193,16 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
         return self.tacker_client.do_request(
             path, "POST", body=req_body, version="2.0.0")
 
+    def scale_vnf_instance(self, inst_id, req_body):
+        path = f"/vnflcm/v2/vnf_instances/{inst_id}/scale"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="2.0.0")
+
+    def heal_vnf_instance(self, inst_id, req_body):
+        path = f"/vnflcm/v2/vnf_instances/{inst_id}/heal"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="2.0.0")
+
     def change_vnfpkg(self, inst_id, req_body):
         path = f"/vnflcm/v2/vnf_instances/{inst_id}/change_vnfpkg"
         return self.tacker_client.do_request(

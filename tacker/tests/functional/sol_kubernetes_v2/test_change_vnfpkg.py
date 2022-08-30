@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import ddt
 import os
 import time
 
@@ -21,7 +20,6 @@ from tacker.tests.functional.sol_kubernetes_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
 
 
-@ddt.ddt
 class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
     @classmethod
@@ -50,16 +48,8 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
     def setUp(self):
         super(VnfLcmKubernetesChangeVnfpkgTest, self).setUp()
 
-    def test_change_vnfpkg_for_deployment_res_with_all_params(self):
-        """Test ChangeCurrentVNFPackage with all attributes set
-
-        * About attributes:
-          All of the following cardinality attributes are set.
-          In addition, 0..N or 1..N attributes are set to 2 or more.
-          - 0..1 (1)
-          - 0..N (2 or more)
-          - 1
-          - 1..N (2 or more)
+    def test_change_vnfpkg_for_deployment_res(self):
+        """Test ChangeCurrentVNFPackage
 
         * About LCM operations:
           This test includes the following operations.
@@ -114,9 +104,6 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # check vnfc_resource_info
-        # TODO()
-
         # 3. Show VNF instance
         additional_inst_attrs = [
             'vimConnectionInfo',
@@ -128,19 +115,20 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, expected_inst_attrs)
 
-        vnfc_resource_infos = body['instantiatedVnfInfo'].get(
-            'vnfcResourceInfo')
-        before_resource_ids = [vnfc_info['computeResource']['resourceId']
-                            for vnfc_info in vnfc_resource_infos]
+        vnfc_resource_infos = body['instantiatedVnfInfo']['vnfcResourceInfo']
+        before_resource_ids = {vnfc_info['computeResource']['resourceId']
+                               for vnfc_info in vnfc_resource_infos}
+        self.assertEqual(2, len(before_resource_ids))
 
         # 4. Change Current VNF Package
-        change_vnfpkg_req = paramgen.change_vnfpkg_all_params(self.vnfd_id_2)
+        change_vnfpkg_req = paramgen.change_vnfpkg(self.vnfd_id_2)
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
+        time.sleep(3)
 
         # check usageState of VNF Package
         usage_state = self.get_vnf_package(self.vnf_pkg_1).get('usageState')
@@ -160,14 +148,14 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, expected_inst_attrs)
 
-        vnfc_resource_infos = body['instantiatedVnfInfo'].get(
-            'vnfcResourceInfo')
-        after_resource_ids = [vnfc_info['computeResource']['resourceId']
-                              for vnfc_info in vnfc_resource_infos]
+        vnfc_resource_infos = body['instantiatedVnfInfo']['vnfcResourceInfo']
+        after_resource_ids = {vnfc_info['computeResource']['resourceId']
+                              for vnfc_info in vnfc_resource_infos}
+        self.assertEqual(2, len(after_resource_ids))
         self.assertNotEqual(before_resource_ids, after_resource_ids)
 
         # 6. Terminate a VNF instance
-        terminate_req = paramgen.max_sample_terminate()
+        terminate_req = paramgen.change_vnfpkg_terminate()
         resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -177,7 +165,7 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         # wait a bit because there is a bit time lag between lcmocc DB
         # update and terminate completion.
-        time.sleep(10)
+        time.sleep(3)
 
         # 7. Delete a VNF instance
         resp, body = self.delete_vnf_instance(inst_id)
@@ -192,14 +180,8 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         usage_state = self.get_vnf_package(self.vnf_pkg_2).get('usageState')
         self.assertEqual('NOT_IN_USE', usage_state)
 
-    def test_change_vnfpkg_for_deployment_res_with_no_op_params(self):
-        """Test ChangeCurrentVNFPackage with no optional attributes
-
-        * About attributes:
-          Omit except for required attributes.
-          Only the following cardinality attributes are set.
-          - 1
-          - 1..N (1)
+    def test_change_vnfpkg_failed_and_rollback(self):
+        """Test LCM operations error handing
 
         * About LCM operations:
           This test includes the following operations.
@@ -207,9 +189,10 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
           - 2. Instantiate a VNF instance
           - 3. Show VNF instance
           - 4. Change Current VNF Package
-          - 5. Show VNF instance
-          - 6. Terminate a VNF instance
-          - 7. Delete a VNF instance
+          - 5. Rollback Change Current VNF Package
+          - 6. Show VNF instance
+          - 7. Terminate a VNF instance
+          - 8. Delete a VNF instance
         """
 
         # 1. Create a new VNF instance resource
@@ -245,8 +228,8 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual('IN_USE', usage_state)
 
         # 2. Instantiate a VNF instance
-        vim_id = self.get_k8s_vim_id()
-        instantiate_req = paramgen.change_vnfpkg_instantiate_min(vim_id)
+        instantiate_req = paramgen.change_vnfpkg_instantiate(
+            self.auth_url, self.bearer_token)
         resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -265,28 +248,26 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, expected_inst_attrs)
 
-        vnfc_resource_infos = body['instantiatedVnfInfo'].get(
-            'vnfcResourceInfo')
+        vnfc_resource_infos = body['instantiatedVnfInfo']['vnfcResourceInfo']
         before_resource_ids = [vnfc_info['computeResource']['resourceId']
                             for vnfc_info in vnfc_resource_infos]
 
-        # 4. Change Current VNF Package
-        change_vnfpkg_req = paramgen.change_vnfpkg_min(self.vnfd_id_2)
+        # 4. Change Current VNF Package (will fail)
+        change_vnfpkg_req = paramgen.change_vnfpkg_error(self.vnfd_id_2)
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
-        self.wait_lcmocc_complete(lcmocc_id)
+        self.wait_lcmocc_failed_temp(lcmocc_id)
 
-        # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1).get('usageState')
-        self.assertEqual('NOT_IN_USE', usage_state)
-        # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_2).get('usageState')
-        self.assertEqual('IN_USE', usage_state)
+        # 5. Rollback Change Current VNF Package operation
+        resp, body = self.rollback_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+        self.wait_lcmocc_rolled_back(lcmocc_id)
 
-        # 5. Show VNF instance
+        # 6. Show VNF instance
         additional_inst_attrs = [
             'vimConnectionInfo',
             'instantiatedVnfInfo'
@@ -297,14 +278,13 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, expected_inst_attrs)
 
-        vnfc_resource_infos = body['instantiatedVnfInfo'].get(
-            'vnfcResourceInfo')
+        vnfc_resource_infos = body['instantiatedVnfInfo']['vnfcResourceInfo']
         after_resource_ids = [vnfc_info['computeResource']['resourceId']
                               for vnfc_info in vnfc_resource_infos]
-        self.assertNotEqual(before_resource_ids, after_resource_ids)
+        self.assertEqual(before_resource_ids, after_resource_ids)
 
-        # 6. Terminate a VNF instance
-        terminate_req = paramgen.max_sample_terminate()
+        # 7. Terminate a VNF instance
+        terminate_req = paramgen.change_vnfpkg_terminate()
         resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -314,9 +294,9 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         # wait a bit because there is a bit time lag between lcmocc DB
         # update and terminate completion.
-        time.sleep(10)
+        time.sleep(3)
 
-        # 7. Delete a VNF instance
+        # 8. Delete a VNF instance
         resp, body = self.delete_vnf_instance(inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)

@@ -60,8 +60,14 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
           - 1. Create a new VNF instance resource
           - 2. Instantiate a VNF instance
           - 3. Show VNF instance
-          - 4. Terminate a VNF instance
-          - 5. Delete a VNF instance
+          - 4. Scale out a VNF instance
+          - 5. Show VNF instance
+          - 6. Scale in a VNF instance
+          - 7. Show VNF instance
+          - 8. Heal in a VNF instance
+          - 9. Show VNF instance
+          - 10. Terminate a VNF instance
+          - 11. Delete a VNF instance
         """
 
         # 1. Create a new VNF instance resource
@@ -118,26 +124,99 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.check_resp_body(body, expected_inst_attrs)
 
         # check vnfc_resource_info
-        vnfc_resource_infos = body['instantiatedVnfInfo'].get(
-            'vnfcResourceInfo')
+        vnfc_resource_infos = body['instantiatedVnfInfo']['vnfcResourceInfo']
+        vdu_nums = {'VDU1': 0, 'VDU2': 0, 'VDU3': 0, 'VDU5': 0, 'VDU6': 0}
         for vnfc_info in vnfc_resource_infos:
             if vnfc_info['vduId'] == 'VDU1':
                 self.assertEqual('Pod', vnfc_info[
                     'computeResource']['vimLevelResourceType'])
+                vdu_nums['VDU1'] += 1
             elif vnfc_info['vduId'] == 'VDU2':
                 self.assertEqual('Deployment', vnfc_info[
                     'computeResource']['vimLevelResourceType'])
+                vdu_nums['VDU2'] += 1
             elif vnfc_info['vduId'] == 'VDU3':
                 self.assertEqual('ReplicaSet', vnfc_info[
                     'computeResource']['vimLevelResourceType'])
+                vdu_nums['VDU3'] += 1
             elif vnfc_info['vduId'] == 'VDU5':
                 self.assertEqual('StatefulSet', vnfc_info[
                     'computeResource']['vimLevelResourceType'])
+                vdu_nums['VDU5'] += 1
             elif vnfc_info['vduId'] == 'VDU6':
                 self.assertEqual('DaemonSet', vnfc_info[
                     'computeResource']['vimLevelResourceType'])
+                vdu_nums['VDU6'] += 1
+        expected = {'VDU1': 1, 'VDU2': 2, 'VDU3': 1, 'VDU5': 1, 'VDU6': 1}
+        self.assertEqual(expected, vdu_nums)
 
-        # 4. Terminate a VNF instance
+        # 4. Scale out a VNF instance
+        scale_out_req = paramgen.max_sample_scale_out()
+        resp, body = self.scale_vnf_instance(inst_id, scale_out_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 5. Show VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+
+        # check vnfc_resource_info
+        vnfc_resource_infos = body['instantiatedVnfInfo']['vnfcResourceInfo']
+        vdu3_infos = [vnfc_info for vnfc_info in vnfc_resource_infos
+                if vnfc_info['vduId'] == 'VDU3']
+        self.assertEqual(3, len(vdu3_infos))
+
+        # 6. Scale in a VNF instance
+        scale_in_req = paramgen.max_sample_scale_in()
+        resp, body = self.scale_vnf_instance(inst_id, scale_in_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 7. Show VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+
+        # check vnfc_resource_info
+        vnfc_resource_infos = body['instantiatedVnfInfo']['vnfcResourceInfo']
+        vdu3_infos = [vnfc_info for vnfc_info in vnfc_resource_infos
+                if vnfc_info['vduId'] == 'VDU3']
+        self.assertEqual(2, len(vdu3_infos))
+
+        # 8. Heal a VNF instance
+        vnfc_infos = body['instantiatedVnfInfo']['vnfcInfo']
+        vdu2_ids = [vnfc_info['id'] for vnfc_info in vnfc_infos
+            if vnfc_info['vduId'] == 'VDU2']
+        target = [vdu2_ids[0]]
+        heal_req = paramgen.max_sample_heal(target)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 9. Show VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+
+        # check vnfc_resource_info
+        vnfc_infos = body['instantiatedVnfInfo']['vnfcInfo']
+        result_vdu2_ids = [vnfc_info['id'] for vnfc_info in vnfc_infos
+            if vnfc_info['vduId'] == 'VDU2']
+        self.assertEqual(2, len(result_vdu2_ids))
+        self.assertNotIn(vdu2_ids[0], result_vdu2_ids)
+        self.assertIn(vdu2_ids[1], result_vdu2_ids)
+
+        # 10. Terminate a VNF instance
         terminate_req = paramgen.max_sample_terminate()
         resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
         self.assertEqual(202, resp.status_code)
@@ -148,9 +227,9 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         # wait a bit because there is a bit time lag between lcmocc DB
         # update and terminate completion.
-        time.sleep(10)
+        time.sleep(3)
 
-        # 5. Delete a VNF instance
+        # 11. Delete a VNF instance
         resp, body = self.delete_vnf_instance(inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
@@ -250,7 +329,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         # wait a bit because there is a bit time lag between lcmocc DB
         # update and terminate completion.
-        time.sleep(10)
+        time.sleep(3)
 
         # 5. Delete a VNF instance
         resp, body = self.delete_vnf_instance(inst_id)
@@ -264,3 +343,152 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
         # check usageState of VNF Package
         usage_state = self.get_vnf_package(self.vnf_pkg_1).get('usageState')
         self.assertEqual('NOT_IN_USE', usage_state)
+
+    def _put_fail_file(self, operation):
+        with open(f'/tmp/{operation}', 'w'):
+            pass
+
+    def _rm_fail_file(self, operation):
+        os.remove(f'/tmp/{operation}')
+
+    def test_instantiate_rollback(self):
+        """Test LCM operations with all attributes set
+
+        * About LCM operations:
+          This test includes the following operations.
+          - 1. Create a new VNF instance resource
+          - 2. Instantiate a VNF instance => FAILED_TEMP
+          - 3. Show VNF instance
+          - 4. Rollback instantiate
+          - 5. Show VNF instance
+          - 6. Delete a VNF instance
+        """
+
+        # 1. Create a new VNF instance resource
+        create_req = paramgen.test_instantiate_cnf_resources_create(
+            self.vnfd_id_1)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        inst_id = body['id']
+
+        # 2. Instantiate a VNF instance
+        self._put_fail_file('instantiate_end')
+        instantiate_req = paramgen.error_handling_instantiate(
+            self.auth_url, self.bearer_token)
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+        self._rm_fail_file('instantiate_end')
+
+        # 3. Show VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('NOT_INSTANTIATED', body['instantiationState'])
+
+        # 4. Rollback instantiate
+        resp, body = self.rollback_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.wait_lcmocc_rolled_back(lcmocc_id)
+
+        # 5. Show VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('NOT_INSTANTIATED', body['instantiationState'])
+
+        # 6. Delete a VNF instance
+        resp, body = self.delete_vnf_instance(inst_id)
+        self.assertEqual(204, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+
+    def test_scale_out_rollback(self):
+        """Test LCM operations with all attributes set
+
+        * About LCM operations:
+          This test includes the following operations.
+          - 1. Create a new VNF instance resource
+          - 2. Instantiate a VNF instance
+          - 3. Show VNF instance
+          - 4. Scale out ==> FAILED_TEMP
+          - 5. Rollback
+          - 5. Show VNF instance
+          - 6. Terminate a VNF instance
+          - 7. Delete a VNF instance
+        """
+
+        # 1. Create a new VNF instance resource
+        create_req = paramgen.test_instantiate_cnf_resources_create(
+            self.vnfd_id_1)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        inst_id = body['id']
+
+        # 2. Instantiate a VNF instance
+        instantiate_req = paramgen.error_handling_instantiate(
+            self.auth_url, self.bearer_token)
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 3. Show VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+
+        vnfc_resource_infos = body['instantiatedVnfInfo']['vnfcResourceInfo']
+        vdu2_ids_0 = {vnfc_info['id'] for vnfc_info in vnfc_resource_infos
+                      if vnfc_info['vduId'] == 'VDU2'}
+        self.assertEqual(2, len(vdu2_ids_0))
+
+        # 4. Scale out a VNF instance
+        self._put_fail_file('scale_end')
+        scale_out_req = paramgen.error_handling_scale_out()
+        resp, body = self.scale_vnf_instance(inst_id, scale_out_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+        self._rm_fail_file('scale_end')
+
+        # 5. Rollback instantiate
+        resp, body = self.rollback_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.wait_lcmocc_rolled_back(lcmocc_id)
+
+        # 6. Show VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+
+        vnfc_resource_infos = body['instantiatedVnfInfo']['vnfcResourceInfo']
+        vdu2_ids_1 = {vnfc_info['id'] for vnfc_info in vnfc_resource_infos
+                      if vnfc_info['vduId'] == 'VDU2'}
+        self.assertEqual(vdu2_ids_0, vdu2_ids_1)
+
+        # 7. Terminate a VNF instance
+        terminate_req = paramgen.error_handling_terminate()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # wait a bit because there is a bit time lag between lcmocc DB
+        # update and terminate completion.
+        time.sleep(3)
+
+        # 8. Delete a VNF instance
+        resp, body = self.delete_vnf_instance(inst_id)
+        self.assertEqual(204, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
