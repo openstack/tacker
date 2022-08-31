@@ -193,7 +193,7 @@ class TestVnfInstance(SqlTestCase):
         vnf_instance.create()
         result = objects.VnfInstanceList.get_all(self.context,
                                                  expected_attrs=None)
-        self.assertTrue(result.objects, list)
+        self.assertIsInstance(result.objects, list)
         self.assertTrue(result.objects)
 
     def test_vnf_instance_list_get_by_filters(self):
