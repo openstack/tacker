@@ -25,6 +25,7 @@ from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored.common import vim_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
+from tacker.sol_refactored.infra_drivers.kubernetes import helm
 from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes
 from tacker.sol_refactored.infra_drivers.openstack import openstack
 from tacker.sol_refactored.nfvo import nfvo_client
@@ -398,11 +399,28 @@ class VnfLcmDriverV2(object):
         # to here, although it is better to check in controller.
         if lcmocc.operationState == v2fields.LcmOperationStateType.STARTING:
             vim_info = inst_utils.select_vim_info(vim_infos)
-            if (vim_info.vimType == "kubernetes" and
-                    not req.get('additionalParams', {}).get(
+            if vim_info.vimType == "kubernetes":
+                if 'endpoint' not in vim_info.interfaceInfo:
+                    detail = "Required attribute missing in vimConnectionInfo"
+                    raise sol_ex.SolValidationError(detail=detail)
+                if (not req.get('additionalParams', {}).get(
                         'lcm-kubernetes-def-files')):
-                raise sol_ex.SolValidationError(
-                    detail="'lcm-kubernetes-def-files' must be specified")
+                    raise sol_ex.SolValidationError(
+                        detail="'lcm-kubernetes-def-files' must be specified")
+            elif vim_info.vimType == "ETSINFV.HELM.V_3":
+                if ('endpoint' not in vim_info.interfaceInfo or
+                        'ssl_ca_cert' not in vim_info.interfaceInfo or
+                        'bearer_token' not in vim_info.accessInfo):
+                    detail = "Required attribute missing in vimConnectionInfo"
+                    raise sol_ex.SolValidationError(detail=detail)
+                if (not req.get('additionalParams', {}).get(
+                        'helm_chart_path')):
+                    raise sol_ex.SolValidationError(
+                        detail="'helm_chart_path' must be specified")
+                if (not req.get('additionalParams', {}).get(
+                        'helm_value_names')):
+                    raise sol_ex.SolValidationError(
+                        detail="'helm_value_names' must be specified")
 
     def instantiate_process(self, context, lcmocc, inst, grant_req,
             grant, vnfd):
@@ -416,6 +434,9 @@ class VnfLcmDriverV2(object):
             driver.instantiate(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'kubernetes':
             driver = kubernetes.Kubernetes()
+            driver.instantiate(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'ETSINFV.HELM.V_3':
+            driver = helm.Helm()
             driver.instantiate(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
@@ -432,6 +453,9 @@ class VnfLcmDriverV2(object):
             driver.instantiate_rollback(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'kubernetes':
             driver = kubernetes.Kubernetes()
+            driver.instantiate_rollback(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'ETSINFV.HELM.V_3':
+            driver = helm.Helm()
             driver.instantiate_rollback(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
@@ -575,6 +599,9 @@ class VnfLcmDriverV2(object):
         elif vim_info.vimType == 'kubernetes':
             driver = kubernetes.Kubernetes()
             driver.terminate(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'ETSINFV.HELM.V_3':
+            driver = helm.Helm()
+            driver.terminate(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
@@ -688,6 +715,9 @@ class VnfLcmDriverV2(object):
         elif vim_info.vimType == 'kubernetes':
             driver = kubernetes.Kubernetes()
             driver.scale(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'ETSINFV.HELM.V_3':
+            driver = helm.Helm()
+            driver.scale(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
@@ -704,6 +734,9 @@ class VnfLcmDriverV2(object):
             driver.scale_rollback(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'kubernetes':
             driver = kubernetes.Kubernetes()
+            driver.scale_rollback(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'ETSINFV.HELM.V_3':
+            driver = helm.Helm()
             driver.scale_rollback(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
@@ -887,6 +920,9 @@ class VnfLcmDriverV2(object):
         elif vim_info.vimType == 'kubernetes':
             driver = kubernetes.Kubernetes()
             driver.heal(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'ETSINFV.HELM.V_3':
+            driver = helm.Helm()
+            driver.heal(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
@@ -1055,6 +1091,9 @@ class VnfLcmDriverV2(object):
         elif vim_info.vimType == 'kubernetes':
             driver = kubernetes.Kubernetes()
             driver.change_vnfpkg(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'ETSINFV.HELM.V_3':
+            driver = helm.Helm()
+            driver.change_vnfpkg(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
@@ -1073,6 +1112,9 @@ class VnfLcmDriverV2(object):
             driver = kubernetes.Kubernetes()
             driver.change_vnfpkg_rollback(
                 req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'ETSINFV.HELM.V_3':
+            driver = helm.Helm()
+            driver.change_vnfpkg_rollback(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')

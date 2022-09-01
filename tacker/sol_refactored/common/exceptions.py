@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from tacker._i18n import _
+
 
 class SolException(Exception):
     """Exception for SOL ProblemDetails
@@ -361,3 +363,12 @@ class K8sInvalidManifestFound(SolHttpError400):
 class OIDCAuthFailed(SolHttpError400):
     message = _("OIDC authentication and authorization failed."
                 " Detail: %(detail)s")
+
+
+class HelmOperationFailed(SolHttpError422):
+    title = 'Helm operation failed'
+    # detail set in the code
+
+
+class HelmParameterNotFound(SolHttpError400):
+    message = _("Helm parameter for scale vdu %(vdu_name)s is not found.")

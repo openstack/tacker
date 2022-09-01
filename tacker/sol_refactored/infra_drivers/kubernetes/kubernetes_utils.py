@@ -25,62 +25,36 @@ import yaml
 
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import oidc_utils
+from tacker.sol_refactored.infra_drivers.kubernetes import helm_utils
 from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes_resource
 
 
 LOG = logging.getLogger(__name__)
 
-SUPPORTED_NAMESPACE_KINDS = [
-    "Pod",
+SUPPORTED_NAMESPACE_KINDS = {
     "Binding",
     "ConfigMap",
-    "LimitRange",
-    "PersistentVolumeClaim",
-    "PodTemplate",
-    "ResourceQuota",
-    "Secret",
-    "ServiceAccount",
-    "Service",
     "ControllerRevision",
     "DaemonSet",
     "Deployment",
-    "ReplicaSet",
-    "StatefulSet",
-    "LocalSubjectAccessReview",
     "HorizontalPodAutoscaler",
     "Job",
     "Lease",
+    "LimitRange",
+    "LocalSubjectAccessReview",
     "NetworkPolicy",
-    "RoleBinding",
+    "PersistentVolumeClaim",
+    "Pod",
+    "PodTemplate",
+    "ReplicaSet",
+    "ResourceQuota",
     "Role"
-]
-
-
-def is_match_pod_naming_rule(rsc_kind, rsc_name, pod_name):
-    match_result = None
-    if rsc_kind == 'Pod':
-        # Expected example: name
-        if rsc_name == pod_name:
-            return True
-    elif rsc_kind == 'Deployment':
-        # Expected example: name-012789abef-019az
-        # NOTE(horie): The naming rule of Pod in deployment is
-        # "(deployment name)-(pod template hash)-(5 charactors)".
-        # The "pod template hash" string is generated from 32 bit hash.
-        # This may be from 1 to 10 caracters but not sure the lower limit
-        # from the source code of Kubernetes.
-        match_result = re.match(
-            rsc_name + '-([0-9a-f]{1,10})-([0-9a-z]{5})+$', pod_name)
-    elif rsc_kind in ('ReplicaSet', 'DaemonSet'):
-        # Expected example: name-019az
-        match_result = re.match(rsc_name + '-([0-9a-z]{5})+$', pod_name)
-    elif rsc_kind == 'StatefulSet':
-        # Expected example: name-0
-        match_result = re.match(rsc_name + '-[0-9]+$', pod_name)
-    if match_result:
-        return True
-
-    return False
+    "RoleBinding",
+    "Secret",
+    "Service",
+    "ServiceAccount",
+    "StatefulSet",
+}
 
 
 def get_k8s_reses_from_json_files(target_k8s_files, vnfd, k8s_api_client,
@@ -122,8 +96,11 @@ def get_k8s_reses_from_json_files(target_k8s_files, vnfd, k8s_api_client,
 
     k8s_reses = []
     for k8s_res in k8s_resources:
-        cls = getattr(kubernetes_resource, k8s_res['kind'])
-        k8s_reses.append(cls(k8s_api_client, k8s_res))
+        try:
+            cls = getattr(kubernetes_resource, k8s_res['kind'])
+            k8s_reses.append(cls(k8s_api_client, k8s_res))
+        except AttributeError:
+            LOG.info("Not support kind %s. ignored.", k8s_res['kind'])
 
     return k8s_reses, namespace
 
@@ -146,6 +123,8 @@ class AuthContextManager:
             os.remove(self.ca_cert_file)
 
     def _create_ca_cert_file(self, ca_cert_str):
+        if self.ca_cert_file:
+            return
         file_descriptor, self.ca_cert_file = tempfile.mkstemp()
         ca_cert = re.sub(r'\s', '\n', ca_cert_str)
         ca_cert = re.sub(r'BEGIN\nCERT', r'BEGIN CERT', ca_cert)
@@ -194,3 +173,17 @@ class AuthContextManager:
             k8s_config.verify_ssl = False
 
         return client.api_client.ApiClient(configuration=k8s_config)
+
+    def _get_helm_auth_params(self):
+        kube_apiserver = self.vim_info.interfaceInfo['endpoint']
+        kube_token = self.vim_info.accessInfo['bearer_token']
+        self._create_ca_cert_file(
+            self.vim_info.interfaceInfo['ssl_ca_cert'])
+        helm_auth_params = ["--kube-apiserver", kube_apiserver,
+                            "--kube-ca-file", self.ca_cert_file,
+                            "--kube-token", kube_token]
+
+        return helm_auth_params
+
+    def init_helm_client(self):
+        return helm_utils.HelmClient(self._get_helm_auth_params())

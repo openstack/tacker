@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Support LCM operations using Helm chart
+    for v2 LCM API. This feature enables
+    v2 LCM operations with Helm chart,
+    instantiationLevel parameter to
+    determine the initial number of Pods,
+    and vimConnectionInfo.extra field.

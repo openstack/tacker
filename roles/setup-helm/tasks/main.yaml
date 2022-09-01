@@ -104,3 +104,24 @@
     - inventory_hostname == 'controller'
     - helm_version is defined
 
+- block:
+  - name: Download Helm
+    get_url:
+      url: "https://get.helm.sh/helm-v{{ helm_version }}-linux-amd64.tar.gz"
+      dest: "/tmp/helm-v{{ helm_version }}-linux-amd64.tar.gz"
+      force: yes
+
+  - name: Unarchive Helm
+    unarchive:
+      src: "/tmp/helm-v{{ helm_version }}-linux-amd64.tar.gz"
+      dest: "/tmp"
+      remote_src: yes
+    become: yes
+
+  - name: Move Helm binary
+    shell: mv /tmp/linux-amd64/helm /usr/local/bin/helm
+    become: yes
+
+  when:
+    - inventory_hostname == 'controller-tacker'
+    - helm_version is defined
