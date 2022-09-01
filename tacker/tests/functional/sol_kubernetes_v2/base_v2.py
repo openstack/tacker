@@ -49,6 +49,7 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
         k8s_vim_info = cls.get_k8s_vim_info()
         cls.auth_url = k8s_vim_info.interfaceInfo['endpoint']
         cls.bearer_token = k8s_vim_info.accessInfo['bearer_token']
+        cls.ssl_ca_cert = k8s_vim_info.interfaceInfo['ssl_ca_cert']
 
         vim_info = cls.get_vim_info()
         auth = http_client.KeystonePasswordAuthHandle(
@@ -85,7 +86,10 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
         vim_params = yaml.safe_load(base_utils.read_file('local-k8s-vim.yaml'))
 
         vim_info = objects.VimConnectionInfo(
-            interfaceInfo={'endpoint': vim_params['auth_url']},
+            interfaceInfo={
+                'endpoint': vim_params['auth_url'],
+                'ssl_ca_cert': vim_params.get('ssl_ca_cert')
+            },
             accessInfo={
                 'region': 'RegionOne',
                 'bearer_token': vim_params['bearer_token']

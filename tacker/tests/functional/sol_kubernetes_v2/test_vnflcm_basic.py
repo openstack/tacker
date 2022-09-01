@@ -98,7 +98,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         # 2. Instantiate a VNF instance
         instantiate_req = paramgen.max_sample_instantiate(
-            self.auth_url, self.bearer_token)
+            self.auth_url, self.bearer_token, ssl_ca_cert=self.ssl_ca_cert)
         resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
